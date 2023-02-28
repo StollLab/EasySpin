@@ -307,7 +307,7 @@ if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
@@ -480,9 +480,6 @@ end
 logmsg(1,'  %d points',Exp.nPoints);
 
 % Complain if fields only valid in pepper() are given
-if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
 end
@@ -517,7 +514,7 @@ useDirectorOrdering = ~isempty(Exp.Ordering);
 % Determine whether to do a powder simulation
 % (without potential, no powder sim is necessary - it's identical to a
 % single-orientation sim)
-PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
+PowderSimulation = isempty(Exp.SampleFrame) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -879,9 +876,9 @@ if PowderSimulation
   end
   logmsg(1,'  powder simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
-  if ~isempty(Exp.CrystalOrientation)
-    phi = Exp.CrystalOrientation(1);
-    theta = Exp.CrystalOrientation(2);
+  if ~isempty(Exp.SampleFrame)
+    phi = -Exp.SampleFrame(3);
+    theta = -Exp.SampleFrame(2);
   else
     phi = 0;
     theta = 0;

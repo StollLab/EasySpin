@@ -13,7 +13,7 @@ Sys.lwpp = 2;
 Exp.mwFreq = 9.5;
 Exp.Range = [180 500];
 Exp.nPoints = 10000;
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 Exp.Temperature = 8;
 
 Opt.Method = 'matrix';

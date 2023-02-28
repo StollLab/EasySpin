@@ -14,7 +14,7 @@ Sys.lwpp = 20;
 Exp.Field = 350;
 Exp.mwRange = [7 11];
 Exp.nPoints = 40000;
-Exp.CrystalOrientation = [0 0 0] ;
+Exp.SampleFrame = [0 0 0] ;
 Exp.Temperature = 8;
 
 Opt.Method = 'matrix';

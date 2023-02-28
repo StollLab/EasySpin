@@ -4,7 +4,7 @@ function [ok,data] = test(opt,olddata)
 
 Sys = struct('S',1/2,'g',[2 2 2.3],'Nucs','14N,1H','A',[1 1 1;1 1 1]*20);
 Exp = struct('mwFreq',9.5,'Range',[200 400]);
-Exp.CrystalOrientation = [10 10 0]*pi/180;
+Exp.SampleFrame = [0 -10 -10]*pi/180;
 Opt = struct('Threshold',0,'Verbosity',0,'Perturb',0);
 Opt.RejectionRatio = 1e-3;
 

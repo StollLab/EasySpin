@@ -10,7 +10,7 @@ Exp.Harmonic = 0;
 
 % Orientation of the crystal frame in the lab frame.
 % Change this value to turn the crystal in the spectrometer.
-Exp.CrystalOrientation = pi/180*[0 0 0];
+Exp.SampleFrame = [0 0 0]*pi/180;
 
 Opt.Verbosity = 0;
 
@@ -29,20 +29,20 @@ Sys2.D = D*[1 -0.1];
 % Simulations & Graphical rendering
 %-------------------------------------------------------------
 subplot(3,2,1);
-levelsplot(Sys1,Exp.CrystalOrientation,Exp.Range,Exp.mwFreq);
+levelsplot(Sys1,Exp.SampleFrame,Exp.Range,Exp.mwFreq);
 title('Axial D tensor');
 
 subplot(3,2,3);
 pepper(Sys1,Exp,Opt);
 
 subplot(3,2,2);
-levelsplot(Sys2,Exp.CrystalOrientation,Exp.Range,Exp.mwFreq);
+levelsplot(Sys2,Exp.SampleFrame,Exp.Range,Exp.mwFreq);
 title('Non-axial D tensor');
 
 subplot(3,2,4);
 pepper(Sys2,Exp,Opt);
 
-Exp.CrystalOrientation = [];
+Exp.SampleFrame = [];
 
 subplot(3,2,5);
 pepper(Sys1,Exp,Opt);

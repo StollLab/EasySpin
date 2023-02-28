@@ -11,7 +11,7 @@ Sys.lw = 0.5;
 Exp.mwFreq = 9.5;
 Exp.Range = [290 350];
 
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 Exp.CrystalSymmetry = 130;
 
 Sys.gFrame = gFrame;

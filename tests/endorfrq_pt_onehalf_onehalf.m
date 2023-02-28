@@ -6,7 +6,7 @@ clear
 Sys.Nucs='13C';
 Exp.Field=352.3;
 Exp.mwFreq=9.5;
-Exp.CrystalOrientation = [0 pi/4 0];
+Exp.SampleFrame = [0 pi/4 0];
 
 % weak coupling
 Sys.A = [5 9];

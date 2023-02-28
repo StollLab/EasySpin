@@ -19,7 +19,7 @@ Opt.Verbosity = 1;
 
 % simulation of two single-crystal spectra
 % in one pepper call
-Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];
+Exp.SampleFrame = [0 0 0; 0 -pi/2 0];
 Opt.Output = 'separate';
 [B,spec] = pepper(Sys,Exp,Opt);
 spec1 = spec(1,:);

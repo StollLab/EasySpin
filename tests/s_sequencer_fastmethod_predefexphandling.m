@@ -20,7 +20,7 @@ RefExp2 = RefExp;
 RefExp2.Range = [0 30];
 RefExp2.mwFreq = 9.4;
 RefExp2.ExciteWidth = 200;
-RefExp2.CrystalOrientation = [0 pi/2 0];  
+RefExp2.SampleFrame = [0 -pi/2 0];  
 RefExp2.CrystalSymmetry = 'C2h';
 
 Opt.GridSize = 20;

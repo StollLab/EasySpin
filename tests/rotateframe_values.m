@@ -7,7 +7,7 @@ rho = -3*pi/7;  % rotation angle, radians
 % Explicit rotation
 R = rotaxi2mat(nRot,rho);
 xyzC_L = erot(Frame);
-xyzC_L_rotated = R.'*xyzC_L;
+xyzC_L_rotated = R*xyzC_L;
 skipFitting = true;
 angles0 = eulang(xyzC_L_rotated,skipFitting);
 

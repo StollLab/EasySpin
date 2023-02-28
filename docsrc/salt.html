@@ -146,14 +146,14 @@ The excitation width of the microwave in MHz (responsible for orientation select
 Temperature at which the experiment is performed, in K. If omitted, no temperature effects are computed.
 </div>
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-An Nx3 or Nx2 array that specifies single-crystal orientations for which the EPR spectrum should be computed. Each row of <code>CrystalOrientation</code> contains the three Euler rotation angles that transform the <a href="frames.html">crystal frame (C) to the lab frame (L)</a>. If only two Euler angles are given, the third is set to zero. If <code>CrystalOrientation</code> is empty or not specified, the full powder spectrum is computed.
+An Nx3 or Nx2 array that specifies sample orientations for which the EPR spectrum should be computed. This applies to orientaed samples such as crystals or films. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample frame</a>. If only two Euler angles are given, the third is set to zero. If <code>SampleFrame</code> is empty or not specified, the full powder spectrum is computed.
 <pre class="matlab">
-Exp.CrystalOrientation = [0 0 0];              % single crystal, crystal z axis aligned with B0
-Exp.CrystalOrientation = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
-Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];    % two crystals
-Exp.CrystalOrientation = [];                   % powder
+Exp.SampleFrame = [0 0 0];              % single crystal, crystal z axis aligned with B0
+Exp.SampleFrame = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
+Exp.SampleFrame = [0 0 0; 0 pi/2 0];    % two crystals
+Exp.SampleFrame = [];                   % powder
 </pre>
 </div>
 
@@ -311,13 +311,7 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 <div class="optionfield"><code>Output</code></div>
 <div class="optiondescr">
 <code>'summed'</code> (default) or <code>'separate'</code><br>
-Determines in what form the spectrum is returned. For powder spectra,
-<code>'separate'</code> causes <code>salt</code> to return the spectra
-for different transitions separately in <code>spec(k,:)</code>. For
-single-crystal spectra, <code>'separate'</code> causes
-<code>salt</code> to return the spectra for different crystals
-(see <code>Exp.CrystalOrientation</code>)
-separately. <code>'summed'</code> means that only one total
+Determines in what form the spectrum is returned. For powder spectra, <code>'separate'</code> causes <code>salt</code> to return the spectra for different transitions separately in <code>spec(k,:)</code>. For single-crystal spectra, <code>'separate'</code> causes <code>salt</code> to return the spectra for different crystals (see <code>Exp.SampleFrame</code>) separately. <code>'summed'</code> means that only one total
 spectrum is returned.
 </div>
 

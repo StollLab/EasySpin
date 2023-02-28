@@ -337,10 +337,10 @@ For more settings, such as coherence filters, see the reference page on <a class
 <p>
 By default, <a class="esf" href="saffron.html">saffron</a> simulates powder spectra. 
 But just like all other EasySpin simulation functions, it can also handle single crystals. 
-For this, use the fields <code>Exp.CrystalOrientation</code> (for the crystal orientation in the spectrometer) and <code>Exp.CrystalSymmetry</code> (for the space group of the crystal, optional):
+For this, use the fields <code>Exp.SampleFrame</code> (for the crystal orientation in the spectrometer) and <code>Exp.CrystalSymmetry</code> (for the space group of the crystal, optional):
 
 <pre class="matlab">
-Exp.CrystalOrientation = [0 pi/2 0];    % single crystal, crystal z axis perpendicular to B0
+Exp.SampleFrame = [0 -pi/2 0];    % single crystal, crystal x axis parallel to the static field
 </pre>
 
 <p>

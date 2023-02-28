@@ -30,7 +30,7 @@ Sys2.gStrain = gs2;
 
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 Exp.Range = [332 342];
 
 [x,y_both] = pepper(Sys,Exp);

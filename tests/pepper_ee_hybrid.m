@@ -12,7 +12,7 @@ Sys.lwpp = [0 0.05];
 Exp.mwFreq = 9.452387;
 Exp.Range = [335 337];
 Exp.nPoints = 4096;
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 
 Opt.Method = 'hybrid';
 

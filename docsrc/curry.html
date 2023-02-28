@@ -148,14 +148,14 @@ chi_si = (4*pi*1e-6) *chisim_cgs ;  % convert to SI units
 <p>
 <code>curry</code> not only supports powder samples, but also single crystals. The following fields are needed for single-crystal calculations:
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-An Nx3 or Nx2 array that specifies single-crystal orientations for which the magnetic moment and the susceptibility should be computed. Each row of <code>CrystalOrientation</code> contains the three Euler rotation angles that transform the <a href="frames.html">crystal frame (C) to the lab frame (L)</a>. If only two Euler angles are given, the third is set to zero. If <code>CrystalOrientation</code> is empty or not specified, the full powder is computed.
+An Nx3 or Nx2 array that specifies the sample orientation for which the magnetic moment and the susceptibility should be computed. This is relevant for ordered samples such as crystals or thin films. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample frame</a>. If only two Euler angles are given, the third is set to zero. If <code>SampleFrame</code> is empty or not specified, the full powder average is computed.
+
 <pre class="matlab">
-Exp.CrystalOrientation = [0 0 0];              % single crystal, crystal z axis aligned with B0
-Exp.CrystalOrientation = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
-Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];    % two crystals
-Exp.CrystalOrientation = [];                   % powder
+Exp.SampleFrame = [0 0 0];              % single crystal, crystal z axis aligned with B0
+Exp.SampleFrame = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
+Exp.SampleFrame = [];                   % powder
 </pre>
 </div>
 

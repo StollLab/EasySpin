@@ -13,7 +13,7 @@ OrigSimulationMode = Opt.SimulationMode;
 saffronSpecificFieldsExp = {'ExciteWidth','Filter'};
 saffronSpecificFieldsOpt = {'TimeDomain','Expand','ProductRule',...
   'EndorMethod','nOffsets','lwOffset','logplot','Window','ZeroFillFactor'};
-generalFields = {'mwFreq','Field','CrystalOrientation','CrystalSymmetry'};
+generalFields = {'mwFreq','Field','SampleFrame','CrystalSymmetry'};
 
 % Check a few general fields if the fast algorithm can be run at all
 if isfield(Exp,'DetWindow')

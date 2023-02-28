@@ -8,7 +8,7 @@ Sys.A = [5 20];
 Sys.lwEndor = 0.5;
 
 Exp2.MolFrame = [pi/3 pi/6 pi/4];
-Exp2.CrystalOrientation = [pi/9 pi/5 0];
+Exp2.SampleFrame = [pi/9 pi/5 0];
 Exp2.CrystalSymmetry = 'P212121';
 
 Exp2.Sequence = 'HYSCORE';

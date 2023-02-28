@@ -214,7 +214,7 @@ if computeResonances
   
   resfieldsOpt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
-  Exp.CrystalOrientation = [phi theta chi];
+  Exp.SampleFrame = [-chi -theta -phi];
   [resonFields,intensity,~,Transitions] = resfields(Sys,Exp,resfieldsOpt);
   intensity = abs(intensity); % to handle emissive transitions (in spin-polarized systems)
 

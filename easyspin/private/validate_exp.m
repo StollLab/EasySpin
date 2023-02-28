@@ -24,7 +24,7 @@ switch program
     DefaultExp.ModAmp = 0;
     DefaultExp.mwPhase = 0;
 
-    DefaultExp.CrystalOrientation = [];
+    DefaultExp.SampleFrame = [];
     DefaultExp.CrystalSymmetry = '';
     DefaultExp.MolFrame = [];
 
@@ -202,9 +202,9 @@ switch program
 
     % Powder vs. crystal simulation
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-      error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
+      error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.SampleFrame instead.');
     end
-    PowderSimulation = isempty(Exp.CrystalOrientation);
+    PowderSimulation = isempty(Exp.SampleFrame);
     Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
     % Partial ordering
@@ -256,7 +256,7 @@ switch program
     if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
     if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-    if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+    if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
     % Number of points
     if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -417,9 +417,6 @@ switch program
     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Complain if fields only valid in pepper() are given
-    if isfield(Exp,'Orientations')
-      warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-    end
     if isfield(Exp,'CrystalSymmetry')
       warning('Exp.CrystalSymmetry is not used by chili.');
     end
@@ -450,7 +447,7 @@ switch program
         PowderSimulation = true;
       end    
     else
-      if ~isempty(Exp.CrystalOrientation)
+      if ~isempty(Exp.SampleFrame)
         logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
         PowderSimulation = false;
       else
@@ -471,7 +468,7 @@ switch program
     if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
     if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-    if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+    if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
     % Number of points
     if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -633,9 +630,6 @@ switch program
 %     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 % 
 %     % Complain if fields only valid in pepper() are given
-%     if isfield(Exp,'Orientations')
-%       warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-%     end
 %     if isfield(Exp,'CrystalSymmetry')
 %       warning('Exp.CrystalSymmetry is not used by chili.');
 %     end
@@ -666,7 +660,7 @@ switch program
 %         PowderSimulation = true;
 %       end    
 %     else
-%       if ~isempty(Exp.CrystalOrientation)
+%       if ~isempty(Exp.SampleFrame)
 %         logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
 %         PowderSimulation = false;
 %       else

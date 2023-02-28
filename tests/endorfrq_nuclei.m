@@ -4,7 +4,7 @@ function ok = test()
 
 Sys = struct('S',1/2,'g',[2 2 2],'Nucs','19F,1H','A',[1 1 1; 5 6 7]);
 Par = struct('mwFreq',9.5,'Field',350);
-Par.CrystalOrientation = [0 0 0];
+Par.SampleFrame = [0 0 0];
 Opt = struct('unused',NaN);
 
 Opt.Nuclei = 1;

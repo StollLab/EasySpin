@@ -121,7 +121,7 @@ end
 
 DefaultExp.Temperature = [];
 DefaultExp.Ordering = [];
-DefaultExp.CrystalOrientation = [];
+DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];
@@ -143,10 +143,7 @@ if ~isempty(Exp.Temperature)
 end
 
 % Powder vs. crystal simulation
-if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5). Use Exp.CrystalOrientation instead.');
-end
-PowderSimulation = isempty(Exp.CrystalOrientation);
+PowderSimulation = isempty(Exp.SampleFrame);
 Exp.PowderSimulation = PowderSimulation;
 
 if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = []; end

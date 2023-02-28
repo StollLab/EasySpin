@@ -12,24 +12,24 @@ Sys.Nucs = '1H';
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 
-nL = [0.2 -0.8 0.5]; % rotation axis, lab-fixed
-rho = deg2rad(266); % rotation angle
+nL = [0.2 -0.8 0.5];    % rotation axis, lab-fixed
+rho = deg2rad(266);     % rotation angle
 
-cori = [0 0 0]; % initial crystal orientation
+sampleframe0 = [10 50 -30]*pi/180;   % initial crystal orientation
 
-% Crystal rotation using rotateframe
-Exp.CrystalOrientation = rotateframe(cori,nL,rho);
+% Sample rotation using rotateframe()
+Exp.SampleFrame = rotateframe(sampleframe0,nL,rho);
+[B,spc1] = pepper(Sys,Exp);
+
+% Sample rotation using Exp.SampleRotation
+Exp.SampleFrame = sampleframe0;
+Exp.SampleRotation = {rho,nL};
 [B,spc2] = pepper(Sys,Exp);
 
-% Crystal rotation using Exp.SampleRotation
-Exp.CrystalOrientation = cori;
-Exp.SampleRotation = {rho,nL};
-[B,spc3] = pepper(Sys,Exp);
-
-ok = areequal(spc2,spc3,1e-10,'rel');
+ok = areequal(spc1,spc2,1e-10,'rel');
 
 if opt.Display
-  plot(B,spc2,B,spc3)
+  plot(B,spc1,B,spc2)
   axis tight
   legend('rotateframe','Exp.SampleRotation');
 end

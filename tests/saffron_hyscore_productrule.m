@@ -11,7 +11,7 @@ Exp = struct('Field', 1213.2,...
   'nPoints',10,...
   'tau' ,0.1);
 
-Exp.CrystalOrientation = [0 pi/4];
+Exp.SampleFrame = [0 pi/4];
 
 Opt.ProductRule = 0;
 [t,y0] = saffron(Sys,Exp,Opt);

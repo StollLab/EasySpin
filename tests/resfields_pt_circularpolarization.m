@@ -5,7 +5,7 @@ function ok = test()
 
 Exp.Range = [330 350];
 Exp.mwFreq = 9.5;
-Exp.CrystalOrientation = rand(1,3)*2*pi;
+Exp.SampleFrame = rand(1,3)*2*pi;
 
 Sys.g = 2;
 Exp.mwMode = {pi/2 pi/2};

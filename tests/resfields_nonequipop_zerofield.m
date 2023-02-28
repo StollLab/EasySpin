@@ -13,12 +13,12 @@ Exp.Harmonic = 0;
 pop = [1 0 0];
 Sys.initState = {pop,'zerofield'};
 
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 [Bpara,Apara] = resfields(Sys,Exp);
 [Bpara,idx] = sort(Bpara);
 Apara = Apara(idx);
 
-Exp.CrystalOrientation = [0 pi/2 0];
+Exp.SampleFrame = [0 -pi/2 0];
 [Bperp,Aperp] = resfields(Sys,Exp);
 [Bperp,idx] = sort(Bperp);
 Aperp = Aperp(idx);

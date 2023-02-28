@@ -18,7 +18,7 @@ rotN = [1 1 0];  % rotation axis
 N = 31;
 [phi,theta] = rotplane(rotN,[0 pi],N);
 chi = zeros(N,1);
-Exp.CrystalOrientation = [phi(:) theta(:) chi];
+Exp.SampleFrame = [chi -theta(:) -phi(:)];
 
 % Simulate spectra
 Bres = resfields(Sys,Exp);

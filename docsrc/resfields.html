@@ -103,13 +103,9 @@ To specify non-equilibrium populations, use the spin system field <code>Sys.init
 </p>
 </div>
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-A list of orientations for which resonance fields should be computed. It can be either a nx2 or a nx3 array, giving either two or three <a href="eulerangles.html">Euler angles</a>, in radians, per row to describe each orientation. The angles describe the transformation from the <a href="frames.html">crystal frame (C) to the lab frame(L)</a>. The external field is along the lab z axis (zL), and the microwave field is along the lab x axis (xL). Resonance fields and frequencies depend only on the first two angles, intensities also on the third.
-
-<p>
-&phi;, in the first column, is the angle between the xC axis and the xCyC plane projection of the orientation of the external field (zL) in the molecular frame of the spin system. &theta;, in the second column, is the angle at which the external field is off the zC axis. The optional &chi;, in the third column, specifies the third Euler angle and fixes the xL axis of the laboratory in the crystal frame. If the third angle is not given, it is assumed to be zero.
-</p>
+A list of orientations for which resonance fields should be computed. It can be either a nx2 or a nx3 array, giving either two or three <a href="eulerangles.html">Euler angles</a>, in radians, per row to describe each orientation. The angles describe the transformation from the <a href="frames.html">lab frame to the sample frame</a>. The external field is along the lab z axis (zL), and the microwave field is along the lab x axis (xL). Resonance fields and frequencies depend only on the first two angles, intensities also on the third.
 </div>
 
 <div class="optionfield"><code>CrystalSymmetry</code></div>
@@ -286,36 +282,38 @@ A comparison between the resonance field position obtained from <code>resfields<
 </p>
 
 <p>
-First we compute the resonance fields for an axial spin system with two equivalent protons.
+First we compute the resonance fields for an axial spin system one electron and one proton.
 </p>
 
 <pre class="matlab">
-Sys = struct('S',.5,'g',[2.3,2.3,2],...
-'Nucs','1H,1H','A',[10 10 500; 10 10 500]);
-Param = struct('mwFreq',9.5,'Range',[200 400]);
-[p,t] = sphgrid('Dinfh',201);
-Param.CrystalOrientation = [p;t].'';
-x = resfields(Sys,Param);
+clear
+Sys.g = [2.05 2.05 2.2];
+Sys.Nucs = '1H';
+Sys.A = [10 10 500];
+Exp.mwFreq = 9.5;
+Exp.Range = [200 400];
+grid = sphgrid('Dinfh',201);
+angles = [grid.phi; grid.theta].';
+Exp.SampleFrame = angles;
+B = resfields(Sys,Exp);
 </pre>
 
 <p>
 Next we compute line positions using <code>resfields_eig</code>, which is much slower.
 </p>
 <pre class="matlab">
-xr = [];
-for i=1:length(p)
-  Param.CrystalOrientation = [p(i),t(i)];
-  xr(:,i) = resfields_eig(Sys,Param);
-end
+Br = resfields_eig(Sys,Exp);
+Br = cell2mat(Br);
 </pre>
 
 <p>
 After plotting the result
 </p>
 <pre class="matlab">
-h = plot(t*180/pi,xr,'k.',t*180/pi,x,'r');
-ylim([290 360]);
-xlabel('theta [deg]'); ylabel('field [mT]');
+theta_deg = grid.theta*180/pi;
+plot(Br,theta_deg,'k.',B,theta_deg,'r');
+xlabel('field (mT)');
+ylabel('theta (deg)');
 </pre>
 
 <p>

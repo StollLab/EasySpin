@@ -14,13 +14,13 @@ Exp.Temperature = 1.8;
 Exp.Field = 0:250:12000;
 
 % Calculate data for powder and three crystal orientations
-Exp.CrystalOrientation = []; % powder
+Exp.SampleFrame = []; % powder
 magp = curry(Co,Exp);
-Exp.CrystalOrientation = [0 0 0]; % crystal, field along crystal z axis
+Exp.SampleFrame = [0 0 0]; % crystal z axis along field
 magz = curry(Co,Exp);
-Exp.CrystalOrientation = [0 pi/2 0]; % crystal, field along crystal x axis 
+Exp.SampleFrame = [0 -pi/2 0]; % crystal x axis along field
 magx = curry(Co,Exp);
-Exp.CrystalOrientation = [pi/2 pi/2 0]; % crystal, field along crystal y axis
+Exp.SampleFrame = [0 -pi/2 -pi/2]; % crystal y axis along field
 magy = curry(Co,Exp);
 
 % Plotting

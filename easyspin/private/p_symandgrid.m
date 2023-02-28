@@ -2,7 +2,7 @@
 %
 % requires
 %   Exp.PowderSimulation (required)
-%   Exp.CrystalOrientation (for crystal sims)
+%   Exp.SampleFrame (for oriented samples such as crystals)
 %   Sys (for symm() call)
 %   Sys.initState (optional)
 %   Opt.GridSymmetry (optional)
@@ -13,7 +13,7 @@
 %   Exp.theta
 %   Exp.OriWeights
 %   Exp.tri
-%   Exp.CrystalOrientation
+%   Exp.SampleFrame
 %   Exp.OriWeights
 %   Opt.GridSymmetry
 %   Opt.GridFrame
@@ -74,7 +74,7 @@ if Exp.PowderSimulation
   % Transform vector to reference frame representation and convert to polar angles.
   [Exp.phi,Exp.theta] = vec2ang(Opt.GridFrame*Vecs);
   clear Vecs
-  Exp.CrystalOrientation = [Exp.phi;Exp.theta].';
+  Exp.SampleFrame = [zeros(size(Exp.theta)); -Exp.theta; -Exp.phi].';
   nOrientations = numel(Exp.phi);
   
   %closedPhi = true;
@@ -100,13 +100,13 @@ if Exp.PowderSimulation
   
 else % no powder simulation
   
-  % Check Exp.CrystalOrientation
-  [nC1,nC2] = size(Exp.CrystalOrientation);
+  % Check Exp.SampleFrame
+  [nC1,nC2] = size(Exp.SampleFrame);
   if nC2~=2 && nC2~=3
-    error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
+    error('Exp.SampleFrame must be a Nx3 or Nx2 array, yours is %dx%d.',...
         nC1,nC2);
   end
-  nOrientations = size(Exp.CrystalOrientation,1);
+  nOrientations = size(Exp.SampleFrame,1);
   
   Opt.nOctants = -2;
   

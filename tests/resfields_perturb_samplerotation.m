@@ -4,7 +4,7 @@ Sys.S = 1/2;
 Sys.g = [2.0 2.1 2.2];
 Exp.mwFreq = 22;
 Exp.Range = [0 2000];
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 
 % Rotate sample such that zM, yM and xM end up along zL
 % and calculate resonance fields

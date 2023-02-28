@@ -13,7 +13,7 @@ Exp.mwFreq = 9.5;  % GHz
 Exp.Range = [280 400];  % mT
 Exp.Harmonic = 0;
 
-Exp.CrystalOrientation = [pi/3 pi/2 pi/8];
+Exp.SampleFrame = [pi/3 pi/2 pi/8];
 
 Exp.lightBeam = '';
 [~,Iiso] = resfields_perturb(Triplet,Exp);

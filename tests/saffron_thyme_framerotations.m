@@ -28,21 +28,21 @@ Exp.mwFreq = 9.3;
 Exp.Field = 332;
 Exp.DetPhase = 0;
 
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 
 [x1, y1] = saffron(Sys1,Exp);
 
-Exp.CrystalOrientation = -fliplr(angles);
+Exp.SampleFrame = -fliplr(angles);
 
 [x2, y2] = saffron(Sys2,Exp);
 
-if (opt.Display)
+if opt.Display
     clf
     plot(x1,real(y1),x2,real(y2),'--');
     legend({'external rotation' 'rotation with saffron'})
     axis tight
     ylabel('Signal')
-    xlabel('time [us]');
+    xlabel('time (µs)');
 end
 
 ok = areequal(y1, y2, 1e-12, 'abs');

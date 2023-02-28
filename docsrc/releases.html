@@ -87,6 +87,7 @@ $ReleaseID$
 <li><code>Exp.mwPolarization</code> and <code>Exp.Mode</code> have been removed and replaced with <code>Exp.mwMode</code>.</li>
 <li>The function <code>eigfields</code> has been renamed to <a href="resfields_eig.html">resfields_eig</a>.</li>
 <li>The oldest supported Matlab version is now R2017a.
+<li>To specify the sample orientation, use <code>Exp.SampleFrame</code>. <code>ExpCrystalOrientations</code> is no longer supported. To convert, flip the order and the sign of the angles. Example: <code>Exp.CrystalOrientations = [10 40 -30]*pi/180</code> is now <code>Exp.SampleFrame = [30 -40 -10]*pi/180</code>.</li>
 </ul>
 
 <div class="subtitle">
@@ -186,7 +187,7 @@ $ReleaseID$
 <p>Incompatible changes</p>
 <ul>
 <li>The intensities of simulated crystal spectra are scaled up by a factor of 8&pi;<sup>2</sup> compared to earlier versions. This is to make their intensities consistent with powder spectra.
-<li> In all simulation functions, <code>Exp.Orientations</code> has been replaced by <code>Exp.CrystalOrientation</code>.
+<li> In all simulation functions, <code>Exp.Orientations</code> has been replaced by <code>Exp.CrystalOrientations</code>.
 <li> A new frame interface has been implemented. <code>Sys.gpa</code>, <code>Sys.Apa</code>, <code>Sys.Qpa</code>, <code>Sys.Dpa</code>, <code>Sys.eepa</code>, <code>Sys.Diffpa</code> have been replaced by <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.QFrame</code>, <code>Sys.DFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.DiffFrame</code>. See the documentation on <a href="spinsystem.html">spin systems</a> and on <a href="frames.html">frames</a>.
 <li> In <a class="esf" href="chili.html">chili</a>, <code>Exp.psi</code> is moved to <code>Sys.psi</code>, and <code>Exp.MOMD</code> is abolished.
 <li> In <a class="esf" href="saffron.html">saffron</a>, <code>Exp.T1T2</code> is moved to <code>Sys.T1T2</code>.

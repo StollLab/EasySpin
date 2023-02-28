@@ -15,13 +15,13 @@ Exp.nPoints = 10000;
 phi = 2*pi*rand;
 theta = pi*rand;
 chi = 2*pi*rand;
-Exp.CrystalOrientation = [phi theta chi];
+Exp.SampleFrame = [-chi -theta -phi];
 
 Opt.Method = 'perturb2';
-[x1,y1] = pepper(Sys,Exp);
+[x1,y1] = pepper(Sys,Exp,Opt);
 Int1 = sum(y1)*(x1(2)-x1(1));
 
-R = erot(Exp.CrystalOrientation).';
+R = erot(Exp.SampleFrame);
 n0 = R(:,3);
 n1 = R(:,1);
 g0 = norm(n0.'*g);

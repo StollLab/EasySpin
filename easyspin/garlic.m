@@ -414,17 +414,14 @@ end
 
 
 % Complain if fields only valid in pepper() are given
-if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is not used by garlic.');
-end
 if isfield(Exp,'Ordering')
   warning('Exp.Ordering is not used by garlic.');
 end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by garlic.');
 end
-if isfield(Exp,'CrystalOrientation')
-  warning('Exp.CrystalOrientation is not used by garlic.');
+if isfield(Exp,'SampleFrame')
+  warning('Exp.SampleFrame is not used by garlic.');
 end
 
 

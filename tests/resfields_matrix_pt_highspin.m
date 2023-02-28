@@ -10,7 +10,7 @@ Sys.lwpp = 0.3;
 
 Exp.mwFreq = 9.5;
 Exp.Range = [300 380];
-Exp.CrystalOrientation = [pi/4 pi/4 0];
+Exp.SampleFrame = [pi/4 pi/4 0];
 
 [Ba,Ia] = resfields_perturb(Sys,Exp);
 [Bb,Ib] = resfields(Sys,Exp);

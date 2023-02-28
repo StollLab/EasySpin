@@ -20,14 +20,14 @@ Exp.dt = dt;
 Exp.tau = tau;
 Exp.nPoints = nPoints;
 Exp.Field = Field;
-Exp.CrystalOrientation = [0 pi/2 0];
+Exp.SampleFrame = [0 -pi/2 0];
 
 [x1, y1] = saffron(Sys,Exp,Opt);
 
 data.x1 = x1;
 data.y1 = y1;
 
-Exp.CrystalOrientation = [0 pi/2 0; 0 0 0];
+Exp.SampleFrame = [0 -pi/2 0; 0 0 0];
 
 [x2, y2] = saffron(Sys,Exp,Opt);
 

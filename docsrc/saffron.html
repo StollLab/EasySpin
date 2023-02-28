@@ -286,14 +286,14 @@ Exp.Dim1 = {'p1.tp' 2; 'p2.tp' 1}; % us, step pulse lengths
 To simulate single crystals, use
 </p>
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-An Nx3 array that specifies single-crystal orientations for which the EPR spectrum should be computed. Each row of <code>CrystalOrientation</code> contains the three <a href="eulerangles.html">Euler rotation angles</a> that transform the <a href="frames.html">crystal frame (C) to the lab frame (L)</a>. If <code>CrystalOrientation</code> is empty or not specified, the full powder spectrum is computed.
+An Nx3 array that specifies sample orientations for which the EPR spectrum should be computed. This applies for oriented samples such as crystals or films. Each row of <code>SampleFrame</code> contains the three <a href="eulerangles.html">Euler rotation angles</a> that transform the <a href="frames.html">lab frame to the sample frame</a>. If <code>SampleFrame</code> is empty or not specified, the full powder spectrum is computed.
 <pre class="matlab">
-Exp.CrystalOrientation = [0 0 0];              % single crystal, crystal z axis aligned with B0
-Exp.CrystalOrientation = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
-Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];    % two crystals
-Exp.CrystalOrientation = [];                   % powder
+Exp.SampleFrame = [0 0 0];              % single crystal, crystal z axis aligned with B0
+Exp.SampleFrame = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
+Exp.SampleFrame = [0 0 0; 0 pi/2 0];    % two crystals
+Exp.SampleFrame = [];                   % powder
 </pre>
 </div>
 

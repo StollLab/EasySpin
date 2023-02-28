@@ -13,13 +13,13 @@ Exp.mwFreq = 9.5;
 Exp.Range = [300 400];
 
 Opt.Output = 'separate';
-Exp.CrystalOrientation = [ori1; ori2];
+Exp.SampleFrame = [ori1; ori2];
 [B,spc3] = pepper(Sys,Exp,Opt);
 
 Opt.Output = 'summed';
-Exp.CrystalOrientation = ori1;
+Exp.SampleFrame = ori1;
 spc1 = pepper(Sys,Exp,Opt);
-Exp.CrystalOrientation = ori2;
+Exp.SampleFrame = ori2;
 spc2 = pepper(Sys,Exp,Opt);
 
 ok(1) = size(spc3,1)==2;

@@ -98,11 +98,6 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  %{
-  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
-    isempty(Exp.CrystalOrientation) || ...
-    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-  %}
   separateComponentSpectra = ~summedOutput && nTotalComponents>1;
   if separateComponentSpectra
     spec = [];
@@ -209,7 +204,7 @@ DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
 DefaultExp.Ordering = [];
 
-DefaultExp.CrystalOrientation = [];
+DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];
@@ -270,11 +265,8 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
 end
 
 % Powder vs. crystal simulation
-if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
-end
-PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
-  isempty(Exp.CrystalOrientation) || ...
+PowderSimulation = ~isfield(Exp,'SampleFrame') || ...
+  isempty(Exp.SampleFrame) || ...
   (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
 Exp.PowderSimulation = PowderSimulation;
 
@@ -444,7 +436,7 @@ end
 %====================================================================
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.CrystalOrientation,1);
+nOrientations = size(Exp.SampleFrame,1);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)

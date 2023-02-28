@@ -8,9 +8,9 @@ Sys.lw = 0.5;
 Exp.mwFreq = 9.5;
 Exp.Range = [290 350];
 
-n = [1;2;3];
+n = [1; 2; 3];
 [phi, theta] = vec2ang(n);
-Exp.CrystalOrientation = [phi theta 0];
+Exp.SampleFrame = [0 -theta -phi];
 Exp.CrystalSymmetry = 'Th';
 Opt.Verbosity = 0;
 

@@ -36,7 +36,7 @@ xlabel('magnetic field (T)');
 ylabel('energy (GHz)');
 
 Exp.Range = [0 B0max];
-Exp.CrystalOrientation = [0 0 0]; % crystal orientation in spectrometer
+Exp.SampleFrame = [0 0 0]; % crystal orientation in spectrometer
 
 % Define a set of microwave frequencies (log scale)
 mwFreq = 10.^linspace(1,log10(500),201); % GHz

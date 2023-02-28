@@ -21,7 +21,7 @@ Opt.GridSymmetry = 'Ci';
 [x,y1] = pepper(Sys,Exp,Opt);
 
 % (3) Single-crystal (accumulation using template copy)
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 [x,y0] = pepper(Sys,Exp,Opt);
 
 if opt.Display

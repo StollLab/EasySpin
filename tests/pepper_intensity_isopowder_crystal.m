@@ -10,11 +10,11 @@ Exp.mwFreq = 9.6;
 Exp.Range = [341 345];
 Exp.Harmonic = 0;
 
-Exp.CrystalOrientation = [];
+Exp.SampleFrame = [];
 [x,y1] = pepper(Sys,Exp);
 Int1 = sum(y1)*(x(2)-x(1));
 
-Exp.CrystalOrientation = rand(1,3)*2*pi;
+Exp.SampleFrame = rand(1,3)*2*pi;
 [x,y2] = pepper(Sys,Exp);
 Int2 = sum(y2)*(x(2)-x(1));
 

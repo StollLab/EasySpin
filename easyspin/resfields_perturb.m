@@ -16,7 +16,7 @@
 %      Range               field sweep range, [Bmin Bmax], in mT
 %      CenterField         field sweep range, [center sweep], in mT
 %      Temperature         temperature, in K
-%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
 %      Mode                excitation mode: 'perpendicular', 'parallel', {[}k_tilt alpha_pol}
@@ -148,7 +148,7 @@ DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
 DefaultExp.mwMode = '';
 
-DefaultExp.CrystalOrientation = [];
+DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];

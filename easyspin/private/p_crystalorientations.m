@@ -7,7 +7,7 @@ function [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientati
 %{
 Inputs:
   Exp.PowderSimulation:   true/false (defined if coming from pepper/salt/saffron/curry)
-  Exp.CrystalOrientation: set by pepper/salt/saffron for powders, by user for cystals
+  Exp.SampleFrame:        set by pepper/salt/saffron for powders, by user for cystals
   Exp.SampleRotation      rotation of the sample in the lab frame
   Exp.CrystalSymmetry:    space group, only used for crystal simulations
   Exp.MolFrame:           molecular frame orientation in crystal frame, only used for crystal sims
@@ -16,18 +16,28 @@ Inputs:
 
 Outputs:
   Orientations:    list of orientations Euler angles, one per row
+                     [phi,theta,chi] for mol-to-lab frame transformation
   nOrientations:   total number of orientations
   nSites:          number of symmetry-related sites
-  AverageOverChi:  whether to compute average over third angle
+  averageOverChi:  whether to compute average over third angle
 %}
+
+if ~isfield(Exp,'SampleFrame')
+  error('Internal error: No sample orientations. Please report.');
+end
+% SampleFrame contains an Nx3 array of Euler angles (in radians)
+% specifying the relative orientation between laboratory and sample frame.
+if size(Exp.SampleFrame,2)~=3
+  error('Exp.SampleFrame requires three columns (three Euler angles).')
+end
 
 rotateSample = isfield(Exp,'R_sample') && ~isempty(Exp.R_sample);
 
 % Exp.PowderSimulation is set only if this function is called from an EasySpin
 % function that does a powder simulation (pepper, salt, saffron, curry, etc).
-PowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
+doPowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
 
-if ~PowderSimulation
+if ~doPowderSimulation
   
   % Crystal simulation
   %-----------------------------------------------------------------------------------
@@ -69,41 +79,28 @@ if ~PowderSimulation
   % Crystal-to-lab frame transformation, R_CL
   % - R_CL col 1,2,3: crystal axis 1,2,3 represented in lab frame
   % - R_CL row 1,2,3: lab axis 1,2,3 represented in crystal frame
-  if ~isnumeric(Exp.CrystalOrientation)
-    error('Exp.CrystalOrientation must be a Nx2 or Nx3 array.');
+  if ~isnumeric(Exp.SampleFrame)
+    error('Exp.SampleFrame must be an Nx3 array.');
   end
-  if ~isempty(Exp.CrystalOrientation)
-    logmsg(1,'  crystal orientation(s) given in Exp.CrystalOrientation');
+  if ~isempty(Exp.SampleFrame)
+    nSamples = size(Exp.SampleFrame,1);
+    logmsg(1,'  %d sample orientation(s) given in Exp.SampleFrame',nSamples);
     
-    % Check Exp.CrystalOrientation, supplement third angle if necessary.
-    Ori_ = Exp.CrystalOrientation;
-    nC1 = size(Ori_,1);
-    nC2 = size(Ori_,2);
-    if nC2==3
-      % Nx3: ok, do nothing
-    elseif nC2==2
-      % Nx2: supplement third angle chi
-      Ori_(:,3) = 0;
-    else
-      error('Exp.CrystalOrientation must be a Nx2 or Nx3 array, yours is %dx%d.',nC1,nC2);
-    end
-    Exp.CrystalOrientation = Ori_;
-    
-    % Construct rotation matrices (crystal frame to lab frame)
-    for iOri = size(Ori_,1):-1:1
-      R_CL{iOri} = erot(Ori_(iOri,:));
+    % Construct rotation matrices (lab frame to crystal frame)
+    for s = nSamples:-1:1
+      R_LC{s} = erot(Exp.SampleFrame(s,:));
     end
     
   else
-    R_CL = {eye(3)};
+    R_LC = {eye(3)};
   end
   
-  nOrientations = numel(R_CL);
+  nOrientations = numel(R_LC);
   
   % Apply sample rotation
   if rotateSample
-    for iR = 1:numel(R_CL)
-      R_CL{iR} = Exp.R_sample*R_CL{iR};
+    for iR = 1:numel(R_LC)
+      R_LC{iR} = Exp.R_sample*R_LC{iR};
     end
   end
   
@@ -118,7 +115,7 @@ if ~PowderSimulation
   for iOri = 1:nOrientations
     for iSite  = 1:nSites
       xyzMi_C = Rsite_C{iSite}*xyzM_C;
-      xyzMi_L = R_CL{iOri}*xyzMi_C;
+      xyzMi_L = R_LC{iOri}.'*xyzMi_C;
       xyzL_Mi = xyzMi_L.';
       Orientations(idx,:) = eulang(xyzL_Mi.',1);
       idx = idx + 1;
@@ -132,24 +129,12 @@ else
   
   % Powder simulation
   %-----------------------------------------------------------------------------------
-  % Powder simulation: Orientations supplied by pepper etc in Exp.CrystalOrientation.
-  if ~isfield(Exp,'CrystalOrientation')
-    error('Internal error: No orientations for powder simulation. Please report.');
-  end
+  % Powder simulation: Orientations supplied by pepper etc in Exp.SampleFrame.
   
-  % Orientations contains a nx2 or nx3 array of Euler angles (in radian units).
-  % These specify the relative orientation between molecular and laboratory frame
-  % [phi theta chi]. If the third angle, chi, is missing, it is set to zero.
-  Orientations = Exp.CrystalOrientation;
-  [nOrientations,nAngles] = size(Orientations);
-  switch nAngles
-    case 2
-      Orientations(end,3) = 0; % Entire chi row is set to 0.
-    case 3
-      % ok
-    otherwise
-      error('Orientations array has %d columns instead of 2 or 3.',nAngles);
-  end
+  % Exp.SampleFrame transforms from lab to sample frame, but Orientations = [phi,
+  % theta, chi] from mol to lab frame. (MolFrame is ignored for a powder)
+  Orientations = -fliplr(Exp.SampleFrame);
+  nOrientations = size(Orientations,1);
   
   % For powder simulations, always average over the third angle.
   averageOverChi = true;

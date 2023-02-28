@@ -375,42 +375,42 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 <a name="crystals"><div class="subtitle">Powders and crystals</div></a>
 
 <p>
-If not specified otherwise, <code>pepper</code> computes a powder spectrum. But it is as well straightforward to simulate spectra for a single crystal. The orientation (or orientations if more than one) of the single crystal can be provided in the experiment structure field <code>Exp.CrystalOrientation</code>. This field should contain the tilt angles between <a href="frames.html">crystal and laboratory frame</a> (right-handed coordinate system with z along the static field and x along the microwave magnetic field), one set of three angles per row.
+If not specified otherwise, <code>pepper</code> computes a powder spectrum. To simulate the spectrum for a single crystal, use the experiment structure field <code>Exp.SampleFrame</code> to provide the crystal/sample orientation. This field should contain the tilt angles that transform the <a href="frames.html">laboratory frame to the crystal/sample frame</a>.
 </p>
 
 <p>
-For a crystal with its molecular frame aligned with the laboratory frame, the setting is 
-</p>
-
-<pre class="matlab">
-Exp.CrystalOrientation = [0 0 0];
-</pre>
-
-<p>
-If you need more than one crystal at the same time, then just specify more than one orientation.
+For a crystal sample with its frame aligned with the laboratory frame, the setting is 
 </p>
 
 <pre class="matlab">
-Exp.CrystalOrientation = [0 0 0; 0 pi/4 0];
+Exp.SampleFrame = [0 0 0];   % crystal/sample frame aligned with lab frame
 </pre>
 
 <p>
-If <code>Exp.CrystalOrientation</code> is missing or set to <code>[]</code> (an empty array), <code>pepper</code> simulates the powder spectrum.
-</p>
-
-<p>
-In many crystals, there are several symmetry-related sites with identical paramagnetic centers differing only in their orientation in the crystal. You can tell <code>pepper</code>  about this by providing the crystal symmetry in the field <code>Exp.CrystalSymmetry</code>, e.g.
+If you need more than one sample orientation at the same time (for example for a twinned crystal), specify more than one orientation.
 </p>
 
 <pre class="matlab">
-Exp.CrystalSymmetry = 'P21/m'; % space group symbol
-Exp.CrystalSymmetry = 11;      % space group number (between 1 and 230)
-Exp.CrystalSymmetry = 'C2h';   % point group, Sch&ouml;nflies notation
-Exp.CrystalSymmetry = '2/m';   % point group, Hermann-Mauguin notation
+Exp.SampleFrame = [0 0 0; 0 pi/4 0];   % two orientations, one per row
 </pre>
 
 <p>
-With the crystal symmetry given, <code>pepper</code> not only computes the spectrum for the orientation given in <code>Exp.CrystalOrientation</code>, but also for all symmetry-related sites.
+If <code>Exp.SampleFrame</code> is missing or set to <code>[]</code> (an empty array), <code>pepper</code> simulates the powder spectrum.
+</p>
+
+<p>
+In most crystals, there is a set of symmetry-related sites with identical paramagnetic centers differing only in their orientation in the crystal. This depends on the space group of the crystal. Provide information about this in the field <code>Exp.CrystalSymmetry</code>, e.g.
+</p>
+
+<pre class="matlab">
+Exp.CrystalSymmetry = 'P21/m';   % space group symbol
+Exp.CrystalSymmetry = 11;        % space group number (between 1 and 230)
+Exp.CrystalSymmetry = 'C2h';     % point group, Sch&ouml;nflies notation
+Exp.CrystalSymmetry = '2/m';     % point group, Hermann-Mauguin notation
+</pre>
+
+<p>
+With the crystal symmetry given, <code>pepper</code> not only computes the spectrum for the orientation given in <code>Exp.SampleFrame</code>, but also for all symmetry-related sites. For this to work correctly, make sure to set <code>Exp.MolFrame</code> consistent with EasySpin's <a href="frames.html#sampleframe">crystal frame definitions</a>.
 </p>
 
 
