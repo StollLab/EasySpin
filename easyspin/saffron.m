@@ -1988,7 +1988,7 @@ else
   end
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
-  issize = @(A,siz) all(size(A)==siz);
+  issize = @(A,siz) isequal(size(A),siz);
   fullg = issize(Sys.g,[3*nElectrons 3]);
   if fullg
     gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);

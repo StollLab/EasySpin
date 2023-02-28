@@ -773,7 +773,7 @@ end
 % Check Sys.lw
 if ~isfield(Sys,'lw'), Sys.lw = [0 0]; end
 if numel(Sys.lw)==1, Sys.lw(2) = 0; end
-if ~all(size(Sys.lw)==[1 2]), err = ('System.lw has wrong size.'); end
+if ~isequal(size(Sys.lw),[1 2]), err = ('System.lw has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lw<0), err = ('System.lw cannot be negative.'); end
 if ~isempty(err), return; end
@@ -789,7 +789,7 @@ if ~isempty(err), return; end
 % Check Sys.lwpp
 if ~isfield(Sys,'lwpp'), Sys.lwpp = [0 0]; end
 if numel(Sys.lwpp)==1, Sys.lwpp(2) = 0; end
-if ~all(size(Sys.lwpp)==[1 2]), err = ('System.lwpp has wrong size.'); end
+if ~isequal(size(Sys.lwpp),[1 2]), err = ('System.lwpp has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lwpp<0), err = ('Linewidths cannot be negative.'); end
 if ~isempty(err), return; end
@@ -1228,12 +1228,12 @@ return
 
 %-------------------------------------------------------------------------------
 function ok = issize(A,siz)
-ok = all(size(A)==siz);
+ok = isequal(size(A),siz);
 return
 
 %-------------------------------------------------------------------------------
 function msg = sizecheck(Sys,FieldName,siz)
-ok = all(size(Sys.(FieldName))==siz);
+ok = isequal(size(Sys.(FieldName)),siz);
 if ok
   msg = '';
 else

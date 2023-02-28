@@ -29,7 +29,7 @@ if nargin==0
 end
 
 if numel(Frame)~=3
-  error('First input (Frame) must contain three numbers, the three Euler angles.');
+  error('First input (initial frame) must contain three numbers, the three Euler angles.');
 end
 
 if ischar(nRot)

@@ -22,7 +22,7 @@ function rotview(varargin)
 % for R = erot([alpha beta gamma]*pi/180);
 switch nargin
   case 1
-    if all(size(varargin{1})==[3 3])
+    if isequal(size(varargin{1}),[3 3])
       R = varargin{1};
       [alpha,beta,gamma] = eulang(R);
       alpha = alpha*180/pi;

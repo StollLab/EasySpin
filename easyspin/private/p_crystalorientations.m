@@ -23,7 +23,7 @@ Outputs:
 %}
 
 if ~isfield(Exp,'SampleFrame')
-  error('Internal error: No sample orientations. Please report.');
+  error('Internal error: Exp.SampleFrame missing. Please report.');
 end
 % SampleFrame contains an Nx3 array of Euler angles (in radians)
 % specifying the relative orientation between laboratory and sample frame.
@@ -65,7 +65,7 @@ if ~doPowderSimulation
   % - R_CM row 1,2,3: molecular axis xM,yM,zM represented in crystal frame
   if ~isempty(Exp.MolFrame)
     logmsg(1,'  molecular frame given in Exp.MolFrame');
-    if all(size(Exp.MolFrame)==[3 3])
+    if isequal(size(Exp.MolFrame),[3 3])
       R_CM = Exp.MolFrame;
     elseif numel(Exp.MolFrame)==3
       R_CM = erot(Exp.MolFrame);
@@ -86,7 +86,7 @@ if ~doPowderSimulation
     nSamples = size(Exp.SampleFrame,1);
     logmsg(1,'  %d sample orientation(s) given in Exp.SampleFrame',nSamples);
     
-    % Construct rotation matrices (lab frame to crystal frame)
+    % Construct transformation matrices (lab frame to crystal frame)
     for s = nSamples:-1:1
       R_LC{s} = erot(Exp.SampleFrame(s,:));
     end
@@ -97,7 +97,7 @@ if ~doPowderSimulation
   
   nOrientations = numel(R_LC);
   
-  % Apply sample rotation
+  % Apply (active) sample rotation
   if rotateSample
     for iR = 1:numel(R_LC)
       R_LC{iR} = Exp.R_sample*R_LC{iR};
@@ -107,17 +107,17 @@ if ~doPowderSimulation
   % Generate list of lab frame orientations, represented in the
   % various site molecular frames
   % (M = molecular frame of reference site)
-  % (Mi = molecular frameof site # i)
-  xyzM_M = eye(3);
-  xyzM_C = R_CM.'*xyzM_M;    
+  % (Mi = molecular frame of site # i)
+  xyzM_M = eye(3);  % xM, yM, zM in mol frame representation
+  xyzM_C = R_CM.'*xyzM_M;
   Orientations = zeros(nOrientations*nSites,3);
   idx = 1;
   for iOri = 1:nOrientations
-    for iSite  = 1:nSites
+    for iSite = 1:nSites
       xyzMi_C = Rsite_C{iSite}*xyzM_C;
       xyzMi_L = R_LC{iOri}.'*xyzMi_C;
       xyzL_Mi = xyzMi_L.';
-      Orientations(idx,:) = eulang(xyzL_Mi.',1);
+      Orientations(idx,:) = eulang(xyzL_Mi.',true);
       idx = idx + 1;
     end
   end

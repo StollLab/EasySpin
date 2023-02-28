@@ -806,7 +806,7 @@ end
 % Pre-allocations are done only when the arrays are needed.
 
 msg = 'positions';
-Pdat = ones(nTransitions,nOrientations)*NaN;
+Pdat = NaN(nTransitions,nOrientations);
 if nPerturbNuclei>0
   for iiNuc = nPerturbNuclei:-1:1
     pPdatN{iiNuc} = zeros(nTransitions,nOrientations,nPerturbTransitions(iiNuc));
@@ -1050,7 +1050,8 @@ for iOri = 1:nOrientations
 
       ResonanceFields = Bknots(s) + dB(s)*cubicZeros;
 
-      for iReson=1:numel(ResonanceFields) % loop over all resonances for transition iTrans in the current segment
+      % loop over all resonances for transition iTrans in the current segment
+      for iReson = 1:numel(ResonanceFields)
 
         % Insert new row into data arrays if the current one is not for transition iTrans!!
         %-----------------------------------------------------------------------------------
@@ -1070,11 +1071,9 @@ for iOri = 1:nOrientations
             for iiNuc = nPerturbNuclei:-1:1
               p_ = pPdatN{iiNuc};
               z_ = zeros(1,nOrientations,size(p_,3));
-              pPdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; ...
-                               p_(iiTrans:end,:,:)];
+              pPdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; p_(iiTrans:end,:,:)];
               p_ = pIdatN{iiNuc};
-              pIdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; ...
-                               p_(iiTrans:end,:,:)];
+              pIdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; p_(iiTrans:end,:,:)];
             end
           end
         end
@@ -1083,7 +1082,7 @@ for iOri = 1:nOrientations
         %------------------------------------------------
         Pdat(iiTrans,iOri) = ResonanceFields(iReson);
 
-        % Compute eigenvectors, eigenvalues and 1/(dE/dB) if needed.
+        % Compute eigenvectors, eigenvalues and 1/g factor = 1/(dE/dB) if needed
         %--------------------------------------------------
         if computeEigenPairs || nPerturbNuclei>0
           % Compute resonant state vectors
