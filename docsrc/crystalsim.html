@@ -74,17 +74,21 @@ Use <code>Exp.MolFrame</code> to specify the orientation of the molecule (parama
 Use <code>Exp.SampleFrame</code> to provide the orientation of the crystal in the spectrometer. This field requires the three <a href="eulerangles.html">Euler angles</a> for the transformation from the laboratory frame to the crystal sample frame. See the page on <a href="frames.html">frames</a> for details.
 </ol>
 
-Here is a full example:
+<p>
+Here is an example:
+</p>
+
 <pre class="matlab">
 Exp.CrystalSymmetry = 'P21/c';        % space group #14
-Exp.MolFrame = [0 0 0];               % molecular frame aligned with crystal/sample frame
-Exp.SampleFrame = [0 pi/4 0];         % crystal/sample frame tilted against lab frame
+Exp.MolFrame = [0 0 0]*pi/180;        % molecular frame aligned with crystal/sample frame
+Exp.SampleFrame = [0 60 20]*pi/180;   % crystal/sample frame tilted against lab frame
 pepper(Sys,Exp);
 </pre>
 
 <p>
-In space group P21/c, there are four sites per unit cell. Two each are magnetically equivalent, so one expects a maximum of two lines in the spectrum. With the settings as above, you will always see only a single line in the spectrum, no matter how you align the crystal in the lab.
-The reason is that the g tensor frame is collinear with the crystal frame, so all four sites have the same EPR spectrum.
+In space group P21/c, there are four sites per unit cell. Two each are magnetically equivalent, so one expects a maximum of two lines in the spectrum.
+With the settings as above, you will always see only a single line in the spectrum, no matter how you align the crystal in the lab.
+The reason is that the g tensor frame is collinear with the crystal frame (both <code>Sys.gFrame</code> and <code>Exp.MolFrame</code> are zero), so all four sites have the same EPR spectrum.
 </p>
 
 <p>
@@ -92,7 +96,7 @@ In order to see two lines, you need to have a tilt between the g tensor frame an
 </p>
 
 <pre class="matlab">
-Exp.MolFrame = [20 40 10]*pi/180;
+Exp.MolFrame = [30 0 0]*pi/180;
 pepper(Sys,Exp);
 </pre>
 
@@ -157,6 +161,27 @@ for k = 1:numel(rho)
 end
 stackplot(B,spc);
 </pre>
+
+<p>
+To calculate a crystal "roadmap", i.e. a plot of resonance fields as a function of crystal orientations, obtain a list of crystal orientations using <a class="esf" href="rotateframe.html">rotateframe</a> and provide it to <code>Exp.SampleFrame</code>:
+</p>
+
+<pre class="matlab">
+rotN = [1 1 0];            % rotation axis
+rho = linspace(0,pi,91);   % rotation angle
+frame0 = [0 0 0];          % initial crystal orientation
+
+frames = rotateframe(frame0,rotN,rho);
+Exp.SampleFrame = frames;
+Exp.SampleRotation = [];
+
+Bres = resfields(Sys,Exp);
+
+plot(Bres,rho*180/pi);
+xlabel('magnetic field (mT)');
+ylabel('\rho (deg)');
+</pre>
+
 
 <div class="subtitle"><a <a name="frames">Site-selective simulations</a></div>
 

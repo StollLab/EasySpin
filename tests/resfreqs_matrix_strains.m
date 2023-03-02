@@ -22,7 +22,7 @@ clear Sys Exp
 Exp.SampleFrame = rand(1,3)*2*pi;
 R = erot(Exp.SampleFrame);
 Sys.HStrain = [0 0 1];
-[p,i,w]=resfreqs_matrix(Sys,Exp);
+[p,i,w] = resfreqs_matrix(Sys,Exp);
 ok(3) = areequal(w,abs(R(3,3)),1e-5,'abs');
 
 % DStrain

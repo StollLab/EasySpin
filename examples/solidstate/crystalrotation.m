@@ -14,7 +14,7 @@ Exp.mwFreq = 9.5;            % GHz
 Exp.CenterSweep = [339 10];  % mT
 
 % P1 and crystal orientation, crystal symmetry
-ma = 54.736;                                % magic angle (deg)
+ma = 54.7361;                               % magic angle (deg)
 Exp.MolFrame = [45 ma 0]*pi/180;            % mol. frame ori. of P1 in crystal
 Exp.SampleFrame = [0 -ma 0]*pi/180;         % crystal ori. in spectrometer
 Exp.CrystalSymmetry = 'Fd-3m';              % space group of diamond (#227)

@@ -10,13 +10,17 @@ Exp.SampleFrame = [0 0 0];
 % and calculate resonance fields
 rotaxis = [1 1 1];
 Exp.SampleRotation = {0,rotaxis};
-[Bz,~] = resfields(Sys,Exp);
+Bz = resfields(Sys,Exp);
+
 Exp.SampleRotation = {2*pi/3,rotaxis};
-[By,~] = resfields(Sys,Exp);
+By = resfields(Sys,Exp);
+
 Exp.SampleRotation = {-2*pi/3,rotaxis};
-[Bx,~] = resfields(Sys,Exp);
+Bx = resfields(Sys,Exp);
 
 % Reference values for resonance fields
-Bref = mhz2mt(Exp.mwFreq*1e3,Sys.g);
+Bx_ref = mhz2mt(Exp.mwFreq*1e3,Sys.g(1));
+By_ref = mhz2mt(Exp.mwFreq*1e3,Sys.g(2));
+Bz_ref = mhz2mt(Exp.mwFreq*1e3,Sys.g(3));
 
-ok = areequal([Bx By Bz],Bref,1e-10,'abs');
+ok = areequal([Bx By Bz],[Bx_ref By_ref Bz_ref],1e-10,'abs');

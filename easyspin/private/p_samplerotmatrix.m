@@ -1,5 +1,11 @@
 % Parses Exp.SampleRotation, including letter codes and supplying a default if
-% it's empty, and returns the (active) rotation matrix.
+% it's empty, and returns the (active) rotation matrix R.
+%
+%    R = p_samplerotmatrix({rho,n})
+%    vrot = R*v
+%
+% vrot corresponds to the vector v (actively) rotated by anle rho around
+% axis n in the counterclockwise direction.
 
 function [R_sample,rotateSample] = p_samplerotmatrix(SampleRotation)
 

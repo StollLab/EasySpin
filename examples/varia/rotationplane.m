@@ -1,8 +1,6 @@
 % Compute a set orientations in a plane
 %======================================================
 % Computes N vectors in a plane normal to a given direction Z.
-% This can be done more easily using EasySpin's rotplane()
-% function.
 
 % Define a plane by giving a direction normal to it
 % a the number of vectors to compute

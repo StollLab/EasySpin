@@ -161,7 +161,7 @@ end
 Exp.Range = Exp.Range*1e3; % GHz -> MHz, for comparison with Pdat
 
 % Determine excitation mode
-[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
+[xi1,xik,nB1_L,nk_L,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 % Photoselection
 if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
@@ -688,24 +688,24 @@ for iOri = 1:nOrientations
       
       U = Vs(:,u(iTrans)); % lower-energy state (u)
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
-      mu = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment
+      mu_L = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment, in lab frame
       if averageOverChi
         if mwmode.linearpolarizedMode
-          TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
+          TransitionRate = ((1-xi1^2)*norm(mu_L)^2+(3*xi1^2-1)*abs(nB0_L.'*mu_L)^2)/2;
         elseif mwmode.unpolarizedMode
-          TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/4;
+          TransitionRate = ((1+xik^2)*norm(mu_L)^2-(3*xik^2-1)*abs(nB0_L.'*mu_L)^2)/4;
         elseif mwmode.circpolarizedMode
-          TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/2 - ...
-            mwmode.circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
+          TransitionRate = ((1+xik^2)*norm(mu_L)^2-(3*xik^2-1)*abs(nB0_L.'*mu_L)^2)/2 - ...
+            mwmode.circSense*xik*(nB0_L.'*cross(1i*mu_L,conj(mu_L)));
         end
       else
         if mwmode.linearpolarizedMode
-          TransitionRate = abs(nB1.'*mu)^2;
+          TransitionRate = abs(nB1_L.'*mu_L)^2;
         elseif mwmode.unpolarizedMode
-          TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
+          TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2)/2;
         elseif mwmode.circpolarizedMode
-          TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
-            mwmode.circSense*(nk.'*cross(1i*mu,conj(mu)));
+          TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2) - ...
+            mwmode.circSense*(nk_L.'*cross(1i*mu_L,conj(mu_L)));
         end
       end
       if abs(TransitionRate)<1e-12, TransitionRate = 0; end

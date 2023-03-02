@@ -14,13 +14,12 @@ Exp.Range = [310 360];
 Exp.CrystalSymmetry = 'P212121';
 
 % Generate orientations in a single rotation plane
-rotN = [1 1 0];  % rotation axis
-N = 31;
-[phi,theta] = rotplane(rotN,[0 pi],N);
-chi = zeros(N,1);
-Exp.SampleFrame = [chi -theta(:) -phi(:)];
+rotN_L = [1; 1; 0];         % rotation axis (in lab frame)
+rho = linspace(0,pi,31);    % list of rotation angles
+frame0 = [0 0 0];           % initial crystal orientation
+Exp.SampleFrame = rotateframe(frame0,rotN_L,rho);
 
 % Simulate spectra
 Bres = resfields(Sys,Exp);
 
-ok = areequal(size(Bres),[4 N]);
+ok = areequal(size(Bres),[4 numel(rho)]);

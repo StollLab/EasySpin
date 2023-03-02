@@ -1,4 +1,4 @@
-function [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt)
+function [angles_M2L,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt)
 
 % Function that takes care of crystal frame setups for single-crystal simulation
 %    and a few related things.
@@ -39,7 +39,7 @@ doPowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
 
 if ~doPowderSimulation
   
-  % Crystal simulation
+  % Crystals
   %-----------------------------------------------------------------------------------
   % Get site-to-site transformations for given crystal space group
   % (matrices for active rotations; defined in crystal frame)
@@ -60,25 +60,28 @@ if ~doPowderSimulation
     nSites = numel(Rsite_C);
   end
   
-  % Crystal-to-molecular frame transformation, R_CM
-  % - R_CM col 1,2,3: crystal axis xC,yC,zC represented in molecular frame
-  % - R_CM row 1,2,3: molecular axis xM,yM,zM represented in crystal frame
+  % Crystal-to-molecular frame transformation, R_C2M
   if ~isempty(Exp.MolFrame)
     logmsg(1,'  molecular frame given in Exp.MolFrame');
-    if isequal(size(Exp.MolFrame),[3 3])
-      R_CM = Exp.MolFrame;
-    elseif numel(Exp.MolFrame)==3
-      R_CM = erot(Exp.MolFrame);
-    else
+    if ~numel(Exp.MolFrame)==3
       error('Exp.MolFrame has wrong size.');
     end
+    R_C2M = erot(Exp.MolFrame);
   else
-    R_CM = eye(3);
+    R_C2M = eye(3);
   end
+  R_M2C = R_C2M.';
   
-  % Crystal-to-lab frame transformation, R_CL
-  % - R_CL col 1,2,3: crystal axis 1,2,3 represented in lab frame
-  % - R_CL row 1,2,3: lab axis 1,2,3 represented in crystal frame
+  % Generate list of mol frame orientations, represented in crystal/sample frame
+  xyzM_M = eye(3);           % xM, yM, zM in mol frame representation
+  xyzM0_C = R_M2C*xyzM_M;   % transformation to crystal/sample frame
+  for iSite = nSites:-1:1
+    xyzM_C{iSite} = Rsite_C{iSite}*xyzM0_C;   % active rotation in crystal frame
+  end
+
+  % Lab-to-crystal/sample frame transformation, R_L2C
+  % - R_L2C col 1,2,3: lab axis 1,2,3 represented in crystal frame
+  % - R_L2C row 1,2,3: crystal axis 1,2,3 represented in lab frame
   if ~isnumeric(Exp.SampleFrame)
     error('Exp.SampleFrame must be an Nx3 array.');
   end
@@ -88,19 +91,18 @@ if ~doPowderSimulation
     
     % Construct transformation matrices (lab frame to crystal frame)
     for s = nSamples:-1:1
-      R_LC{s} = erot(Exp.SampleFrame(s,:));
+      R_L2C{s} = erot(Exp.SampleFrame(s,:));
     end
     
   else
-    R_LC = {eye(3)};
+    R_L2C = {eye(3)};
   end
-  
-  nOrientations = numel(R_LC);
+  nOrientations = numel(R_L2C);
   
   % Apply (active) sample rotation
   if rotateSample
-    for iR = 1:numel(R_LC)
-      R_LC{iR} = Exp.R_sample*R_LC{iR};
+    for iR = 1:numel(R_L2C)
+      R_L2C{iR} = Exp.R_sample*R_L2C{iR};
     end
   end
   
@@ -108,16 +110,13 @@ if ~doPowderSimulation
   % various site molecular frames
   % (M = molecular frame of reference site)
   % (Mi = molecular frame of site # i)
-  xyzM_M = eye(3);  % xM, yM, zM in mol frame representation
-  xyzM_C = R_CM.'*xyzM_M;
-  Orientations = zeros(nOrientations*nSites,3);
+  angles_M2L = zeros(nOrientations*nSites,3);
   idx = 1;
   for iOri = 1:nOrientations
+    R_C2L = R_L2C{iOri}.';
     for iSite = 1:nSites
-      xyzMi_C = Rsite_C{iSite}*xyzM_C;
-      xyzMi_L = R_LC{iOri}.'*xyzMi_C;
-      xyzL_Mi = xyzMi_L.';
-      Orientations(idx,:) = eulang(xyzL_Mi.',true);
+      xyzMi_L = R_C2L*xyzM_C{iSite};    % transformation to lab frame
+      angles_M2L(idx,:) = eulang(xyzMi_L,true); % Euler angles for Mi -> L frame
       idx = idx + 1;
     end
   end
@@ -127,14 +126,14 @@ if ~doPowderSimulation
   
 else
   
-  % Powder simulation
+  % Powder
   %-----------------------------------------------------------------------------------
   % Powder simulation: Orientations supplied by pepper etc in Exp.SampleFrame.
   
   % Exp.SampleFrame transforms from lab to sample frame, but Orientations = [phi,
   % theta, chi] from mol to lab frame. (MolFrame is ignored for a powder)
-  Orientations = -fliplr(Exp.SampleFrame);
-  nOrientations = size(Orientations,1);
+  angles_M2L = -fliplr(Exp.SampleFrame);
+  nOrientations = size(angles_M2L,1);
   
   % For powder simulations, always average over the third angle.
   averageOverChi = true;

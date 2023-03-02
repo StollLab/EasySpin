@@ -4350,67 +4350,6 @@
       }
     ]
   },
-  "rotplane": {
-    "description": "Set of vectors/orientations in a plane",
-    "inputs": [
-      {
-        "name": "n",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "numel=3",
-          "vector"
-        ],
-        "purpose": "vector perpendicular to plane"
-      },
-      {
-        "name": "chi",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "real"
-        ],
-        "purpose": "in-plane angle(s)"
-      }
-    ]
-  },
-  "rotplane": {
-    "description": "Set of vectors/orientations in a plane",
-    "inputs": [
-      {
-        "name": "n",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "numel=3",
-          "vector"
-        ],
-        "purpose": "vector perpendicular to plane"
-      },
-      {
-        "name": "chi12",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "numel=2",
-          "vector"
-        ],
-        "purpose": "vectors between two angles"
-      },
-      {
-        "name": "nChi",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "scalar",
-          "integer",
-          "positive",
-          "real"
-        ],
-        "purpose": "number of vectors to generate"
-      }
-    ]
-  },
   "rotview": {
     "description": "Visual display of rotations",
     "inputs": [
