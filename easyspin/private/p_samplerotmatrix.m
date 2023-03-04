@@ -1,16 +1,23 @@
 % Parses Exp.SampleRotation, including letter codes and supplying a default if
 % it's empty, and returns the (active) rotation matrix R.
 %
-%    R = p_samplerotmatrix({rho,n})
-%    vrot = R*v
+%    Rrot = p_samplerotmatrix({rho,n})
+%    vrot = Rrot*v
 %
-% vrot corresponds to the vector v (actively) rotated by anle rho around
+% vrot corresponds to the vector v (actively) rotated by angle rho around
 % axis n in the counterclockwise direction.
+%
+% Simple example:
+%   rotaxis = [0;0;1];
+%   rho = 10*pi/180;
+%   Rrot = rotaxi2mat(rotaxis,rho);
+%   v = [1;0;0]
+%   vrot = Rrot.'*v
 
-function [R_sample,rotateSample] = p_samplerotmatrix(SampleRotation)
+function [R_samplerot,rotateSample] = p_samplerotmatrix(SampleRotation)
 
 if isempty(SampleRotation)
-  R_sample = eye(3);
+  R_samplerot = eye(3);
   rotateSample = false;
   return
 end
@@ -33,7 +40,7 @@ if numel(rho)~=1
 end
 
 % Calculate rotation matrix
-R_sample = rotaxi2mat(nRot,rho);
+R_samplerot = rotaxi2mat(nRot,rho).';
 
 rotateSample = rho~=0;
 

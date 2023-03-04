@@ -6,21 +6,19 @@ Exp.mwFreq = 22;
 Exp.Range = [0 2000];
 Exp.SampleFrame = [0 0 0];
 
-% Rotate sample such that zM, yM and xM end up along zL
-% and calculate resonance fields
+% Rotate sample such that zM, yM and xM end up along
+% the static field direction zL and calculate resonance fields
 rotaxis = [1 1 1];
-Exp.SampleRotation = {0,rotaxis};
+Exp.SampleRotation = {0,rotaxis};  % zM along zL
 Bz = resfields(Sys,Exp);
 
-Exp.SampleRotation = {2*pi/3,rotaxis};
+Exp.SampleRotation = {2*pi/3,rotaxis};  % yM along zL
 By = resfields(Sys,Exp);
 
-Exp.SampleRotation = {-2*pi/3,rotaxis};
+Exp.SampleRotation = {-2*pi/3,rotaxis};  % xM along zL
 Bx = resfields(Sys,Exp);
 
 % Reference values for resonance fields
-Bx_ref = mhz2mt(Exp.mwFreq*1e3,Sys.g(1));
-By_ref = mhz2mt(Exp.mwFreq*1e3,Sys.g(2));
-Bz_ref = mhz2mt(Exp.mwFreq*1e3,Sys.g(3));
+B_ref = planck*Exp.mwFreq*1e9/bmagn./Sys.g/1e-3;
 
-ok = areequal([Bx By Bz],[Bx_ref By_ref Bz_ref],1e-10,'abs');
+ok = areequal([Bx By Bz],B_ref,1e-10,'abs');

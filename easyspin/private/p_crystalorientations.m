@@ -102,7 +102,7 @@ if ~doPowderSimulation
   % Apply (active) sample rotation
   if rotateSample
     for iR = 1:numel(R_L2C)
-      R_L2C{iR} = Exp.R_sample*R_L2C{iR};
+      R_L2C{iR} = R_L2C{iR}*Exp.R_sample.';  % eq. to xyzC_L = Exp.R_sample*xyzC_L
     end
   end
   

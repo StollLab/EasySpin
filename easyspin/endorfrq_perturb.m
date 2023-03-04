@@ -94,7 +94,7 @@ end
 
 % Experiment
 %------------------------------------------------------
-DefaultExp.SampleFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];

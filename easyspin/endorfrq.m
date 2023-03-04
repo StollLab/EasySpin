@@ -79,7 +79,7 @@ DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
 DefaultExp.Field = NaN;
 
-DefaultExp.SampleFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];
