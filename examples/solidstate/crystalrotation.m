@@ -14,14 +14,14 @@ Exp.mwFreq = 9.5;            % GHz
 Exp.CenterSweep = [339 10];  % mT
 
 % P1 and crystal orientation, crystal symmetry
-ma = 54.7361;                               % magic angle (deg)
-Exp.MolFrame = [45 ma 0]*pi/180;            % mol. frame ori. of P1 in crystal
-Exp.SampleFrame = [0 -ma 0]*pi/180;         % crystal ori. in spectrometer
-Exp.CrystalSymmetry = 'Fd-3m';              % space group of diamond (#227)
+ma = 54.7361;                       % magic angle (deg)
+Exp.MolFrame = [45 ma 0]*pi/180;    % P1 molecular frame orientation in crystal
+Exp.SampleFrame = [0 ma 0]*pi/180;  % crystal orientation in spectrometer
+Exp.CrystalSymmetry = 'Fd-3m';      % space group of diamond (#227)
 
 % Sample rotation axis and angle
-nRot = 'x';                  % = x-axis of lab frame (xL)
-rho = deg2rad(0:10:180);     % rotate in steps over 180 degrees (half turn)
+nRot = 'x';                  % rotate around lab frame x axis (xL)
+rho = deg2rad(0:10:180);     % rotate in 10 degree steps over 180 degrees
 
 for k = 1:numel(rho)
   Exp.SampleRotation = {rho(k),nRot};

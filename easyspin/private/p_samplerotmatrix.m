@@ -23,10 +23,7 @@ if isempty(SampleRotation)
 end
 
 % Determine rotation axis and angle
-if isnumeric(SampleRotation)
-  rho = SampleRotation;
-  nRot = [1;0;0]; % lab x axis (xL_L) as default
-elseif iscell(SampleRotation) && numel(SampleRotation)==2
+if iscell(SampleRotation) && numel(SampleRotation)==2
   rho = SampleRotation{1};
   nRot = SampleRotation{2};
   if ischar(nRot)

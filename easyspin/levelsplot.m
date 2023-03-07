@@ -5,22 +5,23 @@
 %  levelsplot(Sys,Ori,B,mwFreq,Opt)
 %
 %    Sys        spin system structure
-%    Ori        orientation of magnetic field in molecular frame
+%    Ori        orientation of magnetic field vector in molecular frame
 %               - string: 'x','y','z','xy','xz','yz', or 'xyz'
-%               - 2-element vector [phi theta]
-%               - 3-element vector [phi theta chi]
+%               - 2-element vector [phi theta] (radians)
+%               orientation of lab frame in molecular frame
+%               - 3-element vector [phi theta chi] (radians)
 %    B          field range, in mT; either Bmax, [Bmin Bmax], or a full vector
 %    mwFreq     spectrometer frequency, in GHz
 %    Opt        options
-%      Units           energy units for plotting, 'GHz' or 'cm^-1' or 'eV'
-%      nPoints         Number of points
-%      ColorThreshold  Coloring threshold. All transitions with relative
-%                      intensity below this will be gray. Example: 0.05
-%      PlotThreshold   All transitions below with relative intensity
-%                      below this value will not be plotted. Example: 0.005
-%      SlopeColor      true/false. Color energy level lines by their slope,
-%                      (corresponding to their mS expectation value).
-%                      Default is false.
+%      .Units           energy units for plotting, 'GHz' or 'cm^-1' or 'eV'
+%      .nPoints         number of points
+%      .ColorThreshold  coloring threshold. All transitions with relative
+%                       intensity below this will be gray. Example: 0.05
+%      .PlotThreshold   all transitions below with relative intensity
+%                       below this value will not be plotted. Example: 0.005
+%      .SlopeColor      true/false. Color energy level lines by their slope,
+%                       (corresponding to their mS expectation value).
+%                       Default is false.
 %
 %  If mwFreq is given, resonances are drawn. Red lines indicate allowed
 %  transitions, gray lines forbidden ones. If the lines are terminated with
@@ -105,7 +106,7 @@ if ~isfield(Opt,'SlopeColor')
   Opt.SlopeColor = false;
 end
 
-% Convert string in Ori input to angles
+% Parse Ori (second input)
 if ischar(Ori)
   n = letter2vec(Ori);
   [phi,theta] = vec2ang(n);

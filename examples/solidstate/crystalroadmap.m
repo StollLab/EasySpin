@@ -13,10 +13,10 @@ Exp.Range = [310 360];  % mT
 Exp.CrystalSymmetry = 'P212121';  % space group
 
 % Generate crystal orientations obtained by rotation
-rotN = [1 1 0];  % rotation axis
+nRot_L = [1 1 0];  % rotation axis
 rho = linspace(0,pi,91);  % rotation angle
 frame0 = [0 0 0];  % initial crystal orientation
-frames = rotateframe(frame0,rotN,rho);
+frames = rotateframe(frame0,nRot_L,rho);
 Exp.SampleFrame = frames;
 
 % Calculate resonance fields
