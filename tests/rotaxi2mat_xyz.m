@@ -1,6 +1,6 @@
 function ok = test()
 
-% Explicitely check rotations around specific directions
+% Explicitly check rotations around specific directions
 
 R1 = rotaxi2mat('x',pi/2);
 R2 = rotaxi2mat([1;0;0],pi/2);
