@@ -12,18 +12,18 @@ Sys.Nucs = '1H';
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;
 
-nL = [0.2 -0.8 0.5];    % rotation axis, lab-fixed
+nrot_L = [0.2 -0.8 0.5];    % rotation axis, lab-fixed
 rho = deg2rad(266);     % rotation angle
 
 sampleframe0 = [10 50 -30]*pi/180;   % initial crystal orientation
 
 % Sample rotation using rotateframe()
-Exp.SampleFrame = rotateframe(sampleframe0,nL,rho);
+Exp.SampleFrame = rotateframe(sampleframe0,nrot_L,rho);
 [B,spc1] = pepper(Sys,Exp);
 
 % Sample rotation using Exp.SampleRotation
 Exp.SampleFrame = sampleframe0;
-Exp.SampleRotation = {rho,nL};
+Exp.SampleRotation = {rho,nrot_L};
 [B,spc2] = pepper(Sys,Exp);
 
 ok = areequal(spc1,spc2,1e-10,'rel');

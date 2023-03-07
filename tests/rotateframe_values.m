@@ -6,10 +6,10 @@ rho = -3*pi/7;  % rotation angle, radians
 
 % Explicit rotation
 R = rotaxi2mat(nRot,rho);
-xyzC_L = erot(Frame);
-xyzC_L_rotated = R*xyzC_L;
+xyz = erot(Frame).';
+xyz_rotated = R.'*xyz;
 skipFitting = true;
-angles0 = eulang(xyzC_L_rotated,skipFitting);
+angles0 = eulang(xyz_rotated.',skipFitting);
 
 % Rotation using rotateframe()
 angles1 = rotateframe(Frame,nRot,rho);
