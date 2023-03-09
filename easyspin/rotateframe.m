@@ -20,7 +20,7 @@
 %       ori0 = [0 45 0]*pi/180;
 %       nRot = [1;0;0];
 %       rho = (0:30:180)*pi/180;
-%       ori_list = rotateframe(ori0,nRot,rho);
+%       ori_rot = rotateframe(ori0,nRot,rho);
 
 function ori_rot = rotateframe(ori,nRot,rho)
 
