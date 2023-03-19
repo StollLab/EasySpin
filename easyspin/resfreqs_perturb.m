@@ -150,7 +150,7 @@ DefaultExp.mwMode = 'perpendicular';
 
 DefaultExp.SampleFrame = [0 0 0];
 DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.MolFrame = [0 0 0];
 DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);

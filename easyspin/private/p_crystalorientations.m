@@ -7,11 +7,10 @@ function [angles_M2L,nOrientations,nSites,averageOverChi] = p_crystalorientation
 %{
 Inputs:
   Exp.PowderSimulation:   true/false (defined if coming from pepper/salt/saffron/curry)
-  Exp.SampleFrame:        set by pepper/salt/saffron for powders, by user for cystals
+  Exp.MolFrame:           set by pepper/salt/saffron for powders, by user for cystals
   Exp.SampleRotation      rotation of the sample in the lab frame
   Exp.CrystalSymmetry:    space group, only used for crystal simulations
   Exp.MolFrame:           molecular frame orientation in crystal frame, only used for crystal sims
-  Exp.R_sample            sample rotation matrix
   Opt.Sites:              list of sites to include, e.g. [1 3] in a 4-site group
 
 Outputs:
@@ -22,16 +21,15 @@ Outputs:
   averageOverChi:  whether to compute average over third angle
 %}
 
-if ~isfield(Exp,'SampleFrame')
-  error('Internal error: Exp.SampleFrame missing. Please report.');
-end
-% SampleFrame contains an Nx3 array of Euler angles (in radians)
-% specifying the relative orientation between laboratory and sample frame.
-if size(Exp.SampleFrame,2)~=3
-  error('Exp.SampleFrame requires three columns (three Euler angles).')
+if ~isfield(Exp,'MolFrame')
+  error('Internal error: Exp.MolFrame missing. Please report.');
 end
 
-rotateSample = isfield(Exp,'R_sample') && ~isempty(Exp.R_sample);
+% MolFrame contains an Nx3 array of Euler angles (in radians)
+% specifying the relative orientation between sample and molecular frame.
+if size(Exp.MolFrame,2)~=3
+  error('Exp.MolFrame requires three columns (three Euler angles).')
+end
 
 % Exp.PowderSimulation is set only if this function is called from an EasySpin
 % function that does a powder simulation (pepper, salt, saffron, curry, etc).
@@ -100,9 +98,13 @@ if ~doPowderSimulation
   nOrientations = numel(R_L2C);
   
   % Apply (active) sample rotation
+  rotateSample = isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation);
   if rotateSample
-    for iR = 1:numel(R_L2C)
-      R_L2C{iR} = R_L2C{iR}*Exp.R_sample.';  % eq. to xyzC_L = Exp.R_sample*xyzC_L
+    rho = Exp.SampleRotation{1};
+    nRot = Exp.SampleRotation{2};
+    Rrot = rotaxi2mat(nRot,rho);
+    for s = 1:nSamples
+      R_L2C{s} = R_L2C{s}*Rrot;
     end
   end
   
@@ -128,11 +130,11 @@ else
   
   % Powder
   %-----------------------------------------------------------------------------------
-  % Powder simulation: Orientations supplied by pepper etc in Exp.SampleFrame.
+  % Powder simulation: Orientations supplied by pepper etc in Exp.MolFrame.
   
-  % Exp.SampleFrame transforms from lab to sample frame, but Orientations = [phi,
-  % theta, chi] from mol to lab frame. (MolFrame is ignored for a powder)
-  angles_M2L = -fliplr(Exp.SampleFrame);
+  % Exp.MolFrame transforms from sample(=lab) to molecular frame, but Orientations = [phi,
+  % theta, chi] from mol to lab frame. (SampleFrame is ignored for a powder)
+  angles_M2L = -fliplr(Exp.MolFrame);
   nOrientations = size(angles_M2L,1);
   
   % For powder simulations, always average over the third angle.

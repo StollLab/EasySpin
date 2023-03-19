@@ -13,7 +13,7 @@
 %   Exp.theta
 %   Exp.OriWeights
 %   Exp.tri
-%   Exp.SampleFrame
+%   Exp.MolFrame
 %   Exp.OriWeights
 %   Opt.GridSymmetry
 %   Opt.GridFrame
@@ -74,7 +74,7 @@ if Exp.PowderSimulation
   % Transform vector to reference frame representation and convert to polar angles.
   [Exp.phi,Exp.theta] = vec2ang(Opt.GridFrame*Vecs);
   clear Vecs
-  Exp.SampleFrame = [zeros(size(Exp.theta)); -Exp.theta; -Exp.phi].';
+  Exp.MolFrame = [zeros(size(Exp.theta)); -Exp.theta; -Exp.phi].';
   nOrientations = numel(Exp.phi);
   
   %closedPhi = true;

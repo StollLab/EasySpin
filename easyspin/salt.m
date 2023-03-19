@@ -265,10 +265,7 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
 end
 
 % Powder vs. crystal simulation
-PowderSimulation = ~isfield(Exp,'SampleFrame') || ...
-  isempty(Exp.SampleFrame) || ...
-  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-Exp.PowderSimulation = PowderSimulation;
+PowderSimulation = isempty(Exp.MolFrame) || ~isempty(Exp.Ordering);
 
 % Partial ordering
 if ~isempty(Exp.Ordering)
@@ -436,7 +433,7 @@ end
 %====================================================================
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.SampleFrame,1);
+nOrientations = size(Exp.MolFrame,1);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)

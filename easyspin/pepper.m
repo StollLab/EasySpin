@@ -27,8 +27,8 @@
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
-%      SampleRotation      3-element array of Euler angles (in radians) for sample orientation
-%      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
+%      SampleRotation      3-element array of Euler angles (in radians) for sample rotation
+%      SampleFrame         3-element array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
 %      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
@@ -245,8 +245,8 @@ DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
 DefaultExp.lightBeam = '';  % no photoexcitation
-DefaultExp.SampleRotation = [];
 
+DefaultExp.SampleRotation = [];
 DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
@@ -436,7 +436,7 @@ end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.SampleFrame);
+PowderSimulation = isempty(Exp.MolFrame);
 Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering
@@ -574,7 +574,7 @@ anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.SampleFrame,1);
+nOrientations = size(Exp.MolFrame,1);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)

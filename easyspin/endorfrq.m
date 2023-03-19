@@ -80,8 +80,8 @@ DefaultExp.ExciteWidth = inf;
 DefaultExp.Field = NaN;
 
 DefaultExp.SampleFrame = [0 0 0];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
 DefaultExp.SampleRotation = [];
 
 DefaultExp.Range = []; % for compatibility, internal
