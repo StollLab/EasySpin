@@ -394,6 +394,11 @@ Determines whether the frequency-to-field conversion factor is included in the l
 For isotope mixtures, determines which isotopologues to include in the simulation. Any isotopologue with relative abundance smaller than <code>IsoCutoff</code> is excluded. The default value is 1e-4.
 </div>
 
+<div class="optionfield"><code>FuzzLevel</code></div>
+<div class="optiondescr">
+The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot  handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10). This field is only used when matrix diagonalization is used.
+</div>
+
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
 
