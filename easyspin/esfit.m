@@ -803,6 +803,12 @@ simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
 %-------------------------------------------------------------------------------
 simdata = simdata(:);
 expdata = expdata(:);
+
+if numel(simdata)~=numel(expdata)
+  error('\n  Experimental and model data arrays have unequal number of elements:\n    experimental: %d\n    model: %d\n',...
+    numel(expdata),numel(simdata));
+end
+
 order = Opt.BaseLine;
 if order~=-1
   N = numel(simdata);
