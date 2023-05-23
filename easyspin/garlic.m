@@ -143,6 +143,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   else
     spec = 0;
   end
+  if nTotalComponents==1
+    if ~strcmp(Opt.Output,'summed')
+      error('For single components, garlic only supports Opt.Output=''summed''. For multiple components, Opt.Output=''separate'' is supported.');
+    end
+  end
   
   % Loop over all components and isotopologues
   for iComponent = 1:nComponents
@@ -485,6 +490,10 @@ if ~isfield(Opt,'AccumMethod') || isempty(Opt.AccumMethod)
   else
     Opt.AccumMethod = 'binning';
   end
+end
+
+if ~isfield(Opt,'Output')
+  Opt.Output = 'summed';
 end
 
 %-------------------------------------------------------------------------
