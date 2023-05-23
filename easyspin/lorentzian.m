@@ -47,20 +47,16 @@ elseif ~isreal(phase)
   error('phase must be real.');
 end
 
-if phase~=0 && diff<0
-  error('Cannot compute integral of Lorentzian dispersion lineshape, since it diverges.');
-end
 
 % Compute Lorentzian lineshape
-%------------------------------------------------------------------
-% gamma = distance from center to inflection point
-gamma = fwhm/sqrt(3);
+%-------------------------------------------------------------------------------
+gamma = fwhm/sqrt(3);  % distance from center to inflection point
 pre = 2/pi/sqrt(3);
 z = (x-x0)/gamma;
 switch diff
   case -1
     yabs = atan(2/sqrt(3)*z)/pi + 1/2;
-    ydisp = NaN; % integral does not converge
+    ydisp = (1/2/pi)*log(3+4*z.^2);
   case 0
     yabs = pre/gamma./(1+4/3*z.^2);
     ydisp = pre^2*pi/gamma*z./(1+4/3*z.^2);
@@ -73,10 +69,11 @@ switch diff
 end
 
 % Phase rotation
+%-------------------------------------------------------------------------------
 if phase~=0
-  yabs1 =  yabs*cos(phase) + ydisp*sin(phase);
+  yabs_ =  yabs*cos(phase) + ydisp*sin(phase);
   ydisp = -yabs*sin(phase) + ydisp*cos(phase);
-  yabs = yabs1;
+  yabs = yabs_;
 end
 
 end

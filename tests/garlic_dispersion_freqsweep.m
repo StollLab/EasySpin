@@ -26,7 +26,7 @@ Exp.Field = B0*1e3;
 
 Sys.g = gfree;
 fwhm = 1/pi/T2;
-Sys.lw = [0.01 fwhm/1e6];  % MHz; small non-zero Gaussian broadening needed
+Sys.lw = [0 fwhm/1e6];  % MHz
 [~,chi2_sim] = garlic(Sys,Exp);
 chi2_sim = chi2_sim/max(abs(chi2_sim));
 

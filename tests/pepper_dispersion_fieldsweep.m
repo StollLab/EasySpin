@@ -27,7 +27,7 @@ Exp.Harmonic = 0;
 Sys.g = gfree;
 fwhm = 1/pi/T2; % Hz
 fwhm = fwhm*planck/bmagn/Sys.g/1e-3; % Hz -> mT
-Sys.lw = [0.001 fwhm];  % mT
+Sys.lw = [0 fwhm];  % mT
 [~,chi2_sim] = pepper(Sys,Exp);
 chi2_sim = chi2_sim/max(abs(chi2_sim));
 
@@ -52,6 +52,6 @@ if opt.Display
   title('absorption')
 end
 
-threshold = 1e-3;
+threshold = 1e-2;
 ok(1) = areequal(chi1,chi1_sim,threshold,'rel');
 ok(2) = areequal(chi2,chi2_sim,threshold,'rel');

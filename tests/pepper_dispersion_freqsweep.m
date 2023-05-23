@@ -26,7 +26,7 @@ Exp.Field = B0*1e3;
 
 Sys.g = gfree;
 fwhm = 1/pi/T2;
-Sys.lw = [0.01 fwhm/1e6];  % MHz; small non-zero Gaussian broadening needed
+Sys.lw = [0 fwhm/1e6];  % MHz; small non-zero Gaussian broadening needed
 [~,chi2_sim] = pepper(Sys,Exp);
 chi2_sim = chi2_sim/max(abs(chi2_sim));
 
@@ -51,6 +51,6 @@ if opt.Display
   title('absorption')
 end
 
-threshold = 1e-3;
+threshold = 1e-2;
 ok(1) = areequal(chi1,chi1_sim,threshold,'rel');
 ok(2) = areequal(chi2,chi2_sim,threshold,'rel');

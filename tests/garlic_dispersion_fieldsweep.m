@@ -27,7 +27,7 @@ Exp.Harmonic = 0;
 Sys.g = gfree;
 fwhm = 1/pi/T2; % Hz
 fwhm = fwhm*planck/bmagn/Sys.g/1e-3; % Hz -> mT
-Sys.lw = [0.001 fwhm];  % mT
+Sys.lw = [0 fwhm];  % mT
 [~,chi2_sim] = garlic(Sys,Exp);
 chi2_sim = chi2_sim/max(abs(chi2_sim));
 
