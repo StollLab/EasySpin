@@ -1375,6 +1375,10 @@ end
 %===============================================================================
 % Phasing
 %===============================================================================
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
 spec = real(exp(1i*Exp.mwPhase)*spec);
 
 

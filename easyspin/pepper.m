@@ -425,6 +425,13 @@ else
   end
 end
 
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
+
 % Resonator mode
 if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
   if strcmp(Exp.mwMode,'perpendicular')

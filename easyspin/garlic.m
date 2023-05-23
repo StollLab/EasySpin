@@ -297,6 +297,12 @@ else
   logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
 % Sweep range (magnetic field or frequency)
 SweepAutoRange = false;
 if FieldSweep
