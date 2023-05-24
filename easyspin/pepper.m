@@ -425,6 +425,13 @@ else
   end
 end
 
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
+
 % Resonator mode
 if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
   if strcmp(Exp.mwMode,'perpendicular')
@@ -853,7 +860,7 @@ elseif ~BruteForceSum
         x0T = 1e5;
         wT = x0T/20; % 0.0025 at borders for Harmonic = -1
         xT = 0:2*x0T-1;
-        Template = lorentzian(xT,x0T,wT,Exp.ConvHarmonic-1);
+        Template = lorentzian(xT,x0T,wT,Exp.ConvHarmonic-1,Exp.mwPhase);
         thisWid = Sys.lw(2);
         Sys.lw(2) = 0;
         ConvolutionBroadening = false;

@@ -54,6 +54,7 @@ There are the following advanced topics:
 <li><a href = "#manynuclei">Systems with several nuclei</a></li>
 <li><a href = "#ordering">Partially ordered systems</a></li>
 <li><a href = "#freqsweep">Frequency-swept spectra</a></li>
+<li><a href = "#degeneracies">Degeneracies</a></li>
 </ul>
 
 <!-- ============================================================= -->
@@ -657,6 +658,31 @@ By default, <code>pepper</code> returns the absorption spectrum (<code>Exp.Harmo
 <p>
 All other capabilities of <code>pepper</code> apply equally to frequency sweep and to field sweeps. For example,
 you can simulate crystals or multi-component spectra, and you can change the excitation mode. Importantly, just like field sweeps, frequency sweeps can be simulated using different methods: matrix diagonalization (<code>Opt.Method='matrix'</code>; highly accurate but potentially slow) or perturbation theory (<code>Opt.Method='perturb'</code>, <code>Opt.Method='perturb1'</code>, <code>Opt.Method='perturb2'</code>; less accurate but much faster).
+
+
+<!-- ============================================================= -->
+<a name="degeneracies"><div class="subtitle">Degeneracies</div></a>
+
+<p>
+EasySpin is not able to handle systems with degenerate energy levels in an exact fashion when using matrix diagonalization. To make it possible to simulate EPR spectra of such systems, EasySpin automatically adds small random perturbations to non-zero Hamiltonian matrix elements. The level of this added noice can be adjusted in <code>Opt.FuzzLevel</code>. The default value is 1e-10 and should be adequate for most cases.
+</p>
+
+<p>
+An alternative way to break degeneracies is to modify the spin system parameters. For instance, if there are two spins with identical g values, break the symmetry by adding a small perturbation to one of them:
+</p>
+
+<pre class="matlab">
+Sys.g = [2.01;  2.01];        % identical g values; Opt.FuzzLevel will break degeneracies
+Sys.g = [2.01;  2.01+1e-7];   % slightly perturbed g values, to break degeneracies
+</pre>
+
+<p>
+If you break degeneracies by modifying spin system parameters, and in cases where you are looking for very small changes in the EPR line positions, it is advisable to turn off the addition of random shifts:
+</p>
+
+<pre class="matlab">
+Opt.FuzzLevel = 0;
+</pre>
 
 </section>
 

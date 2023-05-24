@@ -264,6 +264,11 @@ Determines the perturbation theory order. Can be 1 or 2.
 Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, nothing is shown. 1 logs relevant information, 2 gives more details.
 </div>
 
+<div class="optionfield"><code>FuzzLevel</code></div>
+<div class="optiondescr">
+The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot  handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10). This field is only used when matrix diagonalization is used.
+</div>
+
 <div class="subtitle2">Outputs</div>
 
 <p>

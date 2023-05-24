@@ -143,6 +143,11 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   else
     spec = 0;
   end
+  if nTotalComponents==1
+    if ~strcmp(Opt.Output,'summed')
+      error('For single components, garlic only supports Opt.Output=''summed''. For multiple components, Opt.Output=''separate'' is supported.');
+    end
+  end
   
   % Loop over all components and isotopologues
   for iComponent = 1:nComponents
@@ -295,6 +300,12 @@ else
     error('Uninterpretable magnetic field in Exp.Field.');
   end
   logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+end
+
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
 end
 
 % Sweep range (magnetic field or frequency)
@@ -476,6 +487,10 @@ if ~isfield(Opt,'AccumMethod') || isempty(Opt.AccumMethod)
   else
     Opt.AccumMethod = 'binning';
   end
+end
+
+if ~isfield(Opt,'Output')
+  Opt.Output = 'summed';
 end
 
 %-------------------------------------------------------------------------

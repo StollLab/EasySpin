@@ -45,36 +45,35 @@ if numel(phase)>1
   error('phase must contain 1 element.');
 elseif ~isreal(phase)
   error('phase must be real.');
-elseif phase~=0 && (diff<0)
-  error('Cannot compute phased lineshape for integral.');
 end
 
+
 % Compute Lorentzian lineshape
-%------------------------------------------------------------------
-% gamma = distance from center to inflection point
-gamma = fwhm/sqrt(3);
+%-------------------------------------------------------------------------------
+gamma = fwhm/sqrt(3);  % distance from center to inflection point
 pre = 2/pi/sqrt(3);
-k = (x-x0)/gamma;
+z = (x-x0)/gamma;
 switch diff
   case -1
-    yabs = atan(2/sqrt(3)*k)/pi + 1/2;
-    ydisp = NaN; % integral does not converge
+    yabs = atan(2/sqrt(3)*z)/pi + 1/2;
+    ydisp = (1/2/pi)*log(3+4*z.^2);
   case 0
-    yabs = pre/gamma./(1+4/3*k.^2);
-    ydisp = pre^2*pi/gamma*k./(1+4/3*k.^2);
+    yabs = pre/gamma./(1+4/3*z.^2);
+    ydisp = pre^2*pi/gamma*z./(1+4/3*z.^2);
   case 1
-    yabs = -8/3*pre/gamma^2*k./(1+4/3*k.^2).^2;
-    ydisp = pre^2*pi/gamma^2*(1-4/3*k.^2)./(1+4/3*k.^2).^2;
+    yabs = -8/3*pre/gamma^2*z./(1+4/3*z.^2).^2;
+    ydisp = pre^2*pi/gamma^2*(1-4/3*z.^2)./(1+4/3*z.^2).^2;
   case 2
-    yabs = 8/3*pre/gamma^3*(4*k.^2-1)./(1+4/3*k.^2).^3;
-    ydisp = pre^2*pi/gamma^3*2*4/3*k.*(4/3*k.^2-3)./(1+4/3*k.^2).^3;
+    yabs = 8/3*pre/gamma^3*(4*z.^2-1)./(1+4/3*z.^2).^3;
+    ydisp = pre^2*pi/gamma^3*2*4/3*z.*(4/3*z.^2-3)./(1+4/3*z.^2).^3;
 end
 
 % Phase rotation
+%-------------------------------------------------------------------------------
 if phase~=0
-  yabs1 =  yabs*cos(phase) + ydisp*sin(phase);
+  yabs_ =  yabs*cos(phase) + ydisp*sin(phase);
   ydisp = -yabs*sin(phase) + ydisp*cos(phase);
-  yabs = yabs1;
+  yabs = yabs_;
 end
 
 end

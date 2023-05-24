@@ -516,29 +516,44 @@ if strcmp(Opt.SimulationMode,'fast')
     end
     
     isENDOR = false;
+    tauRequired = true;
     switch ExperimentID
-      case 1 % 2pESEEM
-        nIntervals = 2; nDimensions = 1; IncSchemeID = 2; nPathways = 1; pathwayprefactor = +1/2;
-      case 2 % 3pESEEM
-        nIntervals = 3; nDimensions = 1; IncSchemeID = 1; nPathways = 2; pathwayprefactor = +1/8*[1 1];
-      case 3 % 4pESEEM
-        nIntervals = 4; nDimensions = 1; IncSchemeID = 2; nPathways = 2; pathwayprefactor = -1/8*[1 1];
-      case 4 % HYSCORE
-        nIntervals = 4; nDimensions = 2; IncSchemeID = 11; nPathways = 2; pathwayprefactor = -1/8*[1 1];
-      case 5 % Mims ENDOR
+      case 1  % 2pESEEM
+        nIntervals = 2; nDimensions = 1; IncSchemeID = 2;
+        nPathways = 1; pathwayprefactor = +1/2;
+        tauRequired = false;
+      case 2  % 3pESEEM
+        nIntervals = 3; nDimensions = 1; IncSchemeID = 1;
+        nPathways = 2; pathwayprefactor = +1/8*[1 1];
+      case 3  % 4pESEEM
+        nIntervals = 4; nDimensions = 1; IncSchemeID = 2;
+        nPathways = 2; pathwayprefactor = -1/8*[1 1];
+      case 4  % HYSCORE
+        nIntervals = 4; nDimensions = 2; IncSchemeID = 11;
+        nPathways = 2; pathwayprefactor = -1/8*[1 1];
+      case 5  % Mims ENDOR
         isENDOR = true;
-        nIntervals = 3; nDimensions = 1; IncSchemeID = 0; nPathways = 2; pathwayprefactor = +1/8*[1 1];
+        nIntervals = 3; nDimensions = 1; IncSchemeID = 0;
+        nPathways = 2; pathwayprefactor = +1/8*[1 1];
     end
     
-    if ~isfield(Exp,'tau')
-      if ExperimentID==1
-        Exp.tau = 0;
-      else
+    if tauRequired
+      if ~isfield(Exp,'tau')
         error('Exp.tau is missing.');
       end
-    end
-    if ExperimentID>1 && all(Exp.tau==0)
-      error('Exp.tau must be larger than 0.');
+      if numel(Exp.tau)~=1
+        error('Exp.tau must contain a single value (in µs).');
+      end
+      if Exp.tau==0
+        error('Exp.tau must be larger than 0.');
+      end
+    else
+      if ~isfield(Exp,'tau')
+        Exp.tau = 0;
+      end
+      if numel(Exp.tau)~=1
+        error('Exp.tau must contain a single value (in µs).');
+      end
     end
     
   else

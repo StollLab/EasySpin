@@ -66,77 +66,86 @@ In this guide, we are going to cover the following topics:
 
 <!-- ============================================================= -->
 <a name="calling"><div class="subtitle">Running the simulation</div></a>
-Here is a quick example on how to run a manually defined two-pulse ESEEM with transient detection.
+
+<p>
+Here is a simple example on how to run a manually defined three-pulse ESEEM with transient detection.
 The example below is the extension of what was shown at the end of this <a class="esf" href="userguide_saffron.html#userdef">section</a> in part I of the user guide.
 By now you should be familiar with how to set up a user-defined sequence so we are only going to discuss the additional fields:
+</p>
 
 <pre class="matlab">
 % Spin system
 Sys.S = 1/2;
 Sys.Nucs = '1H';
-Sys.A_ = [5 2];
+Sys.A_ = [5 2];  % MHz
 
 % Experiment
 p90.Flip = pi/2;
-p90.tp = 0.020; % pulse length of 20 ns 
+p90.tp = 0.020;   % pulse length, µs
 
-tau = 0.2;
+tau = 0.2;  % µs
 
-Exp.Field = 350;
+Exp.Field = 350;  % MT
 Exp.Sequence = {p90 tau p90 0 p90 tau};
-Exp.mwFreq = 9.8; % pulse frequency
-Exp.DetWindow = [-0.1 0.1]; % add a detection window for recording transients
+Exp.mwFreq = 9.8;  % pulse frequency
+
+Exp.DetWindow = [-0.1 0.1];   % add a detection window for recording transients, µs
 
 Exp.nPoints = 5;        % only 5 data points 
-Exp.Dim1 = {'d2', 0.1}; % increment 2nd delay by 8 ns 
+Exp.Dim1 = {'d2', 0.1}; % increment 2nd delay by 0.1 µs 
 </pre>
 
 <p>
-We added a total of three lines: <code>p90.tp</code>, <code>Exp.mwFreq</code> and <code>Exp.DetWindow</code>
+We added a total of three lines: <code>p90.tp</code>, <code>Exp.mwFreq</code> and <code>Exp.DetWindow</code>.
+</p>
 
 <p>
-<code>p90.tp</code> was necessary as all pulses must no be real pulses. 
-With <code>Exp.mwFreq</code> we tell <a class="esf" href="saffron.html">saffron</a> the frequency of those pulses (frequency modulated pulses will be discussed later) and with <code>Exp.DetWindow</code> we requested a detection window with a width of 200 ns, centered around the end of the second &tau; period.
-
+<code>p90.tp</code> was necessary as all pulses must now be real pulses. With <code>Exp.mwFreq</code> we tell <a class="esf" href="saffron.html">saffron</a> the carrier frequency for these monochromatic pulses (frequency-swept pulses will be discussed later), and with <code>Exp.DetWindow</code> we request a detection window with a width of 200 ns, centered around the end of the second &tau; period.
+</p>
 
 <p>
 We also set <code>Exp.nPoints</code> to 5 to make the output more comprehendable and to save time.
+</p>
 
 <p>
 If the above is run with <a class="esf" href="saffron.html">saffron</a> without any output arguments
+</p>
 
 <pre class="matlab">
-saffron(Exp,Sys)
+saffron(Sys,Exp)
 </pre>
 
 <p>
-a figure is going to be created. The <code>x</code>-axis of this figure is the time of the transient in microseconds.
-The <code>y</code>-axis corresponds to the data points in the indirect dimension and the <code>z</code>-axis is the signal.
+a figure is generated. The two horizontal axes are the time of the transient in microseconds and the data points in the indirect dimension, and the vertical axis is the signal.
+</p>
 
 <!-- ============================================================= -->
 <a name="detection_window">
 <div class="subtitle">The detection</div>
+</a>
+
 <p>
 Detection is controlled with the field <code>Exp.DetWindow</code>. It allows to use single-point detection as well as transient detection.
 The position of the detection is set in relation to the end of the last event in the pulse sequence, which is the zero time of the detection.
-This last event can be a pulse or a free evolution event. You are also free to position your detection anyway you want, with the only requirement, that it must not overlap with the last pulse.
+This last event can be a pulse or a free evolution period. You are also free to position your detection anyway you want, with the only requirement, that it must not overlap with the last pulse.
 
 <p>
-Take the above sequence for example:
+Take for example the pulse sequence for the stimulated echo:
+</p>
 
 <pre class="matlab">
 Exp.Sequence = {p90 tau p90 0 p90 tau};
 </pre>
 
 <p>
-From spin dynamics we know that the echo that we want to detect is going to appear more or less centered around the end of the second &tau;-period.
-Hence we can set the detection window such that it is centered around that time.
+The echo that we want to detect appears more or less centered around the end of the second &tau;-period. Hence we can set the detection window such that it is centered around that time.
+
 <pre class="matlab">
-Exp.DetWindow = [-0.1 0.1];
+Exp.DetWindow = [-0.1 0.1];  % µs
 </pre>
 
 <p>
-The detection window gives you a lot freedom with where you want to detect, and to detect an FID of a length &tau; after the last pulse, we could for example write:
+The detection window provide a lot freedom with where you want to detect. To detect an FID of a length &tau; after the last pulse, we could for example write:
 
 <pre class="matlab">
 % Keeping the same sequence definition as above
