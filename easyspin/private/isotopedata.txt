@@ -267,7 +267,7 @@
 58 138 - Ce  cerium         0.0  0.0         0.251     0
 58 140 - Ce  cerium         0.0  0.0        88.450     0
 58 142 - Ce  cerium         0.0  0.0        11.114     0
-59 141 - Pr  praesodymium   2.5 +1.7102    100.0      -0.077
+59 141 - Pr  praseodymium   2.5 +1.7102    100.0      -0.077
 60 142 - Nd  neodymium      0.0  0.0        27.2       0
 60 143 - Nd  neodymium      3.5 -0.3043     12.2      -0.61
 60 144 - Nd  neodymium      0.0  0.0        23.8       0
