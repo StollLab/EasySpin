@@ -317,9 +317,28 @@ function windowButtonMotionFcn(~,~,~)
 h = hittest();  % obtain handle of object under mouse pointer
 switch h.Tag
   case 'level'
-    title(sprintf('level %d',h.UserData));
+    if isempty(h.Parent.UserData)
+      h.Parent.UserData = h.Parent.Title.String;
+    end
+    h.Parent.Title.String = sprintf('level %d',h.UserData);
   case 'transition'
-    title(sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
-      h.UserData(1),h.UserData(2),h.UserData(3),h.UserData(4)));
+    if isempty(h.Parent.UserData)
+      h.Parent.UserData = h.Parent.Title.String;
+    end
+    h.Parent.Title.String = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+      h.UserData(1),h.UserData(2),h.UserData(3),h.UserData(4));
+  otherwise
+    if strcmp(h.Type,'figure')
+      ha = findobj(get(h,'Children'),'-depth',1,'type','axes');
+      for i = 1:numel(ha)
+        if ~isempty(ha(i).UserData)
+          ha(i).Title.String = ha(i).UserData;
+        end
+      end
+    elseif strcmp(h.Type,'axes')
+      if ~isempty(h.UserData)
+        h.Title.String = h.UserData;
+      end
+    end
 end
 end
