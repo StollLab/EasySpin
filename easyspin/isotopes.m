@@ -120,7 +120,7 @@ set(hAll,'String','all','BackgroundColor',[1 1 1]*0.9,...
 
 % Add labels above data columns
 labels = ['Mass Sym.    I              Nuclear g             '...
-    'ENDOR Freq.          Elec. Quadrupole      Abund. (%)']; 
+    'ENDOR Freq.          Elec. Quadrupole      Abundance']; 
 hListLabel = uicontrol('Style','text','String',labels);
 set(hListLabel,'HorizontalAlignment','left');
 set(hListLabel,'Position',[xOff Border+BottomHeight+ListHeight FigPos(3)-2*Border LabelHeight]);
