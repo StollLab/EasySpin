@@ -69,12 +69,13 @@ Border = 10;
 xSpacing = Width-0;
 ySpacing = Height-0;
 ClassSpacing = 5;
+LabelHeight = 15;
 ListHeight = 100;
-BottomHeight = 40;
+BottomHeight = 30;
 
 FigPos(3) = Border + 18*xSpacing + 2*ClassSpacing + Border;
 FigPos(4) = Border + 7*ySpacing + Border + 2*ySpacing + Border + ...
-  ListHeight + Border + BottomHeight;
+  + LabelHeight/2 + ListHeight + Border + BottomHeight;
 set(hFig,'Position',FigPos);
 
 yOff = FigPos(4)-Height-Border;
@@ -116,6 +117,14 @@ hAll = uicontrol('Style','pushbutton','Units','pixels',...
 set(hAll,'String','all','BackgroundColor',[1 1 1]*0.9,...
 'ToolTipstring','all elements',...
 'Callback','isotopes ElementCallback','FontSize',10);
+
+% Add labels above data columns
+labels = ['Mass Sym.    I              Nuclear g             '...
+    'ENDOR Freq.          Elec. Quadrupole      Abund. (%)']; 
+hListLabel = uicontrol('Style','text','String',labels);
+set(hListLabel,'HorizontalAlignment','left');
+set(hListLabel,'Position',[xOff Border+BottomHeight+ListHeight FigPos(3)-2*Border LabelHeight]);
+figdata.hListLabel = hListLabel;
 
 % Magnetic field value
 hFieldLabel = uicontrol('Style','text','String','Magnetic field [mT]',...
