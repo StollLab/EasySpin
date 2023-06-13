@@ -265,7 +265,7 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
 end
 
 % Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.MolFrame) || ~isempty(Exp.Ordering);
+PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
 
 % Partial ordering
 if ~isempty(Exp.Ordering)

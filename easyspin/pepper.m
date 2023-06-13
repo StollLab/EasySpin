@@ -443,7 +443,11 @@ end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.MolFrame);
+PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
+if ~PowderSimulation
+  if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
+  if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
+end
 Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
 % Partial ordering

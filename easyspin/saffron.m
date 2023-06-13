@@ -143,7 +143,7 @@ if ~isempty(Exp.Temperature)
 end
 
 % Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.SampleFrame);
+PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
 Exp.PowderSimulation = PowderSimulation;
 
 if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = []; end

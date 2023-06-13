@@ -14,12 +14,16 @@ Inputs:
   Opt.Sites:              list of sites to include, e.g. [1 3] in a 4-site group
 
 Outputs:
-  Orientations:    list of orientations Euler angles, one per row
+  angles_M2L:      list of orientations Euler angles, one per row
                      [phi,theta,chi] for mol-to-lab frame transformation
   nOrientations:   total number of orientations
   nSites:          number of symmetry-related sites
-  averageOverChi:  whether to compute average over third angle
+  averageOverChi:  whether to compute average over chi angle
 %}
+
+% Exp.PowderSimulation is set only if this function is called from an EasySpin
+% function that does a powder simulation (pepper, salt, saffron, curry, etc).
+doPowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
 
 if ~isfield(Exp,'MolFrame')
   error('Internal error: Exp.MolFrame missing. Please report.');
@@ -30,10 +34,6 @@ end
 if size(Exp.MolFrame,2)~=3
   error('Exp.MolFrame requires three columns (three Euler angles).')
 end
-
-% Exp.PowderSimulation is set only if this function is called from an EasySpin
-% function that does a powder simulation (pepper, salt, saffron, curry, etc).
-doPowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
 
 if ~doPowderSimulation
   
@@ -137,7 +137,7 @@ else
   angles_M2L = -fliplr(Exp.MolFrame);
   nOrientations = size(angles_M2L,1);
   
-  % For powder simulations, always average over the third angle.
+  % For powder simulations, always average over the chi angle.
   averageOverChi = true;
   
   % Apply sample rotations(s)
