@@ -119,8 +119,8 @@ if opt.Display
     subplot(2,2,i)
     title(label{i})
     hold on; box on;
-    line(B0+[-1 1]*round(3*mhz2mt(Omega)*10)/10,[0 0],'Color','k')
-    xlim(B0+[-1 1]*round(3*mhz2mt(Omega)*10)/10)
+    line(B0+[-1 1]*round(3*unitconvert(Omega,'MHz->mT')*10)/10,[0 0],'Color','k')
+    xlim(B0+[-1 1]*round(3*unitconvert(Omega,'MHz->mT')*10)/10)
     for j = 1:4
       line([1 1]*TransB(j),[0 Ian(j+(i-1)*4)],'Color','r')
       line([1 1]*B(j),[0 Inum(j+(i-1)*4)],'Color','k','LineStyle','--')

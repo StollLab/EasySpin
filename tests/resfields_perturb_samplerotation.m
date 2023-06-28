@@ -17,6 +17,6 @@ Exp.SampleRotation = {-2*pi/3,rotaxis};
 [Bx,~] = resfields_perturb(Sys,Exp);
 
 % Reference values for resonance fields
-Bref = mhz2mt(Exp.mwFreq*1e3,Sys.g);
+Bref = unitconvert(Exp.mwFreq*1e3,'MHz->mT',Sys.g);
 
 ok = areequal([Bx By Bz],Bref,1e-10,'abs');

@@ -30,7 +30,7 @@
 %   Example:
 %
 %     System = struct('g',[2.0088 2.0064 2.0027],'Nucs','14N');
-%     System.A = mt2mhz([7.59 5.95 31.76]/10);
+%     System.A = unitconvert([7.59 5.95 31.76]/10,'mT->MHz');
 %     [lw,mI] = fastmotion(System,350,1e-10)
 
 % The undocumented syntax
@@ -45,7 +45,7 @@ if nargin==0
   % Di-t-butyl nitroxide
   System.Nucs = '14N';
   System.g = [2.0088 2.0064 2.0027];
-  System.A = mt2mhz([7.59 5.95 31.76; 10 15 20]/10); % MHz
+  System.A = unitconvert([7.59 5.95 31.76; 10 15 20]/10,'mT->MHz'); % MHz
   Field = 350; % mT
   tau20 = 1e-10; % s
 end
@@ -167,10 +167,10 @@ C = convertcoeffs(C);
 D = convertcoeffs(D);
 
 if fieldUnits
-  A = mhz2mt(A,g0);
-  B = mhz2mt(B,g0);
-  C = mhz2mt(C,g0);
-  D = mhz2mt(D,g0);
+  A = unitconvert(A,'MHz->mT',g0);
+  B = unitconvert(B,'MHz->mT',g0);
+  C = unitconvert(C,'MHz->mT',g0);
+  D = unitconvert(D,'MHz->mT',g0);
 end
 
 coeffs.A = A;
@@ -195,9 +195,9 @@ if nNucs>0
   qC = convertcoeffs(qC);
   qE = convertcoeffs(qE);
   if fieldUnits
-    qA = mhz2mt(qA,g0);
-    qC = mhz2mt(qC,g0);
-    qE = mhz2mt(qE,g0);
+    qA = unitconvert(qA,'MHz->mT',g0);
+    qC = unitconvert(qC,'MHz->mT',g0);
+    qE = unitconvert(qE,'MHz->mT',g0);
   end
 else
   qA = 0;

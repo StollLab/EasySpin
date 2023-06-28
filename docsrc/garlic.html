@@ -275,7 +275,7 @@ using the rotational correlation time:
 </p>
 
 <pre class="matlab">
-A = mt2mhz([5.8 5.8 30.8]/10);
+A = unitconvert([5.8 5.8 30.8]/10,'mT->MHz');
 Sys = struct('g',[2.0088 2.0061 2.0027],'Nucs','14N','A',A);
 Sys.tcorr = 5e-9;
 Exp = struct('mwFreq',9.5);

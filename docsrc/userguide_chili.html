@@ -131,12 +131,12 @@ Sys.A = [10; 12]; % MHz
 </pre>
 
 <p>
-Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (milltesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (milltesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="unitconvert.html">unitconvert</a>:
 </p>
 
 <pre class="matlab">
-A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
-A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+A_MHz = unitconvert(A_mT,'mT->MHz');    % mT -> MHz conversion
+A_MHz = unitconvert(A_G/10,'mT->MHz');  %  G -> MHz conversion (1 G = 0.1 mT)
 </pre>
 
 <p>

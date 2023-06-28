@@ -157,12 +157,12 @@ Often, values for hyperfine couplings are given in G (Gauss) or mT
 (Milltesla), so you have to convert these values.
 For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
 The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
-function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+function <a class="esf" href="unitconvert.html">unitconvert</a>:
 </p>
 
 <pre class="matlab">
-A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
-A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+A_MHz = unitconvert(A_mT,'mT->MHz');    % mT -> MHz conversion
+A_MHz = unitconvert(A_G/10,'mT->MHz');  %  G -> MHz conversion (1 G = 0.1 mT)
 </pre>
 
 
@@ -457,7 +457,7 @@ In conclusion, an illustrative example of a nitroxide radical in the fast-motion
 </p>
 
 <pre class="matlab">
-A = mt2mhz([5.8 5.8 30.8]/10);
+A = unitconvert([5.8 5.8 30.8]/10,'mT->MHz');
 Sys = struct('g',[2.0088 2.0061 2.0027],'Nucs','14N','A',A);
 Sys.logtcorr = -9; % corresponds to 1e-9 s = 1 ns
 Exp = struct('mwFreq',9.5);

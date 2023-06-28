@@ -863,8 +863,7 @@ Sys.J = [J12 J13 J14 J23 J24 J34];  % six coupling constants, in MHz
 <p>
 To convert from the more traditional unit cm<sup>-1</sup> to MHz, use
 <pre class="matlab">
-J_MHz = J_cm*30e3;            % cm^-1 to MHz conversion, approximate
-J_MHz = J_cm*100*clight/1e6;  % cm^-1 to MHz conversion, exact
+J_MHz = unitconvert(J_cm,'cm^-1->MHz');            % cm^-1 to MHz conversion
 </pre>
 
 <p>

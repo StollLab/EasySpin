@@ -6,7 +6,7 @@ clear, clf, clc
 % Parameters
 %---------------------------------------------------------------------
 g = [2.0088,2.0061,2.0027];
-A = mt2mhz([5.8,5.8,30.8]/10); % G -> MHz
+A = unitconvert([5.8,5.8,30.8]/10,'mT->MHz'); % G -> MHz
 
 Sys = struct('g',g,'Nucs','14N','A',A);
 Sys.lw = [0 0.1]; % Lorentzian, mT

@@ -11,8 +11,8 @@ Sys = struct('g',2,'Nucs','1H,1H,1H,1H','n',[2 4 4 4]);
 Sys.lwpp = [0,0.01]; % Lorentzian lines
 
 % Hyperfine couplings
-A_anion =  mt2mhz([0.4263 0.3032 0.0915 0.0870]);
-A_cation = mt2mhz([0.5083 0.3554 0.0975 0.0757]);
+A_anion =  unitconvert([0.4263 0.3032 0.0915 0.0870],'mT->MHz');
+A_cation = unitconvert([0.5083 0.3554 0.0975 0.0757],'mT->MHz');
 
 Exp.mwFreq = 9.5;
 Exp.CenterSweep = [339.4, 4];

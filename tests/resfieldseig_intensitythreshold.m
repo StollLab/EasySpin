@@ -9,7 +9,7 @@ Exp.mwFreq=9.65;
 
 Sys.g = gfree;
 Sys.Nucs = '31P,31P';
-Sys.A = mt2mhz([10 20]/10);
+Sys.A = unitconvert([10 20]/10,'mT->MHz');
 
 Op.Threshold = 0.001;
 

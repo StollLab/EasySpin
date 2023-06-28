@@ -16,7 +16,7 @@ Sys.g = [2.01585 2.0069 2.0048;  % tetrathiafulvalene
          2.0060 2.0056 2.0044]; % pyromellitimide
        
 Sys.J = 0; % MHz
-Sys.dip = 2*mt2mhz(-125e-3); % MHz
+Sys.dip = 2*unitconvert(-125e-3,'mT->MHz'); % MHz
 
 Sys.lwpp = 0.38; % mT
 

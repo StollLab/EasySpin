@@ -118,7 +118,7 @@ for the associated lines are
 
 <pre class="matlab">
 Nitroxide = struct('g',[2.0088 2.0064 2.0027],'Nucs','14N');
-Nitroxide.A = mt2mhz([7.59 5.95 31.76]/10);
+Nitroxide.A = unitconvert([7.59 5.95 31.76]/10,'mT->MHz');
 
 Field = 350;
 tcorr = 1e-10;

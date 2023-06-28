@@ -5,7 +5,7 @@ function [ok,data] = test(opt,olddata)
 %======================================================
 
 System = struct('g',[2.0088 2.0064 2.0027],'Nucs','14N');
-System.A = mt2mhz([7.59 5.95 31.76]/10);
+System.A = unitconvert([7.59 5.95 31.76]/10,'mT->MHz');
 tcorr = 1e-10;
 field = 350;
 

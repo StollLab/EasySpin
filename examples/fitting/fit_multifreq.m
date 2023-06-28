@@ -5,7 +5,7 @@ clear, clc
 % Normal fields (these are typically used by existing EasySpin functions)
 Sys.Nucs = '14N';
 Sys.g = [2.009, 2.006, 2.002];
-Sys.A = mt2mhz([0.5, 3.6]);
+Sys.A = unitconvert([0.5, 3.6],'mT->MHz');
 Sys.logDiff = 8;
 
 % Custom fields (these are used by the custom function chili_multifreq)
@@ -20,7 +20,7 @@ Exp.mwFreqX = 9.4;
 Exp.mwFreqQ = 34;
 
 % Normal vary (these vary the normal fields)
-% Vary.A = mt2mhz([0.1, 0.15]);
+% Vary.A = unitconvert([0.1, 0.15],'mT->MHz');
 Vary.logDiff = 0.5;
 
 % Custom vary (these vary the custom fields)
