@@ -747,7 +747,7 @@ for iOri = 1:nOrientations
             Populations(iState) = Vs(:,iState)'*initState*Vs(:,iState);
           end
       end
-      Polarization = Populations(u) - Populations(v);
+      Polarization = real(Populations(u) - Populations(v));
       if nPerturbNuclei>0
         Polarization = Polarization/prod(2*Sys.I+1);
       end
