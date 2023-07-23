@@ -442,16 +442,22 @@ if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
-% Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
-if ~PowderSimulation
-  if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
-  if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
-end
-Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
-% Partial ordering
-if ~isempty(Exp.Ordering)
+% Powder vs crystal vs. partial ordering
+PowderSimulation = false;
+if isempty(Exp.Ordering)
+  PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
+  if ~PowderSimulation
+    if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
+    if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
+  end
+else
+  if ~isempty(Exp.MolFrame)
+    error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
+  end
+  if ~isempty(Exp.CrystalSymmetry)
+    error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
+  end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
@@ -465,6 +471,8 @@ if ~isempty(Exp.Ordering)
     error('Exp.Ordering must be either a single number or a function handle.');
   end
 end
+Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
+
 
 % Temperature and non-equilibrium populations
 nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
