@@ -14,17 +14,16 @@
 %    Opt        options
 %      Units           energy units for plotting, 'GHz' or 'cm^-1' or 'eV'
 %      nPoints         Number of points
-%      ColorThreshold  Coloring threshold. All transitions with relative
-%                      intensity below this will be gray. Example: 0.05
-%      PlotThreshold   All transitions below with relative intensity
-%                      below this value will not be plotted. Example: 0.005
+%      PlotThreshold   All transitions with relative intensity below
+%                      this value will not be plotted. Example: 0.005
 %      SlopeColor      true/false. Color energy level lines by their slope,
 %                      (corresponding to their mS expectation value).
 %                      Default is false.
+%      StickSpectrum   true/false. Plot stick spectrum underneath Zeeman
+%                      diagram. Default is false.
 %
 %  If mwFreq is given, resonances are drawn. Red lines indicate allowed
-%  transitions, gray lines forbidden ones. If the lines are terminated with
-%  dots, the relative transition intensity is larger than 1%.
+%  transitions, gray lines forbidden ones.
 %
 %  Example:
 %    Sys = struct('S',7/2,'g',2,'D',5e3);
@@ -82,19 +81,17 @@ end
 if ~isnumeric(mwFreq) || numel(mwFreq)~=1 || ~isreal(mwFreq)
   error('Fourth input argument (mwFreq) must be a single number.');
 end
+computeResonances = isfinite(mwFreq);
 
 % Supply option defaults
 if ~isstruct(Opt)
-  error('Fifth input (parameters) must be a structure.');
+  error('Fifth input (options) must be a structure.');
 end
 if ~isfield(Opt,'nPoints')
   Opt.nPoints = 201;
 end
 if ~isfield(Opt,'PlotThreshold')
-  Opt.PlotThreshold = 0.001;
-end
-if ~isfield(Opt,'ColorThreshold')
-  Opt.ColorThreshold = 0.01;
+  Opt.PlotThreshold = 1e-6;
 end
 Opt.AllowedColor = [1 0 0];
 Opt.ForbiddenColor = [1 1 1]*0.8;
@@ -103,6 +100,9 @@ if ~isfield(Opt,'Units')
 end
 if ~isfield(Opt,'SlopeColor')
   Opt.SlopeColor = false;
+end
+if ~isfield(Opt,'StickSpectrum')
+  Opt.StickSpectrum = false;
 end
 
 % Convert string in Ori input to angles
@@ -134,8 +134,9 @@ switch numel(B)
     Bvec = B;
 end
 
+% Calculate energy levels
 E_MHz = levels(Sys,[phi theta chi],Bvec);
-E = unitconvert(E_MHz,Opt.Units);
+E = unit_convert(E_MHz,Opt.Units);
 nLevels = size(E,2);
 
 % Set horizontal and vertical units, scaling and labels
@@ -174,6 +175,12 @@ yLabel = ['energy (' yUnits ')'];
 
 % Plot energy levels
 %-------------------------------------------------------------------------------
+if Opt.StickSpectrum && computeResonances
+  subplot(4,1,[1 2 3]);
+  cla
+end
+ax = gca;
+
 if Opt.SlopeColor
   for iLevel = 1:nLevels
     col = abs(deriv(E(:,iLevel)));
@@ -194,59 +201,58 @@ else
 end
 box on
 axis tight
-xlabel(xLabel);
 ylabel(yLabel);
+set(gca,'Tag','diagram');
 
 % Calculate and plot transitions
 %-------------------------------------------------------------------------------
-computeResonances = isfinite(mwFreq);
 if computeResonances
-  if ~isfield(Sys,'S')
-    nElectrons = 1;
-    Sys.S = 1/2;
-  else
-    nElectrons = numel(Sys.S);
-  end
-  
-  if ~isfield(Sys,'g')
-    Sys.g = ones(1,nElectrons)*2;
-  end
   
   resfieldsOpt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
   Exp.CrystalOrientation = [phi theta chi];
   [resonFields,intensity,~,Transitions] = resfields(Sys,Exp,resfieldsOpt);
-  intensity = abs(intensity); % to handle emissive transitions (in spin-polarized systems)
 
   if ~isempty(resonFields)
-    tpMax = max(intensity);
+    tpMax = max(abs(intensity));
     if tpMax>0, intensity = intensity/tpMax; end
-    
+    absintensity = abs(intensity);
     % sort transitions according to intensity to ensure more intense
     % lines are plotted on top of less intense ones
-    [intensity,ix] = sort(intensity);
-    resonFields = resonFields(ix);
-    Transitions = Transitions(ix,:);
+    [absintensity,idx] = sort(absintensity);
+    resonFields = resonFields(idx);
+    Transitions = Transitions(idx,:);
+    intensity = intensity(idx);
 
     % compute and plot lower and upper energy levels of transitions
     zL = ang2vec(phi,theta);  % lab z direction in molecular frame representation
     [H0,muzL] = ham(Sys,zL);
     for iF = 1:numel(resonFields)
-      if intensity(iF)<Opt.PlotThreshold, continue; end
+      if absintensity(iF)<Opt.PlotThreshold, continue; end
 
       H = H0 - muzL*resonFields(iF);
       E_MHz = sort(eig(H));
-      E = unitconvert(E_MHz,Opt.Units);
+      E = unit_convert(E_MHz,Opt.Units);
 
-      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition');
-      h.UserData = [Transitions(iF,:) resonFields(iF) intensity(iF)];
-      transitionColor = intensity(iF)*Opt.AllowedColor + (1-intensity(iF))*Opt.ForbiddenColor;
+      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition','LineWidth',1);
+      h.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
+      transitionColor = absintensity(iF)*Opt.AllowedColor + (1-absintensity(iF))*Opt.ForbiddenColor;
       h.Color = transitionColor;
-      if intensity(iF)>Opt.ColorThreshold
-        h.Marker = '.';
-      end
       h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  relative intensity = %0.4g\n',...
-        Transitions(iF,1),Transitions(iF,2),intensity(iF));
+        Transitions(iF,1),Transitions(iF,2),absintensity(iF));
+    end
+
+    if Opt.StickSpectrum
+      xl = xlim;
+      subplot(4,1,4);
+      cla
+      for iF = 1:numel(resonFields)
+        hLine = line([1 1]*resonFields(iF)*Bscale,[0 intensity(iF)],'LineWidth',2,'Tag','line');
+        hLine.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
+      end
+      ylim([0 1.1]);
+      xlim(xl);
+      box on
     end
     
   else
@@ -257,6 +263,7 @@ if computeResonances
     set(h,'Color','r','VerticalAl','bottom');
   end
 end
+xlabel(xLabel);
 
 % Display microwave frequency if given
 %-------------------------------------------------------------------------------
@@ -293,15 +300,16 @@ else
                 str,oristr,phi*180/pi,theta*180/pi);
 end
 
-xl = xlim;
-yl = ylim;
-text(xl(1),yl(2),str,'VerticalAl','top');
+xl = xlim(ax);
+yl = ylim(ax);
+text(ax,xl(1),yl(2),str,'VerticalAl','top');
+
 
 set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
 
 end
 
-function Eout = unitconvert(E_MHz,toUnit)
+function Eout = unit_convert(E_MHz,toUnit)
 
 switch toUnit
   case 'GHz', Eout = E_MHz/1e3;
@@ -314,31 +322,23 @@ end
 end
 
 function windowButtonMotionFcn(~,~,~)
-h = hittest();  % obtain handle of object under mouse pointer
-switch h.Tag
+
+hObj = hittest();  % obtain handle of object under mouse pointer
+hAx = findobj(gcf,'Tag','diagram');
+
+% Display information for level, transition or spectral line
+switch hObj.Tag
   case 'level'
-    if isempty(h.Parent.UserData)
-      h.Parent.UserData = h.Parent.Title.String;
-    end
-    h.Parent.Title.String = sprintf('level %d',h.UserData);
+    hAx.Title.String = sprintf('level %d',hObj.UserData);
   case 'transition'
-    if isempty(h.Parent.UserData)
-      h.Parent.UserData = h.Parent.Title.String;
-    end
-    h.Parent.Title.String = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
-      h.UserData(1),h.UserData(2),h.UserData(3),h.UserData(4));
+    hAx.Title.String = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+      hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+  case 'line'
+    hAx.Title.String = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+      hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
   otherwise
-    if strcmp(h.Type,'figure')
-      ha = findobj(get(h,'Children'),'-depth',1,'type','axes');
-      for i = 1:numel(ha)
-        if ~isempty(ha(i).UserData)
-          ha(i).Title.String = ha(i).UserData;
-        end
-      end
-    elseif strcmp(h.Type,'axes')
-      if ~isempty(h.UserData)
-        h.Title.String = h.UserData;
-      end
-    end
+    % remove information if not over an object
+    hAx.Title.String = '';
 end
+
 end

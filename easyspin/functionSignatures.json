@@ -2627,12 +2627,12 @@
         "purpose": "microwave frequency, GHz"
       },
       {
-        "name": "Par",
+        "name": "Opt",
         "kind": "ordered",
         "type": [
           "struct"
         ],
-        "purpose": "optional parameters"
+        "purpose": "options: Units, nPoints, SlopeColor, etc"
       }
     ]
   },
