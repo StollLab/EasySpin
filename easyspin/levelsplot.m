@@ -203,6 +203,9 @@ box on
 axis tight
 ylabel(yLabel);
 set(gca,'Tag','diagram');
+xl = xlim;
+yl = ylim;
+text(xl(1),yl(1),'','Tag','infotext','VerticalAlignment','bottom');
 
 % Calculate and plot transitions
 %-------------------------------------------------------------------------------
@@ -265,23 +268,23 @@ if computeResonances
 end
 xlabel(xLabel);
 
-% Display microwave frequency if given
+% Display orientation and microwave frequency (if given)
 %-------------------------------------------------------------------------------
 if isfinite(mwFreq)
   switch Opt.Units
     case 'GHz'
-      str = sprintf('  %g GHz\n',mwFreq);
+      mwstr = sprintf('  %g GHz\n',mwFreq);
     case 'cm^-1'
-      str = sprintf('  %0.3g cm^{-1} (%g GHz)\n',mwFreq*1e9/clight/100,mwFreq);
+      mwstr = sprintf('  %0.3g cm^{-1} (%g GHz)\n',mwFreq*1e9/clight/100,mwFreq);
     case 'eV'
       if Escale==1e3
-        str = sprintf('  %0.3g meV (%g GHz)\n',mwFreq*1e9*planck/evolt*1e3,mwFreq);
+        mwstr = sprintf('  %0.3g meV (%g GHz)\n',mwFreq*1e9*planck/evolt*1e3,mwFreq);
       else
-        str = sprintf('  %0.3g eV (%g GHz)\n',mwFreq*1e9*planck/evolt,mwFreq);
+        mwstr = sprintf('  %0.3g eV (%g GHz)\n',mwFreq*1e9*planck/evolt,mwFreq);
       end
   end
 else
-  str = '';
+  mwstr = '';
 end
 
 if ischar(Ori)
@@ -293,22 +296,28 @@ else
 end
 
 if chiGiven
-  str = sprintf('%s %s (φ,θ,χ) = (%0.1f, %0.1f, %0.1f)°',...
-                str,oristr,phi*180/pi,theta*180/pi,chi*180/pi);
+  str = sprintf('  %s (φ,θ,χ) = (%0.1f, %0.1f, %0.1f)°\n%s',...
+                oristr,phi*180/pi,theta*180/pi,chi*180/pi,mwstr);
 else
-  str = sprintf('%s %s (φ,θ) = (%0.1f, %0.1f)°',...
-                str,oristr,phi*180/pi,theta*180/pi);
+  str = sprintf('  %s (φ,θ) = (%0.1f, %0.1f)°\n%s',...
+                oristr,phi*180/pi,theta*180/pi,mwstr);
 end
 
 xl = xlim(ax);
 yl = ylim(ax);
 text(ax,xl(1),yl(2),str,'VerticalAl','top');
 
-
-set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
+% Activate mouseovers only if there is one levelsplot axes in the figure.
+hAx = findobj(gcf,'Tag','diagram');
+if numel(hAx)==1
+  set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
+else
+%  set(gcf,'WindowButtonMotionFcn','');
+end
 
 end
 
+%-------------------------------------------------------------------------------
 function Eout = unit_convert(E_MHz,toUnit)
 
 switch toUnit
@@ -321,24 +330,30 @@ end
 
 end
 
+%-------------------------------------------------------------------------------
 function windowButtonMotionFcn(~,~,~)
 
-hObj = hittest();  % obtain handle of object under mouse pointer
-hAx = findobj(gcf,'Tag','diagram');
+% Obtain handle of object under mouse pointer
+hObj = hittest();
 
-% Display information for level, transition or spectral line
+% Construct information string for level, transition or spectral line
 switch hObj.Tag
   case 'level'
-    hAx.Title.String = sprintf('level %d',hObj.UserData);
+    str = sprintf('level %d',hObj.UserData);
   case 'transition'
-    hAx.Title.String = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+    str = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
       hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
   case 'line'
-    hAx.Title.String = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+    str = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
       hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
   otherwise
-    % remove information if not over an object
-    hAx.Title.String = '';
+    % Remove information if not over an object
+    str = '';
 end
+
+% Display information
+hParent = hObj.Parent;  % this is either the axes or the figure
+hText = findobj(hParent,'Tag','infotext');
+set(hText,'String',[' ' str]);
 
 end
