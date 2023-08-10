@@ -25,7 +25,7 @@ Exp.Range = [0 7];
 Exp.Field = 1200;
 
 Opt.Method = 'matrix';
-Opt.Symm = 'Ci';
+Opt.GridSymmetry = 'Ci';
 Opt.GridSize = [30 0];
 
 [x,y1] = salt(Sys1,Exp,Opt);

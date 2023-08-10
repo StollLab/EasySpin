@@ -45,7 +45,7 @@ Exp.DetWindow = [-0.10 0.10]; % start and end time, µs
 
 % Set up orientational grid for powder averaging
 GridSize = 20;  % increase number for slower, but more converged simulation
-Symmetry = symm(Sys);
+Symmetry = hamsymm(Sys);
 grid = sphgrid(Symmetry,GridSize);
 nOrientations = numel(grid.weights);
 

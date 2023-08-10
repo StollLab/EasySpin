@@ -11,7 +11,7 @@ B6 = 10;
 sys.B2 = B2;
 sys.B4 = [5*B4 0 0 0 B4 0 0 0 0];
 sys.B6 = [0 0 -21*B6 0 0 0 B6 0 0 0 0 0 0];
-G = symm(sys);
+G = hamsymm(sys);
 ok(1) = strcmp(G,'Oh');
 
 B2 = 0;
@@ -20,7 +20,7 @@ B6 = 0;
 sys.B2 = B2;
 sys.B4 = [5*B4 0 0 0 B4 0 0 0 0];
 sys.B6 = [0 0 -21*B6 0 0 0 B6 0 0 0 0 0 0];
-G = symm(sys);
+G = hamsymm(sys);
 ok(2) = strcmp(G,'Oh');
 
 B2 = 0;
@@ -30,5 +30,5 @@ sys.B2 = B2;
 sys.B4 = [5*B4 0 0 0 B4 0 0 0 0];
 sys.B6 = [0 0 -21*B6 0 0 0 B6 0 0 0 0 0 0];
 
-G = symm(sys);
+G = hamsymm(sys);
 ok(3) = strcmp(G,'Oh');

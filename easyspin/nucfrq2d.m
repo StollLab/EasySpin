@@ -63,7 +63,7 @@ AlphaMask = logical(blkdiag(zeros(nn),triup));
 nfreq = nnz(BetaMask);
 
 % Set up orientational grid and triangulation.
-thisSymm = symm(sys);
+thisSymm = hamsymm(sys);
 [grid,tri] = sphgrid(thisSymm,Options.GridSize);
 x = grid.vecs;
 nOct = grid.nOctants;

@@ -16,6 +16,6 @@ ee13 = [-J2 dz2 0; -dz2 -J2 0; 0 0 -J2];
 EE = [ee12;ee13;ee23]; % three coupling matrices
 Sys.ee=EE*100*clight/1e6; % conversion cm^-1 -> MHz
 
-G= symm(Sys);
+G= hamsymm(Sys);
 
 ok = true;

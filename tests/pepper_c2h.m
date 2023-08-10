@@ -9,7 +9,7 @@ Sys.A = [20 80 300];
 Sys.AFrame = [-pi/4 -pi/2 0];
 Sys.lw = 1;
 
-SysPg = symm(Sys);
+SysPg = hamsymm(Sys);
 if ~strcmp(SysPg,'C2h')
   error('Incorrect symmetry %s of test system, should be C2h.',SysPg);
 end

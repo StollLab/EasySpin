@@ -3,7 +3,7 @@
 % requires
 %   Exp.PowderSimulation (required)
 %   Exp.CrystalOrientation (for crystal sims)
-%   Sys (for symm() call)
+%   Sys (for hamsymm() call)
 %   Sys.initState (optional)
 %   Opt.GridSymmetry (optional)
 %   Opt.GridFrame (optional)
@@ -32,7 +32,7 @@ if Exp.PowderSimulation
     
     % Determine grid symmetry from Hamiltonian symmetry
     msg = 'automatic determination of grid symmetry and orientation';
-    [Opt.GridSymmetry,Opt.GridFrame] = symm(Sys);
+    [Opt.GridSymmetry,Opt.GridFrame] = hamsymm(Sys);
     nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
     if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
       logmsg(1,'  Hamiltonian symmetry is axial, non-equilibrium state\n   -> reduction to rhombic');

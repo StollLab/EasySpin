@@ -2309,6 +2309,19 @@
       }
     ]
   },
+  "hamsymm": {
+    "description": "Symmetry determination for spin Hamiltonians",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      }
+    ]
+  },
   "hartree": {
     "description": "Atomic unit of energy"
   },
@@ -4948,19 +4961,6 @@
           "struct"
         ],
         "purpose": "simulation options"
-      }
-    ]
-  },
-  "symm": {
-    "description": "Symmetry determination for spin Hamiltonians",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
       }
     ]
   },

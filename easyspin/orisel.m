@@ -77,7 +77,7 @@ if ~isempty(Params.Orientations)
   theta = Orientations(2,:);
 else
   if isempty(Options.GridSymmetry)
-    [Options.GridSymmetry,GridFrame] = symm(Sys);
+    [Options.GridSymmetry,GridFrame] = hamsymm(Sys);
   else
     GridFrame = eye(3);
   end
