@@ -1,10 +1,10 @@
-% symm  Determine spin Hamiltonian symmetry 
+% hamsymm  Determine spin Hamiltonian symmetry 
 %
-%   PGroup = symm(Sys)
-%   [PGroup,R] = symm(Sys)
+%   PGroup = hamsymm(Sys)
+%   [PGroup,R] = hamsymm(Sys)
 %
 %   Determines the point group of the Hamiltonian
-%   of a spin sytem together with its symmetry frame.
+%   of a spin sytem and the associated symmetry frame.
 %
 %   Input:
 %   - Sys: Spin system specification structure
@@ -12,10 +12,9 @@
 %   Output:
 %   - PGroup: Schoenfliess point group symbol, one of
 %     'Ci','C2h','D2h','C4h','D4h','S6','D3d','C6h','D6h','Th','Oh',Dinfh','O3'.
-%   - R: Rotation matrix containing the axes of the
-%     symmetry frame along columns.
+%   - R: Rotation matrix with the axes of the symmetry frame along columns.
 
-function [PGroup,RMatrix] = symm(Sys,varargin)
+function [PGroup,RMatrix] = hamsymm(Sys,varargin)
 
 if nargin==0, help(mfilename); return; end
 
@@ -23,13 +22,12 @@ if nargin>1
   options = varargin{end};
   DebugMode = strfind(options,'debug');
 else
-  DebugMode = 0;
+  DebugMode = false;
 end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
 sysfields = fieldnames(Sys);
-
 
 highOrderTermsPresent = ~isempty(Sys.B);
 
@@ -44,18 +42,16 @@ if any(higherZeemanFields)
   end
 end
 
-CrystalFieldPresent = false;
+crystalFieldPresent = false;
 cf = strncmp(sysfields,'CF',2).';
 if any(cf)
   for n = find(cf)
     if any(Sys.(sysfields{n})(:))
-      CrystalFieldPresent = true;
+      crystalFieldPresent = true;
       highOrderTermsPresent = true;
     end
   end
 end
-
-tdmPresent = ~isempty(Sys.tdm);
 
 if DebugMode
   if highOrderTermsPresent
@@ -87,17 +83,16 @@ if ~fullTensorsGiven && ~highOrderTermsPresent
 end
 
 % :TODO:
-EquivalentSpins = 0;
+equivalentSpins = false;
 
-doQMAnalysis = highOrderTermsPresent | fullTensorsGiven | EquivalentSpins;
+doQMAnalysis = highOrderTermsPresent || fullTensorsGiven || equivalentSpins;
 
-% Geometrical analysis is flawed: doesn't work for
-% CF3 radical. This has molecular symmetry C3v, should give
-% spin Hamiltonian symmetry C3v x i = D3d. Geometrical
-% analysis returns Ci. QM analysis gives correct D3d.
+% Geometrical analysis is flawed: doesn't work for CF3 radical. This has
+% molecular symmetry C3v, should give spin Hamiltonian symmetry C3v x i = D3d.
+% Geometrical analysis returns Ci. QM analysis gives correct D3d.
 
-% QM analysis has problems with two axial tensors at arbitrary
-% angle: returns Ci, since doesn't find common rotation axis.
+% QM analysis has problems with two axial tensors at arbitrary angle: returns
+% Ci, since it is not able to identify common rotation axis.
 
 if DebugMode
   if doQMAnalysis
@@ -108,69 +103,64 @@ if DebugMode
 end
 
 if doQMAnalysis
-  [PGroup, RMatrix] = symm_full(Sys,higherZeemanPresent,DebugMode);
+  [PGroup, RMatrix] = hamsymm_eigs(Sys,higherZeemanPresent,DebugMode);
 else
-  [PGroup, RMatrix] = symm_geom(Sys,DebugMode);
+  [PGroup, RMatrix] = hamsymm_geom(Sys,DebugMode);
 end
 
-% For calculations using photoselection accurate results are in general
+% For calculations using photoselection, accurate results are in general
 % only obtained if considering the full sphere (for specific combinations
 % of tdm and laser polarization, lower symmetry should give an accurate
 % result too, but this is safer in general).
+tdmPresent = ~isempty(Sys.tdm);
 if tdmPresent
   PGroup = 'C1';
 end  
 
-return
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+end
+%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-function [Group,RMatrix] = symm_full(Sys,HigherZeemanPresent, DebugMode)
 
-%--------------------------------------------------
-% Collect all frame orientations described
-% by Euler angle set from the spin system.
-%--------------------------------------------------
-% As defined for the spin system, AFrame and the
-% like specify the Euler angles for the passive
-% rotation R = erot(Sys.AFrame) which transforms
-% a quantity (vector, tensor) from the molecular frame
-% to the A frame. So if v is vector in
-% the A frame representation, R.'*v is the same
-% vector in the molecular frame representation.
+%-------------------------------------------------------------------------------
+function [Group,RMatrix] = hamsymm_eigs(Sys,higherZeemanPresent, DebugMode)
 
-% Add successively g frame, ee frame, D frame, A and Q frame
-% Euler angles.
-pa = [0 0 0]; % the (first) g frame itself
+% Collect all frame orientations described by Euler angles from the spin system
+%-------------------------------------------------------------------------------
+% As defined for the spin system, AFrame and the like specify the Euler angles
+% for the passive rotation R_M2A = erot(Sys.AFrame) which transforms a quantity
+% (vector, tensor) from the molecular frame to the A frame. To go from the A
+% frame to the molecular frame, use R_A2M = R_M2A.'. If v_A is vector in
+% the A frame representation, v_M = R_M2A.'*v_A is the same vector in the
+% molecular frame representation. For tensors: T_M = R_M2A.'*T_A*R_M2A.
+
+% Add successively g frame, ee frame, D frame, A and Q frame Euler angles.
+pa = [0 0 0];  % the molecular frame
 if isfield(Sys,'gFrame'), pa = [pa; Sys.gFrame]; end
 if isfield(Sys,'eeFrame'), pa = [pa; Sys.eeFrame]; end
 if isfield(Sys,'DFrame'), pa = [pa; Sys.DFrame]; end
 if isfield(Sys,'AFrame')
   % make sure it works for more than 1 electron spin
-  for k = 0:3:size(Sys.AFrame,2)-1
-    pa = [pa; Sys.AFrame(:,k+(1:3))]; %#ok
-  end
+  pa = [pa; reshape(Sys.AFrame.',3,[]).'];
 end
 if isfield(Sys,'QFrame'), pa = [pa; Sys.QFrame]; end
+if isfield(Sys,'nnFrame'), pa = [pa; Sys.nnFrame]; end
+if isfield(Sys,'sigmaFrame'), pa = [pa; Sys.sigmaFrame]; end
 
-% Remove duplicates. Avoid sorting
+% Remove duplicates and sort
 [~,ii] = unique(pa,'rows');
 pa = pa(sort(ii),:);
-%--------------------------------------------------
 
 
-%--------------------------------------------------
-% Compute rotation matrices and z directions.
-%--------------------------------------------------
-% One set of Euler angles specifies exactly one
-% frame, but since principal axes can be sorted
-% in three different ways, each Euler angle set
-% gives three potential symmetry axes and three
-% symmetry frames. We generate these three by
-% axes exchange (xyz) -> (yzx) -> (zxy) using
-% three rotation matrices (Rz, Rx, Ry).
+% Compute rotation matrices and z directions
+%-------------------------------------------------------------------------------
+% One set of Euler angles specifies exactly one frame, but since principal axes
+% can be sorted in three different ways, each Euler angle set gives three
+% potential symmetry axes and three symmetry frames. We generate these three by
+% axes exchange (xyz) -> (yzx) -> (zxy) using three rotation matrices
+% (Rz, Rx, Ry).
 
 LockedFrame = 0;
-if (~LockedFrame)
+if ~LockedFrame
   % Initialize.
   Rz = eye(3);
   Rx = Rz([2 3 1],:);
@@ -186,8 +176,7 @@ if (~LockedFrame)
   end
   Rots = reshape(Rots,3,3,nFrames);
 
-  % Invert frames so that all z axes point to the
-  % upper hemisphere.
+  % Invert frames so that all z axes point to the upper hemisphere.
   %Invert = Rots(3,3,:)<0;
   %Rots(:,:,Invert) = -Rots(:,:,Invert);
 
@@ -199,15 +188,13 @@ else
   Rots = eye(3);
   nFrames = 1;
 end
-%--------------------------------------------------
 
 
 
-%--------------------------------------------------
-% Precalculation of Hamiltonian and symmetry ops.
-%--------------------------------------------------
+% Precalculation of Hamiltonian and symmetry ops
+%-------------------------------------------------------------------------------
 % Orientation-independent spin Hamiltonian components.
-if ~HigherZeemanPresent
+if ~higherZeemanPresent
   [H0,mux,muy,muz] = ham(Sys);
 end
 
@@ -218,16 +205,14 @@ the = pi/180* [q,  q, q,q/2,q/2,  q,180-q,180-q,180-q,90-q,    q,  q];
 phi = pi/180*([0,120,90, 90,  0,-90,    0,  -90,  180,  90,-2*qq,180]+qq);
 Field = 350; % mT
 FieldVecs = Field*ang2vec(phi,the); % 3x8 array
-%--------------------------------------------------
 
 if DebugMode
   fprintf('===========================================================\n');
 end
 
 
-%--------------------------------------------------
-% Determination of point group.
-%--------------------------------------------------
+% Determination of point group
+%-------------------------------------------------------------------------------
 % At the outset we assume Ci symmetry around z axis
 % of g (standard) frame. Then we try to find a higher
 % symmetry in one of the frames.
@@ -251,7 +236,7 @@ for iFrame = 1:nFrames % loop over all potential frames
   B = R*FieldVecs;
   
   pg = 0;
-  if HigherZeemanPresent
+  if higherZeemanPresent
     eA = eig(ham(Sys,B(:,1)));
     eB = eig(ham(Sys,B(:,2)));
     eC = eig(ham(Sys,B(:,3)));
@@ -270,7 +255,7 @@ for iFrame = 1:nFrames % loop over all potential frames
 
   switch C4*2+C3
   case 0 % none: Ci, C2h, D2h
-    if HigherZeemanPresent
+    if higherZeemanPresent
       C2z = eqeig(eA,eig(ham(Sys,B(:,12))));
     else
       C2z = eqeig(eA,eig(H0-B(1,12)*mux-B(2,12)*muy-B(3,12)*muz));
@@ -278,7 +263,7 @@ for iFrame = 1:nFrames % loop over all potential frames
     if ~C2z
       pg = 1; % Ci
     else % D2h, C2h
-      if HigherZeemanPresent, sigmaxz = eqeig(eA,eig(ham(Sys,B(:,11))));
+      if higherZeemanPresent, sigmaxz = eqeig(eA,eig(ham(Sys,B(:,11))));
       else, sigmaxz = eqeig(eA,eig(H0-B(1,11)*mux-B(2,11)*muy-B(3,11)*muz));
       end
       if sigmaxz
@@ -289,15 +274,15 @@ for iFrame = 1:nFrames % loop over all potential frames
     end
     
   case 1 % C3 axis: S6,D3d,Th,C6h,D6h
-    if HigherZeemanPresent, sigmaxy = eqeig(eA,eig(ham(Sys,B(:,7))));
+    if higherZeemanPresent, sigmaxy = eqeig(eA,eig(ham(Sys,B(:,7))));
     else, sigmaxy = eqeig(eA,eig(H0-B(1,7)*mux-B(2,7)*muy-B(3,7)*muz));
     end
     if sigmaxy % Th, C6h, D6h
-      if HigherZeemanPresent,C2z = eqeig(eC,eig(ham(Sys,B(:,6))));
+      if higherZeemanPresent,C2z = eqeig(eC,eig(ham(Sys,B(:,6))));
       else, C2z = eqeig(eC,eig(H0-B(1,6)*mux-B(2,6)*muy-B(3,6)*muz));
       end
       if C2z % C6h, D6h
-        if HigherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8)))); 
+        if higherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8)))); 
         else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));  
         end
         if C2x, pg = 9; else, pg = 8; end
@@ -305,11 +290,11 @@ for iFrame = 1:nFrames % loop over all potential frames
         pg = 10;
       end
     else % S6, D3d
-      if HigherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
+      if higherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
       else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
       end
       if ~C2x
-        if HigherZeemanPresent, C2y = eqeig(eA,eig(ham(Sys,B(:,9))));
+        if higherZeemanPresent, C2y = eqeig(eA,eig(ham(Sys,B(:,9))));
         else, C2y = eqeig(eA,eig(H0-B(1,9)*mux-B(2,9)*muy-B(3,9)*muz));
         end
       end
@@ -318,11 +303,11 @@ for iFrame = 1:nFrames % loop over all potential frames
     
   case 2 % C4 axis: C4h,D4h,Oh
     
-    if HigherZeemanPresent, C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
+    if higherZeemanPresent, C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
     else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
     end
     if C2x % D4h, Oh
-      if HigherZeemanPresent
+      if higherZeemanPresent
         Bs  = [B(2,10),B(3,10),B(1,10)];
         C3d = eqeig(eig(ham(Sys,B(:,10))),eig(ham(Sys,Bs)));
       else
@@ -335,7 +320,7 @@ for iFrame = 1:nFrames % loop over all potential frames
     end
     
   case 3 % C3 and C4 axes: Dinfh,O3
-    if HigherZeemanPresent
+    if higherZeemanPresent
       Cinfx = eqeig(eC,eig(ham(Sys,B(:,4))));
     else
       Cinfx = eqeig(eC,eig(H0-B(1,4)*mux-B(2,4)*muy-B(3,4)*muz));
@@ -380,19 +365,16 @@ for iFrame = 1:nFrames % loop over all potential frames
   end
 
 end
-%--------------------------------------------------
 
 
-%--------------------------------------------------
-% Output assignment.
-%--------------------------------------------------
+% Output assignment
+%-------------------------------------------------------------------------------
 % Assertion that a point group has been found.
 if iGroup==0
   error('No point group found! Save input spin system and report bug!');
 end
 
 Group = GroupNames{iGroup};
-%--------------------------------------------------
 
 if DebugMode
   fprintf('===========================================================\n');
@@ -402,19 +384,23 @@ if DebugMode
   %disp(A)
 end
 
-return
-%-------------------------------
-function really = eqeig(eA,eB)
-Threshold = 1e-8;
+end
+%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+%===============================================================================
+% Determine if two sets of eigenvalues are (approximately) equal
+function tf = eqeig(eA,eB)
+threshold = 1e-8;
 eA = sort(eA);
 eB = sort(eB);
-really = norm(eA-eB) < Threshold*norm(eA);
-return
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+tf = norm(eA-eB) < threshold*norm(eA);
+end
 
 
-
-function [SymGrp,SymFrame] = symm_geom(Sys,DebugMode)
+%===============================================================================
+% Determine point group symmetry using geometric reasoning
+function [SymGrp,SymFrame] = hamsymm_geom(Sys,DebugMode)
 
 if DebugMode
   fprintf('===========================================================\n');
@@ -498,22 +484,23 @@ end
 
 
 % Compute total symmetry
-%-----------------------------------------------------------------------
-Groups = {'O3','Dinfh','D2h','C2h','Ci'};
+%-------------------------------------------------------------------------------
+pointGroups = {'O3','Dinfh','D2h','C2h','Ci'};
 Grp = 0;
 SymFrame = eye(3);
 if DebugMode, fprintf('  O3 as starting symmetry\n'); end
 for iTens = 1:numel(Sym)
   [Grp,SymFrame] = combinesymms(Grp,SymFrame,Sym(iTens),Ax{iTens});
   if DebugMode
-    fprintf('   + %s (%s) = %s\n',Groups{Sym(iTens)+1},Name{iTens},Groups{Grp+1});
+    fprintf('   + %s (%s) = %s\n',pointGroups{Sym(iTens)+1},Name{iTens},pointGroups{Grp+1});
   end
 end
-SymGrp = Groups{Grp+1};
+SymGrp = pointGroups{Grp+1};
 
-return
+end
 
-%-------------------------------------------------------------------------------
+
+%===============================================================================
 function [SymGroup,SymFrame] = tensorsymmetry(PrincipalValues,EulerAngles)
 
 O3 = 0; Dinfh = 1; D2h = 2;
@@ -543,10 +530,10 @@ SymFrame = erot(EulerAngles).';
 % Columns: tensor frame axes in reference frame representation.
 SymFrame = SymFrame(:,idx(zAxis+(0:2)));
 
-return
+end
 
 
-%==========================================================================
+%===============================================================================
 % combinesymms  Symmetry group combination
 %
 %      [Sym,Rot] = combinesymms(Sym1,Rot1,Sym2,Rot2)
@@ -580,7 +567,7 @@ if (Sym1<Sym2)
 end
 
 % any + O3, Ci + any, O3 + any
-%-------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % - If Sym1 is Ci, the total symmetry remains Ci, since it cannot be lower.
 % - If Sym2 is O3, the total symmetry is unchanged.
 if (Sym1==Ci) || (Sym2==O3)
@@ -603,7 +590,7 @@ end
 % [5] C2h   + C2h
 
 % [1] Dinfh + Dinfh
-%------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % a) z axes coincide -> Dinfh as before
 % b) z axes perpendicular -> D2h with z perpendicular to both z1 and z2
 % c) otherwise -> C2h with z perpendicular to both z1 and z2
@@ -628,7 +615,7 @@ if (Sym1==Dinfh) && (Sym2==Dinfh)
   end
 
 % [2] D2h + Dinfh
-%------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % - Dinfh z parallel to any D2h axis -> D2h as before
 % - Dinfh z perpendicular to one D2h axis (i.e. Dinfh z in a D2h
 %   mirror plane) -> C2h with the perpendicular D2h axis as z axis
@@ -650,7 +637,7 @@ elseif (Sym1==D2h) && (Sym2==Dinfh)
   end
   
 % [3] C2h + Dinfh
-%------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % - Dinfh z parallel to C2h z axis -> C2h as before
 % - Dinfh z in the C2h mirror plane -> C2h as before
 % - Dinfh z arbitrary -> Ci, arbitrary frame
@@ -671,7 +658,7 @@ elseif (Sym1==C2h) && (Sym2==Dinfh)
   end
   
 % [4] D2h + D2h
-%------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % - all axes collinear -> D2h as before
 % - only one axis collinear -> C2h with collinar axis as z
 % - all axes skew -> Ci, arbitrary frame
@@ -700,7 +687,7 @@ elseif (Sym1==D2h) && (Sym2==D2h)
   end
   
 % [5] C2h + D2h
-%------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 % - any D2h axis collinar with C2h z axis -> C2h as before
 % - otherwise Ci, arbitrary frame
 elseif (Sym1==C2h) && (Sym2==D2h)
@@ -721,9 +708,10 @@ else
 
 end % Combination case switchyard
 
-return
+end
 
 %===============================================================================
+% Determine if the spin system contains isotropic terms only
 function iso = isisotropic(Sys)
 
 % fn = fieldnames(Sys);
@@ -747,4 +735,4 @@ if iso && isfield(Sys,'A')
   end
 end
 
-return
+end

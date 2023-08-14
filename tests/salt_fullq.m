@@ -23,7 +23,7 @@ Exp.Range = [0 7];
 Exp.Field = 1200;
 
 Opt.Method = 'matrix';
-Opt.Symm = 'Ci';
+Opt.GridSymmetry = 'Ci';
 
 [x,y1] = salt(Sys1,Exp,Opt);
 [x,y2] = salt(Sys2,Exp,Opt);

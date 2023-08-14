@@ -28,7 +28,8 @@
 %        .Method  string containing keywords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
-%        .AutoScale either 1 (on) or 0 (off); default 1
+%        .AutoScale either true (on) or false (off); default true for
+%                 EasySpin simulation functions, otherwise false
 %        .BaseLine 0, 1, 2, 3 or []
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
@@ -361,11 +362,15 @@ Opt.useMask = true;
 
 % Scale fitting
 if ~isfield(Opt,'AutoScale')
-  Opt.AutoScale = 1;
+  if EasySpinFunction
+    Opt.AutoScale = true;
+  else
+    Opt.AutoScale = false;
+  end
 end
 switch Opt.AutoScale
-  case 0, AutoScale = 0;
-  case 1, AutoScale = 1;
+  case 0, AutoScale = false;
+  case 1, AutoScale = true;
   otherwise, error('Unknown setting for Opt.AutoScale - possible values are 0 and 1.');
 end
 esfitdata.AutoScale = AutoScale;

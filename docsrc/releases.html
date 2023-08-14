@@ -69,6 +69,7 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
+<li>The function <code>symm</code> has been renamed to <a class="esf" ref="hamsymm.html">hamsymm</a>.</li>
 <li>To specify spin-polarized system, use <code>Sys.initState</code> instead of <code>Exp.Temperature</code> or <code>Sys.Pop</code>.</li>
 <li>The interface of <a class="esf" href="esfit.html">esfit</a> has changed completely. Refer to the <a class="esf" href="esfit.html">esfit</a> documentation for details.
 <li>The <code>Scaling</code> option of </code><a class="esf" href="esfit.html">esfit</a> has been removed. Use <code>FitOpt.AutoScale</code> instead.
@@ -748,10 +749,6 @@ optionally as three separate arguments.
 <a class="esf" href="eulang.html">eulang</a> now computes Euler angles from a
 rotation matrix by least-squares fitting, not via analytical expressions.
 </li>
-<!--<li>
-<a class="esf" href="symm.html">symm</a> works now much faster for large spin
-systems, since it analyses the spin system geometrically instead of quantum mechanically.
-</li>-->
 </ul>
 
 <div class="subtitle">

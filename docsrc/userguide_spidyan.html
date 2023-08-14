@@ -681,10 +681,10 @@ Sys.Nucs = '14N';
 </pre>
 
 <p>
-We then determine the grid with the EasySpin functions <a class="esf" href="symm.html">symm</a> and <a class="esf" href="sphgrid.html">sphgrid</a>.
+We then determine the grid with the EasySpin functions <a class="esf" href="hamsymm.html">hamsymm</a> and <a class="esf" href="sphgrid.html">sphgrid</a>.
 
 <pre class="matlab">
-Symmetry = symm(Sys);
+Symmetry = hamsymm(Sys);
 [phi,theta,Weights] = sphgrid(Symmetry,20);
 </pre>
 
@@ -693,29 +693,29 @@ Then we set up frequency-swept pulses, that cover the entire spectrum:
 
 <pre class="matlab">
 Chirp90.Type = 'quartersin/linear'; 
-Chirp90.trise = 0.030; % edge smoothing, mus
-Chirp90.tp = 0.200; % pulse length, mus
-Chirp90.Flip = pi/2; % flip angle in rad
-Chirp90.Frequency = [-120 120]; % excitation band, GHz
+Chirp90.trise = 0.030;           % edge smoothing, &mu;s
+Chirp90.tp = 0.200;              % pulse length, &mu;s
+Chirp90.Flip = pi/2;             % flip angle, rad
+Chirp90.Frequency = [-120 120];  % excitation band, GHz
 
 Chirp180.Type = 'quartersin/linear';
-Chirp180.trise = 0.030;% smoothed edges, mus
-Chirp180.tp = 0.100; % pulse length, mus
-Chirp180.Flip = pi; % flip angle in rad
-Chirp180.Frequency = [-120 120]; % excitation band, GHz
+Chirp180.trise = 0.030;             % smoothed edges, &mu;s
+Chirp180.tp = 0.100;                % pulse length, &mu;s
+Chirp180.Flip = pi;                 % flip angle, rad
+Chirp180.Frequency = [-120 120];    % excitation band, GHz
 </pre>
 
 Next we set build the pulse sequence, set field and carrierfrequency and set up detection: 
 
 <pre class="matlab">
-tau = 0.5; % &mu;s
+tau = 0.5;  % &mu;s
 Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp}; 
 
-Exp.mwFreq = 9.1; % GHz 
-Exp.Field = 324.9; % mT
+Exp.mwFreq = 9.1;   % GHz 
+Exp.Field = 324.9;  % mT
 
 % Detection:
-Exp.DetWindow = [-0.05 0.05]; % &mu;s
+Exp.DetWindow = [-0.05 0.05];  % &mu;s
 Exp.DetOperator = {'+1'};
 Exp.DetFreq = 9.1;
 </pre>

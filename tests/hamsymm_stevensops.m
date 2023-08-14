@@ -15,14 +15,14 @@ Sys.B2 = [b22 0 b20 0 0];
 Sys1.S = Sys.S;
 Sys1.g = Sys.g;
 Sys1.D = [-1,-1,2]*b20 + [+1,-1,0]*b22;
-S1 = symm(Sys);
-S2 = symm(Sys1);
+S1 = hamsymm(Sys);
+S2 = hamsymm(Sys1);
 ok(1) = strcmp(S1,'D2h') && strcmp(S2,'D2h');
 
 
 Sys.ZB11.l = 0;
 Sys.ZB11.vals = 1;
 Sys1.ZB11 = Sys.ZB11;
-S1 = symm(Sys);
-S2 = symm(Sys1);
+S1 = hamsymm(Sys);
+S2 = hamsymm(Sys1);
 ok(2) = strcmp(S1,'D2h') && strcmp(S2,'D2h');

@@ -1,7 +1,7 @@
-% Hamiltonian symmetry using symm()
+% Hamiltonian symmetry using hamsymm()
 %==========================================================================
 % A tutorial on Hamiltonian symmetry as determined
-% by EasySpin's function symm().
+% by EasySpin's function hamsymm().
 
 % USAGE: Execute the code lines one after
 % the other to see all intermediate results.
@@ -16,7 +16,7 @@ Sys.g = 2.002;
 % spectrum of the associated spin Hamiltonian
 % is independent of the magnetic field
 % orientation
-disp(['Point group:  ', symm(Sys)])
+disp(['Point group:  ', hamsymm(Sys)])
 
 % For an axial spin system, the point group
 % is Dinfh. The spectrum depends only on
@@ -24,7 +24,7 @@ disp(['Point group:  ', symm(Sys)])
 % field direction.
 
 Sys.g = [2 2 2.1];
-disp(['Point group:  ', symm(Sys)])
+disp(['Point group:  ', hamsymm(Sys)])
 
 % Note that in the previous example the rotation
 % axis was along z. What if we set it along x?
@@ -32,7 +32,7 @@ disp(['Point group:  ', symm(Sys)])
 Sys.g = [2.1 2 2];
 
 % We get the same symmetry!
-[PG,R] = symm(Sys);
+[PG,R] = hamsymm(Sys);
 disp(['Point group:  ',PG])
 
 % The second output argument describes the frame
@@ -50,7 +50,7 @@ R(:,3)
 % D2h symmetry.
 
 Sys.g = [1.9 2 2.1];
-symm(Sys)
+hamsymm(Sys)
 
 % This means that the spectrum
 % depends on both polar angles of the magnetic
@@ -66,7 +66,7 @@ Sys.g = 2;
 Sys.Nucs = '1H';
 Sys.A = [-1 -1 2]*10;
 
-symm(Sys)
+hamsymm(Sys)
 
 % The symmetry is determined by A alone. If we
 % tilt the orientation of the A tensor, the
@@ -74,7 +74,7 @@ symm(Sys)
 % does.
 
 Sys.AFrame = [12 23 34]*pi/180;
-[PG,R] = symm(Sys)
+[PG,R] = hamsymm(Sys)
 
 % The rotation axis is along
 
@@ -89,20 +89,20 @@ R(:,3)
 Sys.AFrame = [0 0 0];
 Sys.g = [2 2.1];
 
-symm(Sys)
+hamsymm(Sys)
 
 % If A is tilted along the third Euler angle
 % (i.e. rotated around the z axis of the tensor) it remains axial.
 
 Sys.AFrame = [0 0 56]*pi/180;
-symm(Sys)
+hamsymm(Sys)
 
 % But if it is tilted along the second Euler
 % angle, i.e. away from the z axis, the
 % symmetry gets lower.
 
 Sys.AFrame = [0 29 0]*pi/180;
-symm(Sys)
+hamsymm(Sys)
 
 % C2h means that there is a 2-fold rotation
 % axis and a mirror plane parallel to it. for
@@ -116,7 +116,7 @@ Sys.A = [-0.5 -1.5 2]*10;
 Sys.g = [2 2.1];
 Sys.AFrame = [0 47 0]*pi/180;
 
-symm(Sys)
+hamsymm(Sys)
 
 % But if all three axes do no coincide, the symmetry
 % is Ci, containing only the inversion centre. A full
@@ -124,7 +124,7 @@ symm(Sys)
 % a powder spectrum simulation
 
 Sys.AFrame = [0 7 13]*pi/180;
-symm(Sys)
+hamsymm(Sys)
 
 
 % If g and A are both orthorhombic, the symmetry is
@@ -135,18 +135,18 @@ Sys.g = [1.9 2 2.1];
 Sys.A = [-0.5 -1.5 2]*5 + 6;
 
 Sys.AFrame = [0 0 0];
-fprintf('Collinear frames: %s\n',symm(Sys));
+fprintf('Collinear frames: %s\n',hamsymm(Sys));
 
 Sys.AFrame = [0 0 12];
-fprintf('Third Euler angle non-zero: %s\n',symm(Sys));
+fprintf('Third Euler angle non-zero: %s\n',hamsymm(Sys));
 
 Sys.AFrame = [0 61 0];
-fprintf('Second Euler angle non-zero: %s\n',symm(Sys));
+fprintf('Second Euler angle non-zero: %s\n',hamsymm(Sys));
 
 Sys.AFrame = [0 -73 14];
-fprintf('Last two Euler angle non-zero: %s\n',symm(Sys));
+fprintf('Last two Euler angle non-zero: %s\n',hamsymm(Sys));
 
 Sys.AFrame = [-12 -52 5];
-fprintf('Three Euler angle non-zero: %s\n',symm(Sys));
+fprintf('Three Euler angle non-zero: %s\n',hamsymm(Sys));
 
 % END *****************************
