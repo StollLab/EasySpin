@@ -1,6 +1,6 @@
 function ok = test()
 
-% Compare line intensity (perturbation theory) of a single-orientation spectrum of an
+% Compare line intensity (matrix diag) of a single-orientation spectrum of an
 % spin system with anisotrpic g with an explicit analytical expression.
 
 Sys.g = [2.1 2.1 2.0];
@@ -17,7 +17,7 @@ beta = pi*rand;
 gamma = 2*pi*rand;
 Exp.MolFrame = [alpha beta gamma];
 
-Opt.Method = 'perturb2';
+Opt.Method = 'matrix';
 [x1,y1] = pepper(Sys,Exp,Opt);
 Int1 = sum(y1)*(x1(2)-x1(1));
 

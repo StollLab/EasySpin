@@ -247,7 +247,7 @@ DefaultExp.mwPhase = 0;
 DefaultExp.lightBeam = '';  % no photoexcitation
 
 DefaultExp.SampleRotation = [];
-DefaultExp.SampleFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 
@@ -444,7 +444,6 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 
 % Powder vs crystal vs. partial ordering
-PowderSimulation = false;
 if isempty(Exp.Ordering)
   PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
   if ~PowderSimulation
@@ -452,6 +451,7 @@ if isempty(Exp.Ordering)
     if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
   end
 else
+  PowderSimulation = true;
   if ~isempty(Exp.MolFrame)
     error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
   end
@@ -507,10 +507,10 @@ logmsg(1,msg);
 %DefaultOpt.Freq2Field = 1; % resfields
 
 % Obsolete fields, pepper
-ObsoleteOptions = {'Convolution','Width'};
-for k = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{k})
-    error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{k});
+obsoleteOptions = {'Convolution','Width'};
+for k = 1:numel(obsoleteOptions)
+  if isfield(Opt,obsoleteOptions{k})
+    error('Options.%s is obsolete. Please remove from code!',obsoleteOptions{k});
   end
 end
 
@@ -982,6 +982,8 @@ elseif ~BruteForceSum
         fthe = Exp.theta;
       end
       fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
+      
+      % Obtain user-supplied orientational distribution weights
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centrePhi = zeros(1,numel(centreTheta));
@@ -997,6 +999,7 @@ elseif ~BruteForceSum
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
         fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
       end
+
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
     else % nonaxial grid symmetry
@@ -1012,6 +1015,8 @@ elseif ~BruteForceSum
       end
       idxTri = tri.idx.';
       Areas = tri.areas;
+
+      % Obtain user-supplied orientational distribution weights
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
         centrePhi = mean(fphi(idxTri));
@@ -1027,6 +1032,7 @@ elseif ~BruteForceSum
         Areas = Areas(:).*OrderingWeights(:);
         Areas = 4*pi/sum(Areas)*Areas;
       end
+
       logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end
     
