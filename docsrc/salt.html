@@ -148,14 +148,17 @@ Temperature at which the experiment is performed, in K. If omitted, no temperatu
 
 <div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-An Nx3 or Nx2 array that specifies sample orientations for which the EPR spectrum should be computed. This applies to orientaed samples such as crystals or films. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample frame</a>. If only two Euler angles are given, the third is set to zero. If <code>SampleFrame</code> is empty or not specified, the full powder spectrum is computed.
+<p>
+An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
+</p>
 <pre class="matlab">
-Exp.SampleFrame = [0 0 0];              % single crystal, crystal z axis aligned with B0
-Exp.SampleFrame = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
-Exp.SampleFrame = [0 0 0; 0 pi/2 0];    % two crystals
-Exp.SampleFrame = [];                   % powder
+Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
+Exp.SampleFrame = [0 pi/2 0];                % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
 </pre>
 </div>
+
 
 <div class="optionfield"><code>CrystalSymmetry</code></div>
 <div class="optiondescr">
