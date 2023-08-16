@@ -253,6 +253,14 @@ DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
+
 % Check microwave frequency and static field
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
   if ~isfield(Exp,'Field')
