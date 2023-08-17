@@ -35,7 +35,6 @@ Calculation of powder and single-crystal ENDOR spectra.
 <!-- ====================================================== -->
 <div class="subtitle">Syntax</div>
 
-<p>
 <pre class="matlab">
 salt(Sys,Exp)
 salt(Sys,Exp,Opt)
@@ -78,6 +77,7 @@ energy and so on.
 
 <p>
 The three input arguments to the function are
+</p>
 
 <ul>
 <li><code>Sys</code>: spin system (paramagnetic molecule)</li>
@@ -92,6 +92,7 @@ for the construction of a Hamiltonian and the ENDOR <a href="broadenings.html">l
 <code>lwEndor</code>. If <code>lwEndor</code> is not given, it is assumed to be zero,
 and stick spectra are returned. The field <code>HStrain</code> is included in
 excitation window computations (see <code>Exp.ExciteWidth</code>).
+</p>
 
 <p>
 For simulating a multi-component mixture, <code>Sys</code> should be a cell array of spin systems,
@@ -105,6 +106,7 @@ spectrum.
 <code>Exp</code> contains experimental parameters such as the microwave
 frequency, the magnetic field range and temperature. Here is a full
 list of its fields.
+</p>
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
@@ -258,9 +260,11 @@ If the custom distribution provided via <code>Exp.Ordering</code> is very narrow
 
 <p>
 There are defaults for all fields except <code>Range</code> and <code>Field</code>, which have to be specified when invoking <code>salt</code>.
+</p>
 
 <p>
 The structure <code>Opt</code> collects a number of parameters allowing to tune speed and accuracy of the simulation. <code>Opt</code> is optional, if it is omitted, pre-set values for the parameters are used. The field names and their possible values are
+</p>
 
 <div class="optionfield"><code>Method</code></div>
 <div class="optiondescr">
@@ -368,14 +372,14 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 <div class="optiondescr">
 <code>'summed'</code> (default) or <code>'separate'</code><br>
 <p>
-Determines in what form the spectrum is returned. For powder spectra, <code>'separate'</code> causes <code>salt</code> to return the spectra for different transitions separately in <code>spec(k,:)</code>. For single-crystal spectra, <code>'separate'</code> causes <code>salt</code> to return the spectra for different crystals (see <code>Exp.SampleFrame</code>) separately. <code>'summed'</code> means that only one total
-spectrum is returned.
+Determines in what form the spectrum is returned. For powder spectra, <code>'separate'</code> causes <code>salt</code> to return the spectra for different transitions separately in <code>spec(k,:)</code>. <code>'summed'</code> means that only one total spectrum is returned.
 </p>
 </div>
 
 <p>
 The following options are only available for matrix diagonalization (<code>Opt.Method='matrix'</code>),
 but not for perturbation theory (<code>Opt.Method='perturb1'</code> or <code>'perturb2'</code>).
+</p>
 
 <div class="optionfield"><code>Transitions</code></div>
 <div class="optiondescr">
@@ -431,21 +435,27 @@ systems and field/frequency settings that lead to single-crystal like spectra.
 
 <div class="subtitle">Algorithms</div>
 
-<p><code>salt</code> computes line positions and intensities for a set of orientations using either matrix diagonalization or perturbation theory.
+<p>
+<code>salt</code> computes line positions and intensities for a set of orientations using either matrix diagonalization or perturbation theory.
+</p>
 
 <p>
 The matrix diagonalization approach used in <code>salt</code> is identical to that of <code>pepper</code>, with the obvious exception of the calculation of line intensities, which is similar to that used in MAGRES (Keijzers et al, J.Chem.Soc. Faraday Trans. 1 83, 3493-3503, 1984).
+</p>
 
 <p>
 First- and second-order perturbation theory is based on expressions by Iwasaki (J.Magn.Reson. 16, 417-423, 1974). It includes pseudosecular contributions. No transition moments are computed, that is, the intensities of all resonances are equal. Currently, the perturbation-theory algorithm is limited to systems with one electron spin S=1/2 (but an arbitrary number of nuclei with arbitrary spins).
+</p>
 
 <p>
 For powder simulations, <code>salt</code> uses the same methods as <code>pepper</code>, orientational interpolation and interpolative projection, to construct the powder spectrum.
+</p>
 
 <div class="subtitle">Examples</div>
 
 <p>
 A full simulation of the powder ENDOR spectrum of a radical with a proton is
+</p>
 
 <pre class="matlab">
 clear

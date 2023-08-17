@@ -473,22 +473,19 @@ Options.GridSize = [19 0];   % no interpolation
 </pre>
 
 <p>
-The option <code>Output</code> can be used to determine the form in which
-<code>pepper</code> returns the spectral data.
+The option <code>Output</code> can be used to obtain a set of individual transition spectra instead of the total spectrum:
 </p>
 
 <pre class="matlab">
-% single crystal: orientations separately
-% powders: transitions separately
+% separate spectra for each transition
 Options.Output = 'separate';
 
-% sum over all orientations and transitions
+% one overall spectrum
 Options.Output = 'summed';
 </pre>
 
 <p>
-There are more option fields available. For details, see the documentation page
-on <a class="esf" href="pepper.html">pepper</a>.
+There are more option fields available. For details, see the documentation page on <a class="esf" href="pepper.html">pepper</a>.
 </p>
 
 <!-- ============================================================= -->

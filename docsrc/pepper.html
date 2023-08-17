@@ -329,10 +329,7 @@ Opt.HybridCoreNuclei = [];    % all nuclei are treated perturbationally
 <code>'summed'</code> (default) or <code>'separate'</code></div>
 <div class="optiondescr">
 <p>
-Determines in what form the spectrum is returned. If set to <code>'separate'</code>, <code>pepper</code> returns one spectrum for each transition in a matrix <code>spec</code>. The transition spectra are along the rows, so <code>spec(k,:)</code> is the spectrum of transition k. If <code>'summed'</code> is specified, the total spectrum is returned in <code>spec</code> as a vector.
-</p>
-<p>
-For crystal simulations, <code>'separate'</code> means something different: If given, <code>pepper</code> returns each crystal orientation (and not each transition) separately.
+Determines in what form the spectrum is returned. If set to <code>'separate'</code>, <code>spec</code> is a matrix with one spectrum for each transition. The transition spectra are along the rows, so <code>spec(k,:)</code> is the spectrum of transition <code>k</code>. If <code>'summed'</code> is specified, the total spectrum is returned in <code>spec</code> as a vector.
 </p>
 </div>
 
