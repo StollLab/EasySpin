@@ -283,6 +283,11 @@ if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
 end
 
+% Partial ordering is not supported
+if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
+  error('Partial ordering (via Exp.Ordering) is not supported.')
+end
+
 % Microwave frequency
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
   if ~isfield(Exp,'Field')

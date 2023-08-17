@@ -213,10 +213,10 @@ switch program
         error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
       end
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-        UserSuppliedOrderingFcn = 0;
+        UserSuppliedOrderingFcn = false;
         logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
-        UserSuppliedOrderingFcn = 1;
+        UserSuppliedOrderingFcn = true;
         logmsg(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');

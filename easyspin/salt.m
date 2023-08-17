@@ -272,24 +272,35 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
   Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
 end
 
-% Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
-
-% Partial ordering
-if ~isempty(Exp.Ordering)
+% Detect sample type (powder vs. crystal vs. partial ordering)
+if isempty(Exp.Ordering)
+  PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
   if ~PowderSimulation
-    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
+    if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
+    if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
+  end
+else
+  PowderSimulation = true;
+  if ~isempty(Exp.MolFrame)
+    error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
+  end
+  if ~isempty(Exp.CrystalSymmetry)
+    error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
   end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
-    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
+    logmsg(1,'  partial ordering (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial order (user-supplied function)');
+    logmsg(1,'  partial ordering (user-supplied function)');
+    if nargin(Exp.Ordering)<2
+      logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
+    end
   else
-    error('Exp.Ordering must be a single number or a function handle.');
+    error('Exp.Ordering must be either a single number or a function handle.');
   end
 end
+Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
 
 if EasySpinLogLevel>=1
   if ~AutoRange

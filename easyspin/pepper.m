@@ -451,7 +451,7 @@ end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 
-% Powder vs crystal vs. partial ordering
+% Detect sample type (powder vs. crystal vs. partial ordering)
 if isempty(Exp.Ordering)
   PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
   if ~PowderSimulation
