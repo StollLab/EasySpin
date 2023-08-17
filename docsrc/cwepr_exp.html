@@ -29,35 +29,37 @@
 <h1>Experimental settings for cw EPR</h1>
 
 <p>
-There are several functions in EasySpin that simulate continuous-wave EPR spectra:
-<a class="esf" href="chili.html">chili</a> (slow-motion),
+There are several functions in EasySpin that calculate continuous-wave EPR spectra:
+</p>
+<a class="esf" href="chili.html">chili</a> (slow-motion regime),
 <a class="esf" href="garlic.html">garlic</a> (isotropic limit),
 <a class="esf" href="pepper.html">pepper</a> (solid-state limit).
 </p>
 
 <p>
-All of these functions take a common set of experimental parameters that define the spectrometer settings. When calling any of these functions, these settings are given in the second parameters. For example, they should be given in the structure <code>Exp</code> in the following call
-
+All of these functions take a common set of experimental parameters that define the spectrometer settings. When calling any of these functions, these settings are given in the second argument <code>Exp</code>. For example,
+</p>
 <pre class="matlab">
 pepper(Nitroxide,Exp,Opt);
 </pre>
 
 <p>
-The following table lists all possible fields in the experiment structure <code>Exp</code>.
-Of these fields, only very few are mandatory: You need to specify <code>mwFreq</code> for a field sweep, or <code>Field</code> for a frequency sweep.
+The following table lists the fields in the experiment structure <code>Exp</code>. Of these fields, only very few are mandatory: You need to specify <code>mwFreq</code> for a field sweep, or <code>Field</code> for a frequency sweep.
 </p>
 
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
+<p>
 (For field sweeps only). Spectrometer frequency, in GHz. E.g. <code>Exp.mwFreq = 9.5;</code> for X band.
-For frequency sweeps, omit this field and use <code>Exp.Field</code>.
+For frequency sweeps, omit this field and use <code>Exp.Field</code> to specify the fixed static field.
+</p>
 </div>
 
 <div class="optionfield"><code>CenterSweep</code></div>
 <div class="optiondescr">
-(For field sweeps only). <em>2-element vector</em> <code>[center sweep]</code><br>
+<p>
+(For field sweeps only). <em>2-element vector</em> <code>[center, sweep]</code><br>
 Contains center and sweep width of the sweep range. For magnetic field sweeps, values should be in mT, e.g. <code>Exp.CenterSweep=[310 100]</code>.
-For frequency sweeps, values should be in GHz, e.g. <code>Exp.CenterSweep=[9.5 1]</code>.
 </p>
 <p>
 The sweep range can be specified either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
@@ -66,8 +68,10 @@ The sweep range can be specified either in <code>CenterSweep</code> or in <code>
 
 <div class="optionfield"><code>Range</code></div>
 <div class="optiondescr">
+<p>
 (For field sweeps only). <em>2-element vector</em> <code>[lo hi]</code><br>
 Contains lower and upper limit of the field sweep range. Values should be in mT, e.g. <code>Exp.Range=[260 360]</code>.
+</p>
 <p>
 The sweep range can be specified either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
 </p>
@@ -75,12 +79,15 @@ The sweep range can be specified either in <code>CenterSweep</code> or in <code>
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
+<p>
 (For frequency sweeps only). Static magnetic field, in mT. E.g. <code>Exp.Field = 1000;</code> for a 1 T field.
 For field sweeps, omit this field and use <code>Exp.mwFreq</code>.
+</p>
 </div>
 
 <div class="optionfield"><code>mwCenterSweep</code></div>
 <div class="optiondescr">
+<p>
 (For frequency sweeps only). <em>2-element vector</em> <code>[center sweep]</code><br>
 Contains center and sweep width of the frequency sweep range. The values should be in GHz, e.g. <code>Exp.mwCenterSweep=[9 10]</code>.
 </p>
@@ -91,8 +98,10 @@ The sweep range can be specified either in <code>mwCenterSweep</code> or in <cod
 
 <div class="optionfield"><code>mwRange</code></div>
 <div class="optiondescr">
+<p>
 (For frequency sweeps only). <em>2-element vector</em> <code>[lo hi]</code><br>
 Contains lower and upper limit of the frequency sweep range. Values should be in GHz, e.g. <code>Exp.Range=[9 10]</code>.
+</p>
 <p>
 The sweep range can be specified either in <code>mwCenterSweep</code> or in <code>mwRange</code>. If both are given, <code>mwCenterSweep</code> has precedence.
 </p>
@@ -100,32 +109,45 @@ The sweep range can be specified either in <code>mwCenterSweep</code> or in <cod
 
 <div class="optionfield"><code>nPoints</code></div>
 <div class="optiondescr">
+<p>
 Number of points along the horizontal axis (magnetic field for field sweeps, microwave frequency for frequency sweeps). If not given, the default is 1024.
+</p>
 </div>
 
 <div class="optionfield"><code>Harmonic</code></div>
 <div class="optiondescr">
 <code>0</code>, <code>1</code> (default) or <code>2</code><br>
+<p>
 Harmonic of the detection. <code>1</code> and <code>2</code> specify the first and the second harmonic of the absorption spectrum, detected using field modulation. <code>0</code> returns the absorption/dispersion spectrum directly. To explicitly include the effect of field modulation, use <code>Exp.ModAmp</code>.
+</p>
 </div>
 
 <div class="optionfield"><code>ModAmp</code></div>
 <div class="optiondescr">
+<p>
 Modulation amplitude (peak-to-peak), in mT. If not given or set to zero, harmonics are calculated using simple differentiation. This setting is only used for field sweeps. It is not available for frequency sweeps.
+</p>
 </div>
 
 <div class="optionfield"><code>mwPhase</code></div>
 <div class="optiondescr">
+<p>
 The reference microwave phase, in radians. 0 is pure absorption (default value), and <code>pi/2</code> is pure dispersion. <code>mwPhase</code> allows you to include absorption/dispersion admixture in the simulation.
+</p>
 </div>
 
 <div class="optionfield"><code>Temperature</code></div>
 <div class="optiondescr">
-Gives the temperature of the spin system in the EPR experiment, in kelvin. If given, Boltzmann
-populations are computed and included in the EPR line intensities. E.g., <code>Temperature = 298</code>
-corresponds to room temperature. If not given (or set to <code>inf</code>), all transitions are
-assumed to have equal polarizations.
+<p>
+This field specifies the temperature of the spin system in the EPR experiment, in kelvin. E.g., <code>Exp.Temperature = 298</code> corresponds to room temperature. If given, populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium, and the population differences between two levels are included in the line intensities of the corresponding EPR transition. If not given (or set to <code>NaN</code>), the populations are not calculated, and all transitions are assumed to have equal population difference of 1.
+</p>
+
+<p>
+To specify non-equilibrium populations, use the spin system field <code>Sys.initState</code>. See the <a href="spinsystem.html">spin system definition</a> and the <a href="spinpolarization.html">user guide on spin polarization</a> for details.
+</p>
+
 </div>
+
 
 <hr>
 </section>

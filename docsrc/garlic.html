@@ -41,6 +41,7 @@ garlic(Sys,Exp)
 garlic(Sys,Exp,Opt)
 spec = garlic(...)
 [B,spec] = garlic(...)
+[nu,spec] = garlic(...)
 </pre>
 
 <p>
@@ -51,9 +52,7 @@ See also the <a href="userguide_garlic.html">user guide</a> on how to use <code>
 <div class="subtitle">Description</div>
 
 <p>
-<code>garlic</code> computes isotropic and fast-motional cw EPR spectra of douplet radicals
-in solution, i.e., of spin systems with an electron spin S=1/2 coupled to an
-arbitrary number of nuclear spins I>=1/2 with small hyperfine couplings.
+<code>garlic</code> computes isotropic and fast-motional cw EPR spectra of douplet radicals in solution, i.e., of spin systems with an electron spin S=1/2 coupled to an arbitrary number of nuclear spins I>=1/2 with small hyperfine couplings.
 </p>
 
 <p>
@@ -62,10 +61,8 @@ and the experimental settings are given in <code>Exp</code>.
 </p>
 
 </p>
-<code>garlic</code> then returns the spectrum in <code>spec</code> and,
-if requested, a field range vector in <code>B</code> (in units of mT).
-If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code>
-plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra.
+<code>garlic</code> then returns the spectrum in <code>spec</code> and, if requested, a field range vector in <code>B</code> (in units of mT).
+If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>
 </p>
 
 <!-- ------------------------------------------------------------------ -->
@@ -73,13 +70,13 @@ plots the simulated spectrum. <code>garlic</code> can also simulate frequency-sw
 
 <p>
 The following table lists all possible fields in the spin system structure <code>Sys</code>.
-Note that <code>Sys</code> here contains only a few fields of the general <a href="spinsystem.html">spin system structure</a>
-as used by functions like <a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a>.
+This is only a subset of all the fields of the general <a href="spinsystem.html">spin system structure</a> as used by functions like <a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a>.
 All fields except <code>n</code> are mandatory.
 </p>
 
 <div class="optionfield"><code>g</code></div>
 <div class="optiondescr">
+<p>
 Array with 1, 2 or 3 elements, either isotropic g factor or principal values of an axial or orthorhombic g tensor.
 </p>
 <pre class="matlab">
@@ -91,26 +88,31 @@ Sys.g = [2.001 2.002 2.004];    % orthorhombic g
 
 <div class="optionfield"><code>Nucs</code></div>
 <div class="optiondescr">
+<p>
 Character array with comma-separated list of isotopes, e.g. <code>Sys.Nucs = '1H,13C'</code>.
 </div>
 
 <div class="optionfield"><code>n</code></div>
 <div class="optiondescr">
-Vector of number of equivalent nuclei,
-e.g. <code>Sys.n = [2,3]</code>, if the spin system contains
-two <sup>1</sup>H and three <sup>13</sup>C nuclei. Can be omitted
-if all nuclei in <code>Sys.Nucs</code> occur only once.
+<p>
+Array containing number of equivalent nuclei.
+For example, <code>Sys.n = [2,3]</code>, if the spin system contains two <sup>1</sup>H and three <sup>13</sup>C nuclei. Can be omitted if all nuclei in <code>Sys.Nucs</code> occur only once.
+</p>
 </div>
 
 <div class="optionfield"><code>A</code></div>
 <div class="optiondescr">
+<p>
 1xN or Nx3 array. Vector of isotropic hyperfine couplings in MHz, e.g.
-<code>Sys.A = [10 52]</code>.<br>
-Alternatively, array containing the principal values for all hyperfine tensors, one row per nucleus. E.g., <code>Sys.A = [15 15 40;-4 -3 7]</code> for two nuclei.
+<code>Sys.A = [10 52]</code>. Alternatively, array containing the principal values for all hyperfine tensors, one row per nucleus. E.g., <code>Sys.A = [15 15 40; -4 -3 7]</code> for two nuclei.
+</p>
 </div>
 
 <div class="optionfield"><code>lwpp</code></div>
-<div class="optiondescr">1- or 2-element array of peak-to-peak (PP) linewidths (all in mT).<br>
+<div class="optiondescr">
+<p>
+1- or 2-element array of peak-to-peak (PP) linewidths (all in mT).
+</p>
 <ul>
 <li>1 element: <code>GaussianPP</code>.</li>
 <li>2 elements: <code>[GaussianPP LorentzianPP]</code>.</li>
@@ -118,7 +120,10 @@ Alternatively, array containing the principal values for all hyperfine tensors, 
 </div>
 
 <div class="optionfield"><code>lw</code></div>
-<div class="optiondescr">1- or 2-element array of FWHM linewidths (all in mT).<br>
+<div class="optiondescr">
+<p>
+1- or 2-element array of FWHM linewidths (all in mT).
+</p>
 <ul>
 <li>1 element: <code>GaussianFWHM</code>.</li>
 <li>2 elements: <code>[GaussianFWHM LorentzianFWHM]</code>.</li>
@@ -126,39 +131,39 @@ Alternatively, array containing the principal values for all hyperfine tensors, 
 </div>
 
 <p>
-For simulations in the fast motional regime, the principal values of the g and all A tensors
-have to be given. One more parameter in <code>Sys</code> specifies the speed of the rotational motion:
+For simulations in the fast motional regime, the principal values of the g and all A tensors have to be given. One more parameter in <code>Sys</code> specifies the timescale of the rotational motion:
 </p>
 
 <div class="optionfield"><code>tcorr</code>, scalar</div>
 <div class="optiondescr">
+<p>
 Rotational correlation time for isotropic rotational diffusion, in seconds. See also the function <a class="esf" href="fastmotion.html">fastmotion</a>. If <code>tcorr</code> is omitted or set to zero, the isotropic limit spectrum is computed.
+</p>
 <p>
 For isotropic rotational motion, the correlation time <code>tcorr</code> and the diffusion rate <code>D</code> are related by <code>tcorr = 1/(6*D)</code>.
+</p>
 <p>
 Anisotropic diffusion is not supported.
+</p>
 </div>
 
 <div class="optionfield"><code>logtcorr</code></div>
 <div class="optiondescr">
+<p>
 Base-10 logarithm of the correlation time, offering an alternative way to input the correlation time. If given, <code>tcorr</code> is ignored.
+</p>
 </div>
 
 <p>
-If <code>tcorr</code> or <code>logtcorr</code> is given, the fast-motional spectrum is computed. The necessary line widths
-are computed via the function <a href="fastmotion.html" class="esf">fastmotion</a> (for details see
-there). The resulting
-spectrum is additionally broadened by Lorentzian and Gaussian broadenings specified in <code>Sys.lw</code>
-using convolution, just as in the isotropic case.
+If <code>tcorr</code> or <code>logtcorr</code> is given, the fast-motional spectrum is computed. The necessary line widths are computed via the function <a href="fastmotion.html" class="esf">fastmotion</a> (for details see
+there). The resulting spectrum is additionally broadened by Lorentzian and Gaussian broadenings specified in <code>Sys.lw</code> using convolution, just as in the isotropic case.
 </p>
 
 <p>
 If the inverse of the correlation time becomes similar in magnitude to the spectral anisotropy, the fast-motional model used by <code>garlic</code> (via <a class="esf" href="fastmotion.html">fastmotion</a>) is not valid anymore.</p>
 
 <p>
-For simulating a multi-component mixture, <code>Sys</code> should be a cell array of spin systems,
-e.g. <code>{Sys1,Sys2}</code> for a two-component mixture. Each of the component spin systems should
-have a field <code>weight</code> that specifies the weight of the corresponding component in the final
+For simulating a multi-component mixture, <code>Sys</code> should be a cell array of spin systems, e.g. <code>{Sys1,Sys2}</code> for a two-component mixture. Each of the component spin systems should have a field <code>weight</code> that specifies the weight of the corresponding component in the final
 spectrum.
 </p>
 
@@ -178,23 +183,32 @@ The structure <code>Opt</code> collects computational parameters. <code>Opt</cod
 
 <div class="optionfield"><code>Method</code>: <code>'exact'</code>, <code>'perturb1'</code>, <code>'perturb2'</code>, <code>'perturb3'</code>, <code>'perturb4'</code>, <code>'perturb5'</code></div>
 <div class="optiondescr">
+<p>
 Specifies the method to be used in the simulation of field-swept spectra.
+</p>
 <p>
 <code>'exact'</code>, which is also the default, indicates the Breit-Rabi method. This gives exact resonance fields for each single nucleus, which are then combined to give the total spectrum. Cross-nuclear terms are neglected.
+</p>
 <p>
 <code>'perturb1'</code> etc. indicate the order of perturbation theory (1st through 5th) to be used to calculate the single-nucleus resonance fields. Cross-nuclear terms are neglected as well. Apart from demonstration purposes, there is no reason to use perturbation theory.
+</p>
 <p>
 If cross-nuclear terms are anticipated to be significant (e.g. in a 250 MHz EPR spectrum of a radical containing a nucleus with a hyperfine coupling of 100 MHz and other nuclei), then use <a class="esf" href="pepper.html">pepper</a> with matrix diagonalization (<code>Opt.Method='matrix'</code> instead of <code>garlic</code>.
+</p>
 </div>
 
 <div class="optionfield"><code>Verbosity</code>: 0, 1, or 2</div>
 <div class="optiondescr">
+<p>
 Determines how much information <code>garlic</code> prints to the command window. If <code>Opt.Verbosity=0</code>, <code>garlic</code> is silent. 1 logs relevant information, 2 gives more details.
+</p>
 </div>
 
 <div class="optionfield"><code>IsoCutoff</code>: scalar</div>
 <div class="optiondescr">
+<p>
 This gives a cut-off value for the relative abundance of isotopologues. Any isotopologue with a relative abundance below this value will not be included in the simulation. The most abundant isotopologue (magnetic or not) has relative abundance 1. The default value for <code>IsoCutoff</code> is 1e-6.
+</p>
 </div>
 
 <div class="optionfield"><code>AccumMethod</code>:
@@ -202,6 +216,7 @@ This gives a cut-off value for the relative abundance of isotopologues. Any isot
 <div class="optiondescr">
 <p>
 Determines how the spectrum is constructed once all the line positions, intensities and widths are calculated.
+</p>
 <ul>
 <li>
 <code>''</code> indicates that <code>garlic</code> will automatically choose the optimal method for the given simulation.
@@ -255,13 +270,14 @@ and EasySpin will automatically simulate the spectra of all isotope combinations
 in this case 98.93% with <sup>12</sup>C and 1.07% with <sup>13</sup>C.
 
 <pre class="matlab">
+clear
 Sys.g = 2;
 Sys.Nucs = '1H,1H,C';
 Sys.n = [2 3 1];
-Sys.A = [10 11 3];
-Sys.lwpp = [0 0.01];
-Exp.mwFreq = 9.7;
-Exp.CenterSweep = [346.5 2.8];
+Sys.A = [10 11 3];  % MHz
+Sys.lwpp = [0 0.01];  % mT
+Exp.mwFreq = 9.7;  % GHz
+Exp.CenterSweep = [346.5 2.8];  % mT
 garlic(Sys,Exp);
 </pre>
 
@@ -270,16 +286,17 @@ Zoom in to see the <sup>13</sup>C satellite lines.
 </p>
 
 <p>
-A simple example of a spectral simulation in the fast motional regime
-using the rotational correlation time:
+Here is an example of a simulation for a nitroxide radical in the fast motional regime:
 </p>
 
 <pre class="matlab">
-A = mt2mhz([5.8 5.8 30.8]/10);
-Sys = struct('g',[2.0088 2.0061 2.0027],'Nucs','14N','A',A);
-Sys.tcorr = 5e-9;
-Exp = struct('mwFreq',9.5);
-garlic(Sys,Exp);
+clear
+Nx.g = [2.0088 2.0061 2.0027];
+Nx.Nucs = '14N';
+Nx.A = mt2mhz([5.8 5.8 30.8]/10);  % MHz
+Nx.tcorr = 1e-9;  % s
+Exp.mwFreq = 9.5;  % GHz
+garlic(Nx,Exp);
 </pre>
 
 
