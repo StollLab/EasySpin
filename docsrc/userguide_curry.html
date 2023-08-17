@@ -30,9 +30,11 @@
 
 <p>
 EasySpin can calculate magnetic moments and magnetic susceptibilities for arbitrary spin systems. Experimentally, these are typically obtained using a SQUID magnetometer. This user guide explains how to calculate these quantities.
+</p>
 
 <p>
 The following topics are covered:
+</p>
 <ul>
 <li><a href="#calling">Running the calculation</a>
 <li><a href="#spins">The spin system</a>
@@ -49,6 +51,7 @@ The following topics are covered:
 
 <p>
 To calculate magnetic moments and magnetic susceptibilities, you need to provide information on the sample (spin system) and the fields and temperatures used in the measurement. With these, you then call the function <a class="esf" href="curry.html">curry</a>. By default, it returns one or two outputs, but this can be customized:
+</p>
 
 <pre class="matlab">
 muBM = curry(Sys,Exp);
@@ -57,9 +60,11 @@ muBM = curry(Sys,Exp);
 
 <p>
 <code>Sys</code> contains the spin system, and <code>Exp</code> contains the experimental parameters. <code>muBM</code> is the z component of the magnetic dipole moment in units of Bohr magnetons, and <code>chimol</code> is the zz component of the molar magnetic susceptibility. z indicates the direction along the external magnetic field.
+</p>
 
 <p>
 Additionally, you can provide a third input argument, <code>Opt</code>, that is a structure containing calculation options such as which output to provide and with system of units (SI or CGS) to use. For example,
+</p>
 
 <pre class="matlab">
 Opt.Units = 'CGS';           % use CGS-emu units
@@ -72,6 +77,7 @@ chimol = curry(Sys,Exp,Opt);
 
 <p>
 To calculate magnetic moment and magnetic susceptibility, first of all you need to provide the system of spins and the parameters of the associated spin Hamiltonian as a <a href="spinsystem">spin system structure</a>. Here is a simple example of two coupled spins-1/2 with isotropic g factors and strong exchange coupling:
+</p>
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];
@@ -81,9 +87,11 @@ Sys.J = -2*-10*29.98e3;   % MHz
 
 <p>
 Be mindful that EasySpin's isotropic electron-electron coupling term <code>Sys.J</code> uses the convention +J S<sub>1</sub>S<sub>2</sub>. Other conventions are often used in the literature. See <a href="hamiltonian.html#eei">here</a> for details.
+</p>
 
 <p>
 Also, EasySpin expects all couplings in units of MHz. Very often, exchange couplings are given in cm<sup>-1</sup>. To convert cm<sup>-1</sup> to MHz use
+</p>
 
 <pre class="matlab">
 J_cm = 5;              % value in cm^-1
@@ -99,6 +107,8 @@ You can also give antisymmetric and symmetric coupling terms, in <code>Sys.dvec<
 
 <p>
 Often a term called temperature-independent paramagnetism (TIP or &chi;<sub>TIP</sub>) is included to model the magnetic susceptibility. It is simply added to &chi;<sub>zz</sub>.
+</p>
+
 <pre class="matlab">
 TIP_CGSemu = 5e-4;              % value in cm^3 mol^-1
 TIP_SI = TIP_CGSemu*4*pi*1e-6;  % conversion from CGS-emu to SI units
@@ -303,6 +313,7 @@ In almost all cases magnetometry data is given in absolute units, therefore it i
 
 <p>
 For most spin systems it is not recommended to fit &chi;<sub>zz</sub>. Instead &chi;<sub>zz</sub>T (or &mu;<sub>eff</sub>) should be used, especially when g factors should be obtained. This can be easily visualized by converting poor fits to &chi;<sub>zz</sub>T (or &mu;<sub>eff</sub>) to &chi;<sub>zz</sub> and compare it to the data or you run the following example:
+</p>
 
 <pre class="matlab">
 clear, clc

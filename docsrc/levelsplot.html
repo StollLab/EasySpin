@@ -29,7 +29,7 @@
 <div class="functitle">levelsplot</div>
 
 <p>
-Display energy level diagram and resonances.
+Display energy level diagram, resonances and stick spectrum.
 </p>
 
 <!-- ====================================================== -->
@@ -49,11 +49,12 @@ Displays the energy level diagram (Zeeman diagram) for the spin system specified
 </p>
 
 <p>
-<code>Ori</code> can be either an array of numbers or a character arrat. As numeric array, it specifies the Euler angles <code>[phi theta]</code> or <code>[phi theta chi]</code> of the magnetic field relative to the molecular frame of the spin system. The three principal directions x, y, and z of the molecular frame, as well as a few specific intermediate orientations, can be specified by shorthands instead: <code>'x'</code> for <code>[0 pi/2]</code>, <code>'y'</code> for <code>[pi/2 pi/2]</code>, <code>'z'</code> for <code>[0 0]</code>, <code>'xy'</code> for <code>[pi/4 pi/2]</code>, <code>'xz'</code> for <code>[0 pi/4]</code>, <code>'yz'</code> for <code>[pi/2 pi/4]</code>, and <code>'xyz'</code> for <code>[pi/4 acos(1/sqrt(3))]</code>. If <code>Ori</code> is omitted, <code>'z'</code> is assumed by default.
+<code>Ori</code> can be either an array of numbers or a character array. As numeric array, it specifies the Euler angles <code>[phi theta]</code> or <code>[phi theta chi]</code> of the magnetic field relative to the molecular frame of the spin system. The three principal directions x, y, and z of the molecular frame, as well as a few specific intermediate orientations, can be specified by shorthands instead: <code>'x'</code> for <code>[0 pi/2]</code>, <code>'y'</code> for <code>[pi/2 pi/2]</code>, <code>'z'</code> for <code>[0 0]</code>, <code>'xy'</code> for <code>[pi/4 pi/2]</code>, <code>'xz'</code> for <code>[0 pi/4]</code>, <code>'yz'</code> for <code>[pi/2 pi/4]</code>, and <code>'xyz'</code> for <code>[pi/4 acos(1/sqrt(3))]</code>. If <code>Ori</code> is omitted, <code>'z'</code> is assumed by default.
 </p>
 
 <p>
 <code>B</code> contains the magnetic field range, in mT. If it is an array with two numbers <code>[Bmin Bmax]</code>, they are understood to be the lower and upper limit of the field range. If it is a single number, it is understood to be the upper field limit (<code>Bmax</code>), and the lower one is assumed to be zero. The number of field values between the two limits is set automatically, but can be modified via <code>Opt.nPoints</code>. If <code>B</code> is a full vector of field values, they are used directly.
+</p>
 
 <p>
 If <code>mwFreq</code>, the spectrometer frequency in GHz is given, resonances for this frequency are plotted as well. Their color indicates the transition amplitude: Red lines indicated allowed resonances, gray ones indicate forbidden ones. If the lines are terminated with dots, the relative transition intensity is above 1%. Clicking on a resonance line will print its relative transition probability to the command window.
@@ -69,46 +70,56 @@ Hovering with the mouse pointer over an energy level displays its number, and ho
 
 <div class="optionfield"><code>Units</code></div>
 <div class="optiondescr">
+<p>
 Energy units for plotting. The possible values are <code>'GHz'</code> (default), <code>'cm^-1'</code>, or <code>'eV'</code>.
+</p>
 </div>
 
 <div class="optionfield"><code>nPoints</code></div>
 <div class="optiondescr">
+<p>
 Number of points along the field axis.
-</div>
-
-<div class="optionfield"><code>ColorThreshold</code></div>
-<div class="optiondescr">
-Coloring threshold. If <code>mwFreq</code> is given, then transitions with relative intensity above this value ("allowed" transitions) will be plotted in red. The others will be plotted in gray.
+</p>
 </div>
 
 <div class="optionfield"><code>PlotThreshold</code></div>
 <div class="optiondescr">
+<p>
 Transitons with relative intensity below this value will not be plotted.
+</p>
 </div>
 
 <div class="optionfield"><code>SlopeColor</code></div>
 <div class="optiondescr">
-True or false (default). It set to true, energy level lines are colored according to the magnitude of their slope. This corresponds to the expectation value for |m<sub>S</sub>| for the corresponding state. At anticrossing, this reveals that the state character changes rapidly as a function of field.
+<p>
+<code>true</code> or <code>false</code> (default). It set to <code>true</code>, energy level lines are colored according to the magnitude of their slope. This corresponds to the expectation value for |m<sub>S</sub>| for the corresponding state. At anticrossing, this reveals that the state character changes rapidly as a function of field.
+</p>
+</div>
+
+<div class="optionfield"><code>StickSpectrum</code></div>
+<div class="optiondescr">
+<p>
+<code>true</code> or <code>false</code>. If <code>true</code>, a stick spectrum is plotted beneath the energy level diagram.
+</p>
 </div>
 
 <!-- ====================================================== -->
 <div class="subtitle">Examples</div>
 
 <p>
-To see resonances at X band for the system in the example for the function <a class="esf" href="levels.html">levels</a>, use
+To plot resonances at X band for a spin center with S=5/2 and rhombic zero field splitting, use
 </p>
 
 <pre class="matlab">
 clear
-mySystem.S = 5/2;
-mySystem.g = 2;
-mySystem.D = [-250 -1750 2000];  % MHz
+spins.S = 5/2;
+spins.g = 2;
+spins.D = [-250 -1750 2000];  % MHz
 Ori = 'z';
 FieldRange = [0 500];  % mT
 Freq = 9.5;  % GHz
 Opt.SlopeColor = true;
-levelsplot(mySystem,Ori,FieldRange,Freq,Opt);
+levelsplot(spins,Ori,FieldRange,Freq,Opt);
 </pre>
 
 <!-- ====================================================== -->
