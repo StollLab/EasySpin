@@ -11,14 +11,12 @@ Opt = struct('Verbosity',0);
 Exp.Ordering = [];
 [B,spc0] = pepper(Sys,Exp,Opt);
 
-% Isotropic distribution, user supplied
-%Exp.Ordering = @(phi,theta) ones(size(phi));
-Exp.Ordering = @ord_ones;
+% Isotropic distribution
+Exp.Ordering = @ordering_isotropic;
 [B,spc1] = pepper(Sys,Exp,Opt);
 
 % Gaussian distribution
-%Exp.Ordering = @(phi,theta) gaussian(theta,0,pi/8);
-Exp.Ordering = @ord_gaussian;
+Exp.Ordering = @ordering_gaussian;
 [B,spc2] = pepper(Sys,Exp,Opt);
 
 if opt.Display
@@ -31,10 +29,10 @@ ok = areequal(spc0,spc1,1e-10,'rel');
 
 end
 
-function w = ord_ones(phi,theta)
-w = ones(size(phi));
+function w = ordering_isotropic(beta,gamma)
+w = ones(size(beta)).*ones(size(gamma));
 end
 
-function w = ord_gaussian(phi,theta)
-w = gaussian(theta,0,pi/8).*ones(size(phi));
+function w = ordering_gaussian(beta,gamma)
+w = gaussian(beta,0,pi/8).*ones(size(gamma));
 end

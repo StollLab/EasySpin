@@ -466,17 +466,20 @@ else
   if ~isempty(Exp.CrystalSymmetry)
     error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
   end
-  if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
+  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
+    %Exp.Ordering = @(beta,gamma) exp(lambda*plegendre(2,0,cos(beta))).*ones(size(gamma));
+    Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
     logmsg(1,'  partial ordering (built-in function, lambda = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial ordering (user-supplied function)');
-    if nargin(Exp.Ordering)<2
-      logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
-    end
   else
     error('Exp.Ordering must be either a single number or a function handle.');
+  end
+  if nargin(Exp.Ordering)==1
+    Exp.Ordering = @(beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)>2
+    logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
   end
 end
 Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
@@ -998,9 +1001,9 @@ elseif ~BruteForceSum
         if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(centrePhi_,centreTheta_);
+          OrderingWeights = orifun(centreTheta_,centrePhi_);
         else
-          OrderingWeights = orifun(centrePhi,centreTheta);
+          OrderingWeights = orifun(centreTheta,centrePhi);
         end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
@@ -1031,9 +1034,9 @@ elseif ~BruteForceSum
         if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(centrePhi_,centreTheta_);
+          OrderingWeights = orifun(centreTheta_,centrePhi_);
         else
-          OrderingWeights = orifun(centrePhi,centreTheta);
+          OrderingWeights = orifun(centreTheta,centrePhi);
         end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end

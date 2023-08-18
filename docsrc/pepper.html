@@ -217,11 +217,11 @@ plot(beta*180/pi,P);
 </pre>
 
 <p>
-If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. It calls the function with three vector arguments, <code>alpha</code>, <code>beta</code> and <code>gamma</code> (in radians). The function must return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>phi(k)</code> and <code>theta(k)</code>. Here is an example with an anonymous function:
+If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. It calls the function with two vector arguments, <code>beta</code> and <code>gamma</code> (in radians). The function must return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
 </p>
 
 <pre class="matlab">
-Exp.Ordering = @(alpha,beta,gamma) gaussian(beta,0,15/180*pi);
+Exp.Ordering = @(beta,gamma) gaussian(beta,0,15/180*pi);
 </pre>
 
 <p>
@@ -229,7 +229,7 @@ If the function cannot be written as a singe line, define a separate function an
 </p>
    
 <pre class="matlab">
-function P = oridist(alpha,beta,gamma)
+function P = oridist(beta,gamma)
 gamma0 = 0;
 beta0 = pi/4;
 kappa = 10;
