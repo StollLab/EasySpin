@@ -16,6 +16,8 @@ Exp.Field = 0;
 Opt.Units = 'CGS';
 Opt.Output = 'chimol';
 
+Exp.MolFrame = [0 0 0];
+
 Exp.SampleFrame = [0 0 0];
 chiz = curry(Sys,Exp,Opt);
 Exp.SampleFrame = [0 -pi/2 0];
