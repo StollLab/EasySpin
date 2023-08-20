@@ -20,6 +20,8 @@ Exp.dt = dt;
 Exp.tau = tau;
 Exp.nPoints = nPoints;
 Exp.Field = Field;
+Exp.MolFrame = [0 0 0];
+
 Exp.SampleFrame = [0 -pi/2 0];
 
 [x1, y1] = saffron(Sys,Exp,Opt);

@@ -36,7 +36,7 @@ Opt.SimFreq = 15;
 data.x = x;
 data.y = y;
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
     p1 = subplot(3,1,[1 2]);
     plot(x,real(y),x,real(olddata.y));

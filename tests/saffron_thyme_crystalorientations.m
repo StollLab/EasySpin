@@ -23,15 +23,14 @@ Exp.DetWindow = [-0.05 0.05];
 Exp.mwFreq = 9.3;
 Exp.DetPhase = 0;
 
+Exp.MolFrame = [0 0 0];
 Exp.SampleFrame = [0 -pi/2 0];
-
 [x1, y1] = saffron(Sys,Exp);
 
 data.x1 = x1;
 data.y1 = y1;
 
 Exp.SampleFrame = [0 -pi/2 0; 0 0 0];
-
 [x2, y2] = saffron(Sys,Exp);
 
 data.x2 = x2;
