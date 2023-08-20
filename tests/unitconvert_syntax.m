@@ -21,9 +21,16 @@ v = unitconvert(rand,'K->eV');
 v = unitconvert(rand,'K->mT');
 v = unitconvert(rand,'K->MHz');
 
+v = unitconvert(rand,'mT->cm^-1');
+v = unitconvert(rand,'mT->eV');
+v = unitconvert(rand,'mT->K');
+v = unitconvert(rand,'mT->MHz');
+
 v = unitconvert(rand,'MHz->cm^-1');
 v = unitconvert(rand,'MHz->eV');
 v = unitconvert(rand,'MHz->K');
 v = unitconvert(rand,'MHz->mT');
+
+
 
 ok = true;
