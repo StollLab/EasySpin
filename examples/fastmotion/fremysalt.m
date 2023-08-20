@@ -7,7 +7,7 @@ clear, clf, clc
 % PADS in 85% glycerol/15% H2O
 Fremy.g = [2.00785 2.00590 2.00265];
 Fremy.Nucs = '14N';
-Fremy.A = mt2mhz([5.5 5.0 28.7]/10); % G -> MHz
+Fremy.A = unitconvert([5.5 5.0 28.7]/10,'mT->MHz'); % G -> MHz
 
 % Rotational motion at 30 degree Celsius
 Fremy.tcorr = 8e-10;    % seconds

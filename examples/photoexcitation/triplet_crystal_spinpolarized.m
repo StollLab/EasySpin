@@ -21,7 +21,7 @@ Sys.lw = 5;  % mT
 Sys.initState = {[0 1 0],'xyz'};  % selective population of the Ty state
 
 D_cm = 0.06;  % cm^-1
-D = D_cm*100*clight/1e6;  % cm^-1 -> MHz
+D = unitconvert(D_cm,'cm^-1-MHz');
 EoD = -0.2;  % E/D
 Sys.D = D*[1 EoD];
 

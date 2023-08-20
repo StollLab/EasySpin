@@ -95,7 +95,7 @@ spc = fourierdeconv(1:N/2) + fourierdeconv(N/2+1:N);
 
 % Generate field axis and truncate to mod. amplitude range
 nu = fdaxis(t(1:N/2))/1e6; % Hz -> MHz
-dB = -mhz2mt(nu,g);
+dB = -unitconvert(nu,'MHz->mT',g);
 idx = abs(dB)<=rsAmp_mT/2;
 dB = dB(idx);
 spc = spc(idx);

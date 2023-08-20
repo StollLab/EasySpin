@@ -17,6 +17,6 @@ Exp.SampleRotation = {-2*pi/3,rotaxis};
 [nux,~] = resfreqs_matrix(Sys,Exp);
 
 % Reference values for resonance fields
-nuref = mt2mhz(Exp.Field,Sys.g);
+nuref =unitconvert(Exp.Field,'mT->MHz',Sys.g);
 
 ok = areequal([nux nuy nuz],nuref,1e-10,'abs');

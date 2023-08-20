@@ -16,7 +16,7 @@ Sys.g = [2, 2];
 J12 = 30;   % cm^-1, H = -2*J12*S1*S2
 
 % First, we convert units to the required MHz
-J12 = J12*100*clight/1e6;  % cm^-1 -> MHz
+J12 = unitconvert(J12,'cm^-1->MHz');  % cm^-1 -> MHz
 
 % Then, we set the exchange coupling. Since EasySpin defines the
 % exchange operator as H = J*S1*S2, we set J = -2*J12.

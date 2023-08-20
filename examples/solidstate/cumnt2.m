@@ -11,7 +11,7 @@ Sys.Abund = [0.975 0.025];  % 97.5% 63Cu enrichment
 Sys.lwpp = 0.3;  % mT
 Sys.g = [2.020 2.023 2.089];
 A_cm = [-43.1 -43.7 -171.4]*1e-4; % cm^-1
-Sys.A = A_cm*100*clight/1e6; % conversion cm^-1 -> MHz
+Sys.A = unitconvert(A,'cm^-1->MHz'); % conversion cm^-1 -> MHz
 
 % Experimental parameters
 Exp.mwFreq = 1.4;     % GHz

@@ -15,7 +15,7 @@ Sys.g = 2.00;  % neglecting small anisotropy
 D_cm = -0.0114;  % cm^-1
 E_cm =  0.00069;  % cm^-1
 
-Sys.D = [D_cm E_cm] * 100*clight/1e6;  % cm^-1 -> MHz
+Sys.D = unitconvert([D_cm E_cm],'cm^-1->MHz');  % cm^-1 -> MHz
 
 Sys.lwpp = 0.9;  % mT
 

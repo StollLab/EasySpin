@@ -829,7 +829,7 @@ if FieldSweep
       nu = Exp.mwFreq*B0./B_;
     case 'approxlin'
       B0 = CenterField;
-      nu = Exp.mwFreq - mt2mhz(B_-B0,gavg)/1e3; % GHz
+      nu = Exp.mwFreq - unitconvert(B_-B0,'mT->MHz',gavg)/1e3; % GHz
     otherwise
       error('Unknown setting ''%s'' in Opt.FieldSweepMethod.',Opt.FieldSweepMethod);
   end
@@ -1392,7 +1392,7 @@ if doPostConvolution
   % Experimental parameters for isotropic shf spectrum
   if FieldSweep
     pcExp.Range = Exp.Range;
-    pcExp.mwFreq = mt2mhz(mean(Exp.Range),pcSys.g)/1e3; % GHz
+    pcExp.mwFreq = unitconvert(mean(Exp.Range),'mT->MHz',pcSys.g)/1e3; % GHz
     Range = Exp.Range;
   else
     pcExp.mwRange = Exp.mwRange;

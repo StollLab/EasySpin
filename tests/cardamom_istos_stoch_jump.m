@@ -8,7 +8,7 @@ rng(1)
 Sys.Nucs = '14N';
 
 Sys.g = [2.009, 2.006, 2.002];
-Sys.A = mt2mhz([6, 36]/10);
+Sys.A = unitconvert([6, 36]/10,'mT->MHz');
 Sys.TransProb = [ 0.2,  0.8;
                  0.55, 0.45 ];
 Sys.Orientations = pi*rand(2,3);

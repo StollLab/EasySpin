@@ -293,7 +293,7 @@ Here is an example of a simulation for a nitroxide radical in the fast motional 
 clear
 Nx.g = [2.0088 2.0061 2.0027];
 Nx.Nucs = '14N';
-Nx.A = mt2mhz([5.8 5.8 30.8]/10);  % MHz
+Nx.A = unitconvert([5.8 5.8 30.8]/10,'mT->MHz');  % MHz
 Nx.tcorr = 1e-9;  % s
 Exp.mwFreq = 9.5;  % GHz
 garlic(Nx,Exp);

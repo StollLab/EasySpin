@@ -17,7 +17,7 @@ Opt = struct;
 [x,spc] = pepper(Sys,Exp,Opt);
 
 % Frequency sweep
-Sys.lw = mt2mhz(Sys.lw);
+Sys.lw = unitconvert(Sys.lw,'mT->MHz');
 Expf = struct('Field',340);
 
 [f,spcf] = pepper(Sys,Expf,Opt);

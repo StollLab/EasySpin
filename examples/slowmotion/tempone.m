@@ -10,7 +10,7 @@ clear, clf
 
 Tempone.g = [2.0088 2.0061 2.0027];
 Tempone.Nucs = '14N';
-Tempone.A = mt2mhz([5.8,5.8,30.8]/10); % G -> mT -> MHz
+Tempone.A = unitconvert([5.8,5.8,30.8]/10,'mT->MHz'); % G -> mT -> MHz
 
 Tempone.Diff = 1e6; % s^-1
 Tempone.lw = [0 0.2]; % Lorentzian broadening, FWHM, mT

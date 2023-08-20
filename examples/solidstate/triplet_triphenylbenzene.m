@@ -12,9 +12,9 @@ Sys.g = 2;  % isotropic g
 Sys.lwpp = 4; % Gaussian FWHM, mT
 
 % Zero-field splitting in terms of D and E
-D = 0.0435 * 100*clight/1e6;  % cm^-1 -> MHz
-E = 0;   % MHz
-Sys.D = [D E];
+D = 0.0435;  % cm^-1
+E = 0;   % cm^-1
+Sys.D = unitconvert([D E],'cm^-1->MHz'); % cm^-1 -> MHz
 
 Exp.mwFreq = 9.150;             % GHz
 Exp.Range = [100 500]; % mT
