@@ -468,9 +468,8 @@ else
   end
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    %Exp.Ordering = @(beta,gamma) exp(lambda*plegendre(2,0,cos(beta))).*ones(size(gamma));
     Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
-    logmsg(1,'  partial ordering (built-in function, lambda = %g)',lambda);
+    logmsg(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial ordering (user-supplied function)');
   else

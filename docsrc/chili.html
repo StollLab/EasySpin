@@ -55,7 +55,7 @@ See also the <a href="userguide_chili.html">user guide</a> on how to use <code>c
 
 <p>
 <code>chili</code> takes up to three input arguments
-
+</p>
 <ul>
 <li><code>Sys</code>: static and dynamic parameters of the spin system
 <li><code>Exp</code>: experimental parameters
@@ -68,6 +68,7 @@ If no input argument is given, a short help summary is shown (same as when typin
 
 <p>
 Up to two output arguments are returned:
+</p>
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
 <li><code>spc</code>: spectrum
@@ -113,6 +114,7 @@ Sys.tcorr = [5 4 1]*1e-9; % rhombic anisotropic diffusion
   
 <p>
 Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. The correlation time <code>tcorr</code> and the diffusion rate <code>Diff</code> are related by
+</p>
 <pre class="matlab">
 tcorr = 1/(6*Diff);       % tcorr in s, Diff in rad^2 s^-1
 </pre>
@@ -180,7 +182,7 @@ In addition to the rotational dynamics, convolutional line broadening can be inc
 <div class="optiondescr">
 <p>
 An array of coefficients for the orientational potential, with four numbers per row: L, M, K, and &lambda;. The potential is expressed as U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub>D<sup>L</sup><sub>M,K</sub>, where the D<sup>L</sup><sub>M,K</sub> are Wigner functions and &lambda;<sup>L</sup><sub>M,K</sub> are the possibly complex-valued coefficients. L is a nonnegative integer, and both M and K are integers between -L and L.
-
+</p>
 <pre class="matlab">
 Sys.Potential = [2 0 0 0.3];                  % L=2, M=K=0 coefficient is 0.3
 Sys.Potential = [2 0 0 0.3; 2 0 2 -0.1];      % two coefficients
@@ -188,9 +190,11 @@ Sys.Potential = [2 0 0 0.3; 2 0 2 -0.1];      % two coefficients
 
 <p>
 Since the overall potential must be real-valued, there is a symmetry relation between coefficients with the same L, |M| and |K|: &lambda;<sup>L</sup><sub>-M,-K</sub> = (-1)<sup>M-K</sup> (&lambda;<sup>L</sup><sub>M,K</sub>)<sup>*</sup>. Therefore, <code>chili</code> limits the input coefficients to: (1) those with positive K, (2) those with K=0 and positive M, (3) the one with M=K=0 which must be real-valued. All others are supplemented internally using the symmetry relation.
+</p>
 
 <p>
 To plot the orientational potential, use the function <a class="esf" href="oripotentialplot.html">oripotentialplot</a> by calling <code>oripotentialplot(Sys.Potential)</code>.
+</p>
 
 <p>
 The frame of the orientational potential is assumed to be collinear with that of the rotational diffusion tensor (<code>Sys.DiffFrame</code>).
@@ -224,6 +228,77 @@ Effective Heisenberg spin exchange rate, in inverse microseconds. Implements a s
 <p>
 The experiment structure <code>Exp</code> contains all parameters relating to the experiment. These settings are identical for all cw EPR simulation functions (<a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="chili.html">chili</a>, <a class="esf" href="garlic.html">garlic</a>). See the page on <a href="cwepr_exp.html">cw EPR experimental parameters</a>.
 </p>
+
+<p>
+Additionally, the following field is supported:
+</p>
+
+<div class="optionfield"><code>Ordering</code>
+<em>scalar</em> (default: zero) or <em>function handle</em></div>
+<div class="optiondescr">
+<p>
+If a number is given in this field, it specifies the orientational distribution of the supporting biomacromolecule in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
+</p>
+
+<p>
+If a number is given, the orientational distribution is non-isotropic and computed according to the formula P(&beta;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &beta; is the angle between the sample z axis (z axis of the <a href="frames.html">sample frame</a>) and the molecular z axis ( axis of the <a href="frames.html">molecular frame</a>), and &lambda; is the number specified in <code>Exp.Ordering</code>.
+</p>
+
+<p>
+Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&beta;) is maximal at &beta; = 90&deg; (preferential orientation of molecular z axis in the sample xy plane), for positive values it is maximal at &beta; = 0&deg; and &beta; = 180&deg; (preferential alignment of the molecular z axis with the sample z axis). The larger the magnitude of &lambda;, the sharper the distributions.
+</p>
+
+<p>
+To plot the orientational distribution for a given value of &lambda;, use
+</p>
+
+<pre class="matlab">
+lambda = 2;
+beta = linspace(0,pi,1001);
+U = -lambda*plegendre(2,0,cos(beta));
+%U = -lambda*(3*cos(beta).^2-1)/2;  % equivalent
+P = exp(-U);
+plot(beta*180/pi,P);
+</pre>
+
+<p>
+If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one  (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
+</p>
+
+<pre class="matlab">
+Exp.Ordering = @(beta,gamma) gaussian(beta,0,15/180*pi);
+</pre>
+
+<p>
+If the function cannot be written as a singe line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
+</p>
+   
+<pre class="matlab">
+function P = oridist(beta,gamma)
+gamma0 = 0;
+beta0 = pi/4;
+kappa = 10;
+mu = ang2vec(gamma0,beta0);
+x = ang2vec(gamma(:),beta(:));
+P = kappa/(4*pi)/sinh(kappa)*exp(kappa*mu'*x);
+P = reshape(P,size(beta));
+end
+</pre>
+
+<p>
+Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
+</p>
+
+<p>
+When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
+</p>
+
+<p>
+If the orientational distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.GridSize</code>.
+</p>
+
+</div>
+
 
 <div class="subtitle2">Input: Simulation options</div>
 
