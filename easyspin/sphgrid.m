@@ -190,7 +190,7 @@ if calculateTriangulation
   rmv = Areas==0;
   Tri(rmv,:) = [];
   Areas(rmv) = [];
-  Tri = sort(Tri,2);
+  Tri = sortrows(sort(Tri,2));
   Tri = uint32(Tri);
   
 else
