@@ -5051,6 +5051,35 @@
       }
     ]
   },
+  "unitconvert": {
+    "description": "Convert between different units",
+    "inputs": [
+      {
+        "name": "value",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "value to convert"
+      },
+      {
+        "name": "units",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "from/to units, e.g. 'mT->MHz'"
+      },
+      {
+        "name": "g",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "g value, if converting from/to magnetic field units"
+      }
+    ]
+  },
   "vec2ang": {
     "description": "Convert Cartesian vector(s) to polar angles",
     "inputs": [
