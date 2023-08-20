@@ -144,6 +144,9 @@ Exp.SampleFrame = [0 pi/2 0];                % sample/crystal/film frame tilted 
 Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal/film frame tilted relative to lab frame
 Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals/films
 </pre>
+<p>
+<code>SampleFrame</code> is only used for crystals and partially ordered samples (films etc). It is ignored for disordered samples (powders and frozen solutions).
+</p>
 </div>
 
 <div class="optionfield"><code>CrystalSymmetry</code></div>
@@ -196,15 +199,15 @@ If a number is given in this field, it specifies the orientational distribution 
 </p>
 
 <p>
-If a number is given, the orientational distribution is non-isotropic and computed according to the formula P(&beta;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &beta; is the angle between the sample z axis and the molecular z axis, and &lambda; is the number specified in <code>Exp.Ordering</code>.
+If a number is given, the orientational distribution is non-isotropic and computed according to the formula P(&beta;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &beta; is the angle between the sample z axis (z axis of the <a href="frames.html">sample frame</a>) and the molecular z axis ( axis of the <a href="frames.html">molecular frame</a>), and &lambda; is the number specified in <code>Exp.Ordering</code>.
 </p>
 
 <p>
-Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&beta;) is maximum at &beta; = 90&deg; (preferential orientation of molecular z axis in the sample xy plane), for positive values at &beta; = 0&deg; and &beta; = 180&deg; (preferential alignment of the molecular z axis with the sample z axis). The larger the magnitude of &lambda;, the sharper the distributions.
+Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&beta;) is maximal at &beta; = 90&deg; (preferential orientation of molecular z axis in the sample xy plane), for positive values it is maximal at &beta; = 0&deg; and &beta; = 180&deg; (preferential alignment of the molecular z axis with the sample z axis). The larger the magnitude of &lambda;, the sharper the distributions.
 </p>
 
 <p>
-To plot a distribution depending on &lambda;, use
+To plot the orientational distribution for a given value of &lambda;, use
 </p>
 
 <pre class="matlab">
@@ -212,12 +215,12 @@ lambda = 2;
 beta = linspace(0,pi,1001);
 U = -lambda*plegendre(2,0,cos(beta));
 %U = -lambda*(3*cos(beta).^2-1)/2;  % equivalent
-P = exp(-lambda*U);
+P = exp(-U);
 plot(beta*180/pi,P);
 </pre>
 
 <p>
-If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. It calls the function with two vector arguments, <code>beta</code> and <code>gamma</code> (in radians). The function must return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
+If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one  (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
 </p>
 
 <pre class="matlab">
@@ -249,7 +252,7 @@ When providing a function for <code>Exp.Ordering</code>, make sure that the symm
 </p>
 
 <p>
-If the custom distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.GridSize</code>.
+If the orientational distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.GridSize</code>.
 </p>
 
 </div>

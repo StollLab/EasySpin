@@ -599,14 +599,15 @@ if numel(Opt.GridSize)<2
   end
 end
 
-% Parse string options.
+% Parse string options
 anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
 
+% Set up grid etc.
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
 nOrientations = size(Exp.MolFrame,1);
 
-% Fold orientational distribution function into grid region.
+% Fold orientational distribution function into grid region
 if ~isempty(Exp.Ordering)
   orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
 end
@@ -1001,9 +1002,9 @@ elseif ~BruteForceSum
         if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(centreTheta_,centrePhi_);
+          OrderingWeights = orifun(-centreTheta_,-centrePhi_);
         else
-          OrderingWeights = orifun(centreTheta,centrePhi);
+          OrderingWeights = orifun(-centreTheta,-centrePhi);
         end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
@@ -1034,9 +1035,9 @@ elseif ~BruteForceSum
         if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(centreTheta_,centrePhi_);
+          OrderingWeights = orifun(-centreTheta_,-centrePhi_);
         else
-          OrderingWeights = orifun(centreTheta,centrePhi);
+          OrderingWeights = orifun(-centreTheta,-centrePhi);
         end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end

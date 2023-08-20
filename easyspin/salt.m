@@ -734,7 +734,7 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
       centrePhi = zeros(1,numel(centreTheta));
-      OrderingWeights = orifun(centrePhi,centreTheta);
+      OrderingWeights = orifun(-centreTheta,-centrePhi);
       if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
@@ -757,7 +757,7 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
       centrePhi = mean(fphi(idxTri));
-      OrderingWeights = orifun(centrePhi,centreTheta);
+      OrderingWeights = orifun(-centreTheta,-centrePhi);
       if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);

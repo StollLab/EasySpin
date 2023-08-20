@@ -11,40 +11,43 @@
 %   orifun   ... folded orientational distribution function, orifun(beta,gamma)
 
 function orifun = foldoridist(f,GridSymmetry)
+
 switch GridSymmetry
   case 'O3'
     ff = @(beta,gamma)f(beta,gamma).*sin(beta);
-    val = integral2(ff,0,pi,0,2*pi); % integral over sphere
+    val = integral2(ff,0,pi,0,2*pi); % integral over sphere (beta and gamma)
     orifun = @(beta,gamma) val;
   case 'Dinfh'
     orifun = @(beta,gamma) gammaint(f,beta); % integral over all gamma
   case 'D2h'
-    orifun = @(beta,gamma)...
-      f(beta,gamma)+...       % E ( = identity)
-      f(beta,pi-gamma)+...    % sigma(yz)
-      f(beta,pi+gamma)+...    % C2(z)
-      f(beta,2*pi-gamma)+...  % sigma(xz)
-      f(pi-beta,gamma)+...    % sigma(xy)
-      f(pi-beta,pi-gamma)+... % C2(y)
-      f(pi-beta,pi+gamma)+... % i
-      f(pi-beta,2*pi-gamma);  % C2(x)
+    orifun = @(beta,gamma) ...
+      f(beta,gamma) + ...       % E ( = identity)
+      f(beta,pi-gamma) + ...    % sigma(yz)
+      f(beta,pi+gamma) + ...    % C2(z)
+      f(beta,2*pi-gamma) + ...  % sigma(xz)
+      f(pi-beta,gamma) + ...    % sigma(xy)
+      f(pi-beta,pi-gamma) + ... % C2(y)
+      f(pi-beta,pi+gamma) + ... % i
+      f(pi-beta,2*pi-gamma);    % C2(x)
   case 'C2h'
-    orifun = @(beta,gamma)...
-      f(beta,gamma)+...       % E
-      f(beta,pi+gamma)+...    % C2(z)
-      f(pi-beta,gamma)+...    % sigma(xy)
-      f(pi-beta,pi+gamma);    % i
+    orifun = @(beta,gamma) ...
+      f(beta,gamma) + ...       % E
+      f(beta,pi+gamma) + ...    % C2(z)
+      f(pi-beta,gamma) + ...    % sigma(xy)
+      f(pi-beta,pi+gamma);      % i
   case 'Ci'
-    orifun = @(beta,gamma)...
-      f(beta,gamma)+...       % E
-      f(pi-beta,gamma+pi);    % i
+    orifun = @(beta,gamma) ...
+      f(beta,gamma) + ...       % E
+      f(pi-beta,gamma+pi);      % i
   case 'C1'
-    orifun = @(beta,gamma)...
-      f(beta,gamma);          % E
+    orifun = @(beta,gamma) ...
+      f(beta,gamma);            % E
   otherwise
-    error('Orientational distribution folding are not supported for grid symmetry ''%s''.',GridSymmetry);
+    error('Orientational distribution folding for grid symmetry ''%s'' is not supported.',GridSymmetry);
 end
+
 end
+
 
 function v = gammaint(f,beta)
 for k = numel(beta):-1:1
