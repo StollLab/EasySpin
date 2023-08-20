@@ -763,7 +763,7 @@ while ~converged
 
   % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
   Bres = 0.1; % G
-  tReq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
+  tReq = 1/(unitconvert(Bres/10,'mT->MHz')*1e6); % mT -> s
 
   tMax = max(cellfun(@(x) max(x), tCell));
   if tMax<tReq
@@ -778,7 +778,7 @@ while ~converged
   if isBroadening
     if Sys.lw(1)>0
       % Gaussian broadening
-      fwhm = mt2mhz(Sys.lw(1))*1e6;  % mT -> Hz
+      fwhm = unitconvert(Sys.lw(1),'mT->MHz')*1e6;  % mT -> Hz
       alpha = pi^2*fwhm^2/(4*log(2));
       TDSignal = bsxfun(@times,exp(-alpha*tLong.^2),TDSignal);
     end
@@ -851,9 +851,9 @@ freq = 1/(Par.dtSpin*M)*(-M/2:M/2-1);  % TODO check for consistency between Fiel
 
 % center the spectrum around the isotropic component of the g-tensor
 if FieldSweep
-  fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % MHz -> mT, note use of g0, not ge
+  fftAxis = unitconvert(freq/1e6+Exp.mwFreq*1e3,'MHz->mT', mean(Sys.g));  % MHz -> mT, note use of g0, not ge
 else
-  fftAxis = freq/1e9+mt2mhz(Exp.Field,mean(Sys.g))/1e3;  % GHz
+  fftAxis = freq/1e9+unitconvert(Exp.Field,'mT->MHz',mean(Sys.g))/1e3;  % GHz
 end
 
 % set up horizontal sweep axis

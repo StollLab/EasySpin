@@ -19,7 +19,7 @@ A_H = [AH1 AH2]; % in mT
 A_C = [AC1*ones(1,6) AC2*ones(1,6)]; % in mT
 Sys.g = 2;
 Sys.n = [6 3 1 1 1 1 1 1 1 1 1 1 1 1];
-Sys.A = mt2mhz([A_H A_C]); % mT -> MHz
+Sys.A = unitconvert([A_H A_C],'mT->MHz'); % mT -> MHz
 Sys.lwpp = [0, 0.01];  % Lorentzian line shape
 
 Exp.mwFreq = 9.5;

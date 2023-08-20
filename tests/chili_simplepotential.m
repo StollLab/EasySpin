@@ -4,7 +4,7 @@ function [ok,data] = test(opt,olddata)
 
 Nx.Nucs = '14N';
 Nx.g = [2.009 2.006 2.002];
-Nx.A = mt2mhz([5 5.5 33]/10);
+Nx.A = unitconvert([5 5.5 33]/10,'mT->MHz');
 Nx.logDiff = 7;
 Nx.lwpp = [0 0.0];
 

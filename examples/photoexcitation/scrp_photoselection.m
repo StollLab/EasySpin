@@ -21,7 +21,7 @@ Sys.g = [2.0033 2.0025 2.0021; ... % P+
 Sys.gFrame = [-242.2 -64 -13.7; ...
                 0 0 0]*pi/180;
 Sys.J = 0; % MHz
-Sys.dip = mt2mhz(0.124/3); % MHz
+Sys.dip = unitconvert(0.124/3,'mT->MHz'); % MHz
 Sys.eeFrame = [-68.5 -71.6 0]*pi/180;
 Sys.lwpp = 0.33; % mT
 

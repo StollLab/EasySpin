@@ -19,8 +19,8 @@ Sys.g = [2.0030 2.0026 2.0023; ... % P700+
 Sys.gFrame = [-10 -128 -83; ...
                 0    0   0]*pi/180;
 
-Sys.J = -mt2mhz(1e-3); % MHz
-Sys.dip = mt2mhz(+0.177); % MHz
+Sys.J = -unitconvert(1e-3,'mT->MHz'); % MHz
+Sys.dip = unitconvert(+0.177,'mT->MHz'); % MHz
 Sys.eeFrame = [0 90 0]*pi/180;
 
 Sys.lwpp = 0.7; % mT

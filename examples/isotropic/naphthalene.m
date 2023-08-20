@@ -13,8 +13,8 @@ Sys.Nucs = '1H,1H';
 Sys.n = [4 4];
 Sys.lwpp = [0 ,0.01];  % Lorentzian lines
 
-A_anion =  mt2mhz([-0.495 -0.183]);
-A_cation = mt2mhz([-0.587 -0.167]);
+A_anion =  unitconvert([-0.495 -0.183],'mT->MHz');
+A_cation = unitconvert([-0.587 -0.167],'mT->MHz');
 
 Sys.A = A_anion;
 [xa,ya] = garlic(Sys,Exp);

@@ -6,7 +6,7 @@ function [ok,data] = test(opt,olddata)
 
 System.g = [2.0088 2.0064 2.0027];
 System.Nucs = '14N,14N';
-System.A = mt2mhz([7 6 32; 5 20 4]/10); % MHz
+System.A = unitconvert([7 6 32; 5 20 4]/10,'mT->MHz'); % MHz
 tcorr = 1e-10; % s
 field = 350; % mT
 

@@ -9,7 +9,7 @@ rng(1)
 Sys.Nucs = '14N';
 
 Sys.g = [2.009, 2.006, 2.002];
-Sys.A = mt2mhz([6, 36]/10);
+Sys.A = unitconvert([6, 36]/10,'mT->MHz');
 Sys.tcorr = 5e-9;
 Sys.B = 0.34;  % T
 Sys.lw = [0.0, 0.1];

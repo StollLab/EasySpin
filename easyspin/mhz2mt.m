@@ -1,28 +1,11 @@
-% mhz2mt   Conversion from MHz to mT
-%
-%   x_mT = mhz2mt(x_MHz)
-%   x_mT = mhz2mt(x_MHz,g)
-%
-%   Converts the value in x_MHz, assumed to be in units
-%   of MHz (megahertz) to mT (millitesla), returning
-%   the result in x_mT.
-%
-%   For the conversion, the g factor given as second
-%   parameter is used. If it is not given, the g factor
-%   of the free electron (gfree) is used.
-%
-%   x_MHz can be a vector of values. In this case, g
-%   can be a scalar or a vector of the same size as x_MHz.
+% mhz2mt   obsolete
+% use unitconvert(input, 'MHz->mT')
 
-function x_mT = mhz2mt(x_MHz,g)
+function mhz2mt(x_MHz,g)
 
-if nargin<1, x_MHz = 1; end
-if nargin<2, g = gfree; end
+if nargin<1, error(sprintf('The function mhz2mt is obsolete. Use:\noutput = unitconvert(1, ''MHz->mT'')')); end
+if nargin<2, error(sprintf('The function mhz2mt is obsolete. Use:\noutput = unitconvert(%d, ''MHz->mT'')',x_MHz)); end
 
-if ~isnumeric(g)
-  error('Second input (g) must be numeric.');
-end
-
-x_mT = x_MHz./g*(1e6*planck/bmagn/1e-3);
+error(sprintf('The function mhz2mt is obsolete. Use:\noutput = unitconvert(%d, ''MHz->mT'', %d)',x_MHz,g));
 
 return

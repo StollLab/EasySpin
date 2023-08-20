@@ -17,7 +17,7 @@ Opt.Verbosity = 0;
 % Defining two spin systems, one with axial and one with orthorhombic D
 %-----------------------------------------------------------------------
 D_cm = 0.06;  % cm^-1
-D = D_cm*100*clight/1e6;  % cm^-1 -> MHz
+D = unitconvert(D_cm,'cm^-1->MHz');  % cm^-1 -> MHz
 Sys = struct('S',1,'g',2,'lw',5);
 Sys.initState = {[0 1 0],'xyz'};  % selective population ot the Ty state
 

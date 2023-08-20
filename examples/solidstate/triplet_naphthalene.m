@@ -13,11 +13,9 @@
 
 clear, clf, clc
 
-convert = 100*clight/1e6; % cm^-1 -> MHz conversion factor
-
 Naphthalene.S = 1;
 Naphthalene.g = 2.003;
-Naphthalene.D = [0.1003 0.0137]*convert;
+Naphthalene.D = unitconvert([0.1003 0.0137],'cm^-1->MHz'); % cm^-1 -> MHz
 Naphthalene.lwpp = 6;
 
 Xband.mwFreq = 9.5;

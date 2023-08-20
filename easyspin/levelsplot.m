@@ -322,8 +322,8 @@ function Eout = unit_convert(E_MHz,toUnit)
 
 switch toUnit
   case 'GHz', Eout = E_MHz/1e3;
-  case 'cm^-1', Eout = E_MHz*1e6/clight/100;
-  case 'eV', Eout = planck*E_MHz*1e6/evolt;
+    case 'cm^-1', Eout = unitconvert(E_MHz,'MHz->cm^-1');
+    case 'eV', Eout = unitconvert(E_MHz,'MHz->eV');
   otherwise
     error('Unknown unit ''%s'' in Par.Units.',toUnit);
 end
