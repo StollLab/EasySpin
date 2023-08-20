@@ -15,7 +15,7 @@
 %   Either the command syntax as above or the function syntax, e.g.
 %   estest('asdf','t'), can be used.
 %
-%   Run all tests including timings:   estest('*','t')
+%   Run all tests including timings:   estest('*_','t')
 %
 %   All test files must have an underscore _ in their filename.
 

@@ -1234,7 +1234,7 @@ for iOri = 1:nOrientations
                 PopulationU = U'*initState*U; % lower level
                 PopulationV = V'*initState*V; % upper level
             end
-            Polarization = PopulationU - PopulationV;
+            Polarization = real(PopulationU - PopulationV);
             if nPerturbNuclei>0
               Polarization = Polarization/prod(2*Sys.I+1);            
             end
