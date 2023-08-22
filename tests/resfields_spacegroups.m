@@ -14,12 +14,12 @@ Exp.MolFrame = [15 25 35]*pi/180;
 Exp.SampleFrame = [38 48 67]*pi/180;
 
 % Transformation matrices
-R_L2C = erot(Exp.SampleFrame);
-R_C2M = erot(Exp.MolFrame);
+R_L2S = erot(Exp.SampleFrame);
+R_S2M = erot(Exp.MolFrame);
 R_M2g = erot(Sys.gFrame);
 
 nB0_L = [0; 0; 1];    % B0 is along zLab
-nB0_C = R_L2C*nB0_L;
+nB0_S = R_L2S*nB0_L;
 g_g = diag(Sys.g);
 
 % Test one space group from each of the 11 Laue classes
@@ -35,8 +35,8 @@ for sg = 1:numel(spaceGroups)
   % Determine nB0 vector in g frame for each site
   nB0_g = zeros(3,nSites);
   for s = 1:nSites
-    R_C2Mi = R_C2M*Rsite{s}.';
-    nB0_Mi = R_C2Mi*nB0_C;
+    R_S2Mi = R_S2M*Rsite{s}.';
+    nB0_Mi = R_S2Mi*nB0_S;
     nB0_g(:,s) = R_M2g*nB0_Mi;
   end
 

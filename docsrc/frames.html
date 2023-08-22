@@ -91,7 +91,7 @@ For photoexcited samples, the incident optical excitation beam (from a laser) is
 <div class="subtitle"><a name="sampleframe">Sample frame</a></div>
 
 <p>
-The <em>sample frame</em> C is a sample-fixed frame with orthonormal unit vectors xC, yC, zC. The sample can be a crystal, a film, a frozen solution, etc.
+The <em>sample frame</em> S is a sample-fixed frame with orthonormal unit vectors xS, yS, zS. The sample can be a crystal, a film, a frozen solution, etc.
 </p>
 
 <p>
@@ -99,17 +99,17 @@ In the case of a crystal, EasySpin follows the conventions prevalent in X-ray cr
 </p>
 
 <ul>
-<li>1-2 (triclinic; point groups C1, Ci=S2): xC, yC and zC are arbitrary.
-<li>3-15 (monoclinic; point groups C2, Cs=C1h, C2h): For short Hermann-Mauguin symbols (like P2, Cm, P21/m, etc), yC is along the unique axis. For full Hermann-Mauguin symbols (like P211, P121, P112, etc), the space group symbol defines the unique axis (P211: xC, P121: yC, P112: zC, etc). In all cases, the other two axes are arbitrary.
-<li>16-74 (orthorhombic; point groups D2, C2v, D2h): xC, yC and zC are along the three two-fold axes. The assignment is arbitrary.
-<li>75-88 (tetragonal; point groups C4, S4, C4h): zC is along the four-fold axis. xC and yC are arbitrary.
-<li>89-142 (tetragonal; point groups D4, C4v, D2d, D4h): zC is along the four-fold axis. xC is along one of the two-fold axes.
-<li>143-148 (tetragonal; point groups C3, C3i=S6): zC is along the three-fold axis. xC and yC are arbitrary.
-<li>149-167 (trigonal; point groups D3, C3v, D3d): zC is along the three-fold axis. xC is along one of the two-fold axes.
-<li>168-176 (hexagonal; point groups C6, C3h, C6h): zC is along the six-fold axis. xC and yC are arbitrary.
-<li>177-194 (hexagonal; point groups D6, C6v, D3h, D6h): zC is along the six-fold axis, and xC is along one of the two-fold axes.
-<li>195-206 (cubic; point groups T, Th): xC, yC and zC are along the three two-fold axes. The assignment is arbitrary.
-<li>207-230 (cubic; point groups O, Td, Oh): xC, yC and zC are along the three four-fold axes. The assignment is arbitrary.
+<li>1-2 (triclinic; point groups C1, Ci=S2): xS, yS and zS are arbitrary.
+<li>3-15 (monoclinic; point groups C2, Cs=C1h, C2h): For short Hermann-Mauguin symbols (like P2, Cm, P21/m, etc), yS is along the unique axis. For full Hermann-Mauguin symbols (like P211, P121, P112, etc), the space group symbol defines the unique axis (P211: xS, P121: yS, P112: zS, etc). In all cases, the other two axes are arbitrary.
+<li>16-74 (orthorhombic; point groups D2, C2v, D2h): xS, yS and zS are along the three two-fold axes. The assignment is arbitrary.
+<li>75-88 (tetragonal; point groups C4, S4, C4h): zS is along the four-fold axis. xS and yS are arbitrary.
+<li>89-142 (tetragonal; point groups D4, C4v, D2d, D4h): zS is along the four-fold axis. xS is along one of the two-fold axes.
+<li>143-148 (tetragonal; point groups C3, C3i=S6): zS is along the three-fold axis. xS and yS are arbitrary.
+<li>149-167 (trigonal; point groups D3, C3v, D3d): zS is along the three-fold axis. xS is along one of the two-fold axes.
+<li>168-176 (hexagonal; point groups C6, C3h, C6h): zS is along the six-fold axis. xS and yS are arbitrary.
+<li>177-194 (hexagonal; point groups D6, C6v, D3h, D6h): zS is along the six-fold axis, and xS is along one of the two-fold axes.
+<li>195-206 (cubic; point groups T, Th): xS, yS and zS are along the three two-fold axes. The assignment is arbitrary.
+<li>207-230 (cubic; point groups O, Td, Oh): xS, yS and zS are along the three four-fold axes. The assignment is arbitrary.
 </ul>
 
 <p>
@@ -117,15 +117,15 @@ For crystal simulations, it is important to be aware of these conventions, as Ea
 </p>
 
 <p>
-For an oriented film sample, xC, yC, and zC are arbitrary. One possibility is to define the zC axis to be perpendicular to the plane of the film.
+For an oriented film sample, xS, yS, and zS are arbitrary. One possibility is to define the zS axis to be perpendicular to the plane of the film.
 </p>
 
 <p>
-For powders and frozen solution samples, the definition of xC, yC and zC is also arbitrary.
+For powders and frozen solution samples, the definition of xS, yS and zS is also arbitrary.
 </p>
 
 <p>
-In versions of EasySpin prior to 6, the sample frame was called crystal frame.
+In versions of EasySpin prior to 6, the sample frame was called crystal frame, and the axes were denoted as xC, yC and zC.
 </p>
 
 <div class="subtitle"><a name="molframe">Molecular frame</a></div>
@@ -241,50 +241,50 @@ Prior to version 5, EasySpin used <code>Sys.gpa</code>, <code>Sys.Apa</code> etc
 <div class="subtitle"><a name="MC">Molecule orientation within a crystal</a></div>
 
 <p>
-In crystals, the paramagnetic centers rarely align with the crystal axes. Therefore, it is often necessary to specify a tilt between the crystal frame (C) and the molecular frame (M). In EasySpin, you can do this with <code>Exp.MolFrame</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>crystal frame to the molecular frame</em> (C&rarr;M).
+In crystals, the spin centers rarely align with the crystal axes. Therefore, it is often necessary to specify a tilt between the sample frame (S), which is fixed relative to the crystal, and the molecular frame (M), which is fixed relateive to the spin center. In EasySpin, you can do this with <code>Exp.MolFrame</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>sample/crystal frame to the molecular frame</em> (C&rarr;M).
 </p>
 
 <pre class="matlab">
-Exp.MolFrame = [33 12 -76]*pi/180;  % Euler angles for C->M transformation
+Exp.MolFrame = [33 12 -76]*pi/180;  % Euler angles for S->M transformation
 </pre>
 
 <p>
-This means that to transform the crystal frame (C) to the molecular frame (M), you first rotate by 33 degrees around zC, then by 12 degrees around the resulting y axis, and then by -76 degrees around the resulting z axis. Again, this transforms the <em>frames</em>, but leaves the physical objects (crystal and molecule) untouched.
+This means that to transform the sample/crystal frame (S) to the molecular frame (M), you first rotate counterclockwise by 33 degrees around zS, then by 12 degrees around the resulting y axis, and then by -76 degrees around the resulting z axis. Again, this transforms the <em>frames</em>, but leaves the physical objects (crystal and molecule) untouched.
 </p>
 
 <p>
-To get the vectors xM, yM, zM in crystal coordinates (we'll denote these as xM_C, yM_C, zM_C), use <a href="erot.html">erot</a> to calculate the corresponding transformation matrix:
+To get the vectors xM, yM, zM expressed in sample frame coordinates (we'll denote these as xM_S, yM_S, zM_S), use <a href="erot.html">erot</a> to calculate the corresponding transformation matrix:
 </p>
 
 <pre class="matlab">
-a_C2M = [33 12 -76]*pi/180;  % Euler angles for C->M transformation
-R_C2M = erot(a_C2M)          % corresponding transformation matrix
+a_S2M = [33 12 -76]*pi/180;  % Euler angles for S->M transformation
+R_S2M = erot(a_S2M)          % corresponding transformation matrix
 </pre>
 <pre class="mloutput">
-R_C2M =
+R_S2M =
     0.7269   -0.6849   -0.0503
     0.6642    0.7198   -0.2017
     0.1744    0.1132    0.9781
 </pre>
 
 <p>
-The three <em>columns</em> give the crystal axes as vectors expressed in molecular frame coordinates.
+The three <em>columns</em> give the sample/crystal axes as vectors expressed in molecular frame coordinates.
 </p>
 <pre class="matlab">
-% crystal axes in molecular coordinates
-xC_M = R_C2M(:,1);
-yC_M = R_C2M(:,2);
-zC_M = R_C2M(:,3);
+% sample/crystal axes in molecular coordinates
+xS_M = R_S2M(:,1);
+yS_M = R_S2M(:,2);
+zS_M = R_S2M(:,3);
 </pre>
 <p>
-The three <em>rows</em> give the molecular axes vectors expressed in crystal frame coordinates.
+The three <em>rows</em> give the molecular axes vectors expressed in sample/crystal frame coordinates.
 </p>
 
 <pre class="matlab">
-% molecular axes in crystal coordinates
-xM_C = R_C2M(1,:).';
-yM_C = R_C2M(2,:).';
-zM_C = R_C2M(3,:).';
+% molecular axes in sample/crystal coordinates
+xM_S = R_S2M(1,:).';
+yM_S = R_S2M(2,:).';
+zM_S = R_S2M(3,:).';
 </pre>
 
 <!-- ======================================================================================= -->
@@ -304,17 +304,17 @@ Exp.SampleFrame = [30 45 -10]*pi/180;   % Euler angles for L->C transformation
 </pre>
 
 <p>
-This indicates that the lab frame (xL,yL,zL) has to be rotated by 30 degrees around its zL axis, followed by a rotation by 45 degrees around the resulting new y axis, followed by a -10 degree rotation around the resulting z axis, to bring it into overlap with the sample frame (xC,yC,zC).
+This indicates that the lab frame (xL,yL,zL) has to be rotated by 30 degrees around its zL axis, followed by a rotation by 45 degrees around the resulting new y axis, followed by a -10 degree rotation around the resulting z axis, to bring it into overlap with the sample frame (xS,yS,zS).
 </p>
 
 <p>
-<code>Exp.SampleFrame</code> describes the lab-to-sample frame transformation (L&rarr;C). In order to find the <a href="eulerangles.html">Euler angles</a> for the reverse transformation, from the sample to the lab frame (C&rarr;L), invert the order and the signs of the angles. Here is an example:
+<code>Exp.SampleFrame</code> describes the lab-to-sample frame transformation (L&rarr;S). In order to find the <a href="eulerangles.html">Euler angles</a> for the reverse transformation, from the sample to the lab frame (S&rarr;L), invert the order and the signs of the angles. Here is an example:
 </p>
 
 <pre class="matlab">
-a_L2C = [72 15 -108]*pi/180;      % angles for sample -> lab frame transformation
-a_C2L = [+108 -15 -72]*pi/180;    % angles for corresponding lab -> sample frame transformation
-Exp.SampleFrame = a_L2C;          % EasySpin expects a lab -> sample frame transformation
+a_L2S = [72 15 -108]*pi/180;      % angles for sample -> lab frame transformation
+a_S2L = [+108 -15 -72]*pi/180;    % angles for corresponding lab -> sample frame transformation
+Exp.SampleFrame = a_L2S;          % EasySpin expects a lab -> sample frame transformation
 </pre>
 
 <p>
@@ -322,34 +322,34 @@ To find out how the sample axes lie in the spectrometer, or how the lab axes lie
 </p>
 
 <pre class="matlab">
-a_L2C = [10 45 0]*pi/180;                % Euler angles for L->C transformation
-Exp.SampleFrame = a_L2C;
-R_C2L = erot(Exp.SampleFrame)            % corresponding transformation matrix
+a_L2S = [10 45 0]*pi/180;                % Euler angles for L->S transformation
+Exp.SampleFrame = a_L2S;
+R_S2L = erot(Exp.SampleFrame)            % corresponding transformation matrix
 </pre>
 <pre class="mloutput">
-R_C2L =
+R_S2L =
     0.6964    0.1228   -0.7071
    -0.1736    0.9848         0
     0.6964    0.1228    0.7071
 </pre>
 
 <p>
-In this matrix, the three columns are the three lab axis vectors xL, yL, zL, represented in sample coordinates. Conversely, the three rows are the sample axis vectors xC, yC, zC, represented in lab coordinates.
+In this matrix, the three columns are the three lab axis vectors xL, yL, zL, represented in sample coordinates. Conversely, the three rows are the sample axis vectors xS, yS, zS, represented in lab coordinates.
 </p>
 
 <pre class="matlab">
 % lab axes in sample coordinates
-xL = R_L2C(:,1);
-yL = R_L2C(:,2);
-zL = R_L2C(:,3);
+xL = R_L2S(:,1);
+yL = R_L2S(:,2);
+zL = R_L2S(:,3);
 % sample axes in lab coordinates
-xC = R_L2C(1,:).';
-yC = R_L2c(2,:).';
-zC = R_L2C(3,:).';
+xS = R_L2S(1,:).';
+yS = R_L2S(2,:).';
+zS = R_L2S(3,:).';
 </pre>
 
 <p>
-Prior to EasySpin 6, the relative orientation between lab and sample frame was defined in the field `Exp.CrystalOrientation`. To convert code containing this to `Exp.SampleFrame`, invert the order of the three Euler angles and flip their signs.
+Prior to EasySpin 6, the relative orientation between lab and sample frame was defined in the field <code>Exp.CrystalOrientation</code>. To convert code containing this to <code>Exp.SampleFrame</code>, invert the order of the three Euler angles and flip their signs.
 </p>
 
 <pre class="matlab">

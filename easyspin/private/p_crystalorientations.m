@@ -58,28 +58,28 @@ if ~doPowderSimulation
     nSites = numel(Rsite_C);
   end
   
-  % Crystal-to-molecular frame transformation, R_C2M
+  % Sample/crystal-to-molecular frame transformation, R_S2M
   if ~isempty(Exp.MolFrame)
     logmsg(1,'  molecular frame given in Exp.MolFrame');
     if ~numel(Exp.MolFrame)==3
       error('Exp.MolFrame has wrong size.');
     end
-    R_C2M = erot(Exp.MolFrame);
+    R_S2M = erot(Exp.MolFrame);
   else
-    R_C2M = eye(3);
+    R_S2M = eye(3);
   end
-  R_M2C = R_C2M.';
+  R_M2S = R_S2M.';
   
   % Generate list of mol frame orientations, represented in crystal/sample frame
   xyzM_M = eye(3);           % xM, yM, zM in mol frame representation
-  xyzM0_C = R_M2C*xyzM_M;   % transformation to crystal/sample frame
+  xyzM0_S = R_M2S*xyzM_M;   % transformation to crystal/sample frame
   for iSite = nSites:-1:1
-    xyzM_C{iSite} = Rsite_C{iSite}*xyzM0_C;   % active rotation in crystal frame
+    xyzM_S{iSite} = Rsite_C{iSite}*xyzM0_S;   % active rotation in crystal frame
   end
 
-  % Lab-to-crystal/sample frame transformation, R_L2C
-  % - R_L2C col 1,2,3: lab axis 1,2,3 represented in crystal frame
-  % - R_L2C row 1,2,3: crystal axis 1,2,3 represented in lab frame
+  % Lab-to-crystal/sample frame transformation, R_L2S
+  % - R_L2S col 1,2,3: lab axis 1,2,3 represented in crystal frame
+  % - R_L2S row 1,2,3: crystal axis 1,2,3 represented in lab frame
   if ~isnumeric(Exp.SampleFrame)
     error('Exp.SampleFrame must be an Nx3 array.');
   end
@@ -89,13 +89,13 @@ if ~doPowderSimulation
     
     % Construct transformation matrices (lab frame to crystal frame)
     for s = nSamples:-1:1
-      R_L2C{s} = erot(Exp.SampleFrame(s,:));
+      R_L2S{s} = erot(Exp.SampleFrame(s,:));
     end
     
   else
-    R_L2C = {eye(3)};
+    R_L2S = {eye(3)};
   end
-  nOrientations = numel(R_L2C);
+  nOrientations = numel(R_L2S);
   
   % Apply (active) sample rotation
   rotateSample = isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation);
@@ -104,7 +104,7 @@ if ~doPowderSimulation
     nRot = Exp.SampleRotation{2};
     Rrot = rotaxi2mat(nRot,rho);
     for s = 1:nSamples
-      R_L2C{s} = R_L2C{s}*Rrot;
+      R_L2S{s} = R_L2S{s}*Rrot;
     end
   end
   
@@ -115,9 +115,9 @@ if ~doPowderSimulation
   angles_M2L = zeros(nOrientations*nSites,3);
   idx = 1;
   for iOri = 1:nOrientations
-    R_C2L = R_L2C{iOri}.';
+    R_S2L = R_L2S{iOri}.';
     for iSite = 1:nSites
-      xyzMi_L = R_C2L*xyzM_C{iSite};    % transformation to lab frame
+      xyzMi_L = R_S2L*xyzM_S{iSite};    % transformation to lab frame
       angles_M2L(idx,:) = eulang(xyzMi_L,true); % Euler angles for Mi -> L frame
       idx = idx + 1;
     end

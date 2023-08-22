@@ -18,14 +18,14 @@ Exp.SampleFrame = [38 48 67]*pi/180;
 Bres = resfields(Sys,Exp);
 
 % Transformation matrices
-R_L2C = erot(Exp.SampleFrame);
-R_C2M = erot(Exp.MolFrame);
+R_L2S = erot(Exp.SampleFrame);
+R_S2M = erot(Exp.MolFrame);
 R_M2g = erot(Sys.gFrame);
 
 % Transform field vector from lab frame to g tensor frame
 nB0_L = [0; 0; 1];    % B0 is along zLab
-nB0_C = R_L2C*nB0_L;
-nB0_M = R_C2M*nB0_C;
+nB0_S = R_L2S*nB0_L;
+nB0_M = R_S2M*nB0_S;
 nB0_g = R_M2g*nB0_M;  % nB0_g is independent of Exp.SampleFrame(1)
 
 % Calculate effective g value and resonance field

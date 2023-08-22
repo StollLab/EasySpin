@@ -23,13 +23,13 @@ R_M2g = erot(Sys.gFrame);
 R_g2M = R_M2g.';
 g_M = R_g2M*g_g*R_g2M.';
 
-R_C2M = erot(Exp.MolFrame);
-R_M2C = R_C2M.';
-g_C = R_M2C*g_M*R_M2C.';
+R_S2M = erot(Exp.MolFrame);
+R_M2S = R_S2M.';
+g_S = R_M2S*g_M*R_M2S.';
 
-R_L2C = erot(Exp.SampleFrame);
-R_C2L = R_L2C.';
-g_L = R_C2L*g_C*R_C2L.';
+R_L2S = erot(Exp.SampleFrame);
+R_S2L = R_L2S.';
+g_L = R_S2L*g_S*R_S2L.';
 
 Rrot = rotaxi2mat(rotaxis,rho).';  % active rotation!
 g_L = Rrot*g_L*Rrot.';
