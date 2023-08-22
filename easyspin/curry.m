@@ -91,6 +91,14 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Experimental parameters');
 
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
+
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
@@ -125,8 +133,8 @@ end
 zeroTemp = any(T==0);
 
 % Other fields
-if ~isfield(Exp,'CrystalOrientation')
-  Exp.CrystalOrientation = [];
+if ~isfield(Exp,'SampleFrame')
+  Exp.SampleFrame = [];
 end
 if ~isfield(Exp,'CrystalSymmetry')
   Exp.CrystalSymmetry = '';
@@ -138,7 +146,7 @@ if ~isfield(Exp,'SampleRotation')
   Exp.SampleRotation = [];
 end
 
-doPowderSimulation = isempty(Exp.CrystalOrientation);
+doPowderSimulation = isempty(Exp.SampleFrame);
 
 if doPowderSimulation
   logmsg(1,'Powder calculation');

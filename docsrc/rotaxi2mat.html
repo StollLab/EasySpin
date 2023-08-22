@@ -57,14 +57,16 @@ A given rotation can be represented either by a 3x3 <a href="eulerangles.html">r
 </p><code>rho</code> is a number giving the angle in radians, not degrees.
 </p>
 
+<p>
+To obtain the <a href="eulerangles.html">Euler angles</a> associated with this rotation, use <a class="esf" href="eulang.html">eulang</a>.
+</p>
+
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
 <p>
-A rotation by 2&pi;/3 (120 degrees) around the axis <code>[1;1;1]</code>
-amounts to the interchange of the three coordinate axes. Therefore,
-the associated rotation matrix only contains zeros and ones.
+A rotation by 2&pi;/3 (120 degrees) around the axis <code>[1;1;1]</code> permutes the three coordinate axes: x becomes y, y becomes z, and z becomes x. The associated rotation matrix is
 </p>
 
 <pre class="matlab">
@@ -82,23 +84,22 @@ R =
      1     0     0
 </pre>
 
+
 <p>
-The associated <a href="eulerangles.html">Euler angles</a> are
+Applying this to the x vector gives
 </p>
 
 <pre class="matlab">
-Angles = eulang(R);
-Angles*180/pi
+v = [1;0;0];      % vector to rotate
+v_rot = R.'*v     % rotated vector; note transpose
 </pre>
 
 <pre class="mloutput">
-ans =
-     0    90    90
+v_rot =
+     0
+     1
+     0
 </pre>
-
-<p>
-The rotation can thus be obtained by first rotating by 90 degrees around the y axis, followed by a rotation by 90 degrees around the resulting z axis.
-</p>
 
 <!-- ============================================================= -->
 <div class="subtitle">See also</div>

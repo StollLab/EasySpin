@@ -94,9 +94,9 @@ end
 
 % Experiment
 %------------------------------------------------------
-DefaultExp.CrystalOrientation = [];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
 DefaultExp.SampleRotation = [];
 
 if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end

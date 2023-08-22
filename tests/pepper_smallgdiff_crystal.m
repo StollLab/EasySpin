@@ -12,7 +12,7 @@ SysB.lw = lwGL;
 Exp.mwFreq = 9.5;
 Exp.Range = [320 360];
 Exp.Harmonic = 0;
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 
 Exp.nPoints = 100;
 [B1,spcAcoarse] = pepper(SysA,Exp);

@@ -5,10 +5,11 @@
 %  levelsplot(Sys,Ori,B,mwFreq,Opt)
 %
 %    Sys        spin system structure
-%    Ori        orientation of magnetic field in molecular frame
+%    Ori        (a) orientation of magnetic field vector in molecular frame
 %               - string: 'x','y','z','xy','xz','yz', or 'xyz'
-%               - 2-element vector [phi theta]
-%               - 3-element vector [phi theta chi]
+%               - 2-element vector [phi theta] (radians)
+%               (b) orientation of lab frame in molecular frame
+%               - 3-element vector [phi theta chi] (radians)
 %    B          field range, in mT; either Bmax, [Bmin Bmax], or a full vector
 %    mwFreq     spectrometer frequency, in GHz
 %    Opt        options
@@ -84,8 +85,12 @@ end
 computeResonances = isfinite(mwFreq);
 
 % Supply option defaults
+%-------------------------------------------------------------------------------
 if ~isstruct(Opt)
   error('Fifth input (options) must be a structure.');
+end
+if ~isfield(Opt,'Units')
+  Opt.Units = 'GHz';
 end
 if ~isfield(Opt,'nPoints')
   Opt.nPoints = 201;
@@ -95,9 +100,6 @@ if ~isfield(Opt,'PlotThreshold')
 end
 Opt.AllowedColor = [1 0 0];
 Opt.ForbiddenColor = [1 1 1]*0.8;
-if ~isfield(Opt,'Units')
-  Opt.Units = 'GHz';
-end
 if ~isfield(Opt,'SlopeColor')
   Opt.SlopeColor = false;
 end
@@ -105,7 +107,8 @@ if ~isfield(Opt,'StickSpectrum')
   Opt.StickSpectrum = false;
 end
 
-% Convert string in Ori input to angles
+% Parse Ori (second input)
+%-------------------------------------------------------------------------------
 if ischar(Ori)
   n = letter2vec(Ori);
   [phi,theta] = vec2ang(n);
@@ -213,7 +216,7 @@ if computeResonances
   
   resfieldsOpt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
-  Exp.CrystalOrientation = [phi theta chi];
+  Exp.SampleFrame = [-chi -theta -phi];
   [resonFields,intensity,~,Transitions] = resfields(Sys,Exp,resfieldsOpt);
 
   if ~isempty(resonFields)

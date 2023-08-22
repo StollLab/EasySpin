@@ -57,10 +57,6 @@ end
 nFieldPoints = 200;
 switch numel(MagnField)
   case 1
-    if MagnField>0
-      MagnField = [0 MagnField];
-      MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
-    end
   case 2
     MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
   otherwise
@@ -157,4 +153,4 @@ if computeVectors
   Vectors = squeeze(Vectors);
 end
 
-return
+end

@@ -5,7 +5,7 @@ Sys.D = -3*30e3*[1 0.01];
 
 Sys.S = 1;
 Sys.D = 30e3*rand*10*[1 0.1];
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 Opt.Transitions = [1 3];
 
 Mode{1} = 'perpendicular';

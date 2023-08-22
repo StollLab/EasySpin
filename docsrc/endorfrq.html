@@ -82,14 +82,17 @@ Microwave frequency used in the ENDOR experiment, in GHz.
 Magnetic field at which the ENDOR spectrum is to be computed, in mT.
 </div>
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-A list of orientations for which resonance fields should be computed. It can be either a nx2 or a nx3 array, giving either two or three <a href="eulerangles.html">Euler angles</a>, in radians, per row to describe each orientation. The angles describe the transformation from the <a href="frames.html">crystal frame (C) to the lab frame(L)</a>. The external field is along the lab z axis (zL), and the microwave field is along the lab x axis (xL). Resonance fields and frequencies depend only on the first two angles, intensities also on the third.
-</p>
-
 <p>
-&phi;, in the first column, is the angle between the xC axis and the xCyC plane projection of the orientation of the external field (zL) in the molecular frame of the spin system. &theta;, in the second column, is the angle at which the external field is off the zC axis. The optional &chi;, in the third column, specifies the third Euler angle and fixes the xL axis of the laboratory in the crystal frame. If the third angle is not given, it is assumed to be zero.
+An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
 </p>
+<pre class="matlab">
+Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
+Exp.SampleFrame = [0 pi/2 0];                % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
+</pre>
 </div>
 
 <div class="optionfield"><code>Temperature</code></div>
@@ -202,7 +205,7 @@ three input structures to <code>endorfrq</code> and the range of eeQq values.
 <pre class="matlab">
 Sys = struct('S',1/2,'g',2,'Nucs','14N','A',[8 9 10]);
 Exp.Field = 350;
-Exp.CrystalOrientation = [10 40 0]*pi/180;
+Exp.SampleFrame = [10 40 0]*pi/180;
 Opt.Threshold = 0;
 Opt.Enhancement = 'on';
 

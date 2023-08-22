@@ -98,11 +98,6 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  %{
-  PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
-    isempty(Exp.CrystalOrientation) || ...
-    (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-  %}
   separateComponentSpectra = ~summedOutput && nTotalComponents>1;
   if separateComponentSpectra
     spec = [];
@@ -209,7 +204,7 @@ DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
 DefaultExp.Ordering = [];
 
-DefaultExp.CrystalOrientation = [];
+DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];
@@ -219,6 +214,14 @@ DefaultExp.Harmonic = 0;
 
 % Make user-given fields case-insensitive.
 Exp = adddefaults(Exp,DefaultExp);
+
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
@@ -269,30 +272,35 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
   Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
 end
 
-% Powder vs. crystal simulation
-if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
-end
-PowderSimulation = ~isfield(Exp,'CrystalOrientation') || ...
-  isempty(Exp.CrystalOrientation) || ...
-  (isfield(Exp,'Ordering') && ~isempty(Exp.Ordering));
-Exp.PowderSimulation = PowderSimulation;
-
-% Partial ordering
-if ~isempty(Exp.Ordering)
+% Detect sample type (powder vs. crystal vs. partial ordering)
+if isempty(Exp.Ordering)
+  PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
   if ~PowderSimulation
-    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
+    if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
+    if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
+  end
+else
+  PowderSimulation = true;
+  if ~isempty(Exp.MolFrame)
+    error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
+  end
+  if ~isempty(Exp.CrystalSymmetry)
+    error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
   end
   if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
-    logmsg(1,'  partial order (built-in function, lambda = %g)',lambda);
+    logmsg(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial order (user-supplied function)');
+    logmsg(1,'  partial ordering (user-supplied function)');
+    if nargin(Exp.Ordering)<2
+      logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
+    end
   else
-    error('Exp.Ordering must be a single number or a function handle.');
+    error('Exp.Ordering must be either a single number or a function handle.');
   end
 end
+Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
 
 if EasySpinLogLevel>=1
   if ~AutoRange
@@ -444,7 +452,7 @@ end
 %====================================================================
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.CrystalOrientation,1);
+nOrientations = size(Exp.MolFrame,1);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)
@@ -726,7 +734,7 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
       centrePhi = zeros(1,numel(centreTheta));
-      OrderingWeights = orifun(centrePhi,centreTheta);
+      OrderingWeights = orifun(-centreTheta,-centrePhi);
       if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
@@ -749,7 +757,7 @@ else
     if ~isempty(Exp.Ordering)
       centreTheta = mean(fthe(idxTri));
       centrePhi = mean(fphi(idxTri));
-      OrderingWeights = orifun(centrePhi,centreTheta);
+      OrderingWeights = orifun(-centreTheta,-centrePhi);
       if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);

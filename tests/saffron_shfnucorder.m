@@ -12,7 +12,7 @@ Exp.dt = 0.016; % us
 Exp.tau = 0.224; % us
 Exp.T = 0.080; % us
 Exp.nPoints = 500;
-Exp.CrystalOrientation = [1.1234 2.534 0.5];
+Exp.SampleFrame = [1.1234 2.534 0.5];
 
 Opt.GridSize = 101;
 Opt.TimeDomain = 1;
@@ -32,7 +32,7 @@ Sys2.A = [A_63Cu; A_2H]; % MHz
 
 [x2, y2] = saffron(Sys2,Exp,Opt);
 
-if (opt.Display)
+if opt.Display
   subplot(4,1,[1 2 3]);
   plot(x1,real(y1),x2,real(y2));
   legend(Sys1.Nucs,Sys2.Nucs);

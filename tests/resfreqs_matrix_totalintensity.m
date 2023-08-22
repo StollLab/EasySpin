@@ -6,7 +6,7 @@ function ok = test()
 
 Sys.S = 1;
 Sys.D = 30e3*rand*10*[1 1/3];
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 Opt.Transitions = [1 2; 1 3; 2 3];
 
 for n=10:-1:1

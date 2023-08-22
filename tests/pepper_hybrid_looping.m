@@ -16,7 +16,7 @@ Exp.mwFreq = 9.39;
 Exp.Range = [10 700];
 
 Exp.nPoints = 4096;
-Exp.CrystalOrientation = [0 0 0]*pi/180;
+Exp.SampleFrame = [0 0 0]*pi/180;
 Exp.Temperature = 6;
 
 Opt.Method = 'hybrid';

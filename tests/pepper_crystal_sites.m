@@ -9,7 +9,7 @@ Exp.mwFreq = 9.5;
 Exp.Range = [200 400];
 
 Exp.CrystalSymmetry = 34;
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 
 Opt.Sites = []; % all sites
 [x,y0] = pepper(Sys,Exp);

@@ -28,7 +28,7 @@ integral_resfields_eig = sum(y2)*dx;
 ok(1) = areequal(integral_matrix,integral_resfields_eig,0.001,'abs');
 
 % single crystal
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 Opt.Method = 'matrix';
 [x,y1] = pepper(Sys,Exp,Opt);
 Opt.Method = 'eig';

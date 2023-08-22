@@ -307,7 +307,7 @@ if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
 if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
@@ -480,34 +480,26 @@ end
 logmsg(1,'  %d points',Exp.nPoints);
 
 % Complain if fields only valid in pepper() are given
-if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
 end
 
 % Ordering of director frame (partial ordering)
+
 if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
-    lam = Exp.Ordering;
-    if lam~=0
-      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta))).*ones(size(phi));
-      logmsg(1,'  director ordering: built-in function, coefficient = %g',lam);
-    else
-      Exp.Ordering = [];
-      logmsg(1,'  director ordering: none');
-    end
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
+    logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    if nargin(Exp.Ordering)<2
-      error('The function in Exp.Ordering must accept two inputs.');
-    end
-    if nargout(Exp.Ordering)<1
-      error('The function in Exp.Ordering must provide one output.');
-    end
-    logmsg(1,'  director ordering: user-supplied function)');
+    logmsg(1,'  partial director ordering (user-supplied function)');
   else
-    error('Exp.Ordering must be a single number or a function handle.');
+    error('Exp.Ordering must be either a single number or a function handle.');
+  end
+  if nargin(Exp.Ordering)==1
+    Exp.Ordering = @(beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)>2
+    logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
   end
 else
   logmsg(1,'  director ordering: none');
@@ -517,7 +509,7 @@ useDirectorOrdering = ~isempty(Exp.Ordering);
 % Determine whether to do a powder simulation
 % (without potential, no powder sim is necessary - it's identical to a
 % single-orientation sim)
-PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
+PowderSimulation = isempty(Exp.SampleFrame) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -879,9 +871,9 @@ if PowderSimulation
   end
   logmsg(1,'  powder simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
-  if ~isempty(Exp.CrystalOrientation)
-    phi = Exp.CrystalOrientation(1);
-    theta = Exp.CrystalOrientation(2);
+  if ~isempty(Exp.SampleFrame)
+    phi = -Exp.SampleFrame(3);
+    theta = -Exp.SampleFrame(2);
   else
     phi = 0;
     theta = 0;
@@ -895,7 +887,7 @@ Basis.DirTilt = any(theta~=0);
 % Partial ordering for protein/macromolecule
 if useDirectorOrdering
   orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
-  OrderingWeights = orifun(phi,theta);
+  OrderingWeights = orifun(-theta,-phi);
   if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
   logmsg(2,'  orientational potential');

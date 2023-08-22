@@ -16,7 +16,7 @@
 %      Range               field sweep range, [Bmin Bmax], in mT
 %      CenterField         field sweep range, [center sweep], in mT
 %      Temperature         temperature, in K
-%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
 %      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
@@ -111,11 +111,11 @@ DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.mwMode = '';
+DefaultExp.mwMode = 'perpendicular';
 
-DefaultExp.CrystalOrientation = [];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
 DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
@@ -142,7 +142,7 @@ if any(Exp.Range<0)
 end
 
 % Determine excitation mode
-[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
+[xi1,xik,nB1_L,nk_L,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
@@ -179,7 +179,7 @@ end
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
+[angles_M2L,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 % Options parsing and setting.
 %---------------------------------------------------------------------
@@ -589,8 +589,8 @@ else % Automatic transition pre-selection
       theta = TPSgrid.theta;
       TPSweights = TPSgrid.weights;
     else % single orientation
-      phi = Orientations(1);
-      theta = Orientations(2);
+      phi = angles_M2L(1);
+      theta = angles_M2L(2);
       TPSweights = 1;
     end
     
@@ -806,7 +806,7 @@ end
 % Pre-allocations are done only when the arrays are needed.
 
 msg = 'positions';
-Pdat = ones(nTransitions,nOrientations)*NaN;
+Pdat = NaN(nTransitions,nOrientations);
 if nPerturbNuclei>0
   for iiNuc = nPerturbNuclei:-1:1
     pPdatN{iiNuc} = zeros(nTransitions,nOrientations,nPerturbTransitions(iiNuc));
@@ -856,7 +856,7 @@ ZeroRow = NaN*ones(1,nOrientations);
 if higherOrder
   maxSlope = 0;
   for iOri = 1:nOrientations
-    [~,~,zLab_M] = erot(Orientations(iOri,:),'rows');
+    [~,~,zLab_M] = erot(angles_M2L(iOri,:),'rows');
     [~,~,der]= gethamdata_hO(Exp.Range(2),zLab_M,CoreSys,Opt.Sparse,[],nLevels);
     maxSlope = max([maxSlope,max(der)]);
   end
@@ -904,7 +904,7 @@ for iOri = 1:nOrientations
   % Set up Hamiltonians for 3 lab principal directions
   %-----------------------------------------------------
   % xLab, yLab, zLab represented in the molecular frame M
-  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+  [xLab_M,yLab_M,zLab_M] = erot(angles_M2L(iOri,:),'rows');
   
   if ~higherOrder
     % zLab axis: external static field
@@ -929,9 +929,9 @@ for iOri = 1:nOrientations
     k = Exp.lightBeam{1};  % propagation direction
     alpha = Exp.lightBeam{2};  % polarization angle
     if averageOverChi
-      ori = Orientations(iOri,1:2);  % omit chi
+      ori = angles_M2L(iOri,1:2);  % omit chi
     else
-      ori = Orientations(iOri,1:3);
+      ori = angles_M2L(iOri,1:3);
     end
     photoWeight = photoselect(Sys.tdm,ori,k,alpha);
     % Add isotropic contribution (from scattering)
@@ -1050,7 +1050,8 @@ for iOri = 1:nOrientations
 
       ResonanceFields = Bknots(s) + dB(s)*cubicZeros;
 
-      for iReson=1:numel(ResonanceFields) % loop over all resonances for transition iTrans in the current segment
+      % loop over all resonances for transition iTrans in the current segment
+      for iReson = 1:numel(ResonanceFields)
 
         % Insert new row into data arrays if the current one is not for transition iTrans!!
         %-----------------------------------------------------------------------------------
@@ -1070,11 +1071,9 @@ for iOri = 1:nOrientations
             for iiNuc = nPerturbNuclei:-1:1
               p_ = pPdatN{iiNuc};
               z_ = zeros(1,nOrientations,size(p_,3));
-              pPdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; ...
-                               p_(iiTrans:end,:,:)];
+              pPdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; p_(iiTrans:end,:,:)];
               p_ = pIdatN{iiNuc};
-              pIdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; ...
-                               p_(iiTrans:end,:,:)];
+              pIdatN{iiNuc} = [p_(1:iiTrans-1,:,:); z_; p_(iiTrans:end,:,:)];
             end
           end
         end
@@ -1083,7 +1082,7 @@ for iOri = 1:nOrientations
         %------------------------------------------------
         Pdat(iiTrans,iOri) = ResonanceFields(iReson);
 
-        % Compute eigenvectors, eigenvalues and 1/(dE/dB) if needed.
+        % Compute eigenvectors, eigenvalues and 1/g factor = 1/(dE/dB) if needed
         %--------------------------------------------------
         if computeEigenPairs || nPerturbNuclei>0
           % Compute resonant state vectors
@@ -1161,11 +1160,9 @@ for iOri = 1:nOrientations
             for n =3:-1:1
               kmuM{n} = -(g1{1}{n}+g0{n});
             end
-            % z laboratoy axis: external static field
+            % calculate lab-frame components
             kmuzL = zLab_M(1)*kmuM{1} + zLab_M(2)*kmuM{2} + zLab_M(3)*kmuM{3};
-            % x laboratory axis: B1 excitation field
             kmuxL = xLab_M(1)*kmuM{1} + xLab_M(2)*kmuM{2} + xLab_M(3)*kmuM{3};
-            % y laboratory vector: needed for integration over all B1 field orientations.
             kmuyL = yLab_M(1)*kmuM{1} + yLab_M(2)*kmuM{2} + yLab_M(3)*kmuM{3};
           end
           
@@ -1193,24 +1190,24 @@ for iOri = 1:nOrientations
         if computeIntensities
           
           % Compute quantum-mechanical transition rate
-          mu = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment
+          mu_L = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment, in lab frame
           if averageOverChi
             if mwmode.linearpolarizedMode
-              TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
+              TransitionRate = ((1-xi1^2)*norm(mu_L)^2+(3*xi1^2-1)*abs(nB0_L.'*mu_L)^2)/2;
             elseif mwmode.unpolarizedMode
-              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/4;
+              TransitionRate = ((1+xik^2)*norm(mu_L)^2+(1-3*xik^2)*abs(nB0_L.'*mu_L)^2)/4;
             elseif mwmode.circpolarizedMode
-              TransitionRate = ((1+xik^2)*norm(mu)^2+(1-3*xik^2)*abs(nB0.'*mu)^2)/2 - ...
-                mwmode.circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
+              TransitionRate = ((1+xik^2)*norm(mu_L)^2+(1-3*xik^2)*abs(nB0_L.'*mu_L)^2)/2 - ...
+                mwmode.circSense*xik*(nB0_L.'*cross(1i*mu_L,conj(mu_L)));
             end
           else
             if mwmode.linearpolarizedMode
-              TransitionRate = abs(nB1.'*mu)^2;
+              TransitionRate = abs(nB1_L.'*mu_L)^2;
             elseif mwmode.unpolarizedMode
-              TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
+              TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2)/2;
             elseif mwmode.circpolarizedMode
-              TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
-                mwmode.circSense*(nk.'*cross(1i*mu,conj(mu)));
+              TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2) - ...
+                mwmode.circSense*(nk_L.'*cross(1i*mu_L,conj(mu_L)));
             end
           end
           if abs(TransitionRate)<1e-10

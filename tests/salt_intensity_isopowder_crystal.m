@@ -12,11 +12,11 @@ Sys.lwEndor = 0.5;
 Exp.Range = [11 18];
 Exp.Field = 350;
 
-Exp.CrystalOrientation = [];
+Exp.SampleFrame = [];
 [x,y1] = salt(Sys,Exp);
 Int1 = sum(y1)*(x(2)-x(1));
 
-Exp.CrystalOrientation = rand(1,3)*2*pi;
+Exp.SampleFrame = rand(1,3)*2*pi;
 [x,y2] = salt(Sys,Exp);
 Int2 = sum(y2)*(x(2)-x(1));
 

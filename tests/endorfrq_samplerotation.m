@@ -5,16 +5,16 @@ Sys.g = 2;
 Sys.Nucs = '1H';
 Sys.A = [10 20 40];
 Exp.Field = 3500;
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 
 % Rotate sample such that zM, yM and xM end up along zL
 % and calculate splitting between ENDOR peaks
 rotaxis = [1 1 1];
-Exp.SampleRotation = {0,rotaxis};
+Exp.SampleRotation = {0,rotaxis};  % zM along zL
 [nuz,~] = endorfrq(Sys,Exp);
-Exp.SampleRotation = {2*pi/3,rotaxis};
+Exp.SampleRotation = {2*pi/3,rotaxis};  % yM along zL
 [nuy,~] = endorfrq(Sys,Exp);
-Exp.SampleRotation = {-2*pi/3,rotaxis};
+Exp.SampleRotation = {-2*pi/3,rotaxis};  % xM along zL
 [nux,~] = endorfrq(Sys,Exp);
 hf_splitting = abs([diff(nux) diff(nuy) diff(nuz)]);
 

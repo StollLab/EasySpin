@@ -15,7 +15,7 @@ Exp.Range = [325 345];  % mT
 Exp.Harmonic = 0;   % show absorption spectrum, which is more intuitive
 
 % orientational basis set of chili simulations
-% (three zeros here due to the specific CrystalOrientation and the axial g;
+% (three zeros here due to the specific SampleFrame and the axial g;
 % in general non-zero values will be needed!)
 Opt.LLMK = [80 0 0 0]; 
 
@@ -31,7 +31,7 @@ Exp.Ordering = c200;
 [B,spc0] = pepper(Sys,Exp,Opt);
 
 % Simulate quasi-rigid spectrum using chili
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 Sys.Potential = [2 0 0 c200];
 Sys.tcorr = 1e-4;  % s
 [B,spc1] = chili(Sys,Exp,Opt);

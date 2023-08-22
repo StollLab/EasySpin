@@ -1,34 +1,35 @@
 % rotateframe   Rotate a frame around a given axis
 %
-%    ori_rot = rotateframe(Ori,nRot,rho)
+%    ori_rot = rotateframe(ori,nRot,rho)
 %
-%    Rotates a frame descibed by the three Euler angles in Ori around the axis
+%    Rotates a frame described by the three Euler angles in ori around the axis
 %    given in nRot by the rotation angles listed in rho.
 %
 %    Input:
-%     Ori  Euler angles for the frame orientation
+%     ori    Euler angles describing the frame orientation
 %     nRot   rotation axis
 %               e.g., nRot = [1;0;0] is the x axis
-%     rho     rotation angle, or list of rotation angles, for the rotation
+%               does not need to be normalized 
+%     rho    rotation angle, or list of rotation angles, for the rotation
 %               around nRot
 %
 %    Output:
 %     ori_rot  list of Euler angle sets for the rotated frames, one per row.
 %
 %    Example:
-%       Ori0 = [0 45 0]*pi/180;
+%       ori0 = [0 45 0]*pi/180;
 %       nRot = [1;0;0];
 %       rho = (0:30:180)*pi/180;
-%       Ori_list = rotateframe(nRot,rho);
+%       ori_rot = rotateframe(ori0,nRot,rho);
 
-function out = rotateframe(Frame,nRot,rho)
+function ori_rot = rotateframe(ori,nRot,rho)
 
 if nargin==0
   help(mfilename);
 end
 
-if numel(Frame)~=3
-  error('First input (CryOri) must contain three numbers, the three Euler angles.');
+if numel(ori)~=3
+  error('First input (initial frame) must contain three numbers, the three Euler angles.');
 end
 
 if ischar(nRot)
@@ -39,16 +40,18 @@ else
   end
 end
 
-xyzC_L = erot(Frame);
-% xyzC_L col 1,2,3: crystal axis xC,yC,zC in lab frame coordinates
-% nRot: rotation axis
+% Get frame unit vectors
+xyz = erot(ori).';  % transpose!
+% columns of xyz are the x, y and z vector in the reference frame
 
 skipFitting = true;
 
+nrho = numel(rho);
+ori_rot = zeros(nrho,3);
 for irho = 1:numel(rho)
   R = rotaxi2mat(nRot,rho(irho));
-  xyzC_L_rotated = R.'*xyzC_L;
-  angles_rotated(irho,:) = eulang(xyzC_L_rotated,skipFitting);  %#ok
+  xyz_rotated = R.'*xyz;  % active rotation!
+  ori_rot(irho,:) = eulang(xyz_rotated.',skipFitting);
 end
 
-out = angles_rotated;
+end

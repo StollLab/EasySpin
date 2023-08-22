@@ -2,23 +2,23 @@
 %
 % requires
 %   Exp.PowderSimulation (required)
-%   Exp.CrystalOrientation (for crystal sims)
-%   Sys (for hamsymm() call)
+%   Exp.SampleFrame (for oriented samples such as crystals)
+%   Sys (for symm() call)
 %   Sys.initState (optional)
 %   Opt.GridSymmetry (optional)
 %   Opt.GridFrame (optional)
 %
 % sets
-%   Exp.phi
-%   Exp.theta
+%   Exp.phi  (for powders)
+%   Exp.theta  (for powders)
 %   Exp.OriWeights
-%   Exp.tri
-%   Exp.CrystalOrientation
+%   Exp.tri  (for powders)
+%   Exp.MolFrame
 %   Exp.OriWeights
-%   Opt.GridSymmetry
-%   Opt.GridFrame
+%   Opt.GridSymmetry (for powders)
+%   Opt.GridFrame (for powders)
 %   Opt.nOctants
-%   Opt.GridParams
+%   Opt.GridParams (for powders)
 
 function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
 
@@ -52,29 +52,31 @@ if Exp.PowderSimulation
   
   tiltedFrame = sum(diag(Opt.GridFrame))~=3; % test for eye(3)
     
-  % Display grid symmetry group and frame.
+  % Display grid symmetry group and grid frame
   if tiltedFrame
-    msgg = 'tilted';
+    msg = 'tilted';
   else
-    msgg = 'non-tilted';
+    msg = 'non-tilted';
   end
-  logmsg(1,'  grid: symmetry %s, frame %s',Opt.GridSymmetry,msgg);
+  logmsg(1,'  grid: symmetry %s, frame %s',Opt.GridSymmetry,msg);
   if tiltedFrame
     str = '  grid frame orientation in molecular frame (Euler angles, deg):\n    [%s]';
     logmsg(1,str,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
   end
   
-  % Get orientations for the knots, molecular frame.
+  % Get spherical grid
   [grid,tri] = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
   Vecs = grid.vecs;
   Opt.nOctants = grid.nOctants;
   Exp.OriWeights = grid.weights;
   Exp.tri = tri;
   
-  % Transform vector to reference frame representation and convert to polar angles.
+  % Transform grid vectors to molecular frame representation, convert to
+  % polar angles, and store in Exp.MolFrame
   [Exp.phi,Exp.theta] = vec2ang(Opt.GridFrame*Vecs);
   clear Vecs
-  Exp.CrystalOrientation = [Exp.phi;Exp.theta].';
+  chi = zeros(size(Exp.theta));
+  Exp.MolFrame = [-chi; -Exp.theta; -Exp.phi].';
   nOrientations = numel(Exp.phi);
   
   %closedPhi = true;
@@ -98,15 +100,15 @@ if Exp.PowderSimulation
     logmsg(1,'  %d orientations (GridSize = %d)',nOrientations,Opt.GridSize(1));
   end
   
-else % no powder simulation
+else % no powder simulation, i.e. crystal
   
-  % Check Exp.CrystalOrientation
-  [nC1,nC2] = size(Exp.CrystalOrientation);
+  % Check Exp.SampleFrame
+  [nC1,nC2] = size(Exp.SampleFrame);
   if nC2~=2 && nC2~=3
-    error('Exp.CrystalOrientation must be a Nx3 or Nx2 array, yours is %dx%d.',...
+    error('Exp.SampleFrame must be a Nx3 or Nx2 array, yours is %dx%d.',...
         nC1,nC2);
   end
-  nOrientations = size(Exp.CrystalOrientation,1);
+  nOrientations = size(Exp.SampleFrame,1);
   
   Opt.nOctants = -2;
   
@@ -114,7 +116,7 @@ else % no powder simulation
   % for consistency with powder sims (factor from integral over phi and theta)
   
   if nOrientations==1
-    logmsg(1,'  crystal sample');
+    logmsg(1,'  crystal sample, single orientation');
   else
     logmsg(1,'  crystal sample with %d user-specified orientations',nOrientations);
   end

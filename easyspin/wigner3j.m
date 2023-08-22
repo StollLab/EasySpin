@@ -44,7 +44,7 @@ switch numel(inputs)
     m1 = m(1); m2 = m(2); m3 = m(3);
   case 1
     jm = inputs{1};
-    if ~all(size(jm)==[2 3])
+    if ~isequal(size(jm),[2 3])
       error('If all J and M are supplied in an array, the array must be 2x3.');
     end
     j = jm(1,:);

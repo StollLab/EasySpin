@@ -17,8 +17,12 @@
 %
 %    Example:
 %      % A rotation by 2*pi/3 (120 degrees) around the axis [1;1;1]
-%      % permutes the x, y and z axes.
+%      % permutes the x, y and z axes: x->y, y->z, z->x
 %      R = rotaxi2mat('xyz',2*pi/3)
+%
+%      % To apply the rotation, use:
+%      v = [1;0;0];    % vector to rotate
+%      v_rot = R.'*v;  % rotated vector; note transpose!
 
 function R = rotaxi2mat(n,rho)
 
@@ -52,7 +56,7 @@ N([8 3 4]) = n;
 N = N - N.';
 
 R = eye(3) + N*sin(rho) + N^2*(1-cos(rho));
-%R = expm(phi*N); % alternative
+%R = expm(phi*N);  % alternative
 
 % Remove numerical errors for entries with 0, +1 and -1
 thresh = 1e-10;
@@ -60,4 +64,4 @@ R(abs(R)<thresh) = 0;
 R(abs(R-1)<thresh) = +1;
 R(abs(R+1)<thresh) = -1;
 
-return
+end

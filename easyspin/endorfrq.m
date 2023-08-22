@@ -13,7 +13,7 @@
 %      Temperature         in K (optional, by default off (NaN))
 %      ExciteWidth         FWHM of excitation [MHz] (optional, default inf)
 %      Range               frequency range [MHz] (optional, default [])
-%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      SampleFrame         Nx3 array of Euler angles (in radians) for sample orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
 %
@@ -79,9 +79,9 @@ DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
 DefaultExp.Field = NaN;
 
-DefaultExp.CrystalOrientation = [];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
 DefaultExp.SampleRotation = [];
 
 DefaultExp.Range = []; % for compatibility, internal

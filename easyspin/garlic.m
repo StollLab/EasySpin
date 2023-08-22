@@ -270,9 +270,22 @@ DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
 Exp = adddefaults(Exp,DefaultExp);
 
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
+
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
+% Partial ordering is not supported
+if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
+  error('Partial ordering (via Exp.Ordering) is not supported.')
 end
 
 % Microwave frequency
@@ -425,17 +438,11 @@ end
 
 
 % Complain if fields only valid in pepper() are given
-if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is not used by garlic.');
-end
-if isfield(Exp,'Ordering')
-  warning('Exp.Ordering is not used by garlic.');
-end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by garlic.');
 end
-if isfield(Exp,'CrystalOrientation')
-  warning('Exp.CrystalOrientation is not used by garlic.');
+if isfield(Exp,'SampleFrame')
+  warning('Exp.SampleFrame is not used by garlic.');
 end
 
 

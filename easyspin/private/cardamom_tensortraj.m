@@ -13,7 +13,7 @@ function TTraj = cardamom_tensortraj(T,RTraj,RTrajInv)
 
 if isvector(T) && numel(T)==3
   T = diag(T);
-elseif ismatrix(T) && all(size(T)==[3 3])
+elseif ismatrix(T) && isequal(size(T),[3 3])
   % do nothing
 else
   error('Interaction tensor T needs to be given as a 3-vector or 3x3 matrix.')

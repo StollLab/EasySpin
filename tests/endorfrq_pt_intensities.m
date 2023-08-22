@@ -18,7 +18,7 @@ MnBsp.HStrain=10;
 
 Endor.Field=1234.5;
 Endor.Range=[100 150];
-Endor.CrystalOrientation = [0 0 0];
+Endor.SampleFrame = [0 0 0];
 
 [PosMD,IntMD]=endorfrq(MnBsp,Endor,OptMD);
 [PosMD,idx] = sort(PosMD); IntMD = IntMD(idx);

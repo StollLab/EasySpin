@@ -11,7 +11,7 @@ Triplet.tdm = 'y';  % transition dipole moment along yMol
 
 Exp.Field = 330;  % mT
 
-Exp.CrystalOrientation = [pi/3 pi/2 pi/8];
+Exp.SampleFrame = [pi/3 pi/2 pi/8];
 
 Exp.lightBeam = '';
 [~,Iiso] = resfreqs_matrix(Triplet,Exp);

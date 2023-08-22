@@ -8,7 +8,7 @@ Sys.logDiff = 7;
 Exp.Field = 340;
 Exp.mwRange = [9.4 9.9];
 Exp.nPoints = 200;
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 
 Opt.LLMK = [4 0 2 2];
 Opt.highField = true;

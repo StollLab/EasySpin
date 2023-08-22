@@ -27,8 +27,8 @@
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
-%      SampleRotation      3-element array of Euler angles (in radians) for sample orientation
-%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      SampleRotation      3-element array of Euler angles (in radians) for sample rotation
+%      SampleFrame         3-element array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
 %      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
@@ -245,13 +245,21 @@ DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
 DefaultExp.lightBeam = '';  % no photoexcitation
-DefaultExp.SampleRotation = [];
 
-DefaultExp.CrystalOrientation = [];
+DefaultExp.SampleRotation = [];
+DefaultExp.SampleFrame = [0 0 0];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
+
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
 
 % Check microwave frequency and static field
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
@@ -442,25 +450,39 @@ if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
-% Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.CrystalOrientation);
-Exp.PowderSimulation = PowderSimulation; % for communication with resf*
 
-% Partial ordering
-if ~isempty(Exp.Ordering)
-  if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
+% Detect sample type (powder vs. crystal vs. partial ordering)
+if isempty(Exp.Ordering)
+  PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
+  if ~PowderSimulation
+    if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
+    if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
+  end
+else
+  PowderSimulation = true;
+  if ~isempty(Exp.MolFrame)
+    error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
+  end
+  if ~isempty(Exp.CrystalSymmetry)
+    error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
+  end
+  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
-    logmsg(1,'  partial ordering (built-in function, lambda = %g)',lambda);
+    Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
+    logmsg(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial ordering (user-supplied function)');
-    if nargin(Exp.Ordering)<2
-      logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
-    end
   else
     error('Exp.Ordering must be either a single number or a function handle.');
   end
+  if nargin(Exp.Ordering)==1
+    Exp.Ordering = @(beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)>2
+    logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
+  end
 end
+Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
+
 
 % Temperature and non-equilibrium populations
 nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
@@ -495,10 +517,10 @@ logmsg(1,msg);
 %DefaultOpt.Freq2Field = 1; % resfields
 
 % Obsolete fields, pepper
-ObsoleteOptions = {'Convolution','Width'};
-for k = 1:numel(ObsoleteOptions)
-  if isfield(Opt,ObsoleteOptions{k})
-    error('Options.%s is obsolete. Please remove from code!',ObsoleteOptions{k});
+obsoleteOptions = {'Convolution','Width'};
+for k = 1:numel(obsoleteOptions)
+  if isfield(Opt,obsoleteOptions{k})
+    error('Options.%s is obsolete. Please remove from code!',obsoleteOptions{k});
   end
 end
 
@@ -576,14 +598,15 @@ if numel(Opt.GridSize)<2
   end
 end
 
-% Parse string options.
+% Parse string options
 anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
 
+% Set up grid etc.
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.CrystalOrientation,1);
+nOrientations = size(Exp.MolFrame,1);
 
-% Fold orientational distribution function into grid region.
+% Fold orientational distribution function into grid region
 if ~isempty(Exp.Ordering)
   orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
 end
@@ -970,21 +993,24 @@ elseif ~BruteForceSum
         fthe = Exp.theta;
       end
       fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
+      
+      % Obtain user-supplied orientational distribution weights
       if ~isempty(Exp.Ordering)
         centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centrePhi = zeros(1,numel(centreTheta));
         if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(centrePhi_,centreTheta_);
+          OrderingWeights = orifun(-centreTheta_,-centrePhi_);
         else
-          OrderingWeights = orifun(centrePhi,centreTheta);
+          OrderingWeights = orifun(-centreTheta,-centrePhi);
         end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
         fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
       end
+
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
     else % nonaxial grid symmetry
@@ -1000,21 +1026,24 @@ elseif ~BruteForceSum
       end
       idxTri = tri.idx.';
       Areas = tri.areas;
+
+      % Obtain user-supplied orientational distribution weights
       if ~isempty(Exp.Ordering)
         centreTheta = mean(fthe(idxTri));
         centrePhi = mean(fphi(idxTri));
         if rotateSample
           v = ang2vec(centrePhi,centreTheta);
           [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(centrePhi_,centreTheta_);
+          OrderingWeights = orifun(-centreTheta_,-centrePhi_);
         else
-          OrderingWeights = orifun(centrePhi,centreTheta);
+          OrderingWeights = orifun(-centreTheta,-centrePhi);
         end
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         Areas = Areas(:).*OrderingWeights(:);
         Areas = 4*pi/sum(Areas)*Areas;
       end
+
       logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end
     

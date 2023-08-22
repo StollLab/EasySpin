@@ -61,27 +61,31 @@ There are up to two default output arguments (in the absence of <code>Opt.Output
 
 <div class="optionfield"><code>muBM</code></div>
 <div class="optiondescr">
+<p>
 <code>muBM</code> contains the values of the longitudinal magnetic moment &mu;<sub>z</sub>, i.e. the component of the magnetic moment along the direction of the applied magnetic field (zL), for the fields and temperatures requested. It is given as a multiple of the Bohr magneton &mu;<sub>B</sub>. Alternatively, it can be understood as the value of the molar magnetic moment &mu;<sub>m,z</sub> in units of N<sub>A</sub>&mu;<sub>B</sub> where N<sub>A</sub> is the Avogadro constant. For example, <code>muBM = 0.53</code> means the single-molecule magnetic moment &mu;<sub>z</sub> is 0.53 &mu;<sub>B</sub> and the molar magnetic moment &mu;<sub>m,z</sub> is 0.53 N<sub>A</sub>&mu;<sub>B</sub>.
+</p>
 
 <p>
 To convert the molar magnetic moment to SI units (J T<sup>-1</sup> mol<sup>-1</sup>), use
+</p>
 
 <pre class="matlab">
-mumol_SI = muBM*bmagn*avogadro;   % unit conversion from Bohr magnetons to J T^-1 mol^-1
+mumol_SI = muBM*bmagn*avogadro;   % Bohr magnetons -> J T^-1 mol^-1
 </pre>
 </div>
 
 <div class="optionfield"><code>chimol</code></div>
 <div class="optiondescr">
+<p>
 <code>chimol</code> contains the molar static magnetic susceptibility. This is not the full 3x3 susceptibility tensor &chi;<sub>m</sub>, but its component along the applied magnetic field direction zL, &chi;<sub>m,zz</sub>. By default, the values are in SI units (m<sup>3</sup> mol<sup>-1</sup>), but this can be changed using <code>Opt.Units</code>.
 
 <p>
 To convert <code>chimol</code> from SI units to CGS units (cm<sup>3</sup> mol<sup>-1</sup>), use
+</p>
 <pre class="matlab">
-chimol_CGS = chimol_SI/(4*pi*1e-6);   % unit conversion from SI to CGS units
+chimol_CGS = chimol_SI/(4*pi*1e-6);   % SI unit -> CGS unit
 </pre>
 </div>
-</p>
 
 <div class="subtitle2">Input: Spin system</div>
 
@@ -99,7 +103,9 @@ In addition, there is one field that is specific to <code>curry</code>:
 
 <div class="optionfield"><code>TIP</code></div>
 <div class="optiondescr">
+<p>
 Temperature-independent paramagnetism that is added to the magnetic susceptibility. EasySpin takes <code>TIP</code> to be a molar susceptibility in SI units (m<sup>3</sup> mol<sup>-1</sup>).
+</p>
 <pre class="matlab">
 TIP_CGS = 7e-4;                 % TIP in CGS-emu units (cm^3 mol^-1)
 TIP_SI = (4*pi*1e-6) * TIP_CGS; % TIP in SI units (m^3 mol^-1)
@@ -115,8 +121,9 @@ Sys.TIP = TIP_SI;               % required in SI units
 
 <div class="optionfield"><code>Temperature</code></div>
 <div class="optiondescr">
+<p>
 This gives the temperature, or list of temperatures, for which magnetization data should be calculated, in kelvin. For example, <code>Exp.Temperature = 298</code> corresponds to room temperature, and <code>Exp.Temperature = 4:300</code> specifies a temperature range. If an array of values is given, data are calculated for each temperature in the array.
-
+</p>
 <p>
 Populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium and are included in the calculation of the magnetic moment and the magnetic susceptibility.
 </p>
@@ -129,16 +136,20 @@ Populations are computed for all energy levels assuming thermal (Boltzmann) equi
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
+<p>
 <code>Field</code> gives the magnetic field strength, in mT, for which magnetization data should be calculated. If an array of values is given, data are calculated for each field value in the array.
+</p>
 <p>
 If <code>Field</code> is missing, EasySpin assumes that no field is applied (equivalent to <code>Exp.Field = 0</code>).
+</p>
 </div>
 
 <p>
 <code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and divide it by the field strength. For sufficiently small field strength this correspond to the derivative at zero field. In cases the field strength is not small, experimental results might be better reproduced by:
+</p>
 
 <pre class="matlab">
-m4chi =  curry(Sys,Exp,Opt);          % magnetic moment at the field used in the experiment
+m4chi =  curry(Sys,Exp,Opt);   % magnetic moment at the field used in the experiment
 % divide magnetic moment by magnetic field and unit conversion
 chi_cgs = m4chi*avogadro*bmagn*1e2./Exp.Field(:);
 chi_si = (4*pi*1e-6) *chisim_cgs ;  % convert to SI units
@@ -148,20 +159,24 @@ chi_si = (4*pi*1e-6) *chisim_cgs ;  % convert to SI units
 <p>
 <code>curry</code> not only supports powder samples, but also single crystals. The following fields are needed for single-crystal calculations:
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-An Nx3 or Nx2 array that specifies single-crystal orientations for which the magnetic moment and the susceptibility should be computed. Each row of <code>CrystalOrientation</code> contains the three Euler rotation angles that transform the <a href="frames.html">crystal frame (C) to the lab frame (L)</a>. If only two Euler angles are given, the third is set to zero. If <code>CrystalOrientation</code> is empty or not specified, the full powder is computed.
+<p>
+An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
+</p>
 <pre class="matlab">
-Exp.CrystalOrientation = [0 0 0];              % single crystal, crystal z axis aligned with B0
-Exp.CrystalOrientation = [0 pi/2 0];           % single crystal, crystal z axis perpendicular to B0
-Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];    % two crystals
-Exp.CrystalOrientation = [];                   % powder
+Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
+Exp.SampleFrame = [0 pi/2 0];                % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
 </pre>
 </div>
 
 <div class="optionfield"><code>CrystalSymmetry</code></div>
 <div class="optiondescr">
+<p>
 Specifies the symmetry of the crystal. You can give either the number of the space group (between 1 and 230), the symbol of the space group (such as <code>'P212121'</code> or <code>'Ia-3d'</code>), or the symbol for the point subgroup of the space group (in either Sch&ouml;nflies or Hermann-Mauguin notation, such as <code>'D2h'</code> or <code>'mmm'</code>).
+</p>
 
 <pre class="matlab">
 Exp.CrystalSymmetry = 11;       % space group number (between 1 and 230)
@@ -178,7 +193,8 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">
-The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the crystal frame (xC,yC,zC).
+<p>
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">sample/crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Exp.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame relative to those of the crystal frame while keeping the y axes aligned.
 </p>
 </div>
 

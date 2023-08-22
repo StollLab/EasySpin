@@ -83,9 +83,9 @@ DefaultParameters.Range = [0 realmax];
 DefaultParameters.mwMode = 'perpendicular';
 DefaultParameters.Temperature = NaN; % not implemented!!
 
-DefaultParameters.CrystalSymmetry = '';
-DefaultParameters.CrystalOrientation = [];
-DefaultParameters.MolFrame = [];
+DefaultParameters.SampleFrame = [0 0 0];
+DefaultParameters.CrystalSymmetry = 1;
+DefaultParameters.MolFrame = [0 0 0];
 DefaultParameters.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultParameters);

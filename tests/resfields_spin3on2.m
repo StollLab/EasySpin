@@ -7,7 +7,7 @@ Exp = struct('mwFreq',9.5,'Range',[0 2000]);
 
 grid = sphgrid('Dinfh',31);
 chi = zeros(size(grid.phi));
-Exp.CrystalOrientation = [grid.phi(:) grid.theta(:) chi(:)];
+Exp.SampleFrame = [chi(:) -grid.theta(:) -grid.phi(:)];
 
 [p,i] = resfields(Sys,Exp);
 

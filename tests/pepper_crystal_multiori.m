@@ -9,8 +9,9 @@ Exp.mwFreq = 9.5;
 Exp.Range = [290 350];
 
 Exp.CrystalSymmetry = 'D2h';
-Exp.CrystalOrientation = vec2ang([1 2 3; 1 -2 4; 0 0 1; 5 2 -3]).';
-Exp.CrystalOrientation(:,3) = 0;
+[phi,theta] = vec2ang([1 2 3; 1 -2 4; 0 0 1; 5 2 -3]);
+chi = zeros(size(phi(:)));
+Exp.SampleFrame = [-chi -theta(:) -phi(:)];
 
 [B,spc] = pepper(Sys,Exp);
 

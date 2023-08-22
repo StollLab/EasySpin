@@ -121,11 +121,19 @@ end
 
 DefaultExp.Temperature = [];
 DefaultExp.Ordering = [];
-DefaultExp.CrystalOrientation = [];
+DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 DefaultExp.SampleRotation = [];
 Exp = adddefaults(Exp,DefaultExp);
+
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
@@ -143,10 +151,7 @@ if ~isempty(Exp.Temperature)
 end
 
 % Powder vs. crystal simulation
-if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-  error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5). Use Exp.CrystalOrientation instead.');
-end
-PowderSimulation = isempty(Exp.CrystalOrientation);
+PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
 Exp.PowderSimulation = PowderSimulation;
 
 if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = []; end
@@ -167,16 +172,19 @@ if Opt.GridSize<7
   error('Opt.GridSize must be at least 7. You gave %d.',Opt.GridSize);
 end
 
-% set up orientation loop (only do this when saffron is called for a single
+% Set up orientation loop (only do this when saffron is called for a single
 % component - could be in the nested call)
 if ~iscell(Sys)
-  if ~isfield(Exp,'OriWeights')
-    [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-  end
-  Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
-  [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
-  if numel(Exp.OriWeights)~=nOrientations
-    Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
+  if ~strcmp(Opt.SimulationMode,'fast') || isfield(Sys,'singleiso') && Sys.singleiso
+    Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
+    if ~isfield(Exp,'OriWeights')
+      [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+    end
+    % Process crystal orientations, crystal symmetry, and frame transforms
+    [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
+    if numel(Exp.OriWeights)~=nOrientations
+      Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
+    end
   end
 end
 
@@ -935,7 +943,7 @@ if strcmp(Opt.SimulationMode,'fast')
   if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
   
   if ~isfield(Opt,'Window')
-    if nDimensions==1, Opt.Window = 'ham+'; else, Opt.Window = 'ham+'; end
+    Opt.Window = 'ham+';
   end
   
   if ~isfield(Opt,'ZeroFillFactor')
@@ -2006,7 +2014,7 @@ else
   end
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
-  issize = @(A,siz) all(size(A)==siz);
+  issize = @(A,siz) isequal(size(A),siz);
   fullg = issize(Sys.g,[3*nElectrons 3]);
   if fullg
     gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
