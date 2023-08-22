@@ -21,4 +21,4 @@ Bx = resfields_eig(Sys,Exp);
 % Reference values for resonance fields
 Bref = unitconvert(Exp.mwFreq*1e3,'MHz->mT',Sys.g);
 
-ok = areequal([Bx By Bz],B_ref,1e-10,'abs');
+ok = areequal([Bx By Bz],Bref,1e-10,'abs');
