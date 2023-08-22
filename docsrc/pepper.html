@@ -228,7 +228,7 @@ Exp.Ordering = @(beta,gamma) gaussian(beta,0,15/180*pi);
 </pre>
 
 <p>
-If the function cannot be written as a singe line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
+If the function cannot be written as a single line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
 </p>
    
 <pre class="matlab">
@@ -253,6 +253,10 @@ When providing a function for <code>Exp.Ordering</code>, make sure that the symm
 
 <p>
 If the orientational distribution provided via <code>Exp.Ordering</code> is very narrow, increase the number of knots in <code>Opt.GridSize</code>.
+</p>
+
+<p>
+If you use <code>Exp.Ordering</code> (which is for partially ordered samples), you cannot use <code>Exp.MolFrame</code> (which is for crystals).
 </p>
 
 </div>

@@ -607,11 +607,15 @@ You can also define your own custom orientational distribution in a separate fun
 </p>
 
 <pre class="matlab">
-Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta)));
+Exp.Ordering = @(beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
 </pre>
 
 <p>
 where the EasySpin function <a href="plegendre.html">plegendre</a> returns the associated Legendre polynomial and <code>lambda</code> corresponds to the number given in <code>Exp.Ordering</code>.
+</p>
+
+<p>
+If you use <code>Exp.Ordering</code> (which is for partially ordered samples), you cannot use <code>Exp.MolFrame</code> (which is for crystals).
 </p>
 
 <!-- ============================================================= -->
