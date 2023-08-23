@@ -18,12 +18,17 @@ $Description{'isotropic'} = 'Isotropic cw EPR simulations';
 $Description{'fastmotion'} = 'Fast-motion cw EPR simulations';
 $Description{'slowmotion'} = 'Slow-motion cw EPR simulations';
 $Description{'endor'} = 'ENDOR simulations';
-$Description{'pulse'} = 'Pulse EPR simulations';
-$Description{'shaping'} = 'Pulse shaping etc.';
+$Description{'pulse saffron'} = 'Pulse EPR simulations (saffron)';
+$Description{'pulse spidyan'} = 'Pulse EPR simulations (spidyan)';
+$Description{'pulse evolve'} = 'Pulse EPR simulations (evolve)';
+$Description{'exchange'} = 'Chemical exchange';
+$Description{'photoexcitation'} = 'Spin-polarized systems';
+$Description{'pulse shaping'} = 'Pulse shaping etc.';
 $Description{'analysis'} = 'Data analysis';
 $Description{'varia'} = 'Other examples';
 $Description{'fitting'} = 'Least-squares fitting';
 $Description{'magnetometry'} = 'Magnetometry';
+$Description{'trajectories'} = 'EPR spectra from MD trajectories';
 
 open(D,'>../docsrc/examplesmain.html');
 
@@ -49,6 +54,7 @@ print D  <<QQQ;
 <li><a href="index.html">Documentation</a>
 <li><a href="references.html">Publications</a>
 <li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
 <li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
 </ul>
 </header>
@@ -65,6 +71,32 @@ several categories. They are an excellent starting point for writing
 your own code.
 </p>
 
+<p>
+The examples are grouped under the following headings:
+</p>
+
+<ul>
+<li><a href="#analysis">Data analysis</a></li>
+<li><a href="#endor">ENDOR simulations</a></li>
+<li><a href="#exchange">Chemical exchange</a></li>
+<li><a href="#fastmotion">Fast-motion cw EPR simulations</a></li>
+<li><a href="#fitting">Least-squares fitting</a></li>
+<li><a href="#isotropic">Isotropic cw EPR simulations</a></li>
+<li><a href="#magnetometry">Magnetometry</a></li>
+<li><a href="#pulse evolve">Pulse EPR (evolve)</a></li>
+<li><a href="#pulse saffron">Pulse EPR (saffron)</a></li>
+<li><a href="#pulse shaping">Pulse shaping</a></li>
+<li><a href="#pulse spidyan">Pulse EPR (spidyan)</a></li>
+<li><a href="#slowmotion">Slow-motion cw EPR simulations</a></li>
+<li><a href="#trajectories">Slow-motion cw EPR simulations from time-domain trajectories</a></li>
+<li><a href="#solidstate">Solid-state cw EPR simulations</a></li>
+<li><a href="#photoexcitation">EPR simulations for photoexcited systems</a></li>
+<li><a href="#varia">Other examples</a></li>
+</ul>
+
+<p>
+</p>
+
 QQQ
 
 foreach $category (@allcategories) {
@@ -76,7 +108,8 @@ foreach $category (@allcategories) {
   
   @files = sort(grep(/\.m$/,@files));
 
-  print D '<a name="'.$Description{$category}.'"><b>'.$Description{$category}.'</b></a>';
+  print D "<!-- ===================================================================== -->\n";
+  print D '<a name="'.$Description{$category}.'"><b>'.$Description{$category}."</b></a>\n\n";
   print D "<table width=100%>\n";
 
   @col = ('ffffff', 'f3f3f3');
@@ -93,10 +126,10 @@ foreach $category (@allcategories) {
     #$category = $1;
     #$category =~ s/\s*//g;
     $descr = ucfirst($descr);
-    print D qq(<tr bgcolor="$thiscol"><td width=150><a href="../examples/$category/$name">$name</a></td><td>$descr</td></tr>\n);
+    print D qq(<tr bgcolor="$thiscol">\n<td width=200><a href="../examples/$category/$name">$name</a></td>\n<td>$descr</td></tr>\n);
     if ($icol==1) { $icol=2; } else { $icol=1; }
   }
-  print D "</table><p></p>\n";
+  print D "</table>\n<p></p>\n\n";
   chdir('..');
 }
 
