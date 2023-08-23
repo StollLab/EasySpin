@@ -18,7 +18,7 @@ Pulse.tp = 0.1;
 Exp.t = [0.1 0.5 0.1];
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Opt.IntTimeStep = 0.0001; % us
+Opt.IntTimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1 1];
 

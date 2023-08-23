@@ -9,7 +9,7 @@ clear, clf, clc
 % Two-pulse experiment parameters
 Exp.Field = 324.9;           % mT
 Exp.Sequence = '2pESEEM';
-Exp.dt = 0.100;              % us
+Exp.dt = 0.100;              % µs
 Exp.nPoints = 501; 
 
 % Spin system with S=1/2 and one 14N

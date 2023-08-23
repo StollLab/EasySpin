@@ -24,7 +24,7 @@ H = 1./(1+1i*ResonatorQL*(f/ResonatorFrequency-ResonatorFrequency./f));
 Params1.Type = 'quartersin';
 Params1.trise = 0.004; % ns
 Params1.Frequency = 0; % MHz
-Params1.tp = 0.100; % us
+Params1.tp = 0.100; % µs
 Params1.Amplitude = 15; % MHz
 
 [t1_ideal,signal1_ideal] = pulse(Params1);
@@ -36,7 +36,7 @@ Params2.Frequency = -20; % MHz
 
 % Pulse 3
 Params3.Type = 'sech/tanh';
-Params3.tp = 0.200; % us
+Params3.tp = 0.200; % µs
 Params3.beta = 10;
 Params3.Frequency = [-50 50]; % MHz
 Params3.Amplitude = 15; % MHz

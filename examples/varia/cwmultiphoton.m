@@ -18,7 +18,7 @@ lwpp = 0.1; % peak-to-peak line width (mT)
 
 wrf = 2*pi*fmod; % angular modulation frequency (2*pi*MHz)
 w2 = 2*pi*unitconvert(Amod,'mT->MHz')/2; % Amplitude of the modulation field (2*pi*MHz)
-T2 = 1/unitconvert(lwpp,'mT->MHz'); % Relaxation time (us)
+T2 = 1/unitconvert(lwpp,'mT->MHz'); % Relaxation time (µs)
 
 nPoints = 10000;
 fieldmax = max(Amod*2,lwpp*8);

@@ -8,18 +8,18 @@ clear
 % Default Spin System
 Sys.S = 1/2;
 Sys.ZeemanFreq = 33.500; % GHz
-Sys.T1 = 1; % us
-Sys.T2 = 0.5; % us
+Sys.T1 = 1; % µs
+Sys.T2 = 0.5; % µs
 
 % Pulse Definitions
 Rectangular.Type = 'rectangular';
-Rectangular.tp = 0.02; % us
+Rectangular.tp = 0.02; % µs
 Rectangular.Flip = pi/2; %rad
 
 Adiabatic.Type = 'quartersin/linear';
 Adiabatic.Flip = pi/2; % rad
-Adiabatic.tp = 0.2; % us
-Adiabatic.trise = 0.05; % us
+Adiabatic.tp = 0.2; % µs
+Adiabatic.trise = 0.05; % µs
 Adiabatic.Qcrit = 5; % critical adiabaticity  
 Adiabatic.Frequency = [-50 50]; % frequency band,MHz
 

@@ -26,11 +26,11 @@ nSpinpackets = length(ZeemanFreqVec);
 
 % Experiment definition
 Pulse90.Type = 'rectangular';
-Pulse90.tp = 0.025; % pulse length, us
+Pulse90.tp = 0.025; % pulse length, µs
 Pulse90.Flip = pi/2; % flip angle, rad
 
 Pulse180.Type = 'rectangular';
-Pulse180.tp = 0.025; % pulse length, us
+Pulse180.tp = 0.025; % pulse length, µs
 Pulse180.Flip = pi;  % flip angle, rad
 
 Exp.Sequence = {Pulse90 0.1 Pulse90 0.2}; 
@@ -69,18 +69,18 @@ axis tight
 
 % Experiment definition
 Chirp90.Type = 'quartersin/linear';
-Chirp90.trise = 0.005; % rise time in us
-Chirp90.tp = 0.05; % pulse length, us
+Chirp90.trise = 0.005; % rise time in µs
+Chirp90.tp = 0.05; % pulse length, µs
 Chirp90.Frequency = [-80 80]; % frequency band
 Chirp90.Flip = pi/2; % flip angle in rad
 
 Chirp180.Type = 'quartersin/linear';
-Chirp180.trise = 0.005; % rise time in us
-Chirp180.tp = 0.025; % pulse length, us
+Chirp180.trise = 0.005; % rise time in µs
+Chirp180.tp = 0.025; % pulse length, µs
 Chirp180.Frequency = [-80 80]; % frequency band
 Chirp180.Flip = pi; % flip angle in rad
 
-Exp.Sequence = {Chirp90 0.1 Chirp180 0.2}; % free evolution events in us
+Exp.Sequence = {Chirp90 0.1 Chirp180 0.2}; % free evolution events in µs
 % Exp.DetPhase = 0; % rad, for proper phasing of the signal
 
 

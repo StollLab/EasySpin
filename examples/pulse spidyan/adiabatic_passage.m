@@ -10,13 +10,13 @@ Sys.ZeemanFreq = 9.500; % resonance frequency of the spin in GHz
 
 % Pulse Definition
 Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.015; % us
+Pulse.trise = 0.015; % µs
 Pulse.Qcrit = 5; % critical adiabaticity
-Pulse.tp = 0.2; % us
+Pulse.tp = 0.2; % µs
 Pulse.Frequency = [-100 100]; % frequency band, MHz
 
 % Experiment/Sequence
-Exp.Sequence = {Pulse}; % us
+Exp.Sequence = {Pulse}; % µs
 Exp.mwFreq = 9.500; % GHz
 
 % Options

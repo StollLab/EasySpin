@@ -6,14 +6,14 @@ Sys.ZeemanFreq = 33.500;
 
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.015; % us
+Pulse.trise = 0.015; % µs
 Pulse.Qcrit = 7;
 Pulse.Frequency = 1000* [-0.1 0.1];
 Pulse.tp = 0.1;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 

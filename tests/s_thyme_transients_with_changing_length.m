@@ -12,7 +12,7 @@ Pulse.Frequency =  200;
 
 % Experiment/Sequence
 tau = 0.3;
-Exp.Sequence = {tau Pulse tau}; % us
+Exp.Sequence = {tau Pulse tau}; % µs
 Exp.mwFreq = 9.400; % GHz
 
 % Options

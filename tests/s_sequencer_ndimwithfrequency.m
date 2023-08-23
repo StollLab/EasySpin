@@ -6,7 +6,7 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 

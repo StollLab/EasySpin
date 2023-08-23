@@ -6,15 +6,15 @@ function ok = test()
 % Gaussian pulse cascades
 % G3
 clear Params
-Params.tp = 0.800;  % µs
+Params.tp = 0.800;  % ï¿½s
 Params.Type = 'G3';
-Params.TimeStep = 0.001;  % µs
+Params.TimeStep = 0.001;  % ï¿½s
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Emsley, L., Bodenhausen, G. Gaussian pulse cascades: New analytical
 % functions for rectangular selective inversion and in-phase excitation
-% in NMR. Chem. Phys. Lett. 165, 469–476 (1990).
+% in NMR. Chem. Phys. Lett. 165, 469ï¿½476 (1990).
 % DOI: 10.1016/0009-2614(90)87025-M
 % Table 1 on p. 473, Cycle 3
 A0 = [-1 1.37 0.49];
@@ -33,15 +33,15 @@ ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 % Gaussian pulse cascades
 % G4
 clear Params
-Params.tp = 0.800;  % µs
+Params.tp = 0.800;  % ï¿½s
 Params.Type = 'G4';
-Params.TimeStep = 0.001;  % µs
+Params.TimeStep = 0.001;  % ï¿½s
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Emsley, L., Bodenhausen, G. Gaussian pulse cascades: New analytical
 % functions for rectangular selective inversion and in-phase excitation
-% in NMR. Chem. Phys. Lett. 165, 469–476 (1990).
+% in NMR. Chem. Phys. Lett. 165, 469ï¿½476 (1990).
 % DOI: 10.1016/0009-2614(90)87025-M
 % Table 1 on p. 474, Cycle 11
 A0 = [0.62 0.72 -0.91 -0.33];
@@ -59,15 +59,15 @@ ok(2) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Q3
 clear Params
-Params.tp = 1.200; % us
+Params.tp = 1.200; % Âµs
 Params.Type = 'Q3';
-Params.TimeStep = 0.01; % us
+Params.TimeStep = 0.01; % Âµs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Emsley, L., Bodenhausen, G. Optimization of shaped selective pulses
 % for NMR using a quaternion description of their overall propagators.
-% J. Magn. Reson. 97, 135–148 (1992).
+% J. Magn. Reson. 97, 135ï¿½148 (1992).
 % DOI: 10.1016/0022-2364(92)90242-Y
 % Table 2 on p. 142
 A0 = [-4.39 4.57 2.60];
@@ -85,15 +85,15 @@ ok(3) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Q5
 clear Params
-Params.tp = 1.200; % us
+Params.tp = 1.200; % Âµs
 Params.Type = 'Q5';
-Params.TimeStep = 0.01; % us
+Params.TimeStep = 0.01; % Âµs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Emsley, L., Bodenhausen, G. Optimization of shaped selective pulses
 % for NMR using a quaternion description of their overall propagators.
-% J. Magn. Reson. 97, 135–148 (1992).
+% J. Magn. Reson. 97, 135ï¿½148 (1992).
 % DOI: 10.1016/0022-2364(92)90242-Y
 % Table 2 on p. 142
 A0 = [-1.48 -4.34 7.33 -2.30 5.66];
@@ -111,9 +111,9 @@ ok(4) = areequal(IQ0,IQ,1e-12,'abs');
 
 % User-defined
 clear Params
-Params.tp = 0.600; % us
+Params.tp = 0.600; % Âµs
 Params.Type = 'GaussianCascade';
-Params.TimeStep = 0.01; % us
+Params.TimeStep = 0.01; % Âµs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;

@@ -603,7 +603,7 @@ else
       Nyquist_dt = 1/(2*maxFreq);
       Par.TimeStep = Nyquist_dt/Opt.OverSampleFactor;
     else
-      Par.TimeStep = 0.002; % us
+      Par.TimeStep = 0.002;  % µs
     end
     if Par.TimeStep>Par.tp
       Par.TimeStep = Par.tp;

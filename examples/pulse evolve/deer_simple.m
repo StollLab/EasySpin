@@ -15,15 +15,15 @@ g2 = 2; % g-factor pump spin (only used to calculate dipole coupling)
 
 r = 3.5; % distance, nm
 
-tau1 = 0.100;  % us
-tau2 = 4;      % us
+tau1 = 0.100;  % µs
+tau2 = 4;      % µs
 nPoints = 100; % number of points in the time domain
 nAngles = 200; % number of orientations between theta = 0 and pi/2
 
 % Preparations
 %----------------------------------------------------------------------
 
-t = linspace(0,tau2,nPoints); % us
+t = linspace(0,tau2,nPoints); % µs
 V = zeros(nPoints,1);
 
 theta = linspace(0,pi/2,nAngles);

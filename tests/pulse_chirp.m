@@ -38,7 +38,7 @@ Opt.OverSampleFactor = 10;
 BW = Params.Frequency(2)-Params.Frequency(1);
 dt = 1/(2*Opt.OverSampleFactor*BW/2);
 dt = Params.tp/(round(Params.tp/dt));
-t0 = 0:dt:Params.tp; % us
+t0 = 0:dt:Params.tp; % µs
 % Amplitude modulation: quarter sine weighting
 t_part = 0:dt:Params.trise;
 A(1:numel(t0)) = 1;
@@ -70,7 +70,7 @@ Opt.OverSampleFactor = 10;
 BW = Params.Frequency(2)-Params.Frequency(1);
 dt = 1/(2*Opt.OverSampleFactor*BW/2);
 dt = Params.tp/(round(Params.tp/dt));
-t0 = 0:dt:Params.tp; % us
+t0 = 0:dt:Params.tp; % µs
 % Amplitude modulation: half sine weighting
 A = sin(pi*t0/Params.tp);
 % Frequency modulation: linear chirp

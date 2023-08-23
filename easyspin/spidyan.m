@@ -5,7 +5,7 @@
 %
 %     Inputs:
 %       Sys   ... spin system with electron spin and ESEEM nuclei
-%       Exp   ... experimental parameters (time unit us)
+%       Exp   ... experimental parameters (time unit µs)
 %       Opt   ... simulation options
 %
 %     Outputs:

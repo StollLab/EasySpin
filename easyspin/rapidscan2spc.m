@@ -108,7 +108,7 @@ if nargout==0
   t_us = t*1e6;
   plot(t_us,real(M),t_us,imag(M));
   grid on
-  xlabel('time (us)');
+  xlabel('time (µs)');
   title('time-domain signal');
   legend('absorption','dispersion');
   legend boxoff

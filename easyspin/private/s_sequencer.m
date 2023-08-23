@@ -473,10 +473,10 @@ RefDetTimeStep = DetStepFactor*RefIntTimeStep; % The default dection time step
 if isfield(Opt,'IntTimeStep') && ~isfield(Exp,'DetTimeStep')
   
   if Opt.IntTimeStep > NyquistTime
-    errMsg = ['Your integration time step (Opt.IntTimeStep) does not fulfill the Nyquist criterion for the pulses you provided. For best results adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
+    errMsg = ['Your integration time step (Opt.IntTimeStep) does not fulfill the Nyquist criterion for the pulses you provided. For best results adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' µs or less.'];
     error(errMsg);
   elseif Opt.IntTimeStep > NyquistTime/(1/2*IntStepFactor)
-    warnMsg = ['Although your integration time step (Opt.IntTimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
+    warnMsg = ['Although your integration time step (Opt.IntTimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' µs or less.'];
     warning(warnMsg);
   end
   
@@ -497,10 +497,10 @@ elseif isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
   end
   
   if Opt.IntTimeStep > NyquistTime
-    errMsg = ['Your integration time step (Opt.IntTimeStep) does not fulfill the Nyquist criterion for the pulses you provided. For best results adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
+    errMsg = ['Your integration time step (Opt.IntTimeStep) does not fulfill the Nyquist criterion for the pulses you provided. For best results adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' µs or less.'];
     error(errMsg);
   elseif Opt.IntTimeStep > NyquistTime/(2/3*IntStepFactor)
-    warnMsg = ['Although your integration time step (Opt.IntTimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' us or less.'];
+    warnMsg = ['Although your integration time step (Opt.IntTimeStep) fulfills the Nyquist criterion for the pulses you provided, it might not be small enough for accurate results. You might want to adapt it to ' num2str(RefIntTimeStep, '%10.1e') ' µs or less.'];
     warning(warnMsg);
   end
  

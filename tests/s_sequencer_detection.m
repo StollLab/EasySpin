@@ -1,7 +1,7 @@
 function ok = test()
 
 Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.015; % us
+Pulse.trise = 0.015; % µs
 Pulse.Flip = pi;
 Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.tp = 0.1;
@@ -11,7 +11,7 @@ Pulse2.tp = 0.2;
 
 Exp.Sequence = {Pulse 0.5 Pulse Pulse2};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Exp.TimeStep = 0.0001; % µs
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0 0]; 

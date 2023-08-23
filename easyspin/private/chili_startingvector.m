@@ -14,7 +14,7 @@ nBasis = numel(Basis.L);
 stvec = zeros(nBasis,1);
   
 absTol = 1e-8; % for numerical integration
-useOldIntegrator = verLessThan('matlab','7.14'); % us quadl() instead of integral()
+useOldIntegrator = verLessThan('matlab','7.14'); % use quadl() instead of integral()
 
 cacheval = NaN;
 cacheLK = [NaN NaN];

@@ -22,7 +22,7 @@ if (opt.Display)
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
     plot(x,y,'r',x,olddata.y,'b');
-    xlabel('time [us]');
+    xlabel('time (µs)');
     legend('new','old');
     title(mfilename)
     subplot(3,1,3);

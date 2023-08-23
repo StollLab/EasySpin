@@ -10,8 +10,8 @@ nu1_max = 15;
 
 % Standard sech amplitude modulation
 Params.Type = 'sech/none';
-Params.TimeStep = 0.00025; % us
-Params.tp = 0.200; % us
+Params.TimeStep = 0.00025; % µs
+Params.tp = 0.200; % µs
 Params.beta = 10;
 Params.Amplitude = nu1_max;
 

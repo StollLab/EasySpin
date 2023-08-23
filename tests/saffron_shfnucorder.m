@@ -8,9 +8,9 @@ Exp.Field = 340.2; % mT
 Exp.ExciteWidth = 30; % MHz
 Exp.mwFreq = 9.738; % GHz
 
-Exp.dt = 0.016; % us
-Exp.tau = 0.224; % us
-Exp.T = 0.080; % us
+Exp.dt = 0.016; % µs
+Exp.tau = 0.224; % µs
+Exp.T = 0.080; % µs
 Exp.nPoints = 500;
 Exp.SampleFrame = [1.1234 2.534 0.5];
 

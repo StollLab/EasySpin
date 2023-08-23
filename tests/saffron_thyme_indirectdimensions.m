@@ -56,7 +56,7 @@ if opt.Display
     p2 = subplot(3,1,3);
     plot(x1{2},real(olddata.y1(1,:)-y1(1,:)));
     axis tight
-    xlabel('time [us]');
+    xlabel('time (µs)');
     title('old - new')
     linkaxes([p1,p2],'x')
   end

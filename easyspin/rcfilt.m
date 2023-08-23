@@ -16,7 +16,7 @@
 %       field sweep. If omitted, 'up' is assumed.
 %
 %    SampleTime and TimeConstant must have the same
-%    units (s, ms, us, ...)
+%    units (s, ms, µs, ...)
 %
 %  Output:
 %  - yFilt          filtered spectrum

@@ -768,11 +768,11 @@ for iPoints = 1 : nPoints
         % an event is changed along one of the indirect dimensions, this
         % change might not scale with the time step (think of it as the
         % least common denominator). An extreme example would be:
-        % 1st Acquisition: tau1 = 0.5 us, tau2 = 0.5 us, dt = 0.2 us
-        %                  total detection time = 0.5 + 0.5 = 1 us
+        % 1st Acquisition: tau1 = 0.5 µs, tau2 = 0.5 µs, dt = 0.2 µs
+        %                  total detection time = 0.5 + 0.5 = 1 µs
         %                  total number of data points = 2 + 2 = 4
-        % 2nd Acquisition: tau1 = 0.4 us, tau2 = 0.6 us, dt = 0.2 us
-        %                  total detection time = 0.4 + 0.6 = 1 us
+        % 2nd Acquisition: tau1 = 0.4 µs, tau2 = 0.6 µs, dt = 0.2 µs
+        %                  total detection time = 0.4 + 0.6 = 1 µs
         %                  total number of data points = 2 + 3 = 5
         % These are usually very minor numerical differences (not
         % necessesarily errors) that come from the time discretization step

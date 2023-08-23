@@ -3,7 +3,7 @@ function ok = test(opt)
 %======================================================
 % Two-pulse ESEEM
 %======================================================
-N = 200; dt = .01; %us
+N = 200; dt = .01;  % µs
 lw = 10; nlw = 1.57; cent = 0; noff = 101;
 A = 7; B = 2; nuN = 14.9;
 sys = [.5 .5];
@@ -39,11 +39,11 @@ if opt.Display
   subplot(2,2,1);
   plot(t,real(td),'r');
   axis tight
-  xlabel('tau (us)');
+  xlabel('tau (µs)');
   subplot(2,2,2);
   plot(t,imag(td),'b');
   axis tight
-  xlabel('tau (us)');
+  xlabel('tau (µs)');
   subplot(2,1,2);
   plot(f,real(fd));
   axis tight

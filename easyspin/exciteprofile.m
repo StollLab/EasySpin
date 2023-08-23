@@ -4,7 +4,7 @@
 % [offsets,Mag] = exciteprofile(t,IQ,offsets)
 %
 % Input:
-%   t           = time axis for defined waveform in us
+%   t           = time axis for defined waveform in µs
 %   IQ          = in-phase and quadrature part of the pulse function
 %   offsets     = axis of frequency offsets in MHz for which to compute the
 %                 excitation profile (default: approximately 2*BW centered

@@ -5,7 +5,7 @@ Sys.A = [-1 -1 2]*0.5+0.8;
 Sys.Q = 1;
 
 % User-defined HYSCORE experiment
-tau = 0.080;  % us
+tau = 0.080;  % µs
 % Exp.Flip = [1 1 2 1];
 % Exp.t = [tau 0 0 tau];
 % Exp.Inc = [0 1 2 0];

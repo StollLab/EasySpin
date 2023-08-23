@@ -29,7 +29,7 @@ if (opt.Display)
     subplot(3,1,3);
     plot(x',real(olddata.y-y)');
     axis tight
-    xlabel('time [us]');
+    xlabel('time (µs)');
   end
 end
 

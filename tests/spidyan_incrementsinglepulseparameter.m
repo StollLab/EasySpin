@@ -20,7 +20,7 @@ HS2.Flip = pi;
 
 Exp.Sequence = {HS1 0.5 HS2};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 

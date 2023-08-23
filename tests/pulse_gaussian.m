@@ -24,7 +24,7 @@ ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
 % Gaussian pulse with truncation
 clear Params
-dt = 0.001; % us
+dt = 0.001; % µs
 t0 = -0.300:dt:0.300;  % µs
 A = gaussian(t0,0,0.100);
 A = A/max(A);

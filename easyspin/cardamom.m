@@ -380,7 +380,7 @@ if useMD && strcmp(LocalDynamicsModel,'MD-HBD') && ~dynamInfoGiven
   stopFitT = floor(MD.nSteps/2)*MD.dt;
   [Sys.Diff, ~, ~] = runprivate('cardamom_estimatedifftensor',...
                                 squeeze(MD.FrameTraj), MD.dt, stopFitT);
-  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/us',Sys.Diff/1e6);
+  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/µs',Sys.Diff/1e6);
 end
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
@@ -507,7 +507,7 @@ end
 logmsg(1,'Parameter settings:');
 logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
 if includeGlobalDynamics
-  logmsg(1,'  Global correlation time:  %g rad^2/us',Dynamics.DiffGlobal/1e6);
+  logmsg(1,'  Global correlation time:  %g rad^2/µs',Dynamics.DiffGlobal/1e6);
 else
   logmsg(1,'  Global correlation time:  none');
 end  

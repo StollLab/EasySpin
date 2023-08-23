@@ -30,7 +30,7 @@ phi = 2*pi*(phi+mean(Params.Frequency)*t0);
 IQ0 = Amplitude*A.*exp(1i*phi);
 
 % Same pulse with user IQ input (and resampling of the time axis)
-Params_.tp = 0.200; % us
+Params_.tp = 0.200; % µs
 Params_.I = real(IQ0);
 Params_.Q = imag(IQ0);
 Params_.TimeStep = Params.TimeStep;

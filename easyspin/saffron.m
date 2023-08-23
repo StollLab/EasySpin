@@ -5,7 +5,7 @@
 %     [x,S,out] = saffron(Sys,Exp,Opt)
 %
 %     Sys   ... spin system with electron spin and ESEEM nuclei
-%     Exp   ... experimental parameters (time unit us)
+%     Exp   ... experimental parameters (time unit µs)
 %     Opt   ... simulation options
 %
 %     out:
@@ -809,7 +809,7 @@ if strcmp(Opt.SimulationMode,'fast')
     end
     
     if ~isfield(Exp,'tprf')
-      Exp.tprf = 20; % rf pulse length, us
+      Exp.tprf = 20; % rf pulse length, µs
     end
     
   end
@@ -832,10 +832,10 @@ if strcmp(Opt.SimulationMode,'fast')
         if ~isfield(Exp,'t1'), Exp.t1 = 0; end
         if ~isfield(Exp,'t2'), Exp.t2 = 0; end
         if numel(Exp.t1)>1
-          error('Exp.t1 must a single positive number, in units of us.');
+          error('Exp.t1 must a single positive number, in units of µs.');
         end
         if numel(Exp.t2)>1
-          error('Exp.t2 must a single positive number, in units of us.');
+          error('Exp.t2 must a single positive number, in units of µs.');
         end
         if Exp.t1~=Exp.t2
           fprintf('Exp.t1 and Exp.t2 are not identical, so the resulting spectrum might be asymmetric.\n');

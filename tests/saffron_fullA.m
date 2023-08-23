@@ -29,7 +29,7 @@ y2=real(y2);
 
 if (opt.Display)
   plot(x,y1,'r',x,y2,'b');
-  xlabel('time [us]');
+  xlabel('time (µs)');
   legend('diag,angle','full matrix');
   title(mfilename)
 end

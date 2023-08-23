@@ -29,7 +29,7 @@ if options.Display
   subplot(3,1,3)
   plot(t,data.Mz,'.',t,olddata.Mz);
   ylabel('M_z');
-  xlabel('time (us)');
+  xlabel('time (µs)');
   grid on
 end
 

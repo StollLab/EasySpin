@@ -5,14 +5,14 @@ function ok = test()
 
 % Fourier series pulses
 % I-BURP 1
-Params.tp = 0.500; % us
+Params.tp = 0.500; % µs
 Params.Type = 'I-BURP 1';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
-% J. Magn. Reson. 93, 93�141 (1991). 
+% J. Magn. Reson. 93, 93�141 (1991). 
 % DOI: 10.1016/0022-2364(91)90034-Q
 % Table 5 on p. 117, Np = 256        
 A0 = 0.5;
@@ -30,14 +30,14 @@ IQ0 = A/max(A);
 ok(1) = areequal(IQ0,IQ,1e-12,'abs');
 
 % I-BURP 2
-Params.tp = 0.700; % us
+Params.tp = 0.700; % µs
 Params.Type = 'I-BURP 2';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
-% J. Magn. Reson. 93, 93�141 (1991). 
+% J. Magn. Reson. 93, 93�141 (1991). 
 % DOI: 10.1016/0022-2364(91)90034-Q
 % Table 6 on p. 119, Np = 256
 A0 = 0.5;
@@ -55,14 +55,14 @@ IQ0 = A/max(A);
 ok(2) = areequal(IQ0,IQ,1e-12,'abs');
 
 % SNOB i2
-Params.tp = 0.200; % us
+Params.tp = 0.200; % µs
 Params.Type = 'SNOB i2';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Kupce, E., Boyd, J., Campbell, I. D. Short Selective Pulses for
-% Biochemical Applications. J. Magn. Reson. B 106, 300�303 (1995).
+% Biochemical Applications. J. Magn. Reson. B 106, 300�303 (1995).
 % DOI: 10.1006/jmrb.1995.1049
 % Table 1 on p. 300
 A0 = 0.5;
@@ -80,14 +80,14 @@ IQ0 = A/max(A);
 ok(3) = areequal(IQ0,IQ,1e-12,'abs');
 
 % SNOB i3
-Params.tp = 0.200; % us
+Params.tp = 0.200; % µs
 Params.Type = 'SNOB i3';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Kupce, E., Boyd, J., Campbell, I. D. Short Selective Pulses for
-% Biochemical Applications. J. Magn. Reson. B 106, 300�303 (1995).
+% Biochemical Applications. J. Magn. Reson. B 106, 300�303 (1995).
 % DOI: 10.1006/jmrb.1995.1049
 % Table 1 on p. 300
 A0 = 0.5;
@@ -105,9 +105,9 @@ IQ0 = A/max(A);
 ok(4) = areequal(IQ0,IQ,1e-12,'abs');
 
 % User-defined (SLURP-1, T2/T = 2)
-Params.tp = 2.000; % us
+Params.tp = 2.000; % µs
 Params.Type = 'FourierSeries';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
