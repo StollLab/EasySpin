@@ -43,8 +43,10 @@ Exp.Harmonic = 0;
 Opt.Output = 'separate';
 
 % Calculate spectra
-[B,spcT,trT] = pepper(SysT,Exp,Opt);
-[B,spcTT,trTT] = pepper(SysTT,Exp,Opt);
+[B,spcT,outT] = pepper(SysT,Exp,Opt);
+[B,spcTT,outTT] = pepper(SysTT,Exp,Opt);
+trT = outT.Transitions;
+trTT= outTT.Transitions;
 
 % Plotting
 subplot(2,2,1)

@@ -42,6 +42,8 @@ garlic(Sys,Exp,Opt)
 spec = garlic(...)
 [B,spec] = garlic(...)
 [nu,spec] = garlic(...)
+[B,spec,out] = garlic(...)
+[nu,spec,out] = garlic(...)
 </pre>
 
 <p>
@@ -62,7 +64,7 @@ and the experimental settings are given in <code>Exp</code>.
 
 </p>
 <code>garlic</code> then returns the spectrum in <code>spec</code> and, if requested, a field range vector in <code>B</code> (in units of mT).
-If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>
+If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>. If asked for, the third output <code>out</code> is a structure that contains details about the calculation.
 </p>
 
 <!-- ------------------------------------------------------------------ -->

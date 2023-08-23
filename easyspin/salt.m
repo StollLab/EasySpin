@@ -4,7 +4,7 @@
 %   salt(Sys,Exp,Opt)
 %   spec = salt(...)
 %   [rf,spec] = salt(...)
-%   [rf,spec,Trans] = salt(...)
+%   [rf,spec,out] = salt(...)
 %
 %   Input:
 %   - Sys: spin system structure specification
@@ -25,7 +25,9 @@
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz
 %   - spec:   the spectrum or spectra
-%   - Trans:  level number pairs of the transitions in spec
+%   - out:    structure with details of the calculation
+%       Transitions   level number pairs of the transitions in spec
+%
 %   If no output argument is given, the simulated spectrum is plotted.
 
 function varargout = salt(Sys,Exp,Opt)
@@ -113,7 +115,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
-      [xAxis,spec_,Transitions] = salt(Sys_,Exp,Opt);
+      [xAxis,spec_,out] = salt(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
       if separateComponentSpectra
@@ -138,9 +140,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       else
         title(sprintf('ENDOR at %0.8g mT',Exp.Field));
       end
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Transitions};
+    case 1
+      varargout = {spec};
+    case 2
+      varargout = {xAxis,spec};
+    case 3
+      varargout = {xAxis,spec,out};
   end
   return
 end
@@ -443,9 +448,13 @@ if Sys.nNuclei==0
       else
         title(sprintf('ENDOR at %0.8g mT',Exp.Field));
       end
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Transitions};
+    case 1
+      varargout = {spec};
+    case 2
+      varargout = {xAxis,spec};
+    case 3
+      out.Transitions = Transitions;
+      varargout = {xAxis,spec,out};
   end
   return
 end
@@ -984,7 +993,7 @@ end
 
 % Assign output.
 %-----------------------------------------------------------------------
-switch (nargout)
+switch nargout
   case 0
     cla
     plot(xAxis,spec);
@@ -996,9 +1005,13 @@ switch (nargout)
     else
       title(sprintf('ENDOR at %0.8g mT',Exp.Field));
     end
-  case 1, varargout = {spec};
-  case 2, varargout = {xAxis,spec};
-  case 3, varargout = {xAxis,spec,Transitions};
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    out.Transitions = Transitions;
+    varargout = {xAxis,spec,out};
 end
 
 % Report performance.

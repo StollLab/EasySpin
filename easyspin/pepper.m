@@ -4,7 +4,7 @@
 %   pepper(Sys,Exp,Opt)
 %   spec = pepper(...)
 %   [x,spec] = pepper(...)
-%   [x,spec,Trans] = pepper(...)
+%   [x,spec,out] = pepper(...)
 %
 %   Calculates field-swept and frequency-swept cw EPR spectra.
 %
@@ -43,9 +43,10 @@
 %      Intensity, Freq2Field, Sites
 %
 %   Output:
-%    x       field axis (in mT) or frequency axis (in GHz)
-%    spec    spectrum
-%    Trans   transitions included in the calculation
+%    x        field axis (in mT) or frequency axis (in GHz)
+%    spec     spectrum
+%    out      structure with details of the calculation
+%      Transitions    transitions included in the calculation
 %
 %   If no output argument is given, the simulated spectrum is plotted.
 
@@ -69,7 +70,7 @@ if nargin<1, error('Please supply a spin system as first parameter.'); end
 if nargin<2, error('Please supply experimental parameters as second input argument.'); end
 if nargin>3, error('Too many input arguments, the maximum is three.'); end
 
-if nargout>4, error('Too many output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
 
 % Initialize options structure to zero if not given.
 if nargin<3, Opt = struct; end
@@ -151,7 +152,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
-      [xAxis,spec_,Transitions] = pepper(Sys_,Exp,Opt);
+      [xAxis,spec_,out] = pepper(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
       if separateComponentSpectra
@@ -188,9 +189,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       end
       axis tight
       ylabel('intensity (arb.u.)');
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Transitions};
+    case 1
+      varargout = {spec};
+    case 2
+      varargout = {xAxis,spec};
+    case 3
+      varargout = {xAxis,spec,out};
   end
   return
 end
@@ -1320,9 +1324,13 @@ end
 %-----------------------------------------------------------------------
 switch nargout
   case 0
-  case 1, varargout = {spec};
-  case 2, varargout = {xAxis,spec};
-  case 3, varargout = {xAxis,spec,Transitions};
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    out.Transitions = Transitions;
+    varargout = {xAxis,spec,out};
 end
 
 % Report performance.

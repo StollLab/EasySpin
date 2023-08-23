@@ -39,6 +39,9 @@ Simulation of field- and frequency-sweep cw EPR spectra of tumbling spin systems
 chili(Sys,Exp)
 spec = chili(...)
 [B,spec] = chili(...)
+[nu,spec] = chili(...)
+[B,spec,out] = chili(...)
+[nu,spec,out] = chili(...)
 ... = chili(Sys,Exp,Opt)
 </pre>
 
@@ -67,11 +70,12 @@ If no input argument is given, a short help summary is shown (same as when typin
 </p>
 
 <p>
-Up to two output arguments are returned:
+Up to three output arguments are returned:
 </p>
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
-<li><code>spc</code>: spectrum
+<li><code>spc</code>: calculated spectrum
+<li><code>out</code>: structure containing details about the calculation
 </ul>
 
 <p>

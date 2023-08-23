@@ -4,6 +4,7 @@
 %   garlic(Sys,Exp,Opt)
 %   spec = ...
 %   [B,spec] = ...
+%   [B,spec,out] = ...
 %
 %   Computes the solution cw EPR spectrum of systems with
 %   an unpaired electron and arbitrary numbers of nuclear spins.
@@ -51,9 +52,9 @@
 %   Output
 %     B                magnetic field axis (mT)
 %     spec             spectrum (arbitrary units)
+%     out              structure with details about the calculation
 %
-%     If no output parameter is specified, the simulated spectrum
-%     is plotted.
+%     If no output parameter is specified, the simulated spectrum is plotted.
 
 function varargout = garlic(Sys,Exp,Opt)
 
@@ -156,7 +157,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       % Simulate single-isotopologue spectrum
       Sys_ = SysList{iComponent}(iIsotopologue);
       Sys_.singleiso = true;
-      [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
+      [xAxis,spec_,out] = garlic(Sys_,Exp,Opt);
       
       % Accumulate or append spectra
       if separateComponentSpectra
@@ -193,9 +194,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       end
       axis tight
       ylabel('intensity (arb.u.)');    
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Transitions};
+    case 1
+      varargout = {spec};
+    case 2
+      varargout = {xAxis,spec};
+    case 3
+      varargout = {xAxis,spec,out};
   end
   return
 end
@@ -987,9 +991,13 @@ end
 %===================================================================
 
 switch nargout
-  case 1, varargout = {spec};
-  case 2, varargout = {xAxis,spec};
-  case 3, varargout = {xAxis,spec,Positions};
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    out.resfields = Positions;
+    varargout = {xAxis,spec,out};
 end
 if EasySpinLogLevel>=1
   logmsg(1,'=end=garlic=======%s=================\n',char(datetime));

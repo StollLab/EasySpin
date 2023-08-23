@@ -37,6 +37,7 @@ You should be familiar with the simulation solid-state cw EPR spectra using <a c
 
 <p>
 This user guide contains the following sections:
+</p>
 
 <ul>
 <li><a href = "#calling">Invoking the simulation function <code>salt</code></a></li>
@@ -120,6 +121,7 @@ page about <a href="spinsystem.html">spin system structures</a> for details.
 <p>
 The <a href="broadenings.html">broadening</a> for the ENDOR spectrum should be given in <code>Sys.lwEndor</code>. It contains
 the convolutional Gaussian and Lorentzian broadenings (FWHM, full width at half maximum) for the ENDOR spectrum. 
+</p>
 
 <pre class="matlab">
 Sys.lwEndor = 0.1;        % Gaussian broadening with FWHM of 0.1 MHz
@@ -146,6 +148,7 @@ a structure with several fields very similar to those for <code>pepper</code>.
 <p>
 The most important parameter for an ENDOR simulation is the magnetic field. It is
 given in <code>Exp.Field</code>, in the usual units of mT (millitesla):
+</p>
 
 <pre class="matlab">
 Exp.Field = 350;    % ENDOR at a field of 350 mT
@@ -166,6 +169,7 @@ The radiofrequency range, in MHz, is taken from either <code>Range</code> or
 <code>CenterSweep</code> (which are used by <code>pepper</code> for the <em>magnetic field</em> range).
 Of course, only one of the two can be used in a given simulation. If you omit both of them,
 EasySpin automatically determines a suitable frequency range.
+</p>
 
 <pre class="matlab">
 Exp.Range = [40 60];          % rf sweep range [start end], in MHz
@@ -214,6 +218,7 @@ There is one more experimental parameter for an ENDOR simulation: the excitation
 width, given in <code>Exp.ExciteWidth</code>. It determines the orientational
 selectivity of the ENDOR experiment. It is so important that we dedicate the
 next section to it.
+</p>
 
 <!-- ============================================================= -->
 <a name="oriselect"><div class="subtitle">Orientation selection</div></a>
@@ -226,6 +231,7 @@ far off-resonant cannot give an ENDOR signal at all. If the EPR resonance freque
 dependent, this means that only electron spins with certain orientations are excited - hence the
 term "orientation selection". The range of frequencies over which electron spins are excited is
 called the "excitation window". It is centered around the microwave frequency.
+</p>
 
 <p>
 The bandwidth of excitation, i.e. the width of the excitation window, is determined by the
@@ -235,6 +241,7 @@ of MHz.
 Values between 50 and 250 MHz are common. The smaller this value, the stronger the orientation
 selection, and the sharper the resulting ENDOR spectrum. For pulse ENDOR, the excitation
 bandwidth can be estimated from the length of the first pulse, t<sub>p</sub>, by 2/t<sub>p</sub>.
+</p>
 
 <pre class="matlab">
 Exp.ExciteWidth = 100;   % MHz
@@ -244,12 +251,14 @@ Exp.ExciteWidth = 100;   % MHz
 If <code>Exp.ExciteWidth</code> is not given, it is assumed infinite, that is, all the spins are excited.
 This is rather unrealistic, but often useful when exploring ENDOR spectra resulting from different
 sets of hyperfine and quadrupole parameters. In this case, no micrwave frequency needs to be given.
+</p>
 
 <p>
 To compute the total effective excitation width for the ENDOR experiment, EasySpin combines the
 width given in <code>Exp.ExciteWidth</code> with the width given in <code>Sys.HStrain</code>,
 which represents the EPR broadening. The larger <code>HStrain</code>, the larger the
 total excitation bandwidth.
+</p>
 
 <pre class="matlab">
 Sys.HStrain = [1 1 1]*200;
@@ -260,6 +269,7 @@ Exp.ExciteWidth = 100;   % total excitation width in MHz: sqrt(200^2+100^2) = 22
 <p>
 As you can see, the total excitation width is rather insensitive to <code>ExciteWidth</code>,
 if <code>ExciteWidth</code> is much smaller than <code>HStrain</code>.
+</p>
 
 </pre>
 
@@ -389,9 +399,11 @@ Even though this is by far the most accurate way, it is also the slowest. This
 can be felt painfully when simulating ENDOR spectra of spin systems with a lot
 of nuclei. EasySpin offers several speed-up options to trade a little accuracy for a lot
 in performance gain.
+</p>
 
 <p>
 One way to speed up an ENDOR simulation is to switch to first- or second-order perturbation theory.
+</p>
 
 <pre class="matlab">
 Options.Method = 'perturb1';   % first-order perturbation theory
@@ -405,12 +417,14 @@ magnitude faster than matrix diagonalization. Under most circumstances, the erro
 introduced are minimal. Second-order perturbation theory should be used if the hyperfine couplings
 are larger than about 2% of the microwave frequency (about 200 MHz for a microwave frequency of 10 GHz).
 Perturbation theory does not work for all spin systems: it is limited to S=1/2.
+</p>
 
 <p>
 If you want to stick with matrix diagonalization, there is another way to speed up simulations that 
 is useful when there is strong orientation selection, and only nuclei with small hyperfine couplings
 are observed in the ENDOR spectrum. <code>salt</code> can be told to pre-compute the orientation selection
 instead of computing it on the fly, using
+</p>
 
 <pre class="matlab">
 Options.OriPreSelect = 1; % use orientation pre-selection
@@ -423,6 +437,7 @@ that is not noticeably excited is then skipped in the subsequent ENDOR simulatio
 is only available with matrix diagonalization and advantageous only if there are several nuclei that
 do <code>not</code> contribute to orientational selectivity. Use it only if perturbation theory is
 really not an option.
+</p>
 
 </section>
 

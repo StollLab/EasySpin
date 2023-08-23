@@ -90,6 +90,7 @@ $ReleaseID$
 <li>The oldest supported Matlab version is now R2017a.
 <li>To specify the sample orientation, use <code>Exp.SampleFrame</code>. <code>ExpCrystalOrientations</code> is no longer supported. To convert, flip the order and the sign of the angles. Example: <code>Exp.CrystalOrientations = [10 40 -30]*pi/180</code> is now <code>Exp.SampleFrame = [30 -40 -10]*pi/180</code>.</li>
 <li>The function <code>rotplane</code> has been removed. Use <a class="esf" href="rotateframe">rotateframe</a> instead.</li>
+<li>The third output of <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="salt.html">salt</a>, <a class="esf" href="garlic.html">garlic</a> and <a class="esf" href="chili.html">chili</a> is now a structure instead of a numeric array.</li>
 </ul>
 
 <div class="subtitle">

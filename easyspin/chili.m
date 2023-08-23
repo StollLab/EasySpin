@@ -4,6 +4,8 @@
 %   spc = chili(...)
 %   [B,spc] = chili(...)
 %   [nu,spc] = chili(...)
+%   [B,spc,out] = chili(...)
+%   [nu,spc,out] = chili(...)
 %
 %   Computes a slow-motion cw EPR spectrum.
 %
@@ -55,6 +57,7 @@
 %     B               magnetic field axis vector, in mT (for field sweeps)
 %     nu              frequency axis vector, in GHz (for frequency sweeps)
 %     spc             simulated spectrum, arbitrary units
+%     out             structure containing details about the calculation
 %
 %     If no output arguments are specified, chili plots the simulated spectrum.
 
@@ -70,7 +73,7 @@ error(chkmlver);
 
 if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
-if nargout>2, error('Too many output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
 
@@ -164,6 +167,9 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
       varargout = {spec};
     case 2
       varargout = {xAxis,spec};
+    case 3
+      out = struct;  % not implemented yet
+      varargout = {xAxis,spec,out};
   end
   return
 end
@@ -1535,6 +1541,9 @@ switch nargout
     varargout = {outspec};
   case 2
     varargout = {xAxis,outspec};
+  case 3
+    out = struct;  % not implemented yet
+    varargout = {xAxis,outspec,out};
 end
 %===============================================================================
 

@@ -35,7 +35,9 @@ or single crystals using EasySpin's function <a class="esf" href="pepper.html">p
 basics of MATLAB, esp. with structures.
 </p>
 
+<p>
 It contains the following topics:
+</p>
 
 <ul>
 <li><a href = "#calling">Running the simulation</a></li>
@@ -47,7 +49,9 @@ It contains the following topics:
 <li><a href = "#options">Simulation options</a></li>
 </ul>
 
+<p>
 There are the following advanced topics:
+</p>
 
 <ul>
 <li><a href = "#multicomponent">Multiple components</a></li>
@@ -209,6 +213,7 @@ Sys.lwpp = [1 2];   % Gaussian PP of 1mT + Lorentzian PP of 2 mT
 The line width is in mT and refers to peak-to-peak (PP) line widhts.
 Instead, FWHM (full width at half height) line widths can be provided in the field
 <code>Sys.lw</code>.
+</p>
 
 <pre class="matlab">
 Sys.lw = 0.5;     % Gaussian broadening of 0.5 mT FWHM
@@ -222,8 +227,7 @@ peak-to-peak widths, see the  page on <a href="lineshapes.html">line shapes</a>.
 
 <p>
 Physically, there are several origins for line broadening. Large contribution
-to broadening often comes from unresolved hyperfine couplings and from distributions in the various magnetic 
-parameters lige g, A and D that result from structural variations from one paramagnetic center to the next.
+to broadening often comes from unresolved hyperfine couplings and from distributions in the various magnetic parameters lige g, A and D that result from structural variations from one paramagnetic center to the next.
 </p>
 
 <p>
@@ -308,7 +312,6 @@ Exp.nPoints = 5001;
 You can set any value, unlike some EPR spectrometers, where often only powers of 2 are available (1024, 2048, 4096, 8192).
 </p>
 
-
 <p>
 <span class="param">Harmonic</span>. By default, EasySpin computes the first-harmonic absorption spectrum, i.e. the first derivative of the absorption spectrum. By changing <code>Exp.Harmonic</code>, you can request the absorption spectrum directly or the second-harmonic (second derivative) of it.
 </p>
@@ -362,6 +365,7 @@ With this setting, EasySpin will include the relevant polarization factors resul
 
 <p>
 <span class="param">Microwave phase</span>. Occasionally, the EPR absorption signal has a small admixture of the dispersion signal. This happens for example when the microwave phase in the reference arm is not absolutely correctly adjusted. EasySpin can mix dispersion with absorption if a Lorentzian broadening is given:
+</p>
 
 <pre class="matlab">
 Sys.lwpp = [0.2 0.01];           % Lorentzian broadening (2nd number) required
@@ -493,13 +497,12 @@ There are more option fields available. For details, see the documentation page 
 
 <p>
 Often, an EPR spectrum shows a mixture of spin species.
-To simulate these spectra, each of the component spectra has to be simulated and added with
-the appropriate weight (depending on spin concentration) to the total spectrum.
+To simulate these spectra, each of the component spectra has to be simulated and added with the appropriate weight (depending on spin concentration) to the total spectrum.
+</p>
 
 <p>
-This can be done automatically by <code>pepper</code>. Just provide the component spin systems
-with their weights as a cell array (in curly braces) to <code>pepper</code>. For example, here
-is the simulation of a very simple two-component mixture with 2:1 ratio of spin concentrations.
+This can be done automatically by <code>pepper</code>. Just provide the component spin systems with their weights as a cell array (in curly braces) to <code>pepper</code>. For example, here is the simulation of a very simple two-component mixture with 2:1 ratio of spin concentrations.
+</p>
 
 <pre class="matlab">
 Sys1.g = 2;
@@ -630,6 +633,7 @@ simulate frequency-swept spectra as well.
 <p>
 For this, all you need to do is the following
 </p>
+
 <ul>
 <li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
 otherwise EasySpin does not know what to do.
@@ -659,7 +663,7 @@ By default, <code>pepper</code> returns the absorption spectrum (<code>Exp.Harmo
 <p>
 All other capabilities of <code>pepper</code> apply equally to frequency sweep and to field sweeps. For example,
 you can simulate crystals or multi-component spectra, and you can change the excitation mode. Importantly, just like field sweeps, frequency sweeps can be simulated using different methods: matrix diagonalization (<code>Opt.Method='matrix'</code>; highly accurate but potentially slow) or perturbation theory (<code>Opt.Method='perturb'</code>, <code>Opt.Method='perturb1'</code>, <code>Opt.Method='perturb2'</code>; less accurate but much faster).
-
+</p>
 
 <!-- ============================================================= -->
 <a name="degeneracies"><div class="subtitle">Degeneracies</div></a>
