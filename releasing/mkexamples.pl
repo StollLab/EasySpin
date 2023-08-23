@@ -63,7 +63,7 @@ print D  <<QQQ;
 
 
 <!-- ============================================================= -->
-<div class="subtitle" style="margin-top:0ex;">Examples</div>
+<div class="subtitle" style="margin-top:0ex;">Examples overview</div>
 
 <p>
 Here is a collection of examples for the use of EasySpin, divided into
@@ -72,7 +72,7 @@ your own code.
 </p>
 
 <p>
-The examples are grouped under the following headings:
+The examples are organized in the following groups:
 </p>
 
 <ul>
@@ -88,7 +88,7 @@ The examples are grouped under the following headings:
 <li><a href="#pulse shaping">Pulse shaping</a></li>
 <li><a href="#pulse spidyan">Pulse EPR (spidyan)</a></li>
 <li><a href="#slowmotion">Slow-motion cw EPR simulations</a></li>
-<li><a href="#trajectories">Slow-motion cw EPR simulations from time-domain trajectories</a></li>
+<li><a href="#trajectories">Slow-motion cw EPR simulations from molecular-dynamics trajectories</a></li>
 <li><a href="#solidstate">Solid-state cw EPR simulations</a></li>
 <li><a href="#photoexcitation">EPR simulations for photoexcited systems</a></li>
 <li><a href="#varia">Other examples</a></li>
@@ -96,6 +96,9 @@ The examples are grouped under the following headings:
 
 <p>
 </p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples list</div>
 
 QQQ
 
@@ -109,24 +112,22 @@ foreach $category (@allcategories) {
   @files = sort(grep(/\.m$/,@files));
 
   print D "<!-- ===================================================================== -->\n";
-  print D '<a name="'.$Description{$category}.'"><b>'.$Description{$category}."</b></a>\n\n";
+  print D '<a name="'.$category.'"><b>'.$Description{$category}."</b></a>\n\n";
   print D "<table width=100%>\n";
 
   @col = ('ffffff', 'f3f3f3');
   $icol = 1;
   foreach $ex (@files) {
     $thiscol = $col[$icol];
-    $name = $ex;
-    open EX, $name;
+    $exfilename = $ex;
+    open EX, $exfilename;
     $firstline = <EX>;
     close EX;
-    $descr = $firstline;
-    $descr =~ s/%\s*//;
-    #$descr =~ s/%(.*)%\s*//;
-    #$category = $1;
-    #$category =~ s/\s*//g;
-    $descr = ucfirst($descr);
-    print D qq(<tr bgcolor="$thiscol">\n<td width=200><a href="../examples/$category/$name">$name</a></td>\n<td>$descr</td></tr>\n);
+    $description = $firstline;
+    $description =~ s/%\s*//;
+    $description = ucfirst($description);
+    $exname = substr $exfilename, 0, -2;  # remove .m
+    print D qq(<tr bgcolor="$thiscol">\n<td width=200><a href="../examples/$category/$exfilename">$exname</a></td>\n<td>$description</td></tr>\n);
     if ($icol==1) { $icol=2; } else { $icol=1; }
   }
   print D "</table>\n<p></p>\n\n";
