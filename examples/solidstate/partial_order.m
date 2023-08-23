@@ -1,26 +1,34 @@
-% An partially oriented Cu(II) complex
+% A partially oriented Cu(II) complex
 %==========================================================================
-% The molecule is assumed to be planar, with the z axis
-% of the molecular reference frame perpendicular to the plane, just
-% as in, e.g., CuTPP.
+% This example shows how to use Exp.Ordering to specify partial ordering
+% for a spin center.
 
 clear, clf
 
 % Paramagnetic complex
-Sys = struct('g',[2 2 2.2],'lwpp',0.8);
-Sys = nucspinadd(Sys,'63Cu',[50 50 400]);
+Sys.g = [2 2 2.2];
+Sys.lwpp = 0.8;  % mT
+Sys.Nucs = '63Cu';
+Sys.A = [50 50 400];  % MHz
 
 % Experimental parameters
-Exp = struct('mwFreq',9.5,'Range',[280 350]);
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [280 350];  % mT
 
 % (1) Isotropic orientational distribution
-[B,spec1] = pepper(Sys,Exp);
-% (2) Partially oriented, B0 approx. in molecular xy plane
-Exp.Ordering = -2;
-[B,spec2] = pepper(Sys,Exp);
-% (3) Strongly oriented, B0 along molecular z axis
-Exp.Ordering = 4;
-[B,spec3] = pepper(Sys,Exp);
+[B,spec_iso] = pepper(Sys,Exp);
 
-plot(B,spec1,'k',B,spec2,'g',B,spec3,'r')
-legend('isotropic distribution','preferential in xy plane','preferential along z axis');
+% (2) Partially oriented, B0 predominantly in molecular xy plane
+Exp.Ordering = -2;
+[B,spec_xy] = pepper(Sys,Exp);
+
+% (3) Strongly oriented, B0 predominantly along molecular z axis
+Exp.Ordering = 4;
+[B,spec_z] = pepper(Sys,Exp);
+
+% Plotting
+plot(B,spec_iso,B,spec_xy,B,spec_z);
+legend('isotropic distribution','preferential in xy plane', ...
+  'preferential along z axis','location','best');
+legend boxoff
+xlabel('magnetic field (mT)')

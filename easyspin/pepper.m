@@ -1000,15 +1000,13 @@ elseif ~BruteForceSum
       
       % Obtain user-supplied orientational distribution weights
       if ~isempty(Exp.Ordering)
-        centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-        centrePhi = zeros(1,numel(centreTheta));
+        centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
+        centerPhi = zeros(1,numel(centerTheta));
         if rotateSample
-          v = ang2vec(centrePhi,centreTheta);
-          [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(-centreTheta_,-centrePhi_);
-        else
-          OrderingWeights = orifun(-centreTheta,-centrePhi);
+          v = ang2vec(centerPhi,centerTheta);
+          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
         end
+        OrderingWeights = orifun(-centerTheta,-centerPhi);
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fSegWeights = fSegWeights(:).*OrderingWeights(:);
@@ -1033,15 +1031,13 @@ elseif ~BruteForceSum
 
       % Obtain user-supplied orientational distribution weights
       if ~isempty(Exp.Ordering)
-        centreTheta = mean(fthe(idxTri));
-        centrePhi = mean(fphi(idxTri));
+        centerTheta = mean(fthe(idxTri));
+        centerPhi = mean(fphi(idxTri));
         if rotateSample
-          v = ang2vec(centrePhi,centreTheta);
-          [centrePhi_,centreTheta_] = vec2ang(Exp.R_sample*v);
-          OrderingWeights = orifun(-centreTheta_,-centrePhi_);
-        else
-          OrderingWeights = orifun(-centreTheta,-centrePhi);
+          v = ang2vec(centerPhi,centerTheta);
+          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
         end
+        OrderingWeights = orifun(-centerTheta,-centerPhi);
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
         if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         Areas = Areas(:).*OrderingWeights(:);

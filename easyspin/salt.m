@@ -740,15 +740,22 @@ else
       fthe = Exp.theta;
     end
     fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
+    
+    % Obtain user-supplied orientational distribution weights
     if ~isempty(Exp.Ordering)
-      centreTheta = (fthe(1:end-1)+fthe(2:end))/2;
-      centrePhi = zeros(1,numel(centreTheta));
-      OrderingWeights = orifun(-centreTheta,-centrePhi);
+      centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
+      centerPhi = zeros(1,numel(centerTheta));
+      if rotateSample
+        v = ang2vec(centerPhi,centerTheta);
+        [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
+      end
+      OrderingWeights = orifun(-centerTheta,-centerPhi);
       if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
       if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       fSegWeights = fSegWeights(:).*OrderingWeights(:);
       fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
     end
+
     logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
     
   else % nonaxial symmetry
@@ -763,15 +770,22 @@ else
     end
     idxTri = tri.idx.';
     Areas = tri.areas;
+    
+    % Obtain user-supplied orientational distribution weights
     if ~isempty(Exp.Ordering)
-      centreTheta = mean(fthe(idxTri));
-      centrePhi = mean(fphi(idxTri));
-      OrderingWeights = orifun(-centreTheta,-centrePhi);
-      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
-      if max(OrderingWeights)==0, error('User-supplied orientation distribution is all-zero.'); end
+      centerTheta = mean(fthe(idxTri));
+      centerPhi = mean(fphi(idxTri));
+      if rotateSample
+        v = ang2vec(centerPhi,centerTheta);
+        [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
+      end
+      OrderingWeights = orifun(-centerTheta,-centerPhi);
+      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
+      if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
       Areas = Areas(:).*OrderingWeights(:);
       Areas = 4*pi/sum(Areas)*Areas;
     end
+
     logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
   end
   
