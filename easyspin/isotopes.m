@@ -1,23 +1,14 @@
 % isotopes   Graphical interface for nuclear isotope data 
 %
-%   Displays a PSE (periodic system of the elements) with
-%   a list of nuclear isotope data. The columns in the table
-%   give the following data
+%   Displays a periodic table of the elements with
+%   a table of nuclear isotopes.
 %
-%    1. Mass number
-%    2. Element symbol
-%    3. Nuclear spin
-%    4. gn value
-%    5. ENDOR frequency in MHz, using the magnetic field
-%       entered below the table
-%    6. electric quadrupole moment, in barn
-%    7. Natural abundance in %
 
 function isotopes()
 
 % Settings
 figTag = 'isotopesfig';
-Field = 350;  % mT
+Field = 340;  % mT
 buttonFontSize = 14;
 
 % Check for existing figure and raise
@@ -130,11 +121,28 @@ set(hFieldEdit,...
   'Position',[xOff+200 border 100 22],...
   'Value',Field,...
   'HorizontalAlignment','left',...
-  'ValueChangedFcn',@updateList);
+  'ValueChangedFcn',@fieldEditValueChangedFcn);
 figdata.hFieldEdit = hFieldEdit;
 uilabel(hFig,...
   'Text','Magnetic field (mT)',...
   'Position',[xOff+80 border 150 19]);
+
+% Convenience buttons for X, Q and W band
+hXbandButton = uibutton(hFig);
+set(hXbandButton,...
+  'Position',[xOff+200+100+10 border 40 22],...
+  'Text','X',...
+  'ButtonPushedFcn',@XbandButtonPushedFcn);
+hQbandButton = uibutton(hFig);
+set(hQbandButton,...
+  'Position',[xOff+200+100+10+40+10 border 40 22],...
+  'Text','Q',...
+  'ButtonPushedFcn',@QbandButtonPushedFcn);
+hWbandButton = uibutton(hFig);
+set(hWbandButton,...
+  'Position',[xOff+200+100+10+40+10+40+10 border 40 22],...
+  'Text','W',...
+  'ButtonPushedFcn',@WbandButtonPushedFcn);
 
 % Table of isotope data
 hTable = uitable(hFig);
@@ -142,21 +150,21 @@ set(hTable,...
   'Position',[xOff border+bottomHeight figPos(3)-2*border tableHeight]);
 figdata.hTable = hTable;
 
-%vnames = {'Z','N','radioactive','element','name','spin',...
-%  'gn','abundance','qm','gamma','isotope'};
-
-tabledata = data(:,{'Z','N','isotope','abundance','spin','gn','gamma','qm'});
+tabledata = data(:,{'isotope','abundance','spin','gn','gamma','qm'});
+tabledata.NMRfreq = zeros(height(tabledata),1);
 
 hTable.Data = tabledata;
 hTable.ColumnSortable = true;
 hTable.ColumnWidth = 'auto';
 hTable.SelectionType = 'row';
-hTable.ColumnName = {'Z','N','Isotope','Abundance (%)','Spin','gn value','γ/2π (MHz/T)','Q (barn)'};
+hTable.ColumnName = {'Isotope','Abundance (%)','Spin',...
+  'gn value','γ/2π (MHz/T)','Q (barn)','Frequency (MHz)'};
 
 figdata.Element = '';
 figdata.tableData = tabledata;
 
 guidata(hFig,figdata);
+updateTable;
 
 end
 
@@ -171,26 +179,27 @@ if Element=="all", Element = ''; end
 data.Element = Element;
 guidata(hFig,data);
 
-updateList;
+updateTable;
 
 end
 
 
 %-------------------------------------------------------------------------------
-function updateList()
+function updateTable()
 hFig = findall(0,'Type','figure','Tag','isotopesfig');
 data = guidata(hFig);
 hTable = data.hTable;
 
 element = data.Element;
 
+% Update NMR frequencies
 B0 = data.hFieldEdit.Value;
 if isempty(B0)
   errordlg('Invalid magnetic field value!');
   B0 = data.DefaultField;
   data.hFieldEdit.Value = data.DefaultField;
 end
-
+data.tableData.NMRfreq = B0*1e-3*nmagn*data.tableData.gn/planck/1e6;
 if isempty(element)
   hTable.Data = data.tableData;
 else
@@ -224,11 +233,12 @@ N = C{2};
 element = C{4};
 radioactive = C{3};
 for k = numel(N):-1:1
-  str = sprintf('%d%s',N(k),element{k});
+  isostr = sprintf('%d%s',N(k),element{k});
   if radioactive{k}=='*'
-    str = [str '*'];
+    isotopes{k} = [isostr '*'];
+  else
+    isotopes{k} = isostr;
   end
-  isotopes{k} = str;
 end
 C{11} = isotopes(:);
 
@@ -280,5 +290,51 @@ case {6,7}
     Group = Group - 14;
   end
 end
+
+end
+
+
+function fieldEditValueChangedFcn(~,~)
+
+updateTable;
+
+end
+
+
+%-------------------------------------------------------------------------------
+function XbandButtonPushedFcn(~,~)
+
+hFig = findall(0,'Type','figure','Tag','isotopesfig');
+data = guidata(hFig);
+
+data.hFieldEdit.Value = 340;  % mT
+
+updateTable;
+
+end
+
+
+%-------------------------------------------------------------------------------
+function QbandButtonPushedFcn(~,~)
+
+hFig = findall(0,'Type','figure','Tag','isotopesfig');
+data = guidata(hFig);
+
+data.hFieldEdit.Value = 1200;  % mT
+
+updateTable;
+
+end
+
+
+%-------------------------------------------------------------------------------
+function WbandButtonPushedFcn(~,~)
+
+hFig = findall(0,'Type','figure','Tag','isotopesfig');
+data = guidata(hFig);
+
+data.hFieldEdit.Value = 3400;  % mT
+
+updateTable;
 
 end
