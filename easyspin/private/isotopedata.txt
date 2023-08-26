@@ -34,7 +34,7 @@
 %     (https://www-nds.iaea.org/publications/indc/indc-nds-0650.pdf)
 %  (Typo for Ac-227: Sign should be +)
 % See also
-%   P.Pyykk�
+%   P.Pyykkö
 %   Year-2008 Nuclear Quadrupole Moments
 %   Mol.Phys. 106(16-18), 1965-1974 (2008)
 %     (https://doi.org/10.1080/00268970802018367)
@@ -65,7 +65,7 @@
  7  15 - N   nitrogen       0.5 -0.56637768  0.368     0
  8  16 - O   oxygen         0.0  0.0        99.757     0
  8  17 - O   oxygen         2.5 -0.757516    0.038    -0.0256
- 8  18 * O   oxygen         0.0  0.0         0.205     0
+ 8  18 - O   oxygen         0.0  0.0         0.205     0
  9  19 - F   fluorine       0.5 +5.257736  100.0       0
 10  20 - Ne  neon           0.0  0.0        90.48      0
 10  21 - Ne  neon           1.5 -0.441198    0.27     +0.102
