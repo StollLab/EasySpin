@@ -15,19 +15,27 @@
 
 function isotopes()
 
-FigTag = 'isotopesfig';
+% Settings
+figTag = 'isotopesfig';
 Field = 350;  % mT
 buttonFontSize = 14;
 
-hFig = uifigure();
+% Check for existing figure and raise
+hFig = findall(0,'Type','figure','Tag',figTag);
+if ~isempty(hFig)
+  figure(hFig);
+  return
+end
 
+% Read data
 data = readDataFile;
 figdata.Data = data;
 figdata.DefaultField = Field;
-guidata(hFig,figdata);
 
+% Initialize figure window
+hFig = uifigure();
 set(hFig,...
-  'Tag',FigTag,...
+  'Tag',figTag,...
   'Name','Nuclear isotopes',...
   'Toolbar','none',...
   'Menubar','none',...
@@ -132,20 +140,18 @@ uilabel(hFig,...
   'Text','Magnetic field (mT)',...
   'Position',[xOff+80 border 150 19]);
 
-% List of isotope data
-hList = uitable(hFig);
-set(hList,...
+% Table of isotope data
+hTable = uitable(hFig);
+set(hTable,...
   'Position',[xOff border+bottomHeight figPos(3)-2*border listHeight],...
   'FontName',get(0,'FixedWidthFontName'),...
   'BackgroundColor',[1 1 1]);
-figdata.hList = hList;
+figdata.hTable = hTable;
 
 figdata.Element = 'all';
 
 guidata(hFig,figdata);
-updateList;
-
-set(hFig,'HandleVisibility','callback');
+%updateList;
 
 end
 
@@ -165,7 +171,7 @@ end
 
 %-------------------------------------------------------------------------------
 function updateList()
-hFig = findobj('Tag','isotopesfig');
+hFig = findall(0,'Type','figure','Tag','isotopesfig');
 data = guidata(hFig);
 
 newField = data.hFieldEdit.Value;
@@ -181,8 +187,8 @@ if strcmp(element,'all')
 end
 
 lines = IsotopeTable(element,data.Data,newField);
-set(data.hList,'Value',1);
-set(data.hList,'String',lines);
+set(data.hTable,'Value',1);
+set(data.hTable,'String',lines);
 
 end
 
@@ -259,17 +265,17 @@ function [Period,Group,Class] = elementclass(N)
 
 Class = 0;
 
-PeriodLimits = [0 2 10 18 36 54 86 1000];
+periodLimits = [0 2 10 18 36 54 86 1000];
 
 % Determine period of element
 for Period = 1:8
-  if N<=PeriodLimits(Period), break; end
+  if N<=periodLimits(Period), break; end
 end
 Period = Period - 1;
 
 %Determine group and class of element
 %Class 0 - main groups, 1 - transition metals, 2 - rare earths
-Group = N - PeriodLimits(Period);
+Group = N - periodLimits(Period);
 switch Period
 case 1
   Class = 0;
@@ -279,12 +285,12 @@ case {2,3}
   if Group>2, Group = Group + 10; end
 case {4,5}
   Class = 1;
-  if (Group<3) || (Group>12), Class = 0; end
+  if Group<3 || Group>12, Class = 0; end
 case {6,7}
-  if (Group<3) || (Group>26)
+  if Group<3 || Group>26
     Class = 0;
   else
-    if (Group>16)
+    if Group>16
       Class = 1;
     else
       Class = 2;
