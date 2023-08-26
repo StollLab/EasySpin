@@ -13,81 +13,55 @@
 %    6. electric quadrupole moment, in barn
 %    7. Natural abundance in %
 
-function varargout = isotopes(varargin)
+function isotopes()
 
-if (nargin==0)
-  CreateFigure;
-elseif ischar(varargin{1})
-  try
-    if (nargout)
-      [varargout{1:nargout}] = feval(varargin{:});
-    else
-      feval(varargin{:});
-    end
-  catch
-    disp(lasterr);
-  end
-end
-
-return
-%=======================================================
-
-
-%------------------------------------------------------------
-function CreateFigure
-
-hFig = 9736783;
-Field = 350;
+Field = 350;  % mT
 FigTag = 'isotopesfig';
 
-if ishandle(hFig)
-  if strcmp(get(hFig,'Tag'),FigTag)
-    return;
-  end
-end
-
-% Construct periodic table
-figure(hFig);
-set(hFig,'WindowStyle','normal');
-set(hFig,'Tag',FigTag);
-clf;
+hFig = uifigure();
+clf
 
 Data = ReadDataFile;
 figdata.Data = Data;
 figdata.DefaultField = Field;
 guidata(hFig,figdata);
 
-set(hFig,'Toolbar','none','Menubar','none','NumberTitle','off','Resize','off');
-set(hFig,'Name','Nuclear spins [EasySpin]');
-set(hFig,'Color',get(0,'defaultUicontrolBackgroundColor'));
+set(hFig,...
+  'Tag',FigTag,...
+  'Toolbar','none',...
+  'Menubar','none',...
+  'NumberTitle','off',...
+  'Resize','off',...
+  'Name','Nuclear isotopes');
 
-FigPos = get(hFig,'Position');
-
-Width = 28;
-Height = Width;
+% Dimensions
+elementWidth = 40;
+elementHeight = elementWidth;
 Border = 10;
-xSpacing = Width-0;
-ySpacing = Height-0;
+xSpacing = elementWidth+3;
+ySpacing = elementHeight+3;
 ClassSpacing = 5;
 LabelHeight = 15;
 ListHeight = 100;
 BottomHeight = 30;
 
-FigPos(3) = Border + 18*xSpacing + 2*ClassSpacing + Border;
-FigPos(4) = Border + 7*ySpacing + Border + 2*ySpacing + Border + ...
+windowWidth = Border + 18*xSpacing + 2*ClassSpacing + Border;
+windowHeight = Border + 7*ySpacing + Border + 2*ySpacing + Border + ...
   + LabelHeight/2 + ListHeight + Border + BottomHeight;
-set(hFig,'Position',FigPos);
+figPos = hFig.Position;
+figPos(3) = windowWidth;
+figPos(4) = windowHeight;
+hFig.Position = figPos;
 
-yOff = FigPos(4)-Height-Border;
+yOff = figPos(4)-elementHeight-Border;
 xOff = Border;
 
-% Periodic system of elements
+% Add element buttons
 OrdNumber = 0;
-for k=1:numel(Data.gn)
+for k = 1:numel(Data.gn)
   if Data.Protons(k)<=OrdNumber, continue; end
   OrdNumber = Data.Protons(k);
-  h = uicontrol('Style','pushbutton','Units','pixels');
-  p = [0 0 Width Height];
+  p = [0 0 elementWidth elementHeight];
   [period,group,cl] = elementclass(OrdNumber);
   if cl==2
     p(2) = yOff - (period+1)*ySpacing - ClassSpacing;
@@ -95,69 +69,84 @@ for k=1:numel(Data.gn)
   else
     p(2) = yOff - (period-1)*ySpacing;
     p(1) = xOff + (group-1)*xSpacing;
-    if (group>2), p(1) = p(1) + ClassSpacing; end
-    if (group>12), p(1) = p(1) + ClassSpacing; end
+    if group>2, p(1) = p(1) + ClassSpacing; end
+    if group>12, p(1) = p(1) + ClassSpacing; end
   end
-  set(h,'Position',p,'FontSize',10);
-  set(h,'String',Data.Element{k},'Callback','isotopes ElementCallback');
-  set(h,'ToolTipString',[' ' Data.Name{k} ' ']);
+  hButton = uibutton(hFig);
+  set(hButton,'Position',p,...
+    'ButtonPushedFcn',@ElementCallback,...
+    'Text',Data.Element{k},...
+    'FontSize',14,...
+    'Tooltip',[' ' Data.Name{k} ' ']);
   switch cl
-  case 0, if (group<3), col = [99 154 255]; else col = [255 207 0]; end
-  case 1, col = [255 154 156];
-  case 2, col = [0 207 49];
+    case 0
+      if group<3
+        bgcol = [99 154 255]/255;
+      else
+        bgcol = [255 207 0]/255;
+      end
+    case 1
+      bgcol = [255 154 156]/255;
+    case 2
+      bgcol = [0 207 49]/255;
+  end
+  if Data.Nucleons(k)<=0
+    bgcol = get(hButton,'BackgroundColor');
   end  
-  if (Data.Nucleons(k)<=0)
-    col = get(h,'BackgroundColor')*255;
-    %set(h,'Enable','inactive');
-  end  
-  set(h,'BackgroundColor',col/255);
+  hButton.BackgroundColor = bgcol;
 end
+
 hAll = uicontrol('Style','pushbutton','Units','pixels',...
-'Position',[xOff+16*xSpacing+2*ClassSpacing yOff-8*ySpacing-ClassSpacing Width+xSpacing Height+ySpacing]);
+'Position',[xOff+16*xSpacing+2*ClassSpacing yOff-8*ySpacing-ClassSpacing elementWidth+xSpacing elementHeight+ySpacing]);
 set(hAll,'String','all','BackgroundColor',[1 1 1]*0.9,...
 'ToolTipstring','all elements',...
-'Callback','isotopes ElementCallback','FontSize',10);
+'Callback','ElementCallback','FontSize',10);
 
 % Add labels above data columns
 labels = ['Mass Sym.    I              Nuclear g             '...
     'ENDOR Freq.          Elec. Quadrupole      Abundance']; 
 hListLabel = uicontrol('Style','text','String',labels);
 set(hListLabel,'HorizontalAlignment','left');
-set(hListLabel,'Position',[xOff Border+BottomHeight+ListHeight FigPos(3)-2*Border LabelHeight]);
+set(hListLabel,'Position',[xOff Border+BottomHeight+ListHeight figPos(3)-2*Border LabelHeight]);
 figdata.hListLabel = hListLabel;
 
 % Magnetic field value
-hFieldLabel = uicontrol('Style','text','String','Magnetic field [mT]',...
+uicontrol('Style','text','String','Magnetic field (mT)',...
 'Position',[xOff+80 Border 150 19],'HorizontalAlignment','left');
 
-FieldString = sprintf('%g',Field);
-hField = uicontrol('Style','edit','BackgroundColor','white',...
-'units','pixels','Position',[xOff+200 Border 100 22],'String','350',...
-'HorizontalAlignment','left','Callback','isotopes UpdateList');
-figdata.hField = hField;
+hFieldEdit = uieditfield(hFig,'numeric');
+set(hFieldEdit,...
+  'BackgroundColor','white',...
+  'Position',[xOff+200 Border 100 22],...
+  'Value',Field,...
+  'HorizontalAlignment','left',...
+  'ValueChangedFcn',@updateList);
+figdata.hFieldEdit = hFieldEdit;
 
 % Sort selection
 hSort = uicontrol('Style','popupmenu','String',...
 {'nucleons','gn value','spin','abundance'},'Position',[xOff Border 100 22],...
-'HorizontalAlignment','left','Callback','isotopes resort');
+'HorizontalAlignment','left','Callback',@resort);
 set(hSort,'Visible','off','Enable','inactive');
 figdata.hSort = hSort;
 
 % List of isotope data
 hList = uicontrol('Style','listbox','HorizontalAlignment','left');
 set(hList,'FontName',get(0,'FixedWidthFontName'));
-set(hList,'Units','pixels','Position',[xOff Border+BottomHeight FigPos(3)-2*Border ListHeight]);
+set(hList,'Units','pixels','Position',[xOff Border+BottomHeight figPos(3)-2*Border ListHeight]);
 set(hList,'BackgroundColor','white');
 figdata.hList = hList;
 
 figdata.Element = 'all';
 
 guidata(hFig,figdata);
-UpdateList;
+updateList;
+
 set(hFig,'HandleVisibility','callback');
 
-return
+end
 
+%-------------------------------------------------------------------------------
 function resort
 hFig = findobj('Tag','isotopesfig');
 d = guidata(hFig);
@@ -178,27 +167,29 @@ d.Data.Spin = d.Data.Spin(idx);
 d.Data.gn = d.Data.gn(idx);
 d.Data.Abundance = d.Data.Abundance(idx);
 guidata(hFig,d);
-UpdateList;
-return
+updateList;
 
-function ElementCallback
+end
 
-Element = get(gcbo,'String');
+%-------------------------------------------------------------------------------
+function ElementCallback(~,~)
+
+Element = get(gcbo,'Text');
 hFig = findobj('Tag','isotopesfig');
 d = guidata(hFig);
 d.Element = Element;
 guidata(hFig,d);
 
-UpdateList;
+updateList;
 
-return
+end
 
-%--------------------------------------------------------------
-function UpdateList
+%-------------------------------------------------------------------------------
+function updateList
 hFig = findobj('Tag','isotopesfig');
 d = guidata(hFig);
 
-newField = str2num(get(d.hField,'String'));
+newField = d.hFieldEdit.Value;
 if isempty(newField)
   errordlg('Invalid magnetic field value!');
   newField = d.DefaultField;
@@ -208,15 +199,15 @@ end
 Element = d.Element;
 if strcmp(Element,'all')
   Element = '';
-end;
+end
 
 Lines = IsotopeTable(Element,d.Data,newField);
 set(d.hList,'Value',1);
 set(d.hList,'String',Lines);
 
-return
+end
 
-%--------------------------------------------------------------
+%-------------------------------------------------------------------------------
 function Lines = IsotopeTable(Element,Data,Field)
 Lines = [];
 if isempty(Element)
@@ -261,9 +252,9 @@ for k = 1:numel(Isotopes)
     Lines{end+1} = sprintf(Format,Symbol,Abundance);
   end
 end
-return
+end
 
-%--------------------------------------------------------------
+%-------------------------------------------------------------------------------
 function Data = ReadDataFile
 
 % Determine data file name
@@ -289,10 +280,10 @@ C = textscan(fh,'%f %f %s %s %s %f %f %f %f','commentstyle','%');
 % Data.gn(idx) = [];
 % Data.Abundance(idx) = [];
 
-return
+end
 
 
-%--------------------------------------------------------------
+%-------------------------------------------------------------------------------
 function [Period,Group,Class] = elementclass(N)
 
 Class = 0;
@@ -333,4 +324,4 @@ case {6,7}
   end
 end
 
-return
+end
