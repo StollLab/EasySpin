@@ -32,16 +32,6 @@ data = readDataFile;
 figdata.Data = data;
 figdata.DefaultField = Field;
 
-% Initialize figure window
-hFig = uifigure();
-set(hFig,...
-  'Tag',figTag,...
-  'Name','Nuclear isotopes',...
-  'Toolbar','none',...
-  'Menubar','none',...
-  'NumberTitle','off',...
-  'Resize','off');
-
 % GUI dimensions (pixels)
 elementWidth = 36;
 elementHeight = elementWidth;
@@ -55,13 +45,27 @@ listHeight = 150;
 bottomHeight = 30;
 
 % Calculate and set window size
+screensize = get(0, 'ScreenSize');
+screenWidth = screensize(3);
+screenHeight = screensize(4);
 windowWidth = border + 18*xSpacing + 2*classSpacing + border;
 windowHeight = border + 7*ySpacing + border + 2*ySpacing + border + ...
   + labelHeight/2 + listHeight + border + bottomHeight;
-figPos = hFig.Position;
+figPos(1) = (screenWidth-windowWidth)/2;
+figPos(2) = (screenHeight-windowHeight)/2;
 figPos(3) = windowWidth;
 figPos(4) = windowHeight;
-hFig.Position = figPos;
+
+% Initialize figure window
+hFig = uifigure();
+set(hFig,...
+  'Position',figPos,...
+  'Tag',figTag,...
+  'Name','Nuclear isotopes',...
+  'Toolbar','none',...
+  'Menubar','none',...
+  'NumberTitle','off',...
+  'Resize','off');
 
 % Add element buttons
 ordNumber = 0;
