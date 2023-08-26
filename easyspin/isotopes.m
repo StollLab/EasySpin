@@ -27,9 +27,10 @@ if ~isempty(hFig)
   return
 end
 
-% Read data
-data = readDataFile;
-figdata.Data = data;
+% Read isotope data
+data = readIsotopeDataFile;
+
+figdata.fullData = data;
 figdata.DefaultField = Field;
 
 % GUI dimensions (pixels)
@@ -41,7 +42,7 @@ xSpacing = elementWidth+spacing;
 ySpacing = elementHeight+spacing;
 classSpacing = 5;
 labelHeight = 15;
-listHeight = 150;
+tableHeight = 200;
 bottomHeight = 30;
 
 % Calculate and set window size
@@ -50,7 +51,7 @@ screenWidth = screensize(3);
 screenHeight = screensize(4);
 windowWidth = border + 18*xSpacing + 2*classSpacing + border;
 windowHeight = border + 7*ySpacing + border + 2*ySpacing + border + ...
-  + labelHeight/2 + listHeight + border + bottomHeight;
+  + labelHeight/2 + tableHeight + border + bottomHeight;
 figPos(1) = (screenWidth-windowWidth)/2;
 figPos(2) = (screenHeight-windowHeight)/2;
 figPos(3) = windowWidth;
@@ -72,8 +73,8 @@ ordNumber = 0;
 yOff = figPos(4)-elementHeight-border;
 xOff = border;
 for k = 1:numel(data.gn)
-  if data.Protons(k)<=ordNumber, continue; end
-  ordNumber = data.Protons(k);
+  if data.Z(k)<=ordNumber, continue; end
+  ordNumber = data.Z(k);
   p = [0 0 elementWidth elementHeight];
   [period,group,cl] = elementclass(ordNumber);
   if cl==2
@@ -89,9 +90,9 @@ for k = 1:numel(data.gn)
   set(hButton,...
     'Position',p,...
     'ButtonPushedFcn',@elementButtonPushedCallback,...
-    'Text',data.Element{k},...
+    'Text',data.element{k},...
     'FontSize',buttonFontSize,...
-    'Tooltip',[' ' data.Name{k} ' ']);
+    'Tooltip',[' ' data.name{k} ' ']);
   switch cl
     case 0
       if group<3
@@ -104,12 +105,13 @@ for k = 1:numel(data.gn)
     case 2
       bgcol = [0 207 49]/255;
   end
-  if data.Nucleons(k)<=0
+  if data.N(k)<=0
     bgcol = get(hButton,'BackgroundColor');
   end  
   hButton.BackgroundColor = bgcol;
 end
 
+% Add selection button
 hAll = uibutton(hFig);
 p = [xOff+16*xSpacing+2*classSpacing yOff-8*ySpacing-classSpacing ...
      elementWidth+xSpacing elementHeight+ySpacing];
@@ -118,18 +120,8 @@ set(hAll,...
   'Text','all',...
   'BackgroundColor',[1 1 1]*0.9,...
   'Tooltip','all elements',...
-  'ButtonPushedFcn',@ElementCallback,...
+  'ButtonPushedFcn',@elementButtonPushedCallback,...
   'FontSize',buttonFontSize);
-
-% Add labels above data columns
-%{
-labels = ['Mass Sym.    I              Nuclear g             '...
-    'ENDOR Freq.          Elec. Quadrupole      Abundance']; 
-hListLabel = uicontrol('Style','text','String',labels);
-set(hListLabel,'HorizontalAlignment','left');
-set(hListLabel,'Position',[xOff Border+bottomHeight+listHeight figPos(3)-2*Border labelHeight]);
-figdata.hListLabel = hListLabel;
-%}
 
 % Magnetic field edit box with label
 hFieldEdit = uieditfield(hFig,'numeric');
@@ -147,15 +139,24 @@ uilabel(hFig,...
 % Table of isotope data
 hTable = uitable(hFig);
 set(hTable,...
-  'Position',[xOff border+bottomHeight figPos(3)-2*border listHeight],...
-  'FontName',get(0,'FixedWidthFontName'),...
-  'BackgroundColor',[1 1 1]);
+  'Position',[xOff border+bottomHeight figPos(3)-2*border tableHeight]);
 figdata.hTable = hTable;
 
-figdata.Element = 'all';
+%vnames = {'Z','N','radioactive','element','name','spin',...
+%  'gn','abundance','qm','gamma','isotope'};
+
+tabledata = data(:,{'Z','N','isotope','abundance','spin','gn','gamma','qm'});
+
+hTable.Data = tabledata;
+hTable.ColumnSortable = true;
+hTable.ColumnWidth = 'auto';
+hTable.SelectionType = 'row';
+hTable.ColumnName = {'Z','N','Isotope','Abundance (%)','Spin','gn value','γ/2π (MHz/T)','Q (barn)'};
+
+figdata.Element = '';
+figdata.tableData = tabledata;
 
 guidata(hFig,figdata);
-%updateList;
 
 end
 
@@ -165,6 +166,8 @@ function elementButtonPushedCallback(src,~)
 Element = src.Text;
 hFig = src.Parent;
 data = guidata(hFig);
+
+if Element=="all", Element = ''; end
 data.Element = Element;
 guidata(hFig,data);
 
@@ -177,76 +180,29 @@ end
 function updateList()
 hFig = findall(0,'Type','figure','Tag','isotopesfig');
 data = guidata(hFig);
+hTable = data.hTable;
 
-newField = data.hFieldEdit.Value;
-if isempty(newField)
+element = data.Element;
+
+B0 = data.hFieldEdit.Value;
+if isempty(B0)
   errordlg('Invalid magnetic field value!');
-  newField = data.DefaultField;
+  B0 = data.DefaultField;
   data.hFieldEdit.Value = data.DefaultField;
 end
 
-element = data.Element;
-if strcmp(element,'all')
-  element = '';
-end
-
-lines = IsotopeTable(element,data.Data,newField);
-set(data.hTable,'Value',1);
-set(data.hTable,'String',lines);
-
-end
-
-
-%-------------------------------------------------------------------------------
-function Lines = IsotopeTable(Element,Data,Field)
-Lines = [];
-if isempty(Element)
-  Isotopes = 1:numel(Data.gn);
+if isempty(element)
+  hTable.Data = data.tableData;
 else
-  Isotopes = find(strcmp(Element,Data.Element));
+  idx = data.fullData.element==string(element);
+  hTable.Data = data.tableData(idx,:);
 end
-for k = 1:numel(Isotopes)
-  iIso = Isotopes(k);
-  if Data.Spin(iIso)<=0, continue; end
-  if Data.Nucleons(iIso)>0
-    Symbol = sprintf('%3d %s   ',Data.Nucleons(iIso),Data.Element{iIso});
-  else
-    Symbol = sprintf('    %s   ',Data.Element{iIso});
-  end
-  Symbol = Symbol(1:6);
-  SpinStr = sprintf('%1.1f',Data.Spin(iIso));
-  Freq = nmagn*Field*abs(Data.gn(iIso))/planck/1e9;
-  Abundance = '       ';
-  if Data.Radioactive{iIso}=='-'
-    a = Data.Abundance(iIso);
-    Abund = sprintf('%g%%',a);
-    if (a<100), Abund = [' ' Abund]; end
-    if (a<10), Abund = [' ' Abund]; end
-    Abundance(1:numel(Abund)) = Abund;
-  end
-  QuadMoment = '         ';
-  if Data.qm(iIso)~=0
-    if isnan(Data.qm(iIso))
-      d = ' n/a';
-    else
-      d = sprintf('%+gb',Data.qm(iIso));
-    end
-    QuadMoment(1:numel(d)) = d;
-  end
-  if Data.Spin(iIso)>0
-    Format = '%s   %s   %-+10g  %-8gMHz   %s    %s';
-    Lines{end+1} = sprintf(Format,Symbol,SpinStr,...
-                  Data.gn(iIso),Freq,QuadMoment,Abundance);
-  else
-    Format = '%s                           %s';
-    Lines{end+1} = sprintf(Format,Symbol,Abundance);
-  end
-end
+
 end
 
 
 %-------------------------------------------------------------------------------
-function data = readDataFile
+function data = readIsotopeDataFile
 
 % Determine full data file name
 esPath = fileparts(which(mfilename));
@@ -258,8 +214,28 @@ end
 % Load data
 fh = fopen(DataFile);
 C = textscan(fh,'%f %f %s %s %s %f %f %f %f','commentstyle','%');
-[data.Protons,data.Nucleons,data.Radioactive,...
- data.Element,data.Name,data.Spin,data.gn,data.Abundance,data.qm] = C{:};
+
+% Calculate gyromagnetic ratioes (MHz/T)
+gn = C{7};
+C{10} = gn*nmagn/planck/1e6;
+
+% Assemble isotope symbols
+N = C{2};
+element = C{4};
+radioactive = C{3};
+for k = numel(N):-1:1
+  str = sprintf('%d%s',N(k),element{k});
+  if radioactive{k}=='*'
+    str = [str '*'];
+  end
+  isotopes{k} = str;
+end
+C{11} = isotopes(:);
+
+% Construct table
+vnames = {'Z','N','radioactive','element','name','spin',...
+  'gn','abundance','qm','gamma','isotope'};
+data = table(C{:},'VariableNames',vnames);
 
 end
 
