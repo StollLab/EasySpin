@@ -102,7 +102,7 @@ for k = 1:numel(data.gn)
   hButton.BackgroundColor = bgcol;
 end
 
-% Add selection button
+% Add selection button for all elements
 hAll = uibutton(hFig);
 p = [xOff+16*xSpacing+2*classSpacing yOff-8*ySpacing-classSpacing ...
      elementWidth+xSpacing elementHeight+ySpacing];
@@ -114,33 +114,58 @@ set(hAll,...
   'ButtonPushedFcn',@elementButtonPushedCallback,...
   'FontSize',buttonFontSize);
 
+% Add checkbox for unstable isotopes
+xpos = xOff;
+hUnstableCheckbox = uicheckbox(hFig);
+set(hUnstableCheckbox,...
+  'Position',[xpos border 160 22],...
+  'Text','Show unstable isotopes',...
+  'Value',0,...
+  'ValueChangedFcn',@(~,~)updateTable);
+figdata.hUnstableCheckbox = hUnstableCheckbox;
+
+% Add checkbox for nonmagnetic isotopes
+xpos = xpos+170;
+hNonmagneticCheckbox = uicheckbox(hFig);
+set(hNonmagneticCheckbox,...
+  'Position',[xpos border 180 22],...
+  'Text','Show nonmagnetic isotopes',...
+  'Value',1,...
+  'ValueChangedFcn',@(~,~)updateTable);
+figdata.hNonmagneticCheckbox = hNonmagneticCheckbox;
+
 % Magnetic field edit box with label
-hFieldEdit = uieditfield(hFig,'numeric');
-set(hFieldEdit,...
-  'BackgroundColor','white',...
-  'Position',[xOff+200 border 100 22],...
-  'Value',Field,...
-  'HorizontalAlignment','left',...
-  'ValueChangedFcn',@fieldEditValueChangedFcn);
-figdata.hFieldEdit = hFieldEdit;
+xpos = xpos+255;
 uilabel(hFig,...
   'Text','Magnetic field (mT)',...
-  'Position',[xOff+80 border 150 19]);
+  'Position',[xpos border 110 19]);
+hFieldEdit = uieditfield(hFig,'numeric');
+xpos = xpos+120;
+set(hFieldEdit,...
+  'BackgroundColor','white',...
+  'Position',[xpos border 100 22],...
+  'Value',Field,...
+  'HorizontalAlignment','left',...
+  'ValueChangedFcn',@(~,~)updateTable);
+figdata.hFieldEdit = hFieldEdit;
 
-% Convenience buttons for X, Q and W band
+% Add convenience buttons for X, Q and W band fields
+xpos = xpos + 105;
 hXbandButton = uibutton(hFig);
 set(hXbandButton,...
-  'Position',[xOff+200+100+10 border 40 22],...
+  'Position',[xpos border 30 22],...
   'Text','X',...
   'ButtonPushedFcn',@XbandButtonPushedFcn);
+xpos = xpos + 35;
 hQbandButton = uibutton(hFig);
 set(hQbandButton,...
-  'Position',[xOff+200+100+10+40+10 border 40 22],...
+  'Position',[xpos border 30 22],...
   'Text','Q',...
   'ButtonPushedFcn',@QbandButtonPushedFcn);
+xpos = xpos + 35;
 hWbandButton = uibutton(hFig);
 set(hWbandButton,...
-  'Position',[xOff+200+100+10+40+10+40+10 border 40 22],...
+  'Position',[xpos border 30 22],...
   'Text','W',...
   'ButtonPushedFcn',@WbandButtonPushedFcn);
 
@@ -200,12 +225,25 @@ if isempty(B0)
   data.hFieldEdit.Value = data.DefaultField;
 end
 data.tableData.NMRfreq = B0*1e-3*nmagn*data.tableData.gn/planck/1e6;
+
+% Filter table by element
 if isempty(element)
-  hTable.Data = data.tableData;
+  idx = true(height(data.tableData),1);
 else
   idx = data.fullData.element==string(element);
-  hTable.Data = data.tableData(idx,:);
 end
+
+% Hide unstable isotopes if desired
+if ~data.hUnstableCheckbox.Value
+  idx = idx & data.fullData.radioactive=="-";
+end
+
+% Hide nonmagnetic isotopes if desired
+if ~data.hNonmagneticCheckbox.Value
+  idx = idx & data.fullData.spin~=0;
+end
+
+hTable.Data = data.tableData(idx,:);
 
 end
 
@@ -290,13 +328,6 @@ case {6,7}
     Group = Group - 14;
   end
 end
-
-end
-
-
-function fieldEditValueChangedFcn(~,~)
-
-updateTable;
 
 end
 
