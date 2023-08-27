@@ -88,8 +88,7 @@ for k = 1:numel(data.gn)
   end
   switch cl
     case 0
-      if group<3
-          
+      if group<3     
         bgcol = [99 154 255]/255;
       else
         bgcol = [255 207 0]/255;
@@ -101,7 +100,7 @@ for k = 1:numel(data.gn)
   end
   if data.N(k)<=0
     bgcol = get(hButton,'BackgroundColor');
-  end  
+  end
   hButton.BackgroundColor = bgcol;
 end
 
@@ -253,6 +252,9 @@ end
 if ~data.hNonmagneticCheckbox.Value
   idx = idx & data.fullData.spin~=0;
 end
+
+% Hide elements without any isotopes
+idx = idx & data.fullData.spin>=0;
 
 if ~any(idx)
   hTable.Data = [];
