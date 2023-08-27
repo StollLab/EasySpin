@@ -254,7 +254,11 @@ if ~data.hNonmagneticCheckbox.Value
   idx = idx & data.fullData.spin~=0;
 end
 
-hTable.Data = data.tableData(idx,:);
+if ~any(idx)
+  hTable.Data = [];
+else
+  hTable.Data = data.tableData(idx,:);
+end
 
 end
 
