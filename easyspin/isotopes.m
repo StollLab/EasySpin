@@ -82,11 +82,14 @@ for k = 1:numel(data.gn)
     'Position',p,...
     'ButtonPushedFcn',@elementButtonPushedCallback,...
     'Text',data.element{k},...
-    'FontSize',buttonFontSize,...
-    'Tooltip',[' ' data.name{k} ' ']);
+    'FontSize',buttonFontSize);
+  if ~verLessThan('matlab','9.5')  % R2018b = 9.5
+    set(hButton,'Tooltip',[' ' data.name{k} ' ']);
+  end
   switch cl
     case 0
       if group<3
+          
         bgcol = [99 154 255]/255;
       else
         bgcol = [255 207 0]/255;
@@ -110,9 +113,12 @@ set(hAll,...
   'Position',p,...
   'Text','all',...
   'BackgroundColor',[1 1 1]*0.9,...
-  'Tooltip','all elements',...
   'ButtonPushedFcn',@elementButtonPushedCallback,...
   'FontSize',buttonFontSize);
+
+if ~verLessThan('Matlab','9.5')  % R2018b = 9.5
+  set(hAll,'Tooltip','all elements');
+end
 
 % Add checkbox for unstable isotopes
 xpos = xOff;
@@ -179,11 +185,16 @@ tabledata = data(:,{'isotope','abundance','spin','gn','gamma','qm'});
 tabledata.NMRfreq = zeros(height(tabledata),1);
 
 hTable.Data = tabledata;
-hTable.ColumnSortable = true;
 hTable.ColumnWidth = 'auto';
-hTable.SelectionType = 'row';
+if ~verLessThan('matlab','9.11')  % 9.11 = R2021b
+  hTable.SelectionType = 'row';
+end
 hTable.ColumnName = {'Isotope','Abundance (%)','Spin',...
   'gn value','γ/2π (MHz/T)','Q (barn)','Frequency (MHz)'};
+
+if ~verLessThan('matlab','9.7')  % 9.7 = R2019b
+  hTable.ColumnSortable = true;
+end
 
 figdata.Element = '';
 figdata.tableData = tabledata;
