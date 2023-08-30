@@ -36,55 +36,55 @@ end
 
 if nargin<3, g = gfree; end
 
-switch units
+switch lower(units)
 
-    case 'cm^-1->eV'
+    case 'cm^-1->ev'
         out = value.*100*clight*planck/evolt;
-    case 'cm^-1->K'
+    case 'cm^-1->k'
         out = value.*100*clight*planck/boltzm;
-    case 'cm^-1->mT'
+    case 'cm^-1->mt'
         out = value./g*(planck/bmagn/1e-3)*100*clight;
-    case 'cm^-1->MHz'
+    case 'cm^-1->mhz'
         out = value.*100*clight/1e6;
 
 
-    case 'eV->cm^-1'
+    case 'ev->cm^-1'
         out = value.*evolt/100/clight/planck;
-    case 'eV->K'
+    case 'ev->k'
         out = value.*evolt/boltzm;
-    case 'eV->mT'
+    case 'ev->mt'
         out = value./g/bmagn/1e-3*evolt;
-    case 'eV->MHz'
+    case 'ev->mhz'
         out = value.*evolt/planck/1e6;
 
 
-    case 'K->cm^-1'
+    case 'k->cm^-1'
         out = value.*boltzm/100/clight/planck;
-    case 'K->eV'
+    case 'k->ev'
         out = value.*boltzm/evolt;
-    case 'K->mT'
+    case 'k->mt'
         out = value./g/bmagn/1e-3*boltzm;
-    case 'K->MHz'
+    case 'k->mhz'
         out = value.*boltzm/planck/1e6;
 
 
-    case 'mT->cm^-1'
+    case 'mt->cm^-1'
         out = value.*g/(planck/bmagn/1e-3)/100/clight;
-    case 'mT->eV'
+    case 'mt->ev'
         out = value.*g*bmagn*1e-3/evolt;
-    case 'mT->K'
+    case 'mt->k'
         out = value.*g*bmagn*1e-3/boltzm;
-    case 'mT->MHz'
+    case 'mt->mhz'
         out = value.*g*(1e-3*bmagn/planck/1e6);
 
 
-    case 'MHz->cm^-1'
+    case 'mhz->cm^-1'
         out = value.*1e6/100/clight;
-    case 'MHz->eV'
+    case 'mhz->ev'
         out = value.*1e6*planck/evolt;
-    case 'MHz->K'
+    case 'mhz->k'
         out = value.*1e6*planck/boltzm;
-    case 'MHz->mT'
+    case 'mhz->mt'
         out = value./g*(planck/bmagn/1e-3)*1e6;
         
 
