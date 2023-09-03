@@ -1,13 +1,15 @@
 % mt2mhz   obsolete
-% use unitconvert(input, 'mT->MHz')
+% use unitconvert(input, 'mT->MHz', g)
 
-function mt2mhz(x_mT,g)
+function varargout = mt2mhz(x_mT,g)
 
-if nargin<1, error(sprintf('The function mhz2mt is obsolete. Use:\noutput = unitconvert(1, ''mT->MHz'')')); end
+if nargin<1
+  error('The function mhz2mt is obsolete. Use:\noutput = unitconvert(1, ''mT->MHz'')');
+end
 if nargin<2
-    error(sprintf('The function mt2mhz is obsolete. Use:\noutput = unitconvert(%d, ''mT->MHz'')',x_mT));
+  error('The function mt2mhz is obsolete. Use:\noutput = unitconvert(%d, ''mT->MHz'')',x_mT);
 end
 
-error(sprintf('The function mt2mhz is obsolete. Use:\noutput = unitconvert(%d, ''mT->MHz'', %d)',x_mT,g));
+error('The function mt2mhz is obsolete. Use:\noutput = unitconvert(%d, ''mT->MHz'', %d)',x_mT,g);
 
 end
