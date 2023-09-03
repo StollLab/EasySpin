@@ -120,7 +120,7 @@ for iSection = 1:numel(sections)
         A_vals = readvec(allLines{i+16}(9:end));
         Araw{atomno} = A_raw;
         A{atomno} = A_vals;
-        if ~all(A_vecs==0,'all')
+        if ~all(A_vecs(:)==0)
           AFrame{atomno} = eulang(A_vecs);
         else
           AFrame{atomno} = [0 0 0];
