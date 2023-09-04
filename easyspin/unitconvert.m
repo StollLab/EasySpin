@@ -36,59 +36,53 @@ end
 
 if nargin<3, g = gfree; end
 
-switch lower(units)
+% Cell array with unit conversion as string and function handles to compute
+% the conversion
+% From Matlab 2022b, dictionaries would be better suited
 
-    case 'cm^-1->ev'
-        out = value.*100*clight*planck/evolt;
-    case 'cm^-1->k'
-        out = value.*100*clight*planck/boltzm;
-    case 'cm^-1->mt'
-        out = value./g*(planck/bmagn/1e-3)*100*clight;
-    case 'cm^-1->mhz'
-        out = value.*100*clight/1e6;
+unitconv = {
+  "cm^-1->eV",    @(value) value.*100*clight*planck/evolt;
+  "cm^-1->K",     @(value) value.*100*clight*planck/boltzm;
+  "cm^-1->mT",    @(value) value./g*(planck/bmagn/1e-3)*100*clight;
+  "cm^-1->MHz",   @(value) value.*100*clight/1e6;
 
+  "eV->cm^-1",    @(value) value.*evolt/100/clight/planck;
+  "eV->K",        @(value) value.*evolt/boltzm;
+  "eV->mT",       @(value) value./g/bmagn/1e-3*evolt;
+  "eV->MHz",      @(value) value.*evolt/planck/1e6;
 
-    case 'ev->cm^-1'
-        out = value.*evolt/100/clight/planck;
-    case 'ev->k'
-        out = value.*evolt/boltzm;
-    case 'ev->mt'
-        out = value./g/bmagn/1e-3*evolt;
-    case 'ev->mhz'
-        out = value.*evolt/planck/1e6;
+  "K->cm^-1",     @(value) value.*boltzm/100/clight/planck;
+  "K->eV",        @(value) value.*boltzm/evolt;
+  "K->mT",        @(value) value./g/bmagn/1e-3*boltzm;
+  "K->MHz",       @(value) value.*boltzm/planck/1e6;
 
+  "mT->cm^-1",    @(value) value.*g/(planck/bmagn/1e-3)/100/clight;
+  "mT->eV",       @(value) value.*g*bmagn*1e-3/evolt;
+  "mT->K",        @(value) value.*g*bmagn*1e-3/boltzm;
+  "mT->MHz",      @(value) value.*g*(1e-3*bmagn/planck/1e6);
 
-    case 'k->cm^-1'
-        out = value.*boltzm/100/clight/planck;
-    case 'k->ev'
-        out = value.*boltzm/evolt;
-    case 'k->mt'
-        out = value./g/bmagn/1e-3*boltzm;
-    case 'k->mhz'
-        out = value.*boltzm/planck/1e6;
+  "MHz->cm^-1",   @(value) value.*1e6/100/clight;
+  "MHz->eV",      @(value) value.*1e6*planck/evolt;
+  "MHz->K",       @(value) value.*1e6*planck/boltzm;
+  "MHz->mT",      @(value) value./g*(planck/bmagn/1e-3)*1e6
+  };
 
+% List of possible unit conversion as string array
+unames = string(unitconv(:,1));
 
-    case 'mt->cm^-1'
-        out = value.*g/(planck/bmagn/1e-3)/100/clight;
-    case 'mt->ev'
-        out = value.*g*bmagn*1e-3/evolt;
-    case 'mt->k'
-        out = value.*g*bmagn*1e-3/boltzm;
-    case 'mt->mhz'
-        out = value.*g*(1e-3*bmagn/planck/1e6);
+% Test if input unit conversion exists (case-sensitive)
+unitMatch = strcmp(unames,units);
 
-
-    case 'mhz->cm^-1'
-        out = value.*1e6/100/clight;
-    case 'mhz->ev'
-        out = value.*1e6*planck/evolt;
-    case 'mhz->k'
-        out = value.*1e6*planck/boltzm;
-    case 'mhz->mt'
-        out = value./g*(planck/bmagn/1e-3)*1e6;
-        
-
-    otherwise
-        error('Unknown unit conversion specified ')
-
+if any(unitMatch)
+  % Return unit conversion
+  out = unitconv{unitMatch,2}(value);
+else
+  % Throw errors depending on unit input
+  % Test if input unit conversion exists (case-insensitive)
+  unitMatchI = strcmpi(unames,units);
+  if any(unitMatch)
+    error('You provided: %s. Did you mean %s?',value,unitconv{unitMatchI,1})
+  else
+    error('Unknown unit conversion specified.')
+  end
 end
