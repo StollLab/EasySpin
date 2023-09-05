@@ -301,7 +301,7 @@ where x, y and z are the axes of an arbitrary molecule-fixed frame and the 3x3 m
 </p>
 
 <p>
-In its form commonly used in the spin Hamiltonian, the D tensor is set to be traceless (sum of diagonal elements is zero) and symmetric (<img src="eqn/hamiltonian21.png" alt="[eqn]"><!--MATH$D_{ij} = D_{ji}$-->). D tensors calculated using quantum-chemistry programs are in general not traceless and not exactly symmetric.
+In its form commonly used in the spin Hamiltonian, the D tensor is set to be traceless (sum of diagonal elements is zero) and symmetric (<img src="eqn/hamiltonian21.png" alt="[eqn]"><!--MATH$D_{ij} = D_{ji}$-->). D tensors calculated using quantum-chemistry programs in general might not be traceless and exactly symmetric.
 </p>
 
 <p>
@@ -338,7 +338,7 @@ $$
 </div>
 
 <p>
-Since the D tensor is traceless, only two values are needed to fully specify the three principal values. Conventionaly, the two parameters D and E are used. They are related to D<sub>X</sub>, D<sub>Y</sub> and D<sub>Z</sub> via
+Since the D tensor is set to be traceless, only two parameters are needed to fully specify the three principal values. Conventionally, the two parameters D and E are used. They are related to D<sub>X</sub>, D<sub>Y</sub> and D<sub>Z</sub> via
 </p>
 
 <div class="eqn">
@@ -380,7 +380,7 @@ $$
 </div>
 
 <p>
-How the X, Y and Z labels are assigned to the three principal axes is a matter of convention. Two conventions are in use.
+The Z label is generally assigned to the principal axis corresponding to the absolute largest eigenvalue, assignment of the X and Y labels is a matter of convention. Two conventions are in use.
 </p>
 
 <ul>
@@ -392,7 +392,7 @@ For transition metals, they are assigned such that <img src="eqn/hamiltonian28.p
 </ul>
 
 <p>
-In either convention, if |E/D| = 1/3, then the sign of D is has no effect on the actual values of D<sub>X</sub>, D<sub>Y</sub> and D<sub>Z</sub>.
+In either convention, if |E/D| = 1/3, then the sign of D is has no effect on the actual values of D<sub>X</sub>, D<sub>Y</sub> and D<sub>Z</sub>. See the <a href="zfsframes.html">zfsframes</a> documentation for more details. 
 </p>
 
 <!-- ============================================================= -->
@@ -473,7 +473,7 @@ $$
 </div>
 
 <p>
-The symmetic <img src="eqn/hamiltonian34.png" alt="[eqn]"><!--MATH$\mx{A}$--> can be separated into three
+The symmetric <img src="eqn/hamiltonian34.png" alt="[eqn]"><!--MATH$\mx{A}$--> can be separated into three
 components, an isotropic, an axial and a rhombic component. In the eigenframe of <img src="eqn/hamiltonian35.png" alt="[eqn]"><!--MATH$\mx{A}$-->,
 they are characterized by the three parameters <img src="eqn/hamiltonian36.png" alt="[eqn]"><!--MATH$a_\mr{iso}$-->, 
 <img src="eqn/hamiltonian37.png" alt="[eqn]"><!--MATH$T$--> and <img src="eqn/hamiltonian38.png" alt="[eqn]"><!--MATH$\rho$-->, respectively.
