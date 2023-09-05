@@ -80,8 +80,8 @@ else
   % Throw errors depending on unit input
   % Test if input unit conversion exists (case-insensitive)
   unitMatchI = strcmpi(unames,units);
-  if any(unitMatch)
-    error('You provided: %s. Did you mean %s?',value,unitconv{unitMatchI,1})
+  if any(unitMatchI)
+    error('You provided: %s. Did you mean %s?',units,unitconv{unitMatchI,1})
   else
     error('Unknown unit conversion specified.')
   end
