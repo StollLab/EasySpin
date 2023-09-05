@@ -1,15 +1,25 @@
-% mt2mhz   obsolete
-% use unitconvert(input, 'mT->MHz', g)
+% mt2mhz   Conversion from mT to MHz
+%
+%   value_MHz = mt2mhz(value_mT)
+%   value_MHz = mt2mhz(value_mT,g)
+%
+%   Converts the magnetic field value in value_mT, assumed to be
+%   in units of mT (millitesla), to MHz (megahertz), returning
+%   the result in value_MHz.
+%
+%   For the conversion, the g factor given as second
+%   parameter is used. If it is not given, the g factor
+%   of the free electron (gfree) is used.
+%
+%   value_mT can be a vector of values. In this case, g
+%   can be a scalar or a vector of the same size as value_mT.
 
-function varargout = mt2mhz(x_mT,g)
+function value_MHz = mt2mhz(value_mT,g)
 
-if nargin<1
-  error('The function mhz2mt is obsolete. Use:\noutput = unitconvert(1, ''mT->MHz'')');
-end
-if nargin<2
-  error('The function mt2mhz is obsolete. Use:\noutput = unitconvert(%d, ''mT->MHz'')',x_mT);
-end
+if nargin==0, help(mfilename); return; end
 
-error('The function mt2mhz is obsolete. Use:\noutput = unitconvert(%d, ''mT->MHz'', %d)',x_mT,g);
+if nargin<2, g = gfree; end
+
+value_MHz = unitconvert(value_mT,"mT->MHz",g);
 
 end
