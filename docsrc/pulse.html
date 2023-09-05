@@ -368,7 +368,7 @@ A = \sin\frac{\pi \left(t - t_\mr{p}/2 + t_\text{rise}\right)}{2 t_\text{rise}} 
 
 <li><code>'tanh2'</code>:
 <div class="eqn">
-<img src="eqn/pulse7.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 A =
 \coth^4 \frac{t_\mr{p}}{2t_\mr{rise}}
@@ -380,7 +380,7 @@ A =
 
 <li><code>'GaussianCascade'</code>:
 <div class="eqn">
-<img src="eqn/pulse8.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 A(t) = \sum_{n = 1}^N A_n \exp\left[-\frac{4 \ln{2}}{\left(FWHM_{n} t_\mr{p}\right)^2} \left( t - x_n t_\mr{p} \right)^2 \right]
 \end{equation*}
@@ -389,7 +389,7 @@ A(t) = \sum_{n = 1}^N A_n \exp\left[-\frac{4 \ln{2}}{\left(FWHM_{n} t_\mr{p}\rig
 
 <li><code>'FourierSeries'</code>:
 <div class="eqn">
-<img src="eqn/pulse9.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 A(t) = A_0 + \sum_{n = 1}^N \left[ A_n \cos\left(n \omega t\right) + B_n \sin \left(n \omega t \right) \right]
 \end{equation*}
@@ -406,7 +406,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'none'</code>:
 <div class="eqn">
-<img src="eqn/pulse10.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse11.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = 0 \qquad \qquad \phi = 0
 \end{equation*}
@@ -415,7 +415,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'linear'</code>:
 <div class="eqn">
-<img src="eqn/pulse11.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse12.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{t_\mr{p}} t \qquad \qquad \phi = 2 \pi \left( -\frac{BW}{2}\left(t - \frac{t_\mr{p}}{2}\right) + \frac{1}{2} \frac{BW}{t_\mr{p}} \left(t - \frac{t_\mr{p}}{2}\right)^2\right)
 \end{equation*}
@@ -424,7 +424,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'tanh'</code>:
 <div class="eqn">
-<img src="eqn/pulse12.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse13.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \nu = \frac{BW}{2 \tanh(\beta/2)} \tanh{\frac{\beta t}{t_\mr{p}}}
 \qquad\qquad
@@ -447,7 +447,7 @@ The time axis for the calculation of the modulation functions is centered at zer
 The final pulse shape is calculated as:
 </p>
 <div class="eqn">
-<img src="eqn/pulse13.png" alt="[eqn]"><!--MATH
+<img src="eqn/pulse14.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 P = A \exp\left[i \left(\phi + 2 \pi \nu_\text{center} + \Delta\phi\right) \right]
 \end{equation*}

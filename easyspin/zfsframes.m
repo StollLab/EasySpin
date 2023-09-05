@@ -87,7 +87,6 @@ for k=1:6
   fprintf('  %d%d%d->xyz:  D = %-+5.3f    E = %-+5.3f    E/D = %-+5.2f    %s\n',...
     ax_(1),ax_(2),ax_(3),D_(k),E_(k),ED_(k),name{k});
 end
-disp('The Blumberg convention is the recommended one.')
 disp(' ');
 
-return
+end
