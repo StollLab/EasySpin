@@ -36,6 +36,8 @@
 %                 of the output argument to use for fitting
 %        .mask    array of 1 and 0 the same size as data vector
 %                 values with mask 0 are excluded from the fit
+%        .weights array of weights to use when combining residual vectors
+%                 of all datasets
 % Output:
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector (contains only active fitting parameters)
@@ -124,10 +126,29 @@ argspar = esfit_argsparams();
 
 % Experimental data
 %-------------------------------------------------------------------------------
-if ~isnumeric(data) || ~isvector(data) || isempty(data)
-  error('First argument must be numeric experimental data in the form of a vector.');
+if ~iscell(data)
+  data = {data};
 end
-esfitdata.data = data;
+data_vec = [];
+for i = 1:numel(data)
+  if ~isnumeric(data{i}) || ~isvector(data{i}) || isempty(data{i})
+    error('First input must be numeric experimental data in the form of a vector or a cell array of vectors.');
+  end
+  data_vec = [data_vec; data{i}(:)];
+  datasize(i) = numel(data{i});
+end
+
+idx = cell(1,numel(data));
+idx_ = [0 cumsum(datasize)];
+for i = 1:numel(data)
+  idx{i} = false(size(data_vec));
+  idx{i}(idx_(i)+1:idx_(i+1)) = true;
+end
+
+esfitdata.data = data_vec;
+esfitdata.idx = idx;
+esfitdata.nDataSets = numel(data);
+esfitdata.datasize = datasize;
 
 % Model function
 %-------------------------------------------------------------------------------
@@ -252,18 +273,22 @@ esfitdata.fixedParams = false(1,numel(pvec_0));
 %-------------------------------------------------------------------------------
 if EasySpinFunction
 
+  if numel(data)>1
+    error('Cannot use EasySpin functions for global fitting directly. Write a custom model function.');
+  end
+
   if ~iscell(p0) || numel(p0)<2
     error('The third input must contain the initial parameters, e.g. {Sys0,Exp} or {Sys0,Exp,Opt}.');
   end
 
   % Check or set Exp.nPoints
   if isfield(p0{2},'nPoints')
-    if p0{2}.nPoints~=numel(data)
+    if p0{2}.nPoints~=numel(data{1})
       error('Exp.nPoints is %d, but the data vector has %d elements.',...
-        p0{2}.nPoints,numel(data));
+        p0{2}.nPoints,numel(data{1}));
     end
   else
-    p0{2}.nPoints = numel(data);
+    p0{2}.nPoints = numel(data{1});
   end
   
   % For field and frequency sweeps, require manual field range (to prevent
@@ -333,6 +358,10 @@ for k = 1:numel(keywords)
   end
 end
 
+if ~isfield(Opt,'TargetID')
+  Opt.TargetID = 1;
+end
+
 AlgorithmNames{1} = 'Nelder-Mead simplex';
 AlgorithmNames{2} = 'Levenberg-Marquardt';
 AlgorithmNames{3} = 'Monte Carlo';
@@ -351,7 +380,7 @@ esfitdata.TargetNames = TargetNames;
 
 % Mask
 if ~isfield(Opt,'mask')
-  Opt.mask = true(size(data));
+  Opt.mask = true(size(data_vec));
 else
   Opt.mask = logical(Opt.mask);
   if numel(Opt.mask)~=numel(data)
@@ -375,18 +404,39 @@ switch Opt.AutoScale
 end
 esfitdata.AutoScale = AutoScale;
 
+% Baseline correction
 if ~isfield(Opt,'BaseLine')
   Opt.BaseLine = [];
 end
 if isempty(Opt.BaseLine)
-  esfitdata.BaseLine = -1;  
+  Opt.BaseLine = -ones(1,esfitdata.nDataSets);  
 else
-  esfitdata.BaseLine = Opt.BaseLine;
+  Opt.BaseLine = Opt.BaseLine;
 end
+esfitdata.BaseLine = Opt.BaseLine;
+if numel(Opt.BaseLine)~=esfitdata.nDataSets
+  error('The number of entries in Opt.BaseLine must be equal to the number of datasets (%d).',esfitdata.nDataSets);
+end
+
 esfitdata.BaseLineSettings = {-1, 0, 1, 2, 3};
 esfitdata.BaseLineStrings = {'none', 'offset', 'linear', 'quadratic', 'cubic'};
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
+
+% Weights for global fitting
+if ~isfield(Opt,'weights')
+  Opt.weights = ones(1,esfitdata.nDataSets);
+end
+if numel(Opt.weights)~=esfitdata.nDataSets
+  error('The number of elements in Opt.weights must be equal to the number of datasets.');
+end
+
+weights = zeros(1,sum(esfitdata.datasize));
+for i = 1:numel(data)
+  idx = esfitdata.idx{i};
+  weights(idx) = Opt.weights(i);
+end
+esfitdata.weights = weights;
 
 % Algorithm parameters
 if ~isfield(Opt,'nTrials'), Opt.nTrials = 20000; end
@@ -440,14 +490,17 @@ end
 % Report parsed inputs
 %-------------------------------------------------------------------------------
 if esfitdata.Opts.Verbosity>=1
-  siz = size(esfitdata.data);
+  nDataSets = esfitdata.nDataSets;
   if esfitdata.Opts.AutoScale
     autoScaleStr = 'on';
   else
     autoScaleStr = 'off';
   end
   fprintf('-- esfit ------------------------------------------------\n');
-  fprintf('Data size:                [%d, %d]\n',siz(1),siz(2));
+  fprintf('Number of datasets:       %d\n',nDataSets);
+  for i = 1:nDataSets
+    fprintf('Data set %d:           %d points\n',i,esfitdata.datasize(i));
+  end
   fprintf('Model function name:      %s\n',esfitdata.fcnName);
   fprintf('Number of fit parameters: %d\n',esfitdata.nParameters);
   fprintf('Minimization algorithm:   %s\n',esfitdata.AlgorithmNames{esfitdata.Opts.AlgorithmID});
@@ -523,8 +576,8 @@ if nActiveParams>0
   else
     iterupdate = false;
   end
-  residualfun = @(x) residuals_(x,data_,fitOpt,iterupdate);
-  rmsdfun = @(x) rmsd_(x,data_,fitOpt,iterupdate);
+  residualfun = @(x) residuals_(x,fitOpt,iterupdate);
+  rmsdfun = @(x) rmsd_(x,fitOpt,iterupdate);
   p0_active = p_start(activeParams);
   lb_active = lb(activeParams);
   ub_active = ub(activeParams);
@@ -579,14 +632,17 @@ end
 % Get best-fit spectrum
 fit = esfitdata.best.fit;  % bestfit is set in residuals_
 scale = esfitdata.best.scale;  % bestscale is set in residuals_
-fitraw = fit/scale;
+for i = 1:esfitdata.nDataSets
+  idx = esfitdata.idx{i};
+  fitraw(idx) = fit(idx)/scale(i);
+end
 baseline = esfitdata.best.baseline;
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
+rmsd0 = esfitdata.best.rmsd;
 residuals0 = esfitdata.best.residuals;
 ssr0 = sum(abs(residuals0).^2); % sum of squared residuals
-rmsd0 = esfitdata.best.rmsd;
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
@@ -606,7 +662,7 @@ if calculateUncertainties
   end
   %maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
   fitOpt.track = false;
-  residualfun = @(x)residuals_(x,data_,fitOpt,useGUI);
+  residualfun = @(x)residuals_(x,fitOpt,useGUI);
   J = jacobianest(residualfun,pfit_active);
   if ~any(isnan(J(:))) && ~isempty(J)
     if Verbosity>=1
@@ -619,7 +675,7 @@ if calculateUncertainties
     end
 
     % Calculate covariance matrix and standard deviations
-    residuals = calculateResiduals(fit(:),esfitdata.data(:),esfitdata.Opts.TargetID);
+    residuals = calculateResiduals(fit(:),data_(:),esfitdata.Opts.TargetID);
     residuals = residuals.'; % col -> row
     covmatrix = hccm(J,residuals,'HC1');
     pstd = sqrt(diag(covmatrix));
@@ -737,8 +793,17 @@ result.cov = covmatrix;
 result.corr = corrmatrix;
 result.p_start = p_start;
 
-result.fitraw = fitraw;
-result.fit = fit;
+if esfitdata.nDataSets>1
+  for k = 1:esfitdata.nDataSets
+    idx = esfitdata.idx{k};
+    result.fitraw{k} = fitraw(idx);
+    result.fit{k} = fit(idx);
+  end
+else
+  result.fitraw = fitraw;
+  result.fit = fit;
+end
+
 result.scale = scale;
 result.baseline = baseline;
 result.mask = esfitdata.Opts.mask;
@@ -760,18 +825,20 @@ end
 
 
 %===============================================================================
-function [rmsd,userstop] = rmsd_(x,data,Opt,iterupdate)
-[~,rmsd,userstop] = residuals_(x,data,Opt,iterupdate);
+function [rmsd,userstop] = rmsd_(x,Opt,iterupdate)
+[~,rmsd,userstop] = residuals_(x,Opt,iterupdate);
 end
 %===============================================================================
 
 
 %===============================================================================
-function [residuals,rmsd,userstop] = residuals_(x,expdata,Opt,iterupdate)
+function [residuals,rmsd,userstop] = residuals_(x,Opt,iterupdate)
 
 global esfitdata
 
 userstop = esfitdata.UserCommand~=0;
+
+expdata = esfitdata.data;
 
 if esfitdata.Opts.useMask
   mask = Opt.mask;
@@ -803,57 +870,63 @@ catch ME
 end
 
 simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
+if ~iscell(simdata)
+  simdata = {simdata};
+end
 
-% Rescale simulated data if scale should be ignored; include baseline if wanted
-%-------------------------------------------------------------------------------
-simdata = simdata(:);
-expdata = expdata(:);
-
-if numel(simdata)~=numel(expdata)
-  error('\n  Experimental and model data arrays have unequal number of elements:\n    experimental: %d\n    model: %d\n',...
+if numel(simdata)~=esfitdata.nDataSets
+  error('\n  Experimental and model data have unequal number of datasets:\n    experimental: %d\n    model: %d\n',...
     numel(expdata),numel(simdata));
 end
 
+simdata_vec = [];
+for i = 1:numel(simdata)
+  simdata_vec = [simdata_vec; simdata{i}(:)];
+end
+
+if numel(simdata_vec)~=numel(expdata)
+  error('\n  Experimental data and model have unequal total number of points:\n    experimental: %d\n    model: %d\n',...
+    numel(expdata),numel(simdata_vec));
+end
+
+% Rescale simulated data if scale should be ignored; include baseline if wanted
+%-------------------------------------------------------------------------------
 order = Opt.BaseLine;
-if order~=-1
-  N = numel(simdata);
-  x = (1:N).'/N;  
-  q = 0;
-  for j = 0:order  % each column a x^j monomial vector
-    q = q+1;
-    D(:,q) = x.^j;
-  end
-  if Opt.AutoScale
-    D = [simdata D];
-    coeffs = D(mask,:)\expdata(mask);
-    coeffs(1) = abs(coeffs(1));
-    baseline = D(:,2:end)*coeffs(2:end);
-    simdata = D*coeffs;
-    simscale = coeffs(1);
+baseline = zeros(size(simdata_vec));
+simscale = ones(1,esfitdata.nDataSets);
+for k = 1:esfitdata.nDataSets
+  if order(k)~=-1
+    N = esfitdata.datasize(k);
+    x = (1:N).'/N;
+    D = x.^(0:order(k));  % each column a x^j monomial vector
+    idx = esfitdata.idx{k};
+    if Opt.AutoScale
+      D = [simdata_vec(idx) D];
+      coeffs = D(mask(idx),:)\expdata(mask & idx);
+      coeffs(1) = abs(coeffs(1));
+      baseline(idx) = D(:,2:end)*coeffs(2:end);
+      simdata_vec(idx) = D*coeffs;
+      simscale(k) = coeffs(1);
+    else
+      coeffs = D(mask(idx),:)\(expdata(mask&idx)-simdata_vec(mask&idx));
+      baseline(idx) = D*coeffs;
+      simdata_vec(idx) = simdata_vec(idx) + baseline(idx);
+    end
   else
-    coeffs = D(mask,:)\(expdata(mask)-simdata(mask));
-    baseline = D*coeffs;
-    simdata = simdata + baseline;
-    simscale = 1;
-  end
-else
-  if Opt.AutoScale
-    D = simdata;
-    coeffs = D(mask)\expdata(mask);
-    coeffs(1) = abs(coeffs(1));
-    simdata = D*coeffs;
-    baseline = zeros(size(simdata));
-    simscale = coeffs(1);
-  else
-    baseline = zeros(size(simdata));
-    simscale = 1;
+    if Opt.AutoScale
+      idx = esfitdata.idx{k};
+      coeffs = simdata_vec(mask & idx)\expdata(mask & idx);
+      coeffs(1) = abs(coeffs(1));
+      simdata_vec(idx) = simdata_vec(idx)*coeffs;
+      simscale(k) = coeffs(1);
+    end
   end
 end
 
 % Compute residuals
 %-------------------------------------------------------------------------------
-[residuals,residuals0] = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,mask(:));
-rmsd = sqrt(mean(abs(residuals).^2));
+[residuals,residuals0] = calculateResiduals(simdata_vec,expdata,Opt.TargetID,mask(:));
+rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
 esfitdata.curr.sim = simdata;
@@ -871,7 +944,7 @@ if Opt.track
     esfitdata.best.residuals = residuals0;
     esfitdata.best.rmsdtarget = rmsd;
     esfitdata.best.rmsd = rmsd0;
-    esfitdata.best.fit = simdata;
+    esfitdata.best.fit = simdata_vec;
     esfitdata.best.scale = simscale;
     esfitdata.best.par = par;
     esfitdata.best.baseline = baseline;
@@ -1313,7 +1386,7 @@ Opt = esfitdata.Opts;
 Opt.track = false;
 
 try
-  [~,rmsd] = residuals_(p_eval,expdata,Opt,1);
+  [~,rmsd] = residuals_(p_eval,Opt,1);
 catch ME
   if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
     return
