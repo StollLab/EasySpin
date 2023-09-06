@@ -27,9 +27,6 @@ Vary.logDiff = 0.5;
 Vary.lwX = [0, 0.05];
 Vary.lwQ = [0, 0.05];
 
-% Options for spectral simulation function
-SimOpt.Verbosity = [];
-
 % Options for esfit algorithms
 FitOpt.PopulationSize = 500;
 FitOpt.maxGenerations = 100;
@@ -40,35 +37,35 @@ Sys.lw = Sys.lwX;
 Exp.CenterSweep = Exp.CenterSweepX;
 Exp.mwFreq = Exp.mwFreqX;
 
-yX = chili(Sys, Exp, SimOpt);
-yX = yX/max(yX);
-
-Sys.dataX = yX;  % store data in custom field for rescaling within custom 
-                 % simulation function
+[B{1},expdata{1}] = chili(Sys,Exp);
 
 % Simulate mock Q-band data
 Sys.lw = Sys.lwQ;
 Exp.CenterSweep = Exp.CenterSweepQ;
 Exp.mwFreq = Exp.mwFreqQ;
 
-yQ = chili(Sys, Exp, SimOpt);
-yQ = yQ/max(yQ);
-
-Sys.dataQ = yQ; 
-
-% Combine data sets
-y = [yX, yQ];
+[B{2},expdata{2}] = chili(Sys,Exp);
 
 % Add some noise
 SNR = 20;
-y = addnoise(y,SNR,'n');
+for i = 1:numel(expdata)
+  expdata{i} = addnoise(expdata{i},SNR,'n');
+end
 
 % Perform Fitting
-fit = esfit(y, @chili_multifreq, {Sys, Exp, SimOpt}, {Vary}, FitOpt)
+result = esfit(expdata, @chili_multifreq, {Sys, Exp}, {Vary}, FitOpt);
+
+% Plot results
+tiledlayout('flow')
+for k = 1:numel(expdata)
+  nexttile
+  x = 1:numel(expdata{k});
+  plot(B{k},expdata{k},B{k},result.fit{k});
+end
 
 
 % Custom function for simulating slow-motion X- and Q-band EPR spectra
-function y = chili_multifreq(Sys, Exp, SimOpt)
+function y = chili_multifreq(Sys,Exp)
 
 % X-band spectrum
 Sys.lw = Sys.lwX;
@@ -77,9 +74,7 @@ Exp.CenterSweep = Exp.CenterSweepX;
 Exp.nPoints = Exp.nPointsX;
 Exp.mwFreq = Exp.mwFreqX;
 
-y = chili(Sys, Exp, SimOpt);
-yX = y/max(y);  % normalize so that spectra can be viewed on same scale 
-                % while fitting
+y{1} = chili(Sys,Exp);
 
 % Q-band spectrum
 Sys.lw = Sys.lwQ;
@@ -88,15 +83,6 @@ Exp.CenterSweep = Exp.CenterSweepQ;
 Exp.nPoints = Exp.nPointsQ;
 Exp.mwFreq = Exp.mwFreqQ;
 
-y = chili(Sys, Exp, SimOpt);
-yQ = y/max(y);
-
-% Combine X- and Q-band spectra for fitting
-yXref = Sys.dataX;
-yQref = Sys.dataQ;
-
-% rescale each spectrum individually here since, internally, esfit will
-% rescale the concatenated output y
-y = [rescaledata(yX,yXref,'lsq'), rescaledata(yQ,yQref,'lsq')];
+y{2} = chili(Sys,Exp);
 
 end

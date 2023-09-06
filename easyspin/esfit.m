@@ -7,7 +7,8 @@
 %   pfit = esfit(___)
 %
 % Input:
-%     data        experimental data, a vector of data points
+%     data        experimental data, a vector of data points or a cell
+%                   array of datasets for global fitting 
 %     fcn         simulation/model function handle (@pepper, @garlic, ...
 %                   @salt, @chili, or handle to user-defined function)
 %                   a user-defined fcn should take a parameter vector p
@@ -30,14 +31,16 @@
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
 %        .AutoScale either true (on) or false (off); default true for
 %                 EasySpin simulation functions, otherwise false
-%        .BaseLine 0, 1, 2, 3 or []
+%        .BaseLine 0, 1, 2, 3 or [] (or vector for global fitting with different 
+%                 baseline order for different datasets)
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
 %        .mask    array of 1 and 0 the same size as data vector
-%                 values with mask 0 are excluded from the fit
+%                 values with mask 0 are excluded from the fit 
+%                 (cell array for data input consisting of multiple datasets)
 %        .weights array of weights to use when combining residual vectors
-%                 of all datasets
+%                 of all datasets for global fitting
 % Output:
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector (contains only active fitting parameters)
@@ -336,7 +339,7 @@ if EasySpinFunction
   end
 end
 
-keywords = strread(Opt.Method,'%s');
+keywords = split(Opt.Method,' ');
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'simplex',    Opt.AlgorithmID = 1;
@@ -382,8 +385,11 @@ esfitdata.TargetNames = TargetNames;
 if ~isfield(Opt,'mask')
   Opt.mask = true(size(data_vec));
 else
-  Opt.mask = logical(Opt.mask);
-  if numel(Opt.mask)~=numel(data)
+  if iscell(Opt.mask)
+    Opt.mask = cat(2,Opt.mask{:});
+  end
+  Opt.mask = logical(Opt.mask(:));
+  if numel(Opt.mask)~=numel(data_vec)
     error('Opt.mask has %d elements, but the data has %d elements.',numel(Opt.mask),numel(data));
   end
 end
@@ -410,6 +416,8 @@ if ~isfield(Opt,'BaseLine')
 end
 if isempty(Opt.BaseLine)
   Opt.BaseLine = -ones(1,esfitdata.nDataSets);  
+elseif numel(Opt.BaseLine)==1 && esfitdata.nDataSets~=1
+  Opt.BaseLine = Opt.BaseLine*ones(1,esfitdata.nDataSets);
 else
   Opt.BaseLine = Opt.BaseLine;
 end
@@ -475,6 +483,9 @@ interactiveMode = nargout==0;
 Opt.InfoPrintFunction = @(str) infoprint(str,interactiveMode);
 esfitdata.Opts = Opt;
 if interactiveMode
+  if esfitdata.nDataSets>1
+    error('The esfit GUI currently does not support global fitting.')
+  end
   setupGUI(data);
   return
 end
@@ -926,7 +937,7 @@ end
 % Compute residuals
 %-------------------------------------------------------------------------------
 [residuals,residuals0] = calculateResiduals(simdata_vec,expdata,Opt.TargetID,mask(:));
-rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights));
+rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights(:)));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
 esfitdata.curr.sim = simdata;
@@ -978,7 +989,7 @@ if windowClosing, return; end
 x = esfitdata.Opts.x(:);
 expdata = esfitdata.data(:);
 bestsim = real(esfitdata.best.fit(:));
-currsim = real(esfitdata.curr.sim(:));
+currsim = real(esfitdata.curr.sim{1}(:));
 currpar = esfitdata.curr.par;
 bestpar = esfitdata.best.par;
 
@@ -1912,6 +1923,10 @@ end
 
 %===============================================================================
 function setupGUI(data)
+
+if iscell(data)
+  data = data{1};
+end
 
 global esfitdata
 Opt = esfitdata.Opts;

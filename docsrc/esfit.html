@@ -54,7 +54,7 @@ See also the <a href="userguide_fitting.html">user guide</a> on least-squares fi
 <a class="esf" href="garlic.html">garlic</a>,
 <a class="esf" href="pepper.html">pepper</a>, 
 <a class="esf" href="chili.html">chili</a>, etc. to experimental spectral data
-using least-squares fitting algorithms. Additionally, it can also be used for fitting of any other type of data, given a user-defined model function.
+using least-squares fitting algorithms. Additionally, it can also be used for fitting of any other type of data, given a user-defined model function. Global fitting of multiple data sets is supported for user-defined simulation and model functions (see <a href="userguide_fitting.html">user guide</a> for details).
 </p>
 
 <p>
@@ -63,7 +63,7 @@ The input parameters are the following:
 
 <ul>
 <li><p>
-<code>data</code> is a 1D array containing the experimental spectral data, which can be one data set or several data sets that have been concatenated (in the latter case, a custom simulation function would need to be defined for fitting).
+<code>data</code> is a 1D array containing the experimental spectral data or a cell array containing multiple data sets (in the latter case, a custom simulation function returning a cell array of calculated data needs to be defined for fitting).
 </p></li>
 
 <li><p>
@@ -123,7 +123,7 @@ For multiple components, <code>SysVary</code> should be a cell array containing 
 </ul>
 
 <p>
-If no output is requested, <code>esfit</code> starts an <span style="font-weight:bold;">interactive user interface</span> that allows extensive control over the fitting process and also allows the export of the fitting results to the workspace. In the UI, the fitting algorithm can be changed, parameters can be excluded from the fit, and multiple fit sets can be stored.
+If no output is requested, <code>esfit</code> starts an <span style="font-weight:bold;">interactive user interface</span> that allows extensive control over the fitting process and also allows the export of the fitting results to the workspace. In the UI, the fitting algorithm can be changed, parameters can be excluded from the fit, and multiple fit sets can be stored. Global fitting of multiple datasets is currently not supported within the esfit GUI.
 </p>
 
 <p>
@@ -257,18 +257,23 @@ In all cases, the residuals returned in the output refer to the experimental dat
 
 <div class="optionfield"><code>FitOpt.AutoScale</code></div>
 <div class="optiondescr">
-Possible values are 0 (false) or 1 (true). If set to 0, the simulated data is not rescaled. If set to 1, the simulated data are rescaled before comparing to the experimental data, and the scale factor is reported in <code>fit.scale</code>. By default, it is set to 1 if using one of the EasySpin spectral simulation functions, otherwise it is set to false.
+Possible values are 0 (false) or 1 (true). If set to 0, the simulated data is not rescaled. If set to 1, the simulated data are rescaled before comparing to the experimental data, and the scale factor is reported in <code>fit.scale</code>. By default, it is set to 1 if using one of the EasySpin spectral simulation functions, otherwise it is set to false. For global fitting of multiple data sets, <code>FitOpt.AutoScale = 1</code> scales each dataset individually.
 </div>
 
 <div class="optionfield"><code>FitOpt.BaseLine</code></div>
 <div class="optiondescr">
-Polynomial order for the baseline added to the simulated data to match the experimental data (0, 1, 2 or 3), set this to <code>[]</code> if no baseline should be included. The baseline used is returned in <code>fit.baseline</code>.
+Polynomial order for the baseline added to the simulated data to match the experimental data (0, 1, 2 or 3), set this to <code>[]</code> if no baseline should be included. For global fitting of multiple data sets, different polynomial order baselines can be used for the different data sets by specifying a vector. The baseline used is returned in <code>fit.baseline</code>.
 </div>
 
 <div class="optionfield"><code>FitOpt.mask</code></div>
 <div class="optiondescr">
-Array of 1 and 0 with the same size as the data vector, used to exclude parts of the experimental data from the fitting. Values with mask 0 are excluded from the fit.
+Array of 1 and 0 with the same size as the data vector, used to exclude parts of the experimental data from the fitting. Values with mask 0 are excluded from the fit. For global fitting of multiple data sets, <code>FitOpt.mask</code> should be provided as a cell array.
 In the graphical user interface, the mask can be selected manually and is returned in the output structure.
+</div>
+
+<div class="optionfield"><code>FitOpt.weights</code></div>
+<div class="optiondescr">
+Array of weights to use when combining residual vectors of all datasets for global fitting.
 </div>
 
 <p>
