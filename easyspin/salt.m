@@ -701,7 +701,7 @@ if ~BruteForceSum
     if ~anisotropicIntensities, thisInt = ones(nTransitions,1); end
     if ~anisotropicWidths, thisWid = zeros(nTransitions,1); end
 
-    iTrans = 1;  % index into Pdat/Idat/Wdat
+    iOriSite = 1;  % index into Pdat/Idat/Wdat
     spcidx = 0;  % index into spectral output array
     for iOri = 1:nOrientations
       if separateSiteSpectra, spcidx = 0;
@@ -712,9 +712,9 @@ if ~BruteForceSum
         if separateSiteSpectra, spcidx = spcidx + 1; end
         %logmsg(3,'  orientation %d of %d',iOri,nOrientations);
 
-        thisPos = Pdat(:,idx);
-        if anisotropicIntensities, thisInt = Idat(:,idx); end
-        %if anisotropicWidths, thisWid = Wdat(:,idx); end
+        thisPos = Pdat(:,iOriSite);
+        if anisotropicIntensities, thisInt = Idat(:,iOriSite); end
+        %if anisotropicWidths, thisWid = Wdat(:,iOriSite); end
 
         thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
         thisspec = thisspec/nSites/nOrientations;
@@ -727,7 +727,7 @@ if ~BruteForceSum
           spec(spcidx,:) = spec(spcidx,:) + thisspec;
         end
 
-        iTrans = iTrans + 1;
+        iOriSite = iOriSite + 1;
       end
     end
 
