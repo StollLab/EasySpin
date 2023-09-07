@@ -22,7 +22,7 @@ Exp.mwFreq = 9.75; % GHz
 Exp.Range = [346 350]; % mT
 Exp.Harmonic = 0;
 
-Opt.Output = 'separate';
+Opt.Output = 'transitions';
 
 %% Option 1: Provide populations in coupled basis
 % Population vector: [popTp popT0 popTm popS] 

@@ -40,7 +40,7 @@ Exp.mwFreq = 9.5; % GHz
 Exp.Range = [270 405]; % mT
 Exp.Harmonic = 0;
 
-Opt.Output = 'separate';
+Opt.Output = 'transitions';
 
 % Calculate spectra
 [B,spcT,outT] = pepper(SysT,Exp,Opt);

@@ -104,7 +104,7 @@ end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+[Output,err] = parseoption(Opt,'Output',{'summed','components'});
 error(err);
 summedOutput = Output==1;
 

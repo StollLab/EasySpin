@@ -43,23 +43,26 @@ error(chkmlver);
 % Get time for performance prompt at the end.
 StartTime = clock;
 
-% Check the number of input and output arguments.
-if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
-if nargout<0, error('Not enough output arguments.'); end
+% Input argument scanning, get display level and prompt
+%=======================================================================
+% Guard against wrong number of input or output arguments.
+if nargin<1, error('Please supply a spin system as first input argument.'); end
+if nargin<2, error('Please supply experimental parameters as second input argument.'); end
+if nargin>3, error('Too many input arguments, the maximum is three.'); end
 if nargout>3, error('Too many output arguments.'); end
 
-% Supplement empty options structure if not given.
+% Initialize options structure to zero if not given.
 if nargin<3, Opt = struct; end
 if isempty(Opt), Opt = struct; end
 
 if ~isstruct(Sys) && ~iscell(Sys)
-  error('Sys must be a structure or a list of structures!');
+  error('The first input (Sys) must be a structure or a cell array of structures.');
 end
 if ~isstruct(Exp)
-  error('Exp must be a structure!');
+  error('The second input (Exp) must be a structure.');
 end
 if ~isstruct(Opt)
-  error('Opt must be a structure!');
+  error('The third input (Opt) must be a structure.');
 end
 
 % A global variable sets the level of log display. The global variable
@@ -68,18 +71,30 @@ if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 global EasySpinLogLevel;
 EasySpinLogLevel = Opt.Verbosity;
 
-
 %==================================================================
 % Loop over species and isotopologues
 %==================================================================
-FrequencyAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+SweeepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
+% Process Opt.Output
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+if isempty(Opt.Output), Opt.Output = 'summed'; end
+if strcmp(Opt.Output,'separate')
+  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
+end
+[Output,err] = parseoption(Opt,'Output',{'summed','components','transitions','orientations','sites'});
 error(err);
 summedOutput = Output==1;
+separateComponentSpectra = Output==2;
+separateTransitionSpectra = Output==3;
+separateOrientationSpectra = Output==4;
+separateSiteSpectra = Output==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
 
@@ -96,14 +111,12 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   nTotalComponents = sum(nIsotopologues);
   
-  if nTotalComponents>1 && FrequencyAutoRange
+  if nTotalComponents>1 && SweeepAutoRange
     error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
   end
   
-  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
   if separateComponentSpectra
     spec = [];
-    Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
     spec = 0;
   end
@@ -152,6 +165,10 @@ end
 %==================================================================
 
 
+%==================================================================
+% Single-isotopologue spectrum
+%==================================================================
+
 logmsg(1,'=begin=salt=======%s=================',char(datetime));
 logmsg(2,'  log level %d',EasySpinLogLevel);
 logmsg(1,'-general-----------------------------------------------');
@@ -159,11 +176,6 @@ logmsg(1,'-general-----------------------------------------------');
 
 % Processing spin system structure
 %==========================================================================
-if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-isoList = isotopologues(Sys.Nucs);
-if numel(isoList)>1
-  error('salt does not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
-end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
@@ -242,7 +254,7 @@ if isnan(Exp.mwFreq)
   end
 end
 
-AutoRange = isnan(Exp.Range)& isnan(Exp.CenterSweep);
+AutoRange = isnan(Exp.Range) & isnan(Exp.CenterSweep);
 if Method==1
 %  if AutoRange, error('Cannot automatically determine rf range. Please specify Exp.Range or Exp.CenterSweep.'); end
 end
@@ -277,35 +289,39 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
   Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
 end
 
-% Detect sample type (powder vs. crystal vs. partial ordering)
-if isempty(Exp.Ordering)
-  PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
-  if ~PowderSimulation
-    if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
-    if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
-  end
-else
-  PowderSimulation = true;
+% Detect sample type (powder/partially ordered vs. crystal)
+PowderSimulation = ~isempty(Exp.Ordering) ||(isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry));
+if PowderSimulation
   if ~isempty(Exp.MolFrame)
     error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
   end
   if ~isempty(Exp.CrystalSymmetry)
     error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
   end
-  if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
+else
+  if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
+  if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
+end
+Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
+
+
+% Process Exp.Ordering
+if ~isempty(Exp.Ordering)
+  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(phi,theta) exp(lambda*plegendre(2,0,cos(theta))).*ones(size(phi));
+    Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
     logmsg(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial ordering (user-supplied function)');
-    if nargin(Exp.Ordering)<2
-      logmsg(1,'  User-supplied function in Exp.Ordering must take 2 inputs.');
-    end
   else
     error('Exp.Ordering must be either a single number or a function handle.');
   end
+  if nargin(Exp.Ordering)==1
+    Exp.Ordering = @(beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)>2
+    logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
+  end
 end
-Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
 
 if EasySpinLogLevel>=1
   if ~AutoRange
@@ -323,7 +339,7 @@ if EasySpinLogLevel>=1
   logmsg(1,['  ' msg]);
 end
 
-NonEquiPops = 0;
+nonEquiPops = false;
 if isfinite(Exp.Temperature)
   msg = sprintf('  temperature %g K',Exp.Temperature);
 else
@@ -382,22 +398,35 @@ DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
 
 % Supplement the user-supplied structure with the defaults
 Opt = adddefaults(Opt,DefaultOpt);
-if numel(Opt.GridSize)<2, Opt.GridSize(2) = DefaultOpt.GridSize(2); end
+
+
 if Opt.GridSize(1)<2
   error('Opt.GridSize(1) must be 2 or larger.');
 end
+if numel(Opt.GridSize)<2
+  Opt.GridSize(2) = DefaultOpt.GridSize(2);
+end
 
-% Parse and process options with string values.
-%IntensitySwitch = parseoption(Opt,'Intensity',{'off','on'}) - 1;
-%EnhancementSwitch = parseoption(Opt,'Enhancement',{'off','on'}) -1;
-SummedOutput = (1==parseoption(Opt,'Output',{'summed','separate'}));
+% Some compatibility checks for separate spectra output (Opt.Output)
+if PowderSimulation
+  if separateOrientationSpectra
+    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.Output=''orientations'').\nUse other setting for Opt.Output.\n'));
+  end
+  if separateSiteSpectra
+    error(sprintf('\nCannot return separate sites for powder spectra (Opt.Output=''sites'').\nUse other setting for Opt.Output.\n'));
+  end
+else
+  if separateTransitionSpectra
+    error(sprintf('\n  Cannot return separate transitions for crystal spectra (Opt.Output=''transitions'').\n  Use other setting for Opt.Output.\n'));
+  end
+end
 
 
-SuppliedOriWeights = ~isempty(Opt.OriWeights);
-if SuppliedOriWeights
+suppliedOriWeights = ~isempty(Opt.OriWeights);
+if suppliedOriWeights
   Opt.OriWeights = Opt.OriWeights(:).';
 end
-if any(Opt.OriPreSelect) && SuppliedOriWeights
+if any(Opt.OriPreSelect) && suppliedOriWeights
   error('You cannot use OriPreSelect and supply OriWeights simultaneously!');
 end
 
@@ -512,7 +541,7 @@ switch Method
 end
 logmsg(2,'  -endorfrq end-------------------------------------');
 nTransitions = size(Pdat,1);
-AnisotropicWidths = 0;
+anisotropicWidths = false;
 
 if nTransitions==0
   error(['No ENDOR resonances between %g and %g MHz (%g mT).\n'...
@@ -522,12 +551,12 @@ end
 logmsg(1,'  %d transitions with resonances in range',nTransitions);
 logmsg(2,'  positions min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
 
-AnisotropicIntensities = numel(Idat)>1;
-if AnisotropicIntensities
+anisotropicIntensities = numel(Idat)>1;
+if anisotropicIntensities
   logmsg(2,'  amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
 end
 
-if SuppliedOriWeights
+if suppliedOriWeights
   logmsg(1,'  user supplied OriWeights: including them in intensity');
   if Opt.IncludeOriWeights
     for iT = 1:nTransitions
@@ -601,284 +630,294 @@ usingGrid = Opt.nOctants>=0;
 
 if ~BruteForceSum
 
-% Determine methods: projection/summation, interpolation on/off
-%-----------------------------------------------------------------------
-doProjection = ~AnisotropicWidths && usingGrid;
-doInterpolation = Opt.GridSize(2)>1 && usingGrid;
-
-% Preparations for projection
-%-----------------------------------------------------------------------
-if doProjection
-  msg = 'triangle/segment projection';
-else
-  msg = 'summation';
-  Template.x = 5e4;
-  Template.lw = Template.x/2.5; %<1e-8 at borders for Harmonic = -1
-  Template.y = gaussian(0:2*Template.x-1,Template.x,Template.lw,-1);
-end
-logmsg(1,'  %s',msg);
-
-% Preparations for interpolation
-%-----------------------------------------------------------------------
-if doInterpolation
-  % Set an option for the sparse tridiagonal matrix \ solver in global cubic
-  % spline interpolation. This function needs some time, so it was taken
-  % out of Matlab's original spline() function, which is called many times.
-  spparms('autommd',0);
-  % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
-  if axialGrid  % axial symmetry: 1D interpolation
-    if any(NaN_in_Pdat)
-      InterpMode = {'L3','L3','L3'};
-    else
-      InterpMode = {'G3','L3','L3'};
-    end
-  else % 2D interpolation (no L3 method available)
-    if any(NaN_in_Pdat)
-      InterpMode = {'L1','L1','L1'};
-    else
-      InterpMode = {'G3','L1','L1'};
-    end
-  end
-  msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.GridSize(2),InterpMode{1},InterpMode{2},InterpMode{3});
-else
-  Opt.GridSize(2) = 1;
-  msg = '  interpolation off';
-end
-nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
-logmsg(1,msg);
-
-% Pre-allocation of spectral array.
-%-----------------------------------------------------------------------
-if SummedOutput
-  nRows = 1;
-  msg = 'summed';
-else
-  if ~PowderSimulation
-    nRows = nOrientations;
+  % Preparations for summation/projection
+  %-----------------------------------------------------------------------
+  doProjection = usingGrid && ~anisotropicWidths;
+  if doProjection
+    msg = 'triangle/segment projection';
   else
-    nRows = nTransitions;
+    msg = 'summation';
+    Template.x = 5e4;
+    Template.lw = Template.x/2.5; %<1e-8 at borders for Harmonic = -1
+    Template.y = gaussian(0:2*Template.x-1,Template.x,Template.lw,-1);
   end
-  msg = 'separate';
-end
-spec = zeros(nRows,Exp.nPoints);
-logmsg(1,'  spectrum array size: %dx%d (%s)',size(spec,1),size(spec,2),msg);
+  logmsg(1,'  %s',msg);
+
+  % Preparations for interpolation
+  %-----------------------------------------------------------------------
+  doInterpolation = usingGrid && Opt.GridSize(2)>1;
+  if doInterpolation
+    % Set an option for the sparse tridiagonal matrix \ solver in global cubic
+    % spline interpolation. This function needs some time, so it was taken
+    % out of Matlab's original spline() function, which is called many times.
+    spparms('autommd',0);
+    % Interpolation parameters. 1st char: g global, l linear. 2nd char: order.
+    if axialGrid  % axial symmetry: 1D interpolation
+      if any(NaN_in_Pdat)
+        InterpMode = {'L3','L3','L3'};
+      else
+        InterpMode = {'G3','L3','L3'};
+      end
+    else % 2D interpolation (no L3 method available)
+      if any(NaN_in_Pdat)
+        InterpMode = {'L1','L1','L1'};
+      else
+        InterpMode = {'G3','L1','L1'};
+      end
+    end
+    msg = sprintf('  interpolation (factor %d, method %s/%s/%s)',Opt.GridSize(2),InterpMode{1},InterpMode{2},InterpMode{3});
+  else
+    Opt.GridSize(2) = 1;
+    msg = '  interpolation off';
+  end
+  nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
+  logmsg(1,msg);
+
+  % Pre-allocation of spectral array
+  %-----------------------------------------------------------------------
+  if separateOrientationSpectra
+    nSpectra = nOrientations;
+    msg = '(separate orientations)';
+  elseif separateSiteSpectra
+    nSpectra = nSites;
+    msg = '(separate sites)';
+  elseif separateTransitionSpectra
+    nSpectra = nTransitions;
+    msg = '(separate transitions)';
+  else
+    nSpectra = 1;
+  end
+  spec = zeros(nSpectra,Exp.nPoints);
+  logmsg(1,'  spectrum array size: %dx%d %s',size(spec,1),size(spec,2),msg);  
 
 
-% Spectrum construction
-%-----------------------------------------------------------------------
-if ~PowderSimulation
-  %=======================================================================
-  % Single-crystal spectra
-  %=======================================================================
-  
-  if ~AnisotropicIntensities, thisInt = ones(nTransitions,1); end
-  if ~AnisotropicWidths, thisWid = zeros(nTransitions,1); end
-  
-  idx = 1;
-  for iOri = 1:nOrientations
-    for iSite = 1:nSites
-      %logmsg(3,'  orientation %d of %d',iOri,nOrientations);
+  % Spectrum construction
+  %-----------------------------------------------------------------------
+  if ~PowderSimulation
+    %=======================================================================
+    % Single-crystal spectra
+    %=======================================================================
 
-      thisPos = Pdat(:,idx);
-      if AnisotropicIntensities, thisInt = Idat(:,idx); end
-      %if AnisotropicWidths, thisWid = Wdat(:,idx); end
+    if ~anisotropicIntensities, thisInt = ones(nTransitions,1); end
+    if ~anisotropicWidths, thisWid = zeros(nTransitions,1); end
+
+    iTrans = 1;  % index into Pdat/Idat/Wdat
+    spcidx = 0;  % index into spectral output array
+    for iOri = 1:nOrientations
+      if separateSiteSpectra, spcidx = 0;
+      elseif separateOrientationSpectra, spcidx = spcidx+1;
+      else, spcidx = 1;
+      end
+      for iSite = 1:nSites
+        if separateSiteSpectra, spcidx = spcidx + 1; end
+        %logmsg(3,'  orientation %d of %d',iOri,nOrientations);
+
+        thisPos = Pdat(:,idx);
+        if anisotropicIntensities, thisInt = Idat(:,idx); end
+        %if anisotropicWidths, thisWid = Wdat(:,idx); end
+
+        thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
+        thisspec = thisspec/nSites/nOrientations;
+        thisspec = (2*pi)*thisspec; % for consistency with powder spectra (integral of chi)
+        thisspec = Exp.OriWeights(iOri)*thisspec; % for consistency with powder spectra (integral over phi,theta)
+
+        if ~separateSiteSpectra && ~separateOrientationSpectra
+          spec = spec + thisspec;
+        else
+          spec(spcidx,:) = spec(spcidx,:) + thisspec;
+        end
+
+        iTrans = iTrans + 1;
+      end
+    end
+
+  elseif ~usingGrid
+
+    %=======================================================================
+    % Isotropic powder spectra
+    %=======================================================================
+
+    if ~anisotropicIntensities, thisInt = Idat; end
+    if ~anisotropicWidths, thisWid = 0; end
+
+    spcidx = 0;
+    for iTrans = 1:nTransitions
+      %logmsg(3,'  transition %d of %d',iTrans,nTransitions);
+
+      thisPos = Pdat(iTrans,:);
+      if anisotropicIntensities, thisInt = Idat(iTrans,:); end
+      %if AnisotropicWidths, thisWid = Wdat(iTrans,:); end
 
       thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
-      thisspec = (2*pi)*thisspec; % for consistency with powder spectra (integral of chi)
-      thisspec = thisspec/nSites;
-      thisspec = Exp.OriWeights(iOri)*thisspec; % for consistency with powder spectra (integral over phi,theta)
+      thisspec = thisspec*(2*pi); % powder integral (chi)
+      thisspec = Exp.OriWeights*thisspec; % powder integral (phi,theta)
 
-      if SummedOutput
+      if ~separateTransitionSpectra
         spec = spec + thisspec;
       else
-        spec(iOri,:) = spec(iOri,:) + thisspec;
+        spcidx = spcidx + 1;
+        spec(spcidx,:) = thisspec;
       end
 
-      idx = idx + 1;
-    end
-  end
-  
-elseif ~usingGrid
-
-  %=======================================================================
-  % Isotropic powder spectra
-  %=======================================================================
-
-  if ~AnisotropicIntensities, thisInt = Idat; end
-  if ~AnisotropicWidths, thisWid = 0; end
-  
-  for iTrans = 1:nTransitions
-    %logmsg(3,'  transition %d of %d',iTrans,nTransitions);
-    
-    thisPos = Pdat(iTrans,:);
-    if AnisotropicIntensities, thisInt = Idat(iTrans,:); end
-    %if AnisotropicWidths, thisWid = Wdat(iTrans,:); end
-    
-    thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
-    thisspec = thisspec*(2*pi); % powder integral (chi)
-    thisspec = Exp.OriWeights*thisspec; % powder integral (phi,theta)
-    
-    if SummedOutput
-      spec = spec + thisspec;
-    else
-      spec(iTrans,:) = thisspec;
     end
 
-  end
+  else
 
-else
-  
-  %=======================================================================
-  % Powder spectra: interpolation and accumulation/projection
-  %=======================================================================
-  if axialGrid
-    if doInterpolation
-      grid = sphgrid(Opt.GridSymmetry,nfKnots);
-      fthe = grid.theta;
-      fphi = grid.phi;
-    else
-      fthe = Exp.theta;
-    end
-    fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
-    
-    % Obtain user-supplied orientational distribution weights
-    if ~isempty(Exp.Ordering)
-      centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
-      centerPhi = zeros(1,numel(centerTheta));
-      if rotateSample
-        v = ang2vec(centerPhi,centerTheta);
-        [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
-      end
-      OrderingWeights = orifun(-centerTheta,-centerPhi);
-      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
-      if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-      fSegWeights = fSegWeights(:).*OrderingWeights(:);
-      fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
-    end
-
-    logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
-    
-  else % nonaxial symmetry
-    if doInterpolation
-      [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
-      fphi = grid.phi;
-      fthe = grid.theta;
-    else
-      tri = Exp.tri;
-      fthe = Exp.theta;
-      fphi = Exp.phi;
-    end
-    idxTri = tri.idx.';
-    Areas = tri.areas;
-    
-    % Obtain user-supplied orientational distribution weights
-    if ~isempty(Exp.Ordering)
-      centerTheta = mean(fthe(idxTri));
-      centerPhi = mean(fphi(idxTri));
-      if rotateSample
-        v = ang2vec(centerPhi,centerTheta);
-        [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
-      end
-      OrderingWeights = orifun(-centerTheta,-centerPhi);
-      if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
-      if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-      Areas = Areas(:).*OrderingWeights(:);
-      Areas = 4*pi/sum(Areas)*Areas;
-    end
-
-    logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
-  end
-  
-  if ~AnisotropicIntensities, fInt = ones(size(fthe)); end
-  if ~AnisotropicWidths, fWid = zeros(size(fthe)); end
-  
-  minBroadening = inf;
-  nBroadenings = 0;
-  sumBroadenings = 0;
-
-  for iTrans = 1:nTransitions
-    
-    % Interpolation
-    %------------------------------------------------------
-    if doInterpolation
-      fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
-      if AnisotropicIntensities
-        fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
-      end
-      if AnisotropicWidths
-        fWid = gridinterp(Wdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{3});
-      end
-    else
-      fPos = Pdat(iTrans,:);
-      if AnisotropicIntensities, fInt = Idat(iTrans,:); end
-      if AnisotropicWidths, fWid = Wdat(iTrans,:); end
-    end
-    
-    msg1 = '';
-    if ~NonEquiPops && any(fInt(:)<0)
-      % Try to correct underswings due to (very) small numerical errors
-      maxInt = max(fInt);
-      fInt((fInt<0)&(fInt/maxInt>-1e-6)) = 0;
-      if any(fInt(:)<0)
-        msg1 = 'intensities';
-      end
-    end
-    if any(fWid(:)<0), msg1 = 'widths'; end
-    if ~isempty(msg1)
-      error('Negative %s encountered! Please report!',msg1);
-    end
-    
-    % Summation or projection
-    %------------------------------------------------------
-    if doProjection
-      if axialGrid
-        thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
+    %=======================================================================
+    % Powder spectra: interpolation and accumulation/projection
+    %=======================================================================
+    if axialGrid
+      if doInterpolation
+        grid = sphgrid(Opt.GridSymmetry,nfKnots);
+        fthe = grid.theta;
+        fphi = grid.phi;
       else
-        thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
+        fthe = Exp.theta;
       end
-      % minBroadening = ?
-    else
-      if axialGrid
-        fPosC = (fPos(1:end-1) + fPos(2:end))/2;
-        fIntC = fSegWeights.*(fInt(1:end-1) + fInt(2:end))/2;
-        fSpread = abs(fPos(1:end-1) - fPos(2:end));
-        fWidM  = (fWid(1:end-1) + fWid(2:end))/2;
-        c1 = 1.57246; c2 = 18.6348;
+      fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
+
+      % Obtain user-supplied orientational distribution weights
+      if ~isempty(Exp.Ordering)
+        centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
+        centerPhi = zeros(1,numel(centerTheta));
+        if rotateSample
+          v = ang2vec(centerPhi,centerTheta);
+          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
+        end
+        OrderingWeights = orifun(-centerTheta,-centerPhi);
+        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
+        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+        fSegWeights = fSegWeights(:).*OrderingWeights(:);
+        fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
+      end
+
+      logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
+
+    else % nonaxial symmetry
+      if doInterpolation
+        [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
+        fphi = grid.phi;
+        fthe = grid.theta;
       else
-        fPosSorted = sort(fPos(idxTri),1);
-        fPosC = mean(fPosSorted,1);
-        fIntC = Areas.*mean(fInt(idxTri),1);
-        fSpread = fPosSorted(3,:) - fPosSorted(1,:);
-        fWidM = mean(fWid(idxTri),1);
-        c1 = 2.8269; c2 = 42.6843;
+        tri = Exp.tri;
+        fthe = Exp.theta;
+        fphi = Exp.phi;
       end
-      Lambda = fWidM./fSpread;
-      gam = 1./sqrt(c1*Lambda.^2 + c2*Lambda.^4);
-      fWidC = fWidM.*(1 + Opt.Smoothing*gam);
+      idxTri = tri.idx.';
+      Areas = tri.areas;
 
-      thisspec = lisum1i(Template.y,Template.x,Template.lw,fPosC,fIntC,fWidC,xAxis);
+      % Obtain user-supplied orientational distribution weights
+      if ~isempty(Exp.Ordering)
+        centerTheta = mean(fthe(idxTri));
+        centerPhi = mean(fphi(idxTri));
+        if rotateSample
+          v = ang2vec(centerPhi,centerTheta);
+          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
+        end
+        OrderingWeights = orifun(-centerTheta,-centerPhi);
+        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
+        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+        Areas = Areas(:).*OrderingWeights(:);
+        Areas = 4*pi/sum(Areas)*Areas;
+      end
 
-      minBroadening = min(minBroadening,min(Lambda));
-      sumBroadenings = sumBroadenings + sum(Lambda);
-      nBroadenings = nBroadenings + numel(Lambda);
+      logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end
-    
-    thisspec = thisspec*(2*pi); % powder integal over chi (0..2*pi)
-    
-    if SummedOutput
-      spec = spec + thisspec;
-    else
-      spec(iTrans,:) = thisspec;
-    end
-    
-  end % for iTrans
 
-  if ~doProjection
-    logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
+    if ~anisotropicIntensities, fInt = ones(size(fthe)); end
+    if ~anisotropicWidths, fWid = zeros(size(fthe)); end
+
+    minBroadening = inf;
+    nBroadenings = 0;
+    sumBroadenings = 0;
+    spcidx = 0;
+
+    for iTrans = 1:nTransitions
+
+      % Interpolation
+      %------------------------------------------------------
+      if doInterpolation
+        fPos = gridinterp(Pdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{1});
+        if anisotropicIntensities
+          fInt = gridinterp(Idat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{2});
+        end
+        if anisotropicWidths
+          fWid = gridinterp(Wdat(iTrans,:),Opt.GridParams,fphi,fthe,InterpMode{3});
+        end
+      else
+        fPos = Pdat(iTrans,:);
+        if anisotropicIntensities, fInt = Idat(iTrans,:); end
+        if anisotropicWidths, fWid = Wdat(iTrans,:); end
+      end
+
+      msg1 = '';
+      if ~nonEquiPops && any(fInt(:)<0)
+        % Try to correct underswings due to (very) small numerical errors
+        maxInt = max(fInt);
+        fInt((fInt<0)&(fInt/maxInt>-1e-6)) = 0;
+        if any(fInt(:)<0)
+          msg1 = 'intensities';
+        end
+      end
+      if any(fWid(:)<0), msg1 = 'widths'; end
+      if ~isempty(msg1)
+        error('Negative %s encountered! Please report!',msg1);
+      end
+
+      % Summation or projection
+      %------------------------------------------------------
+      if doProjection
+        if axialGrid
+          thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
+        else
+          thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
+        end
+        % minBroadening = ?
+      else
+        if axialGrid
+          fPosC = (fPos(1:end-1) + fPos(2:end))/2;
+          fIntC = fSegWeights.*(fInt(1:end-1) + fInt(2:end))/2;
+          fSpread = abs(fPos(1:end-1) - fPos(2:end));
+          fWidM  = (fWid(1:end-1) + fWid(2:end))/2;
+          c1 = 1.57246; c2 = 18.6348;
+        else
+          fPosSorted = sort(fPos(idxTri),1);
+          fPosC = mean(fPosSorted,1);
+          fIntC = Areas.*mean(fInt(idxTri),1);
+          fSpread = fPosSorted(3,:) - fPosSorted(1,:);
+          fWidM = mean(fWid(idxTri),1);
+          c1 = 2.8269; c2 = 42.6843;
+        end
+        Lambda = fWidM./fSpread;
+        gam = 1./sqrt(c1*Lambda.^2 + c2*Lambda.^4);
+        fWidC = fWidM.*(1 + Opt.Smoothing*gam);
+
+        thisspec = lisum1i(Template.y,Template.x,Template.lw,fPosC,fIntC,fWidC,xAxis);
+
+        minBroadening = min(minBroadening,min(Lambda));
+        sumBroadenings = sumBroadenings + sum(Lambda);
+        nBroadenings = nBroadenings + numel(Lambda);
+      end
+
+      thisspec = thisspec*(2*pi); % powder integal over chi (0..2*pi)
+
+      % Accumulate subspectra
+      %----------------------------------------------------------
+      if ~separateTransitionSpectra
+        spec = spec + thisspec;
+      else
+        spcidx = spcidx + 1;
+        spec(spcidx,:) = thisspec;
+      end
+      
+    end % for iTrans
+
+    if ~doProjection
+      logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
+    end
+
   end
-  
-end
-%=======================================================================
+  %=======================================================================
 
 else % if ~BruteForceSum else ...
 
@@ -892,12 +931,15 @@ else % if ~BruteForceSum else ...
     OutOfRange = (p<1) | (p>Exp.nPoints);
     p(OutOfRange) = [];
     Idat{k}(OutOfRange) = [];
-    if AnisotropicIntensities
+    if anisotropicIntensities
       spec = spec + full(sparse(1,p,Exp.OriWeights(k)*Idat{k},1,Exp.nPoints));
     else
       spec = spec + full(sparse(1,p,Exp.OriWeights(k),1,Exp.nPoints));
     end
   end
+
+  spec = spec * (2*pi); % integral over chi (0..2*pi)
+  
   spec = spec/Exp.deltaX;
 
 end

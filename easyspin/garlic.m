@@ -109,7 +109,7 @@ else
 end
 
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+[Output,err] = parseoption(Opt,'Output',{'summed','components'});
 error(err);
 summedOutput = Output==1;
 
@@ -146,7 +146,7 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   end
   if nTotalComponents==1
     if ~strcmp(Opt.Output,'summed')
-      error('For single components, garlic only supports Opt.Output=''summed''. For multiple components, Opt.Output=''separate'' is supported.');
+      error('For single components, garlic only supports Opt.Output=''summed''. For multiple components, Opt.Output=''components'' is supported.');
     end
   end
   

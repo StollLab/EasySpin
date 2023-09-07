@@ -31,7 +31,7 @@ Exp.nPoints = 4096;
 Exp.Harmonic = 0;
 
 % Plot individual transitions separately
-Opt.Output = 'separate';  
+Opt.Output = 'transitions';  
 
 for i = 1:numel(J)
   
