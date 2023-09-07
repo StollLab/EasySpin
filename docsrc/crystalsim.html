@@ -180,17 +180,16 @@ Other letter codes are <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, <c
 </p>
 
 <p>
-To simulate a series of crystal spectra that result from successive small-step rotations around the same rotation axis, generate an array of rotation angles and then use a loop:
+To simulate a series of crystal spectra that result from successive small-step rotations around the same rotation axis, define the rotation axis, create an array of rotation angles, and then use the function <a class="esf" href="rotateframe">rotateframe</a> to generate a list of crystal orientations. Then, simulate the spectra, asking <code>pepper</code> to return the spectra of the individual orientations separately using <code>Opt.Output</code>:
 </p>
 
 <pre class="matlab">
-spc = [];
 Exp.SampleFrame = [0 40 0]*pi/180;    % initial crystal orientation in lab frame
 rho = deg2rad(0:10:180);        % 10 degree increments
-for k = 1:numel(rho)
-  Exp.SampleRotation = {rho(k),'x'};
-  [B,spc(:,k)] = pepper(Sys,Exp);
-end
+Exp.SampleFrame = rotateframe(Exp.SampleFrame,'x',rho);
+
+Opt.Output = 'orientations';
+[B,spc] = pepper(Sys,Exp,Opt);
 
 stackplot(B,spc);
 xlabel('magnetic field (mT)');
