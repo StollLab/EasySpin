@@ -36,7 +36,7 @@ ok(3) = size(spc,1)==4;
 ok(4) = size(spc,1)==5;
 
 % Crystal
-Exp.MolFrame = [20 70 130]*pi/180;
+Exp.SampleFrame = [20 70 130]*pi/180;
 [B,spc] = pepper(Sys1,Exp,Opt);
 ok(5) = size(spc,1)==1;
 
@@ -48,3 +48,5 @@ ok(7) = size(spc,1)==4;
 
 [B,spc] = pepper({Sys1,Sys2},Exp,Opt);
 ok(8) = size(spc,1)==5;
+
+end

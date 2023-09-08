@@ -490,7 +490,7 @@ end
 %====================================================================
 
 [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.MolFrame,1);
+nOrientations = size(Exp.SampleFrame,1);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)
