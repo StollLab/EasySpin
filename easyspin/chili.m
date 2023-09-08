@@ -51,7 +51,8 @@
 %      GridSize       grid size for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
-%      Symmetry       symmetry to use for powder simulation
+%      GridSymmetry   grid symmetry to use for powder simulation
+%      Output         subspectra output, 'summed' (default) or 'components'
 %
 %   Output:
 %     B               magnetic field axis vector, in mT (for field sweeps)
@@ -103,10 +104,15 @@ else
 end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
+% Process Opt.Output
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
+if isempty(Opt.Output), Opt.Output = 'summed'; end
+if strcmp(Opt.Output,'separate')
+  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
+end
 [Output,err] = parseoption(Opt,'Output',{'summed','components'});
 error(err);
-summedOutput = Output==1;
+separateComponentSpectra = Output==2;
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
@@ -132,10 +138,8 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
   if separateComponentSpectra
     spec = [];
-    Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
     spec = 0;
   end

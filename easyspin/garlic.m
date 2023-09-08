@@ -48,6 +48,7 @@
 %                     'explicit' - explicit evaluation of line shape for each line
 %      IsoCutoff    relative isotopologue abundance cutoff threshold
 %                     between 0 and 1, default 1e-6
+%      Output       subspectra output, 'summed' (default) or 'components'
 %
 %   Output
 %     B                magnetic field axis (mT)
@@ -108,10 +109,31 @@ else
   end
 end
 
+% Process Opt.Output
 if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','components'});
+if isempty(Opt.Output), Opt.Output = 'summed'; end
+if strcmp(Opt.Output,'separate')
+  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
+end
+[Output,err] = parseoption(Opt,'Output',{'summed','components','transitions','orientations','sites'});
 error(err);
-summedOutput = Output==1;
+separateComponentSpectra = Output==2;
+separateTransitionSpectra = Output==3;
+separateOrientationSpectra = Output==4;
+separateSiteSpectra = Output==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
+
+if separateTransitionSpectra
+  error('garlic does not support Opt.Output=''transitions''.')
+end
+if separateSiteSpectra
+  error('garlic does not support Opt.Output=''sites''.')
+end
+if separateOrientationSpectra
+  error('garlic does not support Opt.Output=''orientations''.')
+end
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
@@ -137,17 +159,10 @@ if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     error('Multiple components: Please specify sweep range manually using %s.',str);
   end
   
-  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
   if separateComponentSpectra
     spec = [];
-    Opt.Output = 'summed'; % summed spectrum for each isotopologue
   else
     spec = 0;
-  end
-  if nTotalComponents==1
-    if ~strcmp(Opt.Output,'summed')
-      error('For single components, garlic only supports Opt.Output=''summed''. For multiple components, Opt.Output=''components'' is supported.');
-    end
   end
   
   % Loop over all components and isotopologues
@@ -1004,7 +1019,7 @@ if EasySpinLogLevel>=1
 end
 clear global EasySpinLogLevel
 
-return
+end
 
 
 %===================================================================
@@ -1028,4 +1043,4 @@ end
 % Bin in-range lines into spectrum
 Spectrum = full(sparse(1,idxPositions(inRange),Amplitudes(inRange),1,nPoints));
 
-return
+end

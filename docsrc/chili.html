@@ -357,6 +357,14 @@ This specifies which method is use to construct the Liouville matrix (i.e. the H
 Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit`</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
 </div>
 
+<div class="optionfield"><code>Output</code>
+<code>'summed'</code> (default), <code>'components'</code></div>
+<div class="optiondescr">
+<p>
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>'summed'</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum.
+</p>
+</div>
+
 <div class="optionfield"><code>PostConvNucs</code></div>
 <div class="optiondescr">
 This specifies which nuclei should be excluded from the Stochastic Liouville equation (SLE) simulation and only included in the final spectrum perturbationally, via post-convolution of the SLE-simulated spectrum with an isotropic stick spectrum of the nuclei marked for post-convolution. E.g. If <code>Sys.Nucs = '14N,1H,1H,1H'</code> and <code>Opt.PostConvNucs = [2 3 4]</code>, the only the nitrogen is used in the SLE simulation, and all the protons are included via post-convolution.

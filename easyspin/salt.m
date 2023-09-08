@@ -19,8 +19,12 @@
 %       ExciteWidth   ENDOR excitation width, FWHM, in MHz
 %       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: simulation options
-%       Transitions, Threshold, Symmetry
-%       GridSize, Intensity, Enhancement, Output, Sites
+%       Verbosity           0, 1, 2
+%       Method        'matrix', 'perturb1', 'perturb2'='perturb'
+%       Output        'summed', 'components', 'transitions', 'sites', 'orientations'
+%       GridSize      grid size;  N1, [N1 Ninterp]
+%       Transitions, Threshold, GridSymmetry
+%       Intensity, Enhancement, Sites
 %
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz

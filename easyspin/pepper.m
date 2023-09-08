@@ -35,11 +35,11 @@
 %      Ordering            coefficient for non-isotropic orientational distribution
 %    Opt: computational options
 %      Method              'matrix', 'perturb1', 'perturb2'='perturb'
-%      Output              '', 'components', 'transitions', 'sites', 'orientations'
+%      Output              'summed', 'components', 'transitions', 'sites', 'orientations'
 %      Verbosity           0, 1, 2
 %      GridSize            grid size;  N1, [N1 Ninterp]
 %      Transitions, Threshold
-%      Symmetry, GridFrame,
+%      GridSymmetry, GridFrame,
 %      Intensity, Freq2Field, Sites
 %
 %   Output:
