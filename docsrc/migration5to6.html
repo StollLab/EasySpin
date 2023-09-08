@@ -43,6 +43,7 @@ The major changes include the following topics:
 <ul>
 <li><a href = "#crystals">Single-crystal simulations</a></li>
 <li><a href = "#powder">Powder averaging</a></li>
+<li><a href = "#subspectra">Subspectra</a></li>
 <li><a href = "#fitting">Least-squares fitting</a></li>
 <li><a href = "#ham">Hamiltonian functions</a></li>
 <li><a href = "#spinpol">Spin-polarized systems</a></li>
@@ -121,6 +122,25 @@ Also, the field name for the grid symmetry has changed from <code>Opt.Symmetry</
 Opt.Symmetry = 'Ci';      % EasySpin 5
 Opt.GridSymmetry = 'Ci';  % EasySpin 6
 </pre>
+
+<!-- ============================================================= -->
+<a name="subspectra"><div class="subtitle">Subspectra</div></a>
+
+<p>
+You can obtain the subspectra of individual transitions or orientations using <code>Opt.Output</code>. In EasySpin 6, the settings for this option have been changed and extended:
+</p>
+
+<pre class="matlab">
+Opt.Output = 'summed';        % total spectrum
+Opt.Output = 'components';    % subspectra of all sample components
+Opt.Output = 'transitions';   % subspectra of all EPR transitions (powders only)
+Opt.Output = 'sites';         % subspectra for all crystal sites
+Opt.Output = 'orientations';  % subspectra for all crystal orientations
+</pre>
+
+<p>
+See the documentation for <a class="ësf" href="pepper.html">pepper</a> and other simulation functions for details.
+</p>
 
 <!-- ============================================================= -->
 <a name="fitting"><div class="subtitle">Least-squares fitting</div></a>
