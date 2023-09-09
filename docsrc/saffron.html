@@ -45,6 +45,7 @@ y = saffron(...)
 
 <p>
 See also the <a href="examplesmain.html#pulse saffron">examples</a> and <a href="userguide_saffron.html">part I</a> and <a href="userguide_saffron_thyme.html">part II</a> of the <code>saffron</code> userguide.
+</p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
@@ -53,6 +54,7 @@ See also the <a href="examplesmain.html#pulse saffron">examples</a> and <a href=
 This function calculates pulse EPR (ESEEM and ENDOR) spectra of powder and single crystals.
 Two different simulations methods are available: a fast one that works with predefined experiment sequences and certain user defined ones (referred to as <em>fast</em>) and a much slower but completely general algorithm (referred to as <em>thyme</em>).
 For more details see <a href="#algorithms">here</a>.
+</p>
 
 <p>
 The output contain the abscissa data in <code>x</code> and the simulated data in <code>y</code>. 
@@ -62,13 +64,16 @@ In case of transient detection, <code>y</code> is a n+1-dimensional array, where
 If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individual axes.
 In case of transient detection, the time axis of the transient is always the last element in <code>x</code>.
 For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
+</p>
 
 <p>
 If you don't request any output, <code>saffron</code> plots the simulated data. 
 The data can not be plotted for simulations with three or more indirect dimensions with single point detection, or two or more indirect dimensions with transient detection.
+</p>
 
 <p>
 The three input arguments to the function are
+</p>
 
 <ul>
 <li><code>Sys</code>: spin system (paramagnetic molecule)</li>
@@ -80,6 +85,7 @@ The three input arguments to the function are
 
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. Fields available in <code>Sys</code> include all needed for the construction of the spin Hamiltonian. Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>gStrain</code>, etc.) are not recognized, except <code>HStrain</code>. <code>HStrain</code> is used in excitation window computations (see <code>Exp.ExciteWidth</code>) when orientation selection is wanted.
+</p>
 
 <p>
 For ENDOR simulations, <code>saffron</code> utilizes the field <code>Sys.lwEndor</code> to apply a convolutional broadening to the simulated ENDOR spectrum. See <a href="broadenings.html">line width parameters</a> for details.
@@ -87,9 +93,11 @@ For ENDOR simulations, <code>saffron</code> utilizes the field <code>Sys.lwEndor
 
 <p>
 <code>saffron</code> supports any spin system with one electron spin (arbitrary S) and any number of nuclei.
+</p>
 
 <p>
 If no orientation selection is required, then even the g tensor (and the microwave frequency) can be omitted. Only the nuclear parameters (and the field) need to be given:
+</p>
 
 <pre class="matlab">
 Sys.Nucs = '14N';
@@ -99,6 +107,7 @@ Sys.Q = [-1 -1 2]*0.1;
 
 <p>
 You can provide the transverse and longitudinal relaxation times in the spin system structure:
+</p>
 
 <div class="optionfield"><code>T1</code></div>
 <div class="optiondescr">

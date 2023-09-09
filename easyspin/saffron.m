@@ -51,7 +51,7 @@ if ~isstruct(Opt)
 end
 
 % User defined primary output for time dependent simulations
-if ~isfield(Opt,'Output'), Opt.Output = 'Time'; end
+if ~isfield(Opt,'Domain'), Opt.Domain = 'Time'; end
 if ~isfield(Opt,'Ordinate'), Opt.Ordinate = 'Complex'; end
 if ~isfield(Opt,'SimulationMode'), Opt.SimulationMode = ''; end
 
@@ -215,9 +215,9 @@ if strcmp(Opt.SimulationMode,'fast')
   if ~isfield(Sys,'singleiso') || ~Sys.singleiso
     
     % parse options
-    [Opt.Output,err] = parseoption(Opt,'Output',{'Time','Frequency'});
+    [Opt.Domain,err] = parseoption(Opt,'Domain',{'Time','Frequency'});
     error(err);
-    if isENDOR, Opt.Output = 1; end
+    if isENDOR, Opt.Domain = 1; end
     
     [Opt.Ordinate,err] = parseoption(Opt,'Ordinate',{'Complex','Real','Absolute'});
     error(err);
@@ -272,8 +272,8 @@ if strcmp(Opt.SimulationMode,'fast')
     end
     
     
-    switch Opt.Output
-      case 1
+    switch Opt.Domain
+      case 1  % time domain
         switch nargout
           case 0 % plotting, done below
           case 1, varargout = {ysum};
@@ -290,7 +290,7 @@ if strcmp(Opt.SimulationMode,'fast')
               varargout = {x1,ysum,out};
             end
         end
-      case 2
+      case 2  % frequency domain
         switch nargout
           case 0 % plotting, done below
           case 1, varargout = {zsum};
