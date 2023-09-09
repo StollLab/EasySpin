@@ -374,15 +374,15 @@ Options.GridSize = [19 0];   % no interpolation
 </pre>
 
 <p>
-The option <code>Output</code> can be used to obtain a set of individual transition spectra instead of the total spectrum:
+The option <code>separate</code> can be used to obtain a set of individual transition spectra instead of the total spectrum:
 </p>
 
 <pre class="matlab">
 % separate subspectra for all transitions
-Options.Output = 'transitions';
+Options.separate = 'transitions';
 
 % one overall spectrum
-Options.Output = 'summed';
+Options.separate = '';
 </pre>
 
 <p>

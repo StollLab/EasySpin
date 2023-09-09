@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether pepper returns the correct number of subspectra
-% when Opt.Output='components'.
+% when Opt.separate='transitions'. This only works for powders.
 
 % Define several spin systems
 Sys1.g = 2;
@@ -20,33 +20,22 @@ Sys3.lwpp = 0.4;
 Exp.mwFreq = 9.5;
 Exp.Range = [330 360];
 
-Opt.Output = 'components';
+Opt.separate = 'transitions';
+Opt.Method = 'perturb2';
+
+%35Cl and 37Cl both have spin 3/2, so 4 allowed EPR transitions
 
 % Powder
 [B,spc] = pepper(Sys1,Exp,Opt);
-ok(1) = size(spc,1)==1;
+ok(1) = size(spc,1)==4;  % 1 components,
 
 [B,spc] = pepper({Sys1,Sys3},Exp,Opt);
-ok(2) = size(spc,1)==2;
+ok(2) = size(spc,1)==5;
 
 [B,spc] = pepper(Sys2,Exp,Opt);
-ok(3) = size(spc,1)==4;
+ok(3) = size(spc,1)==64;  % 4 isotopologue components, 4x4=16 transitions each
 
 [B,spc] = pepper({Sys1,Sys2},Exp,Opt);
-ok(4) = size(spc,1)==5;
-
-% Crystal
-Exp.SampleFrame = [20 70 130]*pi/180;
-[B,spc] = pepper(Sys1,Exp,Opt);
-ok(5) = size(spc,1)==1;
-
-[B,spc] = pepper({Sys1,Sys3},Exp,Opt);
-ok(6) = size(spc,1)==2;
-
-[B,spc] = pepper(Sys2,Exp,Opt);
-ok(7) = size(spc,1)==4;
-
-[B,spc] = pepper({Sys1,Sys2},Exp,Opt);
-ok(8) = size(spc,1)==5;
+ok(4) = size(spc,1)==68;  % 4 components with 16 transitions, plus 1 comp. with 4
 
 end

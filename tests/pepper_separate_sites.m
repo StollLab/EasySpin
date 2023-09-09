@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether pepper returns the correct number of subspectra
-% when Opt.Output='orientations'. This only works for crystals.
+% when Opt.separate='sites'. This works only for crystals.
 
 % Define several spin systems
 Sys1.g = 2;
@@ -19,25 +19,24 @@ Sys3.lwpp = 0.4;
 
 Exp.mwFreq = 9.5;
 Exp.Range = [330 360];
+
+Opt.separate = 'sites';
+
 Exp.MolFrame = [20 70 130]*pi/180;
 Exp.CrystalSymmetry = 100;
 
-% Two crystal orientations
-Exp.SampleFrame = [0 0 0; 234 131 59]*pi/180;
-
-Opt.Output = 'orientations';
-Opt.Method = 'perturb2';
+% Space group 100 has 8 sites.
 
 [B,spc] = pepper(Sys1,Exp,Opt);
-ok(1) = size(spc,1)==2;  % 1 component, 2 orientations each
+ok(1) = size(spc,1)==8;  % 1 component with 8 sites
 
 [B,spc] = pepper({Sys1,Sys3},Exp,Opt);
-ok(2) = size(spc,1)==4;  % 2 components, 2 orientations each
+ok(2) = size(spc,1)==16;  % 2 components with 8 sites
 
 [B,spc] = pepper(Sys2,Exp,Opt);
-ok(3) = size(spc,1)==8;  % 4 components, 2 orientations each
+ok(3) = size(spc,1)==32;  % 2x2=4 components with 8 sites
 
 [B,spc] = pepper({Sys1,Sys2},Exp,Opt);
-ok(4) = size(spc,1)==10;  % 4+1 components, 2 orientations each
+ok(4) = size(spc,1)==40;  % 1+2x2=5 components with 8 sites
 
 end

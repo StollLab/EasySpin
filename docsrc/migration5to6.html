@@ -127,16 +127,20 @@ Opt.GridSymmetry = 'Ci';  % EasySpin 6
 <a name="subspectra"><div class="subtitle">Subspectra</div></a>
 
 <p>
-You can obtain the subspectra of individual transitions or orientations using <code>Opt.Output</code>. In EasySpin 6, the settings for this option have been changed and extended:
+In EasySpin 6, you can obtain the subspectra of individual transitions or orientations using <code>Opt.separate</code>:
 </p>
 
 <pre class="matlab">
-Opt.Output = 'summed';        % total spectrum
-Opt.Output = 'components';    % subspectra of all sample components
-Opt.Output = 'transitions';   % subspectra of all EPR transitions (powders only)
-Opt.Output = 'sites';         % subspectra for all crystal sites
-Opt.Output = 'orientations';  % subspectra for all crystal orientations
+Opt.separate = '';              % total spectrum
+Opt.separate = 'components';    % subspectra of all sample components
+Opt.separate = 'transitions';   % subspectra of all EPR transitions (powders only)
+Opt.separate = 'sites';         % subspectra for all crystal sites
+Opt.separate = 'orientations';  % subspectra for all crystal orientations
 </pre>
+
+<p>
+The field <code>Opt.Output</code> from EasySpin 5 is no longer supported.
+</p>
 
 <p>
 See the documentation for <a class="ësf" href="pepper.html">pepper</a> and other simulation functions for details.

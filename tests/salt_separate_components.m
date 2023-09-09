@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether salt returns the correct number of subspectra
-% when Opt.Output='components'.
+% when Opt.separate='components'.
 
 % Define several spin systems
 Sys1.Nucs = '35Cl';
@@ -22,7 +22,7 @@ Exp.Range = [0 40];  % MHz
 
 Opt.Method = 'perturb2';
 
-Opt.Output = 'components';
+Opt.separate = 'components';
 
 % Powder
 [nu,spc] = salt(Sys1,Exp,Opt);

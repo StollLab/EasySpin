@@ -48,7 +48,7 @@
 %                     'explicit' - explicit evaluation of line shape for each line
 %      IsoCutoff    relative isotopologue abundance cutoff threshold
 %                     between 0 and 1, default 1e-6
-%      Output       subspectra output, 'summed' (default) or 'components'
+%      separate     subspectra output, '' (default) or 'components'
 %
 %   Output
 %     B                magnetic field axis (mT)
@@ -109,30 +109,26 @@ else
   end
 end
 
-% Process Opt.Output
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-if isempty(Opt.Output), Opt.Output = 'summed'; end
-if strcmp(Opt.Output,'separate')
-  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
-end
-[Output,err] = parseoption(Opt,'Output',{'summed','components','transitions','orientations','sites'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
-separateComponentSpectra = Output==2;
-separateTransitionSpectra = Output==3;
-separateOrientationSpectra = Output==4;
-separateSiteSpectra = Output==5;
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
 if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
   separateComponentSpectra = true;
 end
 
 if separateTransitionSpectra
-  error('garlic does not support Opt.Output=''transitions''.')
+  error('garlic does not support Opt.separate=''transitions''.')
 end
 if separateSiteSpectra
-  error('garlic does not support Opt.Output=''sites''.')
+  error('garlic does not support Opt.separate=''sites''.')
 end
 if separateOrientationSpectra
-  error('garlic does not support Opt.Output=''orientations''.')
+  error('garlic does not support Opt.separate=''orientations''.')
 end
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
@@ -471,6 +467,10 @@ end
 %-------------------------------------------------------------------------
 % Simulation options
 %-------------------------------------------------------------------------
+% Obsolete options
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Options.separate instead.');
+end
 
 % Stretch factor for automatically detected field range
 if ~isfield(Opt,'Stretch')
@@ -516,10 +516,6 @@ if ~isfield(Opt,'AccumMethod') || isempty(Opt.AccumMethod)
   else
     Opt.AccumMethod = 'binning';
   end
-end
-
-if ~isfield(Opt,'Output')
-  Opt.Output = 'summed';
 end
 
 %-------------------------------------------------------------------------

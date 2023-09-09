@@ -52,7 +52,7 @@
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
 %      GridSymmetry   grid symmetry to use for powder simulation
-%      Output         subspectra output, 'summed' (default) or 'components'
+%      separate       subspectra output, '' (default) or 'components'
 %
 %   Output:
 %     B               magnetic field axis vector, in mT (for field sweeps)
@@ -104,15 +104,11 @@ else
 end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-% Process Opt.Output
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-if isempty(Opt.Output), Opt.Output = 'summed'; end
-if strcmp(Opt.Output,'separate')
-  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
-end
-[Output,err] = parseoption(Opt,'Output',{'summed','components'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components'});
 error(err);
-separateComponentSpectra = Output==2;
+separateComponentSpectra = separateOutput==2;
 
 if ~isfield(Sys,'singleiso') || ~Sys.singleiso
   
@@ -550,6 +546,9 @@ if isfield(Opt,'nKnots')
 end
 if isfield(Opt,'Symmetry')
   error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Opt.separate instead.');
 end
 
 % Undocumented

@@ -1,6 +1,6 @@
 % 1H ENDOR, summed and separate output
 %=====================================================================
-% Demonstates the use of Options.Output
+% Demonstates the use of Options.separate
 clear, clf
 
 % Spin system
@@ -16,7 +16,7 @@ Experiment.Range = [6 20];
 Experiment.mwFreq = 9.681;
 
 % return subspectra for all transitions separately
-Options.Output = 'transitions';
+Options.separate = 'transitions';
 
 [freq,spec_sep] = salt(Spins,Experiment,Options);
 spec_sum = sum(spec_sep,1)/4;

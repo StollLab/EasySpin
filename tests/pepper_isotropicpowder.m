@@ -6,9 +6,9 @@ Sys = struct('S',1/2,'g',[2 2 2],'Nucs','63Cu','A',[40 40 40],'HStrain',[1 1 1]*
 Exp = struct('mwFreq',9.7979,'Range',[340 360],'nPoints',10000);
 Opt = struct('Verbosity',0,'GridSize',[30 1]);
 
-Opt.Output = '';
+Opt.separate = '';
 [x,y1] = pepper(Sys,Exp,Opt);
-Opt.Output = 'transitions';
+Opt.separate = 'transitions';
 [x,y2] = pepper(Sys,Exp,Opt);
 
 ok = (size(y1,1)==1) && (size(y2,1)==4) && areequal(y1/max(y1),sum(y2)/max(y1),1e-4,'abs');

@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether pepper returns the correct number of subspectra
-% when Opt.Output='sites'. This works only for crystals.
+% when Opt.separate='components'.
 
 % Define several spin systems
 Sys1.g = 2;
@@ -20,23 +20,33 @@ Sys3.lwpp = 0.4;
 Exp.mwFreq = 9.5;
 Exp.Range = [330 360];
 
-Opt.Output = 'sites';
+Opt.separate = 'components';
 
-Exp.MolFrame = [20 70 130]*pi/180;
-Exp.CrystalSymmetry = 100;
-
-% Space group 100 has 8 sites.
-
+% Powder
 [B,spc] = pepper(Sys1,Exp,Opt);
-ok(1) = size(spc,1)==8;  % 1 component with 8 sites
+ok(1) = size(spc,1)==1;
 
 [B,spc] = pepper({Sys1,Sys3},Exp,Opt);
-ok(2) = size(spc,1)==16;  % 2 components with 8 sites
+ok(2) = size(spc,1)==2;
 
 [B,spc] = pepper(Sys2,Exp,Opt);
-ok(3) = size(spc,1)==32;  % 2x2=4 components with 8 sites
+ok(3) = size(spc,1)==4;
 
 [B,spc] = pepper({Sys1,Sys2},Exp,Opt);
-ok(4) = size(spc,1)==40;  % 1+2x2=5 components with 8 sites
+ok(4) = size(spc,1)==5;
+
+% Crystal
+Exp.SampleFrame = [20 70 130]*pi/180;
+[B,spc] = pepper(Sys1,Exp,Opt);
+ok(5) = size(spc,1)==1;
+
+[B,spc] = pepper({Sys1,Sys3},Exp,Opt);
+ok(6) = size(spc,1)==2;
+
+[B,spc] = pepper(Sys2,Exp,Opt);
+ok(7) = size(spc,1)==4;
+
+[B,spc] = pepper({Sys1,Sys2},Exp,Opt);
+ok(8) = size(spc,1)==5;
 
 end

@@ -1,43 +1,43 @@
 function ok = test()
 
-% Test whether salt returns the correct number of subspectra
-% when Opt.Output='orientations'. This only works for crystals.
+% Test whether pepper returns the correct number of subspectra
+% when Opt.separate='orientations'. This only works for crystals.
 
 % Define several spin systems
+Sys1.g = 2;
 Sys1.Nucs = '35Cl';
-Sys1.A = [3 6];
-Sys1.lwEndor = 0.2;
+Sys1.A = 10;
+Sys1.lwpp = 0.2;
 
+Sys2.g = 2;
 Sys2.Nucs = 'Cl,Cl';
-Sys2.A = [2 4];
-Sys2.lwEndor = 0.2;
+Sys2.A = [20 7];
+Sys2.lwpp = 0.2;
 
-Sys3.Nucs = '37Cl';
-Sys3.A = 5;
-Sys3.lwEndor = 0.2;
+Sys3.g = 2.02;
+Sys3.lwpp = 0.4;
 
-% Experimental settings
-Exp.Field = 3400;  % mT
-Exp.Range = [0 20];
+Exp.mwFreq = 9.5;
+Exp.Range = [330 360];
 Exp.MolFrame = [20 70 130]*pi/180;
 Exp.CrystalSymmetry = 100;
 
 % Two crystal orientations
 Exp.SampleFrame = [0 0 0; 234 131 59]*pi/180;
 
-Opt.Output = 'orientations';
+Opt.separate = 'orientations';
 Opt.Method = 'perturb2';
 
-[nu,spc] = salt(Sys1,Exp,Opt);
+[B,spc] = pepper(Sys1,Exp,Opt);
 ok(1) = size(spc,1)==2;  % 1 component, 2 orientations each
 
-[nu,spc] = salt({Sys1,Sys3},Exp,Opt);
+[B,spc] = pepper({Sys1,Sys3},Exp,Opt);
 ok(2) = size(spc,1)==4;  % 2 components, 2 orientations each
 
-[nu,spc] = salt(Sys2,Exp,Opt);
+[B,spc] = pepper(Sys2,Exp,Opt);
 ok(3) = size(spc,1)==8;  % 4 components, 2 orientations each
 
-[nu,spc] = salt({Sys1,Sys2},Exp,Opt);
+[B,spc] = pepper({Sys1,Sys2},Exp,Opt);
 ok(4) = size(spc,1)==10;  % 4+1 components, 2 orientations each
 
 end

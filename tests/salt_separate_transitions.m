@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether salt returns the correct number of subspectra
-% when Opt.Output='transitions'. This only works for powders.
+% when Opt.separate='transitions'. This only works for powders.
 
 % Define several spin systems
 Sys1.Nucs = '15N';
@@ -20,7 +20,7 @@ Sys3.lwEndor = 0.2;
 Exp.Field = 3400;  % mT
 Exp.Range = [0 40];
 
-Opt.Output = 'transitions';
+Opt.separate = 'transitions';
 Opt.Method = 'perturb2';
 
 %35Cl and 37Cl both have spin 3/2, so 4 allowed EPR transitions

@@ -22,7 +22,7 @@ Exp.ExciteWidth = 200;
 % - use perturbation theory instead of matrix diagonalization
 Opt.Method = 'perturb1';
 % - keep transitions separate
-Opt.Output = 'transitions';
+Opt.separate = 'transitions';
 % - high orientational resolution, no interpolation
 Opt.GridSize = [61 0];
 

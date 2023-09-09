@@ -35,7 +35,7 @@
 %      Ordering            coefficient for non-isotropic orientational distribution
 %    Opt: computational options
 %      Method              'matrix', 'perturb1', 'perturb2'='perturb'
-%      Output              'summed', 'components', 'transitions', 'sites', 'orientations'
+%      separate            '', 'components', 'transitions', 'sites', 'orientations'
 %      Verbosity           0, 1, 2
 %      GridSize            grid size;  N1, [N1 Ninterp]
 %      Transitions, Threshold
@@ -108,19 +108,15 @@ end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-3; end
 
 
-% Process Opt.Output
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-if isempty(Opt.Output), Opt.Output = 'summed'; end
-if strcmp(Opt.Output,'separate')
-  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
-end
-[Output,err] = parseoption(Opt,'Output',{'summed','components','transitions','orientations','sites'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
-summedOutput = Output==1;
-separateComponentSpectra = Output==2;
-separateTransitionSpectra = Output==3;
-separateOrientationSpectra = Output==4;
-separateSiteSpectra = Output==5;
+summedOutput = separateOutput==1;
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
 if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
   separateComponentSpectra = true;
 end
@@ -550,12 +546,15 @@ end
 if isfield(Opt,'Perturb')
   error('Options.Perturb is obsolete. Use Opt.Method=''perturb'' or Opt.Method=''hybrid'' instead.');
 end
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Options.separate instead.');
+end
 
 % Documented fields, pepper
 DefaultOpt.Verbosity = 0;
 DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
-DefaultOpt.Output = 'summed';
+DefaultOpt.separateOutput = '';
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
 
 % Undocumented fields, pepper
@@ -612,21 +611,21 @@ if numel(Opt.GridSize)<2
   end
 end
 
-% Some compatibility checks for separate spectra output (Opt.Output)
+% Some compatibility checks for separate spectra output (Opt.separate)
 if PowderSimulation
   if separateOrientationSpectra
-    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.Output=''orientations'').\nUse other setting for Opt.Output.\n'));
+    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.separate=''orientations'').\nUse other setting for Opt.separate.\n'));
   end
   if separateSiteSpectra
-    error(sprintf('\nCannot return separate sites for powder spectra (Opt.Output=''sites'').\nUse other setting for Opt.Output.\n'));
+    error(sprintf('\nCannot return separate sites for powder spectra (Opt.separate=''sites'').\nUse other setting for Opt.separate.\n'));
   end
 else
   if separateTransitionSpectra
-    error(sprintf('\n  Cannot return separate transitions for crystal spectra (Opt.Output=''transitions'').\n  Use other setting for Opt.Output.\n'));
+    error(sprintf('\n  Cannot return separate transitions for crystal spectra (Opt.separate=''transitions'').\n  Use other setting for Opt.separate.\n'));
   end
 end
 if Opt.ImmediateBinning && ~summedSpectra
-  error('When using Opt.ImmediateBinning, only Opt.Output=''summed'' is possible');
+  error('When using Opt.ImmediateBinning, only Opt.separate='''' is possible');
 end
 
 % Parse string options

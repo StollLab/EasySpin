@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether garlic returns the correct number of subspectra
-% when Opt.Output='components'.
+% when Opt.separate='components'.
 
 Sys1.g = 2;
 Sys1.Nucs = '1H';
@@ -18,7 +18,7 @@ Sys2.lwpp = 0.03;
 Exp.mwFreq = 9.5;  % GHz
 Exp.Range = [336 343];  % mT
 
-Opt.Output = 'components';
+Opt.separate = 'components';
 
 [B,spc] = garlic(Sys1,Exp,Opt);
 ok(1) = size(spc,1)==1;

@@ -21,7 +21,7 @@
 %   - Opt: simulation options
 %       Verbosity           0, 1, 2
 %       Method        'matrix', 'perturb1', 'perturb2'='perturb'
-%       Output        'summed', 'components', 'transitions', 'sites', 'orientations'
+%       separate      '', 'components', 'transitions', 'sites', 'orientations'
 %       GridSize      grid size;  N1, [N1 Ninterp]
 %       Transitions, Threshold, GridSymmetry
 %       Intensity, Enhancement, Sites
@@ -83,19 +83,14 @@ SweeepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
 
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-% Process Opt.Output
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-if isempty(Opt.Output), Opt.Output = 'summed'; end
-if strcmp(Opt.Output,'separate')
-  error(sprintf('\n  Opt.Output=''separate'' is no longer supported.\n  Use ''components'', ''transitions'', ''orientations'' or ''sites'' instead.\n'));
-end
-[Output,err] = parseoption(Opt,'Output',{'summed','components','transitions','orientations','sites'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
-summedOutput = Output==1;
-separateComponentSpectra = Output==2;
-separateTransitionSpectra = Output==3;
-separateOrientationSpectra = Output==4;
-separateSiteSpectra = Output==5;
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
 if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
   separateComponentSpectra = true;
 end
@@ -387,7 +382,7 @@ else
 end
 DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
-DefaultOpt.Output = 'summed';
+DefaultOpt.separate = '';
 
 % Undocumented fields
 DefaultOpt.Smoothing = 2;
@@ -411,17 +406,17 @@ if numel(Opt.GridSize)<2
   Opt.GridSize(2) = DefaultOpt.GridSize(2);
 end
 
-% Some compatibility checks for separate spectra output (Opt.Output)
+% Some compatibility checks for separate spectra output (Opt.separate)
 if PowderSimulation
   if separateOrientationSpectra
-    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.Output=''orientations'').\nUse other setting for Opt.Output.\n'));
+    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.separate=''orientations'').\nUse other setting for Opt.separate.\n'));
   end
   if separateSiteSpectra
-    error(sprintf('\nCannot return separate sites for powder spectra (Opt.Output=''sites'').\nUse other setting for Opt.Output.\n'));
+    error(sprintf('\nCannot return separate sites for powder spectra (Opt.separate=''sites'').\nUse other setting for Opt.separate.\n'));
   end
 else
   if separateTransitionSpectra
-    error(sprintf('\n  Cannot return separate transitions for crystal spectra (Opt.Output=''transitions'').\n  Use other setting for Opt.Output.\n'));
+    error(sprintf('\n  Cannot return separate transitions for crystal spectra (Opt.separate=''transitions'').\n  Use other setting for Opt.separate.\n'));
   end
 end
 
@@ -457,6 +452,10 @@ end
 
 if isfield(Opt,'LineShape')
   error('Options.LineShape is obsolete. Use System.lwEndor instead.');
+end
+
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Options.separate instead.');
 end
 
 %==========================================================================

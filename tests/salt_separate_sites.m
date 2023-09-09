@@ -1,7 +1,7 @@
 function ok = test()
 
 % Test whether salt returns the correct number of subspectra
-% when Opt.Output='sites'. This works only for crystals.
+% when Opt.separate='sites'. This works only for crystals.
 
 % Define several spin systems
 Sys1.Nucs = '35Cl';
@@ -25,7 +25,7 @@ Exp.CrystalSymmetry = 100; % Space group 100 has 8 sites.
 % Two crystal orientations
 Exp.SampleFrame = [0 0 0; 234 131 59]*pi/180;
 
-Opt.Output = 'sites';
+Opt.separate = 'sites';
 
 [B,spc] = salt(Sys1,Exp,Opt);
 ok(1) = size(spc,1)==8;  % 1 component with 8 sites
