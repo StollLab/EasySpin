@@ -1,26 +1,21 @@
 function [ok,data] = test(opt,olddata)
 
+% Spin system
 Sys.S = 1/2;
 Sys.g = 1.898468237763169;
 Sys.Nucs = '1H';
 Sys.A_ = [5 2];
 
-dt = 0.01;
-tau = 0.1;
-nPoints = 10;
-Field = 350;
-
-%--- Tests
-
+% Experiment
 Exp.Sequence = '3pESEEM';
-Exp.dt = dt;
-Exp.tau = tau;
-Exp.T = 0.5;
-Exp.nPoints = nPoints;
-Exp.Field = Field;
+Exp.dt = 0.01;  % µs
+Exp.tau = 0.1;  % µs
+Exp.T = 0.5;  % µs
+Exp.nPoints = 10;
+Exp.Field = 350;  % mT
 
-Exp.DetWindow = [-0.05 0.05];
-Exp.mwFreq = 9.3;
+Exp.DetWindow = [-0.05 0.05];  % µs
+Exp.mwFreq = 9.3;  % GHz
 Exp.DetPhase = 0;
 
 Exp.MolFrame = [0 0 0];

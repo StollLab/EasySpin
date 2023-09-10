@@ -1357,7 +1357,6 @@ end
 % Assign output.
 %-----------------------------------------------------------------------
 switch nargout
-  case 0
   case 1
     varargout = {spec};
   case 2
@@ -1369,9 +1368,8 @@ end
 
 % Report performance.
 %-----------------------------------------------------------------------
-[Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
-msg = sprintf('cpu time %dh%dm%0.3fs',Hours,Minutes,Seconds);
-logmsg(1,msg);
+hmsString = elapsedtime(StartTime,clock);
+logmsg(1,['pepper took ' hmsString]);
 
 logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
 

@@ -332,15 +332,8 @@ end
 %===============================================================
 % Report performance
 %===============================================================
-[Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
-if (Hours>0)
-  msg = sprintf('spidyan took %dh%dm%0.3fs',Hours,Minutes,Seconds);
-elseif (Minutes>0)
-  msg = sprintf('spidyan took %dm%0.3fs',Minutes,Seconds);
-else
-  msg = sprintf('spidyan took %0.3fs',Seconds);
-end
-logmsg(1,msg);
+hmsString = elapsedtime(StartTime,clock);
+logmsg(1,['spidyan took ' hmsString]);
 
 logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
 

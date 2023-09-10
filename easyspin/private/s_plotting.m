@@ -1,4 +1,5 @@
 function s_plotting(TimeAxis,Signal,Exp,Opt)
+
 % This function plots the output of saffron and spidyan
 
 if ~isfield(Exp,'DetOperator')
@@ -138,7 +139,7 @@ else
         Signal = reshape(Signal,[nDataPoints SignalSize(end-1) SignalSize(end)]);
       end
       
-      for iDetOp = 1 : nDetOps
+      for iDetOp = 1:nDetOps
         figure;
         if iscell(Signal)
           for iDataPoint = 1 : nDataPoints

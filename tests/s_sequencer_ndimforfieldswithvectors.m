@@ -23,7 +23,6 @@ Exp.nPoints = 3;
 Exp.Dim1 = {'p1.n(2)' -2};
 
 Opt.SimFreq = 0;
-Opt.SimulationMode = 'step wise';
 
 [~, Vary1] = runprivate('s_sequencer',Exp,Opt);
 

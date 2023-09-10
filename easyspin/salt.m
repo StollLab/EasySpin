@@ -1075,9 +1075,8 @@ end
 
 % Report performance.
 %-----------------------------------------------------------------------
-[Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
-msg = sprintf('cpu time %dh%dm%0.2fs',Hours,Minutes,Seconds);
-logmsg(1,msg);
+hmsString = elapsedtime(StartTime,clock);
+logmsg(1,['salt took ' hmsString]);
 
 logmsg(1,'=end=salt=========%s=================\n',char(datetime));
 

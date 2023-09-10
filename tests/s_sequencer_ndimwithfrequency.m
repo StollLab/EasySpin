@@ -11,7 +11,6 @@ Exp.mwFreq = 33.5;
 Exp.DetSequence = 1; 
 
 Opt.SimFreq = 32;
-Opt.SimulationMode = 'step wise';
 
 % This tests different ways of defining a dimension where the frequency is
 % swept - They should all give the same results

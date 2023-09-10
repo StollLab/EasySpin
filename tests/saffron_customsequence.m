@@ -4,23 +4,14 @@ Sys.Nucs = '14N';
 Sys.A = [-1 -1 2]*0.5+0.8;
 Sys.Q = 1;
 
+Exp.Field = 330;
+
 % User-defined HYSCORE experiment
 tau = 0.080;  % µs
-% Exp.Flip = [1 1 2 1];
-% Exp.t = [tau 0 0 tau];
-% Exp.Inc = [0 1 2 0];
-% Exp.dt = 0.025;
-% 
-% Exp.Field = 330;
-% Exp.tau = 0.001;
-% Exp.dt = 0.1;
-% Exp.nPoints = 200;
-
+t0 = 0;  % µs
 p90.Flip = pi/2;
 p180.Flip = pi;
-
-Exp.Field = 330;
-Exp.Sequence = {p90 tau p90 0 p180 0 p90 tau};
+Exp.Sequence = {p90 tau p90 t0 p180 t0 p90 tau};
 Exp.nPoints = [200 200];
 Exp.Dim1 = {'d2' 0.1};
 Exp.Dim2 = {'d3' 0.1};

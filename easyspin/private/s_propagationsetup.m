@@ -1,15 +1,10 @@
 function [Sys,Sigma0,DetOps,Events,Relaxation] = s_propagationsetup(Sys,Events,Opt)
 % Spin system setup and input checking for saffron/spidyan
-%
 
 % Check spin system structure
 % --------------------------------------------------------------------------------------
 % Check for isotope mixtures
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-isoList = isotopologues(Sys.Nucs);
-if numel(isoList)>1
-  error('saffron/spidyan do not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
-end
 
 % Validate spin system
 [Sys,err] = validatespinsys(Sys);

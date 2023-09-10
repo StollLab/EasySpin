@@ -133,8 +133,7 @@ Relaxation times for transitions that are not defined (or 0) are automatically s
 
 <div class="subtitle2">Input: Experimental parameters</div>
 <p>
-<code>Exp</code> contains the experimental parameters, most importantly the magnetic field and the pulse sequence.
-Depending on what simulation method is used, different fields may be available or need to be provided.
+<code>Exp</code> contains the experimental parameters, most importantly the magnetic field and the pulse sequence. Depending on what simulation method is used, different fields may be available or need to be provided.
 </p>
 
 <p>
@@ -143,95 +142,123 @@ General fields:
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
+<p>
 Magnetic field (in mT) at which the experiment is performed.
+</p>
 </div>
 
 <div class="optionfield"><code>Sequence</code></div>
 <div class="optiondescr">
-Specifies a predefined pulse experiment. Possible values are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>,
-or <code>'MimsENDOR'</code>, see the page on <a href="predefinedexperiments.html">predefined experiments</a> for more.
 <p>
-User-defined sequences have to be given as cell array. 
-For a pulse it is necessary to insert a structure containing the pulse defintion, free evolution events are declared with a scalar that corresponds to their lenght in microsecond:
+Specifies a predefined pulse experiment or a user-defined pulse experiment.
+</p>
+
+<p>
+Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
+</p>
+<p>
+User-defined sequences have to be given as cell array, with alternating entries for pulses (via a structure containing the pulse parameters) and numbers that give the inter-pulse delays in microseconds.
+</p>
+
 <pre class="matlab">
-P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
-P90.tp = 0.032;		  	% Pulse Length in microseconds
-P90.Flip = pi/2;		% Flip angle of the pulse
+Pulse1.Type = 'rectangular';  % Pulse shape
+Pulse1.tp = 0.032;            % Pulse length, microseconds
+Pulse1.Flip = pi/2;           % Pulse flip angle, radians
 
-P180.Type = 'rectangular';  	% Define Pulse, see examples for more details
-P180.tp = 0.032;		% Pulse Length in microseconds
-P180.Flip = pi;		  	% Flip angle of the pulse
+Pulse2.Type = 'rectangular'; 
+Pulse2.tp = 0.032;
+Pulse2.Flip = pi;
 
-Exp.Sequence = {P90 0.2 P180 0.4}; % Creates a two pulse (echo) sequence, with an inter-pulse 
-				   % delay of 0.2 microseconds and a final free-evolution period 
-				   % of 0.4 microseconds
+Exp.Sequence = {Pulse1 0.2 Pulse2 0.1}; 
 </pre>
-Ideal pulses as they can be used with the <em>fast</em> method are defined by providing only a flip angle:
+
+<p>
+Ideal pulses (with zero length and therefore infinite excitation bandwidth) are defined by providing only a flip angle:
+</p>
+
 <pre class="matlab">
-% Ideal pulses
-P90.Flip = pi/2;		  	% Flip angle of the pulse
+% Zero-length pulses
+Pulse1.Flip = pi/2;
+Pulse2.Flip = pi;
 
-P180.Flip = pi;		  		% Flip angle of the pulse
-
-Exp.Sequence = {P90 0.2 P180 0.4};
+Exp.Sequence = {Pulse1 0.2 Pulse2 0.4};
 </pre>
-The delays are defined to go from the end of one previous element in <code>Sequence</code> to the beginning of the next (unlike in Bruker spectrometers).
+
+<p>
+The inter-pulse delays are defined as going from the end of one pulse to the beginning of the next.
+</p>
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
-EPR spectrometer frequency in GHz. 
-For the the <em>fast</em> method this needs only to be given if orientation selection is wanted.
-<p> 
-Required for the <em>thyme</em> method.
-All frequencies in the pulse definition (e.g. <code>Pulse.Frequency</code>) need to be defined relative to it:
+<p>
+EPR spectrometer frequency in GHz. For the the <em>fast</em> method,this needs only to be given if orientation selection is wanted (see <code>Exp.ExciteWidth</code>).
+</p>
+<p>
+For the <em>thyme</em> method, this is required. All frequencies in the pulse definition (<code>Pulse.Frequency</code>) are defined relative <code>Exp.mwFreq</code>>:
 <pre class="matlab">
 Exp.mwFreq = 33.5;
 
-Pulse.Frequency = [-250 250];  % 500 MHz sweep
+Pulse.Frequency = [-250 250];  % corresponds to 33.25 - 33.75 GHz
 </pre>
 </div>
 
 <p>
 Indirect dimensions:
+</p>
+
 <h2 id="indirect_dimensions"></h2>
 </p>
 
 <div class="optionfield"><code>nPoints</code></div>
 <div class="optiondescr">
-A vector that contains the number of points in each dimension, e. g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension. 
+<p>
+A vector that contains the number of points in each dimension, e. g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension.
+</p>
 <pre class="matlab">
 Exp.nPoints = [10 150]; 	% 10 points along the first indirect dimension, 150 along the second
 </pre>
+<p>
 If omitted for predefined experiments, default values are assumed, see <a class="esf" href="predefinedexperiments.html"> predefined experiments</a>.
+</p>
 </div>
 
 <div class="optionfield"><code>Dim1</code>, <code>Dim2</code>,... </div>
 <div class="optiondescr">
+<p>
 <code>Dim1</code>, <code>Dim2</code>,... provide the fields that are to be changed along the indirect dimensions (field <code>nPoints</code>).  
 The first data point always uses the values defined initially in the experiment definition.
 All fields that appear in the pulse definition can be changed, e.g:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'p2.Flip' pi/8};        % increments the flip angle of the second pulse by pi/8 each step
 </pre>
+<p>
 For free evolution events only the length can be changed:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'d3' -0.1};             % decrements the length of the third delay by 100 ns each step
 </pre>
+<p>
 Several parameters can be changed in one dimension:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'p2.Flip' pi/8; 'd3' -0.1}; 	% changes flip angle of pulse and duration of free evolution
 Exp.Dim1 = {'p2.Flip,p3.Flip' pi/8};  		% flip angles of 2nd and 3rd pulse are simultaneously stepped  
 </pre>
+<p>
 For experiments that involve one or several moving pulses, the identifier <code>Position</code> can be used.
 This is only possible for pulses that are not the first or last event in the sequence. 
 Pulses are allowed to cross, but must not overlap.
+</p>
 <pre class="matlab">
 Exp.Dim2 = {'p2.Position' 0.1};   % moves the second pulse 100 ns back each step in the 2nd dimension
 </pre>
+<p>
 A list of increments can be used by providing vectors with the precomputed increments.
 All increments are always applied to the initial value of the field (as defined in the <code>Exp</code>) and are not related to each other.
 Hence, if the value in the experiment definition is desired as first data point of the indirect dimension, the fist element has to be zero:
+</p>
 <pre class="matlab">
 Exp.nPoints = 4;
 
@@ -240,15 +267,20 @@ Exp.Dim1 = {'d2' [0 0.1 0.2 0.3]};
 % is equal to: 
 Exp.Dim1 = {'d2' 0.1}; 
 </pre>
+<p>
 Complete freedom is given when it comes to providing the list of increments.
+</p>
 <pre class="matlab">
 Exp.nPoints = 5;
 Exp.Dim1 = {'d2' [0 0.1 0.3 0.65 -0.2]};   % increment of the second delay
 </pre>
+<p>
 However, the program checks that changing lengths of events do not lead to overlapping pulses at any acquisition point.
+</p>
 <p>
 A special case is the field <code>Par.Frequency</code> in the pulse definition of a frequency-swept or of a monochromatic pulse that is defined by identical initial and final frequency.
 If one value is provided in <code>Exp.DimX</code>, this is going to be added to both elements in the <code>Par.Frequency</code> field - the pulse is moved in the frequency domain:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' 5};   % changes both elements in Par.Frequency by 5 MHz per step
 </pre>
@@ -256,18 +288,23 @@ An equivalent input as the above is the following, where each the increment for 
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' [5 5]};   % changes both elements in Par.Frequency by 5 MHz per step
 </pre>
+<p>
 This syntax can also be used to change the sweep width:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' [-5 5]};   			% increases sweep width by 10 MHz each step
 Exp.Dim1 = {'p1.Frequency' [0 5]};    			% increment only the final frequency of the frequency sweep
 </pre>
+<p>
 A list of increments can be provided as well, by using <code>';'</code> as separator:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' [0 0; 10 10; 30 30; 80 80]};  % vector increment for shifting the frequency range of the pulse
 Exp.Dim1 = {'p1.Frequency' [0 0; -10 0; 0 30; -80 80]};  % vector increment changing the excitation range of the pulse
 </pre>
 <p>
 For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relatives amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
+</p>
 <pre class="matlab">
 Exp.Dim1 = {'p1.A0(3)' 0.1; 'p1.A0(4)' -0.1};   % changes relative amplitudes of the third and fourth pulse in a Gaussian cascade
 Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbolic secant pulse by 2 each step
@@ -276,14 +313,19 @@ Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbo
 Exp.Dim1 = {'p1.Frequency(2)' 5};    % changes only the final frequency of the pulse
 Exp.Dim1 = {'p1.Frequency' [0 5]};   % identical to the above and not a list of increments!
 </pre>
+<p>
 Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that can not be achieved through the <code>Exp.PhaseCycle</code> structure):
+</p>
 <pre class="matlab">
 Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
 </pre>
+<p>
 In the above example, the output of <code>spidyan</code> will contain the individual transients from each phase cycling step and manual merging of the dimensions (with proper detection phase/sign) is required to obtain the phase-cycled signal.
+</p>
 <p>
 This is an example for a two-dimensional experiment (e.g. for a two-pulse echo) to optimize two pulse parameters:
+</p>
 <pre class="matlab">
 Exp.nPoints = [20 15];
 Exp.Dim1 = {'p1.Frequency,p2.Frequency' [-2.5 2.5]}; % increase excitation band by 5 MHz each step of both pulses
@@ -329,7 +371,6 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 <p>
 The following fields can only be used with the <em>fast</em> algorithm
 </p>
-<a name="filter">
 
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
@@ -438,10 +479,12 @@ The default value is <code>0</code>.
 
 <p>
 Bandwidth limiting effects of a resonator on a pulse can be incorporated in two ways:
+</p>
 
 <p>
 The resonator profile is defined using the resonator center frequency <code>ResonatorFrequency</code> and the loaded Q-value <code>ResonatorQL</code>.
 The resonator frequency response is then computed from the ideal transfer function for an RLC series circuit) 
+</p>
 
 <pre class="matlab">
 Exp.ResonatorFrequency = 33.5; 	% resonator center frequency in GHz
@@ -450,6 +493,7 @@ Exp.ResonatorQL = 300;	  	% loaded Q-value
 
 <p>
 Or the transfer function in combination with the frequency axis are given with <code>FrequencyResponse</code>.
+</p>
 
 <pre class="matlab">
 Exp.FrequencyResponse = [Frequency; TransferFunction] 	% transfer function and its correspond frequency axis
@@ -459,7 +503,8 @@ Exp.FrequencyResponse = [Frequency; TransferFunction] 	% transfer function and i
 By setting <code>ResonatorMode</code> it is possible to compensate for the resonator. 
 Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
 For more details see <a class="esf" href="pulse.html">pulse</a> and <a class="esf" href="resonator.html">resonator</a>.
-<p>
+</p>
+
 <div class="optionfield"><code>ResonatorFrequency</code></div>
 <div class="optiondescr">
 Center frequency of resonator in GHz.
@@ -476,6 +521,7 @@ A real transfer function input is assumed to correspond to the magnitude respons
 
 <p>
 If <code>FrequencyResponse</code> is given, the alternative input fields <code>ResonatorFrequency</code> and <code>ResonatorQL</code> are ignored.
+</p>
 </div>
 <div class="optionfield"><code>ResonatorMode</code></div>
 <div class="optiondescr">
@@ -496,8 +542,8 @@ A number giving the number of orientations (knots) for which spectra are explici
 
 <div class="optionfield"><code>SimulationMode</code></div>
 <div class="optiondescr">
-Optional, allows to switch simulation method. Can be <code>'fast'</code> for the fast algorithm or <code>thyme</code> the general approach.
-By default <code>saffron</code> choses <code>fast</code> if possible. 
+Optional, allows to switch simulation mode. Can be <code>'fast'</code> for the fast algorithm or <code>'thyme'</code> the general approach.
+By default, <code>saffron</code> choses <code>'fast'</code> if possible. 
 </div>
 
 <p>

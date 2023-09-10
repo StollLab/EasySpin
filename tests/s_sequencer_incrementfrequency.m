@@ -35,7 +35,6 @@ Exp.Field = 1240;
 Opt.IntTimeStep = TimeStep; % µs
 
 Opt.SimFreq = 0;
-Opt.SimulationMode = 'step wise';
 
 % First Test - Change one pulse along one dimension -----------------------
 Exp.nPoints = 3;

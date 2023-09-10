@@ -12,7 +12,7 @@ Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0 0]; 
 
-Opt.SimulationMode = 'step wise';
+Opt = struct;
 
 % First Test ---------------------------------------
 

@@ -1,31 +1,38 @@
 function [ok,data] = test(opt,olddata)
 
-% Spin System
+% Spin system
 Sys.S = 1/2;
 Sys.g = [2.00906 2.0062 2.0023];
-Sys.A = [11.5 11.5 95];
+Sys.A = [11.5 11.5 95];  % MHz
 Sys.Nucs = '14N';
-Sys.lwpp = 10;
+Sys.lwpp = 10;  % mT
 
-Exp.Field = 1240; % run the experiment at Q band
-Exp.mwFreq = 34.78;
+% Experiment (Q band) 
+Exp.mwFreq = 34.78;  % GHz
+Exp.Field = 1240;  % mT
 
-Chirp90.Type = 'quartersin/linear';
-Chirp90.trise = 0.030;
-Chirp90.tp = 0.200;
-Chirp90.Flip = pi/2;
-Chirp90.Frequency = [-300 300]; % excitation band, GHz
+% Define pulses
+Pulse1.Type = 'quartersin/linear';
+Pulse1.trise = 0.030;  % µs
+Pulse1.tp = 0.200;  % µs
+Pulse1.Flip = pi/2;  % rad
+Pulse1.Frequency = [-300 300]; % MHz
 
-Chirp180.Type = 'quartersin/linear';
-Chirp180.trise = 0.030;
-Chirp180.tp = 0.100;
-Chirp180.Flip = pi;
-Chirp180.Frequency = [-300 300];
+Pulse2.Type = 'quartersin/linear';
+Pulse2.trise = 0.030;  % µs
+Pulse2.tp = 0.100;  % µs
+Pulse2.Flip = pi;  % rad
+Pulse2.Frequency = [-300 300];  % MHz
 
-Exp.Sequence = {Chirp90 0.25 Chirp180 0.25}; 
-Exp.DetWindow = [-0.1 0.1] + Chirp180.tp;
+% Define pulse sequence
+tau = 0.25;  % µs
+Exp.Sequence = {Pulse1 tau Pulse2 tau}; 
+
+% Define detection
+Exp.DetWindow = [-0.1 0.1] + Pulse2.tp;
 Exp.DetPhase = 0;
 
+% Options
 Opt.GridSize = 7;
 Opt.SimulationMode = 'thyme';
 
@@ -34,19 +41,19 @@ Opt.SimulationMode = 'thyme';
 data.x = x;
 data.y = y;
 
-if (opt.Display)
+if opt.Display
   if ~isempty(olddata)
-    p1 = subplot(3,1,[1 2]);
+    Pulse1 = subplot(3,1,[1 2]);
     plot(x,real(y),x,real(olddata.y));
     axis tight
     legend('new','old');
     title(mfilename);
-    p2 = subplot(3,1,3);
+    Pulse2 = subplot(3,1,3);
     plot(x,real(olddata.y-y));
     axis tight
     xlabel('time (µs)');
     title('old - new')
-    linkaxes([p1,p2],'x')
+    linkaxes([Pulse1,Pulse2],'x')
   end
 end
 
