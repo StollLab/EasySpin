@@ -14,7 +14,7 @@ if isempty(EasySpinPath)
 end
 
 % Get path to examples
-ExamplesPath = strrep(EasySpinPath,'easyspin','examples');
+ExamplesPath = [EasySpinPath(1:end-8) 'examples'];
 
 if nargin<1
   ExamplesFolders = dir(ExamplesPath);

@@ -369,12 +369,12 @@ if fastSimulationMode
     end
 
     ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-    ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
-    if isempty(ExperimentID)
+    Exp.ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
+    if isempty(Exp.ExperimentID)
       error('Exp.Sequence ''%s'' not recognized.',Exp.Sequence);
     end
-    if numel(ExperimentID)>1, error('Ambiguous sequence name.'); end
-    logmsg(1,'Sequence: %s',ExperimentNames{ExperimentID});
+    if numel(Exp.ExperimentID)>1, error('Ambiguous sequence name.'); end
+    logmsg(1,'Sequence: %s',ExperimentNames{Exp.ExperimentID});
 
     if isfield(Exp,'tp')
       if any(Exp.tp~=0)
@@ -384,7 +384,7 @@ if fastSimulationMode
 
     isENDOR = false;
     tauRequired = true;
-    switch ExperimentID
+    switch Exp.ExperimentID
       case 1  % 2pESEEM
         nIntervals = 2; nDimensions = 1; IncSchemeID = 2;
         nPathways = 1; pathwayprefactor = +1/2;
@@ -427,7 +427,7 @@ if fastSimulationMode
 
     % User-specified pulse sequence -----------------------------------------
     logmsg(1,'User-specified pulse experiment.');
-    ExperimentID = -1;
+    Exp.ExperimentID = -1;
     isENDOR = false;
 
     if any(~isinf(Sys.T1T2))
@@ -672,7 +672,7 @@ if fastSimulationMode
   if ~isfield(Exp,'T2'), Exp.T2 = 0; end
 
   if predefinedExperiment
-    switch ExperimentID
+    switch Exp.ExperimentID
       case 2 % 3pESEEM
         if ~isfield(Exp,'T'), Exp.T = 0; end
       case 5 % Mims ENDOR
@@ -1315,7 +1315,7 @@ if fastSimulationMode
 
           else
 
-            switch ExperimentID
+            switch Exp.ExperimentID
 
               case 5
                 % Mims ENDOR ------------------------------------------------
@@ -1598,7 +1598,7 @@ if fastSimulationMode
                   end
                 end
 
-            end % ExperimentID switchyard
+            end % Exp.ExperimentID switchyard
 
           end % if predefinedExperiment
         end % offset loop
@@ -1703,7 +1703,7 @@ if fastSimulationMode
   % Time axes, relaxation
   %=================================================================
   if ~isENDOR
-    switch ExperimentID
+    switch Exp.ExperimentID
       case -1
         switch nDimensions
           case 1
@@ -1731,7 +1731,7 @@ if fastSimulationMode
       T1 = Sys.T1T2(1);
       T2 = Sys.T1T2(2);
       tdecay = [];
-      switch ExperimentID
+      switch Exp.ExperimentID
         case 1 % two-pulse ESEEM
           if ~isinf(T2)
             tdecay = exp(-2*t1/T2);
@@ -2255,7 +2255,7 @@ else
 
     % Time domain
     subplot(2,1,1);
-    predefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence);
+    predefinedExperiment = isfield(Exp,'ExperimentID') && Exp.ExperimentID>0;
     ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
     plotQuadratureSignal = ~predefinedExperiment && ~isreal(out.td);
     if plotQuadratureSignal
@@ -2272,11 +2272,10 @@ else
     ylim(yl+[-1 1]*diff(yl)*0.1);
 
     if predefinedExperiment
-      ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
       xlb = {'\tau (µs)','\tau+T (µs)','T (µs)','...','frequency (MHz)'};
-      xlabel(xlb{ExperimentID});
+      xlabel(xlb{Exp.ExperimentID});
       ylabel('echo amplitude');
-      title([ExperimentNames{ExperimentID},', TD signal']);
+      title([ExperimentNames{Exp.ExperimentID},', TD signal']);
     else
       xlabel('t (µs)');
       ylabel('echo amplitude (arb.u.)');
@@ -2304,7 +2303,7 @@ else
     title('Spectrum');
     if isfield(Sys,'Nucs')
       nuI = larmorfrq(Sys.Nucs,Exp.Field);
-      for k=1:numel(nuI)
+      for k = 1:numel(nuI)
         line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
       end
       h = get(gca,'Children');
