@@ -100,6 +100,37 @@ Number of data points along the indirect dimension, default is 512.
 </div>
 
 <div class="subtitle">4pESEEM</div>
+Minimal call:
+<pre class="matlab">
+Exp.Sequence = '4pESEEM'
+Exp.dt = 0.01; % time increment in microseconds
+Exp.tau = 0.1; % tau in microseconds
+</pre>
+
+<p>
+<div class="optionfield"><code>Exp.dt</code></div>
+<div class="optiondescr">
+Time increment (dwell time), in microseconds. 
+</div>
+
+<div class="optionfield"><code>Exp.tau</code></div>
+<div class="optiondescr">
+Value of &tau;, in microseconds.
+</div>
+
+<p>
+The following fields are optional in combination with <code>Exp.Sequence = '4pESEEM'</code>
+</p>
+
+<div class="optionfield"><code>Exp.T</code></div>
+<div class="optiondescr">
+The starting T value, in microseconds, default is 0.
+</div>
+
+<div class="optionfield"><code>Exp.nPoints</code></div>
+<div class="optiondescr">
+Number of data points along the indirect dimension, default is 512.
+</div>
 
 <div class="subtitle">HYSCORE</div>
 Minimal call:
@@ -123,11 +154,6 @@ Value of &tau;, in microseconds.
 <p>
 The following fields are optional in combination with <code>Exp.Sequence = 'HYSCORE'</code>
 </p>
-
-<div class="optionfield"><code>Exp.T</code></div>
-<div class="optiondescr">
-The starting T value, in microseconds, default is 0.
-</div>
 
 <div class="optionfield"><code>Exp.t1,Exp.t2</code></div>
 <div class="optiondescr">

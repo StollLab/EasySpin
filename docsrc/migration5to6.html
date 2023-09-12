@@ -33,7 +33,7 @@ EasySpin 6 is significantly improved over EasySpin 5, but also introduces a seri
 </p>
 
 <p>
-This user guide focused on how EasySpin 5 scripts need to be modified to run with EasySpin 6. It does not introduce the many new features of EasySpin 6 or discuss any of the many bug fixes.
+This user guide focuses on how EasySpin 5 scripts need to be modified to run with EasySpin 6. It does not introduce the many new features of EasySpin 6 or discuss any of the many bug fixes.
 </p>
 
 <p>
@@ -67,7 +67,7 @@ The field <code>Exp.CrystalOrientation</code> has been replaced by <code>Exp.Sam
 
 <pre class="matlab">
 Exp.CrystalOrientation = [5 10 -48]*pi/180;  % EasySpin 5
-Exp.SampleFrame = [-48 -10 5]*pi/180;        % EasySpin 6
+Exp.SampleFrame = [48 -10 -5]*pi/180;        % EasySpin 6
 </pre>
 
 <p>
@@ -190,7 +190,7 @@ esfit(data,model,par0,parlo,parup);
 </pre>
 
 <p>
-The output has changes as well. If called with an output, <a class="esf" href="esfit.html">esfit</a> returns a structure containing information about the fitted parameters, the goodness-of-fit, the uncertainty, the fitted model, etc.
+The output has changed as well. If called with an output, <a class="esf" href="esfit.html">esfit</a> returns a structure containing information about the fitted parameters, the goodness-of-fit, the uncertainty, the fitted model, etc.
 </p>
 
 <pre class="matlab">

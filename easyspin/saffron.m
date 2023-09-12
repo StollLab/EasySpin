@@ -1965,18 +1965,61 @@ else  % if fastSimulationMode
     nIndirectDimensions = length(Exp.nPoints);
     logmsg(1,'  setting up %d axes for indirect dimensions',nIndirectDimensions);
     x = cell(1,nIndirectDimensions);
-    for iDim = 1:nIndirectDimensions
-      Dimension_ = ['Dim' num2str(iDim)];
-      nParameters = size(Exp.(Dimension_),1);
-      axes_ = zeros(nParameters,Exp.nPoints(iDim));
-      for iParameter = 1: nParameters
-        if length(Exp.(Dimension_){iParameter,2}) == 1
-          axes_(iParameter,:) = Exp.(Dimension_){iParameter,2}*(0:Exp.nPoints(iDim)-1);
-        else
-          axes_(iParameter,:) = 1:Exp.nPoints(iDim);
-        end
+    predefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence) && ischar(Exp.Sequence);
+    if predefinedExperiment
+      ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
+      Exp.ExperimentID = find(strcmp(Exp.Sequence,ExperimentNames));
+      switch Exp.ExperimentID
+        case 1  % 2pESEEM
+          if isfield(Exp,'tau')
+            taustart = Exp.tau;
+          else
+            taustart = 0;
+          end
+          x{1} = taustart + Exp.dt*(0:Exp.nPoints-1);
+        case 2  % 3pESEEM
+          if isfield(Exp,'T')
+            Tstart = Exp.T;
+          else
+            Tstart = 0;
+          end
+          if isfield(Exp,'tau')
+            taustart = Exp.tau;
+          else
+            taustart = 0;
+          end
+          x{1} = taustart + Tstart + Exp.dt*(0:Exp.nPoints-1);
+        case 3  % 4pESEEM
+          if isfield(Exp,'T')
+            Tstart = Exp.T;
+          else
+            Tstart = 0;
+          end
+          x{1} = Tstart + Exp.dt*(0:Exp.nPoints-1);
+        case 4  % HYSCORE
+          for iDim = 1:2
+            if isfield(Exp,strcat('t',num2str(iDim)))
+              tstart = Exp.(strcat('t',num2str(iDim)));
+            else
+              tstart = 0;
+            end
+            x{iDim} = tstart + Exp.dt*(0:Exp.nPoints(iDim)-1);
+          end
       end
-      x{iDim} = axes_;
+    else
+      for iDim = 1:nIndirectDimensions
+        Dimension_ = ['Dim' num2str(iDim)];
+        nParameters = size(Exp.(Dimension_),1);
+        axes_ = zeros(nParameters,Exp.nPoints(iDim));
+        for iParameter = 1: nParameters
+          if length(Exp.(Dimension_){iParameter,2}) == 1
+            axes_(iParameter,:) = Exp.(Dimension_){iParameter,2}*(0:Exp.nPoints(iDim)-1);
+          else
+            axes_(iParameter,:) = 1:Exp.nPoints(iDim);
+          end
+        end
+        x{iDim} = axes_;
+      end
     end
   end
 
@@ -2253,8 +2296,10 @@ else
 
   if ~twoDim
 
-    % Time domain
-    subplot(2,1,1);
+    % Time 
+    if out.fd~=0
+      subplot(2,1,1);
+    end
     predefinedExperiment = isfield(Exp,'ExperimentID') && Exp.ExperimentID>0;
     ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
     plotQuadratureSignal = ~predefinedExperiment && ~isreal(out.td);
@@ -2267,16 +2312,17 @@ else
     end
     axis tight
     xl = xlim;
-    xlim([0 xl(2)]);
     yl = ylim;
     ylim(yl+[-1 1]*diff(yl)*0.1);
 
     if predefinedExperiment
+      xlim([0 xl(2)]);
       xlb = {'\tau (µs)','\tau+T (µs)','T (µs)','...','frequency (MHz)'};
       xlabel(xlb{Exp.ExperimentID});
       ylabel('echo amplitude');
       title([ExperimentNames{Exp.ExperimentID},', TD signal']);
     else
+      xlim([x1(1) x1(end)])
       xlabel('t (µs)');
       ylabel('echo amplitude (arb.u.)');
       title('User-defined experiment, TD signal');
@@ -2284,81 +2330,103 @@ else
     set(gca,'Layer','top');
 
     % Frequency domain
-    subplot(2,1,2);
-    idx = find(out.f==0):length(out.f);
-    xf = out.f(idx);
-    if plotQuadratureSignal
-      h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)),xf,imag(out.fd(idx)));
-      legend('abs','in-phase','quadrature');
-      legend boxoff
-    else
-      h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)));
-      legend('abs','in-phase');
-      legend boxoff
-    end
-    axis tight
-    xlim([0 max(out.f)]);
-    xlabel('\nu (MHz)');
-    ylabel('intensity (arb.u.)');
-    title('Spectrum');
-    if isfield(Sys,'Nucs')
-      nuI = larmorfrq(Sys.Nucs,Exp.Field);
-      for k = 1:numel(nuI)
-        line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
+    if out.fd~=0
+      subplot(2,1,2);
+      idx = find(out.f==0):length(out.f);
+      xf = out.f(idx);
+      if plotQuadratureSignal
+        h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)),xf,imag(out.fd(idx)));
+        legend('abs','in-phase','quadrature');
+        legend boxoff
+      else
+        h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)));
+        legend('abs','in-phase');
+        legend boxoff
       end
-      h = get(gca,'Children');
+      axis tight
+      xlim([0 max(out.f)]);
+      xlabel('\nu (MHz)');
+      ylabel('intensity (arb.u.)');
+      title('Spectrum');
+      if isfield(Sys,'Nucs')
+        nuI = larmorfrq(Sys.Nucs,Exp.Field);
+        for k = 1:numel(nuI)
+          line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
+        end
+        h = get(gca,'Children');
+      end
+      set(gca,'Children',h(end:-1:1));
     end
-    set(gca,'Children',h(end:-1:1));
 
   else
 
     % Plot time-domain data matrix
-    subplot(1,3,1);
+    if out.fd~=0
+      subplot(1,3,1);
+    end
 
     surf(x1,x2,real(out.td.'));
     view([0 90]);
     grid off
     shading flat
-    axis equal tight
+    axis tight
     box on
     set(gca,'Layer','top');
     title('Time domain (real part)');
-    xlabel('{\itt}_1 (µs)');
-    ylabel('{\itt}_2 (µs)');
+    if ~isfield(Exp,'Dim1') || (strcmp(Exp.Dim1{1}(1),'d') && strcmp(Exp.Dim2{1}(1),'d'))
+      axis equal
+    end
+    if ~isfield(Exp,'Dim1') || strcmp(Exp.Dim1{1}(1),'d')
+      xlabel('{\itt}_1 (µs)');
+    else
+      xlabel(Exp.Dim1{1})
+    end
+    if ~isfield(Exp,'Dim2') || strcmp(Exp.Dim2{1}(1),'d')
+      ylabel('{\itt}_2 (µs)');
+    else
+      xlabel(Exp.Dim2{1})
+    end
 
     % Plot spectrum (first and second quadrant only)
-    subplot(1,3,[2 3]);
+    if out.fd~=0
+      subplot(1,3,[2 3]);
 
-    fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
-    if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
-    fx2 = fdaxis(Exp.dt(2),size(out.fd,2));
-    fd = abs(out.fd);
-    if isfield(Opt,'logplot') && Opt.logplot
-      fd = log(fd);
-      maxfd = max(max(fd));
-      fd(fd<maxfd-6) = maxfd-6;
+      if isfield(out,'f1') && isfield(out,'f2')
+        fx1 = out.f1;
+        fx2 = out.f2;
+      else
+        fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
+        if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
+        fx2 = fdaxis(Exp.dt(2),size(out.fd,2));
+      end
+      fd = abs(out.fd);
+      if isfield(Opt,'logplot') && Opt.logplot
+        fd = log(fd);
+        maxfd = max(max(fd));
+        fd(fd<maxfd-6) = maxfd-6;
+      end
+      contour(fx1,fx2,fd.',20);
+      shading flat
+      axis equal tight
+      grid on
+      xti = xticks;
+      set(gca,'YTick',xti);
+      colorbar
+      set(gca,'Layer','top');
+      title('Frequency domain');
+      xlabel('\nu_1 (MHz)');
+      ylabel('\nu_2 (MHz)');
+
+      fm1 = max(abs(fx1));
+      fm2 = max(abs(fx2));
+      fm = max(fm1,fm2);
+      linecol = 'k';
+      %line([-1 1]*fm,[0 0],'Color',linecol);
+      line([0 0],[-1 1]*fm,'Color',linecol);
+      line([-1 1]*fm,[-1 1]*fm,'Color',linecol,'LineStyle',':');
+      line([1 -1]*fm,[-1 1]*fm,'Color',linecol,'LineStyle',':');
+      ylim([0 1]*fm);
     end
-    contour(fx1,fx2,fd.',20);
-    shading flat
-    axis equal tight
-    grid on
-    xti = xticks;
-    set(gca,'YTick',xti);
-    colorbar
-    set(gca,'Layer','top');
-    title('Frequency domain');
-    xlabel('\nu_1 (MHz)');
-    ylabel('\nu_2 (MHz)');
-
-    fm1 = max(abs(fx1));
-    fm2 = max(abs(fx2));
-    fm = max(fm1,fm2);
-    linecol = 'k';
-    %line([-1 1]*fm,[0 0],'Color',linecol);
-    line([0 0],[-1 1]*fm,'Color',linecol);
-    line([-1 1]*fm,[-1 1]*fm,'Color',linecol,'LineStyle',':');
-    line([1 -1]*fm,[-1 1]*fm,'Color',linecol,'LineStyle',':');
-    ylim([0 1]*fm);
   end
 
 end
