@@ -257,7 +257,7 @@ In all cases, the residuals returned in the output refer to the experimental dat
 
 <div class="optionfield"><code>FitOpt.AutoScale</code></div>
 <div class="optiondescr">
-Possible values are 0 (false) or 1 (true). If set to 0, the simulated data is not rescaled. If set to 1, the simulated data are rescaled before comparing to the experimental data, and the scale factor is reported in <code>fit.scale</code>. By default, it is set to 1 if using one of the EasySpin spectral simulation functions, otherwise it is set to false. For global fitting of multiple data sets, <code>FitOpt.AutoScale = 1</code> scales each dataset individually.
+Possible options are <code>'none'</code>, <code>'lsq'</code> and <code>'maxabs'</code>. If set to 'none', the simulated data is not rescaled. If set to <code>'lsq'</code>, the simulated data are rescaled before comparing to the experimental data, and the scale factor is reported in <code>fit.scale</code>. If set to <code>'maxabs'</code>, the simulated data is scaled to the maximum absolute of the experimental data. By default, it is set to <code>'lsq'</code> if using one of the EasySpin spectral simulation functions, otherwise it is set to 'none'. For global fitting of multiple data sets, if selected, <code>FitOpt.AutoScale</code> scales each dataset individually.
 </div>
 
 <div class="optionfield"><code>FitOpt.BaseLine</code></div>

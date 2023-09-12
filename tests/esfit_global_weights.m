@@ -12,7 +12,7 @@ p0 = 500;
 p_lo = 100;
 p_hi = 900;
 
-FitOpt.AutoScale = true;
+FitOpt.AutoScale = 'lsq';
 FitOpt.Method = 'simplex';
 FitOpt.Verbosity = 0;
 for i = 1:2

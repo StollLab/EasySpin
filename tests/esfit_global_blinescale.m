@@ -17,7 +17,7 @@ p0 = [500 100 100];
 plo = [0 10 10];
 pup = [1e3 500 500];
 
-autoscaleopts = [true false];
+autoscaleopts = {'none' 'lsq'};
 baselineopts1 = {0 1 2};
 baselineopts2 = {0 1 2};
 
@@ -42,7 +42,7 @@ for k = 1:numel(baselineopts1)
     for i = 1:numel(autoscaleopts)
 
       FitOpt.Verbosity = 0;
-      FitOpt.AutoScale = autoscaleopts(i);
+      FitOpt.AutoScale = autoscaleopts{i};
       result = esfit(data,@model,p0,plo,pup,FitOpt);
 
       noisevec = [noise{1} noise{2}];

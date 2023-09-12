@@ -29,8 +29,8 @@
 %        .Method  string containing keywords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
-%        .AutoScale either true (on) or false (off); default true for
-%                 EasySpin simulation functions, otherwise false
+%        .AutoScale 'lsq', 'maxabs', 'none'; default 'lsq' for
+%                 EasySpin simulation functions, otherwise 'none'
 %        .BaseLine 0, 1, 2, 3 or [] (or vector for global fitting with different 
 %                 baseline order for different datasets)
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
@@ -398,17 +398,21 @@ Opt.useMask = true;
 % Scale fitting
 if ~isfield(Opt,'AutoScale')
   if EasySpinFunction
-    Opt.AutoScale = true;
+    Opt.AutoScale = 'lsq';
   else
-    Opt.AutoScale = false;
+    Opt.AutoScale = 'none';
   end
 end
 switch Opt.AutoScale
-  case 0, AutoScale = false;
-  case 1, AutoScale = true;
-  otherwise, error('Unknown setting for Opt.AutoScale - possible values are 0 and 1.');
+  case 'none', AutoScaleID = 0;
+  case 'lsq', AutoScaleID = 1;
+  case 'maxabs', AutoScaleID = 2;
+  otherwise, error('Unknown setting for Opt.AutoScale - possible values are ''lsq'', ''maxabs'' and ''none''.');
 end
-esfitdata.AutoScale = AutoScale;
+Opt.AutoScaleID = AutoScaleID;
+
+esfitdata.AutoScaleSettings = {0, 1, 2};
+esfitdata.AutoScaleStrings = {'none', 'lsq', 'maxabs'};
 
 % Baseline correction
 if ~isfield(Opt,'BaseLine')
@@ -502,11 +506,6 @@ end
 %-------------------------------------------------------------------------------
 if esfitdata.Opts.Verbosity>=1
   nDataSets = esfitdata.nDataSets;
-  if esfitdata.Opts.AutoScale
-    autoScaleStr = 'on';
-  else
-    autoScaleStr = 'off';
-  end
   fprintf('-- esfit ------------------------------------------------\n');
   fprintf('Number of datasets:       %d\n',nDataSets);
   for i = 1:nDataSets
@@ -516,7 +515,7 @@ if esfitdata.Opts.Verbosity>=1
   fprintf('Number of fit parameters: %d\n',esfitdata.nParameters);
   fprintf('Minimization algorithm:   %s\n',esfitdata.AlgorithmNames{esfitdata.Opts.AlgorithmID});
   fprintf('Residuals computed from:  %s\n',esfitdata.TargetNames{esfitdata.Opts.TargetID});
-  fprintf('Autoscaling:              %s\n',autoScaleStr);
+  fprintf('Autoscaling:              %s\n',esfitdata.Opts.AutoScale);
   fprintf('---------------------------------------------------------\n');
 end
 
@@ -719,7 +718,7 @@ if calculateUncertainties
       msg{4} = sprintf('   rmsd            %g',rmsd0);
       msg{5} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',std(residuals0));
       msg{6} = sprintf('   chi-squared     %g (using noise std estimate; upper limit)',rmsd0^2/var(residuals0));
-      if esfitdata.Opts.AutoScale
+      if esfitdata.Opts.AutoScaleID~=0
         msg{end+1} = ' ';
         msg{end+1} = sprintf('Fitted scale:      %g\n',scale);
       end
@@ -911,25 +910,39 @@ for k = 1:esfitdata.nDataSets
     x = (1:N).'/N;
     D = x.^(0:order(k));  % each column a x^j monomial vector
     idx = esfitdata.idx{k};
-    if Opt.AutoScale
-      D = [simdata_vec(idx) D];
-      coeffs = D(mask(idx),:)\expdata(mask & idx);
-      coeffs(1) = abs(coeffs(1));
-      baseline(idx) = D(:,2:end)*coeffs(2:end);
-      simdata_vec(idx) = D*coeffs;
-      simscale(k) = coeffs(1);
-    else
-      coeffs = D(mask(idx),:)\(expdata(mask&idx)-simdata_vec(mask&idx));
-      baseline(idx) = D*coeffs;
-      simdata_vec(idx) = simdata_vec(idx) + baseline(idx);
+    switch Opt.AutoScaleID
+      case 0 % 'none'
+        coeffs = D(mask(idx),:)\(expdata(mask&idx)-simdata_vec(mask&idx));
+        baseline(idx) = D*coeffs;
+        simdata_vec(idx) = simdata_vec(idx) + baseline(idx);
+      case 1 % 'lsq'
+        D = [simdata_vec(idx) D];
+        coeffs = D(mask(idx),:)\expdata(mask & idx);
+        coeffs(1) = abs(coeffs(1));
+        baseline(idx) = D(:,2:end)*coeffs(2:end);
+        simdata_vec(idx) = D*coeffs;
+        simscale(k) = coeffs(1);
+      case 2 % 'maxabs'
+        D = [simdata_vec(idx) D];
+        coeffs = D(mask(idx),:)\expdata(mask & idx);
+        baseline(idx) = D(:,2:end)*coeffs(2:end);
+        coeff = max(abs(simdata_vec(mask & idx)))\max(abs(expdata(mask & idx)-baseline(mask & idx)));
+        simdata_vec(idx) = coeff*simdata_vec(idx)+baseline(idx);
+        simscale(k) = coeff;
     end
   else
-    if Opt.AutoScale
-      idx = esfitdata.idx{k};
-      coeffs = simdata_vec(mask & idx)\expdata(mask & idx);
-      coeffs(1) = abs(coeffs(1));
-      simdata_vec(idx) = simdata_vec(idx)*coeffs;
-      simscale(k) = coeffs(1);
+    switch Opt.AutoScaleID
+      case 1 % 'lsq'
+        idx = esfitdata.idx{k};
+        coeffs = simdata_vec(mask & idx)\expdata(mask & idx);
+        coeffs(1) = abs(coeffs(1));
+        simdata_vec(idx) = simdata_vec(idx)*coeffs;
+        simscale(k) = coeffs(1);
+      case 2 % 'maxabs'
+        idx = esfitdata.idx{k};
+        coeff = max(abs(simdata_vec(mask & idx)))\max(abs(expdata(mask & idx)));
+        simdata_vec(idx) = simdata_vec(idx)*coeff;
+        simscale(k) = coeff;    
     end
   end
 end
@@ -940,7 +953,7 @@ end
 rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights(:)));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
-esfitdata.curr.sim = simdata;
+esfitdata.curr.sim = simdata_vec;
 esfitdata.curr.par = par;
 esfitdata.curr.scale = simscale;
 esfitdata.curr.baseline = baseline;
@@ -989,7 +1002,7 @@ if windowClosing, return; end
 x = esfitdata.Opts.x(:);
 expdata = esfitdata.data(:);
 bestsim = real(esfitdata.best.fit(:));
-currsim = real(esfitdata.curr.sim{1}(:));
+currsim = real(esfitdata.curr.sim(:));
 currpar = esfitdata.curr.par;
 bestpar = esfitdata.best.par;
 
@@ -1187,10 +1200,10 @@ set(findobj('Tag','EvaluateButton'),'Enable','off');
 set(findobj('Tag','ResetButton'),'Enable','off');
 
 % Disable listboxes
-set(findobj('Tag','AlgorithMenu'),'Enable','off');
+set(findobj('Tag','AlgorithmMenu'),'Enable','off');
 set(findobj('Tag','TargetMenu'),'Enable','off');
 set(findobj('Tag','BaseLineMenu'),'Enable','off');
-set(findobj('Tag','AutoScaleCheckbox'),'Enable','off');
+set(findobj('Tag','AutoScaleMenu'),'Enable','off');
 
 % Disable parameter table
 set(findobj('Tag','selectAllButton'),'Enable','off');
@@ -1236,9 +1249,9 @@ set(findobj('Tag','MaskCheckbox'),'Enable','off');
 % Pull settings from UI
 %-------------------------------------------------------------------------------
 % Determine selected method, target, autoscaling, start point
-esfitdata.Opts.AlgorithmID = get(findobj('Tag','AlgorithMenu'),'Value');
+esfitdata.Opts.AlgorithmID = get(findobj('Tag','AlgorithmMenu'),'Value');
 esfitdata.Opts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
-esfitdata.Opts.AutoScale = get(findobj('Tag','AutoScaleCheckbox'),'Value');
+esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
 esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 
@@ -1308,10 +1321,10 @@ set(findobj('Tag','EvaluateButton'),'Enable','on');
 set(findobj('Tag','ResetButton'),'Enable','on');
 
 % Re-enable listboxes
-set(findobj('Tag','AlgorithMenu'),'Enable','on');
+set(findobj('Tag','AlgorithmMenu'),'Enable','on');
 set(findobj('Tag','TargetMenu'),'Enable','on');
 set(findobj('Tag','BaseLineMenu'),'Enable','on');
-set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
+set(findobj('Tag','AutoScaleMenu'),'Enable','on');
 
 % Re-enable parameter table and its selection controls
 set(findobj('Tag','selectAllButton'),'Enable','on');
@@ -1390,7 +1403,7 @@ p_eval = esfitdata.p_start;
 active = ~esfitdata.fixedParams;
 p_eval = p_eval(active);
 expdata = esfitdata.data(:);
-esfitdata.Opts.AutoScale = get(findobj('Tag','AutoScaleCheckbox'),'Value');
+esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
 esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 Opt = esfitdata.Opts;
@@ -1710,10 +1723,10 @@ set(findobj('Tag','EvaluateButton'),'Enable','on');
 set(findobj('Tag','ResetButton'),'Enable','on');
 
 % Re-enable listboxes
-set(findobj('Tag','AlgorithMenu'),'Enable','on');
+set(findobj('Tag','AlgorithmMenu'),'Enable','on');
 set(findobj('Tag','TargetMenu'),'Enable','on');
 set(findobj('Tag','BaseLineMenu'),'Enable','on');
-set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
+set(findobj('Tag','AutoScaleMenu'),'Enable','on');
 
 % Re-enable parameter table and its selection controls
 set(findobj('Tag','selectAllButton'),'Enable','on');
@@ -2147,7 +2160,7 @@ uicontrol('Parent',hFig,'Style','text',...
     'BackgroundColor',get(gcf,'Color'),...
     'Position',[Optionsx0 Optionsy0+4*(hElement+dh)-dh+0.5*hElement wOptionsLabel hElement]);
 uicontrol('Parent',hFig,'Style','popupmenu',...
-    'Tag','AlgorithMenu',...
+    'Tag','AlgorithmMenu',...
     'String',esfitdata.AlgorithmNames,...
     'Value',Opt.AlgorithmID,...
     'BackgroundColor','w',...
@@ -2182,15 +2195,19 @@ uicontrol('Parent',hFig,'Style','popupmenu',...
     'Tooltip','Baseline fitting',...
     'Position',[Optionsx0+wOptionsLabel Optionsy0+2*(dh+hElement)+0.5*hElement wOptionsSel hElement]);
 
-uicontrol('Parent',hFig,'Style','checkbox',...
-    'Tag','AutoScaleCheckbox',...
+uicontrol('Parent',hFig,'Style','text',...
     'String','AutoScale',...
     'FontWeight','bold',...
     'HorizontalAlign','left',...
-    'Value',esfitdata.AutoScale,...
     'BackgroundColor',get(gcf,'Color'),...
+    'Position',[Optionsx0 Optionsy0+(dh+hElement)-dh+0.5*hElement wOptionsLabel hElement]);
+uicontrol('Parent',hFig,'Style','popupmenu',...
+    'Tag','AutoScaleMenu',...
+    'String',esfitdata.AutoScaleStrings,...
+    'Value',find(cellfun(@(x)x==esfitdata.Opts.AutoScaleID,esfitdata.AutoScaleSettings),1),...
+    'BackgroundColor','w',...
     'Tooltip','Autoscaling',...
-    'Position',[Optionsx0+2*dh Optionsy0+(dh+hElement) wOptionsLabel+wOptionsSel hElement]);
+    'Position',[Optionsx0+wOptionsLabel Optionsy0+(dh+hElement)+0.5*hElement wOptionsSel hElement]);
 
 wMaskEl = 0.5*(wOptionsLabel+wOptionsSel);
 uicontrol('Parent',hFig,'Style','checkbox',...

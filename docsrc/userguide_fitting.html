@@ -360,7 +360,7 @@ Usually, <code>'fcn'</code> is an excellent choice, but in the case of many line
 </p>
 
 <p>
-EasySpin determines the best scaling of the simulated spectrum by least-squares fitting.
+Automatic scaling of the simulated spectrum can be performed by setting the <code>Opt.AutoScale</code> option to <code>'lsq'</code> for least-squares fitting or to <code>'maxabs'</code> to set the maximum absolute equal between simulation and experimental data.
 </p>
 
 <p>
@@ -368,7 +368,7 @@ A polynomial baseline correction can be be performed in addition to scaling - se
 </p>
 
 <p>
-For some situations, e.g. for magnetization data, it is necessary not to scale at all. In this case, use <code>FitOpt.AutoScale = false</code>.
+For some situations, e.g. for magnetization data, it is necessary not to scale at all. In this case, use <code>FitOpt.AutoScale = 'none'</code>.
 </p>
 
 <!-- ============================================================= -->

@@ -15,7 +15,7 @@ ub = [1 1];
 FitOpt = struct;
 FitOpt.Method = 'simplex fcn';
 FitOpt.Verbosity = 0;
-FitOpt.AutoScale = true;
+FitOpt.AutoScale = 'lsq';
 
 result = esfit(yexp,modelfcn,p0,lb,ub,FitOpt);
 
