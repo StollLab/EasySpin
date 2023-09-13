@@ -77,6 +77,7 @@ For EasySpin functions, provide the <a href="spinsystem.html">spin system struct
 <pre class="matlab">
 esfit(data,@pepper,{Sys0,Exp0},{varySys})
 esfit(data,@pepper,{Sys0,Exp0,Opt},{varySys})
+esfit(data,@pepper,{{Sys1,Sys2},Exp0},{{varySys1,varySys2}})
 </pre>
 For other functions, <code>p0</code> is an n-element vector.
 <pre class="matlab">
@@ -280,6 +281,17 @@ Array of weights to use when combining residual vectors of all datasets for glob
 There are more options which are recognized by all fitting algorithms:
 </p>
 
+<div class="optionfield"><code>FitOpt.x</code></div>
+<div class="optiondescr">
+Provides an x axis for plotting the data. If none is provided, <code>esfit</code> uses the data point indices (<code>1:n</code> where <code>n</code> is the number of data points). Example: Assume the data is an EPR spectrum with a field axis of 1000 points between 350 and 370 mT:
+
+<pre class="matlab">
+Opt.x = linspace(350,370,1000);
+</pre>
+
+<code>Opt.x</code> does not affect the fitting itself, just the plotting of the data.
+</div>
+
 <div class="optionfield"><code>FitOpt.maxTime</code></div>
 <div class="optiondescr">
 Time, in minutes, after which <code>esfit</code> will terminate even if the fitting has not yet converged.
@@ -454,22 +466,6 @@ iteration. <code>c1</code> is the cognitive coefficient (default 2) and determin
 degree a particle moves towards the currently optimal point. <code>c2</code> is the social coefficient (default 1)
 and describes how much a particle follows the other particles. Together, <code>k</code>, <code>c1</code>
 and <code>c2</code> determine in which direction a particle will move in a given iteration.
-</div>
-
-<p>
-Further options for <code>esfit</code>:
-</p>
-
-<div class="optionfield"><code>FitOpt.x</code></div>
-<div class="optiondescr">
-Provides an x axis for plotting the data. If none is provided, <code>esfit</code> uses the data point indices (<code>1:n</code> where <code>n</code> is the number of data points). Example: Assume the data is an EPR spectrum with a field axis of 1000 points between 350 and 370 mT:
-
-<pre class="matlab">
-Opt.x = linspace(350,370,1000);
-</pre>
-
-<code>Opt.x</code> does not affect the fitting itself, just the plotting of the data.
-
 </div>
 
 

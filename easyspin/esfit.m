@@ -685,7 +685,7 @@ if calculateUncertainties
     end
 
     % Calculate covariance matrix and standard deviations
-    residuals = calculateResiduals(fit(:),data_(:),esfitdata.Opts.TargetID);
+    residuals = calculateResiduals(fit(:),data_(:),esfitdata.Opts.TargetID,esfitdata.idx);
     residuals = residuals.'; % col -> row
     covmatrix = hccm(J,residuals,'HC1');
     pstd = sqrt(diag(covmatrix));
@@ -868,7 +868,14 @@ out = cell(1,esfitdata.nOutArguments);
 try
   if esfitdata.structureInputs
     args = esfitdata.p2args(par);
-    [out{:}] = esfitdata.fcn(args{:});
+    try
+      % Get x-axis for EasySpin functions (and adapted functions based on EasySpin)
+      [x,out{:}] = esfitdata.fcn(args{:});
+      esfitdata.Opts.x = x;
+    catch
+      % Keep index axis for functions not returning an axis (e.g. curry)
+      [out{:}] = esfitdata.fcn(args{:});
+    end
   else
     [out{:}] = esfitdata.fcn(par);
   end
@@ -949,7 +956,7 @@ end
 
 % Compute residuals
 %-------------------------------------------------------------------------------
-[residuals,residuals0] = calculateResiduals(simdata_vec,expdata,Opt.TargetID,mask(:));
+[residuals,residuals0] = calculateResiduals(simdata_vec,expdata,Opt.TargetID,esfitdata.idx,mask(:));
 rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights(:)));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
@@ -1017,7 +1024,9 @@ plottedData = [expdata(mask); bestsim; currsim];
 maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj('Tag','dataaxes'),'YLim',YLimits);
+hAx = findobj('Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+set(hAx,'XLim',[min(x) max(x)]);
 
 % Readjust mask patches
 maskPatches = findobj('Tag','maskPatch');
@@ -1154,30 +1163,35 @@ end
 
 
 %===============================================================================
-function [residuals,residuals0] = calculateResiduals(A,B,mode,includemask)
+function [residuals,residuals0] = calculateResiduals(A,B,mode,idx,includemask)
 
-residuals0 = A - B;
-if nargin>3
-  residuals0(~includemask) = 0;
-end
-
-switch mode
-  case 1  % fcn
-    residuals = residuals0;
-  case 2  % int
-    residuals = cumsum(residuals0);
-  case 3  % iint
-    residuals = cumsum(cumsum(residuals0));
-  case 4  % fft
-    residuals = abs(fft(residuals0));
-  case 5  % diff
-    residuals = deriv(residuals0);
+if nargin>4
+  A(~includemask) = 0;
+  B(~includemask) = 0;
 end
 
 % ignore residual if A or B is NaN
 idxNaN = isnan(A) | isnan(B);
-residuals0(idxNaN) = 0;
-residuals(idxNaN) = 0;
+A(idxNaN) = 0;
+B(idxNaN) = 0;
+
+for i = 1:numel(idx)
+  residuals0{i} = A(idx{i}) - B(idx{i});
+  switch mode
+    case 1  % fcn
+      residuals{i} = residuals0{i};
+    case 2  % int
+      residuals{i} = cumsum(residuals0{i});
+    case 3  % iint
+      residuals{i} = cumsum(cumsum(residuals0{i}));
+    case 4  % fft
+      residuals{i} = abs(fft(residuals0{i}));
+    case 5  % diff
+      residuals{i} = deriv(residuals0{i});
+  end
+end
+residuals0 = cat(1,residuals0{:});
+residuals = cat(1,residuals{:});
 
 end
 %===============================================================================
@@ -1424,9 +1438,11 @@ end
 
 % Get current spectrum
 currsim = real(esfitdata.curr.sim(:));
+expdata = esfitdata.data(:);
 
 % Update plotted data
 x = esfitdata.Opts.x(:);
+set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
 set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
 
 % Readjust vertical range
@@ -1440,7 +1456,9 @@ plottedData = [expdata(mask); bestsim; currsim];
 maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj('Tag','dataaxes'),'YLim',YLimits);
+hAx = findobj('Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+set(hAx,'XLim',[min(x) max(x)]);
 drawnow
 
 % Readjust mask patches
