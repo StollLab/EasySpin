@@ -259,7 +259,7 @@ switch stopCode
   case 4, msg = sprintf('Stopped by user');
 end
 
-if Opt.Verbosity>1
+if Opt.Verbosity>0
   Opt.InfoPrintFunction(sprintf('Terminated: %s\n',msg));
 end
 

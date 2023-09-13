@@ -23,6 +23,7 @@ if ~isfield(Opt,'EliteCount')
   Opt.EliteCount = max(2,ceil(0.1*Opt.PopulationSize));
 end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
+if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
 if ~isfield(Opt,'Range'); Opt.Range = 1; end
 if ~isfield(Opt,'TolFun'); Opt.TolFun = 1e-5; end
 if ~isfield(Opt,'IterFcn'), Opt.IterFcn = []; end
@@ -55,6 +56,7 @@ if Opt.Verbosity
 end
 
 nEvals = 0;  % number of function evaluations
+startTime = cputime;
 
 % Generate initial population
 Population = lb+ (ub-lb).*rand(Opt.PopulationSize,nParams);
@@ -104,7 +106,9 @@ while true
     Opt.IterationPrintFunction(str);
   end
   
-  if gen>=Opt.maxGenerations, stopCode = 1; break; end
+  if gen>=Opt.maxGenerations, stopCode = 0; break; end
+  elapsedTime = (cputime-startTime)/60;
+  if elapsedTime>Opt.maxTime, stopCode = 1; break; end
   if bestScore<Opt.TolFun, stopCode = 2; break; end
   
   % (1) Selection
@@ -200,9 +204,10 @@ while true
   gen = gen + 1;
 end
 
-if Opt.Verbosity>1
+if Opt.Verbosity>0
   switch stopCode
-    case 1, msg = sprintf('Maximum number of generations (%d) reached.',Opt.maxGenerations);
+    case 0, msg = sprintf('Maximum number of generations (%d) reached.',Opt.maxGenerations);
+    case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',Opt.maxTime);
     case 2, msg = sprintf('Error below threshold %g.',Opt.TolFun);
     case 3, msg = sprintf('Stopped by user.');
   end
