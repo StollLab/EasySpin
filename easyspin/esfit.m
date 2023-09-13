@@ -654,21 +654,18 @@ rmsd0 = esfitdata.best.rmsd;
 residuals0 = esfitdata.best.residuals;
 ssr0 = sum(abs(residuals0).^2); % sum of squared residuals
 
-R2 = 1 - sum(residuals0.^2)/sum((fit(:)-mean(fit(:))).^2); % R-squared value
-
 % Noise estimated from residuals (assumes excellent fit)
 noise_std = std(residuals0);
 % Noise estimate following DER_SNR algorithm by Stoehr et al.
-n = numel(data_(:));
-noise_der = 1.482602/sqrt(6)*median(abs(2.0*data_(3:n-2) - data_(1:n-4) - data_(5:n)));
+N = numel(data_(:));
+noise_der = 1.482602/sqrt(6)*median(abs(2.0*data_(3:N-2) - data_(1:N-4) - data_(5:N)));
 
 % Reduced chi square
-DOF = numel(data_)-numel(pfit_active); % degrees of freedom
 if noise_std>noise_der
-  red_chisquare = (1/DOF)*sum(residuals0.^2)/noise_der^2;
+  red_chisquare = (1/N)*sum(residuals0.^2)/noise_der^2;
   chisquareinfo = '(using noise der estimate)';
 else
-  red_chisquare = (1/DOF)*sum(residuals0.^2)/noise_std^2;
+  red_chisquare = (1/N)*sum(residuals0.^2)/noise_std^2;
   chisquareinfo = '(using noise std estimate; upper limit)';
 end
 
@@ -762,7 +759,6 @@ if calculateUncertainties
       msg{end+1} = 'Goodness of fit:';
       msg{end+1} = sprintf('   ssr             %g',ssr0);
       msg{end+1} = sprintf('   rmsd            %g',rmsd0);
-      msg{end+1} = sprintf('   R-squared       %g (coefficient of determination)',R2);
       msg{end+1} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',noise_std);
       msg{end+1} = sprintf('   noise der       %g (estimated using der_snr algorithm)',noise_der);
       msg{end+1} = sprintf('   red chi-square  %g %s',red_chisquare,chisquareinfo);
@@ -1462,7 +1458,6 @@ end
 
 % Get current spectrum
 currsim = real(esfitdata.curr.sim(:));
-expdata = esfitdata.data(:);
 
 % Update plotted data
 x = esfitdata.Opts.x(:);
