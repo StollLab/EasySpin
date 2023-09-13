@@ -654,6 +654,24 @@ rmsd0 = esfitdata.best.rmsd;
 residuals0 = esfitdata.best.residuals;
 ssr0 = sum(abs(residuals0).^2); % sum of squared residuals
 
+R2 = 1 - sum(residuals0.^2)/sum((fit(:)-mean(fit(:))).^2); % R-squared value
+
+% Noise estimated from residuals (assumes excellent fit)
+noise_std = std(residuals0);
+% Noise estimate following DER_SNR algorithm by Stoehr et al.
+n = numel(data_(:));
+noise_der = 1.482602/sqrt(6)*median(abs(2.0*data_(3:n-2) - data_(1:n-4) - data_(5:n)));
+
+% Reduced chi square
+DOF = numel(data_)-numel(pfit_active); % degrees of freedom
+if noise_std>noise_der
+  red_chisquare = (1/DOF)*sum(residuals0.^2)/noise_der^2;
+  chisquareinfo = '(using noise der estimate)';
+else
+  red_chisquare = (1/DOF)*sum(residuals0.^2)/noise_std^2;
+  chisquareinfo = '(using noise std estimate; upper limit)';
+end
+
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
 calculateUncertainties = esfitdata.UserCommand==0 && nActiveParams>0;
@@ -713,11 +731,6 @@ if calculateUncertainties
     if esfitdata.Opts.Verbosity>=1 || useGUI
       clear msg
       msg{1} = '';
-      msg{2} = 'Goodness of fit:';
-      msg{3} = sprintf('   ssr             %g',ssr0);
-      msg{4} = sprintf('   rmsd            %g',rmsd0);
-      msg{5} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',std(residuals0));
-      msg{6} = sprintf('   chi-squared     %g (using noise std estimate; upper limit)',rmsd0^2/var(residuals0));
       if esfitdata.Opts.AutoScaleID~=0
         msg{end+1} = ' ';
         msg{end+1} = sprintf('Fitted scale:      %g\n',scale);
@@ -745,7 +758,15 @@ if calculateUncertainties
           msg{end+1} = '    WARNING! Strong correlations between parameters.';
         end
       end
-      if useGUI
+      msg{end+1} = ' ';
+      msg{end+1} = 'Goodness of fit:';
+      msg{end+1} = sprintf('   ssr             %g',ssr0);
+      msg{end+1} = sprintf('   rmsd            %g',rmsd0);
+      msg{end+1} = sprintf('   R-squared       %g (coefficient of determination)',R2);
+      msg{end+1} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',noise_std);
+      msg{end+1} = sprintf('   noise der       %g (estimated using der_snr algorithm)',noise_der);
+      msg{end+1} = sprintf('   red chi-square  %g %s',red_chisquare,chisquareinfo);
+     if useGUI
         msg{end+1} = '';
         updateLogBox(msg);
       else
@@ -791,42 +812,45 @@ end
 
 % Assemble output structure
 %-------------------------------------------------------------------------------
-result.pfit = pfit_active;
-result.pnames = {esfitdata.pinfo.Name}.';
-result.pnames = result.pnames(activeParams);
-result.pfit_full = pfit;
-result.argsfit = argsfit;
-
-result.pstd = pstd;
-result.ci95 = ci95;
-result.cov = covmatrix;
-result.corr = corrmatrix;
-result.p_start = p_start;
 
 if esfitdata.nDataSets>1
   for k = 1:esfitdata.nDataSets
     idx = esfitdata.idx{k};
-    result.fitraw{k} = fitraw(idx);
     result.fit{k} = fit(idx);
+    result.fitraw{k} = fitraw(idx);
   end
 else
-  result.fitraw = fitraw;
   result.fit = fit;
+  result.fitraw = fitraw;
 end
 
-result.scale = scale;
 result.baseline = baseline;
+result.scale = scale;
 result.mask = esfitdata.Opts.mask;
-
-result.residuals = residuals0;
-result.ssr = ssr0;
-result.rmsd = rmsd0;
 
 result.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
 result.bestfithistory.pfit = esfitdata.besthistory.par;
 if esfitdata.structureInputs
   result.bestfithistory.pfit2structs = esfitdata.p2args;
 end
+
+result.pnames = {esfitdata.pinfo.Name}.';
+result.pnames = result.pnames(activeParams);
+result.p_start = p_start;
+result.pfit = pfit_active;
+result.pfit_full = pfit;
+
+result.pstd = pstd;
+result.ci95 = ci95;
+result.cov = covmatrix;
+result.corr = corrmatrix;
+
+result.argsfit = argsfit;
+
+result.residuals = residuals0;
+result.ssr = ssr0;
+result.rmsd = rmsd0;
+result.redchisquare = red_chisquare;
 
 esfitdata.best = result;
 
