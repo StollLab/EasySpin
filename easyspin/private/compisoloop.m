@@ -76,10 +76,12 @@ for iComponent = 1:nComponents
     Sys_.singleiso = true;
     [x,spec_,out_] = simfcn(Sys_,Exp,Opt);
     fdProvided = isfield(out_,'fd');
+    size(spec_)
 
     % Accumulate or append spectra
     if separateComponentSpectra
-      if isvector(spec_), catdim = 1; else, catdim = ndims(y_)+1; end
+      %if isvector(spec_), catdim = 1; else, catdim = ndims(spec_)+1; end
+      catdim = 1;
       spec = cat(catdim,spec,spec_*Sys_.weight);
       if includeInverseDomain && fdProvided
         data_invdomain = cat(catdim,data_invdomain,out_.fd*Sys_.weight);
