@@ -328,7 +328,7 @@ If set to 1, the starting point in the parameter space is chosen randomly, withi
 
 <div class="optionfield"><code>FitOpt.TolEdgeLength</code></div>
 <div class="optiondescr">
-Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described below under Algorithms.
+Termination tolerance for the length of the parameter step.
 </div>
 
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
@@ -346,6 +346,11 @@ An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</cod
 Edge length of the initial simplex. The default value is 0.1.
 </div>
 
+<div class="optionfield"><code>FitOpt.ScaleParams</code></div>
+<div class="optiondescr">
+Rescale fitting parameters to within [-1,1] interval. Default is false.
+</div>
+
 <p>
 Parameters for <span style="font-weight:bold;">Levenberg-Marquardt</span>:
 </p>
@@ -357,7 +362,7 @@ If set to 1, the starting point in the parameter space is chosen randomly, withi
 
 <div class="optionfield"><code>FitOpt.TolStep</code></div>
 <div class="optiondescr">
-Termination tolerance for the length of the parameter step. This number refers to the rescaled fitting parameters, as described above.
+Termination tolerance for the length of the parameter step.
 </div>
 
 <div class="optionfield"><code>FitOpt.lambda</code></div>
@@ -367,8 +372,12 @@ Starting value of Marquardt parameter &lambda;, default value is 0.001.
 
 <div class="optionfield"><code>FitOpt.delta</code></div>
 <div class="optiondescr">
-Step size for computing the finite-difference approximation of the Jacobian. Default is 1e-7.
+Step size for computing the finite-difference approximation of the Jacobian. Default is 1e-3.
 </div>
+
+<div class="optionfield"><code>FitOpt.ScaleParams</code></div>
+<div class="optiondescr">
+Rescale fitting parameters to within [-1,1] interval. Default is false</div>
 
 <p>
 Parameters for <span style="font-weight:bold;">Monte Carlo</span>:

@@ -27,11 +27,6 @@ Vary.logDiff = 0.5;
 Vary.lwX = [0, 0.05];
 Vary.lwQ = [0, 0.05];
 
-% Options for esfit algorithms
-FitOpt.PopulationSize = 500;
-FitOpt.maxGenerations = 100;
-FitOpt.nParticles = 100;
-
 % Simulate mock X-band data
 Sys.lw = Sys.lwX;
 Exp.CenterSweep = Exp.CenterSweepX;
@@ -53,6 +48,7 @@ for i = 1:numel(expdata)
 end
 
 % Perform Fitting
+FitOpt.Method = 'simplex fcn';
 result = esfit(expdata, @chili_multifreq, {Sys, Exp}, {Vary}, FitOpt);
 
 % Plot results

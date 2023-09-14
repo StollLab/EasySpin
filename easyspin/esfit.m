@@ -450,10 +450,8 @@ for i = 1:numel(data)
 end
 esfitdata.weights = weights;
 
-% Algorithm parameters
-if ~isfield(Opt,'nTrials'), Opt.nTrials = 20000; end
+% Algorithm parameters (defaults for different algorithms set within corresponding file)
 if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
-if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-6; end
 if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
 
 % Grid search parameters
