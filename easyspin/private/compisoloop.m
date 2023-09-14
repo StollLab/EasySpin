@@ -1,6 +1,25 @@
-function [x,spec,out] = compisoloop(simfcn,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra)
+% Provides a centralized loop over components and isotopologues that all
+% simulation functions (pepper/garlic/chili/salt/saffron) need.
+%
+% Inputs:
+%   simfc               simulation function (@pepper, @garlic, etc
+%   Sys                 spin system(s)
+%   Exp                 experimental parameters
+%   Opt                 simulation options
+%   autoRange           whether the sweep range should be determined automatically
+%   thirdOutput         whether the third output argument has been requested 
+%   separateComponents  whether to return components/isotopologues separately
+%
+% Outputs:
+%   x      abscissa
+%   spec   simulated spectrum or time trace
+%   info   structure with additional information
 
-out = struct;
+function [x,spec,info] = compisoloop(simfcn,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra)
+
+includeInverseDomain = isequal(simfcn,@saffron);
+
+info = struct;
 
 if ~iscell(Sys), Sys = {Sys}; end
 
@@ -28,16 +47,22 @@ end
 
 if separateComponentSpectra
   spec = [];
+  if includeInverseDomain
+    data_invdomain = [];
+  end
 else
   spec = 0;
+  if includeInverseDomain
+    data_invdomain = 0;
+  end
 end
 
 % Initialize output structure
 if thirdOutput
-  out = struct;
-  out.Transitions = {};
-  out.Components = [];
-  out.Isotopologues = [];
+  info = struct;
+  info.Transitions = {};
+  info.Components = [];
+  info.Isotopologues = [];
   idx = 0;
 end
 
@@ -50,35 +75,43 @@ for iComponent = 1:nComponents
     Sys_ = SysList{iComponent}(iIsotopologue);
     Sys_.singleiso = true;
     [x,spec_,out_] = simfcn(Sys_,Exp,Opt);
+    fdProvided = isfield(out_,'fd');
 
     % Accumulate or append spectra
     if separateComponentSpectra
-      spec = [spec; spec_*Sys_.weight];  %#ok
+      if isvector(spec_), catdim = 1; else, catdim = ndims(y_)+1; end
+      spec = cat(catdim,spec,spec_*Sys_.weight);
+      if includeInverseDomain && fdProvided
+        data_invdomain = cat(catdim,data_invdomain,out_.fd*Sys_.weight);
+      end
     else
       spec = spec + spec_*Sys_.weight;
+      if includeInverseDomain && fdProvided
+        data_invdomain = data_invdomain + out_.fd*Sys_.weight;
+      end
     end
 
     if thirdOutput
       idx = idx + 1;
-      out.Components = [out.Components iComponent];
-      out.Isotopologues = [out.Isotopologues iIsotopologue];
+      info.Components = [info.Components iComponent];
+      info.Isotopologues = [info.Isotopologues iIsotopologue];
       if isfield(out_,'Transitions')
-        out.Transitions{idx} = out_.Transitions;
-        out.nTransitions(idx) = size(out_.Transitions,1);
+        info.Transitions{idx} = out_.Transitions;
+        info.nTransitions(idx) = size(out_.Transitions,1);
       end
       if isfield(out_,'nSites')
-        out.nSites(idx) = out_.nSites;
+        info.nSites(idx) = out_.nSites;
       end
       if isfield(out_,'nOrientations')
-        out.nOrientations(idx) = out_.nOrientations;
+        info.nOrientations(idx) = out_.nOrientations;
       end
     end
 
   end
 end
 if thirdOutput
-  if numel(out.Transitions)==1
-    out.Transitions = out.Transitions{1};
+  if numel(info.Transitions)==1
+    info.Transitions = info.Transitions{1};
   end
 end
 

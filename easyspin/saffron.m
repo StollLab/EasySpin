@@ -71,73 +71,24 @@ isENDOR = ischar(Exp.Sequence) && Exp.Sequence=="MimsENDOR";
 
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
 
-  if ~iscell(Sys), Sys = {Sys}; end
-
-  nComponents = numel(Sys);
-  logmsg(1,'  number of component spin systems: %d',nComponents);
-
-  for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
-    nIsotopologues(c) = numel(SysList{c});  %#ok
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  %nTotalComponents = sum(nIsotopologues);
-
-  if separateComponentSpectra
-    data = [];  % direct domain (TD for ESEEM, FD for ENDOR)
-    data_invdomain = [];  % inverse domain (FD for ESEEM)
-  else
-    data = 0;  % direct domain (TD for ESEEM, FD for ENDOR)
-    data_invdomain = 0;  % inverse domain (FD for ESEEM)
-  end
-
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [x,y_,out] = saffron(Sys_,Exp,Opt);
-      invdomain = ~isENDOR && isfield(out,'fd');
-
-      % Accumulate or append spectra
-      if separateComponentSpectra
-        if isvector(y_), catdim=1; else, catdim=ndims(y_)+1; end
-        data = cat(catdim,data,y_*Sys_.weight);
-        if invdomain
-          data_invdomain = cat(catdim,data_invdomain,out.fd*Sys_.weight);
-        end
-      else
-        data = data + y_*Sys_.weight;
-        if invdomain
-          data_invdomain = data_invdomain + out.fd*Sys_.weight;
-        end
-      end
-
-    end
-  end
-
-  % Output and plotting
-  if isENDOR
-    out.fd = data;
-    out.td = [];
-  else
-    out.td = data;
-    out.fd = data_invdomain;
-  end
+  thirdOutput = nargout>=3;
+  autoRange = false;
+  [x,data,out] = compisoloop(@saffron,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra);
 
   switch nargout
-    case 0, sf_plotting(x,out,isENDOR,Sys,Exp,Opt);
-    case 1, varargout = {data};
-    case 2, varargout = {x,data};
-    case 3, varargout = {x,data,out};
+    case 0
+      saffron_plot(x,out,isENDOR,Sys,Exp,Opt);
+    case 1
+      varargout = {data};
+    case 2
+      varargout = {x,data};
+    case 3
+      varargout = {x,data,out};
   end
-
   return
-
 end
 
 
@@ -1837,6 +1788,16 @@ if fastSimulationMode
     if nDimensions==2, x_out = {t1,t2}; else, x_out = t1; end
     y_out = td;
   end
+
+  % Output
+  if isENDOR
+    out.fd = fd;
+    out.td = [];
+  else
+    out.td = td;
+    out.fd = fd;
+  end
+
   switch nargout
     case 1, varargout = {y_out};
     case 2, varargout = {x_out,y_out};
@@ -2033,11 +1994,13 @@ else  % if fastSimulationMode
     x = x{1};
   end
 
+  out = struct;
+
   switch nargout
     case 0, s_plotting(timeAxis,Signal,Exp,Opt);
     case 1, varargout = {Signal};
     case 2, varargout = {x,Signal};
-    case 3, varargout = {x,Signal,struct};
+    case 3, varargout = {x,Signal,out};
   end
 
 end
@@ -2266,7 +2229,7 @@ end
 %===============================================================================
 % Plotting function
 %===============================================================================
-function sf_plotting(x,out,isENDOR,Sys,Exp,Opt)
+function saffron_plot(x,out,isENDOR,Sys,Exp,Opt)
 
 logmsg(1,'Plotting...');
 
