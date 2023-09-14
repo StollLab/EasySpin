@@ -18,7 +18,7 @@ modelfcn = @(p) p(1)*exp(-p(2)*t)+p(3);
 FitOpt = struct;
 FitOpt.Method = 'simplex fcn';
 FitOpt.Verbosity = 0;
-FitOpt.AutoScale = 0;
+FitOpt.AutoScale = 'none';
 
 result = esfit(y,modelfcn,p0,lb,ub,FitOpt);
 

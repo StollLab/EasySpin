@@ -131,7 +131,7 @@ for idx = 1:nGridPoints
   
 end
 
-if opt.Verbosity>1
+if opt.Verbosity>0
   switch stopCode
     case 0, msg = 'Terminated: all grid points searched.';
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',opt.maxTime);

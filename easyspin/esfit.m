@@ -7,7 +7,8 @@
 %   pfit = esfit(___)
 %
 % Input:
-%     data        experimental data, a vector of data points
+%     data        experimental data, a vector of data points or a cell
+%                   array of datasets for global fitting 
 %     fcn         simulation/model function handle (@pepper, @garlic, ...
 %                   @salt, @chili, or handle to user-defined function)
 %                   a user-defined fcn should take a parameter vector p
@@ -28,14 +29,18 @@
 %        .Method  string containing keywords for
 %           -algorithm: 'simplex','levmar','montecarlo','genetic','grid','swarm'
 %           -target function: 'fcn', 'int', 'dint', 'diff', 'fft'
-%        .AutoScale either true (on) or false (off); default true for
-%                 EasySpin simulation functions, otherwise false
-%        .BaseLine 0, 1, 2, 3 or []
+%        .AutoScale 'lsq', 'maxabs', 'none'; default 'lsq' for
+%                 EasySpin simulation functions, otherwise 'none'
+%        .BaseLine 0, 1, 2, 3 or [] (or vector for global fitting with different 
+%                 baseline order for different datasets)
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
 %        .mask    array of 1 and 0 the same size as data vector
-%                 values with mask 0 are excluded from the fit
+%                 values with mask 0 are excluded from the fit 
+%                 (cell array for data input consisting of multiple datasets)
+%        .weights array of weights to use when combining residual vectors
+%                 of all datasets for global fitting
 % Output:
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector (contains only active fitting parameters)
@@ -124,10 +129,29 @@ argspar = esfit_argsparams();
 
 % Experimental data
 %-------------------------------------------------------------------------------
-if ~isnumeric(data) || ~isvector(data) || isempty(data)
-  error('First argument must be numeric experimental data in the form of a vector.');
+if ~iscell(data)
+  data = {data};
 end
-esfitdata.data = data;
+data_vec = [];
+for i = 1:numel(data)
+  if ~isnumeric(data{i}) || ~isvector(data{i}) || isempty(data{i})
+    error('First input must be numeric experimental data in the form of a vector or a cell array of vectors.');
+  end
+  data_vec = [data_vec; data{i}(:)];
+  datasize(i) = numel(data{i});
+end
+
+idx = cell(1,numel(data));
+idx_ = [0 cumsum(datasize)];
+for i = 1:numel(data)
+  idx{i} = false(size(data_vec));
+  idx{i}(idx_(i)+1:idx_(i+1)) = true;
+end
+
+esfitdata.data = data_vec;
+esfitdata.idx = idx;
+esfitdata.nDataSets = numel(data);
+esfitdata.datasize = datasize;
 
 % Model function
 %-------------------------------------------------------------------------------
@@ -252,18 +276,22 @@ esfitdata.fixedParams = false(1,numel(pvec_0));
 %-------------------------------------------------------------------------------
 if EasySpinFunction
 
+  if numel(data)>1
+    error('Cannot use EasySpin functions for global fitting directly. Write a custom model function.');
+  end
+
   if ~iscell(p0) || numel(p0)<2
     error('The third input must contain the initial parameters, e.g. {Sys0,Exp} or {Sys0,Exp,Opt}.');
   end
 
   % Check or set Exp.nPoints
   if isfield(p0{2},'nPoints')
-    if p0{2}.nPoints~=numel(data)
+    if p0{2}.nPoints~=numel(data{1})
       error('Exp.nPoints is %d, but the data vector has %d elements.',...
-        p0{2}.nPoints,numel(data));
+        p0{2}.nPoints,numel(data{1}));
     end
   else
-    p0{2}.nPoints = numel(data);
+    p0{2}.nPoints = numel(data{1});
   end
   
   % For field and frequency sweeps, require manual field range (to prevent
@@ -311,7 +339,7 @@ if EasySpinFunction
   end
 end
 
-keywords = strread(Opt.Method,'%s');
+keywords = split(Opt.Method,' ');
 for k = 1:numel(keywords)
   switch keywords{k}
     case 'simplex',    Opt.AlgorithmID = 1;
@@ -333,6 +361,10 @@ for k = 1:numel(keywords)
   end
 end
 
+if ~isfield(Opt,'TargetID')
+  Opt.TargetID = 1;
+end
+
 AlgorithmNames{1} = 'Nelder-Mead simplex';
 AlgorithmNames{2} = 'Levenberg-Marquardt';
 AlgorithmNames{3} = 'Monte Carlo';
@@ -351,10 +383,13 @@ esfitdata.TargetNames = TargetNames;
 
 % Mask
 if ~isfield(Opt,'mask')
-  Opt.mask = true(size(data));
+  Opt.mask = true(size(data_vec));
 else
-  Opt.mask = logical(Opt.mask);
-  if numel(Opt.mask)~=numel(data)
+  if iscell(Opt.mask)
+    Opt.mask = cat(2,Opt.mask{:});
+  end
+  Opt.mask = logical(Opt.mask(:));
+  if numel(Opt.mask)~=numel(data_vec)
     error('Opt.mask has %d elements, but the data has %d elements.',numel(Opt.mask),numel(data));
   end
 end
@@ -363,35 +398,60 @@ Opt.useMask = true;
 % Scale fitting
 if ~isfield(Opt,'AutoScale')
   if EasySpinFunction
-    Opt.AutoScale = true;
+    Opt.AutoScale = 'lsq';
   else
-    Opt.AutoScale = false;
+    Opt.AutoScale = 'none';
   end
 end
 switch Opt.AutoScale
-  case 0, AutoScale = false;
-  case 1, AutoScale = true;
-  otherwise, error('Unknown setting for Opt.AutoScale - possible values are 0 and 1.');
+  case 'none', AutoScaleID = 0;
+  case 'lsq', AutoScaleID = 1;
+  case 'maxabs', AutoScaleID = 2;
+  otherwise, error('Unknown setting for Opt.AutoScale - possible values are ''lsq'', ''maxabs'' and ''none''.');
 end
-esfitdata.AutoScale = AutoScale;
+Opt.AutoScaleID = AutoScaleID;
 
+esfitdata.AutoScaleSettings = {0, 1, 2};
+esfitdata.AutoScaleStrings = {'none', 'lsq', 'maxabs'};
+
+% Baseline correction
 if ~isfield(Opt,'BaseLine')
   Opt.BaseLine = [];
 end
 if isempty(Opt.BaseLine)
-  esfitdata.BaseLine = -1;  
+  Opt.BaseLine = -ones(1,esfitdata.nDataSets);  
+elseif numel(Opt.BaseLine)==1 && esfitdata.nDataSets~=1
+  Opt.BaseLine = Opt.BaseLine*ones(1,esfitdata.nDataSets);
 else
-  esfitdata.BaseLine = Opt.BaseLine;
+  Opt.BaseLine = Opt.BaseLine;
 end
+esfitdata.BaseLine = Opt.BaseLine;
+if numel(Opt.BaseLine)~=esfitdata.nDataSets
+  error('The number of entries in Opt.BaseLine must be equal to the number of datasets (%d).',esfitdata.nDataSets);
+end
+
 esfitdata.BaseLineSettings = {-1, 0, 1, 2, 3};
 esfitdata.BaseLineStrings = {'none', 'offset', 'linear', 'quadratic', 'cubic'};
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 
-% Algorithm parameters
-if ~isfield(Opt,'nTrials'), Opt.nTrials = 20000; end
+% Weights for global fitting
+if ~isfield(Opt,'weights')
+  Opt.weights = ones(1,esfitdata.nDataSets);
+end
+if numel(Opt.weights)~=esfitdata.nDataSets
+  error('The number of elements in Opt.weights must be equal to the number of datasets.');
+end
+
+weights = zeros(1,sum(esfitdata.datasize));
+for i = 1:numel(data)
+  idx = esfitdata.idx{i};
+  weights(idx) = Opt.weights(i);
+end
+esfitdata.weights = weights;
+
+% Algorithm parameters (defaults for different algorithms set within corresponding file)
 if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
-if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-6; end
 if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
 
 % Grid search parameters
@@ -425,6 +485,9 @@ interactiveMode = nargout==0;
 Opt.InfoPrintFunction = @(str) infoprint(str,interactiveMode);
 esfitdata.Opts = Opt;
 if interactiveMode
+  if esfitdata.nDataSets>1
+    error('The esfit GUI currently does not support global fitting.')
+  end
   setupGUI(data);
   return
 end
@@ -440,19 +503,17 @@ end
 % Report parsed inputs
 %-------------------------------------------------------------------------------
 if esfitdata.Opts.Verbosity>=1
-  siz = size(esfitdata.data);
-  if esfitdata.Opts.AutoScale
-    autoScaleStr = 'on';
-  else
-    autoScaleStr = 'off';
-  end
+  nDataSets = esfitdata.nDataSets;
   fprintf('-- esfit ------------------------------------------------\n');
-  fprintf('Data size:                [%d, %d]\n',siz(1),siz(2));
+  fprintf('Number of datasets:       %d\n',nDataSets);
+  for i = 1:nDataSets
+    fprintf('Data set %d:           %d points\n',i,esfitdata.datasize(i));
+  end
   fprintf('Model function name:      %s\n',esfitdata.fcnName);
   fprintf('Number of fit parameters: %d\n',esfitdata.nParameters);
   fprintf('Minimization algorithm:   %s\n',esfitdata.AlgorithmNames{esfitdata.Opts.AlgorithmID});
   fprintf('Residuals computed from:  %s\n',esfitdata.TargetNames{esfitdata.Opts.TargetID});
-  fprintf('Autoscaling:              %s\n',autoScaleStr);
+  fprintf('Autoscaling:              %s\n',esfitdata.Opts.AutoScale);
   fprintf('---------------------------------------------------------\n');
 end
 
@@ -523,8 +584,8 @@ if nActiveParams>0
   else
     iterupdate = false;
   end
-  residualfun = @(x) residuals_(x,data_,fitOpt,iterupdate);
-  rmsdfun = @(x) rmsd_(x,data_,fitOpt,iterupdate);
+  residualfun = @(x) residuals_(x,fitOpt,iterupdate);
+  rmsdfun = @(x) rmsd_(x,fitOpt,iterupdate);
   p0_active = p_start(activeParams);
   lb_active = lb(activeParams);
   ub_active = ub(activeParams);
@@ -579,14 +640,32 @@ end
 % Get best-fit spectrum
 fit = esfitdata.best.fit;  % bestfit is set in residuals_
 scale = esfitdata.best.scale;  % bestscale is set in residuals_
-fitraw = fit/scale;
+for i = 1:esfitdata.nDataSets
+  idx = esfitdata.idx{i};
+  fitraw(idx) = fit(idx)/scale(i);
+end
 baseline = esfitdata.best.baseline;
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
+rmsd0 = esfitdata.best.rmsd;
 residuals0 = esfitdata.best.residuals;
 ssr0 = sum(abs(residuals0).^2); % sum of squared residuals
-rmsd0 = esfitdata.best.rmsd;
+
+% Noise estimated from residuals (assumes excellent fit)
+noise_std = std(residuals0);
+% Noise estimate following DER_SNR algorithm by Stoehr et al.
+N = numel(data_(:));
+noise_der = 1.482602/sqrt(6)*median(abs(2.0*data_(3:N-2) - data_(1:N-4) - data_(5:N)));
+
+% Reduced chi square
+if noise_std>noise_der
+  red_chisquare = (1/N)*sum(residuals0.^2)/noise_der^2;
+  chisquareinfo = '(using noise der estimate)';
+else
+  red_chisquare = (1/N)*sum(residuals0.^2)/noise_std^2;
+  chisquareinfo = '(using noise std estimate; upper limit)';
+end
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
@@ -606,7 +685,7 @@ if calculateUncertainties
   end
   %maxRelStep = min((ub-pfit),(pfit-lb))./pfit;
   fitOpt.track = false;
-  residualfun = @(x)residuals_(x,data_,fitOpt,useGUI);
+  residualfun = @(x)residuals_(x,fitOpt,useGUI);
   J = jacobianest(residualfun,pfit_active);
   if ~any(isnan(J(:))) && ~isempty(J)
     if Verbosity>=1
@@ -619,7 +698,7 @@ if calculateUncertainties
     end
 
     % Calculate covariance matrix and standard deviations
-    residuals = calculateResiduals(fit(:),esfitdata.data(:),esfitdata.Opts.TargetID);
+    residuals = calculateResiduals(fit(:),data_(:),esfitdata.Opts.TargetID,esfitdata.idx);
     residuals = residuals.'; % col -> row
     covmatrix = hccm(J,residuals,'HC1');
     pstd = sqrt(diag(covmatrix));
@@ -647,12 +726,7 @@ if calculateUncertainties
     if esfitdata.Opts.Verbosity>=1 || useGUI
       clear msg
       msg{1} = '';
-      msg{2} = 'Goodness of fit:';
-      msg{3} = sprintf('   ssr             %g',ssr0);
-      msg{4} = sprintf('   rmsd            %g',rmsd0);
-      msg{5} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',std(residuals0));
-      msg{6} = sprintf('   chi-squared     %g (using noise std estimate; upper limit)',rmsd0^2/var(residuals0));
-      if esfitdata.Opts.AutoScale
+      if esfitdata.Opts.AutoScaleID~=0
         msg{end+1} = ' ';
         msg{end+1} = sprintf('Fitted scale:      %g\n',scale);
       end
@@ -679,7 +753,14 @@ if calculateUncertainties
           msg{end+1} = '    WARNING! Strong correlations between parameters.';
         end
       end
-      if useGUI
+      msg{end+1} = ' ';
+      msg{end+1} = 'Goodness of fit:';
+      msg{end+1} = sprintf('   ssr             %g',ssr0);
+      msg{end+1} = sprintf('   rmsd            %g',rmsd0);
+      msg{end+1} = sprintf('   noise std       %g (estimated from residuals; assumes excellent fit)',noise_std);
+      msg{end+1} = sprintf('   noise der       %g (estimated using der_snr algorithm)',noise_der);
+      msg{end+1} = sprintf('   red chi-square  %g %s',red_chisquare,chisquareinfo);
+     if useGUI
         msg{end+1} = '';
         updateLogBox(msg);
       else
@@ -725,33 +806,45 @@ end
 
 % Assemble output structure
 %-------------------------------------------------------------------------------
-result.pfit = pfit_active;
-result.pnames = {esfitdata.pinfo.Name}.';
-result.pnames = result.pnames(activeParams);
-result.pfit_full = pfit;
-result.argsfit = argsfit;
 
-result.pstd = pstd;
-result.ci95 = ci95;
-result.cov = covmatrix;
-result.corr = corrmatrix;
-result.p_start = p_start;
+if esfitdata.nDataSets>1
+  for k = 1:esfitdata.nDataSets
+    idx = esfitdata.idx{k};
+    result.fit{k} = fit(idx);
+    result.fitraw{k} = fitraw(idx);
+  end
+else
+  result.fit = fit;
+  result.fitraw = fitraw;
+end
 
-result.fitraw = fitraw;
-result.fit = fit;
-result.scale = scale;
 result.baseline = baseline;
+result.scale = scale;
 result.mask = esfitdata.Opts.mask;
-
-result.residuals = residuals0;
-result.ssr = ssr0;
-result.rmsd = rmsd0;
 
 result.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
 result.bestfithistory.pfit = esfitdata.besthistory.par;
 if esfitdata.structureInputs
   result.bestfithistory.pfit2structs = esfitdata.p2args;
 end
+
+result.pnames = {esfitdata.pinfo.Name}.';
+result.pnames = result.pnames(activeParams);
+result.p_start = p_start;
+result.pfit = pfit_active;
+result.pfit_full = pfit;
+
+result.pstd = pstd;
+result.ci95 = ci95;
+result.cov = covmatrix;
+result.corr = corrmatrix;
+
+result.argsfit = argsfit;
+
+result.residuals = residuals0;
+result.ssr = ssr0;
+result.rmsd = rmsd0;
+result.redchisquare = red_chisquare;
 
 esfitdata.best = result;
 
@@ -760,18 +853,20 @@ end
 
 
 %===============================================================================
-function [rmsd,userstop] = rmsd_(x,data,Opt,iterupdate)
-[~,rmsd,userstop] = residuals_(x,data,Opt,iterupdate);
+function [rmsd,userstop] = rmsd_(x,Opt,iterupdate)
+[~,rmsd,userstop] = residuals_(x,Opt,iterupdate);
 end
 %===============================================================================
 
 
 %===============================================================================
-function [residuals,rmsd,userstop] = residuals_(x,expdata,Opt,iterupdate)
+function [residuals,rmsd,userstop] = residuals_(x,Opt,iterupdate)
 
 global esfitdata
 
 userstop = esfitdata.UserCommand~=0;
+
+expdata = esfitdata.data;
 
 if esfitdata.Opts.useMask
   mask = Opt.mask;
@@ -791,7 +886,14 @@ out = cell(1,esfitdata.nOutArguments);
 try
   if esfitdata.structureInputs
     args = esfitdata.p2args(par);
-    [out{:}] = esfitdata.fcn(args{:});
+    try
+      % Get x-axis for EasySpin functions (and adapted functions based on EasySpin)
+      [x,out{:}] = esfitdata.fcn(args{:});
+      esfitdata.Opts.x = x;
+    catch
+      % Keep index axis for functions not returning an axis (e.g. curry)
+      [out{:}] = esfitdata.fcn(args{:});
+    end
   else
     [out{:}] = esfitdata.fcn(par);
   end
@@ -803,60 +905,80 @@ catch ME
 end
 
 simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
+if ~iscell(simdata)
+  simdata = {simdata};
+end
 
-% Rescale simulated data if scale should be ignored; include baseline if wanted
-%-------------------------------------------------------------------------------
-simdata = simdata(:);
-expdata = expdata(:);
-
-if numel(simdata)~=numel(expdata)
-  error('\n  Experimental and model data arrays have unequal number of elements:\n    experimental: %d\n    model: %d\n',...
+if numel(simdata)~=esfitdata.nDataSets
+  error('\n  Experimental and model data have unequal number of datasets:\n    experimental: %d\n    model: %d\n',...
     numel(expdata),numel(simdata));
 end
 
+simdata_vec = [];
+for i = 1:numel(simdata)
+  simdata_vec = [simdata_vec; simdata{i}(:)];
+end
+
+if numel(simdata_vec)~=numel(expdata)
+  error('\n  Experimental data and model have unequal total number of points:\n    experimental: %d\n    model: %d\n',...
+    numel(expdata),numel(simdata_vec));
+end
+
+% Rescale simulated data if scale should be ignored; include baseline if wanted
+%-------------------------------------------------------------------------------
 order = Opt.BaseLine;
-if order~=-1
-  N = numel(simdata);
-  x = (1:N).'/N;  
-  q = 0;
-  for j = 0:order  % each column a x^j monomial vector
-    q = q+1;
-    D(:,q) = x.^j;
-  end
-  if Opt.AutoScale
-    D = [simdata D];
-    coeffs = D(mask,:)\expdata(mask);
-    coeffs(1) = abs(coeffs(1));
-    baseline = D(:,2:end)*coeffs(2:end);
-    simdata = D*coeffs;
-    simscale = coeffs(1);
+baseline = zeros(size(simdata_vec));
+simscale = ones(1,esfitdata.nDataSets);
+for k = 1:esfitdata.nDataSets
+  if order(k)~=-1
+    N = esfitdata.datasize(k);
+    x = (1:N).'/N;
+    D = x.^(0:order(k));  % each column a x^j monomial vector
+    idx = esfitdata.idx{k};
+    switch Opt.AutoScaleID
+      case 0 % 'none'
+        coeffs = D(mask(idx),:)\(expdata(mask&idx)-simdata_vec(mask&idx));
+        baseline(idx) = D*coeffs;
+        simdata_vec(idx) = simdata_vec(idx) + baseline(idx);
+      case 1 % 'lsq'
+        D = [simdata_vec(idx) D];
+        coeffs = D(mask(idx),:)\expdata(mask & idx);
+        coeffs(1) = abs(coeffs(1));
+        baseline(idx) = D(:,2:end)*coeffs(2:end);
+        simdata_vec(idx) = D*coeffs;
+        simscale(k) = coeffs(1);
+      case 2 % 'maxabs'
+        D = [simdata_vec(idx) D];
+        coeffs = D(mask(idx),:)\expdata(mask & idx);
+        baseline(idx) = D(:,2:end)*coeffs(2:end);
+        coeff = max(abs(simdata_vec(mask & idx)))\max(abs(expdata(mask & idx)-baseline(mask & idx)));
+        simdata_vec(idx) = coeff*simdata_vec(idx)+baseline(idx);
+        simscale(k) = coeff;
+    end
   else
-    coeffs = D(mask,:)\(expdata(mask)-simdata(mask));
-    baseline = D*coeffs;
-    simdata = simdata + baseline;
-    simscale = 1;
-  end
-else
-  if Opt.AutoScale
-    D = simdata;
-    coeffs = D(mask)\expdata(mask);
-    coeffs(1) = abs(coeffs(1));
-    simdata = D*coeffs;
-    baseline = zeros(size(simdata));
-    simscale = coeffs(1);
-  else
-    baseline = zeros(size(simdata));
-    simscale = 1;
+    switch Opt.AutoScaleID
+      case 1 % 'lsq'
+        idx = esfitdata.idx{k};
+        coeffs = simdata_vec(mask & idx)\expdata(mask & idx);
+        coeffs(1) = abs(coeffs(1));
+        simdata_vec(idx) = simdata_vec(idx)*coeffs;
+        simscale(k) = coeffs(1);
+      case 2 % 'maxabs'
+        idx = esfitdata.idx{k};
+        coeff = max(abs(simdata_vec(mask & idx)))\max(abs(expdata(mask & idx)));
+        simdata_vec(idx) = simdata_vec(idx)*coeff;
+        simscale(k) = coeff;    
+    end
   end
 end
 
 % Compute residuals
 %-------------------------------------------------------------------------------
-[residuals,residuals0] = calculateResiduals(simdata(:),expdata(:),Opt.TargetID,mask(:));
-rmsd = sqrt(mean(abs(residuals).^2));
+[residuals,residuals0] = calculateResiduals(simdata_vec,expdata,Opt.TargetID,esfitdata.idx,mask(:));
+rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights(:)));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
-esfitdata.curr.sim = simdata;
+esfitdata.curr.sim = simdata_vec;
 esfitdata.curr.par = par;
 esfitdata.curr.scale = simscale;
 esfitdata.curr.baseline = baseline;
@@ -871,7 +993,7 @@ if Opt.track
     esfitdata.best.residuals = residuals0;
     esfitdata.best.rmsdtarget = rmsd;
     esfitdata.best.rmsd = rmsd0;
-    esfitdata.best.fit = simdata;
+    esfitdata.best.fit = simdata_vec;
     esfitdata.best.scale = simscale;
     esfitdata.best.par = par;
     esfitdata.best.baseline = baseline;
@@ -920,7 +1042,9 @@ plottedData = [expdata(mask); bestsim; currsim];
 maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj('Tag','dataaxes'),'YLim',YLimits);
+hAx = findobj('Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+set(hAx,'XLim',[min(x) max(x)]);
 
 % Readjust mask patches
 maskPatches = findobj('Tag','maskPatch');
@@ -1057,30 +1181,35 @@ end
 
 
 %===============================================================================
-function [residuals,residuals0] = calculateResiduals(A,B,mode,includemask)
+function [residuals,residuals0] = calculateResiduals(A,B,mode,idx,includemask)
 
-residuals0 = A - B;
-if nargin>3
-  residuals0(~includemask) = 0;
-end
-
-switch mode
-  case 1  % fcn
-    residuals = residuals0;
-  case 2  % int
-    residuals = cumsum(residuals0);
-  case 3  % iint
-    residuals = cumsum(cumsum(residuals0));
-  case 4  % fft
-    residuals = abs(fft(residuals0));
-  case 5  % diff
-    residuals = deriv(residuals0);
+if nargin>4
+  A(~includemask) = 0;
+  B(~includemask) = 0;
 end
 
 % ignore residual if A or B is NaN
 idxNaN = isnan(A) | isnan(B);
-residuals0(idxNaN) = 0;
-residuals(idxNaN) = 0;
+A(idxNaN) = 0;
+B(idxNaN) = 0;
+
+for i = 1:numel(idx)
+  residuals0{i} = A(idx{i}) - B(idx{i});
+  switch mode
+    case 1  % fcn
+      residuals{i} = residuals0{i};
+    case 2  % int
+      residuals{i} = cumsum(residuals0{i});
+    case 3  % iint
+      residuals{i} = cumsum(cumsum(residuals0{i}));
+    case 4  % fft
+      residuals{i} = abs(fft(residuals0{i}));
+    case 5  % diff
+      residuals{i} = deriv(residuals0{i});
+  end
+end
+residuals0 = cat(1,residuals0{:});
+residuals = cat(1,residuals{:});
 
 end
 %===============================================================================
@@ -1103,10 +1232,10 @@ set(findobj('Tag','EvaluateButton'),'Enable','off');
 set(findobj('Tag','ResetButton'),'Enable','off');
 
 % Disable listboxes
-set(findobj('Tag','AlgorithMenu'),'Enable','off');
+set(findobj('Tag','AlgorithmMenu'),'Enable','off');
 set(findobj('Tag','TargetMenu'),'Enable','off');
 set(findobj('Tag','BaseLineMenu'),'Enable','off');
-set(findobj('Tag','AutoScaleCheckbox'),'Enable','off');
+set(findobj('Tag','AutoScaleMenu'),'Enable','off');
 
 % Disable parameter table
 set(findobj('Tag','selectAllButton'),'Enable','off');
@@ -1152,9 +1281,9 @@ set(findobj('Tag','MaskCheckbox'),'Enable','off');
 % Pull settings from UI
 %-------------------------------------------------------------------------------
 % Determine selected method, target, autoscaling, start point
-esfitdata.Opts.AlgorithmID = get(findobj('Tag','AlgorithMenu'),'Value');
+esfitdata.Opts.AlgorithmID = get(findobj('Tag','AlgorithmMenu'),'Value');
 esfitdata.Opts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
-esfitdata.Opts.AutoScale = get(findobj('Tag','AutoScaleCheckbox'),'Value');
+esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
 esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 
@@ -1224,10 +1353,10 @@ set(findobj('Tag','EvaluateButton'),'Enable','on');
 set(findobj('Tag','ResetButton'),'Enable','on');
 
 % Re-enable listboxes
-set(findobj('Tag','AlgorithMenu'),'Enable','on');
+set(findobj('Tag','AlgorithmMenu'),'Enable','on');
 set(findobj('Tag','TargetMenu'),'Enable','on');
 set(findobj('Tag','BaseLineMenu'),'Enable','on');
-set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
+set(findobj('Tag','AutoScaleMenu'),'Enable','on');
 
 % Re-enable parameter table and its selection controls
 set(findobj('Tag','selectAllButton'),'Enable','on');
@@ -1306,14 +1435,14 @@ p_eval = esfitdata.p_start;
 active = ~esfitdata.fixedParams;
 p_eval = p_eval(active);
 expdata = esfitdata.data(:);
-esfitdata.Opts.AutoScale = get(findobj('Tag','AutoScaleCheckbox'),'Value');
+esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
 esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
 Opt = esfitdata.Opts;
 Opt.track = false;
 
 try
-  [~,rmsd] = residuals_(p_eval,expdata,Opt,1);
+  [~,rmsd] = residuals_(p_eval,Opt,1);
 catch ME
   if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
     return
@@ -1330,6 +1459,7 @@ currsim = real(esfitdata.curr.sim(:));
 
 % Update plotted data
 x = esfitdata.Opts.x(:);
+set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
 set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
 
 % Readjust vertical range
@@ -1343,7 +1473,9 @@ plottedData = [expdata(mask); bestsim; currsim];
 maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj('Tag','dataaxes'),'YLim',YLimits);
+hAx = findobj('Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+set(hAx,'XLim',[min(x) max(x)]);
 drawnow
 
 % Readjust mask patches
@@ -1626,10 +1758,10 @@ set(findobj('Tag','EvaluateButton'),'Enable','on');
 set(findobj('Tag','ResetButton'),'Enable','on');
 
 % Re-enable listboxes
-set(findobj('Tag','AlgorithMenu'),'Enable','on');
+set(findobj('Tag','AlgorithmMenu'),'Enable','on');
 set(findobj('Tag','TargetMenu'),'Enable','on');
 set(findobj('Tag','BaseLineMenu'),'Enable','on');
-set(findobj('Tag','AutoScaleCheckbox'),'Enable','on');
+set(findobj('Tag','AutoScaleMenu'),'Enable','on');
 
 % Re-enable parameter table and its selection controls
 set(findobj('Tag','selectAllButton'),'Enable','on');
@@ -1839,6 +1971,10 @@ end
 
 %===============================================================================
 function setupGUI(data)
+
+if iscell(data)
+  data = data{1};
+end
 
 global esfitdata
 Opt = esfitdata.Opts;
@@ -2059,7 +2195,7 @@ uicontrol('Parent',hFig,'Style','text',...
     'BackgroundColor',get(gcf,'Color'),...
     'Position',[Optionsx0 Optionsy0+4*(hElement+dh)-dh+0.5*hElement wOptionsLabel hElement]);
 uicontrol('Parent',hFig,'Style','popupmenu',...
-    'Tag','AlgorithMenu',...
+    'Tag','AlgorithmMenu',...
     'String',esfitdata.AlgorithmNames,...
     'Value',Opt.AlgorithmID,...
     'BackgroundColor','w',...
@@ -2094,15 +2230,19 @@ uicontrol('Parent',hFig,'Style','popupmenu',...
     'Tooltip','Baseline fitting',...
     'Position',[Optionsx0+wOptionsLabel Optionsy0+2*(dh+hElement)+0.5*hElement wOptionsSel hElement]);
 
-uicontrol('Parent',hFig,'Style','checkbox',...
-    'Tag','AutoScaleCheckbox',...
+uicontrol('Parent',hFig,'Style','text',...
     'String','AutoScale',...
     'FontWeight','bold',...
     'HorizontalAlign','left',...
-    'Value',esfitdata.AutoScale,...
     'BackgroundColor',get(gcf,'Color'),...
+    'Position',[Optionsx0 Optionsy0+(dh+hElement)-dh+0.5*hElement wOptionsLabel hElement]);
+uicontrol('Parent',hFig,'Style','popupmenu',...
+    'Tag','AutoScaleMenu',...
+    'String',esfitdata.AutoScaleStrings,...
+    'Value',find(cellfun(@(x)x==esfitdata.Opts.AutoScaleID,esfitdata.AutoScaleSettings),1),...
+    'BackgroundColor','w',...
     'Tooltip','Autoscaling',...
-    'Position',[Optionsx0+2*dh Optionsy0+(dh+hElement) wOptionsLabel+wOptionsSel hElement]);
+    'Position',[Optionsx0+wOptionsLabel Optionsy0+(dh+hElement)+0.5*hElement wOptionsSel hElement]);
 
 wMaskEl = 0.5*(wOptionsLabel+wOptionsSel);
 uicontrol('Parent',hFig,'Style','checkbox',...

@@ -39,7 +39,7 @@ vSys.D = 40*clight*1e-4;
 vSys.g = 0.5;
 
 % No autoscaling! the absolute value of the data contains information
-FitOpt.AutoScale = false;
+FitOpt.AutoScale = 'none';
 
 % Run least-squares fitting
 fitresult = esfit(chimolT(:),@curry,{Sys0,Exp,Opt},{vSys},FitOpt)
