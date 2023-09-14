@@ -78,7 +78,7 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 % Loop over species and isotopologues
 %==================================================================
-SweeepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
+SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
   (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
 
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
@@ -95,63 +95,16 @@ if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectr
   separateComponentSpectra = true;
 end
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
-
-  if ~iscell(Sys), Sys = {Sys}; end
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
   
-  nComponents = numel(Sys);
-  logmsg(1,'  number of component spin systems: %d',nComponents);
-  
-   % Determine isotopologues for each component
-   for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
-    nIsotopologues(c) = numel(SysList{c});  %#ok
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  nTotalComponents = sum(nIsotopologues);
-  
-  if nTotalComponents>1 && SweeepAutoRange
-    error('Multiple components: Please specify frequency range manually using Exp.Range or Exp.CenterSweep.');
-  end
-  
-  if separateComponentSpectra
-    spec = [];
-  else
-    spec = 0;
-  end
-  
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [xAxis,spec_,out] = salt(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
-      if separateComponentSpectra
-        spec = [spec; spec_*Sys_.weight];  %#ok
-      else
-        spec = spec + spec_*Sys_.weight;
-      end
-      
-    end
-  end
+  thirdOutput = nargout>=3;
+  [xAxis,spec,out] = compisoloop(@salt,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
     case 0
-      cla
-      plot(xAxis,spec);
-      axis tight
-      xlabel('frequency (MHz)');
-      ylabel('intensity (arb.u.)');
-      if isfield(Exp,'mwFreq') && ~isnan(Exp.mwFreq)
-        title(sprintf('ENDOR at %0.8g GHz and %0.8g mT',Exp.mwFreq,Exp.Field));
-      else
-        title(sprintf('ENDOR at %0.8g mT',Exp.Field));
-      end
+      salt_plot(xAxis,spec,Exp);
     case 1
       varargout = {spec};
     case 2
@@ -1082,4 +1035,18 @@ logmsg(1,'=end=salt=========%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel
 
-return
+end
+
+
+function salt_plot(xAxis,spec,Exp)
+cla
+plot(xAxis,spec);
+axis tight
+xlabel('frequency (MHz)');
+ylabel('intensity (arb.u.)');
+if isfield(Exp,'mwFreq') && ~isnan(Exp.mwFreq)
+  title(sprintf('ENDOR at %0.8g GHz and %0.8g mT',Exp.mwFreq,Exp.Field));
+else
+  title(sprintf('ENDOR at %0.8g mT',Exp.Field));
+end
+end

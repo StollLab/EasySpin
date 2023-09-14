@@ -2294,10 +2294,12 @@ if isENDOR
 
 else
 
+  plotFreqDomain = isfield(out,'f') && isfield(out,'fd');
+
   if ~twoDim
 
     % Time 
-    if out.fd~=0
+    if plotFreqDomain
       subplot(2,1,1);
     end
     predefinedExperiment = isfield(Exp,'ExperimentID') && Exp.ExperimentID>0;
@@ -2330,7 +2332,7 @@ else
     set(gca,'Layer','top');
 
     % Frequency domain
-    if out.fd~=0
+    if plotFreqDomain
       subplot(2,1,2);
       idx = find(out.f==0):length(out.f);
       xf = out.f(idx);
@@ -2361,7 +2363,7 @@ else
   else
 
     % Plot time-domain data matrix
-    if out.fd~=0
+    if plotFreqDomain
       subplot(1,3,1);
     end
 
@@ -2388,7 +2390,7 @@ else
     end
 
     % Plot spectrum (first and second quadrant only)
-    if out.fd~=0
+    if plotFreqDomain
       subplot(1,3,[2 3]);
 
       if isfield(out,'f1') && isfield(out,'f2')

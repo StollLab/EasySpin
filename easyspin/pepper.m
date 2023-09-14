@@ -95,9 +95,9 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 % Loop over species and isotopologues
 %==================================================================
-FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+Exp.FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
 
-if FrequencySweep
+if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
     (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
 else
@@ -121,80 +121,16 @@ if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectr
   separateComponentSpectra = true;
 end
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
   
-  if ~iscell(Sys), Sys = {Sys}; end
-  
-  nComponents = numel(Sys);
-  logmsg(1,'  number of component spin systems: %d',nComponents);
-  
-   % Determine isotopologues for each component
-   for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
-    nIsotopologues(c) = numel(SysList{c});  %#ok
-    logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  nTotalComponents = sum(nIsotopologues);
-  
-  if nTotalComponents>1 && SweepAutoRange
-    if FrequencySweep
-      str = 'Exp.mwRange or Exp.mwCenterSweep';
-    else
-      str = 'Exp.Range or Exp.CenterSweep';
-    end
-    error('For multiple components, EasySpin cannot automatically determine a sweep range.\n Please specify sweep range manually using %s.',str);
-  end
-  
-  if separateComponentSpectra
-    spec = [];
-  else
-    spec = 0;
-  end
-  
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [xAxis,spec_,out] = pepper(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
-      if separateComponentSpectra
-        spec = [spec; spec_*Sys_.weight];  %#ok
-      else
-        spec = spec + spec_*Sys_.weight;
-      end
-      
-    end
-  end
+  thirdOutput = nargout>=3;
+  [xAxis,spec,out] = compisoloop(@pepper,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
     case 0
-      cla
-      if FrequencySweep
-        if xAxis(end)<1
-          plot(xAxis*1e3,spec);
-          xlabel('frequency (MHz)');
-        else
-          plot(xAxis,spec);
-          xlabel('frequency (GHz)');
-        end
-        title(sprintf('%0.8g mT',Exp.Field));
-      else
-        if xAxis(end)<10000
-          plot(xAxis,spec);
-          xlabel('magnetic field (mT)');
-        else
-          plot(xAxis/1e3,spec);
-          xlabel('magnetic field (T)');
-        end
-        title(sprintf('%0.8g GHz',Exp.mwFreq));
-      end
-      axis tight
-      ylabel('intensity (arb.u.)');
+      cwepr_plot(xAxis,spec,Exp);
     case 1
       varargout = {spec};
     case 2
@@ -1234,7 +1170,7 @@ if FieldSweep && PowderSimulation
 end
 
 
-% Convolution with line shape.
+% Convolution with line shape
 %-----------------------------------------------------------------------
 if ConvolutionBroadening
   logmsg(1,'  harmonic %d: using convolution',Exp.ConvHarmonic);
@@ -1354,7 +1290,7 @@ else
   % frequency sweeps: not available
 end
 
-% Assign output.
+% Assign output
 %-----------------------------------------------------------------------
 switch nargout
   case 1
@@ -1363,10 +1299,12 @@ switch nargout
     varargout = {xAxis,spec};
   case 3
     out.Transitions = Transitions;
+    out.nSites = nSites;
+    out.nOrientations = nOrientations;
     varargout = {xAxis,spec,out};
 end
 
-% Report performance.
+% Report performance
 %-----------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
 logmsg(1,['pepper took ' hmsString]);
@@ -1375,4 +1313,4 @@ logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
 
 clear global EasySpinLogLevel
 
-return
+end

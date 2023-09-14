@@ -93,9 +93,9 @@ if ~singleIso
   logmsg(1,'-- slow motion regime simulation ----------------------------------');
 end
 
-FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
+Exp.FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
 
-if FrequencySweep
+if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
     (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
 else
@@ -110,65 +110,21 @@ if ~isfield(Opt,'separate'), Opt.separate = ''; end
 error(err);
 separateComponentSpectra = separateOutput==2;
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
   
-  if ~iscell(Sys), Sys = {Sys}; end
-  
-  nComponents = numel(Sys);
-  logmsg(1,'  number of component spin systems: %d',nComponents);
-  
-  % Determine isotopologues for each component
-  for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
-    nIsotopologues(c) = numel(SysList{c});  %#ok
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  nTotalComponents = sum(nIsotopologues);
-
-  if nTotalComponents>1 && SweepAutoRange
-    if FrequencySweep
-      str = 'Exp.mwRange or Exp.mwCenterSweep';
-    else
-      str = 'Exp.Range or Exp.CenterSweep';
-    end
-    error('Multiple components: Please specify sweep range manually using %s.',str);
-  end
-  
-  if separateComponentSpectra
-    spec = [];
-  else
-    spec = 0;
-  end
-  
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [xAxis,spec_] = chili(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
-      if separateComponentSpectra
-        spec = [spec; spec_*Sys_.weight];  %#ok
-      else
-        spec = spec + spec_*Sys_.weight;
-      end
-      
-    end
-  end
+  thirdOutput = nargout>=3;
+  [xAxis,spec,out] = compisoloop(@chili,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
     case 0
-      plotresults(xAxis,spec,Exp,FrequencySweep);
+      cwepr_plot(xAxis,spec,Exp);
     case 1
       varargout = {spec};
     case 2
       varargout = {xAxis,spec};
     case 3
-      out = struct;  % not implemented yet
       varargout = {xAxis,spec,out};
   end
   return
@@ -1360,7 +1316,7 @@ if Opt.highField
   spec = spec/2;
 end
 
-if FrequencySweep
+if Exp.FrequencySweep
   spec = spec*1e3;
 end
 
@@ -1555,7 +1511,7 @@ logmsg(1,'-------------------------------------------------------------------');
 
 clear global EasySpinLogLevel
 
-return
+end
 %===============================================================================
 %===============================================================================
 %===============================================================================
@@ -1637,7 +1593,7 @@ Basis.v = [...
   Basis.MpSymm ...
   Basis.pImax];
 
-return
+end
 
 
 %===============================================================================
@@ -1705,33 +1661,4 @@ if isfield(Dyn,'lw')
   end
 end
 
-return
-
-
-%===============================================================================
-function plotresults(xAxis,spec,Exp,FrequencySweep)
-
-cla
-if FrequencySweep
-  if xAxis(end)<1
-    plot(xAxis*1e3,spec);
-    xlabel('frequency (MHz)');
-  else
-    plot(xAxis,spec);
-    xlabel('frequency (GHz)');
-  end
-  title(sprintf('%0.8g mT',Exp.Field));
-else
-  if xAxis(end)<10000
-    plot(xAxis,spec);
-    xlabel('magnetic field (mT)');
-  else
-    plot(xAxis/1e3,spec);
-    xlabel('magnetic field (T)');
-  end
-  title(sprintf('%0.8g GHz',Exp.mwFreq));
 end
-axis tight
-ylabel('intensity (arb.u.)');
-
-return
