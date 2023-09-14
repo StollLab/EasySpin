@@ -187,7 +187,7 @@ ax = gca;
 if Opt.SlopeColor
   for iLevel = 1:nLevels
     col = abs(deriv(E(:,iLevel)));
-    h = patch([Bvec(:); nan],[E(:,iLevel); nan],[col; nan],'EdgeColor','interp');
+    h = patch([Bvec(:)*Bscale; nan],[E(:,iLevel); nan],[col; nan],'EdgeColor','interp');
     h.Tag = 'level';
     h.UserData = iLevel;
   end

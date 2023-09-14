@@ -128,7 +128,7 @@ if Display
   UpdateOpt.Silent = true;
   [UpdateAvailable, NewerVersion] = easyspinversioncheck(VersionInfo,UpdateOpt);
   if UpdateAvailable
-    msg = ['\n   A new EasySpin version (' NewerVersion ') is available online.' newline];
+    msg = [newline '   A new EasySpin version (' NewerVersion ') is available online.' newline];
     msg = [msg 'Type and run "easyspinupdate" to update.'];
     disp(msg)
   end
