@@ -62,7 +62,7 @@ There are the following advanced topics:
 </ul>
 
 <p>
-To get the most out of the EasySpin fitting features, work through this  tutorial and study the associated <a href="examplesmain.html#fitting">examples</a>.
+To get the most out of the EasySpin fitting features, work through this tutorial and study the associated <a href="examplesmain.html#fitting">examples</a>.
 </p>
 
 <!-- ============================================================= -->
@@ -91,7 +91,7 @@ Here is what the various parameters mean:
 <code>@pepper</code> indicates that the function <a class="esf" href="pepper.html">pepper</a> is to be used. Any other EasySpin simulation function can be given here, e.g. <code>@garlic</code>, <code>@chili</code>, <code>@salt'</code>, <code>@saffron</code>, <code>@curry</code>. You can also define your own function as described <a href = "#customfunction">below</a>.
 </li>
 <li>
-<code>spc</code> is the array containing the experimental spectral data. For the fitting, the abscissa values are not needed.
+<code>spc</code> is the array containing the experimental spectral data. For the fitting, the abscissa values are not needed. For global fitting of several data sets, they can be provided as a cell array, combined with a custom fitting function that returns a cell array as output for the calculated data.
 </li>
 <li>
 <code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameter values in this structure are used as starting point in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component, e.g. <code>{Sys1, Sys2}</code>.
@@ -248,7 +248,7 @@ This start an interactive graphical user interface (GUI), shown below. The GUI a
 <img src="img/snap_esfit.png" width="505">
 
 <p>
-This GUI is what you probably want. It is also possible to run <code>esfit</code> programmatically by calling it and requesting outputs:
+This GUI is what you probably want. The GUI currently does not support global fitting of multiple data sets. It is also possible to run <code>esfit</code> programmatically by calling it and requesting outputs:
 </p>
 
 <pre class="matlab">
@@ -260,7 +260,7 @@ This returns the structure <code>fit</code>, which contains the result of the fi
 </p>
 
 <p>
-If you want to pass settings to the simulation function, collect them in an additional stucture <code>Opt</code> and pass them together with <code>Sys0</code> and <code>Exp</code>:
+If you want to pass settings to the simulation function, collect them in an additional structure <code>Opt</code> and pass them together with <code>Sys0</code> and <code>Exp</code>:
 </p>
 
 <pre class="matlab">
@@ -346,7 +346,7 @@ The second important setting is the choice of the target function. <code>esfit</
 </p>
 
 <p>
-Fitting speed can often be signifantly increased, however, if one used not the spectra directly, but their integrals or similar transforms. EasySpin supports several settings here: <code>'fcn'</code> (use data as is), <code>'int'</code> (integral), <code>'dint'</code> (double integral), <code>'diff'</code> (first derivative), <code>'fft'</code> (Fourier transform). The target function setting is simply appended to the <code>'Method'</code> field, after a space:
+Fitting speed can often be significantly increased, however, if one used not the spectra directly, but their integrals or similar transforms. EasySpin supports several settings here: <code>'fcn'</code> (use data as is), <code>'int'</code> (integral), <code>'dint'</code> (double integral), <code>'diff'</code> (first derivative), <code>'fft'</code> (Fourier transform). The target function setting is simply appended to the <code>'Method'</code> field, after a space:
 </p>
 
 <pre class="matlab">
@@ -360,44 +360,15 @@ Usually, <code>'fcn'</code> is an excellent choice, but in the case of many line
 </p>
 
 <p>
-Normally, EasySpin just scales the simulated spectrum in a way that its maximum absolute value coincides with the maximum absolute value of the experimental spectrum. However, if the experimental spectrum is very noisy, this is not ideal, and the best scaling of simulated spectrum is better determined by least-squares fitting. The scaling method can be set in the field <code>FitOpt.Scaling</code>. The most common settings are
-</p>
-
-<pre class="matlab">
-FitOpt.Scaling = 'maxabs';    % scaling so that the maximum absolute values coincide
-FitOpt.Scaling = 'lsq';       % determine scaling via least-squares fitting
-</pre>
-
-<p>
-<span style="font-weight:bold;">Example</span>
+Automatic scaling of the simulated spectrum can be performed by setting the <code>Opt.AutoScale</code> option to <code>'lsq'</code> for least-squares fitting or to <code>'maxabs'</code> to set the maximum absolute equal between simulation and experimental data.
 </p>
 
 <p>
-A simple mock example of this would be
-</p>
-
-<pre class="matlab">
-% simulate a noisy spectrum as input data for fitting
-Sys.g = 2; Sys.lw = 2;
-Exp.mwFreq = 9.5; Exp.Range = [335 345];
-[x,y] = pepper(Sys,Exp);
-y = 3*addnoise(y,2,'n');
-
-% define parameters and settings for fitting the noisy data
-Sys.g = 2.001; Sys.lw = 1.8;
-SysVary.g = 0.002; Vary.lw = 0.4;
-FitOpt.Scaling = 'maxabs';
-
-% start fitting
-esfit(y,@pepper,{Sys,Exp},{SysVary},FitOpt);
-</pre>
-
-<p>
-Change <code>FitOpt.Scaling</code> to see how the two scaling methods differ. Baseline correction can be directly incorporated in the scaling method - see the documentation of <a class="esf" href="esfit.html">esfit</a> for more details.
+A polynomial baseline correction can be be performed in addition to scaling - see the documentation of <a class="esf" href="esfit.html">esfit</a> for more details.
 </p>
 
 <p>
-For some situations, e.g. for magnetization data, it is necessary not to scale at all. In this case, use <code>FitOpt.AutoScale = false</code>.
+For some situations, e.g. for magnetization data, it is necessary not to scale at all. In this case, use <code>FitOpt.AutoScale = 'none'</code>.
 </p>
 
 <!-- ============================================================= -->
@@ -427,7 +398,7 @@ fit = esfit(y,@pepper,{Sys0,Exp},Vary,FitOpt);
 </pre>
 
 <p>
-Of course, you'll probably have to change some of the termination criteria for the two algorithms so that the genetic search narrows down a minimum only coarsely, and the local search can then much more efficiently finalize the fit by refining the parameters.
+Of course, you will probably have to change some of the termination criteria for the two algorithms so that the genetic search narrows down a minimum only coarsely, and the local search can then much more efficiently finalize the fit by refining the parameters.
 </p>
 
 <!-- ============================================================= -->
@@ -558,33 +529,35 @@ SysVary.A = [1 1 3];
 esfit(data,@myfun,{Sys,Exp},{SysVary});
 </pre>
 
+<!-- ============================================================= -->
+<a name="customfunction"><div class="subtitle">Global fit of multiple data sets</div></a>
+
+<p>
+Global fitting of multiple data sets is possible by defining a custom simulation function. The different experimental data sets can be provided as a cell array, the simulation function similarly needs to return a set of simulated data sets in a cell array. If <code>FitOpt.AutoScale</code> is used, each data set is scaled individually. Different weights to use when combining residual vectors of all datasets can be provided in <code>FitOpt.weights</code>.
+</p>
+
 <p>
 <span style="font-weight:bold;">Example: globally fitting multiple spectra</span>
 </p>
 
 <p>
-During the fitting process, <code>esfit</code> compares a vector containing the input data with a vector of simulated data and determines the error. Normally, each of these two vectors contain data from only a single spectrum (or a spectrum containing multiple components). However, by defining a custom function that combines spectra along the same dimension of the vector, i.e. concatenates the spectra, one can fit multiple spectra simultaneously. For example, to fit spectra that were acquired at X- and Q-band microwave frequencies with the same sample:
+To fit spectra that were acquired at X- and Q-band microwave frequencies with the same sample, a custom simulation function can be defined as follows:
 </p>
 
 <pre class="matlab">
 function y = globalfit(Sys,Exp,Opt);
 
 % X-band
-Exp.mwFreq = 9.5;
-y1 = pepper(Sys,Exp,Opt);
+Exp.mwFreq = 9.5; % GHz
+y{1} = pepper(Sys,Exp,Opt);
 
 % Q-band
-Exp.mwFreq = 34;
-y2 = pepper(Sys,Exp,Opt);
-
-scale = Sys.scale;  % custom field for relative scaling
-
-% Concatenate the spectra
-y = [y1(:); scale*y2(:)];
+Exp.mwFreq = 34; % GHz
+y{2} = pepper(Sys,Exp,Opt);
 </pre>
 
 <p>
-Note that each spectrum might have a different number of data points, in which case two more custom fields would be required to specify the number of data points in each (e.g. <code>Exp.nPoints = Exp.nX</code> and  <code>Exp.nPoints = Exp.nQ</code> for the X- and Q-band spectra, respectively).
+Note that each spectrum might have a different number of data points, in which case two more custom fields would be required to specify the number of data points in each (e.g. <code>Exp.nPoints = Exp.nX</code> and  <code>Exp.nPoints = Exp.nQ</code> for the X- and Q-band spectra, respectively). See the example <a href="../examples/fitting/fit_multifreq.m">fit_multifreq</a> for more details.
 </p>
 
 <p>

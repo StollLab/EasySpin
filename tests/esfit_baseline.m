@@ -15,7 +15,7 @@ spcexp0 = spcsim + noisevec;
 p0 = [340 5];
 pv = [50 20];
 
-autoscaleopts = [true false];
+autoscaleopts = {'none' 'lsq' 'maxabs'};
 baselineopts = {[] 0 1 2};
 
 for j = 1:numel(baselineopts)
@@ -39,7 +39,7 @@ for j = 1:numel(baselineopts)
   for i = 1:numel(autoscaleopts)
     
     FitOpt.Verbosity = 0;
-    FitOpt.AutoScale = autoscaleopts(i);
+    FitOpt.AutoScale = autoscaleopts{i};
     result = esfit(spcexp,model,p0,pv,FitOpt);
     
     ok(i,j) = areequal(std(noisevec),result.rmsd,0.2,'rel');

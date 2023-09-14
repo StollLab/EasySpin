@@ -84,7 +84,7 @@ for iTrial = 1:FitOpt.nTrials
   
 end
 
-if FitOpt.Verbosity>1
+if FitOpt.Verbosity>0
   switch stopCode
     case 0, msg = 'Terminated: maximum number of trials reached.';
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);

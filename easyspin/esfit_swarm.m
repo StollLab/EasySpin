@@ -111,7 +111,7 @@ while stopCode==0
   
 end
 
-if FitOpt.Verbosity>1
+if FitOpt.Verbosity>0
   switch stopCode
     case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = 'Terminated: Stopped by user.';

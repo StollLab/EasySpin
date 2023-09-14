@@ -49,10 +49,11 @@ if ~isfield(Opt,'lambda'), Opt.lambda = 1e-3; end
 % termation tolerance for gradient (small gradient stops)
 if ~isfield(Opt,'Gradient'), Opt.Gradient = 1e-4; end
 % termation tolerance for parameter step (small step stops)
-if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-4; end
+if ~isfield(Opt,'TolStep'), Opt.TolStep = 1e-6; end
+if ~isfield(Opt,'ScaleParams'), Opt.ScaleParams = false; end
 
 % delta = relative step for difference approximation
-if ~isfield(Opt,'delta'), Opt.delta = 1e-7; end
+if ~isfield(Opt,'delta'), Opt.delta = 1e-3; end
 delta = Opt.delta;
 
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
@@ -94,7 +95,7 @@ if any(x0<lb) || any(x0>ub)
 end
 
 % Transform to (-1,1) interval
-transformParams = false;
+transformParams = Opt.ScaleParams;
 if transformParams
   transform = @(x) 2*(x-lb)./(ub-lb)-1;
   untransform = @(x) lb + (ub-lb).*(x/2+1/2);
@@ -259,7 +260,7 @@ switch stopCode
   case 4, msg = sprintf('Stopped by user');
 end
 
-if Opt.Verbosity>1
+if Opt.Verbosity>0
   Opt.InfoPrintFunction(sprintf('Terminated: %s\n',msg));
 end
 

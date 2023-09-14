@@ -38,6 +38,8 @@ if nargin<3, Opt = struct; end
 if ~isfield(Opt,'delta'), Opt.delta = 0.1; end
 delta = Opt.delta;
 
+if ~isfield(Opt,'ScaleParams'), Opt.ScaleParams = false; end
+
 % Nelder/Mead algorithm parameters
 if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
 if ~isfield(Opt,'SimplexPars')
@@ -93,7 +95,7 @@ if any(x0<lb) || any(x0>ub)
 end
 
 % Transform to (-1,1) interval
-transformParams = false;
+transformParams = Opt.ScaleParams;
 if transformParams
   transform = @(x) 2*(x-lb)./(ub-lb)-1;
   untransform = @(x) lb + (ub-lb).*(x/2+1/2);
