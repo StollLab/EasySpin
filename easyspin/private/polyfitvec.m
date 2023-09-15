@@ -1,4 +1,4 @@
-function [p,S,mu] = polyfitv(x,y,n)
+function [p,S,mu] = polyfitvec(x,y,n)
 % polyfitv    Fit polynomial to data, vectorized
 %
 %   p = polyfit(x,y,n);

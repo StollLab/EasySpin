@@ -1,9 +1,9 @@
 function ok = test()
 
-% baseline + corrected data = data
+% Assert that baseline + corrected data = data
 
 N = 6345;
-Y = rand(1,N);
-[c,b] = basecorr(Y,2,3);
+data = rand(1,N);
+[corrData,bline] = basecorr(data,3,2);
 
-ok = all(abs(c+b-Y)<=1e-10);
+ok = areequal(corrData+bline,data,1e-10,'abs');

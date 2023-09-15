@@ -4,6 +4,6 @@ function ok = test()
 
 N = 1023;
 Y = 1 + 0.234*linspace(0,1,N);
-[c,~] = basecorr(Y,2,1);
+[c,~] = basecorr(Y,1,2);
 
 ok = all(abs(c)<=1e-10);
