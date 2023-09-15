@@ -40,9 +40,9 @@ pepper(Sys,Exp);
 pepper(Sys,Exp,Opt);
 spec = pepper(...);
 [B,spec] = pepper(...);
-[B,spec,out] = pepper(...);
+[B,spec,info] = pepper(...);
 [nu,spec] = pepper(...);
-[nu,spec,out] = pepper(...);
+[nu,spec,info] = pepper(...);
 </pre>
 
 <p>
@@ -71,7 +71,7 @@ If  no output argument is requested, <code>pepper</code> plots the calculated sp
 For field-swept spectra, <code>B</code> is a vector of magnetic field values over which the spectrum was calculated, in units of mT.
 For frequency-swept spectra, <code>nu</code> is a vector of microwave frequency values over which the spectrum was calculated, in units of GHz.
 <li>
-<code>out</code> is a structure that contains details about the calculations. <code>out.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the spin system in ascending order, so level 1 is that with lowest energy and so on. If <code>Opt.separate = 'transitions'</code>, <code>spec</code> is a matrix and <code>spec(k,:)</code> is the spectrum of the transition <code>out.Transitions(k,:)</code>.
+<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the spin system in ascending order, so level 1 is that with lowest energy and so on. If <code>Opt.separate = 'transitions'</code>, <code>spec</code> is a matrix and <code>spec(k,:)</code> is the spectrum of the transition <code>info.Transitions(k,:)</code>.
 </ul>
 
 <div class="subtitle2">Input: Spin system</div>

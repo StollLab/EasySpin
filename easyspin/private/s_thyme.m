@@ -17,7 +17,7 @@ if ~isempty(Vary)
   nDimensions = numel(Vary.Points);
   DimensionIndices = ones(1,nDimensions);
   nPoints = prod(Vary.Points);
-  IndirectDimensions = num2cell(Vary.Points); % This is used to store the out put in structures that correspond to the dimensions
+  IndirectDimensions = num2cell(Vary.Points); % This is used to store the output in structures that correspond to the dimensions
 else
   nDimensions = 0;
   nPoints = 1;

@@ -40,8 +40,8 @@ chili(Sys,Exp)
 spec = chili(...)
 [B,spec] = chili(...)
 [nu,spec] = chili(...)
-[B,spec,out] = chili(...)
-[nu,spec,out] = chili(...)
+[B,spec,info] = chili(...)
+[nu,spec,info] = chili(...)
 ... = chili(Sys,Exp,Opt)
 </pre>
 
@@ -73,9 +73,9 @@ If no input argument is given, a short help summary is shown (same as when typin
 Up to three output arguments are returned:
 </p>
 <ul>
-<li><code>B</code>: magnetic field axis, in mT
+<li><code>B</code> or <code>nu</code>: magnetic field axis, in mT, or frequency axis, in GHz
 <li><code>spc</code>: calculated spectrum
-<li><code>out</code>: structure containing details about the calculation
+<li><code>info</code>: structure containing details about the calculation
 </ul>
 
 <p>

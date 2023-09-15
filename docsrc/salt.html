@@ -40,7 +40,7 @@ salt(Sys,Exp)
 salt(Sys,Exp,Opt)
 spec = salt(...)
 [rf,spec] = salt(...)
-[rf,spec,out] = salt(...)
+[rf,spec,info] = salt(...)
 </pre>
 
 <!-- ====================================================== -->
@@ -68,7 +68,7 @@ the ENDOR spectrum or spectra.
 If <code>spec</code> is a matrix, the subspectra (various
 transitions or various orientations) are along rows.
 <li>
-<code>out</code> is a structure that contains details about the calculations. <code>out.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending energy order, so level 1 has lowest energy and so on.
+<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending energy order, so level 1 has lowest energy and so on.
 </ul>
 
 <p>

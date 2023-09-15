@@ -11,7 +11,7 @@ Si = struct('Threshold',1e-5,'GridSize',[20 5],'Intensity','on',...
 
 Sy.AFrame = pi/180*[0 -30 0];
 Sy.QFrame = pi/180*[0 45 0];
-[a,b,out] = salt(Sy,Ex,Si);
+[a,b,info] = salt(Sy,Ex,Si);
 
 if opt.Display
   if ~isempty(olddata)

@@ -60,9 +60,9 @@ end
 % Initialize output structure
 if thirdOutput
   info = struct;
+  info.Component = [];
+  info.Isotopologue = [];
   info.Transitions = {};
-  info.Components = [];
-  info.Isotopologues = [];
   idx = 0;
 end
 
@@ -74,9 +74,8 @@ for iComponent = 1:nComponents
     % Simulate single-isotopologue spectrum
     Sys_ = SysList{iComponent}(iIsotopologue);
     Sys_.singleiso = true;
-    [x,spec_,out_] = simfcn(Sys_,Exp,Opt);
-    fdProvided = isfield(out_,'fd');
-    size(spec_)
+    [x,spec_,info_] = simfcn(Sys_,Exp,Opt);
+    fdProvided = isfield(info_,'fd');
 
     % Accumulate or append spectra
     if separateComponentSpectra
@@ -84,33 +83,34 @@ for iComponent = 1:nComponents
       catdim = 1;
       spec = cat(catdim,spec,spec_*Sys_.weight);
       if includeInverseDomain && fdProvided
-        data_invdomain = cat(catdim,data_invdomain,out_.fd*Sys_.weight);
+        data_invdomain = cat(catdim,data_invdomain,info_.fd*Sys_.weight);
       end
     else
       spec = spec + spec_*Sys_.weight;
       if includeInverseDomain && fdProvided
-        data_invdomain = data_invdomain + out_.fd*Sys_.weight;
+        data_invdomain = data_invdomain + info_.fd*Sys_.weight;
       end
     end
 
     if thirdOutput
       idx = idx + 1;
-      info.Components = [info.Components iComponent];
-      info.Isotopologues = [info.Isotopologues iIsotopologue];
-      if isfield(out_,'Transitions')
-        info.Transitions{idx} = out_.Transitions;
-        info.nTransitions(idx) = size(out_.Transitions,1);
+      info.Component = [info.Component iComponent];
+      info.Isotopologue = [info.Isotopologue iIsotopologue];
+      if isfield(info_,'Transitions')
+        info.Transitions{idx} = info_.Transitions;
+        info.nTransitions(idx) = size(info_.Transitions,1);
       end
-      if isfield(out_,'nSites')
-        info.nSites(idx) = out_.nSites;
+      if isfield(info_,'nSites')
+        info.nSites(idx) = info_.nSites;
       end
-      if isfield(out_,'nOrientations')
-        info.nOrientations(idx) = out_.nOrientations;
+      if isfield(info_,'nOrientations')
+        info.nOrientations(idx) = info_.nOrientations;
       end
     end
 
   end
 end
+
 if thirdOutput
   if numel(info.Transitions)==1
     info.Transitions = info.Transitions{1};

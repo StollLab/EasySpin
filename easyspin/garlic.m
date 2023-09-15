@@ -4,7 +4,7 @@
 %   garlic(Sys,Exp,Opt)
 %   spec = ...
 %   [B,spec] = ...
-%   [B,spec,out] = ...
+%   [B,spec,info] = ...
 %
 %   Computes the solution cw EPR spectrum of systems with
 %   an unpaired electron and arbitrary numbers of nuclear spins.
@@ -53,7 +53,7 @@
 %   Output
 %     B                magnetic field axis (mT)
 %     spec             spectrum (arbitrary units)
-%     out              structure with details about the calculation
+%     info             structure with details about the calculation
 %
 %     If no output parameter is specified, the simulated spectrum is plotted.
 
@@ -135,7 +135,7 @@ singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
   
   thirdOutput = nargout>=3;
-  [xAxis,spec,out] = compisoloop(@garlic,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+  [xAxis,spec,info] = compisoloop(@garlic,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
@@ -146,7 +146,7 @@ if ~singleIsotopologue
     case 2
       varargout = {xAxis,spec};
     case 3
-      varargout = {xAxis,spec,out};
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -943,8 +943,8 @@ switch nargout
   case 2
     varargout = {xAxis,spec};
   case 3
-    out.resfields = Positions;
-    varargout = {xAxis,spec,out};
+    info.resfields = Positions;
+    varargout = {xAxis,spec,info};
 end
 if EasySpinLogLevel>=1
   logmsg(1,'=end=garlic=======%s=================\n',char(datetime));

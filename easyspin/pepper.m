@@ -4,7 +4,7 @@
 %   pepper(Sys,Exp,Opt)
 %   spec = pepper(...)
 %   [x,spec] = pepper(...)
-%   [x,spec,out] = pepper(...)
+%   [x,spec,info] = pepper(...)
 %
 %   Calculates field-swept and frequency-swept cw EPR spectra.
 %
@@ -45,8 +45,7 @@
 %   Output:
 %    x        field axis (in mT) or frequency axis (in GHz)
 %    spec     spectrum
-%    out      structure with details of the calculation
-%      Transitions    transitions included in the calculation
+%    info     structure with details of the calculation
 %
 %   If no output argument is given, the simulated spectrum is plotted.
 
@@ -125,7 +124,7 @@ singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
   
   thirdOutput = nargout>=3;
-  [xAxis,spec,out] = compisoloop(@pepper,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+  [xAxis,spec,info] = compisoloop(@pepper,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
@@ -136,7 +135,7 @@ if ~singleIsotopologue
     case 2
       varargout = {xAxis,spec};
     case 3
-      varargout = {xAxis,spec,out};
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -1298,10 +1297,10 @@ switch nargout
   case 2
     varargout = {xAxis,spec};
   case 3
-    out.Transitions = Transitions;
-    out.nSites = nSites;
-    out.nOrientations = nOrientations;
-    varargout = {xAxis,spec,out};
+    info.Transitions = Transitions;
+    info.nSites = nSites;
+    info.nOrientations = nOrientations;
+    varargout = {xAxis,spec,info};
 end
 
 % Report performance

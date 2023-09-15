@@ -40,7 +40,7 @@ saffron(Sys,Exp)
 saffron(Sys,Exp,Opt)
 y = saffron(...)
 [x,y] = saffron(...)
-[x,y,p] = saffron(...)
+[x,y,info] = saffron(...)
 </pre>
 
 <p>
@@ -63,7 +63,7 @@ In case of transient detection, <code>y</code> is a n+1-dimensional array, where
 <code>x</code> is a vector, if <code>y</code> is one dimensional. 
 If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individual axes.
 In case of transient detection, the time axis of the transient is always the last element in <code>x</code>.
-For ESEEM simulations, <code>p</code> contains the frequency abscissa (in MHz) in <code>p.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>p.fd</code>.
+For ESEEM simulations, <code>info</code> contains the frequency abscissa (in MHz) in <code>info.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>info.fd</code>.
 </p>
 
 <p>

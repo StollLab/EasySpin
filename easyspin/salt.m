@@ -4,7 +4,7 @@
 %   salt(Sys,Exp,Opt)
 %   spec = salt(...)
 %   [rf,spec] = salt(...)
-%   [rf,spec,out] = salt(...)
+%   [rf,spec,info] = salt(...)
 %
 %   Input:
 %   - Sys: spin system structure specification
@@ -29,8 +29,7 @@
 %   Output:
 %   - rf:     the radiofrequency axis, in MHz
 %   - spec:   the spectrum or spectra
-%   - out:    structure with details of the calculation
-%       Transitions   level number pairs of the transitions in spec
+%   - info:    structure with details of the calculation
 %
 %   If no output argument is given, the simulated spectrum is plotted.
 
@@ -99,7 +98,7 @@ singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
   
   thirdOutput = nargout>=3;
-  [xAxis,spec,out] = compisoloop(@salt,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+  [xAxis,spec,info] = compisoloop(@salt,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
@@ -110,7 +109,7 @@ if ~singleIsotopologue
     case 2
       varargout = {xAxis,spec};
     case 3
-      varargout = {xAxis,spec,out};
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -438,8 +437,8 @@ if Sys.nNuclei==0
     case 2
       varargout = {xAxis,spec};
     case 3
-      out.Transitions = Transitions;
-      varargout = {xAxis,spec,out};
+      info.Transitions = Transitions;
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -1022,8 +1021,8 @@ switch nargout
   case 2
     varargout = {xAxis,spec};
   case 3
-    out.Transitions = Transitions;
-    varargout = {xAxis,spec,out};
+    info.Transitions = Transitions;
+    varargout = {xAxis,spec,info};
 end
 
 % Report performance.

@@ -37,8 +37,8 @@ for i = 1:numel(J)
   
   Sys.ee = J(i) + [1 1 -2]*d(i); % MHz
       
-  [B,spc,out] = pepper(Sys,Exp,Opt);
-  tr = out.Transitions;
+  [B,spc,info] = pepper(Sys,Exp,Opt);
+  tr = info.Transitions;
   
   subplot(2,3,i)
   hold on; box on;

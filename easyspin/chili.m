@@ -4,8 +4,8 @@
 %   spc = chili(...)
 %   [B,spc] = chili(...)
 %   [nu,spc] = chili(...)
-%   [B,spc,out] = chili(...)
-%   [nu,spc,out] = chili(...)
+%   [B,spc,info] = chili(...)
+%   [nu,spc,info] = chili(...)
 %
 %   Computes a slow-motion cw EPR spectrum.
 %
@@ -58,7 +58,7 @@
 %     B               magnetic field axis vector, in mT (for field sweeps)
 %     nu              frequency axis vector, in GHz (for frequency sweeps)
 %     spc             simulated spectrum, arbitrary units
-%     out             structure containing details about the calculation
+%     info            structure containing details about the calculation
 %
 %     If no output arguments are specified, chili plots the simulated spectrum.
 
@@ -114,7 +114,7 @@ singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
   
   thirdOutput = nargout>=3;
-  [xAxis,spec,out] = compisoloop(@chili,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+  [xAxis,spec,info] = compisoloop(@chili,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
@@ -125,7 +125,7 @@ if ~singleIsotopologue
     case 2
       varargout = {xAxis,spec};
     case 3
-      varargout = {xAxis,spec,out};
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -996,7 +996,7 @@ if generalLiouvillian
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
-      fprintf('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec);
+      fprintf('The norm of the equilibrium population vector in this truncated basis is %0.3g.\n It should be close to 1. The basis might be too small.\n',normPeqVec);
     end
   else
     logmsg(1,'  using provided vector');
@@ -1501,8 +1501,8 @@ switch nargout
   case 2
     varargout = {xAxis,outspec};
   case 3
-    out = struct;  % not implemented yet
-    varargout = {xAxis,outspec,out};
+    info = struct;  % not implemented yet
+    varargout = {xAxis,outspec,info};
 end
 %===============================================================================
 

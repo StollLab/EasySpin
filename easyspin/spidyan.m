@@ -1,7 +1,7 @@
 % spidyan    Simulate spindyanmics during pulse EPR experiments
 %
 %     [t,Signal] = spidyan(Sys,Exp,Opt)
-%     [t,Signal,out] = spidyan(Sys,Exp,Opt)
+%     [t,Signal,info] = spidyan(Sys,Exp,Opt)
 %
 %     Inputs:
 %       Sys   ... spin system with electron spin and ESEEM nuclei
@@ -11,7 +11,7 @@
 %     Outputs:
 %       t                 ... time axis
 %       Signal            ... simulated signals of detected events
-%       out               ... output structure with fields:
+%       info              ... structure with fields:
 %         .FinalState        ... density matrix/matrices at the end of the
 %                                experiment
 %         .StateTrajectories ... cell array with density matrices from each
@@ -321,10 +321,10 @@ switch nargout
   case 2
     varargout = {TimeAxis,Signal};
   case 3
-    out.FinalState = FinalState;
-    out.StateTrajectories = StateTrajectories;
-    out.Events = Events;
-    varargout = {TimeAxis,Signal,out};
+    info.FinalState = FinalState;
+    info.StateTrajectories = StateTrajectories;
+    info.Events = Events;
+    varargout = {TimeAxis,Signal,info};
   otherwise
     error('Incorrect number of output arguments. 1,2, or 3 expected.');
 end

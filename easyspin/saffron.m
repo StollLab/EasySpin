@@ -2,7 +2,7 @@
 %
 %     S = saffron(Sys,Exp,Opt)
 %     [x,S] = saffron(Sys,Exp,Opt)
-%     [x,S,out] = saffron(Sys,Exp,Opt)
+%     [x,S,info] = saffron(Sys,Exp,Opt)
 %
 %  Inputs:
 %     Sys   ... spin system with electron spin and ESEEM nuclei
@@ -10,11 +10,11 @@
 %     Opt   ... simulation options
 %
 %  Outputs:
-%       x       ... axis/axes for S, contains all indirect dimensions and for
-%                   transient detection transient time axis of transient, for
-%                   ENDOR the frequency axis
-%       S       ... simulated signal (ESEEM) or spectrum (ENDOR)
-%       out     ... structure with FFT of ESEEM signal etc.
+%     x       ... axis/axes for S, contains all indirect dimensions and for
+%                 transient detection transient time axis of transient, for
+%                 ENDOR the frequency axis
+%     S       ... simulated signal (ESEEM) or spectrum (ENDOR)
+%     info    ... structure with FFT of ESEEM signal etc.
 
 function varargout = saffron(Sys,Exp,Opt)
 
@@ -76,17 +76,17 @@ if ~singleIsotopologue
 
   thirdOutput = nargout>=3;
   autoRange = false;
-  [x,data,out] = compisoloop(@saffron,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra);
+  [x,data,info] = compisoloop(@saffron,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra);
 
   switch nargout
     case 0
-      saffron_plot(x,out,isENDOR,Sys,Exp,Opt);
+      saffron_plot(x,info,isENDOR,Sys,Exp,Opt);
     case 1
       varargout = {data};
     case 2
       varargout = {x,data};
     case 3
-      varargout = {x,data,out};
+      varargout = {x,data,info};
   end
   return
 end
@@ -1763,10 +1763,10 @@ if fastSimulationMode
 
     % Collect output structure
     if processData
-      if nDimensions==2, out.f1 = f1; out.f2 = f2; else, out.f = f1; end
-      out.fd = fd;
+      if nDimensions==2, info.f1 = f1; info.f2 = f2; else, info.f = f1; end
+      info.fd = fd;
     else
-      out = struct;
+      info = struct;
     end
 
   else
@@ -1776,7 +1776,7 @@ if fastSimulationMode
     if max(abs(fd))<1e-300
       fd = fd*0;
     end
-    out = struct;
+    info = struct;
   end
 
   % Assign output
@@ -1791,17 +1791,17 @@ if fastSimulationMode
 
   % Output
   if isENDOR
-    out.fd = fd;
-    out.td = [];
+    info.fd = fd;
+    info.td = [];
   else
-    out.td = td;
-    out.fd = fd;
+    info.td = td;
+    info.fd = fd;
   end
 
   switch nargout
     case 1, varargout = {y_out};
     case 2, varargout = {x_out,y_out};
-    case 3, varargout = {x_out,y_out,out};
+    case 3, varargout = {x_out,y_out,info};
   end
 
   %=============================================================================
@@ -1994,13 +1994,13 @@ else  % if fastSimulationMode
     x = x{1};
   end
 
-  out = struct;
+  info = struct;
 
   switch nargout
     case 0, s_plotting(timeAxis,Signal,Exp,Opt);
     case 1, varargout = {Signal};
     case 2, varargout = {x,Signal};
-    case 3, varargout = {x,Signal,out};
+    case 3, varargout = {x,Signal,info};
   end
 
 end
@@ -2229,7 +2229,7 @@ end
 %===============================================================================
 % Plotting function
 %===============================================================================
-function saffron_plot(x,out,isENDOR,Sys,Exp,Opt)
+function saffron_plot(x,info,isENDOR,Sys,Exp,Opt)
 
 logmsg(1,'Plotting...');
 
@@ -2245,7 +2245,7 @@ clf
 
 if isENDOR
 
-  plot(x1,out.fd);
+  plot(x1,info.fd);
   xlabel('frequency (MHz)');
   ylabel('intensity (arb.u.)');
   if isfield(Exp,'tau') && (Exp.tau<1)
@@ -2257,7 +2257,7 @@ if isENDOR
 
 else
 
-  plotFreqDomain = isfield(out,'f') && isfield(out,'fd');
+  plotFreqDomain = isfield(info,'f') && isfield(info,'fd');
 
   if ~twoDim
 
@@ -2267,13 +2267,13 @@ else
     end
     predefinedExperiment = isfield(Exp,'ExperimentID') && Exp.ExperimentID>0;
     ExperimentNames = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR'};
-    plotQuadratureSignal = ~predefinedExperiment && ~isreal(out.td);
+    plotQuadratureSignal = ~predefinedExperiment && ~isreal(info.td);
     if plotQuadratureSignal
-      plot(x1,real(out.td),x1,imag(out.td));
+      plot(x1,real(info.td),x1,imag(info.td));
       legend('I','Q');
       legend boxoff
     else
-      plot(x1,real(out.td));
+      plot(x1,real(info.td));
     end
     axis tight
     xl = xlim;
@@ -2297,19 +2297,19 @@ else
     % Frequency domain
     if plotFreqDomain
       subplot(2,1,2);
-      idx = find(out.f==0):length(out.f);
-      xf = out.f(idx);
+      idx = find(info.f==0):length(info.f);
+      xf = info.f(idx);
       if plotQuadratureSignal
-        h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)),xf,imag(out.fd(idx)));
+        h = plot(xf,abs(info.fd(idx)),xf,real(info.fd(idx)),xf,imag(info.fd(idx)));
         legend('abs','in-phase','quadrature');
         legend boxoff
       else
-        h = plot(xf,abs(out.fd(idx)),xf,real(out.fd(idx)));
+        h = plot(xf,abs(info.fd(idx)),xf,real(info.fd(idx)));
         legend('abs','in-phase');
         legend boxoff
       end
       axis tight
-      xlim([0 max(out.f)]);
+      xlim([0 max(info.f)]);
       xlabel('\nu (MHz)');
       ylabel('intensity (arb.u.)');
       title('Spectrum');
@@ -2330,7 +2330,7 @@ else
       subplot(1,3,1);
     end
 
-    surf(x1,x2,real(out.td.'));
+    surf(x1,x2,real(info.td.'));
     view([0 90]);
     grid off
     shading flat
@@ -2356,15 +2356,15 @@ else
     if plotFreqDomain
       subplot(1,3,[2 3]);
 
-      if isfield(out,'f1') && isfield(out,'f2')
-        fx1 = out.f1;
-        fx2 = out.f2;
+      if isfield(info,'f1') && isfield(info,'f2')
+        fx1 = info.f1;
+        fx2 = info.f2;
       else
-        fx1 = fdaxis(Exp.dt(1),size(out.fd,1));
+        fx1 = fdaxis(Exp.dt(1),size(info.fd,1));
         if numel(Exp.dt)<2, Exp.dt(2) = Exp.dt(1); end
-        fx2 = fdaxis(Exp.dt(2),size(out.fd,2));
+        fx2 = fdaxis(Exp.dt(2),size(info.fd,2));
       end
-      fd = abs(out.fd);
+      fd = abs(info.fd);
       if isfield(Opt,'logplot') && Opt.logplot
         fd = log(fd);
         maxfd = max(max(fd));
