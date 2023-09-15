@@ -97,8 +97,8 @@ Next, provide information about the crystal symmetry, the orientation of the spi
 
 <pre class="matlab">
 Exp.CrystalSymmetry = 'Pmmm';       % space group #47
-Exp.MolFrame = [0 0 0]*pi/180;       % molecular frame aligned with crystal/sample frame
-Exp.SampleFrame = [0 0 0]*pi/180;  % crystal/sample frame tilted against lab frame
+Exp.MolFrame = [0 0 0]*pi/180;      % molecular frame aligned with crystal/sample frame
+Exp.SampleFrame = [0 0 0]*pi/180;   % crystal/sample frame aligned with lab frame
 pepper(Sys,Exp);
 </pre>
 
@@ -122,7 +122,7 @@ Although this now results in 4 differently oriented g tensors, they all give the
 
 <pre class="matlab">
 Exp.MolFrame = [20 50 110]*pi/180;       % molecular frame 
-Exp.SampleFrame = [0 60 20]*pi/180;        % sample/crystal frame  
+Exp.SampleFrame = [0 60 20]*pi/180;      % sample/crystal frame  
 pepper(Sys,Exp);
 </pre>
 

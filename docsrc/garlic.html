@@ -62,9 +62,9 @@ The composition of the spin system is specified in <code>Sys</code>,
 and the experimental settings are given in <code>Exp</code>.
 </p>
 
-</p>
+<p>
 <code>garlic</code> then returns the spectrum in <code>spec</code> and, if requested, a field range vector in <code>B</code> (in units of mT).
-If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>. If asked for, the third output <code>info</code> is a structure that contains details about the calculation.
+If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>. If asked for, the third output <code>info</code> is a structure that contains details about the calculation, specifically the list of resonance fields used to construct the spectrum.
 </p>
 
 <!-- ------------------------------------------------------------------ -->

@@ -89,13 +89,18 @@ if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
 
-  thirdOutput = nargout>=3;
+  thirdOutput = nargout>=3 | nargout==0;
   autoRange = false;
   [x,data,info] = compisoloop(@saffron,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra);
 
   switch nargout
     case 0
-      saffron_plot(x,info,isENDOR,Sys,Exp,Opt);
+      if isfield(info,'td')
+        saffron_plot(x,info,isENDOR,Sys,Exp,Opt);
+      else
+        Opt.SinglePointDetection = info.SinglePointDetection;
+        s_plotting(x,data,Exp,Opt);
+      end
     case 1
       varargout = {data};
     case 2
@@ -2010,6 +2015,7 @@ else  % if fastSimulationMode
   end
 
   info = struct;
+  info.SinglePointDetection = Opt.SinglePointDetection;
 
   switch nargout
     case 0, s_plotting(timeAxis,Signal,Exp,Opt);
@@ -2272,7 +2278,7 @@ if isENDOR
 
 else
 
-  plotFreqDomain = isfield(info,'f') && isfield(info,'fd');
+  plotFreqDomain = (isfield(info,'f') || isfield(info,'f1')) && isfield(info,'fd');
 
   if ~twoDim
 

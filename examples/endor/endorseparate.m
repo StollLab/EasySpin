@@ -18,7 +18,7 @@ Experiment.mwFreq = 9.681;
 % return subspectra for all transitions separately
 Options.separate = 'transitions';
 
-[freq,spec_sep] = salt(Spins,Experiment,Options);
+[freq,spec_sep,info] = salt(Spins,Experiment,Options);
 spec_sum = sum(spec_sep,1)/4;
 
 % Display

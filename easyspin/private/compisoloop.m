@@ -106,6 +106,9 @@ for iComponent = 1:nComponents
       if isfield(info_,'nOrientations')
         info.nOrientations(idx) = info_.nOrientations;
       end
+      if isfield(info_,'resfields')
+        info.resfields{idx} = info_.resfields;
+      end
     end
 
   end
@@ -114,6 +117,28 @@ end
 if thirdOutput
   if numel(info.Transitions)==1
     info.Transitions = info.Transitions{1};
+  end
+  if isempty(info.Transitions)
+    info = rmfield(info,'Transitions');
+  end
+  if isfield(info,'resfields') && numel(info.resfields)==1
+    info.resfields = info.resfields{1};
+  end
+  if includeInverseDomain % for saffron
+    if isfield(info_,'SinglePointDetection') % SimulationMode = 'thyme'
+      info.SinglePointDetection = info_.SinglePointDetection;
+    else  % SimulationMode = 'fast'
+      if ~isempty(info_.td)
+        info_.td = spec;
+      end
+      if fdProvided
+        info_.fd = data_invdomain;
+      end
+      info_fields = fieldnames(info_);
+      for i = 1:numel(info_fields)
+        info.(info_fields{i}) = info_.(info_fields{i});
+      end
+    end
   end
 end
 

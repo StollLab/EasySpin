@@ -17,3 +17,4 @@ y = garlic(Sys,Exp,Opt);
 
 ok(3) = isstruct(info);
 ok(4) = all(size(x)==size(y));
+ok(5) = isfield(info,'resfields');
