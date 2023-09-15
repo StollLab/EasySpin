@@ -546,6 +546,14 @@ Optional, allows to switch simulation mode. Can be <code>'fast'</code> for the f
 By default, <code>saffron</code> choses <code>'fast'</code> if possible. 
 </div>
 
+<div class="optionfield"><code>separate</code>
+<code>''</code> (default), <code>'components'</code></code> </div>
+<div class="optiondescr">
+<p>
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum.
+</p>
+</div>
+
 <p>
 The following options can only be used in combination with the <em>fast</em> algorithm:
 </p>

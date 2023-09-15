@@ -60,9 +60,24 @@ EasySpinLogLevel = Opt.Verbosity;
 
 % Process Opt.separate
 if ~isfield(Opt,'separate'), Opt.separate = ''; end
-[separateOutput,err] = parseoption(Opt,'separate',{'','components'});
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
 separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
+if separateTransitionSpectra
+  error('saffron does not support Opt.separate=''transitions''.')
+end
+if separateSiteSpectra
+  error('saffron does not support Opt.separate=''sites''.')
+end
+if separateOrientationSpectra
+  error('saffron does not support Opt.separate=''orientations''.')
+end
 
 %===============================================================================
 % Loop over species and isotopologues
