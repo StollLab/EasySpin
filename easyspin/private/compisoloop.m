@@ -62,6 +62,9 @@ if thirdOutput
   info = struct;
   info.Component = [];
   info.Isotopologue = [];
+  if any(nIsotopologues>1)
+    info.IsotopicComposition = {};
+  end
   info.Transitions = {};
   idx = 0;
 end
@@ -96,6 +99,13 @@ for iComponent = 1:nComponents
       idx = idx + 1;
       info.Component = [info.Component iComponent];
       info.Isotopologue = [info.Isotopologue iIsotopologue];
+      if any(nIsotopologues>1)
+        if isfield(Sys_,'Nucs')
+          info.IsotopicComposition{idx} = Sys_.Nucs;
+        else
+          info.IsotopicComposition{idx} = '';
+        end
+      end
       if isfield(info_,'Transitions')
         info.Transitions{idx} = info_.Transitions;
         info.nTransitions(idx) = size(info_.Transitions,1);
