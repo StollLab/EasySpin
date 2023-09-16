@@ -35,15 +35,15 @@ $ReleaseID$
 <p>Major new features</p>
 <ul>
 <li>Major overhaul of <a class="esf" href="esfit.html">esfit</a>, it now calculates uncertainties of fitted parameters as well as correlations.</li>
-<li>The new function <a class="esf" href="cardamom.html">cardamom</a> simulates dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.
-<li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.
-<li><a class="esf" href="chili.html">chili</a> now supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).
-<li><a class="esf" href="saffron.html">saffron</a> now supports general pulse experiments, including shaped pulses.
-<li><a href="spidyan.html">spidyan</a> fully integrates the package SPIDYAN for more fundamental spin dynamics simulations.
-<li>A set of new functions provides support for basic manipulations with quaternions: <a href="euler2quat.html">euler2quat</a>, <a class="esf" href="rotmat2quat.html">rotmat2quat</a>, <a class="esf" href="quat2euler.html">quat2euler</a>, <a class="esf" href="quat2rotmat.html">quat2rotmat</a>, <a class="esf" href="quatvecmult.html">quatvecmult</a>, <a class="esf" href="quatmult.html">quatmult</a>, <a class="esf" href="quatinv.html">quatinv</a>.
-<li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.
-<li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.
-<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.
+<li>The new function <a class="esf" href="cardamom.html">cardamom</a> simulates dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.</li>
+<li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.</li>
+<li><a class="esf" href="chili.html">chili</a> now supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).</li>
+<li><a class="esf" href="saffron.html">saffron</a> now supports general pulse experiments, including shaped pulses.</li>
+<li><a href="spidyan.html">spidyan</a> fully integrates the package SPIDYAN for more fundamental spin dynamics simulations.</li>
+<li>A set of new functions provides support for basic manipulations with quaternions: <a class="esf" href="euler2quat.html">euler2quat</a>, <a class="esf" href="rotmat2quat.html">rotmat2quat</a>, <a class="esf" href="quat2euler.html">quat2euler</a>, <a class="esf" href="quat2rotmat.html">quat2rotmat</a>, <a class="esf" href="quatvecmult.html">quatvecmult</a>, <a class="esf" href="quatmult.html">quatmult</a>, <a class="esf" href="quatinv.html">quatinv</a>.</li>
+<li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.</li>
+<li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.</li>
+<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.</li>
 <li><a class="esf" href="diptensor.html">diptensor</a> calculates dipolar coupling tensors.</li>
 <li><a class="esf" href="isto.html">isto</a> provides matrix representations of irreducible spherical tensor operators.</li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support tilted Stevens tensor operators via fields such as <code>Sys.B2Frame</code></li>
@@ -51,7 +51,7 @@ $ReleaseID$
 <li>The field <code>Sys.aF</code> in <a class="esf" href="spinsystem.html">spin systems</a> is no longer supported. Use <code>Sys.B4</code> and <code>Sys.B4Frame</code> instead.</li>
 <li>Interconvert between spherical and cartesian tensors with the new functions <a class="esf" href="tensor_cart2sph.html">tensor_cart2sph</a> and <a class="esf" href="tensor_sph2cart.html">tensor_sph2cart</a>.</li>
 <li><a class="esf" href="rotview.html">rotview</a> provides a graphical interface to visualize and explore Euler angles and their associated rotations.</li>
-<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can now directly read in the main ORCA output file.
+<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can now directly read in the main ORCA output file.</li>
 <li>Photoselection is now supported when simulating EPR spectra of photo-generated species. See function <a class="esf" href="photoselect.html">photoselect</a>.</li>
 <li>Significantly extended support for spin-polarized systems (triplets, radical pairs, etc.) in <a class="esf" href="pepper.html">pepper</a> with the new fields <code>Sys.initState</code>.</li>
 <li><a class="esf" href="cgmatrix.html">cgmatrix</a> has additional input and output options.</li>
@@ -59,6 +59,7 @@ $ReleaseID$
 <li><a class="esf" href="pulse.html">pulse</a> has a new amplitude modulation function <code>tanh2</code>, which adds tanh<sup>2</sup> roll-offs to the pulse edges.</li>
 <li>The interactive table of nuclear isotopes <a class="esf" href="isotopes.html">isotopes</a> has a redesigned interface.</li>
 <li>The syntax for obtaining subspectra from simulation function has changed, the field name in the <code>Opt</code> structure has changed from <code>Opt.Output</code> to <code>Opt.separate</code> and has more options: <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code> and <code>'orientations'</code>. There is extended support for returning subspectra across all EasySpin simulation functions.</li>
+<li>For baseline correction with <a class="esf" href="basecorr.html">basecorr</a>, a fitting region can now be provided.</li>
 </ul>
 
 <p>Major bug fixes</p>
