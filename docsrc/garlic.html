@@ -42,8 +42,8 @@ garlic(Sys,Exp,Opt)
 spec = garlic(...)
 [B,spec] = garlic(...)
 [nu,spec] = garlic(...)
-[B,spec,out] = garlic(...)
-[nu,spec,out] = garlic(...)
+[B,spec,info] = garlic(...)
+[nu,spec,info] = garlic(...)
 </pre>
 
 <p>
@@ -62,9 +62,9 @@ The composition of the spin system is specified in <code>Sys</code>,
 and the experimental settings are given in <code>Exp</code>.
 </p>
 
-</p>
+<p>
 <code>garlic</code> then returns the spectrum in <code>spec</code> and, if requested, a field range vector in <code>B</code> (in units of mT).
-If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>. If asked for, the third output <code>out</code> is a structure that contains details about the calculation.
+If neither <code>B</code> nor <code>spec</code> are requested, <code>garlic</code> plots the simulated spectrum. <code>garlic</code> can also simulate frequency-swept spectra, in which case it returns the frequency axis in <code>nu</code>. If asked for, the third output <code>info</code> is a structure that contains details about the calculation, specifically the list of resonance fields used to construct the spectrum.
 </p>
 
 <!-- ------------------------------------------------------------------ -->
@@ -169,14 +169,14 @@ For simulating a multi-component mixture, <code>Sys</code> should be a cell arra
 spectrum.
 </p>
 
-<!- - ------------------------------------------------------------------ -->
+<!-- ------------------------------------------------------------------ -->
 <div class="subtitle2">Input: Experimental parameters</div>
 
 <p>
 The experiment structure <code>Exp</code> contains all parameters relating to the experiment. These settings are identical for all cw EPR simulation functions (<a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="chili.html">chili</a>, <a class="esf" href="garlic.html">garlic</a>). See the page on <a href="cwepr_exp.html">cw EPR experimental parameters</a>.
 </p>
 
-<!- - ------------------------------------------------------------------ -->
+<!-- ------------------------------------------------------------------ -->
 <div class="subtitle2">Input: Simulation options</div>
 
 <p>
@@ -230,6 +230,15 @@ Determines how the spectrum is constructed once all the line positions, intensit
 <code>'template'</code> instructs <code>garlic</code> to build the spectrum by pre-computing a high-resolution version of the broadening line shape function and then use it as a template to interpolatively construct the total spectrum from it. This method is almost as accurate as the <code>'explicit'</code> method, but significantly faster. Still, in situations with very many peaks, it can be quite slow. This won't work for simulations in the fast-motion regime, since there each line has a different linewidth.
 </ul>
 </div>
+
+<div class="optionfield"><code>separate</code>
+<code>''</code> (default), <code>'components'</code></div>
+<div class="optiondescr">
+<p>
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum.
+</p>
+</div>
+
 
 
 <!-- ====================================================== -->

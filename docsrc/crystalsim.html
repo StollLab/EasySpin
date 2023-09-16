@@ -47,7 +47,7 @@ Everything below is applicable to all solid-state EPR simulation functions: <a c
 <div class="subtitle"><a name="frames">Single-crystal EPR spectrum</a></div>
 
 <p>
-Let's start with a simple spin system and a simple cw EPR experiment. The following simulates the powder spectrum
+Let's start with a simple spin system and a simple cw EPR experiment. The following simulates the powder spectrum:
 </p>
 
 <pre class="matlab">
@@ -65,7 +65,7 @@ In order to simulate the EPR spectrum of a crystal containing this spin system, 
 
 <ol>
 <li>
-Use <code>Exp.CrystalSymmetry</code> to give the crystal symmetry. It can be the symbol for the space group (such as <code>'P212121'</code>), the number of the space group (between 1 to 230), or the symbol of the point sub-group of the space group (such <code>'mmm'</code> or <code>'C2h'</code>). If you omit <code>Exp.CrystalSymmetry</code>, it is assumed to be the simplest space group <code>'P1'</code> (number 1), with one center per unit cell.
+Use <code>Exp.CrystalSymmetry</code> to provide the crystal symmetry. It can be the symbol for the space group (such as <code>'P212121'</code>), the number of the space group (between 1 to 230), or the symbol of the point sub-group of the space group (such <code>'mmm'</code> or <code>'C2h'</code>). If you omit <code>Exp.CrystalSymmetry</code>, it is assumed to be the simplest space group <code>'P1'</code> (number 1), with one center per unit cell.
 </li>
 
 <li>
@@ -96,45 +96,59 @@ Next, provide information about the crystal symmetry, the orientation of the spi
 </p>
 
 <pre class="matlab">
-Exp.CrystalSymmetry = 'P21/c';       % space group #14
-Exp.MolFrame = [0 0 0]*pi/180;       % molecular frame aligned with crystal/sample frame
-Exp.SampleFrame = [0 60 20]*pi/180;  % crystal/sample frame tilted against lab frame
+Exp.CrystalSymmetry = 'Pmmm';       % space group #47
+Exp.MolFrame = [0 0 0]*pi/180;      % molecular frame aligned with crystal/sample frame
+Exp.SampleFrame = [0 0 0]*pi/180;   % crystal/sample frame aligned with lab frame
 pepper(Sys,Exp);
 </pre>
 
 <p>
-This simulation shows a single line in the spectrum. However, in space group P21/c, there are four sites per unit cell. Two each are magnetically equivalent, so in general two spectral lines are expected.
-We see only one line here because the g tensor frame is aligned with the crystal frame (both <code>Sys.gFrame</code> and <code>Exp.MolFrame</code> are zero) - all four sites have the same EPR spectrum.
+This simulation shows a single line in the spectrum. However, in space group Pmmm, there are four symmetry-related sites per unit cell, related to each other by 180-degree rotations around the x, y and z crystal axes. We see only one line here because the g tensor is aligned with the crystal frame (both <code>Sys.gFrame</code> and <code>Exp.MolFrame</code> are zero), and all crystal symmetry operations generate g tensors with identical orientations.
 </p>
 
 <p>
-If there's a tilt between the g tensor frame and the crystal frame, the EPR spectrum shows two lines. This can be either through a tilt of the spin center relative to the crystal frame (set in <code>Exp.MolFrame</code>) or through a tilt of the g tensor frame relative to the molecular frame (set in <code>Sys.gFrame</code>). Tilting the molecular frame of the spin center tilts all tensors of the molecule relative to the crystal frame. (Refer to the reference page on <a href="frames.html">frames</a> for details.)
+To tilt the g tensor (and all other tensors of the spin center) relative to the crystal frame, use <code>Exp.MolFrame</code>:
 </p>
 
 <pre class="matlab">
-Exp.MolFrame = [30 0 0]*pi/180;
+Exp.MolFrame = [20 50 110]*pi/180;       % molecular frame 
+Exp.SampleFrame = [0 0 0]*pi/180;        % sample/crystal frame  
 pepper(Sys,Exp);
 </pre>
+
+<p>
+Although this now results in 4 differently oriented g tensors, they all give the same g value, since the crystal is oriented in the spectrometer such that the magnetic field is aligned along the z crystal symmetry axes (<code>Exp.SampleFrame</code> is still <code>[0 0 0]</code>). Next, we tilt the crystal in the spectrometer:
+</p>
+
+<pre class="matlab">
+Exp.MolFrame = [20 50 110]*pi/180;       % molecular frame 
+Exp.SampleFrame = [0 60 20]*pi/180;      % sample/crystal frame  
+pepper(Sys,Exp);
+</pre>
+
+<p>
+Now, the 4 sites are magnetically distinguishable, and 4 lines appear in the EPR spectrum.
+</p>
 
 <!-- ======================================================================================= -->
 
 <div class="subtitle"><a name="frames">Crystal rotations</a></div>
 
 <p>
-To simulate a series of EPR spectra that result from the rotation of a crystal in the spectrometer, use the field <code>Exp.SampleRotation</code>, which implements the sample rotation in a way closely aligned with how the experiment is performed.
+To simulate a series of EPR spectra that result from the rotation of a crystal in the spectrometer, use the field <code>Exp.SampleRotation</code>, which implements the sample rotation in a way that mimics how the experiment is performed.
 </p>
 
 <p>
-Let's start with a spin system and an initial crystal orientation
+Let's start with a spin system and an initial crystal orientation:
 </p>
 
 <pre class="matlab">
 clear
 Sys.g = [2.0 2.1 2.2];
-Sys.lw = 1;                           % mT 
+Sys.lw = 0.2;                         % mT 
 Exp.mwFreq = 9.5;                     % GHz
 Exp.Range = [300 350];                % mT
-Exp.CrystalSymmetry = 130;            % space group number
+Exp.CrystalSymmetry = 130;            % space group number (#130 has 8 sites)
 Exp.MolFrame = [10 60 -34]*pi/180;    % molecular frame tilted within crystal
 Exp.SampleFrame = [0 40 0]*pi/180;    % initial crystal orientation in lab frame
 pepper(Sys,Exp);
@@ -166,16 +180,17 @@ Other letter codes are <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, <c
 </p>
 
 <p>
-To simulate a series of crystal spectra that result from successive small-step rotations around the same rotation axis, use a loop:
+To simulate a series of crystal spectra that result from successive small-step rotations around the same rotation axis, define the rotation axis, create an array of rotation angles, and then use the function <a class="esf" href="rotateframe">rotateframe</a> to generate a list of crystal orientations. Then, simulate the spectra, asking <code>pepper</code> to return the spectra of the individual orientations separately using <code>Opt.separate</code>:
 </p>
 
 <pre class="matlab">
-spc = [];
+Exp.SampleFrame = [0 40 0]*pi/180;    % initial crystal orientation in lab frame
 rho = deg2rad(0:10:180);        % 10 degree increments
-for k = 1:numel(rho)
-  Exp.SampleRotation = {rho(k),'x'};
-  [B,spc(:,k)] = pepper(Sys,Exp);
-end
+Exp.SampleFrame = rotateframe(Exp.SampleFrame,'x',rho);
+
+Opt.separate = 'orientations';
+[B,spc] = pepper(Sys,Exp,Opt);
+
 stackplot(B,spc);
 xlabel('magnetic field (mT)');
 </pre>
@@ -204,22 +219,33 @@ ylabel('\rho (deg)');
 <div class="subtitle"><a name="frames">Site-selective simulations</a></div>
 
 <p>
-In a crystal simulation, EasySpin will first determine the number of magnetically equivalent sites in the crystal from the symmetry given in <code>Exp.CrystalSymmetry</code>. Then, it will simulate the EPR spectra of all sites and sum them up to obtain the total EPR spectrum.
+In a crystal simulation, EasySpin first determines the number of magnetically distinct sites in the crystal unit cell from the symmetry given in <code>Exp.CrystalSymmetry</code>. Then, it simulates the EPR spectra of all sites and sums them up to obtain the total EPR spectrum.
 </p>
 
 <p>
-Occasionally, it is useful to look at the EPR spectra of the single sites separately. You can tell EasySpin to simulate only a specific subset of sites (e.g. just one) by specifying the site index, or list of site indices, in <code>Opt.Sites</code>. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. For example, the following limits a crystal simulation to site 3 of the 4 magnetically distinct sites in a crystal with space group symmetry Pmmm (number 47).
+Occasionally, it is useful to look at the EPR spectra of single sites separately. There are two ways to achieve this. First, you can ask <code>pepper</code> to return individual spectra for all sites.
+</p>
+
+<pre class="matlab">
+Opt.separate = 'sites';   % return individual site spectra
+pepper(Sys,Exp,Opt);
+</pre>
+
+<p>
+Alternatively, you can tell EasySpin to simulate only a specific subset of sites (e.g. just one) by specifying the site index, or list of site indices, in <code>Opt.Sites</code>. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. For example, the following limits a crystal simulation to site 3 of the 4 magnetically distinct sites in a crystal with space group symmetry Pmmm (number 47).
 </p>
 
 <pre class="matlab">
 Exp.CrystalSymmetry = 47;  % space group Pmmm
 Opt.Sites = 3;             % simulate only site 3
+pepper(Sys,Exp,Opt);
 </pre>
 
 <p>
 If <code>Opt.Sites</code> is empty or not given, all sites are included.
-</td></tr>
 </p>
+
+</td></tr>
 
 <hr>
 </section>

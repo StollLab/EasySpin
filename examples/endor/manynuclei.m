@@ -3,7 +3,7 @@
 % When many ENDOR nuclei are present in a spin system,
 % then it is advisable to use perturbation theory, since
 % matrix diagonalization is very slow.
-clear, clf
+clear, clc, clf
 
 % Spin system: several protons with random hyperfine tensorss
 Sys.g = [2 2.1 2.2];
@@ -22,7 +22,7 @@ Exp.ExciteWidth = 200;
 % - use perturbation theory instead of matrix diagonalization
 Opt.Method = 'perturb1';
 % - keep transitions separate
-Opt.Output = 'separate';
+Opt.separate = 'transitions';
 % - high orientational resolution, no interpolation
 Opt.GridSize = [61 0];
 

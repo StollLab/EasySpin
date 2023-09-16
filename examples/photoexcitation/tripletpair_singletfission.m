@@ -40,13 +40,13 @@ Exp.mwFreq = 9.5; % GHz
 Exp.Range = [270 405]; % mT
 Exp.Harmonic = 0;
 
-Opt.Output = 'separate';
+Opt.separate = 'transitions';
 
 % Calculate spectra
-[B,spcT,outT] = pepper(SysT,Exp,Opt);
-[B,spcTT,outTT] = pepper(SysTT,Exp,Opt);
-trT = outT.Transitions;
-trTT= outTT.Transitions;
+[B,spcT,infoT] = pepper(SysT,Exp,Opt);
+[B,spcTT,infoTT] = pepper(SysTT,Exp,Opt);
+trT = infoT.Transitions;
+trTT= infoTT.Transitions;
 
 % Plotting
 subplot(2,2,1)

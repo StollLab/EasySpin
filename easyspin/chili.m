@@ -4,8 +4,8 @@
 %   spc = chili(...)
 %   [B,spc] = chili(...)
 %   [nu,spc] = chili(...)
-%   [B,spc,out] = chili(...)
-%   [nu,spc,out] = chili(...)
+%   [B,spc,info] = chili(...)
+%   [nu,spc,info] = chili(...)
 %
 %   Computes a slow-motion cw EPR spectrum.
 %
@@ -51,13 +51,14 @@
 %      GridSize       grid size for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
-%      Symmetry       symmetry to use for powder simulation
+%      GridSymmetry   grid symmetry to use for powder simulation
+%      separate       subspectra output, '' (default) or 'components'
 %
 %   Output:
 %     B               magnetic field axis vector, in mT (for field sweeps)
 %     nu              frequency axis vector, in GHz (for frequency sweeps)
 %     spc             simulated spectrum, arbitrary units
-%     out             structure containing details about the calculation
+%     info            structure containing details about the calculation
 %
 %     If no output arguments are specified, chili plots the simulated spectrum.
 
@@ -92,9 +93,9 @@ if ~singleIso
   logmsg(1,'-- slow motion regime simulation ----------------------------------');
 end
 
-FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
+Exp.FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
 
-if FrequencySweep
+if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
     (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
 else
@@ -103,73 +104,43 @@ else
 end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
-summedOutput = Output==1;
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
+if separateTransitionSpectra
+  error('chili does not support Opt.separate=''transitions''.')
+end
+if separateSiteSpectra
+  error('chili does not support Opt.separate=''sites''.')
+end
+if separateOrientationSpectra
+  error('chili does not support Opt.separate=''orientations''.')
+end
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
   
-  if ~iscell(Sys), Sys = {Sys}; end
-  
-  nComponents = numel(Sys);
-  logmsg(1,'  number of component spin systems: %d',nComponents);
-  
-  % Determine isotopologues for each component
-  for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
-    nIsotopologues(c) = numel(SysList{c});  %#ok
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  nTotalComponents = sum(nIsotopologues);
-
-  if nTotalComponents>1 && SweepAutoRange
-    if FrequencySweep
-      str = 'Exp.mwRange or Exp.mwCenterSweep';
-    else
-      str = 'Exp.Range or Exp.CenterSweep';
-    end
-    error('Multiple components: Please specify sweep range manually using %s.',str);
-  end
-  
-  separateComponentSpectra = ~summedOutput && nTotalComponents>1;
-  if separateComponentSpectra
-    spec = [];
-    Opt.Output = 'summed'; % summed spectrum for each isotopologue
-  else
-    spec = 0;
-  end
-  
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [xAxis,spec_] = chili(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
-      if separateComponentSpectra
-        spec = [spec; spec_*Sys_.weight];  %#ok
-      else
-        spec = spec + spec_*Sys_.weight;
-      end
-      
-    end
-  end
+  thirdOutput = nargout>=3;
+  [xAxis,spec,info] = compisoloop(@chili,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
     case 0
-      plotresults(xAxis,spec,Exp,FrequencySweep);
+      cwepr_plot(xAxis,spec,Exp);
     case 1
       varargout = {spec};
     case 2
       varargout = {xAxis,spec};
     case 3
-      out = struct;  % not implemented yet
-      varargout = {xAxis,spec,out};
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -546,6 +517,9 @@ if isfield(Opt,'nKnots')
 end
 if isfield(Opt,'Symmetry')
   error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Opt.separate instead.');
 end
 
 % Undocumented
@@ -1037,7 +1011,7 @@ if generalLiouvillian
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
-      fprintf('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec);
+      fprintf('The norm of the equilibrium population vector in this truncated basis is %0.3g.\n It should be close to 1. The basis might be too small.\n',normPeqVec);
     end
   else
     logmsg(1,'  using provided vector');
@@ -1357,7 +1331,7 @@ if Opt.highField
   spec = spec/2;
 end
 
-if FrequencySweep
+if Exp.FrequencySweep
   spec = spec*1e3;
 end
 
@@ -1542,8 +1516,8 @@ switch nargout
   case 2
     varargout = {xAxis,outspec};
   case 3
-    out = struct;  % not implemented yet
-    varargout = {xAxis,outspec,out};
+    info = struct;  % not implemented yet
+    varargout = {xAxis,outspec,info};
 end
 %===============================================================================
 
@@ -1552,7 +1526,7 @@ logmsg(1,'-------------------------------------------------------------------');
 
 clear global EasySpinLogLevel
 
-return
+end
 %===============================================================================
 %===============================================================================
 %===============================================================================
@@ -1634,7 +1608,7 @@ Basis.v = [...
   Basis.MpSymm ...
   Basis.pImax];
 
-return
+end
 
 
 %===============================================================================
@@ -1702,33 +1676,4 @@ if isfield(Dyn,'lw')
   end
 end
 
-return
-
-
-%===============================================================================
-function plotresults(xAxis,spec,Exp,FrequencySweep)
-
-cla
-if FrequencySweep
-  if xAxis(end)<1
-    plot(xAxis*1e3,spec);
-    xlabel('frequency (MHz)');
-  else
-    plot(xAxis,spec);
-    xlabel('frequency (GHz)');
-  end
-  title(sprintf('%0.8g mT',Exp.Field));
-else
-  if xAxis(end)<10000
-    plot(xAxis,spec);
-    xlabel('magnetic field (mT)');
-  else
-    plot(xAxis/1e3,spec);
-    xlabel('magnetic field (T)');
-  end
-  title(sprintf('%0.8g GHz',Exp.mwFreq));
 end
-axis tight
-ylabel('intensity (arb.u.)');
-
-return

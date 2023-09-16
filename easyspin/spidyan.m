@@ -1,7 +1,7 @@
 % spidyan    Simulate spindyanmics during pulse EPR experiments
 %
 %     [t,Signal] = spidyan(Sys,Exp,Opt)
-%     [t,Signal,out] = spidyan(Sys,Exp,Opt)
+%     [t,Signal,info] = spidyan(Sys,Exp,Opt)
 %
 %     Inputs:
 %       Sys   ... spin system with electron spin and ESEEM nuclei
@@ -11,7 +11,7 @@
 %     Outputs:
 %       t                 ... time axis
 %       Signal            ... simulated signals of detected events
-%       out               ... output structure with fields:
+%       info              ... structure with fields:
 %         .FinalState        ... density matrix/matrices at the end of the
 %                                experiment
 %         .StateTrajectories ... cell array with density matrices from each
@@ -321,10 +321,10 @@ switch nargout
   case 2
     varargout = {TimeAxis,Signal};
   case 3
-    out.FinalState = FinalState;
-    out.StateTrajectories = StateTrajectories;
-    out.Events = Events;
-    varargout = {TimeAxis,Signal,out};
+    info.FinalState = FinalState;
+    info.StateTrajectories = StateTrajectories;
+    info.Events = Events;
+    varargout = {TimeAxis,Signal,info};
   otherwise
     error('Incorrect number of output arguments. 1,2, or 3 expected.');
 end
@@ -332,15 +332,8 @@ end
 %===============================================================
 % Report performance
 %===============================================================
-[Hours,Minutes,Seconds] = elapsedtime(StartTime,clock);
-if (Hours>0)
-  msg = sprintf('spidyan took %dh%dm%0.3fs',Hours,Minutes,Seconds);
-elseif (Minutes>0)
-  msg = sprintf('spidyan took %dm%0.3fs',Minutes,Seconds);
-else
-  msg = sprintf('spidyan took %0.3fs',Seconds);
-end
-logmsg(1,msg);
+hmsString = elapsedtime(StartTime,clock);
+logmsg(1,['spidyan took ' hmsString]);
 
 logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
 

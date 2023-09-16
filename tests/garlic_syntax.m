@@ -6,14 +6,15 @@ Opt = struct();
 
 y = garlic(Sys,Exp);
 [x,y] = garlic(Sys,Exp);
-[x,y,out] = garlic(Sys,Exp);
+[x,y,info] = garlic(Sys,Exp);
 
-ok(1) = isstruct(out);
+ok(1) = isstruct(info);
 ok(2) = all(size(x)==size(y));
 
 y = garlic(Sys,Exp,Opt);
 [x,y] = garlic(Sys,Exp,Opt);
-[x,y,out] = garlic(Sys,Exp,Opt);
+[x,y,info] = garlic(Sys,Exp,Opt);
 
-ok(3) = isstruct(out);
+ok(3) = isstruct(info);
 ok(4) = all(size(x)==size(y));
+ok(5) = isfield(info,'resfields');

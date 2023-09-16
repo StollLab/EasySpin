@@ -40,9 +40,9 @@ pepper(Sys,Exp);
 pepper(Sys,Exp,Opt);
 spec = pepper(...);
 [B,spec] = pepper(...);
-[B,spec,out] = pepper(...);
+[B,spec,info] = pepper(...);
 [nu,spec] = pepper(...);
-[nu,spec,out] = pepper(...);
+[nu,spec,info] = pepper(...);
 </pre>
 
 <p>
@@ -71,7 +71,7 @@ If  no output argument is requested, <code>pepper</code> plots the calculated sp
 For field-swept spectra, <code>B</code> is a vector of magnetic field values over which the spectrum was calculated, in units of mT.
 For frequency-swept spectra, <code>nu</code> is a vector of microwave frequency values over which the spectrum was calculated, in units of GHz.
 <li>
-<code>out</code> is a structure that contains details about the calculations. <code>out.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the spin system in ascending order, so level 1 is that with lowest energy and so on. If <code>spec</code> is a matrix, <code>spec(k,:)</code> is the spectrum of the transition <code>opt.Transitions(k,:)</code>.
+<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the spin system in ascending order, so level 1 is that with lowest energy and so on. If <code>Opt.separate = 'transitions'</code>, <code>spec</code> is a matrix and <code>spec(k,:)</code> is the spectrum of the transition <code>info.Transitions(k,:)</code>.
 </ul>
 
 <div class="subtitle2">Input: Spin system</div>
@@ -332,11 +332,11 @@ Opt.HybridCoreNuclei = [];    % all nuclei are treated perturbationally
 </pre>
 </div>
 
-<div class="optionfield"><code>Output</code>
-<code>'summed'</code> (default) or <code>'separate'</code></div>
+<div class="optionfield"><code>separate</code>
+<code>''</code> (default), <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code>, <code>'orientations'</code> </div>
 <div class="optiondescr">
 <p>
-Determines in what form the spectrum is returned. If set to <code>'separate'</code>, <code>spec</code> is a matrix with one spectrum for each transition. The transition spectra are along the rows, so <code>spec(k,:)</code> is the spectrum of transition <code>k</code>. If <code>'summed'</code> is specified, the total spectrum is returned in <code>spec</code> as a vector.
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum. If <code>'transitions'</code> is specified, transitions subspectra are returned (for powders only). If <code>'sites'</code> is specified, site subspectra are returned (for crystals only). If <code>'orientations'</code> is specified, orientation subspectra are returned (for crystals only).
 </p>
 </div>
 

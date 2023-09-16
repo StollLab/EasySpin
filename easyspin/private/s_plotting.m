@@ -1,4 +1,5 @@
 function s_plotting(TimeAxis,Signal,Exp,Opt)
+
 % This function plots the output of saffron and spidyan
 
 if ~isfield(Exp,'DetOperator')
@@ -62,6 +63,9 @@ if isfield(Exp,'nPoints')
     end
   end
 end
+if iscell(TimeAxis)
+  TimeAxis = TimeAxis{end};
+end
 
 TransientLabel = 'time (\mus)';
 
@@ -123,7 +127,7 @@ else
       % plotting a single acquisition point
       for iDetOp = 1 : nDetOps
         figure;
-        plot(TimeAxis,real(Signal(:,iDetOp)));
+        plot(TimeAxis,real(Signal(:,iDetOp)),TimeAxis,imag(Signal(:,iDetOp)));
         xlabel(TransientLabel)
         ylabel(LabelsDetectionOp{iDetOp})
       end
@@ -138,7 +142,7 @@ else
         Signal = reshape(Signal,[nDataPoints SignalSize(end-1) SignalSize(end)]);
       end
       
-      for iDetOp = 1 : nDetOps
+      for iDetOp = 1:nDetOps
         figure;
         if iscell(Signal)
           for iDataPoint = 1 : nDataPoints

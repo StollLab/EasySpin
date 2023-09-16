@@ -23,10 +23,10 @@ Fields = 300:2:350;
 
 for k = 1:numel(Fields)
   Exp.Field = Fields(k);
-  [t,td,out] = saffron(Sys,Exp,Opt);
-  spc(k,:) = real(out.fd);
+  [t,td,info] = saffron(Sys,Exp,Opt);
+  spc(k,:) = real(info.fd);
 end
 
 spc = spc/max(abs(spc(:)));
-stackplot(out.f,spc,0,0.025);
-xlim([0 max(out.f)]);
+stackplot(info.f,spc,0,0.025);
+xlim([0 max(info.f)]);

@@ -1,6 +1,6 @@
 function ok = test(opt)
 
-% Test whether all accumulation method in Opt.AccumMethod yield the
+% Test whether all accumulation methods in Opt.AccumMethod yield the
 % same result.
 
 Sys.Nucs = '1H';
@@ -10,8 +10,6 @@ Exp.mwFreq = 9.5;
 Exp.Range = [337.5 340.5];
 Exp.Harmonic = 0;
 Exp.nPoints = 1e4;
-
-Opt.Output = 'summed';
 
 Opt.AccumMethod = 'explicit';
 [x,y0] = garlic(Sys,Exp,Opt);

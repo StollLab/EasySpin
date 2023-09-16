@@ -11,8 +11,6 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 
-Opt.SimulationMode = 'step wise';
-
 Opt.SimFreq = 31;
 
 [Events1, Vary1] = runprivate('s_sequencer',Exp,Opt);

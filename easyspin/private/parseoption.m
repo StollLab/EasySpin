@@ -18,11 +18,11 @@ if isfield(Stru,Field)
     out = find(found);
   end
 else
-  err = ['Missing field ''', Field, '.'];
+  err = ['Missing field ''', Field, '''.'];
 end
 
 if nargout<2
   error(err);
 end
 
-return
+end

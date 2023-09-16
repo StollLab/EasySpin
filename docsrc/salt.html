@@ -40,7 +40,7 @@ salt(Sys,Exp)
 salt(Sys,Exp,Opt)
 spec = salt(...)
 [rf,spec] = salt(...)
-[rf,spec,out] = salt(...)
+[rf,spec,info] = salt(...)
 </pre>
 
 <!-- ====================================================== -->
@@ -68,7 +68,7 @@ the ENDOR spectrum or spectra.
 If <code>spec</code> is a matrix, the subspectra (various
 transitions or various orientations) are along rows.
 <li>
-<code>out</code> is a structure that contains details about the calculations. <code>out.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending energy order, so level 1 has lowest energy and so on.
+<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending energy order, so level 1 has lowest energy and so on.
 </ul>
 
 <p>
@@ -367,11 +367,11 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 
 </div>
 
-<div class="optionfield"><code>Output</code></div>
+<div class="optionfield"><code>separate</code>
+<code>''</code> (default), <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code>, <code>'orientations'</code> </div>
 <div class="optiondescr">
-<code>'summed'</code> (default) or <code>'separate'</code><br>
 <p>
-Determines in what form the spectrum is returned. For powder spectra, <code>'separate'</code> causes <code>salt</code> to return the spectra for different transitions separately in <code>spec(k,:)</code>. <code>'summed'</code> means that only one total spectrum is returned.
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum. If <code>'transitions'</code> is specified, transitions subspectra are returned (for powders only). If <code>'sites'</code> is specified, site subspectra are returned (for crystals only). If <code>'orientations'</code> is specified, orientation subspectra are returned (for crystals only).
 </p>
 </div>
 

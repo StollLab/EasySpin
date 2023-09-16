@@ -33,7 +33,7 @@ EasySpin 6 is significantly improved over EasySpin 5, but also introduces a seri
 </p>
 
 <p>
-This user guide focused on how EasySpin 5 scripts need to be modified to run with EasySpin 6. It does not introduce the many new features of EasySpin 6 or discuss any of the many bug fixes.
+This user guide focuses on how EasySpin 5 scripts need to be modified to run with EasySpin 6. It does not introduce the many new features of EasySpin 6 or discuss any of the many bug fixes.
 </p>
 
 <p>
@@ -43,6 +43,7 @@ The major changes include the following topics:
 <ul>
 <li><a href = "#crystals">Single-crystal simulations</a></li>
 <li><a href = "#powder">Powder averaging</a></li>
+<li><a href = "#subspectra">Subspectra</a></li>
 <li><a href = "#fitting">Least-squares fitting</a></li>
 <li><a href = "#ham">Hamiltonian functions</a></li>
 <li><a href = "#spinpol">Spin-polarized systems</a></li>
@@ -66,7 +67,7 @@ The field <code>Exp.CrystalOrientation</code> has been replaced by <code>Exp.Sam
 
 <pre class="matlab">
 Exp.CrystalOrientation = [5 10 -48]*pi/180;  % EasySpin 5
-Exp.SampleFrame = [-48 -10 5]*pi/180;        % EasySpin 6
+Exp.SampleFrame = [48 -10 -5]*pi/180;        % EasySpin 6
 </pre>
 
 <p>
@@ -123,6 +124,29 @@ Opt.GridSymmetry = 'Ci';  % EasySpin 6
 </pre>
 
 <!-- ============================================================= -->
+<a name="subspectra"><div class="subtitle">Subspectra</div></a>
+
+<p>
+In EasySpin 6, you can obtain the subspectra of individual transitions or orientations using <code>Opt.separate</code>:
+</p>
+
+<pre class="matlab">
+Opt.separate = '';              % total spectrum
+Opt.separate = 'components';    % subspectra of all sample components
+Opt.separate = 'transitions';   % subspectra of all EPR transitions (powders only)
+Opt.separate = 'sites';         % subspectra for all crystal sites
+Opt.separate = 'orientations';  % subspectra for all crystal orientations
+</pre>
+
+<p>
+The field <code>Opt.Output</code> from EasySpin 5 is no longer supported.
+</p>
+
+<p>
+See the documentation for <a class="ësf" href="pepper.html">pepper</a> and other simulation functions for details.
+</p>
+
+<!-- ============================================================= -->
 <a name="fitting"><div class="subtitle">Least-squares fitting</div></a>
 
 <p>
@@ -166,7 +190,7 @@ esfit(data,model,par0,parlo,parup);
 </pre>
 
 <p>
-The output has changes as well. If called with an output, <a class="esf" href="esfit.html">esfit</a> returns a structure containing information about the fitted parameters, the goodness-of-fit, the uncertainty, the fitted model, etc.
+The output has changed as well. If called with an output, <a class="esf" href="esfit.html">esfit</a> returns a structure containing information about the fitted parameters, the goodness-of-fit, the uncertainty, the fitted model, etc.
 </p>
 
 <pre class="matlab">

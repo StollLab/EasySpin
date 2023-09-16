@@ -1,27 +1,26 @@
 function ok = test()
 
-% This definition of Exp should return the experiment structure for the old saffron
-% syntax, named RefExp
+% For a predefined experiment (Exp.Sequence is a string/char array),
+% s_sequencer should return an empty matrix as 4th output.
 
-% The default call:
-RefExp.Sequence = '2pESEEM';
-RefExp.dt = 0.100;
-RefExp.nPoints = 512;
-RefExp.Field = 324.9;
+refExp.Sequence = '2pESEEM';
+refExp.dt = 0.100;
+refExp.nPoints = 512;
+refExp.Field = 324.9;
 
 Opt.SimulationMode = 'fast';
 
-[~,~,~,ProcessedExp1] = runprivate('s_sequencer',RefExp,Opt);
+[~,~,~,processedExp1] = runprivate('s_sequencer',refExp,Opt);
 
-ProcessedExp1 = rmfield(ProcessedExp1,'Processed');
+ok(1) = isempty(processedExp1);
 
 % Make sure Options/Additional fields are carried over
-RefExp2 = RefExp;
-RefExp2.Range = [0 30];
-RefExp2.mwFreq = 9.4;
-RefExp2.ExciteWidth = 200;
-RefExp2.SampleFrame = [0 -pi/2 0];  
-RefExp2.CrystalSymmetry = 'C2h';
+refExp2 = refExp;
+refExp2.Range = [0 30];
+refExp2.mwFreq = 9.4;
+refExp2.ExciteWidth = 200;
+refExp2.SampleFrame = [0 -pi/2 0];  
+refExp2.CrystalSymmetry = 'C2h';
 
 Opt.GridSize = 20;
 Opt.TimeDomain = 0;
@@ -34,8 +33,7 @@ Opt.lwOffset = 100;
 Opt.logplot = 1;
 Opt.ZeroFillFactor = 4;
 
-[~, ~,ProcessedOpt,ProcessedExp2] = runprivate('s_sequencer',RefExp2,Opt);
+[~,~,processedOpt,processedExp2] = runprivate('s_sequencer',refExp2,Opt);
 
-ProcessedExp2 = rmfield(ProcessedExp2,'Processed');
-
-ok = all([isequal(RefExp,ProcessedExp1) isequal(RefExp2,ProcessedExp2) isequal(Opt,ProcessedOpt)]);
+ok(2) = isempty(processedExp2);
+ok(3) = isequal(Opt,processedOpt);

@@ -4,11 +4,11 @@ function ok = test()
 % perturbation theory
 
 OptMD.Method='matrix';
-OptMD.Output='separate';
+OptMD.separate='transitions';
 OptMD.Threshold=0.3;
 
 OptST.Method='perturb2';
-OptST.Output='separate';
+OptST.separate='transitions';
 OptST.PerturbOrder=2;
 
 MnBsp.g = 1.96;

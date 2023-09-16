@@ -30,7 +30,7 @@ end
 items = union(funcs,funcsigs);
 exclusions = {'Contents', 'runprivate', 'eschecker',...
   'crystalfield', 'eeint', 'hfine', 'nnint', 'nquad', 'sham', ...
-  'soint', 'zeeman', 'zeemanho', 'zfield'};  % items to exclude
+  'soint', 'zeeman', 'zeemanho', 'zfield','eigfields'};  % items to exclude
 items = setdiff(items,exclusions);
 
 % Determine for each item whether function and signature are present

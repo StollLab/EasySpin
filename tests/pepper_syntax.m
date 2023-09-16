@@ -8,13 +8,13 @@ Opt = struct('Verbosity',0);
 
 spc = pepper(Sys,Exp);
 [B,spc] = pepper(Sys,Exp);
-[B,spc,out] = pepper(Sys,Exp);
+[B,spc,info] = pepper(Sys,Exp);
 
-ok(1) = isstruct(out);
+ok(1) = isstruct(info);
 
 spc = pepper(Sys,Exp,Opt);
 [B,spc] = pepper(Sys,Exp,Opt);
-[B,spc,out] = pepper(Sys,Exp,Opt);
+[B,spc,info] = pepper(Sys,Exp,Opt);
 
 spc = pepper(Sys,Exp,[]); % empty options structure
 

@@ -33,7 +33,7 @@ This user guide explains how to simulate a variety of pulse EPR spectra, using E
 </p>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> can simulate data from a broad range of pulse EPR experiments. The most common ones are predefined: 2-pulse ESEEM, 3-pulse ESEEM, 4-pulse ESEEM, HYSCORE and Mims ENDOR. 
+<a class="esf" href="saffron.html">saffron</a> can simulate data from a broad range of pulse EPR experiments. Some common ones are predefined. 
 </p>
 
 <p>
@@ -144,7 +144,7 @@ Exp.Sequence = 'MimsENDOR';
 </pre>
 
 <p>
-In these pre-defined pulse sequence, all microwave pulses are treated as ideal (infinitely short, infinite bandwidth). The RF pulse in Mims ENDOR is assumed to have infinitely narrow excitation bandwidth. Each of these pre-defined pulse experiments needs additional parameter settings. If you run any of the ESEEM/HYSCORE experiments, then you need to provide a time increment interval in <code>Exp.dt</code>. Note that the units are microseconds, not nanoseconds.
+In these pre-defined pulse sequence, all microwave pulses are treated as ideal (infinitely short, infinite bandwidth). The RF pulse in Mims ENDOR is assumed to have infinitely narrow excitation bandwidth. Each of these pre-defined pulse experiments needs additional parameters. If you run any of the ESEEM/HYSCORE experiments, then you need to provide a time increment interval in <code>Exp.dt</code>. Note that the units are microseconds, not nanoseconds.
 </p>
 
 <pre class="matlab">
@@ -152,11 +152,11 @@ Exp.dt = 0.010;    % microseconds; equal to 10 ns
 </pre>
 
 <p>
-For the two-dimensional HYSCORE experiment, <a class="esf" href="saffron.html">saffron</a> will use <code>Exp.dt</code> for both dimensions.
+For the two-dimensional HYSCORE experiment, <a class="esf" href="saffron.html">saffron</a> uses <code>Exp.dt</code> for both dimensions.
 </p>
 
 <p>
-Next, you need to specify whatever additional parameters are required for the pre-defined experiment you selected. For the ESEEM and HYSCORE experiment, these include initial inter-pulse delays:
+Next, you need to specify whatever additional parameters are required for the pre-defined experiment you selected. For the ESEEM and HYSCORE experiments, these include initial inter-pulse delays:
 </p>
 
 <pre class="matlab">
@@ -169,15 +169,16 @@ Exp.T = 0.100;     % initial T value, in µs
 
 % HYSCORE
 Exp.tau = 0.130;   % fixed tau value, in µs
-Exp.t1 = 0.100;    % staring value of t1, in µs
-Exp.t2 = 0.100;    % staring value of t2, in µs
+Exp.t1 = 0.100;    % initial value of t1, in µs
+Exp.t2 = 0.100;    % initial value of t2, in µs
 </pre>
 
 <p>
 For Mims ENDOR, you must specify the frequency range in <code>Exp.Range</code>, in units of MHz:
 </p>
+
 <pre class="matlab">
-Exp.Range = [2 40];     % MHz
+Exp.Range = [2 20];     % RF range, MHz
 </pre>
 
 <p>

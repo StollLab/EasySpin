@@ -9,14 +9,14 @@ Opt = struct;
 
 spc = chili(Sys,Exp);
 [B,spc] = chili(Sys,Exp);
-[B,spc,out] = chili(Sys,Exp);
+[B,spc,info] = chili(Sys,Exp);
 
 ok(1) = all(size(B)==size(spc));
-ok(2) = isstruct(out);
+ok(2) = isstruct(info);
 
 spc = chili(Sys,Exp,Opt);
 [B,spc] = chili(Sys,Exp,Opt);
-[B,spc,out] = chili(Sys,Exp,Opt);
+[B,spc,info] = chili(Sys,Exp,Opt);
 
 ok(3) = all(size(B)==size(spc));
-ok(4) = isstruct(out);
+ok(4) = isstruct(info);
