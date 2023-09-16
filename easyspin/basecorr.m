@@ -1,8 +1,8 @@
 % basecorr  Baseline correction
 %
-%   corrdata = basecorr(data,dim,n)
-%   corrdata = basecorr(data,dim,n,region)
-%   [corrdata,baseline] = basecorr(...)
+%   datacorr = basecorr(data,dim,n)
+%   datacorr = basecorr(data,dim,n,region)
+%   [datacorr,baseline] = basecorr(...)
 %
 %   Performs polynomial baseline correction.
 %
@@ -17,7 +17,7 @@
 %                false for each point to be excluded
 %
 %   Output:
-%     corrdata   baseline-corrected data
+%     datacorr   baseline-corrected data
 %     baseline   fitted baseline
 %
 %   Examples:
@@ -38,58 +38,71 @@ switch nargin
     help(mfilename);
     return
   case 1
-    error('Provide dimension (second input) and polynomial order (third input).');
+    error('Provide dimension dim (second input) and polynomial order n (third input).');
   case 2
-    error('Provide dimension (second input) and polynomial order (third input).');
+    error('Provide polynomial order n (third input).');
   case 3
     region = [];
   case 4
     % ok
   otherwise
-    error('basecorr() needs 3 inputs: basecorr(data,dimension,order)');
+    error('basecorr() needs at least 3 inputs: basecorr(data,dim,n)');
 end
 
 if nargout>2, error('Too many output arguments.'); end
 
+
+% Input argument checks
+%-------------------------------------------------------------------------------
+% Check data (first input)
 if ~isnumeric(data) || isempty(data)
-  error('Data must be a non-empty numerical array!');
+  error('Data must be a non-empty numerical array.');
 end
 if ~ismatrix(data)
-  error('Only 1D or 2D data can be fitted. You rovided %dD data.',ndims(data));
+  error('Only 1D or 2D data can be fitted. You provided a %dD data array.',ndims(data));
 end
 
-if any(n<0) || any(mod(n,1)) || any(n>defaults.maxOrder)
+% Check dimension (second input)
+if ~isempty(dim) && numel(dim)~=1 && dim~=1 && dim~=2
+  error('dim (2nd input) must either 1 (fit columns), 2 (fit rows), or [] (2D fit).');
+end
+twoDimFit = isempty(dim);
+
+% Check polyomial order(s) (third input)
+if ~isnumeric(n) || any(n<0) || any(mod(n,1)) || any(n>defaults.maxOrder)
   error('Order must contain integers between 0 and %d!',defaults.maxOrder);
 end
 
-twoDimFit = isempty(dim);
 if twoDimFit
-  if numel(data)==length(data)
-    error('Multidimensional fitting not possible for 1D data!');
+  if numel(n)~=2
+    error('For 2D fit, the polynomial order n (3rd input) must have 2 elements, one for each dimension.');
   end
-  if ndims(data)>2  %#ok
-    error('Multidimensional fitting for %dD arrays not implemented!',ndims(data));
-  end
-  if numel(n)~=ndims(data)
-    error('n (3rd input) must have %d elements!',ndims(data));
-  end
-  if any(n>=size(data))
-    error('A value in n is too large for the given data!');
+  for iDim = 1:2
+    if n(iDim)>=size(data,iDim)
+      error('The provided polynomial order n=%d must be smaller than the number of points, %d.',n,size(data,iDim));
+    end
   end
 else
-  if numel(n)~=numel(dim)
-    error('dim (2nd input) and n (3rd input) must have the same number of elements.');
+  if numel(n)~=1
+    error('Polynomial order (3rd input) must be a single number.');
   end
-
-  if any(dim>ndims(data)) || any(dim<1)
-    error('Dimension out of range!');
+  if n>=size(data,dim)
+    error('The provided polynomial order n=%d must be smaller than the number of points, %d.',n,size(data,dim));
   end
 end
+
+% Check region (fourth input)
+if ~isempty(region)
+  if ~islogical(region)
+    error('region (4th input) must be a logical array.');
+  end
+end
+
 
 % Baseline fit
 %-------------------------------------------------------------------------------
 if twoDimFit
-  % Two-dimensional baseline
+  % Two-dimensional fit
 
   % Build the design matrix
   [r,c] = size(data);
@@ -110,13 +123,7 @@ if twoDimFit
   baseline = reshape(baseline,r,c);
 
 else
-  % 1D baseline corrections along rows or columns
-
-  nPoints = size(data,dim);
-  if n>=nPoints
-    error('Dimension %d has %d points. Polynomial order %d not possible. Adjust order or dimension.',...
-      dim,nPoints,n);
-  end
+  % One-dimensional fits along columns (dim=1) or rows (dim=2)
 
   % Transpose if needed to move dimension of interest along columns
   if dim==2
@@ -124,7 +131,7 @@ else
   end
 
   % Build the design matrix
-  x = linspace(-1,1,nPoints);  % centered and scaled
+  x = linspace(-1,1,size(data,1));  % centered and scaled
   D = x(:).^(0:n);
 
   % Fit polynomials and evaluate baseline
@@ -146,7 +153,7 @@ end
 
 % Output, plotting
 %-------------------------------------------------------------------------------
-corrdata = data - baseline;
+datacorr = data - baseline;
 switch nargout
   case 0
     if isvector(data)
@@ -164,16 +171,16 @@ switch nargout
       legend('data','fitted baseline');
       xlabel('index')
       subplot(2,1,2)
-      plot(x,corrdata);
+      plot(x,datacorr);
       legend('baseline-corrected data');
       xlabel('index')
     else
 
     end
   case 1
-    varargout = {corrdata};
+    varargout = {datacorr};
   case 2
-    varargout = {corrdata,baseline};
+    varargout = {datacorr,baseline};
 end
 
 end
