@@ -63,7 +63,7 @@ if thirdOutput
   info.Component = [];
   info.Isotopologue = [];
   if any(nIsotopologues>1)
-    info.IsotopicComposition = {};
+    info.Nucs = {};
   end
   info.Transitions = {};
   idx = 0;
@@ -101,9 +101,9 @@ for iComponent = 1:nComponents
       info.Isotopologue = [info.Isotopologue iIsotopologue];
       if any(nIsotopologues>1)
         if isfield(Sys_,'Nucs')
-          info.IsotopicComposition{idx} = Sys_.Nucs;
+          info.Nucs{idx} = Sys_.Nucs;
         else
-          info.IsotopicComposition{idx} = '';
+          info.Nucs{idx} = '';
         end
       end
       if isfield(info_,'Transitions')
