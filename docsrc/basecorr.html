@@ -36,8 +36,9 @@ Polynomial baseline correction.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-CorrSpec = basecorr(Spec,Dim,Ord)
-[CorrSpec,BLine] = basecorr(Spec,Dim,Ord)
+corrdata = basecorr(data,dim,n)
+corrdata = basecorr(data,dim,n,region)
+[coddata,baseline] = basecorr(...)
 </pre>
 
 <!-- =========================================================== -->
@@ -45,27 +46,27 @@ CorrSpec = basecorr(Spec,Dim,Ord)
 
 <p>
 This function computes and applies polynomial baseline corrections to
-the input data array <code>Spec</code>.
-It returns the baseline corrected data in <code>CorrSpec</code> and the
-polynomial baseline itself in <code>BLine</code>. The baseline is
+the input data array <code>data</code>.
+It returns the baseline corrected data in <code>corrdata</code> and the
+polynomial baseline itself in <code>baseline</code>. The baseline is
 computed by least-squares fitting polynomials of required order to the
 data along specified dimensions.
 </p>
 
 <p>
-<code>Dim</code> is a vector giving all dimensions along which
+<code>dim</code> is a vector giving all dimensions along which
 one-dimensional baseline corrections should be applied. E.g. if
-<code>Dim=[2 1]</code>, then a correction is applied along dimension
-2, and after that another one along dimension 1. If <code>Dim</code> is
+<code>dim=[2 1]</code>, then a correction is applied along dimension
+2, and after that another one along dimension 1. If <code>dim</code> is
 set to <code>[]</code>, a single all-dimensional baseline fit is applied
 instead.
 </p>
 
 <p>
-<code>Ord</code> gives the orders for the polynomial fits listed in
-<code>Dim</code>, so it must have the same number of elements as
-<code>Dim</code>. If <code>Dim=[]</code>, <code>Ord</code> must have one
-entry for each dimension of <code>Spec</code>.
+<code>n</code> gives the orders for the polynomials for each dimension listed in
+<code>dim</code>, so it must have the same number of elements as
+<code>dim</code>. If <code>dim=[]</code> (multidimensional fit), <code>n</code> must have one
+entry for each dimension of <code>data</code>.
 </p>
 
 <!-- =========================================================== -->
@@ -81,27 +82,11 @@ cdata = basecorr(data,[],[3 3]);
 </pre>
 
 <p>
-To apply corrections separately along each dimension, use
-</p>
-<pre class="matlab">
-cdata = basecorr(data,[1 2],[3 3]);
-</pre>
-
-<p>
-If you want to apply a linear baseline correction along the
-second dimension only, use
+To fit linear baselines separately along each row, use
 </p>
 
 <pre class="matlab">
 cdata = basecorr(data,2,1);
-</pre>
-
-<p>
-To subtract the mean from the data array, use
-</p>
-
-<pre class="matlab">
-cdata = basecorr(data,[],[0 0]);
 </pre>
 
 <!-- =========================================================== -->
