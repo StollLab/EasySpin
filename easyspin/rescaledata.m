@@ -98,27 +98,27 @@ switch ModeID
     else
       scalefactor = 1/max(abs(y_notnan));
     end
-    ynew = scalefactor*y;
+    yscaled = scalefactor*y;
   case 2  % lsq
     notnan_both = ~isnan(y) & ~isnan(yref);
     % Rescale reference instead of signal (otherwise rmsd(scale) is wrong
     scalefactor = yref(notnan_both)\y(notnan_both);
     scalefactor = 1/scalefactor;
-    ynew = scalefactor*y;
+    yscaled = scalefactor*y;
   case 3  % no scaling
-    ynew = y;
+    yscaled = y;
     scalefactor = 1;
 end
 
 % Make sure signal is not inverted
 if real(scalefactor(1))<0
   scalefactor(1) = abs(scalefactor(1));
-  ynew = y*scalefactor;
+  yscaled = y*scalefactor;
 end
 
 % Preserve row layout
 if isRowVector
-  ynew = ynew.';
+  yscaled = yscaled.';
 end
 
 switch nargout
@@ -130,19 +130,19 @@ switch nargout
     axis tight
     subplot(2,1,2);
     if isempty(yref)
-      plot(x,ynew);
+      plot(x,yscaled);
       legend(sprintf('scaled by %g',scalefactor));
     else
       subplot(2,1,2);
-      plot(x,yref,x,ynew);
+      plot(x,yref,x,yscaled);
       legend('reference',sprintf('scaled by %g',scalefactor));
     end
     axis tight
     varargout = {};
   case 1
-    varargout = {ynew};
+    varargout = {yscaled};
   case 2
-    varargout = {ynew, scalefactor};
+    varargout = {yscaled, scalefactor};
   otherwise
     error('Wrong number of outputs.');
 end
