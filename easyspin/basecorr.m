@@ -68,6 +68,13 @@ if ~isempty(dim) && numel(dim)~=1 && dim~=1 && dim~=2
 end
 twoDimFit = isempty(dim);
 
+% Convert row to column vector for 1D fit
+rowVector = false;
+if ~twoDimFit && dim==1 && size(data,1)==1
+  rowVector = true;
+  data = data(:);
+end
+
 % Check polyomial order(s) (third input)
 if ~isnumeric(n) || any(n<0) || any(mod(n,1)) || any(n>defaults.maxOrder)
   error('Order must contain integers between 0 and %d!',defaults.maxOrder);
@@ -95,6 +102,9 @@ end
 if ~isempty(region)
   if ~islogical(region)
     error('region (4th input) must be a logical array.');
+  end
+  if twoDimFit
+    warning('basecorr: Baseline correction with mask is only available for 1D fits.')
   end
 end
 
@@ -154,6 +164,10 @@ end
 % Output, plotting
 %-------------------------------------------------------------------------------
 datacorr = data - baseline;
+if rowVector
+  datacorr = datacorr.';
+  baseline = baseline.';
+end
 switch nargout
   case 0
     if isvector(data)
@@ -164,15 +178,19 @@ switch nargout
         masked = ~region(:);
         idx = find([masked(1); diff(masked)]);
         idx = [idx; numel(region)+1];
+        ylims = get(gca,'YLim');
         for k = 1:2:numel(idx)-1
-          xregion(idx(k),idx(k+1)-1);
+          patch([idx(k) idx(k) idx(k+1)-1 idx(k+1)-1],ylims([1 2 2 1]),[0.4902 0.4902 0.4902],'EdgeColor','none','FaceAlpha',0.3)
         end
       end
       legend('data','fitted baseline');
+      axis tight
       xlabel('index')
       subplot(2,1,2)
       plot(x,datacorr);
+      yline(0)
       legend('baseline-corrected data');
+      axis tight
       xlabel('index')
     else
 
