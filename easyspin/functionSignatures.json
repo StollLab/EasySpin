@@ -110,7 +110,7 @@
     "description": "Polynomial baseline correction",
     "inputs": [
       {
-        "name": "Spec",
+        "name": "data",
         "kind": "required",
         "type": [
           "numeric"
@@ -118,7 +118,7 @@
         "purpose": "data"
       },
       {
-        "name": "Dim",
+        "name": "dim",
         "kind": "required",
         "type": [
           [
@@ -128,15 +128,23 @@
             "size=0,0"
           ]
         ],
-        "purpose": "dimensions for successive 1D corrections, if empty multi-dimension fitting"
+        "purpose": "dimensions for successive 1D corrections; 2D fitting if empty"
       },
       {
-        "name": "Ord",
+        "name": "n",
         "kind": "required",
         "type": [
           "numeric"
         ],
-        "purpose": "list of polynomial orders, values between 0 and 4"
+        "purpose": "polynomial order(s), values between 0 and 6"
+      },
+      {
+        "name": "region",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "region to fit, logical array"
       }
     ]
   },
