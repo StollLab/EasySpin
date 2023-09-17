@@ -1,37 +1,24 @@
 % rescaledata    Rescaling of one data vector so that it fits a second
 %
-%   ynew = rescaledata(y,mode1)
-%   ynew = rescaledata(y,yref,mode2)
-%   [ynew, scalefactors] = rescaledata(...)
+%   ynew = rescaledata(y,mode)
+%   ynew = rescaledata(y,yref,mode)
+%   [ynew, scale] = rescaledata(...)
 %
-%   Shifts and rescales the data vector y. If given, yref serves
-%   as the reference. The rescaled y is returned in ynew. scalefactors
-%   includes a list of scale factors that were applied to y to give ynew.
-%
-%   y and yref must be 1D vectors.
+% Shifts and rescales the data vector y. If given, yref serves
+% as the reference. mode determines how the scale factor is calculated.
+% Positive scaling is enforced, i.e. the rescaled data is never inverted.
 %
 % Inputs:
-%   mode1:
-%     'minmax'  shifts and scales so that minimum is 0 and maximum is 1
-%     'maxabs'  scales such that maximum magnitude is 1, no shift
+%   y           data to be rescaled, 1D array
+%   yref        reference data (used by 'maxabs' and 'lsq'), 1D array
+%   mode:
+%     'maxabs'  scales y such that maximum magnitude of ynew is 1 (no shift)
+%     'lsq'     least-squares fit of a*y to yref; yref is needed
 %     'none'    no scaling
 %
-%   mode2:
-%     'minmax'  shifts and scales so that minimum and maximum of ynew
-%               fit the minimum and maximum of yref
-%     'maxabs'  scales y so that maximum absolute values of ynew fits yref
-%     'lsq'     least-squares fit of a*y to yref
-%     'lsq0'    least-squares fit of a*y+b to yref
-%     'lsq1'    least-squares fit of a*y+b+c*x to yref
-%     'lsq2'    least-squares fit of a*y+b+c*x+d*x^2 to yref
-%     'lsq3'    least-squares fit of a*y+b+c*x+d*x^2+e*x^3 to yref
-%     'none'    no scaling
-%
-%   Positive scaling is enforced, i.e. the rescaled data is never inverted.
-%
-% Output:
-%   ynew          the new rescaled y vector
-%   scalefactors  the scaling factors and polynomial coefficients
+% Outputs:
+%   ynew      rescaled data vector
+%   scale     scaling factor
 
 function varargout = rescaledata(varargin)
 
@@ -40,7 +27,9 @@ switch nargin
     help(mfilename);
     return
   case 1
-    error('A second input argument (scaling mode) is needed!');
+    y = varargin{1};
+    yref = [];
+    Mode = 'lsq';
   case 2
     y = varargin{1};
     in2 = varargin{2};
@@ -48,7 +37,8 @@ switch nargin
       yref = [];
       Mode = in2;
     else
-      error('A third input argument (scaling mode) is needed!');
+      yref = in2;
+      Mode = 'lsq';
     end
   case 3
     y = varargin{1};
@@ -75,97 +65,55 @@ end
 
 N = numel(y);
 
-if isempty(yref)
-  
-  % Rescaling without reference
-  %----------------------------------------------------
+Modes = {'maxabs','lsq','none'};
+refNeeded = [false true false];
+equalLengthNeeded = [false true false];
 
-  ModeID = find(strcmp(Mode,{'minmax','maxabs','none'}));
-  if isempty(ModeID)
-    error('Unsupported scaling mode ''%s''',Mode);
+ModeID = find(strcmp(Mode,Modes));
+if isempty(ModeID)
+  error('Unknown scaling mode ''%s''',Mode);
+end
+if refNeeded(ModeID)
+  if isempty(yref)
+    error('For ''%s'' mode, a reference is needed.',Mode);
   end
-  
-  y = y(:);
-  
-  switch ModeID
-    case 1 % minmax
-      mi = 0;
-      ma = 1;
-      scalefactor(1) = (ma-mi)/(max(y)-min(y));
-      scalefactor(2) = mi - scalefactor(1)*min(y);
-      D = [y ones(N,1)];
-      ynew = D*scalefactor.';
-    case 2 % maxabs
-      scalefactor = 1/max(abs(y));
-      ynew = y*scalefactor;
-    case 3 % no scaling
-      ynew = y;
-      scalefactor = 1;
+  if equalLengthNeeded(ModeID)
+    equalLength = numel(y)==numel(yref);
+    if equalLengthNeeded(ModeID) && ~equalLength
+      error('For least-squares rescaling, vectors must have same number of elements.');
+    end
   end
-  
-else
-  
-  % Rescaling with reference
-  %----------------------------------------------------
-  ModeID = find(strcmp(Mode,{'maxabs','minmax','lsq','lsq0','lsq1','lsq2','lsq3','none'}));
-  equalLengthNeeded = [0 0 1 1 1 1 1 0];
-  if isempty(ModeID)
-    error('Unknown scaling mode ''%s''',Mode);
-  end
-  equalLength = numel(y)==numel(yref);
-  if equalLengthNeeded(ModeID) && ~equalLength
-    error('For least-squares rescaling, vectors must have same number of elements.');
-  end
-  
-  y = y(:);
-  yref = yref(:);
-  yref_notnan = yref(~isnan(yref));
-  y_notnan = y(~isnan(y));
-  if equalLength
+end
+
+y = y(:);
+yref = yref(:);
+yref_notnan = yref(~isnan(yref));
+y_notnan = y(~isnan(y));
+
+% Rescale data
+switch ModeID
+  case 1  % maxabs
+    if ~isempty(yref)
+      scalefactor = max(abs(yref_notnan))/max(abs(y_notnan));
+    else
+      scalefactor = 1/max(abs(y_notnan));
+    end
+    ynew = scalefactor*y;
+  case 2  % lsq
     notnan_both = ~isnan(y) & ~isnan(yref);
-  end
+    % Rescale reference instead of signal (otherwise rmsd(scale) is wrong
+    scalefactor = yref(notnan_both)\y(notnan_both);
+    scalefactor = 1/scalefactor;
+    ynew = scalefactor*y;
+  case 3  % no scaling
+    ynew = y;
+    scalefactor = 1;
+end
 
-  switch ModeID
-    case 1 % maxabs
-      scalefactor = max(abs(yref_notnan ))/max(abs(y_notnan));
-      ynew = scalefactor*y;
-    case 2 % minmax
-      scalefactor = (max(yref_notnan)-min(yref_notnan))/(max(y_notnan)-min(y_notnan));
-      ynew = scalefactor*(y-min(y_notnan)) + min(yref_notnan);
-    case 3 % lsq
-      D = y;
-      scalefactor = y(notnan_both)\yref(notnan_both);
-      ynew = scalefactor*D;
-    case 4 % lsq0
-      D = [y ones(N,1)];
-      scalefactor = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*scalefactor;
-    case 5 % lsq1
-      x = (1:N).'/N;
-      D = [y ones(N,1) x];
-      scalefactor = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*scalefactor;
-    case 6 % lsq2
-      x = (1:N).'/N;
-      D = [y ones(N,1) x x.^2];
-      scalefactor = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*scalefactor;
-    case 7 % lsq3
-      x = (1:N).'/N;
-      D = [y ones(N,1) x x.^2 x.^3];
-      scalefactor = D(notnan_both,:)\yref(notnan_both);
-      ynew = D*scalefactor;
-    case 8 % no scaling
-      ynew = y;
-      scalefactor = 1;
-  end
-  
-  % Make sure signal is not inverted
-  if real(scalefactor(1))<0 && ModeID>2
-    scalefactor(1) = abs(scalefactor(1));
-    ynew = D*scalefactor;
-  end
-  
+% Make sure signal is not inverted
+if real(scalefactor(1))<0
+  scalefactor(1) = abs(scalefactor(1));
+  ynew = y*scalefactor;
 end
 
 % Preserve row layout
@@ -176,22 +124,27 @@ end
 switch nargout
   case 0
     x = 1:N;
+    subplot(2,1,1);
+    plot(x,y);
+    legend('original');
+    axis tight
+    subplot(2,1,2);
     if isempty(yref)
-      subplot(2,1,1);
-      plot(x,y,'r'); legend('original');
-      subplot(2,1,2);
-      plot(x,ynew,'g'); legend('result');
+      plot(x,ynew);
+      legend(sprintf('scaled by %g',scalefactor));
     else
-      plot(x,y,'r',x,yref,'k',x,ynew,'g');
-      legend('original','reference','result');
+      subplot(2,1,2);
+      plot(x,yref,x,ynew);
+      legend('reference',sprintf('scaled by %g',scalefactor));
     end
+    axis tight
     varargout = {};
   case 1
     varargout = {ynew};
   case 2
-    varargout = {ynew scalefactor};
+    varargout = {ynew, scalefactor};
   otherwise
     error('Wrong number of outputs.');
 end
 
-return
+end
