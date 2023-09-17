@@ -494,9 +494,10 @@ end
 
 % Close GUI window if running in script mode
 %-------------------------------------------------------------------------------
-hFig = findobj('Tag','esfitFigure');
+hFig = findall(0,'Tag','esfitFigure');
 if ~isempty(hFig)
   close(hFig);
+  clear hFig
   esfitdata.UserCommand = 0;
 end
 
@@ -528,7 +529,6 @@ end
 %===============================================================================
 %===============================================================================
 %===============================================================================
-
 
 %===============================================================================
 % Run fitting algorithm
@@ -645,6 +645,7 @@ for i = 1:esfitdata.nDataSets
   fitraw(idx) = fit(idx)/scale(i);
 end
 baseline = esfitdata.best.baseline;
+baselinetype = esfitdata.best.baselinetype;
 
 % Calculate metrics for goodness of fit
 %-------------------------------------------------------------------------------
@@ -819,6 +820,7 @@ else
 end
 
 result.baseline = baseline;
+result.baselinetype = baselinetype;
 result.scale = scale;
 result.mask = esfitdata.Opts.mask;
 
@@ -849,15 +851,13 @@ result.redchisquare = red_chisquare;
 esfitdata.best = result;
 
 end
-
-
+%===============================================================================
 
 %===============================================================================
 function [rmsd,userstop] = rmsd_(x,Opt,iterupdate)
 [~,rmsd,userstop] = residuals_(x,Opt,iterupdate);
 end
 %===============================================================================
-
 
 %===============================================================================
 function [residuals,rmsd,userstop] = residuals_(x,Opt,iterupdate)
@@ -930,6 +930,7 @@ order = Opt.BaseLine;
 baseline = zeros(size(simdata_vec));
 simscale = ones(1,esfitdata.nDataSets);
 for k = 1:esfitdata.nDataSets
+  baselinetype(k) = esfitdata.BaseLineStrings([esfitdata.BaseLineSettings{:}]==order(k));
   if order(k)~=-1
     N = esfitdata.datasize(k);
     x = (1:N).'/N;
@@ -982,6 +983,7 @@ esfitdata.curr.sim = simdata_vec;
 esfitdata.curr.par = par;
 esfitdata.curr.scale = simscale;
 esfitdata.curr.baseline = baseline;
+esfitdata.curr.baselinetype = baselinetype;
 
 % Keep track of errors
 %-------------------------------------------------------------------------------
@@ -997,6 +999,7 @@ if Opt.track
     esfitdata.best.scale = simscale;
     esfitdata.best.par = par;
     esfitdata.best.baseline = baseline;
+    esfitdata.best.baselinetype = baselinetype;
     
     esfitdata.besthistory.rmsd = [esfitdata.besthistory.rmsd rmsd0];
     esfitdata.besthistory.par = [esfitdata.besthistory.par par];
@@ -1012,173 +1015,6 @@ end
 
 end
 %===============================================================================
-
-
-%===============================================================================
-% Function to update GUI at each iteration
-%-------------------------------------------------------------------------------
-function userstop = iterupdateGUI(info)
-global esfitdata
-userstop = esfitdata.UserCommand~=0;
-windowClosing = esfitdata.UserCommand==99;
-if windowClosing, return; end
-
-% Get relevant quantities
-x = esfitdata.Opts.x(:);
-expdata = esfitdata.data(:);
-bestsim = real(esfitdata.best.fit(:));
-currsim = real(esfitdata.curr.sim(:));
-currpar = esfitdata.curr.par;
-bestpar = esfitdata.best.par;
-
-% Update plotted data
-set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
-set(findobj('Tag','bestsimdata'),'XData',x,'YData',bestsim);
-set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
-
-% Readjust vertical range
-mask = esfitdata.Opts.mask;
-plottedData = [expdata(mask); bestsim; currsim];
-maxy = max(plottedData);
-miny = min(plottedData);
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-hAx = findobj('Tag','dataaxes');
-set(hAx,'YLim',YLimits);
-set(hAx,'XLim',[min(x) max(x)]);
-
-% Readjust mask patches
-maskPatches = findobj('Tag','maskPatch');
-for mp = 1:numel(maskPatches)
-  maskPatches(mp).YData = YLimits([1 1 2 2]).';
-end
-
-% Update column with current parameter values
-hParamTable = findobj('Tag','ParameterTable');
-data = get(hParamTable,'data');
-nParams = size(data,1);
-for p = 1:nParams
-  oldvaluestring = striphtml(data{p,7});
-  newvaluestring = sprintf('%0.6f',currpar(p));
-  % Find first character at which the new value differs from the old one
-  idx = 1;
-  while idx<=min(length(oldvaluestring),length(newvaluestring))
-    if oldvaluestring(idx)~=newvaluestring(idx), break; end
-    idx = idx + 1;
-  end
-  active = data{p,2};
-  if active
-    str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#888888">' newvaluestring(idx:end) '</font></html>'];
-  else
-    str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
-  end
-  % Indicate parameters have hit limit
-  if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
-    str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
-  end
-  data{p,7} = str;
-end
-
-% Update column with best values if current parameter set is new best
-if info.newbest
-
-  str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
-  hRmsText = findobj('Tag','RmsText');
-  set(hRmsText,'String',str,'ForegroundColor',[0 0.6 0]);
-
-  for p = 1:nParams
-    oldvaluestring = striphtml(data{p,8});
-    newvaluestring = sprintf('%0.6g',bestpar(p));
-    % Find first character at which the new value differs from the old one
-    idx = 1;
-    while idx<=min(length(oldvaluestring),length(newvaluestring))
-      if oldvaluestring(idx)~=newvaluestring(idx), break; end
-      idx = idx + 1;
-    end
-    active = data{p,2};
-    if active
-      if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
-        str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
-      else
-        str = ['<html><font color="#009900">' newvaluestring(1:idx-1) '</font><font color="#000000">' newvaluestring(idx:end) '</font></html>'];
-      end
-    else
-      str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
-    end
-    data{p,8} = str;
-  end
-end
-
-hParamTable.Data = data;
-
-updatermsdplot;
-
-drawnow
-
-end
-%===============================================================================
-
-%===============================================================================
-function updatermsdplot(~,~)
-global esfitdata
-% Update rmsd plot
-hRmsText = findobj('Tag','RmsText');
-if isfield(esfitdata,'best') && ~isempty(esfitdata.best) && ~isempty(esfitdata.best.rmsd)
-  str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
-else
-  str = sprintf('Current best RMSD: -\n');
-end
-set(hRmsText,'String',str);
-
-hRmsLogPlot = findobj('Tag','RmsLogPlot');
-
-hrmsdline = findobj('Tag','rmsdline');
-if ~isempty(hrmsdline)
-  n = min(100,numel(esfitdata.rmsdhistory));
-  set(hrmsdline,'XData',1:n,'YData',esfitdata.rmsdhistory(end-n+1:end));
-  ax = hrmsdline.Parent;
-  axis(ax,'tight');
-  if hRmsLogPlot.Value
-    set(ax,'yscale','log')
-  else
-    set(ax,'yscale','linear')
-  end
-end
-end
-%===============================================================================
-
-%===============================================================================
-% Print parameters, and their uncertainties if availabe.
-function str = printparlist(par,pinfo,pstd,pci95)
-
-nParams = numel(par);
-
-maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
-indent = '   ';
-
-printUncertainties = nargin>2 && ~isempty(pstd);
-if printUncertainties
-  str = [indent sprintf('    name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
-  for p = 1:nParams
-    pname = pad(pinfo(p).Name,maxNameLength);
-    str_ = sprintf('%2.0i  %s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',p,pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
-    str = [str newline indent str_];
-  end
-else
-  str = [indent sprintf('    name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
-  for p = 1:nParams
-    pname = pad(pinfo(p).Name,maxNameLength);
-    str_ = sprintf('%2.0i  %s  %-#12.7g',pname,par(p));
-    str = [str newline indent str_];
-  end
-end
-
-if nargout==0
-  disp(str);
-end
-
-end
-%===============================================================================
-
 
 %===============================================================================
 function [residuals,residuals0] = calculateResiduals(A,B,mode,idx,includemask)
@@ -1215,178 +1051,35 @@ end
 %===============================================================================
 
 %===============================================================================
-function startButtonCallback(~,~)
+% Print parameters, and their uncertainties if availabe.
+function str = printparlist(par,pinfo,pstd,pci95)
 
-global esfitdata
-esfitdata.UserCommand = 0;
+nParams = numel(par);
 
-% Update GUI
-%-------------------------------------------------------------------------------
-% Hide Start button, show Stop button
-set(findobj('Tag','StopButton'),'Visible','on');
-set(findobj('Tag','StartButton'),'Visible','off');
-set(findobj('Tag','SaveButton'),'Enable','off');
+maxNameLength = max(arrayfun(@(x)length(x.Name),pinfo));
+indent = '   ';
 
-% Disable other buttons
-set(findobj('Tag','EvaluateButton'),'Enable','off');
-set(findobj('Tag','ResetButton'),'Enable','off');
-
-% Disable listboxes
-set(findobj('Tag','AlgorithmMenu'),'Enable','off');
-set(findobj('Tag','TargetMenu'),'Enable','off');
-set(findobj('Tag','BaseLineMenu'),'Enable','off');
-set(findobj('Tag','AutoScaleMenu'),'Enable','off');
-
-% Disable parameter table
-set(findobj('Tag','selectAllButton'),'Enable','off');
-set(findobj('Tag','selectNoneButton'),'Enable','off');
-set(findobj('Tag','selectInvButton'),'Enable','off');
-set(findobj('Tag','selectStartPointButtonCenter'),'Enable','off');
-set(findobj('Tag','selectStartPointButtonRandom'),'Enable','off');
-set(findobj('Tag','selectStartPointButtonSelected'),'Enable','off');
-set(findobj('Tag','selectStartPointButtonBest'),'Enable','off');
-colEditable = get(findobj('Tag','ParameterTable'),'UserData');
-set(findobj('Tag','ParameterTable'),'ColumnEditable',false(size(colEditable)));
-set(findobj('Tag','ParameterTable'),'CellEditCallback',[]);
-
-% Remove displayed best fit and uncertainties
-hTable = findobj('Tag','ParameterTable');
-Data = hTable.Data;
-for p = 1:size(Data,1)
-  Data{p,7} = '-';
-  Data{p,8} = '-';
-  Data{p,9} = '-';
-  Data{p,10} = '-';
-  Data{p,11} = '-';
-end
-set(hTable,'Data',Data);
-
-% Get fixed parameters
-for p = 1:esfitdata.nParameters
-  esfitdata.fixedParams(p) = Data{p,2}==0;
-end
-
-% Disable fitset list controls
-set(findobj('Tag','deleteSetButton'),'Enable','off');
-set(findobj('Tag','exportSetButton'),'Enable','off');
-set(findobj('Tag','sortIDSetButton'),'Enable','off');
-set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
-
-% Disable mask tools
-hAx = findobj('Tag','dataaxes');
-hAx.ButtonDownFcn = [];
-set(findobj('Tag','clearMaskButton'),'Enable','off');
-set(findobj('Tag','MaskCheckbox'),'Enable','off');
-
-% Pull settings from UI
-%-------------------------------------------------------------------------------
-% Determine selected method, target, autoscaling, start point
-esfitdata.Opts.AlgorithmID = get(findobj('Tag','AlgorithmMenu'),'Value');
-esfitdata.Opts.TargetID = get(findobj('Tag','TargetMenu'),'Value');
-esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
-esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
-esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
-
-% Run fitting
-%-------------------------------------------------------------------------------
-useGUI = true;
-try
-  result = runFitting(useGUI);
-catch ME
-  if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
-    return
-  elseif contains(ME.stack(1).name,'esfit')
-    GUIErrorHandler(ME);
-    return;
-  else
-    error(ME.message)
+printUncertainties = nargin>2 && ~isempty(pstd);
+if printUncertainties
+  str = [indent sprintf('    name%svalue        standard deviation        95%% confidence interval',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  for p = 1:nParams
+    pname = pad(pinfo(p).Name,maxNameLength);
+    str_ = sprintf('%2.0i  %s  %-#12.7g %-#12.7g (%6.3f %%)   %-#12.7g - %-#12.7g',p,pname,par(p),pstd(p),pstd(p)/par(p)*100,pci95(p,1),pci95(p,2));
+    str = [str newline indent str_];
   end
-end
-
-% Save result to fit set list
-esfitdata.currFitSet = result;
-esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.mask);
-
-
-% Update GUI with fit results
-%-------------------------------------------------------------------------------
-
-% Remove current values and uncertainties from parameter table
-hTable = findobj('Tag','ParameterTable');
-Data = hTable.Data;
-pi = 1;
-for p = 1:size(Data,1)
-  Data{p,7} = '-'; 
-  if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
-    Data{p,9} = sprintf('%0.6g',esfitdata.best.pstd(pi));
-    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
-    Data{p,11} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
-    pi = pi+1;
-  else
-    Data{p,9} = '-';
-    Data{p,10} = '-';
-    Data{p,11} = '-';
-  end
-end
-set(hTable,'Data',Data);
-
-% Hide current sim plot in data axes
-set(findobj('Tag','currsimdata'),'YData',NaN(1,numel(esfitdata.data)));
-drawnow
-
-% Reactivate UI components
-set(findobj('Tag','SaveButton'),'Enable','on');
-
-if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
-  set(findobj('Tag','deleteSetButton'),'Enable','on');
-  set(findobj('Tag','exportSetButton'),'Enable','on');
-  set(findobj('Tag','sortIDSetButton'),'Enable','on');
-  set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
-end
-
-% Hide stop button, show start button
-set(findobj('Tag','StopButton'),'Visible','off');
-set(findobj('Tag','StartButton'),'Visible','on');
-
-% Re-enable other buttons
-set(findobj('Tag','EvaluateButton'),'Enable','on');
-set(findobj('Tag','ResetButton'),'Enable','on');
-
-% Re-enable listboxes
-set(findobj('Tag','AlgorithmMenu'),'Enable','on');
-set(findobj('Tag','TargetMenu'),'Enable','on');
-set(findobj('Tag','BaseLineMenu'),'Enable','on');
-set(findobj('Tag','AutoScaleMenu'),'Enable','on');
-
-% Re-enable parameter table and its selection controls
-set(findobj('Tag','selectAllButton'),'Enable','on');
-set(findobj('Tag','selectNoneButton'),'Enable','on');
-set(findobj('Tag','selectInvButton'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonCenter'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonRandom'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonSelected'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonBest'),'Enable','on');
-set(findobj('Tag','ParameterTable'),'ColumnEditable',colEditable);
-set(findobj('Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
-
-% Re-enable mask tools
-hAx = findobj('Tag','dataaxes');
-hAx.ButtonDownFcn = @axesButtonDownFcn;
-set(findobj('Tag','clearMaskButton'),'Enable','on');
-set(findobj('Tag','MaskCheckbox'),'Enable','on');
-
-end
-%===============================================================================
-
-
-%===============================================================================
-function iterationprint(str)
-hLogLine = findobj('Tag','logLine');
-if isempty(hLogLine)
-  disp(strtrim(str));
 else
-  set(hLogLine,'String',strtrim(str));
+  str = [indent sprintf('    name%svalue',repmat(' ',1,max(maxNameLength-4,0)+2))];
+  for p = 1:nParams
+    pname = pad(pinfo(p).Name,maxNameLength);
+    str_ = sprintf('%2.0i  %s  %-#12.7g',pname,par(p));
+    str = [str newline indent str_];
+  end
 end
+
+if nargout==0
+  disp(str);
+end
+
 end
 %===============================================================================
 
@@ -1406,569 +1099,6 @@ end
 end
 %===============================================================================
 
-
-%===============================================================================
-function str = striphtml(str)
-html = false;
-for k = 1:numel(str)
-  if ~html
-    rmv(k) = false;
-    if str(k)=='<', html = true; rmv(k) = true; end
-  else
-    rmv(k) = true;
-    if str(k)=='>', html = false; end
-  end
-end
-str(rmv) = [];
-end
-%===============================================================================
-
-
-%===============================================================================
-function evaluateCallback(~,~)
-% Evaluate for selected parameters
-global esfitdata
-
-esfitdata.modelErrorHandler = @(ME) GUIErrorHandler(ME);
-
-p_eval = esfitdata.p_start;
-active = ~esfitdata.fixedParams;
-p_eval = p_eval(active);
-expdata = esfitdata.data(:);
-esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
-esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
-esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
-Opt = esfitdata.Opts;
-Opt.track = false;
-
-try
-  [~,rmsd] = residuals_(p_eval,Opt,1);
-catch ME
-  if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
-    return
-  elseif contains(ME.stack(1).name,'esfit')
-    GUIErrorHandler(ME);
-    return;
-  else
-    error(ME.message)
-  end
-end
-
-% Get current spectrum
-currsim = real(esfitdata.curr.sim(:));
-
-% Update plotted data
-x = esfitdata.Opts.x(:);
-set(findobj('Tag','expdata'),'XData',x,'YData',expdata);
-set(findobj('Tag','currsimdata'),'XData',x,'YData',currsim);
-
-% Readjust vertical range
-mask = esfitdata.Opts.mask;
-if isfield(esfitdata,'best') && isfield(esfitdata.best,'fit')
-  bestsim = real(esfitdata.best.fit(:));
-else
-  bestsim = zeros(size(currsim));
-end
-plottedData = [expdata(mask); bestsim; currsim];
-maxy = max(plottedData);
-miny = min(plottedData);
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-hAx = findobj('Tag','dataaxes');
-set(hAx,'YLim',YLimits);
-set(hAx,'XLim',[min(x) max(x)]);
-drawnow
-
-% Readjust mask patches
-maskPatches = findobj('Tag','maskPatch');
-for mp = 1:numel(maskPatches)
-  maskPatches(mp).YData = YLimits([1 1 2 2]).';
-end
-
-% Update column with best values if current parameter set is new best
-str = sprintf('Current RMSD: %g\n',rmsd);
-hRmsText = findobj('Tag','RmsText');
-set(hRmsText,'String',str,'ForegroundColor',[1 0 0]);
-
-end
-%===============================================================================
-
-%===============================================================================
-function resetCallback(~,~)
-% Reset best fit
-global esfitdata
-
-% Remove messages from log
-set(findobj('Tag','LogBox'),'ListboxTop',1)
-set(findobj('Tag','LogBox'),'String',{''})
-
-% Remove best fit simulation from plot
-hBestSim = findobj('Tag','bestsimdata');
-hBestSim.YData = NaN(size(hBestSim.YData));
-esfitdata.best = [];
-
-% Remove current fit simulation from plot
-hCurrSim = findobj('Tag','currsimdata');
-hCurrSim.YData = NaN(size(hBestSim.YData));
-esfitdata.curr = [];
-
-% Readjust vertical range
-mask = esfitdata.Opts.mask;
-expdata = esfitdata.data(:);
-maxy = max(expdata(mask));
-miny = min(expdata(mask));
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj('Tag','dataaxes'),'YLim',YLimits);
-drawnow
-
-% Reset rmsdhistory plot
-esfitdata.rmsdhistory = [];
-updatermsdplot;
-iterationprint('');
-
-% Reset besthistory 
-esfitdata.besthistory.rmsd = [];
-esfitdata.besthistory.par = [];
-
-% Remove displayed best fit and uncertainties
-hTable = findobj('Tag','ParameterTable');
-Data = hTable.Data;
-for p = 1:size(Data,1)
-  Data{p,7} = '-';
-  Data{p,8} = '-';
-  Data{p,9} = '-';
-  Data{p,10} = '-';
-  Data{p,11} = '-';
-end
-set(hTable,'Data',Data);
-
-end
-%===============================================================================
-
-%===============================================================================
-function deleteSetButtonCallback(~,~)
-global esfitdata
-h = findobj('Tag','SetListBox');
-idx = h.Value;
-str = h.String;
-nSets = numel(str);
-if nSets>0
-    ID = sscanf(str{idx},'%d');
-    for k = numel(esfitdata.FitSets):-1:1
-        if esfitdata.FitSets(k).ID==ID
-            esfitdata.FitSets(k) = [];
-        end
-    end
-    if idx>length(esfitdata.FitSets), idx = length(esfitdata.FitSets); end
-    if idx==0, idx = 1; end
-    h.Value = idx;
-    refreshFitsetList(0);
-end
-
-str = h.String';
-if isempty(str)
-    set(findobj('Tag','deleteSetButton'),'Enable','off');
-    set(findobj('Tag','exportSetButton'),'Enable','off');
-    set(findobj('Tag','sortIDSetButton'),'Enable','off');
-    set(findobj('Tag','sortRMSDSetButton'),'Enable','off');
-end
-end
-%===============================================================================
-
-
-%===============================================================================
-function deleteSetListKeyPressFcn(src,event)
-if strcmp(event.Key,'delete')
-    deleteSetButtonCallback(src,gco,event);
-    displayFitSet
-end
-end
-%===============================================================================
-
-
-%===============================================================================
-function setListCallback(~,~)
-displayFitSet
-end
-%===============================================================================
-
-
-%===============================================================================
-function displayFitSet
-global esfitdata
-h = findobj('Tag','SetListBox');
-idx = h.Value;
-str = h.String;
-if ~isempty(str)
-  ID = sscanf(str{idx},'%d');
-  k = find([esfitdata.FitSets.ID]==ID);
-  if k>0
-    fitset = esfitdata.FitSets(k);
-
-    % Set column with best-fit parameter values
-    hTable = findobj('Tag','ParameterTable');
-    data = get(hTable,'data');
-
-    pi = 1;
-    for p = 1:size(data,1)
-      data{p,8} = sprintf('%0.6g',fitset.pfit_full(p));
-      if ~fitset.fixedParams(p) && ~isempty(fitset.pstd)
-        data{p,9} = sprintf('%0.6g',fitset.pstd(pi));
-        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,1));
-        data{p,11} = sprintf('%0.6g',fitset.ci95(pi,2));
-        pi = pi+1;
-      else
-        data{p,9} = '-';
-        data{p,10} = '-';
-        data{p,11} = '-';
-      end
-    end
-    set(hTable,'Data',data);
-
-    h = findobj('Tag','bestsimdata');
-    set(h,'YData',fitset.fit);
-    drawnow
-  end
-end
-
-end
-%===============================================================================
-
-
-%===============================================================================
-function exportSetButtonCallback(~,~)
-global esfitdata
-h = findobj('Tag','SetListBox');
-v = h.Value;
-s = h.String;
-ID = sscanf(s{v},'%d');
-idx = [esfitdata.FitSets.ID]==ID;
-fitresult = esfitdata.FitSets(idx);
-fitresult = rmfield(fitresult,'Mask');
-varname = sprintf('fit%d',ID);
-assignin('base',varname,fitresult);
-fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
-evalin('base',varname);
-end
-%===============================================================================
-
-
-%===============================================================================
-function selectAllButtonCallback(~,~)
-h = findobj('Tag','ParameterTable');
-d = h.Data;
-d(:,2) = {true};
-set(h,'Data',d);
-end
-%===============================================================================
-
-
-%===============================================================================
-function selectNoneButtonCallback(~,~)
-h = findobj('Tag','ParameterTable');
-d = h.Data;
-d(:,2) = {false};
-set(h,'Data',d);
-end
-%===============================================================================
-
-
-%===============================================================================
-function selectInvButtonCallback(~,~)
-h = findobj('Tag','ParameterTable');
-d = h.Data;
-for k=1:size(d,1)
-    d{k,2} = ~d{k,2};
-end
-set(h,'Data',d);
-end
-%===============================================================================
-
-
-%===============================================================================
-function sortIDSetButtonCallback(~,~)
-global esfitdata
-ID = [esfitdata.FitSets.ID];
-[~,idx] = sort(ID);
-esfitdata.FitSets = esfitdata.FitSets(idx);
-refreshFitsetList(0);
-end
-%===============================================================================
-
-
-%===============================================================================
-function sortRMSDSetButtonCallback(~,~)
-global esfitdata
-rmsd = [esfitdata.FitSets.rmsd];
-[~,idx] = sort(rmsd);
-esfitdata.FitSets = esfitdata.FitSets(idx);
-refreshFitsetList(0);
-end
-%===============================================================================
-
-
-%===============================================================================
-function refreshFitsetList(idx)
-global esfitdata
-h = findobj('Tag','SetListBox');
-nSets = numel(esfitdata.FitSets);
-s = cell(1,nSets);
-for k = 1:nSets
-  if esfitdata.FitSets(k).Mask
-    maskstr = ' (mask)';
-  else
-    maskstr = '';
-  end
-  s{k} = sprintf('%d. rmsd %g%s',...
-    esfitdata.FitSets(k).ID,esfitdata.FitSets(k).rmsd,maskstr);
-end
-set(h,'String',s);
-if idx>0, set(h,'Value',idx); end
-if idx==-1, set(h,'Value',numel(s)); end
-
-if nSets>0, state = 'on'; else, state = 'off'; end
-set(findobj('Tag','deleteSetButton'),'Enable',state);
-set(findobj('Tag','exportSetButton'),'Enable',state);
-set(findobj('Tag','sortIDSetButton'),'Enable',state);
-set(findobj('Tag','sortRMSDSetButton'),'Enable',state);
-
-displayFitSet;
-end
-%===============================================================================
-
-%===============================================================================
-function GUIErrorHandler(ME)
-global esfitdata
-
-% Reactivate UI components
-set(findobj('Tag','SaveButton'),'Enable','off');
-
-if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
-  set(findobj('Tag','deleteSetButton'),'Enable','on');
-  set(findobj('Tag','exportSetButton'),'Enable','on');
-  set(findobj('Tag','sortIDSetButton'),'Enable','on');
-  set(findobj('Tag','sortRMSDSetButton'),'Enable','on');
-end
-
-% Hide stop button, show start button
-set(findobj('Tag','StopButton'),'Visible','off');
-set(findobj('Tag','StartButton'),'Visible','on');
-
-% Re-enable other buttons
-set(findobj('Tag','EvaluateButton'),'Enable','on');
-set(findobj('Tag','ResetButton'),'Enable','on');
-
-% Re-enable listboxes
-set(findobj('Tag','AlgorithmMenu'),'Enable','on');
-set(findobj('Tag','TargetMenu'),'Enable','on');
-set(findobj('Tag','BaseLineMenu'),'Enable','on');
-set(findobj('Tag','AutoScaleMenu'),'Enable','on');
-
-% Re-enable parameter table and its selection controls
-set(findobj('Tag','selectAllButton'),'Enable','on');
-set(findobj('Tag','selectNoneButton'),'Enable','on');
-set(findobj('Tag','selectInvButton'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonCenter'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonRandom'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonSelected'),'Enable','on');
-set(findobj('Tag','selectStartPointButtonBest'),'Enable','on');
-colEditable = get(findobj('Tag','ParameterTable'),'UserData');
-set(findobj('Tag','ParameterTable'),'ColumnEditable',colEditable);
-set(findobj('Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
-
-% Re-enable mask tools
-set(findobj('Tag','clearMaskButton'),'Enable','on');
-set(findobj('Tag','MaskCheckbox'),'Enable','on');
-
-if contains(ME.stack(1).name,'esfit')
-  updateLogBox({ME.stack(1).name,' error:',ME.message})
-else
-  updateLogBox({'Simulation function error:',ME.message})
-end
-
-end
-%===============================================================================
-
-%===============================================================================
-function updateLogBox(msg)
-
-txt = get(findobj('Tag','LogBox'),'String');
-if numel(txt)==1 && isempty(txt{1})
-  txt = {};
-end
-if ~iscell(msg)
-  msg = cellstr(msg);
-end
-% Highlight errors
-iserror = false;
-if any(contains(msg,'Simulation function error','IgnoreCase',true))
-  iserror = true;
-end
-for i = 1:numel(msg)
-  msg{i} = strrep(msg{i},'\n','');
-  msgs = strsplit(msg{i},newline);
-  for j = 1:numel(msgs)
-    if iserror
-      msgs{j} = ['<html><font color="#ff0000">' msgs{j} '</font></html>'];
-    end
-    txt{end+1} = msgs{j};
-  end
-end
-if iserror
-  txt{end+1} = '';
-end
-nval = numel(txt);
-set(findobj('Tag','LogBox'),'String',txt)
-drawnow
-if nval>6
-  txt = get(findobj('Tag','LogBox'),'String');
-  set(findobj('Tag','LogBox'),'ListBoxTop',numel(txt)-5);
-end
-
-end
-%===============================================================================
-
-%===============================================================================
-function copyLog(~,~)
-% Copy log to clipboard
-txt = get(findobj('Tag','LogBox'),'String');
-str = [];
-for i = 1:numel(txt)
-  row = sprintf('%s\t', txt{i});
-  row(end) = newline;
-  str = [str row];
-end
-clipboard('copy',str)
-end
-%===============================================================================
-
-%===============================================================================
-function clearMaskCallback(~,~)
-global esfitdata
-esfitdata.Opts.mask = true(size(esfitdata.Opts.mask));
-showmaskedregions();
-esfitdata.best = [];
-esfitdata.rmsdhistory = [];
-esfitdata.besthistory.rmsd = [];
-esfitdata.besthistory.par = [];
-
-% Readjust vertical range
-mask = esfitdata.Opts.mask;
-expdata = esfitdata.data(:);
-maxy = max(expdata(mask));
-miny = min(expdata(mask));
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj('Tag','dataaxes'),'YLim',YLimits);
-drawnow
-
-end
-%===============================================================================
-
-
-%===============================================================================
-function saveFitsetCallback(~,~)
-global esfitdata
-if ~isempty(esfitdata.currFitSet)
-  esfitdata.lastSetID = esfitdata.lastSetID+1;
-  esfitdata.currFitSet.ID = esfitdata.lastSetID;
-  esfitdata.currFitSet.fixedParams = esfitdata.fixedParams;
-  if ~isfield(esfitdata,'FitSets') || isempty(esfitdata.FitSets)
-    esfitdata.FitSets(1) = esfitdata.currFitSet;
-  else
-    esfitdata.FitSets(end+1) = esfitdata.currFitSet;
-  end
-  refreshFitsetList(-1);
-end
-end
-%===============================================================================
-
-
-%===============================================================================
-function tableCellEditCallback(~,callbackData)
-global esfitdata
-
-% Get handle of table and row/column index of edited table cell
-hTable = callbackData.Source;
-ridx = callbackData.Indices(1);
-cidx = callbackData.Indices(2);
-
-if cidx==1
-  allParamsFixed = all(~cell2mat(hTable.Data(:,1)));
-  if allParamsFixed
-    set(findobj('Tag','StartButton'),'Enable','off');
-  else
-    set(findobj('Tag','StartButton'),'Enable','on');
-  end
-end
-
-% Return unless it's a cell that contains start value or lower or upper bound
-startColumn = 4; % start value column
-lbColumn = 5; % lower-bound column
-ubColumn = 6; % upper-bound column
-startedit = cidx==startColumn;
-lbedit = cidx==lbColumn;
-ubedit = cidx==ubColumn;
-if ~startedit && ~lbedit && ~ubedit, return; end
-
-% Convert user-entered string to number
-newval = str2double(callbackData.EditData);
-
-% Revert if conversion didn't yield a scalar
-if numel(newval)~=1 || isnan(newval) || ~isreal(newval)
-  updateLogBox(sprintf('Input ''%s'' is not a number. Reverting edit.',callbackData.EditData));
-  hTable.Data{ridx,cidx} = callbackData.PreviousData;
-  return
-end
-
-% Get start value, lower and upper bounds of interval from table
-start = str2double(hTable.Data{ridx,startColumn});
-lower = str2double(hTable.Data{ridx,lbColumn});
-upper = str2double(hTable.Data{ridx,ubColumn});
-
-% Set new lower/upper bound
-if startedit
-  start = newval;
-  if start<lower || start>upper
-    updateLogBox('Start value outside range. Reverting edit.');
-    hTable.Data{ridx,cidx} = callbackData.PreviousData;
-    return
-  end
-elseif lbedit
-  lower = newval;
-elseif ubedit
-  upper = newval;
-end
-
-% Revert if lower bound would be above upper bound
-if lower>upper
-  updateLogBox('Lower bound is above upper bound. Reverting edit.');
-  hTable.Data{ridx,cidx} = callbackData.PreviousData;
-  return
-end
-
-% Adapt start value if it falls outside new range
-updatestartvalue = false;
-if lower>start
-  start = lower;
-  updatestartvalue = true;
-end
-if upper<start
-  start = upper;
-  updatestartvalue = true;
-end
-if updatestartvalue
-  updateLogBox('Start value outside new range. Adapting start value.');
-  hTable.Data{ridx,startColumn} = sprintf('%0.6g',start);
-end
-
-% Update start value, lower and upper bounds
-esfitdata.p_start(ridx) = start;
-esfitdata.pvec_lb(ridx) = lower;
-esfitdata.pvec_ub(ridx) = upper;
-
-end
-%===============================================================================
-
-
 %===============================================================================
 function setupGUI(data)
 
@@ -1981,12 +1111,14 @@ Opt = esfitdata.Opts;
 
 % Main figure
 %-------------------------------------------------------------------------------
-hFig = findobj('Tag','esfitFigure');
-if isempty(hFig)
-  hFig = figure('Tag','esfitFigure','WindowStyle','normal');
-else
-  figure(hFig);
-  clf(hFig);
+hFig = findall(0,'Tag','esfitFigure');
+if ~isempty(hFig)
+  delete(hFig);
+  clear hFig
+end
+hFig = uifigure('Tag','esfitFigure');%,'WindowStyle','normal');
+if ~strcmp(hFig.WindowStyle,'normal')
+  hFig.WindowStyle = 'normal';
 end
 set(hFig,'Visible','off')
 
@@ -2000,63 +1132,41 @@ sz = sz*scalefact;
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
 set(hFig,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
-set(hFig,'WindowStyle','normal','DockControls','off','MenuBar','none');
-set(hFig,'Resize','off');
+if ~strcmp(hFig.WindowStyle,'normal')
+  hFig.WindowStyle = 'normal';
+end
+set(hFig,'MenuBar','none');
+% set(hFig,'Resize','off');
 set(hFig,'Name','esfit - Least-Squares Fitting','NumberTitle','off');
 set(hFig,'CloseRequestFcn',...
-    'global esfitdata; esfitdata.UserCommand = 99; drawnow; delete(gcf);');
+    'global esfitdata; esfitdata.UserCommand = 99; drawnow; hFig = findall(0,''Tag'',''esfitFigure'');delete(hFig);');
   
-spacing = 30*scalefact;
+spacing = 20*scalefact;
 hPtop = 180*scalefact;
-wPright = 230*scalefact;
+hElement = 22*scalefact; % height of popup menu, checkboxes, small buttons
 
-Axesw = sz(1)-2*spacing-wPright;
-Axesh = sz(2)-2.5*spacing-hPtop;
+fontsizetbl = 11;
 
-Prightstart = sz(1)-wPright-0.5*spacing; % Start of display to the right of the axes
+% Set up grid layout
+%-------------------------------------------------------------------------------
+lgrid.main = uigridlayout(hFig,[1 2],'Padding',[1 1 1 1]*spacing,'ColumnSpacing',spacing);
+lgrid.main.ColumnWidth = {'7x','3x'};
 
-hElement = 20*scalefact; % height of popup menu, checkboxes, small buttons
-wButton1 = 60*scalefact;
-hButton1 = 1.2*hElement;
-wButton2 = wPright-spacing;
-hButton2 = 80*scalefact;
-hButton2b = 0.5*hButton2;
-dh = 4*scalefact; % spacing (height)
+% left panel: parameter table and plot
+lgrid.left = uigridlayout(lgrid.main,[2 1],'Padding',[0 0 0 0]);
+lgrid.left.RowHeight = {hPtop,'1x'};
+lgrid.params = uigridlayout(lgrid.left,[2 1],'Padding',[0 0 0 0]);
+lgrid.params.RowHeight = {hElement,'1x'};
+lgrid.plot = uigridlayout(lgrid.left,[1 1]);
 
-ParTableh = hPtop-10;
-ParTablex0 = spacing;
-ParTabley0 = sz(2)-hPtop-spacing;
-ParTableColw = 85*scalefact;
-ParTablew = 9*ParTableColw+2*hElement+dh;
-
-Optionsx0 = ParTablex0+ParTablew+0.5*spacing;
-Optionsy0 = ParTabley0+44*scalefact;
-wOptionsLabel = 70*scalefact;
-wOptionsSel = 145*scalefact;
-
-Buttonsx0 = ParTablex0+ParTablew+wOptionsLabel+wOptionsSel+1.5*spacing;
-Buttonsy0 = sz(2)-hPtop-spacing+dh;
-
-Logx0 = Prightstart;
-Logy0 = spacing;
-Logw = wPright;
-Logh = 110*scalefact;
-
-FitSetx0 = Prightstart;
-FitSety0 = Logy0+Logh+2*hElement;
-FitSetw = wPright;
-FitSeth = 125*scalefact;
-
-Rmsdx0 = Prightstart;
-Rmsdy0 = FitSety0+FitSeth+2*hElement;
-Rmsdw = wPright;
-Rmsdh = 125*scalefact;
+% right panel: settings
+lgrid.right = uigridlayout(lgrid.main,[4 1],'Padding',[0 0 0 0],'RowSpacing',0.75*spacing);
+lgrid.right.RowHeight = {hPtop,'1x','1x','1x'};
 
 % Axes
 %-------------------------------------------------------------------------------
 % Data display
-hAx = axes('Parent',hFig,'Tag','dataaxes','Units','pixels',...
-    'Position',[spacing spacing Axesw Axesh],'FontSize',8,'Layer','top');
+hAx = uiaxes('Parent',lgrid.plot,'Tag','dataaxes','Units','pixels','Layer','top');
 
 NaNdata = NaN(1,numel(data));
 mask = esfitdata.Opts.mask;
@@ -2068,23 +1178,66 @@ minx = min(esfitdata.Opts.x);
 maxx = max(esfitdata.Opts.x);
 x = esfitdata.Opts.x;
 
-h(1) = line(x,NaNdata,'Color','k','Marker','.','LineStyle','none');
-h(2) = line(x,NaNdata,'Color','r');
-h(3) = line(x,NaNdata,'Color',[0 0.6 0]);
-set(h(1),'Tag','expdata','XData',esfitdata.Opts.x,'YData',dispData);
-set(h(2),'Tag','currsimdata');
-set(h(3),'Tag','bestsimdata');
+h(1) = line(hAx,x,NaNdata,'Color',[1 1 1]*0.65);
+h(2) = line(hAx,x,NaNdata,'Color','k','Marker','.','LineStyle','none');
+h(3) = line(hAx,x,NaNdata,'Color','r');
+h(4) = line(hAx,x,NaNdata,'Color',[0 0.6 0]);
+set(h(1),'Tag','baselinedata');
+set(h(1),'Visible','off');
+set(h(2),'Tag','expdata','XData',esfitdata.Opts.x,'YData',dispData);
+set(h(3),'Tag','currsimdata');
+set(h(4),'Tag','bestsimdata');
 hAx.XLim = [minx maxx];
 hAx.YLim = YLimits;
 hAx.ButtonDownFcn = @axesButtonDownFcn;
 grid(hAx,'on');
-%set(hAx,'XTick',[],'YTick',[]);
-box on
+box(hAx,'on')
 
 showmaskedregions();
 
-% Parameter table
+% Fit parameter display
 %-------------------------------------------------------------------------------
+lgrid.parbanner = uigridlayout(lgrid.params,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',20);
+lgrid.parbanner.ColumnWidth = {'0.5x','1x','0.25x','1x'};
+lgrid.parbanner.Layout.Row = 1;
+uilabel('Parent',lgrid.parbanner,...
+        'Text','Parameters',...
+        'BackgroundColor',get(hFig,'Color'),...
+        'FontWeight','bold',...
+        'HorizontalAl','left','VerticalAl','center');
+
+startpointbox = uigridlayout(lgrid.parbanner,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
+uilabel('Parent',startpointbox,...
+    'BackgroundColor',get(hFig,'Color'),...
+    'FontWeight','bold','Text','Start point:',...
+    'HorizontalAl','left','VerticalAl','center');
+uibutton('Parent',startpointbox,'Tag','selectStartPointButtonCenter',...
+    'Text','center','Enable','on','ButtonPushedFcn',@(src,evt) setStartPoint('center'),...
+    'Tooltip','Set start values to center of range');
+uibutton('Parent',startpointbox,'Tag','selectStartPointButtonRandom',...
+    'Text','random','Enable','on','ButtonPushedFcn',@(src,evt) setStartPoint('random'),...
+    'Tooltip','Set random start values');
+uibutton('Parent',startpointbox,'Tag','selectStartPointButtonBest',...
+    'Text','best','Enable','on','ButtonPushedFcn',@(src,evt) setStartPoint('best'),...
+    'Tooltip','Set start values to current best fit');
+  
+selectbox = uigridlayout(lgrid.parbanner,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
+selectbox.Layout.Column = 4;
+uilabel('Parent',selectbox,...
+    'BackgroundColor',get(hFig,'Color'),...
+    'FontWeight','bold','Text','Selection:',...
+    'HorizontalAl','left','VerticalAl','center');
+uibutton('Parent',selectbox,'Tag','selectInvButton',...
+    'Text','invert','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('invert'),...
+    'Tooltip','Invert selection of parameters');
+uibutton('Parent',selectbox,'Tag','selectAllButton',...
+    'Text','all','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('all'),...
+    'Tooltip','Select all parameters');
+uibutton('Parent',selectbox,'Tag','selectNoneButton',...
+    'Text','none','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('none'),...
+    'Tooltip','Unselect all parameters');
+
+% Parameter table
 columnname = {'','','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
 columnformat = {'char','logical','char','char','char','char','char','char','char','char','char'};
 colEditable = [false true false true true true false false false false false];
@@ -2102,280 +1255,248 @@ for p = 1:numel(esfitdata.pinfo)
   data{p,10} = '-';
   data{p,11} = '-';
 end
-uitable('Parent',hFig,'Tag','ParameterTable',...
-    'FontSize',8,...
-    'Position',[ParTablex0 ParTabley0 ParTablew ParTableh],...
-    'ColumnFormat',columnformat,...
-    'ColumnName',columnname,...
-    'ColumnEditable',colEditable,...
-    'CellEditCallback',@tableCellEditCallback,...
-    'ColumnWidth',{hElement,hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
-    'RowName',[],...
-    'Data',data,...
-    'UserData',colEditable);
-ParTableLabely0 = ParTabley0+ParTableh+dh;
-uicontrol('Parent',hFig,'Style','text',...
-    'Position',[ParTablex0 ParTableLabely0 2*wButton1 hElement],...
-    'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Parameters',...
-    'HorizontalAl','left');
-
-x0shift = ParTablew-4.5*wButton1-6*wButton1;
-ParTableButtony0 = ParTableLabely0+dh/4;
-uicontrol('Parent',hFig,'Style','text',...
-    'Position',[ParTablex0+x0shift-0.2*wButton1 ParTableLabely0 1.2*wButton1 hElement],...
-    'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Start point:',...
-    'HorizontalAl','left');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectStartPointButtonCenter',...
-    'Position',[ParTablex0+x0shift+wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','center','Enable','on','Callback',@(src,evt) setStartPoint('center'),...
-    'HorizontalAl','left',...
-    'Tooltip','Set start values to center of range');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectStartPointButtonRandom',...
-    'Position',[ParTablex0+x0shift+2*wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','random','Enable','on','Callback',@(src,evt) setStartPoint('random'),...
-    'HorizontalAl','left',...
-    'Tooltip','Set random start values');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectStartPointButtonSelected',...
-    'Position',[ParTablex0+x0shift+3*wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','selected','Enable','on','Callback',@(src,evt) setStartPoint('selected'),...
-    'HorizontalAl','left',...
-    'Tooltip','Set start values from selected fit result');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectStartPointButtonBest',...
-    'Position',[ParTablex0+x0shift+4*wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','best','Enable','on','Callback',@(src,evt) setStartPoint('best'),...
-    'HorizontalAl','left',...
-    'Tooltip','Set start values to current best fit');
-
-  
-x0shift = ParTablew-4*wButton1;
-uicontrol('Parent',hFig,'Style','text',...
-    'Position',[ParTablex0+x0shift-0.2*wButton1 ParTableLabely0 1.2*wButton1 hElement],...
-    'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Selection:',...
-    'HorizontalAl','left');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectInvButton',...
-    'Position',[ParTablex0+x0shift+wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','invert','Enable','on','Callback',@selectInvButtonCallback,...
-    'HorizontalAl','left',...
-    'Tooltip','Invert selection of parameters');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectAllButton',...
-    'Position',[ParTablex0+x0shift+2*wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','all','Enable','on','Callback',@selectAllButtonCallback,...
-    'HorizontalAl','left',...
-    'Tooltip','Select all parameters');
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','selectNoneButton',...
-    'Position',[ParTablex0+x0shift+3*wButton1 ParTableButtony0 wButton1 hButton1],...
-    'String','none','Enable','on','Callback',@selectNoneButtonCallback,...
-    'HorizontalAl','left',...
-    'Tooltip','Unselect all parameters');
+hParamTable = uitable('Parent',lgrid.params,'Tag','ParameterTable',...
+                      'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
+                      'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
+                      'CellEditCallback',@tableCellEditCallback,...
+                      'ColumnWidth',{hElement,hElement,'1x','1x','1x','1x','1x','1x','1x','1x','1x'},...
+                      'Data',data,...
+                      'UserData',colEditable);
+hParamTable.Layout.Row = 2;
+if ~verLessThan('Matlab','9.7')
+  s = uistyle('Interpreter','html');
+  addStyle(hParamTable,s);
+end
 
 % FitOption selection
 %-------------------------------------------------------------------------------
-uicontrol('Parent',hFig,'Style','text',...
-    'String','Function',...
+lgrid.fitcontrol = uigridlayout(lgrid.right,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',spacing);
+lgrid.fitcontrol.ColumnWidth = {'1.25x','1x'};
+
+fitoptbox0 = uigridlayout(lgrid.fitcontrol,[3 1],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
+fitoptbox0.RowHeight = {hElement,'4x','2x'};
+
+fitoptbox1 = uigridlayout(fitoptbox0,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',0);
+fitoptbox1.ColumnWidth = {'0.6x','0.8x',hElement};
+uilabel('Parent',fitoptbox1,...
+    'Text','Function',...
     'Tooltip','Name of simulation function',...
     'FontWeight','bold',...
-    'HorizontalAlign','left',...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Position',[Optionsx0 Optionsy0+5*(hElement+dh)+0.5*hElement wOptionsLabel hElement]);
-uicontrol('Parent',hFig,'Style','text',...
-    'String',esfitdata.fcnName,...
-    'ForeGroundColor','b',...
+    'HorizontalAl','left','VerticalAl','center',...
+    'BackgroundColor',get(hFig,'Color'));
+uilabel('Parent',fitoptbox1,...
+    'Text',esfitdata.fcnName,...
+    'FontColor','b',...
     'Tooltip',sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument),...
-    'HorizontalAlign','left',...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Position',[Optionsx0+wOptionsLabel Optionsy0+5*(hElement+dh)+0.5*hElement wOptionsSel hElement]);
+    'HorizontalAl','left','VerticalAl','center',...
+    'BackgroundColor',get(hFig,'Color'));
+uibutton('Parent',fitoptbox1,'Tag','AlgorithmSettingsButton',...
+         'Text','','Tooltip','Set fitting algorithm options',...
+         'Icon','','IconAlignment','center',...
+         'Enable','on',...
+         'ButtonPushedFcn',@setAlgorithmOptions);
 
-uicontrol('Parent',hFig,'Style','text',...
-    'String','Algorithm',...
+fitoptbox2 = uigridlayout(fitoptbox0,[4 2],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
+fitoptbox2.ColumnWidth = {'0.6x','1x'};
+uilabel('Parent',fitoptbox2,...
+    'Text','Algorithm',...
     'FontWeight','bold',...
-    'HorizontalAlign','left',...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Position',[Optionsx0 Optionsy0+4*(hElement+dh)-dh+0.5*hElement wOptionsLabel hElement]);
-uicontrol('Parent',hFig,'Style','popupmenu',...
+    'HorizontalAlign','left','VerticalAlign','top',...
+    'BackgroundColor',get(hFig,'Color'));
+uidropdown('Parent',fitoptbox2,...
     'Tag','AlgorithmMenu',...
-    'String',esfitdata.AlgorithmNames,...
+    'Items',esfitdata.AlgorithmNames,...
+    'ItemsData',1:numel(esfitdata.AlgorithmNames),...
     'Value',Opt.AlgorithmID,...
     'BackgroundColor','w',...
-    'Tooltip','Fitting algorithm',...
-    'Position',[Optionsx0+wOptionsLabel Optionsy0+4*(hElement+dh)+0.5*hElement wOptionsSel hElement]);
+    'Tooltip','Fitting algorithm');
 
-uicontrol('Parent',hFig,'Style','text',...
-    'String','Target',...
+uilabel('Parent',fitoptbox2,...
+    'Text','Target',...
     'FontWeight','bold',...
-    'HorizontalAlign','left',...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Position',[Optionsx0 Optionsy0+3*(hElement+dh)-dh+0.5*hElement wOptionsLabel hElement]);
-uicontrol('Parent',hFig,'Style','popupmenu',...
+    'HorizontalAlign','left','VerticalAlign','top',...
+    'BackgroundColor',get(hFig,'Color'));
+uidropdown('Parent',fitoptbox2,...
     'Tag','TargetMenu',...
-    'String',esfitdata.TargetNames,...
+    'Items',esfitdata.TargetNames,...
+    'ItemsData',1:numel(esfitdata.TargetNames),...
     'Value',Opt.TargetID,...
     'BackgroundColor','w',...
-    'Tooltip','Target function',...
-    'Position',[Optionsx0+wOptionsLabel Optionsy0+3*(hElement+dh)+0.5*hElement wOptionsSel hElement]);
+    'Tooltip','Target function');
 
-uicontrol('Parent',hFig,'Style','text',...
-    'String','BaseLine',...
+uilabel('Parent',fitoptbox2,...
+    'Text','AutoScale',...
     'FontWeight','bold',...
-    'HorizontalAlign','left',...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Position',[Optionsx0 Optionsy0+2*(dh+hElement)-dh+0.5*hElement wOptionsLabel hElement]);
-uicontrol('Parent',hFig,'Style','popupmenu',...
-    'Tag','BaseLineMenu',...
-    'String',esfitdata.BaseLineStrings,...
-    'Value',find(cellfun(@(x)x==esfitdata.BaseLine,esfitdata.BaseLineSettings),1),...
-    'BackgroundColor','w',...
-    'Tooltip','Baseline fitting',...
-    'Position',[Optionsx0+wOptionsLabel Optionsy0+2*(dh+hElement)+0.5*hElement wOptionsSel hElement]);
-
-uicontrol('Parent',hFig,'Style','text',...
-    'String','AutoScale',...
-    'FontWeight','bold',...
-    'HorizontalAlign','left',...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Position',[Optionsx0 Optionsy0+(dh+hElement)-dh+0.5*hElement wOptionsLabel hElement]);
-uicontrol('Parent',hFig,'Style','popupmenu',...
+    'HorizontalAlign','left','VerticalAlign','top',...
+    'BackgroundColor',get(hFig,'Color'));
+uidropdown('Parent',fitoptbox2,...
     'Tag','AutoScaleMenu',...
-    'String',esfitdata.AutoScaleStrings,...
-    'Value',find(cellfun(@(x)x==esfitdata.Opts.AutoScaleID,esfitdata.AutoScaleSettings),1),...
+    'Items',esfitdata.AutoScaleStrings,...
+    'ItemsData',esfitdata.AutoScaleSettings,...
+    'Value',esfitdata.Opts.AutoScaleID,...
     'BackgroundColor','w',...
-    'Tooltip','Autoscaling',...
-    'Position',[Optionsx0+wOptionsLabel Optionsy0+(dh+hElement)+0.5*hElement wOptionsSel hElement]);
+    'Tooltip','Autoscaling');
 
-wMaskEl = 0.5*(wOptionsLabel+wOptionsSel);
-uicontrol('Parent',hFig,'Style','checkbox',...
-    'Tag','MaskCheckbox',...
-    'String','Use mask',...
+uilabel('Parent',fitoptbox2,...
+    'Text','BaseLine',...
     'FontWeight','bold',...
-    'HorizontalAlign','left',...
-    'Value',1,...
-    'BackgroundColor',get(gcf,'Color'),...
-    'Tooltip','Use mask with excluded regions',...
-    'Position',[Optionsx0+2*dh Optionsy0 wMaskEl hElement]);
-uicontrol('Parent',hFig,'Style','pushbutton',...
-    'Tag','SaveButton',...
-    'String','Clear mask',...
-    'Callback',@clearMaskCallback,...
-    'Enable','on',...
-    'Tooltip','Clear mask',...
-    'Position',[Optionsx0+wMaskEl Optionsy0-dh wMaskEl hButton1]);
+    'HorizontalAlign','left','VerticalAlign','top',...
+    'BackgroundColor',get(hFig,'Color'));
+uidropdown('Parent',fitoptbox2,...
+    'Tag','BaseLineMenu',...
+    'Items',esfitdata.BaseLineStrings,...
+    'ItemsData',esfitdata.BaseLineSettings,...
+    'Value',esfitdata.BaseLine,...
+    'BackgroundColor','w',...
+    'Tooltip','Baseline fitting');
+
+fitoptbox3 = uigridlayout(fitoptbox0,[2 1],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
+uicheckbox('Parent',fitoptbox3,'Tag','BaselineCheckbox',...
+           'Text','Show baseline','Tooltip','Plot baseline on top of data',...
+           'Value',0,'ValueChangedFcn',@showbaseline,...
+           'FontWeight','bold');
+
+fitoptbox4 = uigridlayout(fitoptbox3,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',0);
+uicheckbox('Parent',fitoptbox4,'Tag','MaskCheckbox',...
+           'Text','Use mask','Tooltip','Use mask with excluded regions',...
+           'Value',1,...
+           'FontWeight','bold');
+uibutton('Parent',fitoptbox4,'Tag','SaveButton',...
+         'Text','Clear mask','Tooltip','Clear mask',...
+         'Enable','on',...
+         'ButtonPushedFcn',@clearMaskCallback);
 
 % Start/Stop buttons
 %--------------------------------------------------------------------------
-uicontrol('Parent',hFig,'Style','pushbutton',...
+fitctrlbox = uigridlayout(lgrid.fitcontrol,[4 1],'Padding',[0 0 0 0],'RowSpacing',0);
+fitctrlbox.RowHeight = {'2x','1x','1x','1x'};
+uibutton('Parent',fitctrlbox,...
     'Tag','StartButton',...
-    'String','Start fitting',...
-    'Callback',@startButtonCallback,...
+    'Text','Start fitting',...
+    'ButtonPushedFcn',@startButtonCallback,...
     'Visible','on',...
-    'Tooltip','Start fitting',...
-    'Position',[Buttonsx0 Buttonsy0-dh+3*hButton2b wButton2 hButton2]);
-uicontrol('Parent',hFig,'Style','pushbutton',...
-    'Tag','StopButton',...
-    'String','Stop fitting',...
-    'Visible','off',...
-    'Tooltip','Stop fitting',...
-    'Callback','global esfitdata; esfitdata.UserCommand = 1;',...
-    'Position',[Buttonsx0 Buttonsy0-dh+3*hButton2b wButton2 hButton2]);
-uicontrol('Parent',hFig,'Style','pushbutton',...
+    'Tooltip','Start fitting');
+uibutton('Parent',fitctrlbox,...
     'Tag','SaveButton',...
-    'String','Save parameter set',...
-    'Callback',@saveFitsetCallback,...
+    'Text','Save parameter set',...
+    'ButtonPushedFcn',@saveFitsetCallback,...
     'Enable','off',...
-    'Tooltip','Save latest fitting result',...
-    'Position',[Buttonsx0 Buttonsy0-dh+2*hButton2b wButton2 hButton2b]);
-uicontrol('Parent',hFig,'Style','pushbutton',...
+    'Tooltip','Save latest fitting result');
+uibutton('Parent',fitctrlbox,...
     'Tag','EvaluateButton',...
-    'String','Evaluate at start point',...
-    'Callback',@evaluateCallback,...
+    'Text','Evaluate at start point',...
+    'ButtonPushedFcn',@evaluateCallback,...
     'Enable','on',...
-    'Tooltip','Run simulation for current start parameters',...
-    'Position',[Buttonsx0 Buttonsy0-dh+hButton2b wButton2 hButton2b]);
-uicontrol('Parent',hFig,'Style','pushbutton',...
+    'Tooltip','Run simulation for current start parameters');
+uibutton('Parent',fitctrlbox,...
     'Tag','ResetButton',...
-    'String','Reset',...
-    'Callback',@resetCallback,...
+    'Text','Reset',...
+    'ButtonPushedFcn',@resetCallback,...
     'Enable','on',...
-    'Tooltip','Clear fit history',...
-    'Position',[Buttonsx0 Buttonsy0-dh wButton2 hButton2b]);
-
-% Iteration and rmsd history displays
-%-------------------------------------------------------------------------------
-uicontrol('Parent',hFig,'Style','text',...
-    'Position',[Rmsdx0 Rmsdy0+Rmsdh+4*hElement Rmsdw hElement],...
-    'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','RMSD history',...
-    'HorizontalAl','left');
-
-h = uicontrol('Parent',hFig,'Style','text','Position',[Rmsdx0 Rmsdy0+Rmsdh+3*hElement 0.75*Rmsdw hElement]);
-set(h,'FontSize',8,'String',' RMSD: -','ForegroundColor',[0 0.6 0],'Tooltip','Current best RMSD');
-set(h,'Tag','RmsText','HorizontalAl','left');
-
-h = uicontrol('Parent',hFig,'Style','checkbox','Position',[Rmsdx0+0.75*Rmsdw Rmsdy0+Rmsdh+3.2*hElement 0.30*Rmsdw hElement]);
-set(h,'FontSize',8,'String','logscale','Tooltip','Set log scale on/off','Value',0);
-set(h,'Tag','RmsLogPlot','Callback',@updatermsdplot);
-
-hAx = axes('Parent',hFig,'Units','pixels','Position',[Rmsdx0 Rmsdy0+2.5*hElement Rmsdw-spacing Rmsdh],'Layer','top');
-h = plot(hAx,1,NaN,'.');
-set(h,'Tag','rmsdline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
-set(hAx,'FontSize',7,'YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
-
-h = uicontrol('Parent',hFig,'Style','text','Position',[Rmsdx0 Rmsdy0 0.9*Rmsdw 2*hElement]);
-set(h,'FontSize',7,'Tag','logLine','Tooltip','Information from fitting algorithm');
-set(h,'Horizontal','left');
+    'Tooltip','Clear fit history');
 
 % Fitset list
 %-------------------------------------------------------------------------------
-x0shift = 0;
-wButton1 = FitSetw/4;
-uicontrol('Parent',hFig,'Style','text','Tag','SetListTitle',...
-    'Position',[FitSetx0 FitSety0+FitSeth+hElement FitSetw hElement],...
-    'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Parameter sets',...
+lgrid.fitsets = uigridlayout(lgrid.right,[2 1],'Padding',[0 0 0 0],'RowSpacing',5);
+lgrid.fitsets.RowHeight = {hElement,'1x',hElement};
+
+uilabel('Parent',lgrid.fitsets,'Tag','SetListTitle',...
+    'BackgroundColor',get(hFig,'Color'),...
+    'FontWeight','bold','Text','Fit parameter sets',...
     'Tooltip','List of stored fit parameter sets',...
-    'HorizontalAl','left');
-uicontrol('Parent',hFig,'Style','listbox','Tag','SetListBox',...
-    'Position',[FitSetx0 FitSety0 FitSetw FitSeth],...
-    'String','','Tooltip','',...
-    'BackgroundColor',[1 1 0.9],...
-    'KeyPressFcn',@deleteSetListKeyPressFcn,...
-    'Callback',@setListCallback);
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','sortRMSDSetButton',...
-    'Position',[FitSetx0+x0shift FitSety0+FitSeth+dh wButton1 hElement],...
-    'String','rmsd',...
-    'Tooltip','Sort parameter sets by rmsd','Enable','off',...
-    'Callback',@sortRMSDSetButtonCallback);
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','sortIDSetButton',...
-    'Position',[FitSetx0+x0shift+wButton1 FitSety0+FitSeth+dh wButton1 hElement],...
-    'String','id',...
-    'Tooltip','Sort parameter sets by ID','Enable','off',...
-    'Callback',@sortIDSetButtonCallback);
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','exportSetButton',...
-    'Position',[FitSetx0+x0shift+2*wButton1 FitSety0+FitSeth+dh wButton1 hElement],...
-    'String','export',...
+    'HorizontalAl','left','VerticalAl','top');
+
+% Fit parameter set table
+columnname = {'ID','rmsd','scale','baseline',''};
+columnformat = {'char','char','char','char','char'};
+colEditable = [false false false false false];
+hFitSetTable = uitable('Parent',lgrid.fitsets,'Tag','FitSetTable',...
+                      'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
+                      'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
+                      'ColumnWidth',{1.5*hElement,'1x','1x','1x','1x'},...
+                      'Data',[],...
+                      'SelectionChangedFcn',@setListCallback,...
+                      'Enable','on',...
+                      'KeyPressFcn',@deleteSetListKeyPressFcn);
+if ~verLessThan('matlab','9.11')  % 9.11 = R2021b
+  hFitSetTable.SelectionType = 'row';
+end
+if ~verLessThan('matlab','9.7')  % 9.7 = R2019b
+  hFitSetTable.ColumnSortable = true;
+end
+fitsetbuttonbox = uigridlayout(lgrid.fitsets,[1 5],'Padding',[0 0 0 0],'ColumnSpacing',0);
+fitsetbuttonbox.ColumnWidth = {2*hElement,'1x','1x','1x',2*hElement};
+h(1) = uibutton('Parent',fitsetbuttonbox,'Tag','selectStartPointButtonSelected',...
+    'Text','set as start',...
+    'Tooltip','Set as start point for fitting','Enable','off',...
+    'ButtonPushedFcn',@(src,evt) setStartPoint('selected'));
+h(1).Layout.Column = 2;
+h(2) = uibutton('Parent',fitsetbuttonbox,'Tag','exportSetButton',...
+    'Text','export',...
     'Tooltip','Export fit set to workspace','Enable','off',...
-    'Callback',@exportSetButtonCallback);
-uicontrol('Parent',hFig,'Style','pushbutton','Tag','deleteSetButton',...
-    'Position',[FitSetx0+x0shift+3*wButton1 FitSety0+FitSeth+dh wButton1 hElement],...
-    'String','delete',...
+    'ButtonPushedFcn',@exportSetButtonCallback);
+h(2).Layout.Column = 3;
+h(3) = uibutton('Parent',fitsetbuttonbox,'Tag','deleteSetButton',...
+    'Text','delete',...
     'Tooltip','Delete fit set','Enable','off',...
-    'Callback',@deleteSetButtonCallback);
+    'ButtonPushedFcn',@deleteSetButtonCallback);
+h(3).Layout.Column = 4;
+
+% Iteration and rmsd history displays
+%-------------------------------------------------------------------------------
+lgrid.rmsdplot = uigridlayout(lgrid.right,[4 1],'Padding',[0 0 0 0],'RowSpacing',0);
+lgrid.rmsdplot.RowHeight = {hElement,hElement,'1x',hElement};
+
+uilabel('Parent',lgrid.rmsdplot,...
+    'BackgroundColor',get(hFig,'Color'),...
+    'FontWeight','bold','Text','RMSD history',...
+    'HorizontalAl','left','VerticalAl','center');
+
+rmsdinfobox = uigridlayout(lgrid.rmsdplot,[1 2],'Padding',[0 0 0 0]);
+rmsdinfobox.ColumnWidth = {'1x',hElement};
+uilabel('Parent',rmsdinfobox,'Tag','RmsText',...
+        'Text',' RMSD: -',...
+        'FontColor',[0 0.6 0],'Tooltip','Current best RMSD',...
+        'HorizontalAl','left','VerticalAl','center');
+
+uibutton('state','Parent',rmsdinfobox,'Tag','RmsLogPlot',...
+         'Text','log','FontSize',fontsizetbl-1,'Tooltip','Set log scale on/off',...
+         'Value',0,'ValueChangedFcn',@updatermsdplot);
+
+hAx = uiaxes('Parent',lgrid.rmsdplot,'Units','pixels','Layer','top');
+h = plot(hAx,1,NaN,'.');
+set(h,'Tag','rmsdline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
+set(hAx,'box','on','YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
+
+uilabel('Parent',lgrid.rmsdplot,'Tag','logLine',...
+        'Text','','WordWrap','on',...
+        'FontSize',fontsizetbl,...
+        'Tooltip','Information from fitting algorithm',...
+        'HorizontalAl','left','VerticalAl','center');
+
 
 % Error log panel
 %-------------------------------------------------------------------------------
-uicontrol('Parent',hFig,'Style','text',...
-    'Position',[Logx0 Logy0+Logh Logw hElement],...
-    'BackgroundColor',get(gcf,'Color'),...
-    'FontWeight','bold','String','Log',...
+lgrid.log = uigridlayout(lgrid.right,[2 1],'Padding',[0 0 0 0],'RowSpacing',5);
+lgrid.log.RowHeight = {hElement,'1x'};
+
+logtitlebox = uigridlayout(lgrid.log,[1 2],'Padding',[0 0 0 0],'RowSpacing',5);
+logtitlebox.ColumnWidth = {'1x',hElement};
+uilabel('Parent',logtitlebox,...
+    'BackgroundColor',get(hFig,'Color'),...
+    'FontWeight','bold','Text','Log',...
     'Tooltip','Fitting information and error log',...
-    'HorizontalAl','left');
-hLogBox = uicontrol('Parent',hFig,'Style','listbox','Tag','LogBox',...
-    'Position',[Logx0 Logy0 Logw Logh],...
-    'String',{''},'Tooltip','',...
-    'HorizontalAlignment','left',...
-    'Min',0,'Max',2,...
-    'Value',[],'Enable','inactive',...
+    'HorizontalAl','left','VerticalAl','top');
+uibutton('Parent',logtitlebox,'Tag','copyLogButton',...
+         'Text','','Tooltip','Copy to clipboard',...
+         'Icon','','IconAlignment','center',...
+         'Enable','on',...
+         'ButtonPushedFcn',@copyLog);
+
+hLogBox = uitextarea('Parent',lgrid.log,'Tag','LogBox',...
+    'Value',{''},'Tooltip','',...
+    'FontSize',fontsizetbl,...
+    'WordWrap','on','Editable','off',...
     'BackgroundColor',[1 1 1]);
 
 copymenu = uicontextmenu(hFig);
@@ -2404,9 +1525,613 @@ end
 %===============================================================================
 
 %===============================================================================
+function evaluateCallback(~,~)
+% Evaluate for selected parameters
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+esfitdata.modelErrorHandler = @(ME) GUIErrorHandler(ME);
+
+p_eval = esfitdata.p_start;
+active = ~esfitdata.fixedParams;
+p_eval = p_eval(active);
+expdata = esfitdata.data(:);
+esfitdata.Opts.AutoScaleID = get(findobj(hFig,'Tag','AutoScaleMenu'),'Value');
+esfitdata.Opts.BaseLine = get(findobj(hFig,'Tag','BaseLineMenu'),'Value');
+esfitdata.Opts.useMask = get(findobj(hFig,'Tag','MaskCheckbox'),'Value')==1;
+Opt = esfitdata.Opts;
+Opt.track = false;
+
+try
+  [~,rmsd] = residuals_(p_eval,Opt,1);
+catch ME
+  if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
+    return
+  elseif contains(ME.stack(1).name,'esfit')
+    GUIErrorHandler(ME);
+    return;
+  else
+    error(ME.message)
+  end
+end
+
+% Get current spectrum
+currsim = real(esfitdata.curr.sim(:));
+currbaseline = real(esfitdata.curr.baseline(:));
+
+% Update plotted data
+x = esfitdata.Opts.x(:);
+set(findobj(hFig,'Tag','expdata'),'XData',x,'YData',expdata);
+set(findobj(hFig,'Tag','currsimdata'),'XData',x,'YData',currsim);
+set(findobj(hFig,'Tag','baselinedata'),'XData',x,'YData',currbaseline);
+
+% Readjust vertical range
+mask = esfitdata.Opts.mask;
+if isfield(esfitdata,'best') && isfield(esfitdata.best,'fit')
+  bestsim = real(esfitdata.best.fit(:));
+else
+  bestsim = zeros(size(currsim));
+end
+plottedData = [expdata(mask); bestsim; currsim];
+maxy = max(plottedData);
+miny = min(plottedData);
+YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
+hAx = findobj(hFig,'Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+set(hAx,'XLim',[min(x) max(x)]);
+drawnow
+
+% Readjust mask patches
+maskPatches = findobj(hFig,'Tag','maskPatch');
+for mp = 1:numel(maskPatches)
+  maskPatches(mp).YData = YLimits([1 1 2 2]).';
+end
+
+% Update column with best values if current parameter set is new best
+str = sprintf('Current RMSD: %g\n',rmsd);
+hRmsText = findobj(hFig,'Tag','RmsText');
+set(hRmsText,'Text',str,'FontColor',[1 0 0]);
+
+end
+%===============================================================================
+
+%===============================================================================
+function startButtonCallback(~,~)
+
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+switch get(findobj(hFig,'Tag','StartButton'),'Text')
+  case 'Start fitting'
+    esfitdata.UserCommand = 0;
+  case 'Stop fitting'
+    esfitdata.UserCommand = 1;
+    return
+end
+
+% Update GUI
+%-------------------------------------------------------------------------------
+
+% Hide Start button, show Stop button
+set(findobj(hFig,'Tag','StartButton'),'Text','Stop fitting');
+set(findobj(hFig,'Tag','SaveButton'),'Enable','off');
+
+% Disable other buttons
+set(findobj(hFig,'Tag','EvaluateButton'),'Enable','off');
+set(findobj(hFig,'Tag','ResetButton'),'Enable','off');
+
+% Disable listboxes
+set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','off');
+set(findobj(hFig,'Tag','TargetMenu'),'Enable','off');
+set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','off');
+set(findobj(hFig,'Tag','BaseLineMenu'),'Enable','off');
+
+% Disable parameter table
+set(findobj(hFig,'Tag','selectAllButton'),'Enable','off');
+set(findobj(hFig,'Tag','selectNoneButton'),'Enable','off');
+set(findobj(hFig,'Tag','selectInvButton'),'Enable','off');
+set(findobj(hFig,'Tag','selectStartPointButtonCenter'),'Enable','off');
+set(findobj(hFig,'Tag','selectStartPointButtonRandom'),'Enable','off');
+set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','off');
+colEditable = get(findobj(hFig,'Tag','ParameterTable'),'UserData');
+set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',false(size(colEditable)));
+set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',[]);
+
+% Remove displayed best fit and uncertainties
+hTable = findobj(hFig,'Tag','ParameterTable');
+Data = hTable.Data;
+for p = 1:size(Data,1)
+  Data{p,7} = '-';
+  Data{p,8} = '-';
+  Data{p,9} = '-';
+  Data{p,10} = '-';
+  Data{p,11} = '-';
+end
+set(hTable,'Data',Data);
+
+% Get fixed parameters
+for p = 1:esfitdata.nParameters
+  esfitdata.fixedParams(p) = Data{p,2}==0;
+end
+
+% Disable fitset list controls
+set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','off');
+set(findobj(hFig,'Tag','exportSetButton'),'Enable','off');
+set(findobj(hFig,'Tag','deleteSetButton'),'Enable','off');
+
+% Disable mask tools
+hAx = findobj(hFig,'Tag','dataaxes');
+hAx.ButtonDownFcn = [];
+set(findobj(hFig,'Tag','clearMaskButton'),'Enable','off');
+set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','off');
+
+% Pull settings from UI
+%-------------------------------------------------------------------------------
+% Determine selected method, target, autoscaling, start point
+esfitdata.Opts.AlgorithmID = get(findobj(hFig,'Tag','AlgorithmMenu'),'Value');
+esfitdata.Opts.TargetID = get(findobj(hFig,'Tag','TargetMenu'),'Value');
+esfitdata.Opts.AutoScaleID = get(findobj(hFig,'Tag','AutoScaleMenu'),'Value');
+esfitdata.Opts.BaseLine = get(findobj(hFig,'Tag','BaseLineMenu'),'Value');
+esfitdata.Opts.useMask = get(findobj(hFig,'Tag','MaskCheckbox'),'Value')==1;
+
+% Run fitting
+%-------------------------------------------------------------------------------
+useGUI = true;
+try
+  result = runFitting(useGUI);
+catch ME
+  if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
+    return
+  elseif contains(ME.stack(1).name,'esfit')
+    GUIErrorHandler(ME);
+    return;
+  else
+    error(ME.message)
+  end
+end
+
+% Save result to fit set list
+esfitdata.currFitSet = result;
+esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.mask);
+
+
+% Update GUI with fit results
+%-------------------------------------------------------------------------------
+
+% Remove current values and uncertainties from parameter table
+hTable = findobj(hFig,'Tag','ParameterTable');
+Data = hTable.Data;
+pi = 1;
+for p = 1:size(Data,1)
+  Data{p,7} = '-'; 
+  if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
+    Data{p,8} = sprintf('%0.6g',esfitdata.best.pfit(pi));
+    Data{p,9} = sprintf('%0.6g',esfitdata.best.pstd(pi));
+    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
+    Data{p,11} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
+    pi = pi+1;
+  else
+    Data{p,9} = '-';
+    Data{p,10} = '-';
+    Data{p,11} = '-';
+  end
+end
+set(hTable,'Data',Data);
+
+% Hide current sim plot in data axes
+set(findobj(hFig,'Tag','currsimdata'),'YData',NaN(1,numel(esfitdata.data)));
+drawnow
+
+% Reactivate UI components
+set(findobj(hFig,'Tag','SaveButton'),'Enable','on');
+
+if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
+  set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','on');
+  set(findobj(hFig,'Tag','exportSetButton'),'Enable','on');
+  set(findobj(hFig,'Tag','deleteSetButton'),'Enable','on');
+end
+
+% Hide stop button, show start button
+set(findobj(hFig,'Tag','StartButton'),'Text','Start fitting');
+
+% Re-enable other buttons
+set(findobj(hFig,'Tag','EvaluateButton'),'Enable','on');
+set(findobj(hFig,'Tag','ResetButton'),'Enable','on');
+
+% Re-enable listboxes
+set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','on');
+set(findobj(hFig,'Tag','TargetMenu'),'Enable','on');
+set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','on');
+set(findobj(hFig,'Tag','BaseLineMenu'),'Enable','on');
+set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','on');
+
+% Re-enable parameter table and its selection controls
+set(findobj(hFig,'Tag','selectAllButton'),'Enable','on');
+set(findobj(hFig,'Tag','selectNoneButton'),'Enable','on');
+set(findobj(hFig,'Tag','selectInvButton'),'Enable','on');
+set(findobj(hFig,'Tag','selectStartPointButtonCenter'),'Enable','on');
+set(findobj(hFig,'Tag','selectStartPointButtonRandom'),'Enable','on');
+set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','on');
+set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',colEditable);
+set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
+
+% Re-enable mask tools
+hAx = findobj(hFig,'Tag','dataaxes');
+hAx.ButtonDownFcn = @axesButtonDownFcn;
+set(findobj(hFig,'Tag','clearMaskButton'),'Enable','on');
+set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','on');
+
+end
+%===============================================================================
+
+%===============================================================================
+function resetCallback(~,~)
+% Reset best fit
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+% Remove messages from log
+scroll(findobj(hFig,'Tag','LogBox'),'top')
+set(findobj(hFig,'Tag','LogBox'),'Value',{''})
+
+% Remove best fit simulation from plot
+hBestSim = findobj(hFig,'Tag','bestsimdata');
+hBestSim.YData = NaN(size(hBestSim.YData));
+esfitdata.best = [];
+
+% Remove baseline from plot
+hBaseLine = findobj(hFig,'Tag','baselinedata');
+hBaseLine.YData = NaN(size(hBaseLine.YData));
+
+% Remove current fit simulation from plot
+hCurrSim = findobj(hFig,'Tag','currsimdata');
+hCurrSim.YData = NaN(size(hBestSim.YData));
+esfitdata.curr = [];
+
+% Readjust vertical range
+mask = esfitdata.Opts.mask;
+expdata = esfitdata.data(:);
+maxy = max(expdata(mask));
+miny = min(expdata(mask));
+YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
+set(findobj(hFig,'Tag','dataaxes'),'YLim',YLimits);
+drawnow
+
+% Reset rmsdhistory plot
+esfitdata.rmsdhistory = [];
+updatermsdplot;
+iterationprint('');
+
+% Reset besthistory 
+esfitdata.besthistory.rmsd = [];
+esfitdata.besthistory.par = [];
+
+% Remove displayed best fit and uncertainties
+hTable = findobj(hFig,'Tag','ParameterTable');
+Data = hTable.Data;
+for p = 1:size(Data,1)
+  Data{p,7} = '-';
+  Data{p,8} = '-';
+  Data{p,9} = '-';
+  Data{p,10} = '-';
+  Data{p,11} = '-';
+end
+set(hTable,'Data',Data);
+
+end
+%===============================================================================
+
+%===============================================================================
+% Function to update GUI at each iteration
+%-------------------------------------------------------------------------------
+function userstop = iterupdateGUI(info)
+global esfitdata
+userstop = esfitdata.UserCommand~=0;
+windowClosing = esfitdata.UserCommand==99;
+if windowClosing, return; end
+
+hFig = findall(0,'Tag','esfitFigure');
+
+% Get relevant quantities
+x = esfitdata.Opts.x(:);
+expdata = esfitdata.data(:);
+bestsim = real(esfitdata.best.fit(:));
+currsim = real(esfitdata.curr.sim(:));
+currbaseline = real(esfitdata.curr.baseline(:));
+currpar = esfitdata.curr.par;
+bestpar = esfitdata.best.par;
+
+% Update plotted data
+set(findobj(hFig,'Tag','expdata'),'XData',x,'YData',expdata);
+set(findobj(hFig,'Tag','bestsimdata'),'XData',x,'YData',bestsim);
+set(findobj(hFig,'Tag','currsimdata'),'XData',x,'YData',currsim);
+set(findobj(hFig,'Tag','baselinedata'),'XData',x,'YData',currbaseline);
+
+% Readjust vertical range
+mask = esfitdata.Opts.mask;
+plottedData = [expdata(mask); bestsim; currsim];
+maxy = max(plottedData);
+miny = min(plottedData);
+YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
+hAx = findobj(hFig,'Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+set(hAx,'XLim',[min(x) max(x)]);
+
+% Readjust mask patches
+maskPatches = findobj(hFig,'Tag','maskPatch');
+for mp = 1:numel(maskPatches)
+  maskPatches(mp).YData = YLimits([1 1 2 2]).';
+end
+
+% Update column with current parameter values
+hParamTable = findobj(hFig,'Tag','ParameterTable');
+data = get(hParamTable,'data');
+nParams = size(data,1);
+for p = 1:nParams
+  oldvaluestring = striphtml(data{p,7});
+  newvaluestring = sprintf('%0.6f',currpar(p));
+  % Find first character at which the new value differs from the old one
+  idx = 1;
+  while idx<=min(length(oldvaluestring),length(newvaluestring))
+    if oldvaluestring(idx)~=newvaluestring(idx), break; end
+    idx = idx + 1;
+  end
+  active = data{p,2};
+  if active
+    str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#888888">' newvaluestring(idx:end) '</font></html>'];
+  else
+    str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+  end
+  % Indicate parameters have hit limit
+  if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
+    str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
+  end
+  data{p,7} = str;
+end
+
+% Update column with best values if current parameter set is new best
+if info.newbest
+
+  str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
+  hRmsText = findobj(hFig,'Tag','RmsText');
+  set(hRmsText,'Text',str,'FontColor',[0 0.6 0]);
+
+  for p = 1:nParams
+    oldvaluestring = striphtml(data{p,8});
+    newvaluestring = sprintf('%0.6g',bestpar(p));
+    % Find first character at which the new value differs from the old one
+    idx = 1;
+    while idx<=min(length(oldvaluestring),length(newvaluestring))
+      if oldvaluestring(idx)~=newvaluestring(idx), break; end
+      idx = idx + 1;
+    end
+    active = data{p,2};
+    if active
+      if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
+        str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
+      else
+        str = ['<html><font color="#009900">' newvaluestring(1:idx-1) '</font><font color="#000000">' newvaluestring(idx:end) '</font></html>'];
+      end
+    else
+      str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+    end
+    data{p,8} = str;
+  end
+end
+
+hParamTable.Data = data;
+
+updatermsdplot;
+
+drawnow
+
+end
+%===============================================================================
+
+%===============================================================================
+function updatermsdplot(~,~)
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+% Update rmsd plot
+hRmsText = findobj(hFig,'Tag','RmsText');
+if isfield(esfitdata,'best') && ~isempty(esfitdata.best) && ~isempty(esfitdata.best.rmsd)
+  str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
+else
+  str = sprintf('Current best RMSD: -\n');
+end
+set(hRmsText,'Text',str);
+
+hRmsLogPlot = findobj(hFig,'Tag','RmsLogPlot');
+
+hrmsdline = findobj(hFig,'Tag','rmsdline');
+if ~isempty(hrmsdline)
+  n = min(100,numel(esfitdata.rmsdhistory));
+  set(hrmsdline,'XData',1:n,'YData',esfitdata.rmsdhistory(end-n+1:end));
+  ax = hrmsdline.Parent;
+  axis(ax,'tight');
+  if hRmsLogPlot.Value
+    set(ax,'yscale','log')
+  else
+    set(ax,'yscale','linear')
+  end
+end
+end
+%===============================================================================
+
+%===============================================================================
+function iterationprint(str)
+hFig = findall(0,'Tag','esfitFigure');
+hLogLine = findobj(hFig,'Tag','logLine');
+if isempty(hLogLine)
+  disp(strtrim(str));
+else
+  set(hLogLine,'Text',strtrim(str));
+end
+end
+%===============================================================================
+
+%===============================================================================
+function setListCallback(~,~)
+displayFitSet
+end
+%===============================================================================
+
+%===============================================================================
+function displayFitSet
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+h = findobj(hFig,'Tag','FitSetTable');
+if isempty(h.Selection), return; end
+data = h.Data;
+if ~isempty(data)
+  k = find([esfitdata.FitSets.ID]==data{h.Selection,1});
+  if k>0
+    fitset = esfitdata.FitSets(k);
+
+    % Set column with best-fit parameter values
+    hTable = findobj(hFig,'Tag','ParameterTable');
+    data = get(hTable,'data');
+
+    pi = 1;
+    for p = 1:size(data,1)
+      data{p,8} = sprintf('%0.6g',fitset.pfit_full(p));
+      if ~fitset.fixedParams(p) && ~isempty(fitset.pstd)
+        data{p,9} = sprintf('%0.6g',fitset.pstd(pi));
+        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,1));
+        data{p,11} = sprintf('%0.6g',fitset.ci95(pi,2));
+        pi = pi+1;
+      else
+        data{p,9} = '-';
+        data{p,10} = '-';
+        data{p,11} = '-';
+      end
+    end
+    set(hTable,'Data',data);
+
+    h = findobj(hFig,'Tag','bestsimdata');
+    set(h,'YData',fitset.fit);
+    h = findobj(hFig,'Tag','baselinedata');
+    set(h,'YData',fitset.baseline);
+    drawnow
+  end
+end
+
+end
+%===============================================================================
+
+%===============================================================================
+function saveFitsetCallback(~,~)
+global esfitdata
+if ~isempty(esfitdata.currFitSet)
+  esfitdata.lastSetID = esfitdata.lastSetID+1;
+  esfitdata.currFitSet.ID = esfitdata.lastSetID;
+  esfitdata.currFitSet.fixedParams = esfitdata.fixedParams;
+  if ~isfield(esfitdata,'FitSets') || isempty(esfitdata.FitSets)
+    esfitdata.FitSets(1) = esfitdata.currFitSet;
+  else
+    esfitdata.FitSets(end+1) = esfitdata.currFitSet;
+  end
+  refreshFitsetList(-1);
+end
+end
+%===============================================================================
+
+%===============================================================================
+function refreshFitsetList(idx)
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+h = findobj(hFig,'Tag','FitSetTable');
+nSets = numel(esfitdata.FitSets);
+data = cell(nSets,4);
+for k = 1:nSets
+  data{k,1} = esfitdata.FitSets(k).ID;
+  data{k,2} = esfitdata.FitSets(k).rmsd;
+  data{k,3} = esfitdata.FitSets(k).scale(1);
+  data{k,4} = esfitdata.FitSets(k).baselinetype{1};
+  if esfitdata.FitSets(k).Mask
+    maskstr = ' (mask)';
+  else
+    maskstr = '';
+  end
+  data{k,5} = maskstr;
+end
+set(h,'Data',data);
+if idx>0, set(h,'Selection',idx); end
+if idx==-1, set(h,'Selection',nSets); end
+
+if nSets>0, state = 'on'; else, state = 'off'; end
+set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable',state);
+set(findobj(hFig,'Tag','exportSetButton'),'Enable',state);
+set(findobj(hFig,'Tag','deleteSetButton'),'Enable',state);
+
+displayFitSet;
+end
+%===============================================================================
+
+%===============================================================================
+function exportSetButtonCallback(~,~)
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+h = findobj(hFig,'Tag','FitSetTable');
+ID = h.Data{h.Selection,1};
+idx = [esfitdata.FitSets.ID]==ID;
+fitresult = esfitdata.FitSets(idx);
+fitresult = rmfield(fitresult,'Mask');
+varname = sprintf('fit%d',ID);
+assignin('base',varname,fitresult);
+fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
+evalin('base',varname);
+end
+%===============================================================================
+
+%===============================================================================
+function deleteSetButtonCallback(~,~)
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+h = findobj(hFig,'Tag','FitSetTable');
+idx = h.Selection;
+nSets = numel(esfitdata.FitSets);
+if nSets>0
+    ID = h.Data{h.Selection,1};
+    for k = nSets:-1:1
+        if esfitdata.FitSets(k).ID==ID
+            esfitdata.FitSets(k) = [];
+        end
+    end
+    if idx>length(esfitdata.FitSets), idx = length(esfitdata.FitSets); end
+    if idx==0, idx = 1; end
+    h.Selection = idx;
+    refreshFitsetList(0);
+end
+
+if isempty(h.Data)
+    set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','off');
+    set(findobj(hFig,'Tag','exportSetButton'),'Enable','off');
+    set(findobj(hFig,'Tag','deleteSetButton'),'Enable','off');
+end
+end
+%===============================================================================
+
+%===============================================================================
+function deleteSetListKeyPressFcn(src,event)
+if strcmp(event.Key,'delete')
+    deleteSetButtonCallback(src,event);
+end
+end
+%===============================================================================
+
+%===============================================================================
 function setStartPoint(sel)
 
 global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+% Update fixed parameters
+hTable = findobj(hFig,'Tag','ParameterTable');
+Data = hTable.Data;
+for p = 1:esfitdata.nParameters
+  esfitdata.fixedParams(p) = Data{p,2}==0;
+end
 
 % Set starting point
 %-------------------------------------------------------------------------------
@@ -2424,12 +2149,11 @@ switch sel
   case 'random' % random
     prandom = lb + rand(nParameters,1).*(ub-lb);
     p_start(activeParams) = prandom(activeParams);
-  case 'selected' % selected parameter set
-    h = findobj('Tag','SetListBox');
-    s = h.String;
-    if ~isempty(s)
-      s = s{h.Value};
-      ID = sscanf(s,'%d');
+  case 'selected'
+    h = findobj(hFig,'Tag','FitSetTable');
+    data = h.Data;
+    if ~isempty(data)
+      ID = data{h.Selection,1};
       idx = find([esfitdata.FitSets.ID]==ID);
       if ~isempty(idx)
         p_start = esfitdata.FitSets(idx).pfit_full;
@@ -2467,7 +2191,7 @@ if strcmp(sel,'selected') || strcmp(sel,'best')
 end
 
 % Update parameter table
-hParamTable = findobj('Tag','ParameterTable');
+hParamTable = findobj(hFig,'Tag','ParameterTable');
 data = get(hParamTable,'data');
 for p = 1:numel(p_start)
   data{p,4} = sprintf('%0.6g',p_start(p));
@@ -2482,9 +2206,133 @@ end
 %===============================================================================
 
 %===============================================================================
+function selectButtonCallback(type)
+hFig = findall(0,'Tag','esfitFigure');
+h = findobj(hFig,'Tag','ParameterTable');
+d = h.Data;
+switch type
+  case 'all'
+    d(:,2) = {true};
+  case 'none'
+    d(:,2) = {false};
+  case 'invert'
+    for k=1:size(d,1)
+      d{k,2} = ~d{k,2};
+    end
+end
+set(h,'Data',d);
+end
+%===============================================================================
+
+%===============================================================================
+function showbaseline(src,~)
+hFig = findall(0,'Tag','esfitFigure');
+h = findobj(hFig,'Tag','baselinedata');
+if src.Value
+  set(h,'Visible','on')
+else
+  set(h,'Visible','off')
+end
+end
+%===============================================================================
+
+%===============================================================================
+function tableCellEditCallback(~,callbackData)
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+% Get handle of table and row/column index of edited table cell
+hTable = callbackData.Source;
+ridx = callbackData.Indices(1);
+cidx = callbackData.Indices(2);
+
+if cidx==1
+  allParamsFixed = all(~cell2mat(hTable.Data(:,1)));
+  if allParamsFixed
+    set(findobj(hFig,'Tag','StartButton'),'Enable','off');
+  else
+    set(findobj(hFig,'Tag','StartButton'),'Enable','on');
+  end
+end
+
+% Return unless it's a cell that contains start value or lower or upper bound
+startColumn = 4; % start value column
+lbColumn = 5; % lower-bound column
+ubColumn = 6; % upper-bound column
+startedit = cidx==startColumn;
+lbedit = cidx==lbColumn;
+ubedit = cidx==ubColumn;
+if ~startedit && ~lbedit && ~ubedit, return; end
+
+% Convert user-entered string to number
+newval = str2double(callbackData.EditData);
+
+% Revert if conversion didn't yield a scalar
+if numel(newval)~=1 || isnan(newval) || ~isreal(newval)
+  updateLogBox(sprintf('Input ''%s'' is not a number. Reverting edit.',callbackData.EditData));
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+  return
+end
+
+% Get start value, lower and upper bounds of interval from table
+start = str2double(hTable.Data{ridx,startColumn});
+lower = str2double(hTable.Data{ridx,lbColumn});
+upper = str2double(hTable.Data{ridx,ubColumn});
+
+% Set new lower/upper bound
+if startedit
+  start = newval;
+  if start<lower || start>upper
+    updateLogBox('Start value outside range. Adapting range.');
+    if start<lower
+      lower = start-0.5*(upper-lower);
+      hTable.Data{ridx,lbColumn} = sprintf('%0.6g',lower);
+    elseif start>upper
+      upper = start+0.5*(upper-lower);
+      hTable.Data{ridx,ubColumn} = sprintf('%0.6g',upper);
+    end
+  end
+elseif lbedit
+  lower = newval;
+elseif ubedit
+  upper = newval;
+end
+
+% Revert if lower bound would be above upper bound
+if lower>upper
+  updateLogBox('Lower bound is above upper bound. Reverting edit.');
+  hTable.Data{ridx,cidx} = callbackData.PreviousData;
+  return
+end
+
+% Adapt start value if it falls outside new range
+updatestartvalue = false;
+if lower>start
+  start = lower;
+  updatestartvalue = true;
+end
+if upper<start
+  start = upper;
+  updatestartvalue = true;
+end
+if updatestartvalue
+  updateLogBox('Start value outside new range. Adapting start value.');
+  hTable.Data{ridx,startColumn} = sprintf('%0.6g',start);
+end
+
+% Update start value, lower and upper bounds
+esfitdata.p_start(ridx) = start;
+esfitdata.pvec_lb(ridx) = lower;
+esfitdata.pvec_ub(ridx) = upper;
+
+end
+%===============================================================================
+
+%===============================================================================
 function axesButtonDownFcn(~,~)
 global esfitdata
-hAx = findobj('Tag','dataaxes');
+hFig = findall(0,'Tag','esfitFigure');
+hAx = findobj(hFig,'Tag','dataaxes');
 
 % Get mouse-click point on axes
 cp = hAx.CurrentPoint;
@@ -2500,9 +2348,12 @@ c = hAx.Children([2:end 1]);
 hAx.Children = c;
 
 % Continuously update patch based on mouse position until next user click
-set(gcf,'WindowButtonMotionFcn',@(hObject,eventdata) drawmaskedregion(tmpmask));
-waitforbuttonpress;
-set(gcf,'WindowButtonMotionFcn',[])
+set(hFig,'WindowButtonMotionFcn',@(hObject,eventdata) drawmaskedregion(tmpmask));
+set(hFig,'WindowButtonDownFcn',@(src,event)uiresume(src));
+uiwait(hFig);
+% waitforbuttonpress;
+set(hFig,'WindowButtonMotionFcn',[])
+set(hFig,'WindowButtonDownFcn',[])
 
 % Update masked regions
 cp = hAx.CurrentPoint;
@@ -2516,7 +2367,9 @@ end
 
 %===============================================================================
 function drawmaskedregion(tmpmask)
-cp = get (gca,'CurrentPoint');
+hFig = findall(0,'Tag','esfitFigure');
+hAx = findobj(hFig,'Tag','dataaxes');
+cp = get(hAx,'CurrentPoint');
 xdata = tmpmask.XData;
 xdata(2:3) = cp(1,1);
 set(tmpmask,'XData',xdata);
@@ -2526,7 +2379,8 @@ end
 %===============================================================================
 function showmaskedregions()
 global esfitdata
-hAx = findobj('Tag','dataaxes');
+hFig = findall(0,'Tag','esfitFigure');
+hAx = findobj(hFig,'Tag','dataaxes');
 
 % Delete existing mask patches
 hMaskPatches = findobj(hAx,'Tag','maskPatch');
@@ -2551,7 +2405,150 @@ end
 % Reorder so that mask patches are in the back
 c = hAx.Children([nMaskPatches+1:end, 1:nMaskPatches]);
 hAx.Children = c;
+drawnow limitrate
+
+end
+%===============================================================================
+
+%===============================================================================
+function clearMaskCallback(~,~)
+global esfitdata
+esfitdata.Opts.mask = true(size(esfitdata.Opts.mask));
+showmaskedregions();
+esfitdata.best = [];
+esfitdata.rmsdhistory = [];
+esfitdata.besthistory.rmsd = [];
+esfitdata.besthistory.par = [];
+
+% Readjust vertical range
+mask = esfitdata.Opts.mask;
+expdata = esfitdata.data(:);
+maxy = max(expdata(mask));
+miny = min(expdata(mask));
+YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
+hFig = findall(0,'Tag','esfitFigure');
+set(findobj(hFig,'Tag','dataaxes'),'YLim',YLimits);
 drawnow
 
 end
 %===============================================================================
+
+%===============================================================================
+function updateLogBox(msg)
+hFig = findall(0,'Tag','esfitFigure');
+
+hLogBox = findobj(hFig,'Tag','LogBox');
+txt = get(hLogBox,'Value');
+if numel(txt)==1 && isempty(txt{1})
+  txt = {};
+end
+if ~iscell(msg)
+  msg = cellstr(msg);
+end
+% Highlight errors
+iserror = false;
+if any(contains(msg,'Simulation function error','IgnoreCase',true))
+  iserror = true;
+end
+for i = 1:numel(msg)
+  msg{i} = strrep(msg{i},'\n','');
+  msgs = strsplit(msg{i},newline);
+  for j = 1:numel(msgs)
+%     if iserror
+%       msgs{j} = ['<html><font color="#ff0000">' msgs{j} '</font></html>'];
+%     end
+    txt{end+1} = msgs{j};
+  end
+end
+if iserror
+  txt{end+1} = '';
+end
+set(hLogBox,'Value',txt)
+drawnow limitrate
+scroll(hLogBox,'bottom')
+
+end
+%===============================================================================
+
+%===============================================================================
+function copyLog(~,~)
+% Copy log to clipboard
+hFig = findall(0,'Tag','esfitFigure');
+txt = get(findobj(hFig,'Tag','LogBox'),'Value');
+str = [];
+for i = 1:numel(txt)
+  row = sprintf('%s\t', txt{i});
+  row(end) = newline;
+  str = [str row];
+end
+clipboard('copy',str)
+end
+%===============================================================================
+
+%===============================================================================
+function GUIErrorHandler(ME)
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+% Reactivate UI components
+set(findobj(hFig,'Tag','SaveButton'),'Enable','off');
+
+if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
+  set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','on');
+  set(findobj(hFig,'Tag','exportSetButton'),'Enable','on');
+  set(findobj(hFig,'Tag','deleteSetButton'),'Enable','on');
+end
+
+% Hide stop button, show start button
+set(findobj(hFig,'Tag','StartButton'),'Text','Start fitting');
+
+% Re-enable other buttons
+set(findobj(hFig,'Tag','EvaluateButton'),'Enable','on');
+set(findobj(hFig,'Tag','ResetButton'),'Enable','on');
+
+% Re-enable listboxes
+set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','on');
+set(findobj(hFig,'Tag','TargetMenu'),'Enable','on');
+set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','on');
+set(findobj(hFig,'Tag','BaseLineMenu'),'Enable','on');
+
+% Re-enable parameter table and its selection controls
+set(findobj(hFig,'Tag','selectAllButton'),'Enable','on');
+set(findobj(hFig,'Tag','selectNoneButton'),'Enable','on');
+set(findobj(hFig,'Tag','selectInvButton'),'Enable','on');
+set(findobj(hFig,'Tag','selectStartPointButtonCenter'),'Enable','on');
+set(findobj(hFig,'Tag','selectStartPointButtonRandom'),'Enable','on');
+set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','on');
+colEditable = get(findobj(hFig,'Tag','ParameterTable'),'UserData');
+set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',colEditable);
+set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
+
+% Re-enable mask tools
+set(findobj(hFig,'Tag','clearMaskButton'),'Enable','on');
+set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','on');
+
+if contains(ME.stack(1).name,'esfit')
+  updateLogBox({ME.stack(1).name,' error:',ME.message})
+else
+  updateLogBox({'Simulation function error:',ME.message})
+end
+
+end
+%===============================================================================
+
+%===============================================================================
+function str = striphtml(str)
+html = false;
+for k = 1:numel(str)
+  if ~html
+    rmv(k) = false;
+    if str(k)=='<', html = true; rmv(k) = true; end
+  else
+    rmv(k) = true;
+    if str(k)=='>', html = false; end
+  end
+end
+str(rmv) = [];
+end
+%===============================================================================
+
