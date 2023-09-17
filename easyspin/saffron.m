@@ -1762,9 +1762,9 @@ if fastSimulationMode
       case 2
         if processData
           if decayAdded
-            tdx = basecorr(td,[1 2],[2 2]);
+            tdx = basecorr(td,[],[2 2]);
           else
-            tdx = basecorr(td,[1 2],[0 0]);
+            tdx = basecorr(td,[],[0 0]);
           end
 
           w1 = apowin(Opt.Window,Exp.nPoints(1));

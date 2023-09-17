@@ -36,81 +36,87 @@ Polynomial baseline correction.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-CorrSpec = basecorr(Spec,Dim,Ord)
-[CorrSpec,BLine] = basecorr(Spec,Dim,Ord)
+datacorr = basecorr(data,dim,n)
+datacorr = basecorr(data,dim,n,region)
+[coddata,baseline] = basecorr(...)
+basecorr(...)
 </pre>
 
 <!-- =========================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-This function computes and applies polynomial baseline corrections to
-the input data array <code>Spec</code>.
-It returns the baseline corrected data in <code>CorrSpec</code> and the
-polynomial baseline itself in <code>BLine</code>. The baseline is
+This function computes and applies polynomial baseline corrections to the input data array <code>data</code>.
+It returns the baseline-corrected data in <code>datacorr</code> and the
+polynomial baseline(s) in <code>baseline</code>.
+The baseline is
 computed by least-squares fitting polynomials of required order to the
 data along specified dimensions.
 </p>
 
 <p>
-<code>Dim</code> is a vector giving all dimensions along which
-one-dimensional baseline corrections should be applied. E.g. if
-<code>Dim=[2 1]</code>, then a correction is applied along dimension
-2, and after that another one along dimension 1. If <code>Dim</code> is
-set to <code>[]</code>, a single all-dimensional baseline fit is applied
-instead.
+<code>dim</code> specifies the dimension(s) along which baselines should be fitted.
+For <code>dim=1</code>, baselines are fitted to each column in the data array.
+For <code>dim=2</code>, baselines are fitted to each row.
+For <code>dim=[]</code>, a single two-dimensional baseline is fit.
 </p>
 
 <p>
-<code>Ord</code> gives the orders for the polynomial fits listed in
-<code>Dim</code>, so it must have the same number of elements as
-<code>Dim</code>. If <code>Dim=[]</code>, <code>Ord</code> must have one
-entry for each dimension of <code>Spec</code>.
+<code>n</code> gives the polynomials order.
+For 1D fits (<code>dim=1</code> or <code>2</code>), provide a single number between 0 (constant offset) and 6 (sixth-order polynomial).
+For a 2D fit (<code>dim=[]</code>), provide 2 numbers in <code>n</code>, one for each dimension.
+</p>
+
+<p>
+The optional input <code>region</code> provides a mask to select the region to include in the fit. Provide a logical array of the same size as <code>data</code>. Data points for which the corresponding element in <code>region</code> is <code>true</code> (<code>false</code>) are included (excluded) in the fit. This works only for 1D fits.
+</p>
+
+<p>
+The two outputs are the corrected data in <code>datacorr</code> and the fitted baseline(s) in <code>baseline</code>. If not outputs are requested, the results are plotted.
 </p>
 
 <!-- =========================================================== -->
 <div class="subtitle">Examples</div>
 
 <p>
+To fit cubic baselines separately along each column, use
+</p>
+
+<pre class="matlab">
+datac = basecorr(data,1,3);
+</pre>
+
+<p>
+To fit linear baselines separately along each row, use
+</p>
+
+<pre class="matlab">
+datac = basecorr(data,2,1);
+</pre>
+
+<p>
+To fit linear baselines separately along each row, but limit the fit region, use
+</p>
+
+<pre class="matlab">
+region = x<3 | x>6;  % include region with x<3 and x>6 in the fit
+datac = basecorr(data,2,1,region);
+</pre>
+
+<p>
 To fit a single third-order surface to 2D data, use
 </p>
 
 <pre class="matlab">
-data = peaks(100);
-cdata = basecorr(data,[],[3 3]);
+datac = basecorr(data,[],[3 3]);
 </pre>
 
-<p>
-To apply corrections separately along each dimension, use
-</p>
-<pre class="matlab">
-cdata = basecorr(data,[1 2],[3 3]);
-</pre>
-
-<p>
-If you want to apply a linear baseline correction along the
-second dimension only, use
-</p>
-
-<pre class="matlab">
-cdata = basecorr(data,2,1);
-</pre>
-
-<p>
-To subtract the mean from the data array, use
-</p>
-
-<pre class="matlab">
-cdata = basecorr(data,[],[0 0]);
-</pre>
 
 <!-- =========================================================== -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-1D and nD polynomial least-square fits are computed by constructing
-the Vandermonde matrix associated with the problem and using MATLAB's
-<code>\</code> operator to solve the resulting system of linear equations.
+1D and 2D polynomial least-square fits are computed by constructing the Vandermonde matrix associated with the problem and using MATLAB's <code>\</code> operator to solve the resulting system of linear equations.
 </p>
 
 <!-- =========================================================== -->
