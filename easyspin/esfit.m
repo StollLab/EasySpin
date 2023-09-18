@@ -1166,7 +1166,7 @@ lgrid.right.RowHeight = {hPtop,'1x','1x','1x'};
 % Axes
 %-------------------------------------------------------------------------------
 % Data display
-hAx = uiaxes('Parent',lgrid.plot,'Tag','dataaxes','Units','pixels','Layer','top');
+hAx = uiaxes('Parent',lgrid.plot,'Tag','dataaxes','Layer','top');
 
 NaNdata = NaN(1,numel(data));
 mask = esfitdata.Opts.mask;
@@ -1192,6 +1192,14 @@ hAx.YLim = YLimits;
 hAx.ButtonDownFcn = @axesButtonDownFcn;
 grid(hAx,'on');
 box(hAx,'on')
+set(hAx,'XTickLabel',{})
+
+h(5) = yline(hAx,mean(dispData)-max(abs(dispData)));
+set(h(5),'Tag','residualzero');
+h(6) = line(hAx,x,NaNdata,'Color',[1 1 1]*0.65,'Marker','.','LineStyle','none');
+set(h(6),'Tag','residualdata');
+set(h(5),'Visible','off')
+set(h(6),'Visible','off')
 
 showmaskedregions();
 
@@ -1292,7 +1300,7 @@ uilabel('Parent',fitoptbox1,...
     'BackgroundColor',get(hFig,'Color'));
 uibutton('Parent',fitoptbox1,'Tag','AlgorithmSettingsButton',...
          'Text','','Tooltip','Set fitting algorithm options',...
-         'Icon','','IconAlignment','center',...
+         'Icon','private/settingsicon.png','IconAlignment','center',...
          'Enable','on',...
          'ButtonPushedFcn',@setAlgorithmOptions);
 
@@ -1301,7 +1309,7 @@ fitoptbox2.ColumnWidth = {'0.6x','1x'};
 uilabel('Parent',fitoptbox2,...
     'Text','Algorithm',...
     'FontWeight','bold',...
-    'HorizontalAlign','left','VerticalAlign','top',...
+    'HorizontalAlign','left','VerticalAlign','center',...
     'BackgroundColor',get(hFig,'Color'));
 uidropdown('Parent',fitoptbox2,...
     'Tag','AlgorithmMenu',...
@@ -1314,7 +1322,7 @@ uidropdown('Parent',fitoptbox2,...
 uilabel('Parent',fitoptbox2,...
     'Text','Target',...
     'FontWeight','bold',...
-    'HorizontalAlign','left','VerticalAlign','top',...
+    'HorizontalAlign','left','VerticalAlign','center',...
     'BackgroundColor',get(hFig,'Color'));
 uidropdown('Parent',fitoptbox2,...
     'Tag','TargetMenu',...
@@ -1327,7 +1335,7 @@ uidropdown('Parent',fitoptbox2,...
 uilabel('Parent',fitoptbox2,...
     'Text','AutoScale',...
     'FontWeight','bold',...
-    'HorizontalAlign','left','VerticalAlign','top',...
+    'HorizontalAlign','left','VerticalAlign','center',...
     'BackgroundColor',get(hFig,'Color'));
 uidropdown('Parent',fitoptbox2,...
     'Tag','AutoScaleMenu',...
@@ -1340,7 +1348,7 @@ uidropdown('Parent',fitoptbox2,...
 uilabel('Parent',fitoptbox2,...
     'Text','BaseLine',...
     'FontWeight','bold',...
-    'HorizontalAlign','left','VerticalAlign','top',...
+    'HorizontalAlign','left','VerticalAlign','center',...
     'BackgroundColor',get(hFig,'Color'));
 uidropdown('Parent',fitoptbox2,...
     'Tag','BaseLineMenu',...
@@ -1350,19 +1358,19 @@ uidropdown('Parent',fitoptbox2,...
     'BackgroundColor','w',...
     'Tooltip','Baseline fitting');
 
-fitoptbox3 = uigridlayout(fitoptbox0,[2 1],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
+fitoptbox3 = uigridlayout(fitoptbox0,[2 2],'Padding',[0 0 0 0],'ColumnSpacing',5,'RowSpacing',5);
 uicheckbox('Parent',fitoptbox3,'Tag','BaselineCheckbox',...
-           'Text','Show baseline','Tooltip','Plot baseline on top of data',...
-           'Value',0,'ValueChangedFcn',@showbaseline,...
-           'FontWeight','bold');
+           'Text','plot baseline','Tooltip','Plot baseline on top of data',...
+           'Value',0,'ValueChangedFcn',@showbaseline);
+uicheckbox('Parent',fitoptbox3,'Tag','ResidualCheckbox',...
+           'Text','plot residuals','Tooltip','Plot residuals',...
+           'Value',0,'ValueChangedFcn',@showresiduals);
 
-fitoptbox4 = uigridlayout(fitoptbox3,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',0);
-uicheckbox('Parent',fitoptbox4,'Tag','MaskCheckbox',...
-           'Text','Use mask','Tooltip','Use mask with excluded regions',...
-           'Value',1,...
-           'FontWeight','bold');
-uibutton('Parent',fitoptbox4,'Tag','SaveButton',...
-         'Text','Clear mask','Tooltip','Clear mask',...
+uicheckbox('Parent',fitoptbox3,'Tag','MaskCheckbox',...
+           'Text','use mask','Tooltip','Use mask with excluded regions',...
+           'Value',1);
+uibutton('Parent',fitoptbox3,'Tag','SaveButton',...
+         'Text','clear mask','Tooltip','Clear mask',...
          'Enable','on',...
          'ButtonPushedFcn',@clearMaskCallback);
 
@@ -1489,7 +1497,7 @@ uilabel('Parent',logtitlebox,...
     'HorizontalAl','left','VerticalAl','top');
 uibutton('Parent',logtitlebox,'Tag','copyLogButton',...
          'Text','','Tooltip','Copy to clipboard',...
-         'Icon','','IconAlignment','center',...
+         'Icon','private/copyicon.png','IconAlignment','center',...
          'Enable','on',...
          'ButtonPushedFcn',@copyLog);
 
@@ -1564,21 +1572,12 @@ x = esfitdata.Opts.x(:);
 set(findobj(hFig,'Tag','expdata'),'XData',x,'YData',expdata);
 set(findobj(hFig,'Tag','currsimdata'),'XData',x,'YData',currsim);
 set(findobj(hFig,'Tag','baselinedata'),'XData',x,'YData',currbaseline);
+residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+residualdata = (expdata-currsim)+residualzero;
+set(findobj(hFig,'Tag','residualdata'),'XData',x,'YData',residualdata);
 
 % Readjust vertical range
-mask = esfitdata.Opts.mask;
-if isfield(esfitdata,'best') && isfield(esfitdata.best,'fit')
-  bestsim = real(esfitdata.best.fit(:));
-else
-  bestsim = zeros(size(currsim));
-end
-plottedData = [expdata(mask); bestsim; currsim];
-maxy = max(plottedData);
-miny = min(plottedData);
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-hAx = findobj(hFig,'Tag','dataaxes');
-set(hAx,'YLim',YLimits);
-set(hAx,'XLim',[min(x) max(x)]);
+updateaxislimits()
 drawnow
 
 % Readjust mask patches
@@ -1720,6 +1719,8 @@ set(hTable,'Data',Data);
 
 % Hide current sim plot in data axes
 set(findobj(hFig,'Tag','currsimdata'),'YData',NaN(1,numel(esfitdata.data)));
+residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+set(findobj(hFig,'Tag','residualdata'),'YData',(esfitdata.data-esfitdata.best.fit)+residualzero);
 drawnow
 
 % Reactivate UI components
@@ -1785,8 +1786,12 @@ hBaseLine.YData = NaN(size(hBaseLine.YData));
 
 % Remove current fit simulation from plot
 hCurrSim = findobj(hFig,'Tag','currsimdata');
-hCurrSim.YData = NaN(size(hBestSim.YData));
+hCurrSim.YData = NaN(size(hCurrSim.YData));
 esfitdata.curr = [];
+
+% Remove residuals from plot
+hResiduals = findobj(hFig,'Tag','residualdata');
+hResiduals.YData = NaN(size(hResiduals.YData));
 
 % Readjust vertical range
 mask = esfitdata.Opts.mask;
@@ -1846,16 +1851,12 @@ set(findobj(hFig,'Tag','expdata'),'XData',x,'YData',expdata);
 set(findobj(hFig,'Tag','bestsimdata'),'XData',x,'YData',bestsim);
 set(findobj(hFig,'Tag','currsimdata'),'XData',x,'YData',currsim);
 set(findobj(hFig,'Tag','baselinedata'),'XData',x,'YData',currbaseline);
+residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+residualdata = (expdata-currsim)+residualzero;
+set(findobj(hFig,'Tag','residualdata'),'XData',x,'YData',residualdata);
 
 % Readjust vertical range
-mask = esfitdata.Opts.mask;
-plottedData = [expdata(mask); bestsim; currsim];
-maxy = max(plottedData);
-miny = min(plottedData);
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-hAx = findobj(hFig,'Tag','dataaxes');
-set(hAx,'YLim',YLimits);
-set(hAx,'XLim',[min(x) max(x)]);
+updateaxislimits()
 
 % Readjust mask patches
 maskPatches = findobj(hFig,'Tag','maskPatch');
@@ -2235,6 +2236,59 @@ else
 end
 end
 %===============================================================================
+
+%===============================================================================
+function showresiduals(src,~)
+hFig = findall(0,'Tag','esfitFigure');
+h(1) = findobj(hFig,'Tag','residualdata');
+h(2) = findobj(hFig,'Tag','residualzero');
+if src.Value
+  set(h(1),'Visible','on')
+  set(h(2),'Visible','on')
+else
+  set(h(1),'Visible','off')
+  set(h(2),'Visible','off')
+end
+updateaxislimits()
+end
+%===============================================================================
+
+%===============================================================================
+function updateaxislimits(~)
+
+global esfitdata
+hFig = findall(0,'Tag','esfitFigure');
+
+expdata = esfitdata.data(:);
+if isfield(esfitdata,'curr') && isfield(esfitdata.curr,'sim')
+  currsim = real(esfitdata.curr.sim(:));
+else
+  currsim = zeros(size(expdata));
+end
+mask = esfitdata.Opts.mask;
+if isfield(esfitdata,'best') && isfield(esfitdata.best,'fit')
+  bestsim = real(esfitdata.best.fit(:));
+else
+  bestsim = zeros(size(expdata));
+end
+plottedData = [expdata(mask); bestsim; currsim];
+if get(findobj(hFig,'Tag','ResidualCheckbox'),'Value')
+  residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+  residualdata = (expdata-currsim)+residualzero;
+  plottedData = [plottedData; residualdata];
+end
+maxy = max(plottedData);
+miny = min(plottedData);
+YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
+
+hAx = findobj(hFig,'Tag','dataaxes');
+set(hAx,'YLim',YLimits);
+x = get(findobj(hFig,'Tag','expdata'),'XData');
+set(hAx,'XLim',[min(x) max(x)]);
+
+end
+%===============================================================================
+
 
 %===============================================================================
 function tableCellEditCallback(~,callbackData)
