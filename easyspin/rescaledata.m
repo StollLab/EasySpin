@@ -1,8 +1,10 @@
-% rescaledata    Rescaling of one data vector so that it fits a second
+% rescaledata    Rescaling of data
 %
-%   ynew = rescaledata(y,mode)
-%   ynew = rescaledata(y,yref,mode)
-%   [ynew, scale] = rescaledata(...)
+%   yscaled = rescaledata(y,mode)
+%   yscaled = rescaledata(y,mode,region)
+%   yscaled = rescaledata(y,yref,mode)
+%   yscaled = rescaledata(y,yref,mode,region)
+%   [yscaled, scale] = rescaledata(...)
 %
 % Shifts and rescales the data vector y. If given, yref serves
 % as the reference. mode determines how the scale factor is calculated.
@@ -17,7 +19,7 @@
 %     'none'    no scaling
 %
 % Outputs:
-%   ynew      rescaled data vector
+%   yscaled   rescaled data vector
 %   scale     scaling factor
 
 function varargout = rescaledata(varargin)
@@ -29,7 +31,8 @@ switch nargin
   case 1
     y = varargin{1};
     yref = [];
-    Mode = 'lsq';
+    Mode = 'maxabs';
+    region = [];
   case 2
     y = varargin{1};
     in2 = varargin{2};
@@ -40,10 +43,24 @@ switch nargin
       yref = in2;
       Mode = 'lsq';
     end
+    region = [];
   case 3
+    y = varargin{1};
+    in2 = varargin{2};
+    if ischar(in2)
+      yref = [];
+      Mode = in2;
+      region = varargin{3};
+    else
+      yref = in2;
+      Mode = varargin{3};
+      region = []; 
+    end
+  case 4
     y = varargin{1};
     yref = varargin{2};
     Mode = varargin{3};
+    region = varargin{4};
   otherwise
     error('Wrong number of input parameters.');
 end    
@@ -86,35 +103,42 @@ if refNeeded(ModeID)
 end
 
 y = y(:);
-yref = yref(:);
-yref_notnan = yref(~isnan(yref));
-y_notnan = y(~isnan(y));
+if ~isempty(yref)
+  yref = yref(:);
+end
 
 % Rescale data
 switch ModeID
   case 1  % maxabs
-    if ~isempty(yref)
-      scalefactor = max(abs(yref_notnan))/max(abs(y_notnan));
-    else
-      scalefactor = 1/max(abs(y_notnan));
+    idx = ~isnan(y);
+    if ~isempty(region)
+      idx = idx & region(:);
     end
-    yscaled = scalefactor*y;
+    scalefactor = 1/max(abs(y(idx)));
+    if ~isempty(yref)
+      idx = ~isnan(yref);
+      if ~isempty(region)
+        idx = idx & region(:);
+      end
+      scalefactor = max(abs(yref(idx)))*scalefactor;
+    end
   case 2  % lsq
-    notnan_both = ~isnan(y) & ~isnan(yref);
+    idx = ~isnan(y) & ~isnan(yref);
+    if ~isempty(region)
+      idx = idx & region(:);
+    end
     % Rescale reference instead of signal (otherwise rmsd(scale) is wrong
-    scalefactor = yref(notnan_both)\y(notnan_both);
+    scalefactor = yref(idx)\y(idx);
     scalefactor = 1/scalefactor;
-    yscaled = scalefactor*y;
   case 3  % no scaling
-    yscaled = y;
     scalefactor = 1;
 end
 
 % Make sure signal is not inverted
-if real(scalefactor(1))<0
-  scalefactor(1) = abs(scalefactor(1));
-  yscaled = y*scalefactor;
+if real(scalefactor)<0
+  scalefactor = abs(scalefactor);
 end
+yscaled = y*scalefactor;
 
 % Preserve row layout
 if isRowVector
@@ -128,6 +152,15 @@ switch nargout
     plot(x,y);
     legend('original');
     axis tight
+    if ~isempty(region)
+      masked = ~region(:);
+      idx = find([masked(1); diff(masked)]);
+      idx = [idx; numel(region)+1];
+      ylims = get(gca,'YLim');
+      for k = 1:2:numel(idx)-1
+        patch([idx(k) idx(k) idx(k+1)-1 idx(k+1)-1],ylims([1 2 2 1]),[0.4902 0.4902 0.4902],'EdgeColor','none','FaceAlpha',0.3)
+      end
+    end
     subplot(2,1,2);
     if isempty(yref)
       plot(x,yscaled);
