@@ -563,6 +563,8 @@ if nActiveParams>0
   if Verbosity>=1
     msg = sprintf('Running optimization algorithm with %d active parameters...',nActiveParams);
     if useGUI
+      hPopup = findall(0,'Tag','algorithmpopup');
+      set(findobj(hPopup,'Tag','nParamsField'),'Value',nActiveParams);
       updateLogBox(msg)
     else
       disp(msg);
@@ -1108,6 +1110,11 @@ if ~isempty(hFig)
   delete(hFig);
   clear hFig
 end
+hPopup = findall(0,'Tag','algorithmpopup');
+if ~isempty(hPopup)
+  delete(hPopup);
+  clear hPopup
+end
 hFig = uifigure('Tag','esfitFigure');%,'WindowStyle','normal');
 if ~strcmp(hFig.WindowStyle,'normal')
   hFig.WindowStyle = 'normal';
@@ -1124,14 +1131,10 @@ sz = sz*scalefact;
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
 set(hFig,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
-if ~strcmp(hFig.WindowStyle,'normal')
-  hFig.WindowStyle = 'normal';
-end
 set(hFig,'MenuBar','none');
 % set(hFig,'Resize','off');
 set(hFig,'Name','esfit - Least-Squares Fitting','NumberTitle','off');
-set(hFig,'CloseRequestFcn',...
-    'global esfitdata; esfitdata.UserCommand = 99; drawnow; hFig = findall(0,''Tag'',''esfitFigure'');delete(hFig);');
+set(hFig,'CloseRequestFcn',@closeGUI);
   
 spacing = 20*scalefact;
 hPtop = 180*scalefact;
@@ -1293,8 +1296,7 @@ uilabel('Parent',fitoptbox1,...
 uibutton('Parent',fitoptbox1,'Tag','AlgorithmSettingsButton',...
          'Text','','Tooltip','Set fitting algorithm options',...
          'Icon','private/settingsicon.png','IconAlignment','center',...
-         'Enable','on',...
-         'ButtonPushedFcn',@setAlgorithmOptions);
+         'Enable','on');
 
 fitoptbox2 = uigridlayout(fitoptbox0,[4 2],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
 fitoptbox2.ColumnWidth = {'0.6x','1x'};
@@ -1309,6 +1311,7 @@ uidropdown('Parent',fitoptbox2,...
     'ItemsData',1:numel(esfitdata.AlgorithmNames),...
     'Value',Opt.AlgorithmID,...
     'BackgroundColor','w',...
+    'ValueChangedFcn',@(src,evt) selectAlgorithm(src),...
     'Tooltip','Fitting algorithm');
 
 uilabel('Parent',fitoptbox2,...
@@ -1518,8 +1521,116 @@ end
 
 drawnow
 
+% Algorithm settings pop-up figure
+%-------------------------------------------------------------------------------
+hPopup = uifigure('Tag','algorithmpopup','WindowStyle','normal');
+set(hPopup,'Visible','off')
+
+sz = [400 320]; % popup size
+sz = sz*scalefact;
+xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
+ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
+set(hPopup,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
+set(hPopup,'MenuBar','none');
+% set(hFig,'Resize','off');
+set(hPopup,'Name','esfit - Algorithm settings','NumberTitle','off');
+set(hPopup,'CloseRequestFcn',...
+    'hPopup = findall(0,''Tag'',''algorithmpopup''); set(hPopup,''Visible'',''off'');');
+  
+% Set up drop down menu and tabs
+%-------------------------------------------------------------------------------
+lgrid.main = uigridlayout(hPopup,[3 1],'Padding',[1 1 1 1]*spacing,'RowSpacing',5);
+lgrid.main.RowHeight = {hElement,hElement,'1x'};
+
+dropdownbox = uigridlayout(lgrid.main,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
+dropdownbox.ColumnWidth = {'0.6x','1x','0.2x','0.6x'};
+uilabel('Parent',dropdownbox,...
+    'Text','Algorithm',...
+    'FontWeight','bold',...
+    'HorizontalAlign','left','VerticalAlign','center',...
+    'BackgroundColor',get(hPopup,'Color'));
+uidropdown('Parent',dropdownbox,...
+    'Tag','AlgorithmMenuPopup',...
+    'Items',esfitdata.AlgorithmNames,...
+    'ItemsData',1:numel(esfitdata.AlgorithmNames),...
+    'Value',Opt.AlgorithmID,...
+    'BackgroundColor','w',...
+    'ValueChangedFcn',@(src,evt) selectAlgorithm(src),...
+    'Tooltip','Fitting algorithm');
+b = uibutton('Parent',dropdownbox,...
+         'Tag','setAlgorithmDefaults',...
+         'Text','Set to defaults','Enable','on','ButtonPushedFcn',@(src,evt) updateAlgorithmDefaults,...
+         'Tooltip','Reset all parameters to the default');
+b.Layout.Column = 4;
+
+nparamsbox = uigridlayout(lgrid.main,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
+nparamsbox.ColumnWidth = {'1.2x','0.4x','0.4x','1x'};
+l = uilabel('Parent',nparamsbox,...
+    'Text','N',...
+    'FontWeight','bold',...
+    'HorizontalAlign','center','VerticalAlign','center',...
+    'BackgroundColor',get(hPopup,'Color'));
+l.Layout.Column = 2;
+uieditfield('numeric','Parent',nparamsbox,...
+        'Tag','nParamsField',...
+        'ToolTip','number of fitting parameters',...
+        'Value',esfitdata.nParameters,...
+        'Editable','off');
+
+tabs = uitabgroup(lgrid.main,'TabLocation','left','Tag','AlgorithmTabs');
+AlgorithmAbbrev{1} = 'simplex';
+AlgorithmAbbrev{2} = 'levmar';
+AlgorithmAbbrev{3} = 'montecarlo';
+AlgorithmAbbrev{4} = 'genetic';
+AlgorithmAbbrev{5} = 'grid';
+AlgorithmAbbrev{6} = 'swarm';
+for i = 1:(numel(esfitdata.AlgorithmNames)-1)
+  t(i) = uitab(tabs,'Title',AlgorithmAbbrev{i},'ToolTip',esfitdata.AlgorithmNames{i});
+  [FitOpt,info] = esfit_algdefaults(esfitdata.AlgorithmNames{i});
+  esfitdata.AlgorithmDefaults{i} = FitOpt;
+  setting = fieldnames(info);
+  tabgrid = uigridlayout(t(i),[7 2],'Padding',[1 1 1 1]*spacing/2,'RowSpacing',5,'ColumnSpacing',spacing);
+  tabgrid.RowHeight = [num2cell(repmat(hElement,1,numel(setting))),{'1x'}];
+  tabgrid.ColumnWidth = {'0.8x','1x'};
+  clear hsetting
+  for j = 1:numel(setting)
+    uilabel('Parent',tabgrid,...
+        'Text',setting{j},...
+        'FontWeight','bold',...
+        'HorizontalAlign','left','VerticalAlign','center',...
+        'BackgroundColor',get(hPopup,'Color'));
+    defaultpar = FitOpt.(setting{j});
+    if islogical(defaultpar)
+      hsetting(j) = uidropdown('Parent',tabgrid,...
+          'Items',{'true','false'},...
+          'ItemsData',[1 0],...
+          'ToolTip',info.(setting{j}),...
+          'BackgroundColor','w',...
+          'UserData',{setting{j},'logical'},...
+          'ValueChangedFcn',@(src,evt) changeAlgorithmSetting(src,evt));
+    elseif isnumeric(defaultpar) && numel(defaultpar)==1
+      hsetting(j) = uieditfield('Parent',tabgrid,...
+        'ToolTip',info.(setting{j}),...
+        'UserData',{setting{j},'num'},...
+        'ValueChangedFcn',@(src,evt) changeAlgorithmSetting(src,evt));
+    else
+      hsetting(j) = uieditfield('Parent',tabgrid,...
+        'ToolTip',info.(setting{j}),...
+        'UserData',{setting{j},'eval'},...
+        'ValueChangedFcn',@(src,evt) changeAlgorithmSetting(src,evt));
+    end
+  end
+  tabs.UserData{i} = hsetting;
+end
+updateAlgorithmDefaults()
+
+% Set callback for settings button to open popup menu
+settingsbutton = findobj(hFig,'Tag','AlgorithmSettingsButton');
+set(settingsbutton,'ButtonPushedFcn',@openAlgorithmSettings);
+
 set(hFig,'Visible','on')
 set(hFig,'NextPlot','new');
+set(hPopup,'NextPlot','new');
 
 end
 %===============================================================================
@@ -1591,6 +1702,7 @@ function startButtonCallback(~,~)
 
 global esfitdata
 hFig = findall(0,'Tag','esfitFigure');
+hPopup = findall(0,'Tag','algorithmpopup');
 
 switch get(findobj(hFig,'Tag','StartButton'),'Text')
   case 'Start fitting'
@@ -1610,6 +1722,7 @@ set(findobj(hFig,'Tag','SaveButton'),'Enable','off');
 % Disable other buttons
 set(findobj(hFig,'Tag','EvaluateButton'),'Enable','off');
 set(findobj(hFig,'Tag','ResetButton'),'Enable','off');
+set(findobj(hFig,'Tag','AlgorithmSettingsButton'),'Enable','off');
 
 % Disable listboxes
 set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','off');
@@ -1627,6 +1740,10 @@ set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','off');
 colEditable = get(findobj(hFig,'Tag','ParameterTable'),'UserData');
 set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',false(size(colEditable)));
 set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',[]);
+
+% Disable algorithm settings window
+set(findobj(hPopup,'Tag','AlgorithmMenuPopup'),'Enable','off');
+set(findobj(hPopup,'Tag','setAlgorithmDefaults'),'Enable','off');
 
 % Remove displayed best fit and uncertainties
 hTable = findobj(hFig,'Tag','ParameterTable');
@@ -1730,6 +1847,7 @@ set(findobj(hFig,'Tag','StartButton'),'Text','Start fitting');
 % Re-enable other buttons
 set(findobj(hFig,'Tag','EvaluateButton'),'Enable','on');
 set(findobj(hFig,'Tag','ResetButton'),'Enable','on');
+set(findobj(hFig,'Tag','AlgorithmSettingsButton'),'Enable','on');
 
 % Re-enable listboxes
 set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','on');
@@ -1753,6 +1871,10 @@ hAx = findobj(hFig,'Tag','dataaxes');
 hAx.ButtonDownFcn = @axesButtonDownFcn;
 set(findobj(hFig,'Tag','clearMaskButton'),'Enable','on');
 set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','on');
+
+% Re-enable algorithm settings window
+set(findobj(hPopup,'Tag','AlgorithmMenuPopup'),'Enable','on');
+set(findobj(hPopup,'Tag','setAlgorithmDefaults'),'Enable','on');
 
 end
 %===============================================================================
@@ -2578,6 +2700,190 @@ if contains(ME.stack(1).name,'esfit')
 else
   updateLogBox({'Simulation function error:',ME.message})
 end
+
+end
+%===============================================================================
+
+%===============================================================================
+function openAlgorithmSettings(~,~)
+% Callback for opening (closing) algorithm settings popup window
+
+global esfitdata
+hPopup = findall(0,'Tag','algorithmpopup');
+
+if strcmp(hPopup.Visible,'off')
+  tabs = findobj(hPopup,'Tag','AlgorithmTabs');
+  AlgorithmID = esfitdata.Opts.AlgorithmID;
+  if AlgorithmID<=numel(tabs.Children)
+    tabs.SelectedTab = tabs.Children(AlgorithmID);
+  end
+  set(findobj(hPopup,'Tag','nParamsField'),'Value',sum(~esfitdata.fixedParams));
+  set(hPopup,'Visible','on')
+elseif strcmp(hPopup.Visible,'on')
+  set(hPopup,'Visible','off');
+end
+
+end
+%===============================================================================
+
+%===============================================================================
+function selectAlgorithm(src)
+% Callback for selection of fitting algorithm
+
+global esfitdata
+
+hFig = findall(0,'Tag','esfitFigure');
+h(1) = findobj(hFig,'Tag','AlgorithmMenu');
+
+hPopup = findall(0,'Tag','algorithmpopup');
+h(2) = findobj(hPopup,'Tag','AlgorithmMenuPopup');
+tabs = findobj(hPopup,'Tag','AlgorithmTabs');
+
+% Update selection in main GUI window and algorithm settings popup
+if nargin==1
+  AlgorithmID = src.Value;
+  h(1).Value = AlgorithmID;
+  if AlgorithmID<=numel(tabs.Children)
+    h(2).Value = AlgorithmID;
+  end
+
+  if AlgorithmID<=numel(tabs.Children)
+    tabs.SelectedTab = tabs.Children(AlgorithmID);
+  end
+else
+  AlgorithmID = h(1).Value;
+end
+esfitdata.Opts.AlgorithmID = AlgorithmID;
+
+% Update the FitOpt structure
+N = esfitdata.nParameters; %#ok<NASGU> 
+
+if AlgorithmID<=numel(tabs.Children)
+  hsetting = tabs.UserData{AlgorithmID};
+  for i = 1:numel(hsetting)
+    setting = hsetting(i).UserData{1};
+    switch hsetting(i).UserData{2}
+      case 'num'
+        esfitdata.Opts.(setting) = str2double(hsetting(i).Value);
+      case 'logical'
+        esfitdata.Opts.(setting) = hsetting(i).Value;
+      case 'eval'
+        esfitdata.Opts.(setting) = eval(hsetting(i).Value);
+    end
+  end
+end
+
+end
+%===============================================================================
+
+%===============================================================================
+function updateAlgorithmDefaults()
+% Populate fit options settings popup with default options for all algorithms
+
+global esfitdata
+hPopup = findall(0,'Tag','algorithmpopup');
+tabs = findobj(hPopup,'Tag','AlgorithmTabs');
+nTabs = numel(tabs.UserData);
+
+nParams = esfitdata.nParameters;
+
+for i = 1:nTabs
+  hsetting = tabs.UserData{i};
+  FitOpt = esfitdata.AlgorithmDefaults{i};
+  for j = 1:numel(hsetting)
+    setting = hsetting(j).UserData{1};
+    switch hsetting(j).UserData{2}
+      case 'num'
+        hsetting(j).Value = num2str(FitOpt.(setting),'%g');
+      case 'logical'
+        hsetting(j).Value = FitOpt.(setting);
+      case 'eval'
+        switch setting
+          case 'SimplexPars'
+            if nParams>2
+              hsetting(j).Value = '[1, 1+2/N, 0.75-1/(2*N), 1-1/N]';
+            else
+              hsetting(j).Value = '[1, 2, 0.5, 0.5]';
+            end
+          case 'EliteCount'
+            hsetting(j).Value = num2str(max(2,ceil(0.1*FitOpt.PopulationSize)),'%i');
+          case 'nParticles'
+            hsetting(j).Value = '20 + N*10';
+          case 'SwarmParams'
+            hsetting(j).Value = sprintf('[%g, %g, %g, %g]',FitOpt.(setting));
+        end
+    end
+  end
+
+end
+
+% Update current FitOpt structure
+selectAlgorithm();
+
+end
+%===============================================================================
+
+%===============================================================================
+function changeAlgorithmSetting(src,evt)
+% Callback for changed fit options setting
+
+global esfitdata
+N = esfitdata.nParameters; %#ok<NASGU> % needed to eval() expressions
+
+setting = src.UserData{1};
+
+% Check that entered expression evaluates without errors
+newvalue = evt.Value;
+oldvalue = evt.PreviousValue;
+if strcmp(src.UserData{2},'eval') || strcmp(src.UserData{2},'num')
+  try
+    tmp = eval(newvalue); 
+    if strcmp(src.UserData{2},'num')
+      newvalue = tmp;
+      src.Value = num2str(newvalue,'%g');
+    else
+      src.Value = newvalue;
+    end
+  catch ME
+    % reset to old value in case of errors
+    updateLogBox({strrep(ME.message,'Error:',sprintf('Error setting algorithm option %s:',setting))});
+    src.Value = oldvalue;
+  end
+end
+
+% Update FitOpt structure for selected algorithm
+hFig = findall(0,'Tag','esfitFigure');
+AlgorithmID = get(findobj(hFig,'Tag','AlgorithmMenu'),'Value');
+
+hPopup = findall(0,'Tag','algorithmpopup');
+tabs = findobj(hPopup,'Tag','AlgorithmTabs');
+IDselected = find(tabs.Children==tabs.SelectedTab);
+
+if IDselected==AlgorithmID
+  switch src.UserData{2}
+    case 'num'
+      esfitdata.Opts.(setting) = str2double(src.Value);
+    case 'logical'
+      esfitdata.Opts.(setting) = src.Value;
+    case 'eval'
+      esfitdata.Opts.(setting) = eval(src.Value);
+  end
+end
+
+end
+%===============================================================================
+
+%===============================================================================
+function closeGUI(~,~)
+% Callback to close GUI
+
+global esfitdata;
+esfitdata.UserCommand = 99;
+drawnow;
+hPopup = findall(0,'Tag','algorithmpopup');
+delete(hPopup);
+hFig = findall(0,'Tag','esfitFigure');
+delete(hFig);
 
 end
 %===============================================================================
