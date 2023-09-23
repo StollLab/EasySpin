@@ -1,6 +1,6 @@
 % Fitting the spectrum vs fitting its integral
 
-clear, clf, clc
+clear, clc
 
 % This example illustrates how important it is to use good
 % starting values and to tell esfit whether to fit the

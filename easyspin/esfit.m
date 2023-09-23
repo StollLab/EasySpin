@@ -73,6 +73,13 @@ function result = esfit(data,fcn,p0,varargin)
 
 if nargin==0, help(mfilename); return; end
 
+% Start legacy version if GUI is requested with Matlab <R2021b
+if verLessThan('Matlab','9.11') && nargout==0
+  warning('Your Matlab version (<R2021b) does not support the newest version of the esfit GUI. Switching to legacy version.')
+  esfit_legacy(data,fcn,p0,varargin{:})
+  return;
+end
+
 % Check expiry date
 error(eschecker);
 
@@ -1258,15 +1265,16 @@ for p = 1:numel(esfitdata.pinfo)
   data{p,10} = '-';
   data{p,11} = '-';
 end
+columnwidths = {hElement,hElement,'auto','auto','auto','auto','auto','auto','auto','auto','auto'};
 hParamTable = uitable('Parent',lgrid.params,'Tag','ParameterTable',...
                       'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
                       'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
                       'CellEditCallback',@tableCellEditCallback,...
-                      'ColumnWidth',{hElement,hElement,'1x','1x','1x','1x','1x','1x','1x','1x','1x'},...
+                      'ColumnWidth',columnwidths,...
                       'Data',data,...
                       'UserData',colEditable);
 hParamTable.Layout.Row = 2;
-if ~verLessThan('Matlab','9.7')
+if ~verLessThan('Matlab','9.13')
   s = uistyle('Interpreter','html');
   addStyle(hParamTable,s);
 end
@@ -1413,20 +1421,17 @@ uilabel('Parent',lgrid.fitsets,'Tag','SetListTitle',...
 columnname = {'ID','rmsd','scale','baseline',''};
 columnformat = {'char','char','char','char','char'};
 colEditable = [false false false false false];
+columnwidths = {1.5*hElement,'auto','auto','auto','auto'};
 hFitSetTable = uitable('Parent',lgrid.fitsets,'Tag','FitSetTable',...
                       'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
                       'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
-                      'ColumnWidth',{1.5*hElement,'1x','1x','1x','1x'},...
+                      'ColumnWidth',columnwidths,...
+                      'ColumnSortable',true,...
                       'Data',[],...
-                      'SelectionChangedFcn',@setListCallback,...
-                      'Enable','on',...
-                      'KeyPressFcn',@deleteSetListKeyPressFcn);
-if ~verLessThan('matlab','9.11')  % 9.11 = R2021b
-  hFitSetTable.SelectionType = 'row';
-end
-if ~verLessThan('matlab','9.7')  % 9.7 = R2019b
-  hFitSetTable.ColumnSortable = true;
-end
+                      'SelectionType','row',...
+                      'CellSelectionCallback',@setListCallback,...
+                      'KeyPressFcn',@deleteSetListKeyPressFcn,...
+                      'Enable','on');
 fitsetbuttonbox = uigridlayout(lgrid.fitsets,[1 5],'Padding',[0 0 0 0],'ColumnSpacing',0);
 fitsetbuttonbox.ColumnWidth = {2*hElement,'1x','1x','1x',2*hElement};
 h(1) = uibutton('Parent',fitsetbuttonbox,'Tag','selectStartPointButtonSelected',...
@@ -1471,12 +1476,12 @@ h = plot(hAx,1,NaN,'.');
 set(h,'Tag','rmsdline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
 set(hAx,'box','on','YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
 
-uilabel('Parent',lgrid.rmsdplot,'Tag','logLine',...
-        'Text','','WordWrap','on',...
+l = uilabel('Parent',lgrid.rmsdplot,'Tag','logLine',...
+        'Text','',...
+        'WordWrap','on',...
         'FontSize',fontsizetbl,...
         'Tooltip','Information from fitting algorithm',...
         'HorizontalAl','left','VerticalAl','center');
-
 
 % Error log panel
 %-------------------------------------------------------------------------------
@@ -1498,27 +1503,14 @@ uibutton('Parent',logtitlebox,'Tag','copyLogButton',...
 
 hLogBox = uitextarea('Parent',lgrid.log,'Tag','LogBox',...
     'Value',{''},'Tooltip','',...
+    'WordWrap','on',...
     'FontSize',fontsizetbl,...
-    'WordWrap','on','Editable','off',...
+    'Editable','off',...
     'BackgroundColor',[1 1 1]);
 
 copymenu = uicontextmenu(hFig);
-
-% Before R2017b (9.3), uimenu used Label instead of Text
-if verLessThan('Matlab','9.3')
-  menuTextProperty = 'Label';
-else
-  menuTextProperty = 'Text';
-end
-uimenu(copymenu,menuTextProperty,'Copy to clipboard','Callback',@copyLog);
-
-% Before R2020a (9.8), uicontrol used UIContextMenu instead of ContextMenu
-if verLessThan('Matlab','9.8')
-  hLogBox.UIContextMenu = copymenu;
-else
-  hLogBox.ContextMenu = copymenu;
-end
-
+uimenu(copymenu,'Text','Copy to clipboard','Callback',@copyLog);
+hLogBox.ContextMenu = copymenu;
 drawnow
 
 % Algorithm settings pop-up figure
@@ -1974,6 +1966,8 @@ updateaxislimits()
 
 % Readjust mask patches
 maskPatches = findobj(hFig,'Tag','maskPatch');
+hAx = findobj(hFig,'Tag','dataaxes');
+YLimits = get(hAx,'YLim');
 for mp = 1:numel(maskPatches)
   maskPatches(mp).YData = YLimits([1 1 2 2]).';
 end
@@ -2000,6 +1994,9 @@ for p = 1:nParams
   % Indicate parameters have hit limit
   if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
     str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
+  end
+  if verLessThan('Matlab','9.13') % 9.13 = 2022b
+    str = striphtml(str);
   end
   data{p,7} = str;
 end
@@ -2029,6 +2026,9 @@ if info.newbest
       end
     else
       str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+    end
+    if verLessThan('Matlab','9.13') % 9.13 = 2022b
+      str = striphtml(str);
     end
     data{p,8} = str;
   end
@@ -2172,7 +2172,7 @@ for k = 1:nSets
 end
 set(h,'Data',data);
 if idx>0, set(h,'Selection',idx); end
-if idx==-1, set(h,'Selection',nSets); end
+if idx==-1, set(h,'Selection',nSets); end % R2021b onwards
 
 if nSets>0, state = 'on'; else, state = 'off'; end
 set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable',state);
@@ -2589,13 +2589,7 @@ esfitdata.besthistory.rmsd = [];
 esfitdata.besthistory.par = [];
 
 % Readjust vertical range
-mask = esfitdata.Opts.mask;
-expdata = esfitdata.data(:);
-maxy = max(expdata(mask));
-miny = min(expdata(mask));
-YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-hFig = findall(0,'Tag','esfitFigure');
-set(findobj(hFig,'Tag','dataaxes'),'YLim',YLimits);
+updateaxislimits()
 drawnow
 
 end
