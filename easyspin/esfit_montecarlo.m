@@ -1,4 +1,4 @@
-% esfit_montecarl   Monte Carlo algorithm for least-squares fitting
+% esfit_montecarlo   Monte Carlo algorithm for least-squares fitting
 %
 %    x = esfit_montecarlo(fcn,lb,ub,FitOpt)
 %
@@ -13,26 +13,15 @@
 
 function [bestx,info] = esfit_montecarlo(fcn,lb,ub,FitOpt)
 
+if nargin==0, help(mfilename); return; end
 if nargin<3
   error('At least 3 inputs expected (function, lb, ub).');
 end
-if nargin<4
-  FitOpt = struct;
-end
+if nargin==3, FitOpt = struct; end
 
-if ~isfield(FitOpt,'nTrials'); FitOpt.nTrials = 20000; end
-if ~isfield(FitOpt,'Verbosity'); FitOpt.Verbosity = 1; end
-if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
-if ~isfield(FitOpt,'IterationPrintFunction') || ...
-  isempty(FitOpt.IterationPrintFunction)
-  FitOpt.IterationPrintFunction = @(str)str;
-end
-if ~isfield(FitOpt,'InfoPrintFunction') || ...
-  isempty(FitOpt.InfoPrintFunction)
-  FitOpt.InfoPrintFunction = @(str)str;
-end
-if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
+% Set options
+DefOpt = esfit_algdefaults('Monte Carlo');
+FitOpt = adddefaults(FitOpt,DefOpt);
 
 lb = lb(:);
 ub = ub(:);

@@ -308,6 +308,10 @@ end
 
 % Options
 %===============================================================================
+if ~isfield(Opt,'Verbosity')
+  Opt.Verbosity = 1;
+end
+
 if isfield(Opt,'Scaling')
   error('Fitting option Opt.Scaling has been replaced by Opt.AutoScale.');
 end
@@ -433,8 +437,6 @@ end
 esfitdata.BaseLineSettings = {-1, 0, 1, 2, 3};
 esfitdata.BaseLineStrings = {'none', 'offset', 'linear', 'quadratic', 'cubic'};
 
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
-
 % Weights for global fitting
 if ~isfield(Opt,'weights')
   Opt.weights = ones(1,esfitdata.nDataSets);
@@ -449,15 +451,6 @@ for i = 1:numel(data)
   weights(idx) = Opt.weights(i);
 end
 esfitdata.weights = weights;
-
-% Algorithm parameters (defaults for different algorithms set within corresponding file)
-if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
-if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
-
-% Grid search parameters
-if ~isfield(Opt,'GridSize'), Opt.GridSize = 7; end
-if ~isfield(Opt,'maxGridPoints'), Opt.maxGridPoints = 1e5; end
-if ~isfield(Opt,'randomizeGrid'), Opt.randomizeGrid = true; end
 
 % x axis for plotting
 if ~isfield(Opt,'x')
@@ -593,7 +586,6 @@ if nActiveParams>0
     case 1 % Nelder-Mead simplex
       pfit_active = esfit_simplex(rmsdfun,p0_active,lb_active,ub_active,fitOpt);
     case 2 % Levenberg-Marquardt
-      fitOpt.Gradient = fitOpt.TolFun;
       pfit_active = esfit_levmar(residualfun,p0_active,lb_active,ub_active,fitOpt);
     case 3 % Monte Carlo
       pfit_active = esfit_montecarlo(rmsdfun,lb_active,ub_active,fitOpt);
