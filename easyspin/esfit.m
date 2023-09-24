@@ -485,6 +485,8 @@ interactiveMode = nargout==0;
 Opt.InfoPrintFunction = @(str) infoprint(str,interactiveMode);
 esfitdata.Opts = Opt;
 if interactiveMode
+  global gui %#ok<TLEV> 
+  gui = struct;  % initialize
   if esfitdata.nDataSets>1
     error('The esfit GUI currently does not support global fitting.')
   end
@@ -498,6 +500,7 @@ hFig = findall(0,'Tag','esfitFigure');
 if ~isempty(hFig)
   close(hFig);
   clear hFig
+  clear global gui
   esfitdata.UserCommand = 0;
 end
 
@@ -523,6 +526,7 @@ end
 result = runFitting();
 
 clear global esfitdata
+clear global gui
 
 end
 
@@ -537,7 +541,7 @@ function result = runFitting(useGUI)
 
 if nargin<1, useGUI = false; end
 
-global esfitdata
+global esfitdata gui
 data_ = esfitdata.data;
 fixedParams = esfitdata.fixedParams;
 activeParams = ~fixedParams;
@@ -570,8 +574,7 @@ if nActiveParams>0
   if Verbosity>=1
     msg = sprintf('Running optimization algorithm with %d active parameters...',nActiveParams);
     if useGUI
-      hPopup = findall(0,'Tag','algorithmpopup');
-      set(findobj(hPopup,'Tag','nParamsField'),'Value',nActiveParams);
+      set(gui.nParamsField,'Value',nActiveParams);
       updateLogBox(msg)
     else
       disp(msg);
@@ -1103,11 +1106,12 @@ end
 %===============================================================================
 function setupGUI(data)
 
+global esfitdata gui
+
 if iscell(data)
   data = data{1};
 end
 
-global esfitdata
 Opt = esfitdata.Opts;
 
 % Main figure
@@ -1122,11 +1126,11 @@ if ~isempty(hPopup)
   delete(hPopup);
   clear hPopup
 end
-hFig = uifigure('Tag','esfitFigure');%,'WindowStyle','normal');
-if ~strcmp(hFig.WindowStyle,'normal')
-  hFig.WindowStyle = 'normal';
+gui.Fig = uifigure('Tag','esfitFigure');
+if ~strcmp(gui.Fig.WindowStyle,'normal')
+  gui.Fig.WindowStyle = 'normal';
 end
-set(hFig,'Visible','off')
+set(gui.Fig,'Visible','off')
 
 sz = [1330 800]; % figure size
 screensize = get(0,'ScreenSize');
@@ -1137,11 +1141,11 @@ end
 sz = sz*scalefact;
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
-set(hFig,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
-set(hFig,'MenuBar','none');
-% set(hFig,'Resize','off');
-set(hFig,'Name','esfit - Least-Squares Fitting','NumberTitle','off');
-set(hFig,'CloseRequestFcn',@closeGUI);
+set(gui.Fig,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
+set(gui.Fig,'MenuBar','none');
+% set(gui.Fig,'Resize','off');
+set(gui.Fig,'Name','esfit - Least-Squares Fitting','NumberTitle','off');
+set(gui.Fig,'CloseRequestFcn',@closeGUI);
   
 spacing = 20*scalefact;
 hPtop = 180*scalefact;
@@ -1151,7 +1155,7 @@ fontsizetbl = 11;
 
 % Set up grid layout
 %-------------------------------------------------------------------------------
-lgrid.main = uigridlayout(hFig,[1 2],'Padding',[1 1 1 1]*spacing,'ColumnSpacing',spacing);
+lgrid.main = uigridlayout(gui.Fig,[1 2],'Padding',[1 1 1 1]*spacing,'ColumnSpacing',spacing);
 lgrid.main.ColumnWidth = {'7x','3x'};
 
 % left panel: parameter table and plot
@@ -1168,7 +1172,7 @@ lgrid.right.RowHeight = {hPtop,'1x','1x','1x'};
 % Axes
 %-------------------------------------------------------------------------------
 % Data display
-hAx = uiaxes('Parent',lgrid.plot,'Tag','dataaxes','Layer','top');
+gui.dataaxes = uiaxes('Parent',lgrid.plot,'Layer','top');
 
 NaNdata = NaN(1,numel(data));
 mask = esfitdata.Opts.mask;
@@ -1180,28 +1184,22 @@ minx = min(esfitdata.Opts.x);
 maxx = max(esfitdata.Opts.x);
 x = esfitdata.Opts.x;
 
-h(1) = line(hAx,x,NaNdata,'Color',[1 1 1]*0.65);
-h(2) = line(hAx,x,NaNdata,'Color','k','Marker','.','LineStyle','none');
-h(3) = line(hAx,x,NaNdata,'Color','r');
-h(4) = line(hAx,x,NaNdata,'Color',[0 0.6 0]);
-set(h(1),'Tag','baselinedata');
-set(h(1),'Visible','off');
-set(h(2),'Tag','expdata','XData',esfitdata.Opts.x,'YData',dispData);
-set(h(3),'Tag','currsimdata');
-set(h(4),'Tag','bestsimdata');
-hAx.XLim = [minx maxx];
-hAx.YLim = YLimits;
-hAx.ButtonDownFcn = @axesButtonDownFcn;
-grid(hAx,'on');
-box(hAx,'on')
-set(hAx,'XTickLabel',{})
+gui.baselinedata = line(gui.dataaxes,x,NaNdata,'Color',[1 1 1]*0.65,'Visible','off');
+gui.expdata = line(gui.dataaxes,x,NaNdata,'Color','k','Marker','.','LineStyle','none');
+set(gui.expdata,'XData',esfitdata.Opts.x,'YData',dispData);
+gui.currsimdata = line(gui.dataaxes,x,NaNdata,'Color','r');
+gui.bestsimdata = line(gui.dataaxes,x,NaNdata,'Color',[0 0.6 0]);
+gui.dataaxes.XLim = [minx maxx];
+gui.dataaxes.YLim = YLimits;
+gui.dataaxes.ButtonDownFcn = @axesButtonDownFcn;
+grid(gui.dataaxes,'on');
+box(gui.dataaxes,'on')
+set(gui.dataaxes,'XTickLabel',{})
 
-h(5) = yline(hAx,mean(dispData)-max(abs(dispData)));
-set(h(5),'Tag','residualzero');
-h(6) = line(hAx,x,NaNdata,'Color',[1 1 1]*0.65,'Marker','.','LineStyle','none');
-set(h(6),'Tag','residualdata');
-set(h(5),'Visible','off')
-set(h(6),'Visible','off')
+gui.residualzero = yline(gui.dataaxes,mean(dispData)-max(abs(dispData)));
+gui.residualdata = line(gui.dataaxes,x,NaNdata,'Color',[1 1 1]*0.65,'Marker','.','LineStyle','none');
+set(gui.residualzero,'Visible','off')
+set(gui.residualdata,'Visible','off')
 
 showmaskedregions();
 
@@ -1212,38 +1210,38 @@ lgrid.parbanner.ColumnWidth = {'0.5x','1x','0.25x','1x'};
 lgrid.parbanner.Layout.Row = 1;
 uilabel('Parent',lgrid.parbanner,...
         'Text','Parameters',...
-        'BackgroundColor',get(hFig,'Color'),...
+        'BackgroundColor',get(gui.Fig,'Color'),...
         'FontWeight','bold',...
         'HorizontalAl','left','VerticalAl','center');
 
 startpointbox = uigridlayout(lgrid.parbanner,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
 uilabel('Parent',startpointbox,...
-    'BackgroundColor',get(hFig,'Color'),...
+    'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','Start point:',...
     'HorizontalAl','left','VerticalAl','center');
-uibutton('Parent',startpointbox,'Tag','selectStartPointButtonCenter',...
+gui.selectStartPointButtonCenter = uibutton('Parent',startpointbox,...
     'Text','center','Enable','on','ButtonPushedFcn',@(src,evt) setStartPoint('center'),...
     'Tooltip','Set start values to center of range');
-uibutton('Parent',startpointbox,'Tag','selectStartPointButtonRandom',...
+gui.selectStartPointButtonRandom = uibutton('Parent',startpointbox,...
     'Text','random','Enable','on','ButtonPushedFcn',@(src,evt) setStartPoint('random'),...
     'Tooltip','Set random start values');
-uibutton('Parent',startpointbox,'Tag','selectStartPointButtonBest',...
+gui.selectStartPointButtonBest = uibutton('Parent',startpointbox,...
     'Text','best','Enable','on','ButtonPushedFcn',@(src,evt) setStartPoint('best'),...
     'Tooltip','Set start values to current best fit');
   
 selectbox = uigridlayout(lgrid.parbanner,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
 selectbox.Layout.Column = 4;
 uilabel('Parent',selectbox,...
-    'BackgroundColor',get(hFig,'Color'),...
+    'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','Selection:',...
     'HorizontalAl','left','VerticalAl','center');
-uibutton('Parent',selectbox,'Tag','selectInvButton',...
+gui.selectInvButton = uibutton('Parent',selectbox,...
     'Text','invert','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('invert'),...
     'Tooltip','Invert selection of parameters');
-uibutton('Parent',selectbox,'Tag','selectAllButton',...
+gui.selectAllButton = uibutton('Parent',selectbox,...
     'Text','all','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('all'),...
     'Tooltip','Select all parameters');
-uibutton('Parent',selectbox,'Tag','selectNoneButton',...
+gui.selectNoneButton = uibutton('Parent',selectbox,...
     'Text','none','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('none'),...
     'Tooltip','Unselect all parameters');
 
@@ -1266,17 +1264,17 @@ for p = 1:numel(esfitdata.pinfo)
   data{p,11} = '-';
 end
 columnwidths = {hElement,hElement,'auto','auto','auto','auto','auto','auto','auto','auto','auto'};
-hParamTable = uitable('Parent',lgrid.params,'Tag','ParameterTable',...
-                      'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
-                      'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
-                      'CellEditCallback',@tableCellEditCallback,...
-                      'ColumnWidth',columnwidths,...
-                      'Data',data,...
-                      'UserData',colEditable);
-hParamTable.Layout.Row = 2;
+gui.ParameterTable = uitable('Parent',lgrid.params,...
+                             'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
+                             'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
+                             'CellEditCallback',@tableCellEditCallback,...
+                             'ColumnWidth',columnwidths,...
+                             'Data',data,...
+                             'UserData',colEditable);
+gui.ParameterTable.Layout.Row = 2;
 if ~verLessThan('Matlab','9.13')
   s = uistyle('Interpreter','html');
-  addStyle(hParamTable,s);
+  addStyle(gui.ParameterTable,s);
 end
 
 % FitOption selection
@@ -1294,17 +1292,17 @@ uilabel('Parent',fitoptbox1,...
     'Tooltip','Name of simulation function',...
     'FontWeight','bold',...
     'HorizontalAl','left','VerticalAl','center',...
-    'BackgroundColor',get(hFig,'Color'));
+    'BackgroundColor',get(gui.Fig,'Color'));
 uilabel('Parent',fitoptbox1,...
     'Text',esfitdata.fcnName,...
     'FontColor','b',...
     'Tooltip',sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument),...
     'HorizontalAl','left','VerticalAl','center',...
-    'BackgroundColor',get(hFig,'Color'));
-uibutton('Parent',fitoptbox1,'Tag','AlgorithmSettingsButton',...
-         'Text','','Tooltip','Set fitting algorithm options',...
-         'Icon','private/settingsicon.png','IconAlignment','center',...
-         'Enable','on');
+    'BackgroundColor',get(gui.Fig,'Color'));
+gui.AlgorithmSettingsButton = uibutton('Parent',fitoptbox1,...
+                                       'Text','','Tooltip','Set fitting algorithm options',...
+                                       'Icon','private/settingsicon.png','IconAlignment','center',...
+                                       'Enable','on');
 
 fitoptbox2 = uigridlayout(fitoptbox0,[4 2],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
 fitoptbox2.ColumnWidth = {'0.6x','1x'};
@@ -1312,67 +1310,63 @@ uilabel('Parent',fitoptbox2,...
     'Text','Algorithm',...
     'FontWeight','bold',...
     'HorizontalAlign','left','VerticalAlign','center',...
-    'BackgroundColor',get(hFig,'Color'));
-uidropdown('Parent',fitoptbox2,...
-    'Tag','AlgorithmMenu',...
-    'Items',esfitdata.AlgorithmNames,...
-    'ItemsData',1:numel(esfitdata.AlgorithmNames),...
-    'Value',Opt.AlgorithmID,...
-    'BackgroundColor','w',...
-    'ValueChangedFcn',@(src,evt) selectAlgorithm(src),...
-    'Tooltip','Fitting algorithm');
+    'BackgroundColor',get(gui.Fig,'Color'));
+gui.AlgorithmMenu = uidropdown('Parent',fitoptbox2,...
+                               'Items',esfitdata.AlgorithmNames,...
+                               'ItemsData',1:numel(esfitdata.AlgorithmNames),...
+                               'Value',Opt.AlgorithmID,...
+                               'BackgroundColor','w',...
+                               'ValueChangedFcn',@(src,evt) selectAlgorithm(src),...
+                               'Tooltip','Fitting algorithm');
 
 uilabel('Parent',fitoptbox2,...
     'Text','Target',...
     'FontWeight','bold',...
     'HorizontalAlign','left','VerticalAlign','center',...
-    'BackgroundColor',get(hFig,'Color'));
-uidropdown('Parent',fitoptbox2,...
-    'Tag','TargetMenu',...
-    'Items',esfitdata.TargetNames,...
-    'ItemsData',1:numel(esfitdata.TargetNames),...
-    'Value',Opt.TargetID,...
-    'BackgroundColor','w',...
-    'Tooltip','Target function');
+    'BackgroundColor',get(gui.Fig,'Color'));
+gui.TargetMenu = uidropdown('Parent',fitoptbox2,...
+                            'Items',esfitdata.TargetNames,...
+                            'ItemsData',1:numel(esfitdata.TargetNames),...
+                            'Value',Opt.TargetID,...
+                            'BackgroundColor','w',...
+                            'Tooltip','Target function');
 
 uilabel('Parent',fitoptbox2,...
     'Text','AutoScale',...
     'FontWeight','bold',...
     'HorizontalAlign','left','VerticalAlign','center',...
-    'BackgroundColor',get(hFig,'Color'));
-uidropdown('Parent',fitoptbox2,...
-    'Tag','AutoScaleMenu',...
-    'Items',esfitdata.AutoScaleStrings,...
-    'ItemsData',esfitdata.AutoScaleSettings,...
-    'Value',esfitdata.Opts.AutoScaleID,...
-    'BackgroundColor','w',...
-    'Tooltip','Autoscaling');
+    'BackgroundColor',get(gui.Fig,'Color'));
+gui.AutoScaleMenu = uidropdown('Parent',fitoptbox2,...
+                               'Items',esfitdata.AutoScaleStrings,...
+                               'ItemsData',esfitdata.AutoScaleSettings,...
+                               'Value',esfitdata.Opts.AutoScaleID,...
+                               'BackgroundColor','w',...
+                               'Tooltip','Autoscaling');
 
 uilabel('Parent',fitoptbox2,...
     'Text','BaseLine',...
     'FontWeight','bold',...
     'HorizontalAlign','left','VerticalAlign','center',...
-    'BackgroundColor',get(hFig,'Color'));
-uidropdown('Parent',fitoptbox2,...
-    'Tag','BaseLineMenu',...
-    'Items',esfitdata.BaseLineStrings,...
-    'ItemsData',esfitdata.BaseLineSettings,...
-    'Value',esfitdata.BaseLine,...
-    'BackgroundColor','w',...
-    'Tooltip','Baseline fitting');
+    'BackgroundColor',get(gui.Fig,'Color'));
+gui.BaseLineMenu = uidropdown('Parent',fitoptbox2,...
+                              'Items',esfitdata.BaseLineStrings,...
+                              'ItemsData',esfitdata.BaseLineSettings,...
+                              'Value',esfitdata.BaseLine,...
+                              'BackgroundColor','w',...
+                              'Tooltip','Baseline fitting');
 
 fitoptbox3 = uigridlayout(fitoptbox0,[2 2],'Padding',[0 0 0 0],'ColumnSpacing',5,'RowSpacing',5);
-uicheckbox('Parent',fitoptbox3,'Tag','BaselineCheckbox',...
+gui.BaselineCheckbox = uicheckbox('Parent',fitoptbox3,...
            'Text','plot baseline','Tooltip','Plot baseline on top of data',...
            'Value',0,'ValueChangedFcn',@showbaseline);
-uicheckbox('Parent',fitoptbox3,'Tag','ResidualCheckbox',...
+gui.ResidualCheckbox = uicheckbox('Parent',fitoptbox3,...
            'Text','plot residuals','Tooltip','Plot residuals',...
            'Value',0,'ValueChangedFcn',@showresiduals);
 
-uicheckbox('Parent',fitoptbox3,'Tag','MaskCheckbox',...
+gui.MaskCheckbox = uicheckbox('Parent',fitoptbox3,...
            'Text','use mask','Tooltip','Use mask with excluded regions',...
            'Value',1);
-uibutton('Parent',fitoptbox3,'Tag','SaveButton',...
+gui.clearMaskButton = uibutton('Parent',fitoptbox3,...
          'Text','clear mask','Tooltip','Clear mask',...
          'Enable','on',...
          'ButtonPushedFcn',@clearMaskCallback);
@@ -1381,38 +1375,34 @@ uibutton('Parent',fitoptbox3,'Tag','SaveButton',...
 %--------------------------------------------------------------------------
 fitctrlbox = uigridlayout(lgrid.fitcontrol,[4 1],'Padding',[0 0 0 0],'RowSpacing',0);
 fitctrlbox.RowHeight = {'2x','1x','1x','1x'};
-uibutton('Parent',fitctrlbox,...
-    'Tag','StartButton',...
-    'Text','Start fitting',...
-    'ButtonPushedFcn',@startButtonCallback,...
-    'Visible','on',...
-    'Tooltip','Start fitting');
-uibutton('Parent',fitctrlbox,...
-    'Tag','SaveButton',...
-    'Text','Save parameter set',...
-    'ButtonPushedFcn',@saveFitsetCallback,...
-    'Enable','off',...
-    'Tooltip','Save latest fitting result');
-uibutton('Parent',fitctrlbox,...
-    'Tag','EvaluateButton',...
-    'Text','Evaluate at start point',...
-    'ButtonPushedFcn',@evaluateCallback,...
-    'Enable','on',...
-    'Tooltip','Run simulation for current start parameters');
-uibutton('Parent',fitctrlbox,...
-    'Tag','ResetButton',...
-    'Text','Reset',...
-    'ButtonPushedFcn',@resetCallback,...
-    'Enable','on',...
-    'Tooltip','Clear fit history');
+gui.StartButton = uibutton('Parent',fitctrlbox,...
+                           'Text','Start fitting',...
+                           'ButtonPushedFcn',@startButtonCallback,...
+                           'Visible','on',...
+                           'Tooltip','Start fitting');
+gui.SaveButton = uibutton('Parent',fitctrlbox,...
+                          'Text','Save parameter set',...
+                          'ButtonPushedFcn',@saveFitsetCallback,...
+                          'Enable','off',...
+                          'Tooltip','Save latest fitting result');
+gui.EvaluateButton = uibutton('Parent',fitctrlbox,...
+                              'Text','Evaluate at start point',...
+                              'ButtonPushedFcn',@evaluateCallback,...
+                              'Enable','on',...
+                              'Tooltip','Run simulation for current start parameters');
+gui.ResetButton = uibutton('Parent',fitctrlbox,...
+                           'Text','Reset',...
+                           'ButtonPushedFcn',@resetCallback,...
+                           'Enable','on',...
+                           'Tooltip','Clear fit history');
 
 % Fitset list
 %-------------------------------------------------------------------------------
 lgrid.fitsets = uigridlayout(lgrid.right,[2 1],'Padding',[0 0 0 0],'RowSpacing',5);
 lgrid.fitsets.RowHeight = {hElement,'1x',hElement};
 
-uilabel('Parent',lgrid.fitsets,'Tag','SetListTitle',...
-    'BackgroundColor',get(hFig,'Color'),...
+uilabel('Parent',lgrid.fitsets,...
+    'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','Fit parameter sets',...
     'Tooltip','List of stored fit parameter sets',...
     'HorizontalAl','left','VerticalAl','top');
@@ -1422,33 +1412,33 @@ columnname = {'ID','rmsd','scale','baseline',''};
 columnformat = {'char','char','char','char','char'};
 colEditable = [false false false false false];
 columnwidths = {1.5*hElement,'auto','auto','auto','auto'};
-hFitSetTable = uitable('Parent',lgrid.fitsets,'Tag','FitSetTable',...
-                      'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
-                      'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
-                      'ColumnWidth',columnwidths,...
-                      'ColumnSortable',true,...
-                      'Data',[],...
-                      'SelectionType','row',...
-                      'CellSelectionCallback',@setListCallback,...
-                      'KeyPressFcn',@deleteSetListKeyPressFcn,...
-                      'Enable','on');
+gui.FitSetTable = uitable('Parent',lgrid.fitsets,...
+                          'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
+                          'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
+                          'ColumnWidth',columnwidths,...
+                          'ColumnSortable',true,...
+                          'Data',[],...
+                          'SelectionType','row',...
+                          'CellSelectionCallback',@setListCallback,...
+                          'KeyPressFcn',@deleteSetListKeyPressFcn,...
+                          'Enable','on');
 fitsetbuttonbox = uigridlayout(lgrid.fitsets,[1 5],'Padding',[0 0 0 0],'ColumnSpacing',0);
 fitsetbuttonbox.ColumnWidth = {2*hElement,'1x','1x','1x',2*hElement};
-h(1) = uibutton('Parent',fitsetbuttonbox,'Tag','selectStartPointButtonSelected',...
-    'Text','set as start',...
-    'Tooltip','Set as start point for fitting','Enable','off',...
-    'ButtonPushedFcn',@(src,evt) setStartPoint('selected'));
-h(1).Layout.Column = 2;
-h(2) = uibutton('Parent',fitsetbuttonbox,'Tag','exportSetButton',...
+gui.selectStartPointButtonSelected = uibutton('Parent',fitsetbuttonbox,...
+                                              'Text','set as start',...
+                                              'Tooltip','Set as start point for fitting','Enable','off',...
+                                              'ButtonPushedFcn',@(src,evt) setStartPoint('selected'));
+gui.selectStartPointButtonSelected.Layout.Column = 2;
+gui.exportSetButton = uibutton('Parent',fitsetbuttonbox,...
     'Text','export',...
     'Tooltip','Export fit set to workspace','Enable','off',...
     'ButtonPushedFcn',@exportSetButtonCallback);
-h(2).Layout.Column = 3;
-h(3) = uibutton('Parent',fitsetbuttonbox,'Tag','deleteSetButton',...
+gui.exportSetButton.Layout.Column = 3;
+gui.deleteSetButton = uibutton('Parent',fitsetbuttonbox,...
     'Text','delete',...
     'Tooltip','Delete fit set','Enable','off',...
     'ButtonPushedFcn',@deleteSetButtonCallback);
-h(3).Layout.Column = 4;
+gui.deleteSetButton.Layout.Column = 4;
 
 % Iteration and rmsd history displays
 %-------------------------------------------------------------------------------
@@ -1456,32 +1446,31 @@ lgrid.rmsdplot = uigridlayout(lgrid.right,[4 1],'Padding',[0 0 0 0],'RowSpacing'
 lgrid.rmsdplot.RowHeight = {hElement,hElement,'1x',hElement};
 
 uilabel('Parent',lgrid.rmsdplot,...
-    'BackgroundColor',get(hFig,'Color'),...
+    'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','RMSD history',...
     'HorizontalAl','left','VerticalAl','center');
 
 rmsdinfobox = uigridlayout(lgrid.rmsdplot,[1 2],'Padding',[0 0 0 0]);
 rmsdinfobox.ColumnWidth = {'1x',hElement};
-uilabel('Parent',rmsdinfobox,'Tag','RmsText',...
+gui.RmsText = uilabel('Parent',rmsdinfobox,...
         'Text',' RMSD: -',...
         'FontColor',[0 0.6 0],'Tooltip','Current best RMSD',...
         'HorizontalAl','left','VerticalAl','center');
 
-uibutton('state','Parent',rmsdinfobox,'Tag','RmsLogPlot',...
+gui.RmsLogPlot = uibutton('state','Parent',rmsdinfobox,...
          'Text','log','FontSize',fontsizetbl-1,'Tooltip','Set log scale on/off',...
          'Value',0,'ValueChangedFcn',@updatermsdplot);
 
 hAx = uiaxes('Parent',lgrid.rmsdplot,'Units','pixels','Layer','top');
-h = plot(hAx,1,NaN,'.');
-set(h,'Tag','rmsdline','MarkerSize',5,'Color',[0.2 0.2 0.8]);
+gui.rmsdline = plot(hAx,1,NaN,'.');
+set(gui.rmsdline,'MarkerSize',5,'Color',[0.2 0.2 0.8]);
 set(hAx,'box','on','YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
 
-l = uilabel('Parent',lgrid.rmsdplot,'Tag','logLine',...
-        'Text','',...
-        'WordWrap','on',...
-        'FontSize',fontsizetbl,...
-        'Tooltip','Information from fitting algorithm',...
-        'HorizontalAl','left','VerticalAl','center');
+gui.logLine = uilabel('Parent',lgrid.rmsdplot,...
+          'Text','','WordWrap','on',...
+          'FontSize',fontsizetbl,...
+          'Tooltip','Information from fitting algorithm',...
+          'HorizontalAl','left','VerticalAl','center');
 
 % Error log panel
 %-------------------------------------------------------------------------------
@@ -1491,47 +1480,45 @@ lgrid.log.RowHeight = {hElement,'1x'};
 logtitlebox = uigridlayout(lgrid.log,[1 2],'Padding',[0 0 0 0],'RowSpacing',5);
 logtitlebox.ColumnWidth = {'1x',hElement};
 uilabel('Parent',logtitlebox,...
-    'BackgroundColor',get(hFig,'Color'),...
+    'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','Log',...
     'Tooltip','Fitting information and error log',...
     'HorizontalAl','left','VerticalAl','top');
-uibutton('Parent',logtitlebox,'Tag','copyLogButton',...
+uibutton('Parent',logtitlebox,...
          'Text','','Tooltip','Copy to clipboard',...
          'Icon','private/copyicon.png','IconAlignment','center',...
          'Enable','on',...
          'ButtonPushedFcn',@copyLog);
 
-hLogBox = uitextarea('Parent',lgrid.log,'Tag','LogBox',...
-    'Value',{''},'Tooltip','',...
-    'WordWrap','on',...
-    'FontSize',fontsizetbl,...
-    'Editable','off',...
-    'BackgroundColor',[1 1 1]);
+gui.LogBox = uitextarea('Parent',lgrid.log,...
+                        'Value',{''},'Tooltip','',...
+                        'WordWrap','on',...
+                        'FontSize',fontsizetbl,...
+                        'Editable','off',...
+                        'BackgroundColor',[1 1 1]);
 
-copymenu = uicontextmenu(hFig);
+copymenu = uicontextmenu(gui.Fig);
 uimenu(copymenu,'Text','Copy to clipboard','Callback',@copyLog);
-hLogBox.ContextMenu = copymenu;
-drawnow
+gui.LogBox.ContextMenu = copymenu;
+drawnow limitrate
 
 % Algorithm settings pop-up figure
 %-------------------------------------------------------------------------------
-hPopup = uifigure('Tag','algorithmpopup','WindowStyle','normal');
-set(hPopup,'Visible','off')
+gui.Popup = uifigure('Tag','algorithmpopup','WindowStyle','normal','Visible','off');
 
 sz = [400 320]; % popup size
 sz = sz*scalefact;
 xpos = ceil((screensize(3)-sz(1))/2); % center the figure on the screen horizontally
 ypos = ceil((screensize(4)-sz(2))/2); % center the figure on the screen vertically
-set(hPopup,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
-set(hPopup,'MenuBar','none');
-% set(hFig,'Resize','off');
-set(hPopup,'Name','esfit - Algorithm settings','NumberTitle','off');
-set(hPopup,'CloseRequestFcn',...
-    'hPopup = findall(0,''Tag'',''algorithmpopup''); set(hPopup,''Visible'',''off'');');
+set(gui.Popup,'position',[xpos, ypos, sz(1), sz(2)],'units','pixels');
+set(gui.Popup,'MenuBar','none');
+% set(gui.Popup,'Resize','off');
+set(gui.Popup,'Name','esfit - Algorithm settings','NumberTitle','off');
+set(gui.Popup,'CloseRequestFcn',@openAlgorithmSettings);
   
 % Set up drop down menu and tabs
 %-------------------------------------------------------------------------------
-lgrid.main = uigridlayout(hPopup,[3 1],'Padding',[1 1 1 1]*spacing,'RowSpacing',5);
+lgrid.main = uigridlayout(gui.Popup,[3 1],'Padding',[1 1 1 1]*spacing,'RowSpacing',5);
 lgrid.main.RowHeight = {hElement,hElement,'1x'};
 
 dropdownbox = uigridlayout(lgrid.main,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
@@ -1540,20 +1527,18 @@ uilabel('Parent',dropdownbox,...
     'Text','Algorithm',...
     'FontWeight','bold',...
     'HorizontalAlign','left','VerticalAlign','center',...
-    'BackgroundColor',get(hPopup,'Color'));
-uidropdown('Parent',dropdownbox,...
-    'Tag','AlgorithmMenuPopup',...
+    'BackgroundColor',get(gui.Popup,'Color'));
+gui.AlgorithmMenuPopup = uidropdown('Parent',dropdownbox,...
     'Items',esfitdata.AlgorithmNames,...
     'ItemsData',1:numel(esfitdata.AlgorithmNames),...
     'Value',Opt.AlgorithmID,...
     'BackgroundColor','w',...
     'ValueChangedFcn',@(src,evt) selectAlgorithm(src),...
     'Tooltip','Fitting algorithm');
-b = uibutton('Parent',dropdownbox,...
-         'Tag','setAlgorithmDefaults',...
+gui.setAlgorithmDefaults = uibutton('Parent',dropdownbox,...
          'Text','Set to defaults','Enable','on','ButtonPushedFcn',@(src,evt) updateAlgorithmDefaults,...
          'Tooltip','Reset all parameters to the default');
-b.Layout.Column = 4;
+gui.setAlgorithmDefaults.Layout.Column = 4;
 
 nparamsbox = uigridlayout(lgrid.main,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
 nparamsbox.ColumnWidth = {'1.2x','0.4x','0.4x','1x'};
@@ -1561,15 +1546,14 @@ l = uilabel('Parent',nparamsbox,...
     'Text','N',...
     'FontWeight','bold',...
     'HorizontalAlign','center','VerticalAlign','center',...
-    'BackgroundColor',get(hPopup,'Color'));
+    'BackgroundColor',get(gui.Popup,'Color'));
 l.Layout.Column = 2;
-uieditfield('numeric','Parent',nparamsbox,...
-        'Tag','nParamsField',...
+gui.nParamsField = uieditfield('numeric','Parent',nparamsbox,...
         'ToolTip','number of fitting parameters',...
         'Value',esfitdata.nParameters,...
         'Editable','off');
 
-tabs = uitabgroup(lgrid.main,'TabLocation','left','Tag','AlgorithmTabs');
+gui.AlgorithmTabs = uitabgroup(lgrid.main,'TabLocation','left');
 AlgorithmAbbrev{1} = 'simplex';
 AlgorithmAbbrev{2} = 'levmar';
 AlgorithmAbbrev{3} = 'montecarlo';
@@ -1577,7 +1561,7 @@ AlgorithmAbbrev{4} = 'genetic';
 AlgorithmAbbrev{5} = 'grid';
 AlgorithmAbbrev{6} = 'swarm';
 for i = 1:(numel(esfitdata.AlgorithmNames)-1)
-  t(i) = uitab(tabs,'Title',AlgorithmAbbrev{i},'ToolTip',esfitdata.AlgorithmNames{i});
+  t(i) = uitab(gui.AlgorithmTabs,'Title',AlgorithmAbbrev{i},'ToolTip',esfitdata.AlgorithmNames{i});
   [FitOpt,info] = esfit_algdefaults(esfitdata.AlgorithmNames{i});
   esfitdata.AlgorithmDefaults{i} = FitOpt;
   setting = fieldnames(info);
@@ -1590,7 +1574,7 @@ for i = 1:(numel(esfitdata.AlgorithmNames)-1)
         'Text',setting{j},...
         'FontWeight','bold',...
         'HorizontalAlign','left','VerticalAlign','center',...
-        'BackgroundColor',get(hPopup,'Color'));
+        'BackgroundColor',get(gui.Popup,'Color'));
     defaultpar = FitOpt.(setting{j});
     if islogical(defaultpar)
       hsetting(j) = uidropdown('Parent',tabgrid,...
@@ -1612,17 +1596,17 @@ for i = 1:(numel(esfitdata.AlgorithmNames)-1)
         'ValueChangedFcn',@(src,evt) changeAlgorithmSetting(src,evt));
     end
   end
-  tabs.UserData{i} = hsetting;
+  gui.AlgorithmTabs.UserData{i} = hsetting;
 end
 updateAlgorithmDefaults()
 
 % Set callback for settings button to open popup menu
-settingsbutton = findobj(hFig,'Tag','AlgorithmSettingsButton');
+settingsbutton = gui.AlgorithmSettingsButton;
 set(settingsbutton,'ButtonPushedFcn',@openAlgorithmSettings);
 
-set(hFig,'Visible','on')
-set(hFig,'NextPlot','new');
-set(hPopup,'NextPlot','new');
+set(gui.Fig,'Visible','on')
+set(gui.Fig,'NextPlot','new');
+set(gui.Popup,'NextPlot','new');
 
 end
 %===============================================================================
@@ -1630,8 +1614,7 @@ end
 %===============================================================================
 function evaluateCallback(~,~)
 % Evaluate for selected parameters
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 
 esfitdata.modelErrorHandler = @(ME) GUIErrorHandler(ME);
 
@@ -1639,9 +1622,9 @@ p_eval = esfitdata.p_start;
 active = ~esfitdata.fixedParams;
 p_eval = p_eval(active);
 expdata = esfitdata.data(:);
-esfitdata.Opts.AutoScaleID = get(findobj(hFig,'Tag','AutoScaleMenu'),'Value');
-esfitdata.Opts.BaseLine = get(findobj(hFig,'Tag','BaseLineMenu'),'Value');
-esfitdata.Opts.useMask = get(findobj(hFig,'Tag','MaskCheckbox'),'Value')==1;
+esfitdata.Opts.AutoScaleID = get(gui.AutoScaleMenu,'Value');
+esfitdata.Opts.BaseLine = get(gui.BaseLineMenu,'Value');
+esfitdata.Opts.useMask = get(gui.MaskCheckbox,'Value')==1;
 Opt = esfitdata.Opts;
 Opt.track = false;
 
@@ -1664,27 +1647,26 @@ currbaseline = real(esfitdata.curr.baseline(:));
 
 % Update plotted data
 x = esfitdata.Opts.x(:);
-set(findobj(hFig,'Tag','expdata'),'XData',x,'YData',expdata);
-set(findobj(hFig,'Tag','currsimdata'),'XData',x,'YData',currsim);
-set(findobj(hFig,'Tag','baselinedata'),'XData',x,'YData',currbaseline);
-residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+set(gui.expdata,'XData',x,'YData',expdata);
+set(gui.currsimdata,'XData',x,'YData',currsim);
+set(gui.baselinedata,'XData',x,'YData',currbaseline);
+residualzero = get(gui.residualzero,'Value');
 residualdata = (expdata-currsim)+residualzero;
-set(findobj(hFig,'Tag','residualdata'),'XData',x,'YData',residualdata);
+set(gui.residualdata,'XData',x,'YData',residualdata);
 
 % Readjust vertical range
 updateaxislimits()
 drawnow
 
 % Readjust mask patches
-maskPatches = findobj(hFig,'Tag','maskPatch');
-for mp = 1:numel(maskPatches)
-  maskPatches(mp).YData = YLimits([1 1 2 2]).';
+YLimits = get(gui.dataaxes,'YLim');
+for mp = 1:numel(gui.maskPatch)
+  gui.maskPatch(mp).YData = YLimits([1 1 2 2]).';
 end
 
 % Update column with best values if current parameter set is new best
 str = sprintf('Current RMSD: %g\n',rmsd);
-hRmsText = findobj(hFig,'Tag','RmsText');
-set(hRmsText,'Text',str,'FontColor',[1 0 0]);
+set(gui.RmsText,'Text',str,'FontColor',[1 0 0]);
 
 end
 %===============================================================================
@@ -1692,11 +1674,9 @@ end
 %===============================================================================
 function startButtonCallback(~,~)
 
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-hPopup = findall(0,'Tag','algorithmpopup');
+global esfitdata gui
 
-switch get(findobj(hFig,'Tag','StartButton'),'Text')
+switch get(gui.StartButton,'Text')
   case 'Start fitting'
     esfitdata.UserCommand = 0;
   case 'Stop fitting'
@@ -1708,38 +1688,37 @@ end
 %-------------------------------------------------------------------------------
 
 % Hide Start button, show Stop button
-set(findobj(hFig,'Tag','StartButton'),'Text','Stop fitting');
-set(findobj(hFig,'Tag','SaveButton'),'Enable','off');
+set(gui.StartButton,'Text','Stop fitting');
+set(gui.SaveButton,'Enable','off');
 
 % Disable other buttons
-set(findobj(hFig,'Tag','EvaluateButton'),'Enable','off');
-set(findobj(hFig,'Tag','ResetButton'),'Enable','off');
-set(findobj(hFig,'Tag','AlgorithmSettingsButton'),'Enable','off');
+set(gui.EvaluateButton,'Enable','off');
+set(gui.ResetButton,'Enable','off');
+set(gui.AlgorithmSettingsButton,'Enable','off');
 
 % Disable listboxes
-set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','off');
-set(findobj(hFig,'Tag','TargetMenu'),'Enable','off');
-set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','off');
-set(findobj(hFig,'Tag','BaseLineMenu'),'Enable','off');
+set(gui.AlgorithmMenu,'Enable','off');
+set(gui.TargetMenu,'Enable','off');
+set(gui.AutoScaleMenu,'Enable','off');
+set(gui.BaseLineMenu,'Enable','off');
 
 % Disable parameter table
-set(findobj(hFig,'Tag','selectAllButton'),'Enable','off');
-set(findobj(hFig,'Tag','selectNoneButton'),'Enable','off');
-set(findobj(hFig,'Tag','selectInvButton'),'Enable','off');
-set(findobj(hFig,'Tag','selectStartPointButtonCenter'),'Enable','off');
-set(findobj(hFig,'Tag','selectStartPointButtonRandom'),'Enable','off');
-set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','off');
-colEditable = get(findobj(hFig,'Tag','ParameterTable'),'UserData');
-set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',false(size(colEditable)));
-set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',[]);
+set(gui.selectAllButton,'Enable','off');
+set(gui.selectNoneButton,'Enable','off');
+set(gui.selectInvButton,'Enable','off');
+set(gui.selectStartPointButtonCenter,'Enable','off');
+set(gui.selectStartPointButtonRandom,'Enable','off');
+set(gui.selectStartPointButtonBest,'Enable','off');
+colEditable = get(gui.ParameterTable,'UserData');
+set(gui.ParameterTable,'ColumnEditable',false(size(colEditable)));
+set(gui.ParameterTable,'CellEditCallback',[]);
 
 % Disable algorithm settings window
-set(findobj(hPopup,'Tag','AlgorithmMenuPopup'),'Enable','off');
-set(findobj(hPopup,'Tag','setAlgorithmDefaults'),'Enable','off');
+set(gui.AlgorithmMenuPopup,'Enable','off');
+set(gui.setAlgorithmDefaults,'Enable','off');
 
 % Remove displayed best fit and uncertainties
-hTable = findobj(hFig,'Tag','ParameterTable');
-Data = hTable.Data;
+Data = gui.ParameterTable.Data;
 for p = 1:size(Data,1)
   Data{p,7} = '-';
   Data{p,8} = '-';
@@ -1747,7 +1726,7 @@ for p = 1:size(Data,1)
   Data{p,10} = '-';
   Data{p,11} = '-';
 end
-set(hTable,'Data',Data);
+set(gui.ParameterTable,'Data',Data);
 
 % Get fixed parameters
 for p = 1:esfitdata.nParameters
@@ -1755,24 +1734,23 @@ for p = 1:esfitdata.nParameters
 end
 
 % Disable fitset list controls
-set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','off');
-set(findobj(hFig,'Tag','exportSetButton'),'Enable','off');
-set(findobj(hFig,'Tag','deleteSetButton'),'Enable','off');
+set(gui.selectStartPointButtonSelected,'Enable','off');
+set(gui.exportSetButton,'Enable','off');
+set(gui.deleteSetButton,'Enable','off');
 
 % Disable mask tools
-hAx = findobj(hFig,'Tag','dataaxes');
-hAx.ButtonDownFcn = [];
-set(findobj(hFig,'Tag','clearMaskButton'),'Enable','off');
-set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','off');
+gui.dataaxes.ButtonDownFcn = [];
+set(gui.clearMaskButton,'Enable','off');
+set(gui.MaskCheckbox,'Enable','off');
 
 % Pull settings from UI
 %-------------------------------------------------------------------------------
 % Determine selected method, target, autoscaling, start point
-esfitdata.Opts.AlgorithmID = get(findobj(hFig,'Tag','AlgorithmMenu'),'Value');
-esfitdata.Opts.TargetID = get(findobj(hFig,'Tag','TargetMenu'),'Value');
-esfitdata.Opts.AutoScaleID = get(findobj(hFig,'Tag','AutoScaleMenu'),'Value');
-esfitdata.Opts.BaseLine = get(findobj(hFig,'Tag','BaseLineMenu'),'Value');
-esfitdata.Opts.useMask = get(findobj(hFig,'Tag','MaskCheckbox'),'Value')==1;
+esfitdata.Opts.AlgorithmID = get(gui.AlgorithmMenu,'Value');
+esfitdata.Opts.TargetID = get(gui.TargetMenu,'Value');
+esfitdata.Opts.AutoScaleID = get(gui.AutoScaleMenu,'Value');
+esfitdata.Opts.BaseLine = get(gui.BaseLineMenu,'Value');
+esfitdata.Opts.useMask = get(gui.MaskCheckbox,'Value')==1;
 
 % Run fitting
 %-------------------------------------------------------------------------------
@@ -1799,8 +1777,7 @@ esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.mask);
 %-------------------------------------------------------------------------------
 
 % Remove current values and uncertainties from parameter table
-hTable = findobj(hFig,'Tag','ParameterTable');
-Data = hTable.Data;
+Data = gui.ParameterTable.Data;
 pi = 1;
 for p = 1:size(Data,1)
   Data{p,7} = '-'; 
@@ -1816,57 +1793,56 @@ for p = 1:size(Data,1)
     Data{p,11} = '-';
   end
 end
-set(hTable,'Data',Data);
+set(gui.ParameterTable,'Data',Data);
 
 % Hide current sim plot in data axes
-set(findobj(hFig,'Tag','currsimdata'),'YData',NaN(1,numel(esfitdata.data)));
-residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
-set(findobj(hFig,'Tag','residualdata'),'YData',(esfitdata.data-esfitdata.best.fit)+residualzero);
+set(gui.currsimdata,'YData',NaN(1,numel(esfitdata.data)));
+residualzero = get(gui.residualzero,'Value');
+set(gui.residualdata,'YData',(esfitdata.data-esfitdata.best.fit)+residualzero);
 drawnow
 
 % Reactivate UI components
-set(findobj(hFig,'Tag','SaveButton'),'Enable','on');
+set(gui.SaveButton,'Enable','on');
 
 if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
-  set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','on');
-  set(findobj(hFig,'Tag','exportSetButton'),'Enable','on');
-  set(findobj(hFig,'Tag','deleteSetButton'),'Enable','on');
+  set(gui.selectStartPointButtonSelected,'Enable','on');
+  set(gui.exportSetButton,'Enable','on');
+  set(gui.deleteSetButton,'Enable','on');
 end
 
 % Hide stop button, show start button
-set(findobj(hFig,'Tag','StartButton'),'Text','Start fitting');
+set(gui.StartButton,'Text','Start fitting');
 
 % Re-enable other buttons
-set(findobj(hFig,'Tag','EvaluateButton'),'Enable','on');
-set(findobj(hFig,'Tag','ResetButton'),'Enable','on');
-set(findobj(hFig,'Tag','AlgorithmSettingsButton'),'Enable','on');
+set(gui.EvaluateButton,'Enable','on');
+set(gui.ResetButton,'Enable','on');
+set(gui.AlgorithmSettingsButton,'Enable','on');
 
 % Re-enable listboxes
-set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','on');
-set(findobj(hFig,'Tag','TargetMenu'),'Enable','on');
-set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','on');
-set(findobj(hFig,'Tag','BaseLineMenu'),'Enable','on');
-set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','on');
+set(gui.AlgorithmMenu,'Enable','on');
+set(gui.TargetMenu,'Enable','on');
+set(gui.AutoScaleMenu,'Enable','on');
+set(gui.BaseLineMenu,'Enable','on');
+set(gui.AutoScaleMenu,'Enable','on');
 
 % Re-enable parameter table and its selection controls
-set(findobj(hFig,'Tag','selectAllButton'),'Enable','on');
-set(findobj(hFig,'Tag','selectNoneButton'),'Enable','on');
-set(findobj(hFig,'Tag','selectInvButton'),'Enable','on');
-set(findobj(hFig,'Tag','selectStartPointButtonCenter'),'Enable','on');
-set(findobj(hFig,'Tag','selectStartPointButtonRandom'),'Enable','on');
-set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','on');
-set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',colEditable);
-set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
+set(gui.selectAllButton,'Enable','on');
+set(gui.selectNoneButton,'Enable','on');
+set(gui.selectInvButton,'Enable','on');
+set(gui.selectStartPointButtonCenter,'Enable','on');
+set(gui.selectStartPointButtonRandom,'Enable','on');
+set(gui.selectStartPointButtonBest,'Enable','on');
+set(gui.ParameterTable,'ColumnEditable',colEditable);
+set(gui.ParameterTable,'CellEditCallback',@tableCellEditCallback);
 
 % Re-enable mask tools
-hAx = findobj(hFig,'Tag','dataaxes');
-hAx.ButtonDownFcn = @axesButtonDownFcn;
-set(findobj(hFig,'Tag','clearMaskButton'),'Enable','on');
-set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','on');
+gui.dataaxes.ButtonDownFcn = @axesButtonDownFcn;
+set(gui.clearMaskButton,'Enable','on');
+set(gui.MaskCheckbox,'Enable','on');
 
 % Re-enable algorithm settings window
-set(findobj(hPopup,'Tag','AlgorithmMenuPopup'),'Enable','on');
-set(findobj(hPopup,'Tag','setAlgorithmDefaults'),'Enable','on');
+set(gui.AlgorithmMenuPopup,'Enable','on');
+set(gui.setAlgorithmDefaults,'Enable','on');
 
 end
 %===============================================================================
@@ -1874,30 +1850,25 @@ end
 %===============================================================================
 function resetCallback(~,~)
 % Reset best fit
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 
 % Remove messages from log
-scroll(findobj(hFig,'Tag','LogBox'),'top')
-set(findobj(hFig,'Tag','LogBox'),'Value',{''})
+scroll(gui.LogBox,'top')
+set(gui.LogBox,'Value',{''})
 
 % Remove best fit simulation from plot
-hBestSim = findobj(hFig,'Tag','bestsimdata');
-hBestSim.YData = NaN(size(hBestSim.YData));
+gui.bestsimdata.YData = NaN(size(hBestSim.YData));
 esfitdata.best = [];
 
 % Remove baseline from plot
-hBaseLine = findobj(hFig,'Tag','baselinedata');
-hBaseLine.YData = NaN(size(hBaseLine.YData));
+gui.baselinedata.YData = NaN(size(hBaseLine.YData));
 
 % Remove current fit simulation from plot
-hCurrSim = findobj(hFig,'Tag','currsimdata');
-hCurrSim.YData = NaN(size(hCurrSim.YData));
+gui.currsimdata.YData = NaN(size(hCurrSim.YData));
 esfitdata.curr = [];
 
 % Remove residuals from plot
-hResiduals = findobj(hFig,'Tag','residualdata');
-hResiduals.YData = NaN(size(hResiduals.YData));
+gui.residualdata.YData = NaN(size(hResiduals.YData));
 
 % Readjust vertical range
 mask = esfitdata.Opts.mask;
@@ -1905,7 +1876,7 @@ expdata = esfitdata.data(:);
 maxy = max(expdata(mask));
 miny = min(expdata(mask));
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
-set(findobj(hFig,'Tag','dataaxes'),'YLim',YLimits);
+set(gui.dataaxes,'YLim',YLimits);
 drawnow
 
 % Reset rmsdhistory plot
@@ -1918,8 +1889,7 @@ esfitdata.besthistory.rmsd = [];
 esfitdata.besthistory.par = [];
 
 % Remove displayed best fit and uncertainties
-hTable = findobj(hFig,'Tag','ParameterTable');
-Data = hTable.Data;
+Data = gui.ParameterTable.Data;
 for p = 1:size(Data,1)
   Data{p,7} = '-';
   Data{p,8} = '-';
@@ -1927,7 +1897,7 @@ for p = 1:size(Data,1)
   Data{p,10} = '-';
   Data{p,11} = '-';
 end
-set(hTable,'Data',Data);
+set(gui.ParameterTable,'Data',Data);
 
 end
 %===============================================================================
@@ -1936,12 +1906,10 @@ end
 % Function to update GUI at each iteration
 %-------------------------------------------------------------------------------
 function userstop = iterupdateGUI(info)
-global esfitdata
+global esfitdata gui
 userstop = esfitdata.UserCommand~=0;
 windowClosing = esfitdata.UserCommand==99;
 if windowClosing, return; end
-
-hFig = findall(0,'Tag','esfitFigure');
 
 % Get relevant quantities
 x = esfitdata.Opts.x(:);
@@ -1953,28 +1921,27 @@ currpar = esfitdata.curr.par;
 bestpar = esfitdata.best.par;
 
 % Update plotted data
-set(findobj(hFig,'Tag','expdata'),'XData',x,'YData',expdata);
-set(findobj(hFig,'Tag','bestsimdata'),'XData',x,'YData',bestsim);
-set(findobj(hFig,'Tag','currsimdata'),'XData',x,'YData',currsim);
-set(findobj(hFig,'Tag','baselinedata'),'XData',x,'YData',currbaseline);
-residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+set(gui.expdata,'XData',x,'YData',expdata);
+set(gui.bestsimdata,'XData',x,'YData',bestsim);
+set(gui.currsimdata,'XData',x,'YData',currsim);
+set(gui.baselinedata,'XData',x,'YData',currbaseline);
+residualzero = get(gui.residualzero,'Value');
 residualdata = (expdata-currsim)+residualzero;
-set(findobj(hFig,'Tag','residualdata'),'XData',x,'YData',residualdata);
+set(gui.residualdata,'XData',x,'YData',residualdata);
 
 % Readjust vertical range
 updateaxislimits()
 
 % Readjust mask patches
-maskPatches = findobj(hFig,'Tag','maskPatch');
-hAx = findobj(hFig,'Tag','dataaxes');
-YLimits = get(hAx,'YLim');
-for mp = 1:numel(maskPatches)
-  maskPatches(mp).YData = YLimits([1 1 2 2]).';
+if isfield(gui,'maskPatch') && ~isempty(gui.maskPatch)
+  YLimits = get(gui.dataaxes,'YLim');
+  for mp = 1:numel(gui.maskPatch)
+    gui.maskPatch(mp).YData = YLimits([1 1 2 2]).';
+  end
 end
 
 % Update column with current parameter values
-hParamTable = findobj(hFig,'Tag','ParameterTable');
-data = get(hParamTable,'data');
+data = get(gui.ParameterTable,'data');
 nParams = size(data,1);
 for p = 1:nParams
   oldvaluestring = striphtml(data{p,7});
@@ -1985,18 +1952,19 @@ for p = 1:nParams
     if oldvaluestring(idx)~=newvaluestring(idx), break; end
     idx = idx + 1;
   end
-  active = data{p,2};
-  if active
-    str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#888888">' newvaluestring(idx:end) '</font></html>'];
-  else
-    str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
-  end
-  % Indicate parameters have hit limit
-  if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
-    str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
-  end
   if verLessThan('Matlab','9.13') % 9.13 = 2022b
-    str = striphtml(str);
+    str = newvaluestring;
+  else
+    active = data{p,2};
+    if active
+      str = ['<html><font color="#000000">' newvaluestring(1:idx-1) '</font><font color="#888888">' newvaluestring(idx:end) '</font></html>'];
+    else
+      str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+    end
+    % Indicate parameters have hit limit
+    if currpar(p)==esfitdata.pvec_lb(p) ||  currpar(p)==esfitdata.pvec_ub(p)
+      str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
+    end
   end
   data{p,7} = str;
 end
@@ -2005,8 +1973,7 @@ end
 if info.newbest
 
   str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
-  hRmsText = findobj(hFig,'Tag','RmsText');
-  set(hRmsText,'Text',str,'FontColor',[0 0.6 0]);
+  set(gui.RmsText,'Text',str,'FontColor',[0 0.6 0]);
 
   for p = 1:nParams
     oldvaluestring = striphtml(data{p,8});
@@ -2017,54 +1984,50 @@ if info.newbest
       if oldvaluestring(idx)~=newvaluestring(idx), break; end
       idx = idx + 1;
     end
-    active = data{p,2};
-    if active
-      if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
-        str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
-      else
-        str = ['<html><font color="#009900">' newvaluestring(1:idx-1) '</font><font color="#000000">' newvaluestring(idx:end) '</font></html>'];
-      end
-    else
-      str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
-    end
     if verLessThan('Matlab','9.13') % 9.13 = 2022b
-      str = striphtml(str);
+      str = newvaluestring;
+    else
+      active = data{p,2};
+      if active
+        if bestpar(p)==esfitdata.pvec_lb(p) ||  bestpar(p)==esfitdata.pvec_ub(p)
+          str = ['<html><font color="#ff0000">' newvaluestring '</font></html>'];
+        else
+          str = ['<html><font color="#009900">' newvaluestring(1:idx-1) '</font><font color="#000000">' newvaluestring(idx:end) '</font></html>'];
+        end
+      else
+        str = ['<html><font color="#888888">' newvaluestring '</font></html>'];
+      end
     end
     data{p,8} = str;
   end
 end
 
-hParamTable.Data = data;
+gui.ParameterTable.Data = data;
 
 updatermsdplot;
 
-drawnow
+drawnow limitrate
 
 end
 %===============================================================================
 
 %===============================================================================
 function updatermsdplot(~,~)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 % Update rmsd plot
-hRmsText = findobj(hFig,'Tag','RmsText');
 if isfield(esfitdata,'best') && ~isempty(esfitdata.best) && ~isempty(esfitdata.best.rmsd)
   str = sprintf('Current best RMSD: %g\n',esfitdata.best.rmsd);
 else
   str = sprintf('Current best RMSD: -\n');
 end
-set(hRmsText,'Text',str);
+set(gui.RmsText,'Text',str);
 
-hRmsLogPlot = findobj(hFig,'Tag','RmsLogPlot');
-
-hrmsdline = findobj(hFig,'Tag','rmsdline');
-if ~isempty(hrmsdline)
+if ~isempty(gui.rmsdline)
   n = min(100,numel(esfitdata.rmsdhistory));
-  set(hrmsdline,'XData',1:n,'YData',esfitdata.rmsdhistory(end-n+1:end));
-  ax = hrmsdline.Parent;
+  set(gui.rmsdline,'XData',1:n,'YData',esfitdata.rmsdhistory(end-n+1:end));
+  ax = gui.rmsdline.Parent;
   axis(ax,'tight');
-  if hRmsLogPlot.Value
+  if gui.RmsLogPlot.Value
     set(ax,'yscale','log')
   else
     set(ax,'yscale','linear')
@@ -2075,12 +2038,11 @@ end
 
 %===============================================================================
 function iterationprint(str)
-hFig = findall(0,'Tag','esfitFigure');
-hLogLine = findobj(hFig,'Tag','logLine');
-if isempty(hLogLine)
+global gui
+if isempty(gui)
   disp(strtrim(str));
 else
-  set(hLogLine,'Text',strtrim(str));
+  set(gui.logLine,'Text',strtrim(str));
 end
 end
 %===============================================================================
@@ -2093,19 +2055,16 @@ end
 
 %===============================================================================
 function displayFitSet
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-h = findobj(hFig,'Tag','FitSetTable');
-if isempty(h.Selection), return; end
-data = h.Data;
-if ~isempty(data)
-  k = find([esfitdata.FitSets.ID]==data{h.Selection,1});
+global esfitdata gui
+if isempty(gui.FitSetTable.Selection), return; end
+fitsets = gui.FitSetTable.Data;
+if ~isempty(fitsets)
+  k = find([esfitdata.FitSets.ID]==fitsets{gui.FitSetTable.Selection,1});
   if k>0
     fitset = esfitdata.FitSets(k);
 
     % Set column with best-fit parameter values
-    hTable = findobj(hFig,'Tag','ParameterTable');
-    data = get(hTable,'data');
+    data = get(gui.ParameterTable,'data');
 
     pi = 1;
     for p = 1:size(data,1)
@@ -2121,13 +2080,11 @@ if ~isempty(data)
         data{p,11} = '-';
       end
     end
-    set(hTable,'Data',data);
+    set(gui.ParameterTable,'Data',data);
 
-    h = findobj(hFig,'Tag','bestsimdata');
-    set(h,'YData',fitset.fit);
-    h = findobj(hFig,'Tag','baselinedata');
-    set(h,'YData',fitset.baseline);
-    drawnow
+    set(gui.bestsimdata,'YData',fitset.fit);
+    set(gui.baselinedata,'YData',fitset.baseline);
+    drawnow limitrate
   end
 end
 
@@ -2153,9 +2110,7 @@ end
 
 %===============================================================================
 function refreshFitsetList(idx)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-h = findobj(hFig,'Tag','FitSetTable');
+global esfitdata gui
 nSets = numel(esfitdata.FitSets);
 data = cell(nSets,4);
 for k = 1:nSets
@@ -2170,14 +2125,14 @@ for k = 1:nSets
   end
   data{k,5} = maskstr;
 end
-set(h,'Data',data);
-if idx>0, set(h,'Selection',idx); end
-if idx==-1, set(h,'Selection',nSets); end % R2021b onwards
+set(gui.FitSetTable,'Data',data);
+if idx>0, set(gui.FitSetTable,'Selection',idx); end
+if idx==-1, set(gui.FitSetTable,'Selection',nSets); end % R2021b onwards
 
 if nSets>0, state = 'on'; else, state = 'off'; end
-set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable',state);
-set(findobj(hFig,'Tag','exportSetButton'),'Enable',state);
-set(findobj(hFig,'Tag','deleteSetButton'),'Enable',state);
+set(gui.selectStartPointButtonSelected,'Enable',state);
+set(gui.exportSetButton,'Enable',state);
+set(gui.deleteSetButton,'Enable',state);
 
 displayFitSet;
 end
@@ -2185,10 +2140,8 @@ end
 
 %===============================================================================
 function exportSetButtonCallback(~,~)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-h = findobj(hFig,'Tag','FitSetTable');
-ID = h.Data{h.Selection,1};
+global esfitdata gui
+ID = gui.FitSetTable.Data{gui.FitSetTable.Selection,1};
 idx = [esfitdata.FitSets.ID]==ID;
 fitresult = esfitdata.FitSets(idx);
 fitresult = rmfield(fitresult,'Mask');
@@ -2201,13 +2154,11 @@ end
 
 %===============================================================================
 function deleteSetButtonCallback(~,~)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-h = findobj(hFig,'Tag','FitSetTable');
-idx = h.Selection;
+global esfitdata gui
+idx = gui.FitSetTable.Selection;
 nSets = numel(esfitdata.FitSets);
 if nSets>0
-    ID = h.Data{h.Selection,1};
+    ID = gui.FitSetTable.Data{gui.FitSetTable.Selection,1};
     for k = nSets:-1:1
         if esfitdata.FitSets(k).ID==ID
             esfitdata.FitSets(k) = [];
@@ -2215,14 +2166,14 @@ if nSets>0
     end
     if idx>length(esfitdata.FitSets), idx = length(esfitdata.FitSets); end
     if idx==0, idx = 1; end
-    h.Selection = idx;
+    gui.FitSetTable.Selection = idx;
     refreshFitsetList(0);
 end
 
-if isempty(h.Data)
-    set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','off');
-    set(findobj(hFig,'Tag','exportSetButton'),'Enable','off');
-    set(findobj(hFig,'Tag','deleteSetButton'),'Enable','off');
+if isempty(gui.FitSetTable.Data)
+    set(gui.selectStartPointButtonSelected,'Enable','off');
+    set(gui.exportSetButton,'Enable','off');
+    set(gui.deleteSetButton,'Enable','off');
 end
 end
 %===============================================================================
@@ -2238,12 +2189,10 @@ end
 %===============================================================================
 function setStartPoint(sel)
 
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 
 % Update fixed parameters
-hTable = findobj(hFig,'Tag','ParameterTable');
-Data = hTable.Data;
+Data = gui.ParameterTable.Data;
 for p = 1:esfitdata.nParameters
   esfitdata.fixedParams(p) = Data{p,2}==0;
 end
@@ -2265,10 +2214,9 @@ switch sel
     prandom = lb + rand(nParameters,1).*(ub-lb);
     p_start(activeParams) = prandom(activeParams);
   case 'selected'
-    h = findobj(hFig,'Tag','FitSetTable');
-    data = h.Data;
+    data = gui.FitSetTable.Data;
     if ~isempty(data)
-      ID = data{h.Selection,1};
+      ID = data{gui.FitSetTable.Selection,1};
       idx = find([esfitdata.FitSets.ID]==ID);
       if ~isempty(idx)
         p_start = esfitdata.FitSets(idx).pfit_full;
@@ -2306,8 +2254,7 @@ if strcmp(sel,'selected') || strcmp(sel,'best')
 end
 
 % Update parameter table
-hParamTable = findobj(hFig,'Tag','ParameterTable');
-data = get(hParamTable,'data');
+data = get(gui.ParameterTable,'data');
 for p = 1:numel(p_start)
   data{p,4} = sprintf('%0.6g',p_start(p));
   if updatebounds
@@ -2315,34 +2262,33 @@ for p = 1:numel(p_start)
     data{p,6} = sprintf('%0.6g',esfitdata.pvec_ub(p));
   end
 end
-hParamTable.Data = data;
+gui.ParameterTable.Data = data;
 
 end
 %===============================================================================
 
 %===============================================================================
 function selectButtonCallback(type)
-hFig = findall(0,'Tag','esfitFigure');
-h = findobj(hFig,'Tag','ParameterTable');
-d = h.Data;
+global gui
+data = gui.ParameterTable.Data;
 switch type
   case 'all'
-    d(:,2) = {true};
+    data(:,2) = {true};
   case 'none'
-    d(:,2) = {false};
+    data(:,2) = {false};
   case 'invert'
-    for k=1:size(d,1)
-      d{k,2} = ~d{k,2};
+    for k=1:size(data,1)
+      data{k,2} = ~data{k,2};
     end
 end
-set(h,'Data',d);
+set(gui.ParameterTable,'Data',data);
 end
 %===============================================================================
 
 %===============================================================================
 function showbaseline(src,~)
-hFig = findall(0,'Tag','esfitFigure');
-h = findobj(hFig,'Tag','baselinedata');
+global gui
+h = gui.baselinedata;
 if src.Value
   set(h,'Visible','on')
 else
@@ -2353,9 +2299,9 @@ end
 
 %===============================================================================
 function showresiduals(src,~)
-hFig = findall(0,'Tag','esfitFigure');
-h(1) = findobj(hFig,'Tag','residualdata');
-h(2) = findobj(hFig,'Tag','residualzero');
+global gui
+h(1) = gui.residualdata;
+h(2) = gui.residualzero;
 if src.Value
   set(h(1),'Visible','on')
   set(h(2),'Visible','on')
@@ -2370,8 +2316,7 @@ end
 %===============================================================================
 function updateaxislimits(~)
 
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 
 expdata = esfitdata.data(:);
 if isfield(esfitdata,'curr') && isfield(esfitdata.curr,'sim')
@@ -2386,8 +2331,8 @@ else
   bestsim = zeros(size(expdata));
 end
 plottedData = [expdata(mask); bestsim; currsim];
-if get(findobj(hFig,'Tag','ResidualCheckbox'),'Value')
-  residualzero = get(findobj(hFig,'Tag','residualzero'),'Value');
+if get(gui.ResidualCheckbox,'Value')
+  residualzero = get(gui.residualzero,'Value');
   residualdata = (expdata-currsim)+residualzero;
   plottedData = [plottedData; residualdata];
 end
@@ -2395,10 +2340,9 @@ maxy = max(plottedData);
 miny = min(plottedData);
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
 
-hAx = findobj(hFig,'Tag','dataaxes');
-set(hAx,'YLim',YLimits);
-x = get(findobj(hFig,'Tag','expdata'),'XData');
-set(hAx,'XLim',[min(x) max(x)]);
+set(gui.dataaxes,'YLim',YLimits);
+x = get(gui.expdata,'XData');
+set(gui.dataaxes,'XLim',[min(x) max(x)]);
 
 end
 %===============================================================================
@@ -2406,8 +2350,7 @@ end
 
 %===============================================================================
 function tableCellEditCallback(~,callbackData)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 
 % Get handle of table and row/column index of edited table cell
 hTable = callbackData.Source;
@@ -2417,9 +2360,9 @@ cidx = callbackData.Indices(2);
 if cidx==1
   allParamsFixed = all(~cell2mat(hTable.Data(:,1)));
   if allParamsFixed
-    set(findobj(hFig,'Tag','StartButton'),'Enable','off');
+    set(gui.StartButton,'Enable','off');
   else
-    set(findobj(hFig,'Tag','StartButton'),'Enable','on');
+    set(gui.StartButton,'Enable','on');
   end
 end
 
@@ -2498,33 +2441,31 @@ end
 
 %===============================================================================
 function axesButtonDownFcn(~,~)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-hAx = findobj(hFig,'Tag','dataaxes');
+global esfitdata gui
 
 % Get mouse-click point on axes
-cp = hAx.CurrentPoint;
+cp = gui.dataaxes.CurrentPoint;
 x = esfitdata.Opts.x;
 x1 = cp(1,1);
 
 % Create temporary patch updating with user mouse motion
 maskColor = [1 1 1]*0.95;
-tmpmask = patch(hAx,x1*ones(1,4),hAx.YLim([1 1 2 2]),maskColor,'Tag','maskPatch','EdgeColor','none');
+tmpmask = patch(gui.dataaxes,x1*ones(1,4),gui.dataaxes.YLim([1 1 2 2]),maskColor,'Tag','maskPatch','EdgeColor','none');
 
 % Move new patch to the back
-c = hAx.Children([2:end 1]);
-hAx.Children = c;
+c = gui.dataaxes.Children([2:end 1]);
+gui.dataaxes.Children = c;
 
 % Continuously update patch based on mouse position until next user click
-set(hFig,'WindowButtonMotionFcn',@(hObject,eventdata) drawmaskedregion(tmpmask));
-set(hFig,'WindowButtonDownFcn',@(src,event)uiresume(src));
-uiwait(hFig);
+set(gui.Fig,'WindowButtonMotionFcn',@(hObject,eventdata) drawmaskedregion(tmpmask));
+set(gui.Fig,'WindowButtonDownFcn',@(src,event)uiresume(src));
+uiwait(gui.Fig);
 % waitforbuttonpress;
-set(hFig,'WindowButtonMotionFcn',[])
-set(hFig,'WindowButtonDownFcn',[])
+set(gui.Fig,'WindowButtonMotionFcn',[])
+set(gui.Fig,'WindowButtonDownFcn',[])
 
 % Update masked regions
-cp = hAx.CurrentPoint;
+cp = gui.dataaxes.CurrentPoint;
 x2 = cp(1,1);
 maskrange = sort([x1 x2]);
 esfitdata.Opts.mask(x>maskrange(1) & x<maskrange(2)) = 0;
@@ -2535,9 +2476,8 @@ end
 
 %===============================================================================
 function drawmaskedregion(tmpmask)
-hFig = findall(0,'Tag','esfitFigure');
-hAx = findobj(hFig,'Tag','dataaxes');
-cp = get(hAx,'CurrentPoint');
+global gui
+cp = get(gui.dataaxes,'CurrentPoint');
 xdata = tmpmask.XData;
 xdata(2:3) = cp(1,1);
 set(tmpmask,'XData',xdata);
@@ -2546,13 +2486,13 @@ end
 
 %===============================================================================
 function showmaskedregions()
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
-hAx = findobj(hFig,'Tag','dataaxes');
+global esfitdata gui
 
 % Delete existing mask patches
-hMaskPatches = findobj(hAx,'Tag','maskPatch');
-delete(hMaskPatches);
+if isfield(gui,'maskPatch') && ~isempty(gui.maskPatch)
+  delete(gui.maskPatch);
+  gui = rmfield(gui,'maskPatch');
+end
 
 % Show masked-out regions
 maskColor = [1 1 1]*0.95;
@@ -2566,13 +2506,13 @@ excludedRegions = esfitdata.Opts.x(excludedRegions);
 nMaskPatches = size(excludedRegions,1);
 for r = 1:nMaskPatches
   x_patch = excludedRegions(r,[1 2 2 1]);
-  y_patch = hAx.YLim([1 1 2 2]);
-  patch(hAx,x_patch,y_patch,maskColor,'Tag','maskPatch','EdgeColor','none');
+  y_patch = gui.dataaxes.YLim([1 1 2 2]);
+  gui.maskPatch(r) = patch(gui.dataaxes,x_patch,y_patch,maskColor,'EdgeColor','none');
 end
 
 % Reorder so that mask patches are in the back
-c = hAx.Children([nMaskPatches+1:end, 1:nMaskPatches]);
-hAx.Children = c;
+c = gui.dataaxes.Children([nMaskPatches+1:end, 1:nMaskPatches]);
+gui.dataaxes.Children = c;
 drawnow limitrate
 
 end
@@ -2597,10 +2537,9 @@ end
 
 %===============================================================================
 function updateLogBox(msg)
-hFig = findall(0,'Tag','esfitFigure');
+global gui
 
-hLogBox = findobj(hFig,'Tag','LogBox');
-txt = get(hLogBox,'Value');
+txt = get(gui.LogBox,'Value');
 if numel(txt)==1 && isempty(txt{1})
   txt = {};
 end
@@ -2625,9 +2564,9 @@ end
 if iserror
   txt{end+1} = '';
 end
-set(hLogBox,'Value',txt)
+set(gui.LogBox,'Value',txt)
 drawnow limitrate
-scroll(hLogBox,'bottom')
+scroll(gui.LogBox,'bottom')
 
 end
 %===============================================================================
@@ -2635,8 +2574,8 @@ end
 %===============================================================================
 function copyLog(~,~)
 % Copy log to clipboard
-hFig = findall(0,'Tag','esfitFigure');
-txt = get(findobj(hFig,'Tag','LogBox'),'Value');
+global gui
+txt = get(gui.LogBox,'Value');
 str = [];
 for i = 1:numel(txt)
   row = sprintf('%s\t', txt{i});
@@ -2649,45 +2588,44 @@ end
 
 %===============================================================================
 function GUIErrorHandler(ME)
-global esfitdata
-hFig = findall(0,'Tag','esfitFigure');
+global esfitdata gui
 
 % Reactivate UI components
-set(findobj(hFig,'Tag','SaveButton'),'Enable','off');
+set(gui.SaveButton,'Enable','off');
 
 if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
-  set(findobj(hFig,'Tag','selectStartPointButtonSelected'),'Enable','on');
-  set(findobj(hFig,'Tag','exportSetButton'),'Enable','on');
-  set(findobj(hFig,'Tag','deleteSetButton'),'Enable','on');
+  set(gui.selectStartPointButtonSelected,'Enable','on');
+  set(gui.exportSetButton,'Enable','on');
+  set(gui.deleteSetButton,'Enable','on');
 end
 
 % Hide stop button, show start button
-set(findobj(hFig,'Tag','StartButton'),'Text','Start fitting');
+set(gui.StartButton,'Text','Start fitting');
 
 % Re-enable other buttons
-set(findobj(hFig,'Tag','EvaluateButton'),'Enable','on');
-set(findobj(hFig,'Tag','ResetButton'),'Enable','on');
+set(gui.EvaluateButton,'Enable','on');
+set(gui.ResetButton,'Enable','on');
 
 % Re-enable listboxes
-set(findobj(hFig,'Tag','AlgorithmMenu'),'Enable','on');
-set(findobj(hFig,'Tag','TargetMenu'),'Enable','on');
-set(findobj(hFig,'Tag','AutoScaleMenu'),'Enable','on');
-set(findobj(hFig,'Tag','BaseLineMenu'),'Enable','on');
+set(gui.AlgorithmMenu,'Enable','on');
+set(gui.TargetMenu,'Enable','on');
+set(gui.AutoScaleMenu,'Enable','on');
+set(gui.BaseLineMenu,'Enable','on');
 
 % Re-enable parameter table and its selection controls
-set(findobj(hFig,'Tag','selectAllButton'),'Enable','on');
-set(findobj(hFig,'Tag','selectNoneButton'),'Enable','on');
-set(findobj(hFig,'Tag','selectInvButton'),'Enable','on');
-set(findobj(hFig,'Tag','selectStartPointButtonCenter'),'Enable','on');
-set(findobj(hFig,'Tag','selectStartPointButtonRandom'),'Enable','on');
-set(findobj(hFig,'Tag','selectStartPointButtonBest'),'Enable','on');
-colEditable = get(findobj(hFig,'Tag','ParameterTable'),'UserData');
-set(findobj(hFig,'Tag','ParameterTable'),'ColumnEditable',colEditable);
-set(findobj(hFig,'Tag','ParameterTable'),'CellEditCallback',@tableCellEditCallback);
+set(gui.selectAllButton,'Enable','on');
+set(gui.selectNoneButton,'Enable','on');
+set(gui.selectInvButton,'Enable','on');
+set(gui.selectStartPointButtonCenter,'Enable','on');
+set(gui.selectStartPointButtonRandom,'Enable','on');
+set(gui.selectStartPointButtonBest,'Enable','on');
+colEditable = get(gui.ParameterTable,'UserData');
+set(gui.ParameterTable,'ColumnEditable',colEditable);
+set(gui.ParameterTable,'CellEditCallback',@tableCellEditCallback);
 
 % Re-enable mask tools
-set(findobj(hFig,'Tag','clearMaskButton'),'Enable','on');
-set(findobj(hFig,'Tag','MaskCheckbox'),'Enable','on');
+set(gui.clearMaskButton,'Enable','on');
+set(gui.MaskCheckbox,'Enable','on');
 
 if contains(ME.stack(1).name,'esfit')
   updateLogBox({ME.stack(1).name,' error:',ME.message})
@@ -2702,19 +2640,17 @@ end
 function openAlgorithmSettings(~,~)
 % Callback for opening (closing) algorithm settings popup window
 
-global esfitdata
-hPopup = findall(0,'Tag','algorithmpopup');
+global esfitdata gui
 
-if strcmp(hPopup.Visible,'off')
-  tabs = findobj(hPopup,'Tag','AlgorithmTabs');
+if strcmp(gui.Popup.Visible,'off')
   AlgorithmID = esfitdata.Opts.AlgorithmID;
-  if AlgorithmID<=numel(tabs.Children)
-    tabs.SelectedTab = tabs.Children(AlgorithmID);
+  if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
+    gui.AlgorithmTabs.SelectedTab = gui.AlgorithmTabs.Children(AlgorithmID);
   end
-  set(findobj(hPopup,'Tag','nParamsField'),'Value',sum(~esfitdata.fixedParams));
-  set(hPopup,'Visible','on')
-elseif strcmp(hPopup.Visible,'on')
-  set(hPopup,'Visible','off');
+  set(gui.nParamsField,'Value',sum(~esfitdata.fixedParams));
+  set(gui.Popup,'Visible','on')
+elseif strcmp(gui.Popup.Visible,'on')
+  set(gui.Popup,'Visible','off');
 end
 
 end
@@ -2724,36 +2660,29 @@ end
 function selectAlgorithm(src)
 % Callback for selection of fitting algorithm
 
-global esfitdata
-
-hFig = findall(0,'Tag','esfitFigure');
-h(1) = findobj(hFig,'Tag','AlgorithmMenu');
-
-hPopup = findall(0,'Tag','algorithmpopup');
-h(2) = findobj(hPopup,'Tag','AlgorithmMenuPopup');
-tabs = findobj(hPopup,'Tag','AlgorithmTabs');
+global esfitdata gui
 
 % Update selection in main GUI window and algorithm settings popup
 if nargin==1
   AlgorithmID = src.Value;
-  h(1).Value = AlgorithmID;
-  if AlgorithmID<=numel(tabs.Children)
-    h(2).Value = AlgorithmID;
+  gui.AlgorithmMenu.Value = AlgorithmID;
+  if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
+    gui.AlgorithmMenuPopup.Value = AlgorithmID;
   end
 
-  if AlgorithmID<=numel(tabs.Children)
-    tabs.SelectedTab = tabs.Children(AlgorithmID);
+  if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
+    gui.AlgorithmTabs.SelectedTab = gui.AlgorithmTabs.Children(AlgorithmID);
   end
 else
-  AlgorithmID = h(1).Value;
+  AlgorithmID = gui.AlgorithmMenu.Value;
 end
 esfitdata.Opts.AlgorithmID = AlgorithmID;
 
 % Update the FitOpt structure
 N = esfitdata.nParameters; %#ok<NASGU> 
 
-if AlgorithmID<=numel(tabs.Children)
-  hsetting = tabs.UserData{AlgorithmID};
+if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
+  hsetting = gui.AlgorithmTabs.UserData{AlgorithmID};
   for i = 1:numel(hsetting)
     setting = hsetting(i).UserData{1};
     switch hsetting(i).UserData{2}
@@ -2774,15 +2703,13 @@ end
 function updateAlgorithmDefaults()
 % Populate fit options settings popup with default options for all algorithms
 
-global esfitdata
-hPopup = findall(0,'Tag','algorithmpopup');
-tabs = findobj(hPopup,'Tag','AlgorithmTabs');
-nTabs = numel(tabs.UserData);
+global esfitdata gui
+nTabs = numel(gui.AlgorithmTabs.UserData);
 
 nParams = esfitdata.nParameters;
 
 for i = 1:nTabs
-  hsetting = tabs.UserData{i};
+  hsetting = gui.AlgorithmTabs.UserData{i};
   FitOpt = esfitdata.AlgorithmDefaults{i};
   for j = 1:numel(hsetting)
     setting = hsetting(j).UserData{1};
@@ -2821,7 +2748,7 @@ end
 function changeAlgorithmSetting(src,evt)
 % Callback for changed fit options setting
 
-global esfitdata
+global esfitdata gui
 N = esfitdata.nParameters; %#ok<NASGU> % needed to eval() expressions
 
 setting = src.UserData{1};
@@ -2846,12 +2773,9 @@ if strcmp(src.UserData{2},'eval') || strcmp(src.UserData{2},'num')
 end
 
 % Update FitOpt structure for selected algorithm
-hFig = findall(0,'Tag','esfitFigure');
-AlgorithmID = get(findobj(hFig,'Tag','AlgorithmMenu'),'Value');
+AlgorithmID = get(gui.AlgorithmMenu,'Value');
 
-hPopup = findall(0,'Tag','algorithmpopup');
-tabs = findobj(hPopup,'Tag','AlgorithmTabs');
-IDselected = find(tabs.Children==tabs.SelectedTab);
+IDselected = find(gui.AlgorithmTabs.Children==gui.AlgorithmTabs.SelectedTab);
 
 if IDselected==AlgorithmID
   switch src.UserData{2}
@@ -2871,13 +2795,11 @@ end
 function closeGUI(~,~)
 % Callback to close GUI
 
-global esfitdata;
+global esfitdata gui
 esfitdata.UserCommand = 99;
 drawnow;
-hPopup = findall(0,'Tag','algorithmpopup');
-delete(hPopup);
-hFig = findall(0,'Tag','esfitFigure');
-delete(hFig);
+delete(gui.Popup);
+delete(gui.Fig);
 
 end
 %===============================================================================
