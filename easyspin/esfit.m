@@ -36,7 +36,7 @@
 %        .OutArg  two numbers [nOut iOut], where nOut is the number of
 %                 outputs of the simulation function and iOut is the index
 %                 of the output argument to use for fitting
-%        .mask    array of 1 and 0 the same size as data vector
+%        .Mask    array of 1 and 0 the same size as data vector
 %                 values with mask 0 are excluded from the fit 
 %                 (cell array for data input consisting of multiple datasets)
 %        .weights array of weights to use when combining residual vectors
@@ -324,17 +324,29 @@ if isfield(Opt,'Scaling')
 end
 
 if ~isfield(Opt,'OutArg')
-  esfitdata.nOutArguments = abs(nargout(esfitdata.fcn));
-  esfitdata.OutArgument = esfitdata.nOutArguments;
+  if EasySpinFunction
+    esfitdata.nOutArguments = 2;
+    esfitdata.OutArgument = [2 1];
+  else
+    esfitdata.nOutArguments = abs(nargout(esfitdata.fcn));
+    esfitdata.OutArgument = esfitdata.nOutArguments;
+  end
 else
-  if numel(Opt.OutArg)~=2
-    error('Opt.OutArg must contain two values [nOut iOut]');
+  if numel(Opt.OutArg)~=2 && numel(Opt.OutArg)~=3
+    error('Opt.OutArg must contain two ([nOut iOut]) or three ([nOut iOut iOutx]) values.');
   end
   if Opt.OutArg(2)>Opt.OutArg(1)
     error('Opt.OutArg: second number cannot be larger than first one.');
   end
+  if numel(Opt.OutArg)==3 && Opt.OutArg(3)>Opt.OutArg(1)
+    error('Opt.OutArg: third number cannot be larger than first one.');
+  end
   esfitdata.nOutArguments = Opt.OutArg(1);
-  esfitdata.OutArgument = Opt.OutArg(2);  
+  esfitdata.OutArgument = Opt.OutArg(2:end);  
+end
+showxaxis = false;
+if numel(esfitdata.OutArgument)==2
+  showxaxis = true;
 end
 
 if ~isfield(Opt,'Method')
@@ -393,15 +405,18 @@ TargetNames{5} = 'Fourier transform';
 esfitdata.TargetNames = TargetNames;
 
 % Mask
-if ~isfield(Opt,'mask')
-  Opt.mask = true(size(data_vec));
+if ~isfield(Opt,'Mask')
+  Opt.Mask = true(size(data_vec));
 else
-  if iscell(Opt.mask)
-    Opt.mask = cat(2,Opt.mask{:});
+  if iscell(Opt.Mask)
+    for i = 1:numel(Opt.Mask)
+      Opt.Mask{i} = Opt.Mask{i}(:);
+    end
+    Opt.Mask = cat(1,Opt.Mask{:});
   end
-  Opt.mask = logical(Opt.mask(:));
-  if numel(Opt.mask)~=numel(data_vec)
-    error('Opt.mask has %d elements, but the data has %d elements.',numel(Opt.mask),numel(data));
+  Opt.Mask = logical(Opt.Mask(:));
+  if numel(Opt.Mask)~=numel(data_vec)
+    error('Opt.Mask has %d elements, but the data has %d elements.',numel(Opt.Mask),numel(data));
   end
 end
 Opt.useMask = true;
@@ -459,7 +474,19 @@ end
 esfitdata.weights = weights;
 
 % x axis for plotting
-if ~isfield(Opt,'x')
+if isfield(Opt,'x')
+  if iscell(Opt.x)
+    x = [];
+    for i = 1:numel(Opt.x)
+      x = [x; Opt.x{i}(:)];
+    end
+    Opt.x = x;
+  end
+  if numel(Opt.x)~=numel(data_vec)
+    error('The size of Opt.x must match the size of the experimental data.');
+  end
+  showxaxis = true;
+else
   for i = 1:esfitdata.nDataSets
     Opt.x(esfitdata.idx{i}) = 1:esfitdata.datasize(i);
   end
@@ -488,6 +515,7 @@ esfitdata.Opts = Opt;
 if interactiveMode
   global gui %#ok<TLEV> 
   gui = struct;  % initialize
+  gui.showxaxis = showxaxis;
   setupGUI(data);
   return
 else
@@ -814,14 +842,14 @@ if esfitdata.nDataSets>1
     idx = esfitdata.idx{k};
     result.fit{k} = fit(idx);
     result.fitraw{k} = fitraw(idx);
-    result.mask{k} = esfitdata.Opts.mask(idx);
+    result.mask{k} = esfitdata.Opts.Mask(idx);
     result.residuals{k} = residuals0(idx);
     result.baseline{k} = baseline(idx);
   end
 else
   result.fit = fit;
   result.fitraw = fitraw;
-  result.mask = esfitdata.Opts.mask;
+  result.mask = esfitdata.Opts.Mask;
   result.residuals = residuals0;
   result.baseline = baseline;
 end
@@ -878,9 +906,9 @@ userstop = esfitdata.UserCommand~=0;
 expdata = esfitdata.data;
 
 if esfitdata.Opts.useMask
-  mask = Opt.mask;
+  mask = Opt.Mask;
 else
-  mask = true(size(Opt.mask));
+  mask = true(size(Opt.Mask));
 end
 
 % Assemble full parameter vector
@@ -895,14 +923,7 @@ out = cell(1,esfitdata.nOutArguments);
 try
   if esfitdata.structureInputs
     args = esfitdata.p2args(par);
-    try
-      % Get x-axis for EasySpin functions (and adapted functions based on EasySpin)
-      [x,out{:}] = esfitdata.fcn(args{:});
-      esfitdata.Opts.x = x;
-    catch
-      % Keep index axis for functions not returning an axis (e.g. curry)
-      [out{:}] = esfitdata.fcn(args{:});
-    end
+    [out{:}] = esfitdata.fcn(args{:});
   else
     [out{:}] = esfitdata.fcn(par);
   end
@@ -913,7 +934,7 @@ catch ME
   return
 end
 
-simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
+simdata = out{esfitdata.OutArgument(1)}; % pick appropriate output argument
 if ~iscell(simdata)
   simdata = {simdata};
 end
@@ -931,6 +952,24 @@ end
 if numel(simdata_vec)~=numel(expdata)
   error('\n  Experimental data and model have unequal total number of points:\n    experimental: %d\n    model: %d\n',...
     numel(expdata),numel(simdata_vec));
+end
+
+% Get x-axis if additional output argument is defined
+if numel(esfitdata.OutArgument)==2
+  xdata = out{esfitdata.OutArgument(2)};
+  if iscell(xdata)
+    x_vec = [];
+    for i = 1:numel(xdata)
+      x_vec = [x_vec; xdata{i}(:)];
+    end
+  else
+    x_vec = xdata;
+  end
+  if numel(x_vec)~=numel(simdata_vec)
+    error('\n  Simulation function output axis and data have unequal total number of points:\n    axis: %d\n    data: %d\n',...
+           numel(x_vec),numel(simdata_vec));
+  end
+  esfitdata.Opts.x = x_vec;
 end
 
 % Rescale simulated data if scale should be ignored; include baseline if wanted
@@ -1368,7 +1407,7 @@ uilabel('Parent',fitoptbox1,...
 uilabel('Parent',fitoptbox1,...
     'Text',esfitdata.fcnName,...
     'FontColor','b',...
-    'Tooltip',sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument),...
+    'Tooltip',{esfitdata.fcnName,sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument(1))},...
     'HorizontalAl','left','VerticalAl','center',...
     'BackgroundColor',get(gui.Fig,'Color'));
 gui.AlgorithmSettingsButton = uibutton('Parent',fitoptbox1,...
@@ -1776,7 +1815,7 @@ for i = 1:N
 
   NaNdata = NaN(1,numel(expdata));
   
-  mask = esfitdata.Opts.mask(esfitdata.idx{i});
+  mask = esfitdata.Opts.Mask(esfitdata.idx{i});
   maxy = max(expdata(mask));
   miny = min(expdata(mask));
   YLimits = [miny maxy] + [-1 1]*Opt.PlotStretchFactor*(maxy-miny);
@@ -1793,6 +1832,9 @@ for i = 1:N
   gui.dataaxes(i).ButtonDownFcn = @(src,evt) axesButtonDownFcn(src);
   grid(gui.dataaxes(i),'on');
   box(gui.dataaxes(i),'on')
+  if ~gui.showxaxis % no x-axis defined
+    set(gui.dataaxes(i),'XTickLabel',{})
+  end
   set(gui.dataaxes(i),'YTickLabel',{})
 
   if isfield(gui,'TilesButton') && gui.TilesButton.Value
@@ -2056,7 +2098,7 @@ end
 
 % Save result to fit set list
 esfitdata.currFitSet = result;
-esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.mask);
+esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.Mask);
 
 % Update GUI with fit results
 %-------------------------------------------------------------------------------
@@ -2208,6 +2250,12 @@ for p = 1:size(Data,1)
   Data{p,11} = '-';
 end
 set(gui.ParameterTable,'Data',Data);
+
+% Reset plot
+gui.BaselineCheckbox.Value = 0;
+showbaseline(gui.BaselineCheckbox);
+gui.ResidualCheckbox.Value = 0;
+showresiduals(gui.ResidualCheckbox);
 
 end
 %===============================================================================
@@ -2811,7 +2859,7 @@ global esfitdata gui
 dataaxes = src;
 i = str2double(dataaxes.Tag);
 idx = esfitdata.idx{i};
-mask_i = esfitdata.Opts.mask(idx);
+mask_i = esfitdata.Opts.Mask(idx);
 
 % Get mouse-click point on axes
 cp = dataaxes.CurrentPoint;
@@ -2842,7 +2890,7 @@ cp = dataaxes.CurrentPoint;
 x2 = x(ind);
 maskrange = sort([x1 x2]);
 mask_i(x>maskrange(1) & x<maskrange(2)) = 0;
-esfitdata.Opts.mask(idx) = mask_i;
+esfitdata.Opts.Mask(idx) = mask_i;
 delete(tmpmask);
 showmaskedregions();
 end
@@ -2877,7 +2925,7 @@ for i = 1:esfitdata.nDataSets
 
   % Show masked-out regions
   maskColor = [1 1 1]*0.95;
-  edges = find(diff([1; esfitdata.Opts.mask(idx); 1]));
+  edges = find(diff([1; esfitdata.Opts.Mask(idx); 1]));
   excludedRegions = reshape(edges,2,[]).';
   excludedRegions(:,1) = excludedRegions(:,1)-1;
   upperlimit = numel(x);
@@ -2909,7 +2957,7 @@ end
 function clearMaskCallback(~,~)
 global esfitdata
 
-esfitdata.Opts.mask = true(size(esfitdata.Opts.mask));
+esfitdata.Opts.Mask = true(size(esfitdata.Opts.Mask));
 showmaskedregions();
 esfitdata.best = [];
 esfitdata.rmsdhistory = [];

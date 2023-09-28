@@ -58,9 +58,13 @@ for k = 1:numel(expdata)
   plot(B{k},expdata{k},B{k},result.fit{k});
 end
 
+% Run fitting in GUI
+FitOpt.OutArg = [2 2 1]; % [nOutArg iOut iOutx]
+esfit(expdata, @chili_multifreq, {Sys, Exp}, {Vary}, FitOpt);
+
 
 % Custom function for simulating slow-motion X- and Q-band EPR spectra
-function y = chili_multifreq(Sys,Exp)
+function varargout = chili_multifreq(Sys,Exp)
 
 % X-band spectrum
 Sys.lw = Sys.lwX;
@@ -69,7 +73,7 @@ Exp.CenterSweep = Exp.CenterSweepX;
 Exp.nPoints = Exp.nPointsX;
 Exp.mwFreq = Exp.mwFreqX;
 
-y{1} = chili(Sys,Exp);
+[x{1},y{1}] = chili(Sys,Exp);
 
 % Q-band spectrum
 Sys.lw = Sys.lwQ;
@@ -78,6 +82,13 @@ Exp.CenterSweep = Exp.CenterSweepQ;
 Exp.nPoints = Exp.nPointsQ;
 Exp.mwFreq = Exp.mwFreqQ;
 
-y{2} = chili(Sys,Exp);
+[x{2},y{2}] = chili(Sys,Exp);
+
+if nargout==1
+  varargout{1} = y;
+elseif nargout==2
+  varargout{1} = x;
+  varargout{2} = y;
+end
 
 end
