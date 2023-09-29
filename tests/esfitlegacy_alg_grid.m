@@ -18,7 +18,7 @@ FitOpt.Verbosity = 0;
 FitOpt.GridSize = 3;
 FitOpt.RandomizeGrid = false;
 
-dataMethod = {'fcn','int','iint','diff','fft'};
+dataMethod = {'fcn','int','dint','diff','fft'};
 nMethods = numel(dataMethod);
 rmsd = zeros(1,nMethods);
 for iMethod = 1:nMethods

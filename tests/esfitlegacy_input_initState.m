@@ -15,10 +15,10 @@ Exp.Harmonic = 0;
 
 [B,spc] = pepper(Sys,Exp);
 rng(1)
-spc = addnoise(spc,100,'n');
+spc = addnoise(spc,200,'n');
 
-Vary.D = [100 100];
-Vary.initState{1} = [0 0.2 0.2];
+Vary.D = [0 100];
+Vary.initState{1} = [0 0 0.2];
 
 Opt = struct;
 FitOpt.Verbosity = 0;

@@ -5,7 +5,7 @@ function ok = test()
 
 fitAlg = 'simplex';
 
-dataMethod = {'fcn','int','iint','diff','fft'};
+dataMethod = {'fcn','int','dint','diff','fft'};
 
 nMethods = numel(dataMethod);
 

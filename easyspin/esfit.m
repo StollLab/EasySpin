@@ -375,7 +375,6 @@ for k = 1:numel(keywords)
       
     case 'fcn',        Opt.TargetID = 1;
     case 'int',        Opt.TargetID = 2;
-    case 'iint',       Opt.TargetID = 3;
     case 'dint',       Opt.TargetID = 3;
     case 'diff',       Opt.TargetID = 4;
     case 'fft',        Opt.TargetID = 5;
@@ -397,12 +396,28 @@ AlgorithmNames{6} = 'particle swarm';
 AlgorithmNames{7} = 'lsqnonlin';
 esfitdata.AlgorithmNames = AlgorithmNames;
 
+AlgorithmAbbrev{1} = 'simplex';
+AlgorithmAbbrev{2} = 'levmar';
+AlgorithmAbbrev{3} = 'montecarlo';
+AlgorithmAbbrev{4} = 'genetic';
+AlgorithmAbbrev{5} = 'grid';
+AlgorithmAbbrev{6} = 'swarm';
+AlgorithmAbbrev{7} = 'lsqnonlin';
+esfitdata.AlgorithmAbbrev = AlgorithmAbbrev;
+
 TargetNames{1} = 'data as is';
 TargetNames{2} = 'integral';
 TargetNames{3} = 'double integral';
 TargetNames{4} = 'derivative';
 TargetNames{5} = 'Fourier transform';
 esfitdata.TargetNames = TargetNames;
+
+TargetAbbrev{1} = 'fcn';
+TargetAbbrev{2} = 'int';
+TargetAbbrev{3} = 'dint';
+TargetAbbrev{4} = 'diff';
+TargetAbbrev{5} = 'fft';
+esfitdata.TargetAbbrev = TargetAbbrev;
 
 % Mask
 if ~isfield(Opt,'Mask')
@@ -491,6 +506,7 @@ else
     Opt.x(esfitdata.idx{i}) = 1:esfitdata.datasize(i);
   end
 end
+Opt.x = Opt.x(:);
 
 esfitdata.rmsdhistory = [];
 
@@ -837,6 +853,8 @@ end
 % Assemble output structure
 %-------------------------------------------------------------------------------
 
+result.algorithm = esfitdata.AlgorithmAbbrev{esfitdata.Opts.AlgorithmID};
+result.target = esfitdata.TargetAbbrev{esfitdata.Opts.TargetID};
 if esfitdata.nDataSets>1
   for k = 1:esfitdata.nDataSets
     idx = esfitdata.idx{k};
@@ -870,12 +888,12 @@ result.p_fixed = fixedParams;
 result.pfit = pfit_active;
 result.pfit_full = pfit;
 
+result.argsfit = argsfit;
+
 result.pstd = pstd;
 result.ci95 = ci95;
 result.cov = covmatrix;
 result.corr = corrmatrix;
-
-result.argsfit = argsfit;
 
 result.ssr = ssr0;
 result.rmsd = rmsd0;
@@ -969,7 +987,7 @@ if numel(esfitdata.OutArgument)==2
     error('\n  Simulation function output axis and data have unequal total number of points:\n    axis: %d\n    data: %d\n',...
            numel(x_vec),numel(simdata_vec));
   end
-  esfitdata.Opts.x = x_vec;
+  esfitdata.Opts.x = x_vec(:);
 end
 
 % Rescale simulated data if scale should be ignored; include baseline if wanted
@@ -1027,6 +1045,7 @@ end
 rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights(:)));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
+esfitdata.curr.rmsd = rmsd0;
 esfitdata.curr.sim = simdata_vec;
 esfitdata.curr.par = par;
 esfitdata.curr.scale = simscale;
@@ -1521,10 +1540,10 @@ uilabel('Parent',lgrid.fitsets,...
     'HorizontalAl','left','VerticalAl','top');
 
 % Fit parameter set table
-columnname = {'ID','rmsd','scale','baseline',''};
-columnformat = {'char','char','char','char','char'};
-colEditable = [false false false false false];
-columnwidths = {1.5*hElement,'auto','auto','auto','auto'};
+columnname = {'ID','rmsd','algorithm','target','scale','baseline',''};
+columnformat = {'char','char','char','char','char','char','char'};
+colEditable = [false false false false false false false];
+columnwidths = {1.6*hElement,'auto','auto','auto','auto','auto','auto'};
 gui.FitSetTable = uitable('Parent',lgrid.fitsets,...
                           'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
                           'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
@@ -1672,14 +1691,8 @@ gui.nParamsField = uieditfield('numeric','Parent',nparamsbox,...
         'Editable','off');
 
 gui.AlgorithmTabs = uitabgroup(lgrid.main,'TabLocation','left');
-AlgorithmAbbrev{1} = 'simplex';
-AlgorithmAbbrev{2} = 'levmar';
-AlgorithmAbbrev{3} = 'montecarlo';
-AlgorithmAbbrev{4} = 'genetic';
-AlgorithmAbbrev{5} = 'grid';
-AlgorithmAbbrev{6} = 'swarm';
 for i = 1:(numel(esfitdata.AlgorithmNames)-1)
-  t(i) = uitab(gui.AlgorithmTabs,'Title',AlgorithmAbbrev{i},'ToolTip',esfitdata.AlgorithmNames{i});
+  t(i) = uitab(gui.AlgorithmTabs,'Title',esfitdata.AlgorithmAbbrev{i},'ToolTip',esfitdata.AlgorithmNames{i});
   [FitOpt,info] = esfit_algdefaults(esfitdata.AlgorithmNames{i});
   esfitdata.AlgorithmDefaults{i} = FitOpt;
   setting = fieldnames(info);
@@ -1967,7 +1980,7 @@ updateaxislimits()
 drawnow
 
 % Update column with best values if current parameter set is new best
-str = sprintf('Current RMSD: %g\n',rmsd);
+str = sprintf('Current RMSD: %g\n',esfitdata.curr.rmsd);
 set(gui.RmsText,'Text',str,'FontColor',[1 0 0]);
 
 end
@@ -2485,21 +2498,23 @@ data = cell(nSets,4);
 for k = 1:nSets
   data{k,1} = esfitdata.FitSets(k).ID;
   data{k,2} = esfitdata.FitSets(k).rmsd;
+  data{k,3} = esfitdata.FitSets(k).algorithm;
+  data{k,4} = esfitdata.FitSets(k).target;
   if esfitdata.nDataSets==1
-    data{k,3} = esfitdata.FitSets(k).scale;
-    data{k,4} = esfitdata.FitSets(k).baselinetype{1};
+    data{k,5} = esfitdata.FitSets(k).scale;
+    data{k,6} = esfitdata.FitSets(k).baselinetype{1};
   else
     str = sprintf('%5.4g ',esfitdata.FitSets(k).scale);
-    data{k,3} = strcat('[',str(1:end-1),']');
+    data{k,5} = strcat('[',str(1:end-1),']');
     str = sprintf('%s, ',esfitdata.FitSets(k).baselinetype{:});
-    data{k,4} = strcat('[',str(1:end-2),']');
+    data{k,6} = strcat('[',str(1:end-2),']');
   end
   if esfitdata.FitSets(k).Mask
     maskstr = ' (mask)';
   else
     maskstr = '';
   end
-  data{k,5} = maskstr;
+  data{k,7} = maskstr;
 end
 set(gui.FitSetTable,'Data',data);
 if idx>0, set(gui.FitSetTable,'Selection',idx); end
@@ -2876,6 +2891,9 @@ c = dataaxes.Children([2:end 1]);
 dataaxes.Children = c;
 
 % Continuously update patch based on mouse position until next user click
+for i = 1:numel(gui.dataaxes)
+  zoom(gui.dataaxes(i),'off')
+end
 set(gui.Fig,'WindowButtonMotionFcn',@(hObject,eventdata) drawmaskedregion(dataaxes,tmpmask));
 set(gui.Fig,'WindowButtonDownFcn',@(src,event)uiresume(src));
 dataaxes.ButtonDownFcn = [];
@@ -2913,7 +2931,7 @@ global esfitdata gui
 for i = 1:esfitdata.nDataSets
 
   idx = esfitdata.idx{i};
-  x = esfitdata.Opts.x(idx);
+  x = esfitdata.Opts.x(idx).';
 
   tmp = gui.dataaxes(i).UserData;
 
@@ -3237,11 +3255,17 @@ end
 function closeGUI(~,~)
 % Callback to close GUI
 
-global esfitdata gui
+global esfitdata
 esfitdata.UserCommand = 99;
 drawnow;
-delete(gui.Popup);
-delete(gui.Fig);
+hFig = findall(0,'Tag','esfitFigure');
+if ~isempty(hFig)
+  delete(hFig);
+end
+hPopup = findall(0,'Tag','algorithmpopup');
+if ~isempty(hPopup)
+  delete(hPopup);
+end
 
 end
 %===============================================================================

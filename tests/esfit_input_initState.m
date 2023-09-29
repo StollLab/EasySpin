@@ -2,6 +2,7 @@ function ok = test(opt)
 
 % Make sure esfit runs with Sys.initState
 
+tic
 Sys.S = 1;
 Sys.g = 2.0023;
 Sys.D = [800 -200];
@@ -15,10 +16,10 @@ Exp.Harmonic = 0;
 
 [B,spc] = pepper(Sys,Exp);
 rng(1)
-spc = addnoise(spc,100,'n');
+spc = addnoise(spc,200,'n');
 
-Vary.D = [100 100];
-Vary.initState{1} = [0 0.2 0.2];
+Vary.D = [0 100];
+Vary.initState{1} = [0 0 0.2];
 
 Opt = struct;
 FitOpt.Verbosity = 0;
