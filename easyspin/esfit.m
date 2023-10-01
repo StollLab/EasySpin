@@ -1366,9 +1366,9 @@ gui.selectNoneButton = uibutton('Parent',selectbox,...
     'Tooltip','Unselect all parameters');
 
 % Parameter table
-columnname = {'','','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
-columnformat = {'char','logical','char','char','char','char','char','char','char','char','char'};
-colEditable = [false true false true true true false false false false false];
+columnname = {'','','Name','start','lower','upper','current','best','ci95 lower','ci95 upper'};
+columnformat = {'char','logical','char','char','char','char','char','char','char','char'};
+colEditable = [false true false true true true false false false false];
 data = cell(numel(esfitdata.pinfo),10);
 for p = 1:numel(esfitdata.pinfo)
   data{p,1} = num2str(p);
@@ -1381,9 +1381,8 @@ for p = 1:numel(esfitdata.pinfo)
   data{p,8} = '-';
   data{p,9} = '-';
   data{p,10} = '-';
-  data{p,11} = '-';
 end
-columnwidths = {hElement,hElement,'auto','auto','auto','auto','auto','auto','auto','auto','auto'};
+columnwidths = {hElement,hElement,'auto','auto','auto','auto','auto','auto','auto','auto'};
 gui.ParameterTable = uitable('Parent',lgrid.params,...
                              'ColumnFormat',columnformat,'ColumnName',columnname,'RowName',[],...
                              'ColumnEditable',colEditable,'FontSize',fontsizetbl,...
@@ -2042,7 +2041,6 @@ for p = 1:size(Data,1)
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
-  Data{p,11} = '-';
 end
 set(gui.ParameterTable,'Data',Data);
 
@@ -2113,14 +2111,12 @@ for p = 1:size(Data,1)
   Data{p,7} = '-'; 
   if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
     Data{p,8} = sprintf('%0.6g',esfitdata.best.pfit(pi));
-    Data{p,9} = sprintf('%0.6g',esfitdata.best.pstd(pi));
-    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
-    Data{p,11} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
+    Data{p,9} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
+    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
     pi = pi+1;
   else
     Data{p,9} = '-';
     Data{p,10} = '-';
-    Data{p,11} = '-';
   end
 end
 set(gui.ParameterTable,'Data',Data);
@@ -2250,7 +2246,6 @@ for p = 1:size(Data,1)
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
-  Data{p,11} = '-';
 end
 set(gui.ParameterTable,'Data',Data);
 
@@ -2435,14 +2430,12 @@ if ~isempty(fitsets)
     for p = 1:size(data,1)
       data{p,8} = sprintf('%0.6g',fitset.pfit_full(p));
       if ~fitset.p_fixed(p) && ~isempty(fitset.pstd)
-        data{p,9} = sprintf('%0.6g',fitset.pstd(pi));
-        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,1));
-        data{p,11} = sprintf('%0.6g',fitset.ci95(pi,2));
+        data{p,9} = sprintf('%0.6g',fitset.ci95(pi,1));
+        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,2));
         pi = pi+1;
       else
         data{p,9} = '-';
         data{p,10} = '-';
-        data{p,11} = '-';
       end
     end
     set(gui.ParameterTable,'Data',data);
@@ -2450,11 +2443,21 @@ if ~isempty(fitsets)
     if esfitdata.nDataSets==1
       set(gui.bestsimdata,'YData',fitset.fit);
       set(gui.baselinedata,'YData',fitset.baseline);
+
+      expdata = get(gui.expdata,'YData');
+      residualzero = get(gui.residualzero,'Value');
+      residualdata = (expdata(:)-fitset.fit(:))+residualzero;
+      set(gui.residualdata,'YData',residualdata);
     else
       for i = 1:esfitdata.nDataSets
         set(gui.bestsimdata(i),'YData',fitset.fit{i});
         set(gui.baselinedata(i),'YData',fitset.baseline{i});
         gui.multifitScale(i).Value = fitset.scale(i);
+
+        expdata = get(gui.expdata(i),'YData');
+        residualzero = get(gui.residualzero(i),'Value');
+        residualdata = (expdata(:)-fitset.fit{i}(:))+residualzero;
+        set(gui.residualdata(i),'YData',residualdata);
       end
     end
     drawnow limitrate

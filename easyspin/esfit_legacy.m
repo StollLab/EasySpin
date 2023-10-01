@@ -1303,7 +1303,6 @@ for p = 1:size(Data,1)
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
-  Data{p,11} = '-';
 end
 set(hTable,'Data',Data);
 
@@ -1364,14 +1363,12 @@ pi = 1;
 for p = 1:size(Data,1)
   Data{p,7} = '-'; 
   if ~esfitdata.fixedParams(p) && ~isempty(esfitdata.best.pstd)
-    Data{p,9} = sprintf('%0.6g',esfitdata.best.pstd(pi));
-    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
-    Data{p,11} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
+    Data{p,9} = sprintf('%0.6g',esfitdata.best.ci95(pi,1));
+    Data{p,10} = sprintf('%0.6g',esfitdata.best.ci95(pi,2));
     pi = pi+1;
   else
     Data{p,9} = '-';
     Data{p,10} = '-';
-    Data{p,11} = '-';
   end
 end
 set(hTable,'Data',Data);
@@ -1583,7 +1580,6 @@ for p = 1:size(Data,1)
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
-  Data{p,11} = '-';
 end
 set(hTable,'Data',Data);
 
@@ -1658,14 +1654,12 @@ if ~isempty(str)
     for p = 1:size(data,1)
       data{p,8} = sprintf('%0.6g',fitset.pfit_full(p));
       if ~fitset.fixedParams(p) && ~isempty(fitset.pstd)
-        data{p,9} = sprintf('%0.6g',fitset.pstd(pi));
-        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,1));
-        data{p,11} = sprintf('%0.6g',fitset.ci95(pi,2));
+        data{p,9} = sprintf('%0.6g',fitset.ci95(pi,1));
+        data{p,10} = sprintf('%0.6g',fitset.ci95(pi,2));
         pi = pi+1;
       else
         data{p,9} = '-';
         data{p,10} = '-';
-        data{p,11} = '-';
       end
     end
     set(hTable,'Data',data);
@@ -2072,8 +2066,8 @@ dh = 4*scalefact; % spacing (height)
 ParTableh = hPtop-10;
 ParTablex0 = spacing;
 ParTabley0 = sz(2)-hPtop-spacing;
-ParTableColw = 85*scalefact;
-ParTablew = 9*ParTableColw+2*hElement+dh;
+ParTablew = 765*scalefact+2*hElement+dh;
+ParTableColw = (ParTablew-2*hElement+dh)/8;
 
 Optionsx0 = ParTablex0+ParTablew+0.5*spacing;
 Optionsy0 = ParTabley0+44*scalefact;
@@ -2134,9 +2128,9 @@ showmaskedregions();
 
 % Parameter table
 %-------------------------------------------------------------------------------
-columnname = {'','','Name','start','lower','upper','current','best','stdev','ci95 lower','ci95 upper'};
-columnformat = {'char','logical','char','char','char','char','char','char','char','char','char'};
-colEditable = [false true false true true true false false false false false];
+columnname = {'','','Name','start','lower','upper','current','best','ci95 lower','ci95 upper'};
+columnformat = {'char','logical','char','char','char','char','char','char','char','char'};
+colEditable = [false true false true true true false false false false];
 data = cell(numel(esfitdata.pinfo),10);
 for p = 1:numel(esfitdata.pinfo)
   data{p,1} = num2str(p);
@@ -2149,7 +2143,6 @@ for p = 1:numel(esfitdata.pinfo)
   data{p,8} = '-';
   data{p,9} = '-';
   data{p,10} = '-';
-  data{p,11} = '-';
 end
 uitable('Parent',hFig,'Tag','ParameterTable',...
     'FontSize',8,...
@@ -2158,7 +2151,7 @@ uitable('Parent',hFig,'Tag','ParameterTable',...
     'ColumnName',columnname,...
     'ColumnEditable',colEditable,...
     'CellEditCallback',@tableCellEditCallback,...
-    'ColumnWidth',{hElement,hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
+    'ColumnWidth',{hElement,hElement,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw,ParTableColw},...
     'RowName',[],...
     'Data',data,...
     'UserData',colEditable);
