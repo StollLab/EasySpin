@@ -14,7 +14,7 @@
 %   If no outputs are requested, the results are plotted.
 %
 %   Input:
-%   - tIn:        time axis, in ?s
+%   - tIn:        time axis, in microseconds
 %   - signalIn:   input signal vector, in-phase part only for DSB,
 %                 SSB or IQ demodulation mode, in-phase and quadrature
 %                 part for IQ mixer and IQ frequency shift operation
@@ -29,7 +29,7 @@
 %                 'IQdemod' = IQ demodulator
 %                 'IQshift' = IQ frequency shifter (up- or downconversion)
 %   - Options:
-%     Opt.dt =     time step for the output signal, in ?s.
+%     Opt.dt =     time step for the output signal, in microseconds.
 %                  If no time step for resampling is given and the input
 %                  time axis is too large, a new time step is computed as
 %                  1/(2*Opt.OverSampleFactor*maxfreq).
@@ -56,7 +56,7 @@
 %                                the noise level in the signal and baseline).
 %
 %   Output:
-%   - tOut:          time axis for the output signal, in ?s.
+%   - tOut:          time axis for the output signal, in microseconds.
 %   - signalOut:     output signal vector, in-phase component only for DSB,
 %                    SSB or IQmod, in-phase and quadrature component for
 %                    IQdemod and IQshift
@@ -154,28 +154,26 @@ signalFT = fftshift(fft(signal));
 inputband = f(abs(signalFT)>Opt.BandwidthThreshold*max(abs(signalFT)));
 maxFreqIn = max(inputband);
 
-if abs(mwFreq*1e3) > maxFreqIn % for upconversion
+if abs(mwFreq*1e3) > 2*maxFreqIn % for upconversion
   maxFreqOut = abs(mwFreq*1e3) + maxFreqIn;
 else % for downconversion
   maxFreqOut = max([abs(mwFreq*1e3) maxFreqIn]);
 end
-nyqdt = 1/(2*maxFreqOut); % ?s, dt for Nyquist criterion
+nyqdt = 1/(2*maxFreqOut); % microseconds, dt for Nyquist criterion
 
 tIn = t;
-dtIn = tIn(2) - tIn(1); % input signal time step, in ?s
+dtIn = tIn(2) - tIn(1); % input signal time step, in microseconds
 if isfield(Opt,'dt')
   if Opt.dt>nyqdt
     warning('Maximum frequency exceeds Nyquist frequency for specified resampling time step.')
   end
 else
   if dtIn > nyqdt
-    Opt.dt = 1/(2*Opt.OverSampleFactor*maxFreqOut); % default resampling time step, in ?s
+    Opt.dt = 1/(2*Opt.OverSampleFactor*maxFreqOut); % default resampling time step, in microseconds
   else
     Opt.dt = dtIn;
   end
 end
-tOut = tIn(1):Opt.dt:tIn(end);
-signal_rs = interp1(tIn,signal,tOut,Opt.InterpolationMethod);
 
 % Define I and Q data for real input signals
 %-----------------------------------------------------------
@@ -183,11 +181,11 @@ if realInput
   if any(strcmpi(type,{'USB','LSB','IQdemod'}))
     
     % Use Hilbert transform to construct quadrature signal
-    signal_rs = signal_rs + 1i*imag(hilberttrans(signal_rs));
+    signal = signal + 1i*imag(hilberttrans(signal));
     
     % Neglect part of the signal amplitude below Opt.NoiseCutoffThreshold
-    ind = find(abs(signal_rs)>Opt.NoiseCutoffThreshold*max(abs(signal_rs)));
-    signal_nonzero = signal_rs(ind(1):ind(end));
+    ind = find(abs(signal)>Opt.NoiseCutoffThreshold*max(abs(signal)));
+    signal_nonzero = signal(ind(1):ind(end));
 
     % Check that input satisfies conditions for Hilbert transform to
     % correspond to the quadrature signal (based on Bedrosian's theorem)
@@ -215,7 +213,10 @@ elseif strcmpi(type,'LSB') || strcmpi(type,'IQdemod')
 else
   LO = mwFreq;
 end
-signalOut = signal_rs.*exp(2i*pi*LO*1e3*tOut);
+signalOut_ = signal.*exp(2i*pi*LO*1e3*tIn);
+
+tOut = tIn(1):Opt.dt:tIn(end);
+signalOut = interp1(tIn,signalOut_,tOut,Opt.InterpolationMethod);
 
 if any(strcmpi(type,{'DSB','USB','LSB','IQmod'}))
   signalOut = real(signalOut);
@@ -227,15 +228,15 @@ switch nargout
   case 0
     subplot(2,1,1);
     if ~realInput
-      plot(tOut,real(signal_rs),tOut,imag(signal_rs));
+      plot(tIn,real(signal),tIn,imag(signal));
       legend('I','Q');
       legend boxoff
     else
-      plot(tOut,real(signal_rs));
+      plot(tIn,real(signal));
     end
     title('Input signal');
     xlabel('{\itt} (\mus)');
-    ylim([-1.1 1.1]*max(abs(signal_rs)))
+    ylim([-1.1 1.1]*max(abs(signal)))
     subplot(2,1,2);
     if ~isreal(signalOut)
       plot(tOut,real(signalOut),tOut,imag(signalOut));

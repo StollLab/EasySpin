@@ -64,8 +64,8 @@
 %                           custom coefficients using 'GaussianCascade', see
 %                           private/GaussianCascadeCoefficients.txt for 
 %                           details), Fourier-series pulses (I-BURP 1/2,
-%                           SNOB i2/i3, custom coefficients using 
-%                           'FourierSeries',see 
+%                           E-BURP 1/2, U-BURP, RE-BURP, SNOB i2/i3, 
+%                           custom coefficients using 'FourierSeries', see 
 %                           private/FourierSeriesCoefficients.txt for details)
 %   - Frequency modulation: none, linear, tanh, uniformQ
 %
@@ -410,7 +410,7 @@ else
                  'x0 and FWHM inputs.'])
         end
         
-      case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
+      case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3','e-burp 1','e-burp 2','u-burp','re-burp'}
         
         if (~(isfield(Par,'A0') && isfield(Par,'An') && isfield(Par,'Bn')) || ...
             (isempty(Par.A0) && isempty(Par.An) && isempty(Par.Bn)))
@@ -571,7 +571,7 @@ else
             A0 = A0 + Par.A0(j)*exp(-(4*log(2)/(Par.FWHM(j)*Par.tp)^2)*(t0-Par.x0(j)*Par.tp).^2);
           end
           A0 = A0/max(A0);
-        case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
+        case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3','e-burp 1','e-burp 2','u-burp','re-burp'}
           A0 = zeros(1,numel(t0)) + Par.A0;
           for j = 1:numel(Par.An)
             A0 = A0 + Par.An(j)*cos(j*2*pi*t0/Par.tp) + Par.Bn(j)*sin(j*2*pi*t0/Par.tp);
@@ -686,7 +686,7 @@ else
         end
         A = A/max(A);
         
-      case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3'}
+      case {'fourierseries','i-burp 1','i-burp 2','snob i2','snob i3','e-burp 1','e-burp 2','u-burp','re-burp'}
         
         A = zeros(1,numel(t)) + Par.A0;
         for j = 1:numel(Par.An)

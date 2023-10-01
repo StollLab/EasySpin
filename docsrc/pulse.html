@@ -93,6 +93,7 @@ The available amplitude modulation functions are <code>'rectangular'</code>, <co
 </p>
 <p>
 The available options for frequency modulation are <code>'none'</code>, <code>'linear'</code>, <code>'tanh'</code>, <code>'uniformQ'</code>. If only an AM keyword is given, the FM function is set to <code>'none'</code>.
+<br>The <code>'uniformQ'</code> option can be used to obtain the frequency modulation corresponding to a pulse with offset-independent adiabaticity given a specific amplitude modulation function (see Tann&uacute;s, A., Garwood, M. Improved Performance of Frequency-Swept Pulses Using Offset-Independent Adiabaticity. <i>J. Magn. Reson. A</i> 120, 133–137 (<b>1996</b>) (DOI: <a href="https://doi.org/10.1006/jmra.1996.0110 ">10.1006/jmra.1996.0110 </a>)), for example for higher-order sech (HS<i>n</i>) pulses.
 </p>
 
 <p>Here are a few examples:</p>
@@ -175,6 +176,7 @@ Depending on the AM function, additional fields need to be specified:
 <li><code>n</code> - exponent of the secant function argument (default = 1)
 <p>
 asymmetric sech pulses can be obtained by specifying two values for <code>n</code>
+<br> to get amplitude- and frequency-modulated higher-order sech pulses (HS<i>n</i>, <i>n</i>>1) with offset-independent adiabaticity, combine the <code>sech</code> AM function with the <code>uniformQ</code> FM option (see below)
 </p>
 </ul>
 <li><code>'WURST'</code>
@@ -204,7 +206,7 @@ If <code>Par.Type</code> is set to <code>'G3'</code>, <code>'G4'</code>, <code>'
 </ul>
 <li><code>'FourierSeries'</code></li>
 <p>
-If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="https://doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a> (Table 5 on p. 117 for I-BURP 1 and Table 6 on p. 119 for I-BURP 2, Np = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="https://doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
+If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'E-BURP 1'</code>, <code>'E-BURP 2'</code>, <code>'U-BURP'</code>, <code>'RE-BURP'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="https://doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a>(Table 3 for E-BURP 1, Table 4 for E-BURP 2, Table 5 for I-BURP 1, Table 6 for I-BURP 2, Table 7 for U-BURP and Table 8 for RE-BURP, <i>N</i><sub>p</sub> = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="https://doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
 </p>
 <ul style="list-style-type:none;padding:2px;">
 <li><code>A0</code> - initial amplitude coefficient
@@ -232,7 +234,7 @@ Also, depending on the FM function, the following additional fields are required
 </ul>
 <li><code>'uniformQ'</code>
 <ul style="list-style-type:none;padding:5px;">
-<li>no additional fields are required
+<li>no additional fields are required. This option calculates the FM function for an offset-independent adiabaticity (OIA) pulse given the specified AM function (see below for details).
 </ul>
 </ul>
 </div>
@@ -434,7 +436,7 @@ Frequency and phase modulation functions (<i>BW</i> is the difference between en
 
 <li><code>'uniformQ'</code>:
 <p>
-The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="https://doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
+The frequency modulation function is calculated as the integral of the squared amplitude modulation function and multiplied by the specified bandwidth (centered at zero). This can be used for <i>n</i>th order sech pulses (HS<i>n</i>) or in general to obtain offset-independent adiabaticity pulses given a certain amplitude function (see Garwood, M., DelaBarre, L., <i>J. Magn. Reson.</i> 153, 155-177 (<b>2001</b>), DOI: <a href="https://doi.org/10.1006/jmre.2001.2340">10.1006/jmre.2001.2340</a>). The phase modulation function is obtained by integration and the phase is set to zero at the center of the pulse.
 </p>
 
 </ul>
