@@ -306,6 +306,25 @@ if EasySpinFunction
   if ~any(isfield(p0{2},{'Range','CenterSweep','mwRange','mwCenterSweep'}))
     error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
   end
+
+  % Get x-axis for plotting in GUI
+  if isfield(p0{2},'mwRange') || isfield(p0{2},'mwCenterSweep')
+    rangefield = 'mwRange';
+    centersweepfield = 'mwCenterSweep';
+  elseif isfield(p0{2},'Range') || isfield(p0{2},'CenterSweep')
+    rangefield = 'Range';
+    centersweepfield = 'CenterSweep';
+  end
+  if isfield(p0{2},centersweepfield) && all(~isnan(p0{2}.(centersweepfield)))
+    range = p0{2}.(centersweepfield)(1) + [-1 1]/2*p0{2}.(centersweepfield)(2);
+  else
+    range = p0{2}.(rangefield);
+  end
+  if any(range<0) || diff(range)<=0 || any(~isfinite(range)) || any(~isreal(range))
+    error('Invalid sweep range! Check Exp.(mw)CenterSweep or Exp.(mw)Range.');
+  end
+  Opt.x = linspace(range(1),range(2),p0{2}.nPoints);
+
 end
 
 if structureInputs
@@ -324,29 +343,17 @@ if isfield(Opt,'Scaling')
 end
 
 if ~isfield(Opt,'OutArg')
-  if EasySpinFunction
-    esfitdata.nOutArguments = 2;
-    esfitdata.OutArgument = [2 1];
-  else
-    esfitdata.nOutArguments = abs(nargout(esfitdata.fcn));
-    esfitdata.OutArgument = esfitdata.nOutArguments;
-  end
+  esfitdata.nOutArguments = abs(nargout(esfitdata.fcn));
+  esfitdata.OutArgument = esfitdata.nOutArguments;
 else
-  if numel(Opt.OutArg)~=2 && numel(Opt.OutArg)~=3
-    error('Opt.OutArg must contain two ([nOut iOut]) or three ([nOut iOut iOutx]) values.');
+  if numel(Opt.OutArg)~=2
+    error('Opt.OutArg must contain two values [nOut iOut].');
   end
   if Opt.OutArg(2)>Opt.OutArg(1)
     error('Opt.OutArg: second number cannot be larger than first one.');
   end
-  if numel(Opt.OutArg)==3 && Opt.OutArg(3)>Opt.OutArg(1)
-    error('Opt.OutArg: third number cannot be larger than first one.');
-  end
   esfitdata.nOutArguments = Opt.OutArg(1);
-  esfitdata.OutArgument = Opt.OutArg(2:end);  
-end
-showxaxis = false;
-if numel(esfitdata.OutArgument)==2
-  showxaxis = true;
+  esfitdata.OutArgument = Opt.OutArg(2);  
 end
 
 if ~isfield(Opt,'Method')
@@ -489,6 +496,7 @@ end
 esfitdata.weights = weights;
 
 % x axis for plotting
+showxaxis = false;
 if isfield(Opt,'x')
   if iscell(Opt.x)
     x = [];
@@ -952,7 +960,7 @@ catch ME
   return
 end
 
-simdata = out{esfitdata.OutArgument(1)}; % pick appropriate output argument
+simdata = out{esfitdata.OutArgument}; % pick appropriate output argument
 if ~iscell(simdata)
   simdata = {simdata};
 end
@@ -970,24 +978,6 @@ end
 if numel(simdata_vec)~=numel(expdata)
   error('\n  Experimental data and model have unequal total number of points:\n    experimental: %d\n    model: %d\n',...
     numel(expdata),numel(simdata_vec));
-end
-
-% Get x-axis if additional output argument is defined
-if numel(esfitdata.OutArgument)==2
-  xdata = out{esfitdata.OutArgument(2)};
-  if iscell(xdata)
-    x_vec = [];
-    for i = 1:numel(xdata)
-      x_vec = [x_vec; xdata{i}(:)];
-    end
-  else
-    x_vec = xdata;
-  end
-  if numel(x_vec)~=numel(simdata_vec)
-    error('\n  Simulation function output axis and data have unequal total number of points:\n    axis: %d\n    data: %d\n',...
-           numel(x_vec),numel(simdata_vec));
-  end
-  esfitdata.Opts.x = x_vec(:);
 end
 
 % Rescale simulated data if scale should be ignored; include baseline if wanted
@@ -1426,7 +1416,7 @@ uilabel('Parent',fitoptbox1,...
 uilabel('Parent',fitoptbox1,...
     'Text',esfitdata.fcnName,...
     'FontColor','b',...
-    'Tooltip',{esfitdata.fcnName,sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument(1))},...
+    'Tooltip',{esfitdata.fcnName,sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument)},...
     'HorizontalAl','left','VerticalAl','center',...
     'BackgroundColor',get(gui.Fig,'Color'));
 gui.AlgorithmSettingsButton = uibutton('Parent',fitoptbox1,...

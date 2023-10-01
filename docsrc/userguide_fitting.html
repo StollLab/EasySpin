@@ -593,6 +593,10 @@ Note that each spectrum might have a different number of data points, in which c
 </p>
 
 <p>
+If the x axis corresponding to each of the data sets should be displayed in the GUI, it needs to be provided in <code>FitOpt.x</code> as a cell array.
+</p>
+
+<p>
 <a class="esf" href="esfit.html">esfit</a> calls the custom simulation function once per iteration. If <code>Sys</code> is a cell array with multiple spin systems, such as <code>Sys = {Sys1,Sys2}</code>, then this will be passed as a cell array to the custom function.
 </p>
 
@@ -603,10 +607,6 @@ Note that each spectrum might have a different number of data points, in which c
 <pre class="matlab">
 FitOpt.OutArg = [4 2];  % 4 outputs, use 2nd for fitting
 </pre>
-
-<p>
-If you want the x axis values to be displayed for fitting in the GUI, you can tell <code>esfit</code> how to get this information from the model function by specifying a third field in <code>FitOpt.OutArg</code> containing the index of the output argument to use as the x axis. Alternatively, the x axis can also be provided directly in <code>FitOpt.x</code>. See the example <a href="../examples/fitting/fit_multifreq.m">fit_multifreq</a> for how to use this in a multi-frequency fit.
-</p>
 
 <hr>
 

@@ -303,6 +303,21 @@ Array of weights to use when combining residual vectors of all data sets for glo
 There are more options which are recognized by all fitting algorithms:
 </p>
 
+<div class="optionfield"><code>FitOpt.x</code></div>
+<div class="optiondescr">
+<p>
+Provides an x axis for plotting the data. If none is provided, <code>esfit</code> uses the data point indices (<code>1:n</code> where <code>n</code> is the number of data points) internally and does not display x axis labels. 
+</p>
+Example: Assume the data is an EPR spectrum with a field axis of 1000 points between 350 and 370 mT:
+<pre class="matlab">
+Opt.x = linspace(350,370,1000);
+</pre>
+</p>
+<p>
+<code>Opt.x</code> does not affect the fitting itself, just the plotting of the data.
+</p>
+</div>
+
 <div class="optionfield"><code>FitOpt.maxTime</code></div>
 <div class="optiondescr">
 <p>
@@ -321,28 +336,13 @@ they print information about the progress of the fitting.
 <div class="optionfield"><code>FitOpt.OutArg</code></div>
 <div class="optiondescr">
 <p>
-This is an array with two numbers <code>[nArgOut iArg]</code> or three numbers <code>[nArgOut iArg iArgx]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function, which may only be required for advanced usage, e.g. when using a custom fitting function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>iArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data. If a third number, <code>iArgx</code>, is given, the corresponding output argument is used to define the x axis for plotting the data (this only affects the plotting of the data, not the fitting procedure). Alternatively,  <code>FitOpt.x</code> can be used to define the x axis (see below).
+This is an array with two numbers <code>[nArgOut iArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function, which may only be required for advanced usage, e.g. when using a custom fitting function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>iArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
 </p>
 <p>
-E.g. <code>Opt.OutArg = [3 2]</code> indicates to call the function asking for three outputs and then to use output number 2 for the fitting. <code>Opt.OutArg = [2 2 1]</code> indicates to call the function asking for two outputs and then use the second for the fitting and the first to define the x-axis.
+E.g. <code>Opt.OutArg = [3 2]</code> indicates to call the function asking for three outputs and then to use output number 2 for the fitting.
 </p>
 <p>
 For standard EasySpin simulation functions, <code>OutArg</code> is chosen automatically. For custom simulation functions that deviate in their output behavior, <code>OutArg</code> might be useful.
-</p>
-</div>
-
-<div class="optionfield"><code>FitOpt.x</code></div>
-<div class="optiondescr">
-<p>
-Provides an x axis for plotting the data. If none is provided, <code>esfit</code> uses the data point indices (<code>1:n</code> where <code>n</code> is the number of data points) internally and does not display x axis labels. 
-</p>
-Example: Assume the data is an EPR spectrum with a field axis of 1000 points between 350 and 370 mT:
-<pre class="matlab">
-Opt.x = linspace(350,370,1000);
-</pre>
-</p>
-<p>
-<code>Opt.x</code> does not affect the fitting itself, just the plotting of the data.
 </p>
 </div>
 
