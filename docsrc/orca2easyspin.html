@@ -54,7 +54,8 @@ This function loads EPR properties calculated by <a href="http://cec.mpg.de/foru
 </p>
 
 <p>
-Alternative, the name of the property output file can be used. This property output file is text-based, has the extension <code>_property.txt</code>, and contains calculated properties in a condensed format compared to the main outut file. For older ORCA version prior to 5, the property output file is binary and has the extension <code>.prop</code>. There is no significant difference, or advantage, of using the property file compared to using the main output file.
+For ORCA versions prior to 5, a binary property output file with the extension <code>.prop</code> is also provided by ORCA and can be used with <code>orca2easyspin</code>. There is no significant difference, or advantage, of using the property file compared to using the main output file.
+The text-based property output file with extension <code>_property.txt</code> provided starting from ORCA version 5, and containing calculated properties in a condensed format compared to the main output file, can currently not be used to load data into EasySpin, the main output file should be used instead. 
 </p>
 
 <p>
@@ -77,12 +78,11 @@ The field <code>Sys.NucsIdx</code> list the atom index for every nucleus listed 
 <div class="subtitle">Examples</div>
 
 <p>
-To load a spin system from an ORCA calculation with results in <code>molecule.out</code> (main ORCA output text file) or <code>molecule_property.txt</code> (associated ORCA property output file), use one of the following:
+To load a spin system from an ORCA calculation with results in <code>molecule.out</code> (main ORCA output text file) use the following:
 </p>
 
 <pre class="matlab">
 Sys = orca2easyspin('molecule.out');   % loads spin system from main ORCA output file
-Sys = orca2easyspin('molecule_property.txt');   % loads spin system from property output file
 </pre>
 
 <p>
