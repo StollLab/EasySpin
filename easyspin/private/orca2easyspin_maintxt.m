@@ -335,6 +335,11 @@ for iStructure = nStructures:-1:1
       if ~isempty(d.Q{iAtom})
         Sys(iStructure).Q(idx,1:3) = d.Q{iAtom};
         Sys(iStructure).QFrame(idx,1:3) = d.QFrame{iAtom};
+      else
+        if isfield(Sys(iStructure),'Q')
+          Sys(iStructure).Q(idx,1:3) = 0;
+          Sys(iStructure).QFrame(idx,1:3) = 0;
+        end
       end
     end
   end
