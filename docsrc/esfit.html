@@ -292,10 +292,10 @@ In the graphical user interface, the mask can be selected manually and is return
 </p>
 </div>
 
-<div class="optionfield"><code>FitOpt.weights</code></div>
+<div class="optionfield"><code>FitOpt.weight</code></div>
 <div class="optiondescr">
 <p>
-Array of weights to use when combining residual vectors of all data sets for global fitting.
+Array of weights to use when combining residual vectors of all data sets for global fitting of multiple data sets. Note that these weights are applied to the residuals of different data sets without prior normalization, therefore, depending on the data sets provided as input, an intrinsic weighting might also contribute.
 </p>
 </div>
 
@@ -538,7 +538,7 @@ esfit(data,@pepper,{Sys0,Exp},{SysVary});
 </pre>
 
 <p>
-Global fitting of multiple datasets can be performed similarly, but requires definition of a custom function that returns the same number of data sets as the provided ones. Assuming <code>data</code> to be a cell array containing data sets recorded at X- and Q-band frequencies, the following code allows global fitting of both with the same spin system structure.
+Global fitting of multiple data sets can be performed similarly, but requires definition of a custom function that returns the same number of data sets as the provided ones. Assuming <code>data</code> to be a cell array containing data sets recorded at X- and Q-band frequencies, the following code allows global fitting of both with the same spin system structure.
 </p>
 
 <pre class="matlab">

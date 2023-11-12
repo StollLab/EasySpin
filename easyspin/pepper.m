@@ -283,7 +283,7 @@ if FieldSweep
   if ~isnan(Exp.CenterSweep)
     Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
     if Exp.Range(1)<0
-      error('Lower field limit from Exp.CenterSweep cannt be negative.');
+      error('Lower field limit from Exp.CenterSweep cannot be negative.');
     end
   end
   if isfield(Exp,'Range') && all(~isnan(Exp.Range))

@@ -39,7 +39,7 @@
 %        .Mask    array of 1 and 0 the same size as data vector
 %                 values with mask 0 are excluded from the fit 
 %                 (cell array for data input consisting of multiple datasets)
-%        .weights array of weights to use when combining residual vectors
+%        .weight  array of weights to use when combining residual vectors
 %                 of all datasets for global fitting
 % Output:
 %     fit           structure with fitting results
@@ -78,6 +78,14 @@ if verLessThan('Matlab','9.11') && nargout==0
   warning('Your Matlab version (<R2021b) does not support the newest version of the esfit GUI. Switching to legacy version.')
   esfit_legacy(data,fcn,p0,varargin{:})
   return;
+end
+% Check for display server used on Linux and display warning
+if isunix
+  [~,output] = system('echo "$XDG_SESSION_TYPE"');
+  if ~strcmp(output(1),'x')
+    warning(['There are known issues with new Matlab GUIs on Linux systems with display servers other than Xorg.' ...
+             'To avoid issues change the display server to Xorg or switch to the legacy version of the esfit GUI using esfit_legacy().'])
+  end
 end
 
 % Check expiry date
@@ -203,6 +211,10 @@ if structureInputs
     pvec_vary = argspar.getparamvalues(pvary,pinfo);
     pvec_lb = pvec_0 - pvec_vary;
     pvec_ub = pvec_0 + pvec_vary;
+    % Set lower bound to zero for parameters not allowing negative values
+    nonnegFieldNames = {'lw','lwpp','weight','initState'};
+    ind = ismember({pinfo.FieldName}.',nonnegFieldNames) & pvec_lb<0;
+    pvec_lb(ind) = 0;    
   else
     % use provided lower and upper bounds
     pinfo = argspar.getparaminfo(lb);
@@ -445,7 +457,7 @@ Opt.useMask = true;
 
 % Scale fitting
 if ~isfield(Opt,'AutoScale')
-  if EasySpinFunction
+  if EasySpinFunction || esfitdata.nDataSets>1
     Opt.AutoScale = 'lsq';
   else
     Opt.AutoScale = 'none';
@@ -482,18 +494,18 @@ esfitdata.BaseLineSettings = {-1, 0, 1, 2, 3};
 esfitdata.BaseLineStrings = {'none', 'offset', 'linear', 'quadratic', 'cubic'};
 
 % Weights for global fitting
-if ~isfield(Opt,'weights')
-  Opt.weights = ones(1,esfitdata.nDataSets);
+if ~isfield(Opt,'weight')
+  Opt.weight = ones(1,esfitdata.nDataSets);
 end
-if numel(Opt.weights)~=esfitdata.nDataSets
-  error('The number of elements in Opt.weights must be equal to the number of datasets.');
+if numel(Opt.weight)~=esfitdata.nDataSets
+  error('The number of elements in Opt.weight must be equal to the number of datasets.');
 end
 
-weights = zeros(1,sum(esfitdata.datasize));
+weight = zeros(1,sum(esfitdata.datasize));
 for i = 1:numel(data)
-  weights(esfitdata.idx{i}) = Opt.weights(i);
+  weight(esfitdata.idx{i}) = Opt.weight(i);
 end
-esfitdata.weights = weights;
+esfitdata.weight = weight;
 
 % x axis for plotting
 showxaxis = false;
@@ -1032,7 +1044,7 @@ end
 % Compute residuals
 %-------------------------------------------------------------------------------
 [residuals,residuals0] = calculateResiduals(simdata_vec,expdata,Opt.TargetID,esfitdata.idx,mask(:));
-rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weights(:)));
+rmsd = sqrt(mean(abs(residuals).^2.*esfitdata.weight(:)));
 rmsd0 = sqrt(mean(abs(residuals0).^2));
 
 esfitdata.curr.rmsd = rmsd0;
@@ -1273,10 +1285,10 @@ else
     c(i).Layout.Row = 1;
 
     % Weight
-    gui.multifitWeights(i) = uieditfield('numeric','Parent',tablebox,...
-                                         'Value',esfitdata.Opts.weights(i));
-    gui.multifitWeights(i).Layout.Column = i+1;
-    gui.multifitWeights(i).Layout.Row = 2;
+    gui.multifitWeight(i) = uieditfield('numeric','Parent',tablebox,...
+                                        'Value',esfitdata.Opts.weight(i));
+    gui.multifitWeight(i).Layout.Column = i+1;
+    gui.multifitWeight(i).Layout.Row = 2;
     
     % Baseline
     gui.multifitBaseline(i) = uidropdown('Parent',tablebox,...
@@ -1415,7 +1427,7 @@ uilabel('Parent',fitoptbox1,...
 uilabel('Parent',fitoptbox1,...
     'Text',esfitdata.fcnName,...
     'FontColor','b',...
-    'Tooltip',{esfitdata.fcnName,sprintf('using output no. %d of %d',esfitdata.nOutArguments,esfitdata.OutArgument)},...
+    'Tooltip',{esfitdata.fcnName,sprintf('using output no. %d of %d',esfitdata.OutArgument,esfitdata.nOutArguments)},...
     'HorizontalAl','left','VerticalAl','center',...
     'BackgroundColor',get(gui.Fig,'Color'));
 gui.AlgorithmSettingsButton = uibutton('Parent',fitoptbox1,...
@@ -1724,6 +1736,10 @@ updateAlgorithmDefaults()
 settingsbutton = gui.AlgorithmSettingsButton;
 set(settingsbutton,'ButtonPushedFcn',@openAlgorithmSettings);
 
+set(gui.Fig,'AutoResizeChildren',false)
+set(gui.Popup,'AutoResizeChildren',false)
+set(gui.Fig,'SizeChangedFcn',@(src,evt) resizeGUI('main'))
+set(gui.Popup,'SizeChangedFcn',@(src,evt) resizeGUI('popup'))
 set(gui.Fig,'Visible','on')
 set(gui.Fig,'NextPlot','new');
 set(gui.Popup,'NextPlot','new');
@@ -1736,22 +1752,35 @@ function setDataDisplayType(src,type)
 
 global gui
 
+statuschanged = false;
+
 switch type
   case 'Tiles'
     if src.Value==1
-      gui.TabsButton.Value = 0;
-    else
-      gui.TabsButton.Value = 1;
+      statuschanged = true;
     end
+    gui.TilesButton.Value = 1;
+    gui.TabsButton.Value = 0;
+    %   gui.TabsButton.Value = 0;
+    % else
+    %   gui.TabsButton.Value = 1;
+    % end
   case 'Tabs'
     if src.Value==1
-      gui.TilesButton.Value = 0;
-    else
-      gui.TilesButton.Value = 1;
+      statuschanged = true;
     end
+    gui.TabsButton.Value = 1;
+    gui.TilesButton.Value = 0;
+    % if src.Value==1
+      % gui.TilesButton.Value = 0;
+    % else
+      % gui.TilesButton.Value = 1;
+    % end
 end
 
-setupDataDisplay('switch')
+if statuschanged
+  setupDataDisplay('switch')
+end
 
 end
 %===============================================================================
@@ -1914,13 +1943,13 @@ esfitdata.Opts.AutoScaleID = get(gui.AutoScaleMenu,'Value');
 if isfield(gui,'BaseLineMenu')
   esfitdata.Opts.BaseLine = get(gui.BaseLineMenu,'Value');
 else
-  weights = zeros(1,sum(esfitdata.datasize));
+  weight = zeros(1,sum(esfitdata.datasize));
   for i = 1:esfitdata.nDataSets
     esfitdata.Opts.BaseLine(i) = get(gui.multifitBaseline(i),'Value');
-    esfitdata.Opts.weights(i) = get(gui.multifitWeights(i),'Value');
-    weights(esfitdata.idx{i}) = esfitdata.Opts.weights(i);
+    esfitdata.Opts.weight(i) = get(gui.multifitWeight(i),'Value');
+    weight(esfitdata.idx{i}) = esfitdata.Opts.weight(i);
   end
-  esfitdata.weights = weights;
+  esfitdata.weight = weight;
 end
 esfitdata.Opts.useMask = get(gui.MaskCheckbox,'Value')==1;
 Opt = esfitdata.Opts;
@@ -1988,11 +2017,23 @@ switch get(gui.StartButton,'Text')
     return
 end
 
+% Check that there are selected fitting parameters
+Data = gui.ParameterTable.Data;
+if ~any([Data{:,2}])
+  % Skip fitting and evaluate fit function with selected parameters
+  msg = 'No active parameters; skipping optimization';
+  esfitdata.UserCommand = 1;
+  updateLogBox(msg);
+  evaluateCallback()
+  return;
+end
+
 % Update GUI
 %-------------------------------------------------------------------------------
 
 % Hide Start button, show Stop button
 set(gui.StartButton,'Text','Stop fitting');
+set(gui.StartButton,'Tooltip','Stop fitting');
 set(gui.SaveButton,'Enable','off');
 
 % Disable other buttons
@@ -2008,7 +2049,7 @@ if isfield(gui,'BaseLineMenu')
   set(gui.BaseLineMenu,'Enable','off');
 else
   set(gui.multifitBaseline,'Enable','off');
-  set(gui.multifitWeights,'Enable','off');
+  set(gui.multifitWeight,'Enable','off');
 end
 
 % Disable parameter table
@@ -2025,12 +2066,19 @@ set(gui.ParameterTable,'CellEditCallback',[]);
 % Disable algorithm settings window
 set(gui.AlgorithmMenuPopup,'Enable','off');
 set(gui.setAlgorithmDefaults,'Enable','off');
+nTabs = numel(gui.AlgorithmTabs.UserData);
+for i = 1:nTabs
+  hsetting = gui.AlgorithmTabs.UserData{i};
+  for j = 1:numel(hsetting)
+    set(hsetting(j),'Enable','off');
+  end
+end
 
 % Disable multifit settings
 if esfitdata.nDataSets>1
   set(gui.TilesButton,'Enable','off');
   set(gui.TabsButton,'Enable','off');
-  set(gui.multifitWeights,'Enable','off');
+  set(gui.multifitWeight,'Enable','off');
   set(gui.multifitBaseline,'Enable','off');
 end
 
@@ -2071,13 +2119,13 @@ esfitdata.Opts.AutoScaleID = get(gui.AutoScaleMenu,'Value');
 if isfield(gui,'BaseLineMenu')
   esfitdata.Opts.BaseLine = get(gui.BaseLineMenu,'Value');
 else
-  weights = zeros(1,sum(esfitdata.datasize));
+  weight = zeros(1,sum(esfitdata.datasize));
   for i = 1:esfitdata.nDataSets
     esfitdata.Opts.BaseLine(i) = get(gui.multifitBaseline(i),'Value');
-    esfitdata.Opts.weights(i) = get(gui.multifitWeights(i),'Value');
-    weights(esfitdata.idx{i}) = esfitdata.Opts.weights(i);
+    esfitdata.Opts.weight(i) = get(gui.multifitWeight(i),'Value');
+    weight(esfitdata.idx{i}) = esfitdata.Opts.weight(i);
   end
-  esfitdata.weights = weights;
+  esfitdata.weight = weight;
 end
 esfitdata.Opts.useMask = get(gui.MaskCheckbox,'Value')==1;
 
@@ -2148,6 +2196,7 @@ end
 
 % Hide stop button, show start button
 set(gui.StartButton,'Text','Start fitting');
+set(gui.StartButton,'Tooltip','Start fitting');
 
 % Re-enable other buttons
 set(gui.EvaluateButton,'Enable','on');
@@ -2162,7 +2211,7 @@ if isfield(gui,'BaseLineMenu')
   set(gui.BaseLineMenu,'Enable','on');
 else
   set(gui.multifitBaseline,'Enable','on');
-  set(gui.multifitWeights,'Enable','on');
+  set(gui.multifitWeight,'Enable','on');
 end
 set(gui.AutoScaleMenu,'Enable','on');
 
@@ -2186,12 +2235,19 @@ set(gui.MaskCheckbox,'Enable','on');
 % Re-enable algorithm settings window
 set(gui.AlgorithmMenuPopup,'Enable','on');
 set(gui.setAlgorithmDefaults,'Enable','on');
+nTabs = numel(gui.AlgorithmTabs.UserData);
+for i = 1:nTabs
+  hsetting = gui.AlgorithmTabs.UserData{i};
+  for j = 1:numel(hsetting)
+    set(hsetting(j),'Enable','on');
+  end
+end
 
 % Re-enable multifit settings
 if esfitdata.nDataSets>1
   set(gui.TilesButton,'Enable','on');
   set(gui.TabsButton,'Enable','on');
-  set(gui.multifitWeights,'Enable','on');
+  set(gui.multifitWeight,'Enable','on');
   set(gui.multifitBaseline,'Enable','on');
 end
 
@@ -2226,6 +2282,7 @@ esfitdata.curr = [];
 
 % Remove mask patches
 clearMaskCallback()
+gui.MaskCheckbox.Value = 0;
 
 % Readjust vertical range
 updateaxislimits()
@@ -2242,12 +2299,16 @@ esfitdata.besthistory.par = [];
 % Remove displayed best fit and uncertainties
 Data = gui.ParameterTable.Data;
 for p = 1:size(Data,1)
+  Data{p,2} = true;
   Data{p,7} = '-';
   Data{p,8} = '-';
   Data{p,9} = '-';
   Data{p,10} = '-';
 end
 set(gui.ParameterTable,'Data',Data);
+
+% Reset algorithm defaults
+updateAlgorithmDefaults();
 
 % Reset plot
 gui.BaselineCheckbox.Value = 0;
@@ -2685,6 +2746,14 @@ switch type
       data{k,2} = ~data{k,2};
     end
 end
+
+allParamsFixed = all(~cell2mat(data(:,2)));
+if allParamsFixed
+  set(gui.StartButton,'Enable','off');
+else
+  set(gui.StartButton,'Enable','on');
+end
+
 set(gui.ParameterTable,'Data',data);
 end
 %===============================================================================
@@ -2778,8 +2847,8 @@ hTable = callbackData.Source;
 ridx = callbackData.Indices(1);
 cidx = callbackData.Indices(2);
 
-if cidx==1
-  allParamsFixed = all(~cell2mat(hTable.Data(:,1)));
+if cidx==2
+  allParamsFixed = all(~cell2mat(hTable.Data(:,2)));
   if allParamsFixed
     set(gui.StartButton,'Enable','off');
   else
@@ -3049,6 +3118,7 @@ end
 
 % Hide stop button, show start button
 set(gui.StartButton,'Text','Start fitting');
+set(gui.StartButton,'Tooltip','Start fitting');
 
 % Re-enable other buttons
 set(gui.EvaluateButton,'Enable','on');
@@ -3062,7 +3132,7 @@ if isfield(gui,'BaseLineMenu')
   set(gui.BaseLineMenu,'Enable','on');
 else
   set(gui.multifitBaseline,'Enable','on');
-  set(gui.multifitWeights,'Enable','on');
+  set(gui.multifitWeight,'Enable','on');
 end
 
 % Re-enable parameter table and its selection controls
@@ -3239,6 +3309,43 @@ if IDselected==AlgorithmID
     case 'eval'
       esfitdata.Opts.(setting) = eval(src.Value);
   end
+end
+
+end
+%===============================================================================
+
+%===============================================================================
+function resizeGUI(type)
+% Callback to resize GUI and enforce minimum acceptable size
+
+global gui
+
+switch type
+  case 'main'
+    newPosition = gui.Fig.Position;
+    minwidth = 900;
+    minheight = 650;
+  case 'popup'
+    newPosition = gui.Popup.Position;
+    minwidth = 300;
+    minheight = 300;
+end
+
+if newPosition(3)<minwidth
+  newPosition(3) = minwidth;
+end
+if newPosition(4)<minheight
+  oldheight = newPosition(4);
+  diff = oldheight-minheight;
+  newPosition(2) = newPosition(2)+diff;
+  newPosition(4) = minheight;
+end
+
+switch type
+  case 'main'
+    gui.Fig.Position = newPosition;
+  case 'popup'
+    gui.Popup.Position = newPosition;
 end
 
 end

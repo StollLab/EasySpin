@@ -17,8 +17,8 @@ FitOpt.Method = 'simplex';
 FitOpt.Verbosity = 0;
 for i = 1:2
 
-  FitOpt.weights = zeros(1,2);
-  FitOpt.weights(i) = 1;
+  FitOpt.weight = zeros(1,2);
+  FitOpt.weight(i) = 1;
   result = esfit(data,@model,p0,p_lo,p_hi,FitOpt);
 
   ok(i) = areequal(result.fit{i}(:),data{i}(:),1e-3,'abs');
