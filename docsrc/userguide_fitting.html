@@ -563,7 +563,7 @@ esfit(data,@myfun,{Sys,Exp},{SysVary});
 <a name="globalfit"><div class="subtitle">Global fit of multiple data sets</div></a>
 
 <p>
-Global fitting of multiple data sets is possible by defining a custom simulation function. The different experimental data sets can be provided as a cell array, and the simulation function similarly needs to return a set of simulated data sets in a cell array. If <code>FitOpt.AutoScale</code> is used, each data set is scaled individually. Different weights to use when combining residual vectors of all data sets can be provided in <code>FitOpt.weight</code> and will apply on top of the intrinsic weighting determined by the input data provided (e.g. experimental spectra with different amplitudes).
+Global fitting of multiple data sets is possible by defining a custom simulation function. The different experimental data sets can be provided as a cell array, and the simulation function similarly needs to return a set of simulated data sets in a cell array. If <code>FitOpt.AutoScale</code> is used, each data set is scaled individually. Different weights to use when combining residual vectors of all data sets can be provided in <code>FitOpt.weight</code> and will apply on top of the intrinsic weight determined by the input data provided (e.g. experimental spectra with different amplitudes and different number of points).
 </p>
 
 <p>

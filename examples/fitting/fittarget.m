@@ -19,7 +19,6 @@ Exp.CenterSweep = [330 150];
 y = addnoise(y,60,'n');
 
 % For fitting, slightly shift the g value.
-
 Sys0 = Sys;
 Sys0.g(3) = 2.21;
 Vary.g = [0 0 0.04];

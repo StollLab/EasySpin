@@ -636,6 +636,7 @@ if nActiveParams>0
     msg = sprintf('Running optimization algorithm with %d active parameters...',nActiveParams);
     if useGUI
       set(gui.nParamsField,'Value',nActiveParams);
+      set(gui.nParamsFieldPopup,'Value',nActiveParams);
       updateLogBox(msg)
     else
       disp(msg);
@@ -707,7 +708,7 @@ fit = esfitdata.best.fit;  % bestfit is set in residuals_
 scale = esfitdata.best.scale;  % bestscale is set in residuals_
 for i = 1:esfitdata.nDataSets
   idx = esfitdata.idx{i};
-  fitraw(idx) = fit(idx)/scale(i);
+  fitraw(idx,:) = fit(idx)/scale(i);
 end
 baseline = esfitdata.best.baseline;
 baselinetype = esfitdata.best.baselinetype;
@@ -872,7 +873,6 @@ end
 
 % Assemble output structure
 %-------------------------------------------------------------------------------
-
 result.algorithm = esfitdata.AlgorithmAbbrev{esfitdata.Opts.AlgorithmID};
 result.target = esfitdata.TargetAbbrev{esfitdata.Opts.TargetID};
 if esfitdata.nDataSets>1
@@ -885,11 +885,11 @@ if esfitdata.nDataSets>1
     result.baseline{k} = baseline(idx);
   end
 else
-  result.fit = fit;
-  result.fitraw = fitraw;
+  result.fit = fit(:);
+  result.fitraw = fitraw(:);
   result.mask = esfitdata.Opts.Mask;
-  result.residuals = residuals0;
-  result.baseline = baseline;
+  result.residuals = residuals0(:);
+  result.baseline = baseline(:);
 end
 
 result.baselinetype = baselinetype;
@@ -1238,15 +1238,15 @@ if numel(data)==1
 else
   lgrid.plot.Padding = [10 10 10 0];
   gui.datapanel = uigridlayout(lgrid.plot,[2 1],'Padding',[0 0 0 0]);
-  gui.datapanel.RowHeight = {4.2*hElement, '1x'};
+  gui.datapanel.RowHeight = {5.2*0.9*hElement, '1x'};
 
   multifitbox = uigridlayout(gui.datapanel,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',20);
   multifitbox.ColumnWidth = {'1x','0.1x'};
   
   % Multifit table
   N = esfitdata.nDataSets;
-  tablebox = uigridlayout(multifitbox,[5 2+N],'Padding',[0 0 0 0],'RowSpacing',0,'ColumnSpacing',0);
-  tablebox.RowHeight = {hElement,hElement,hElement,hElement,'1x'};
+  tablebox = uigridlayout(multifitbox,[6 2+N],'Padding',[0 0 0 0],'RowSpacing',0,'ColumnSpacing',0);
+  tablebox.RowHeight = {0.9*hElement,0.9*hElement,0.9*hElement,0.9*hElement,'1x'};
   tmp = (0.7*sz(1)-4*spacing)/(5*hElement);
   if N>tmp
     tablebox.ColumnWidth = [repmat({'1x'},1,N+1) {'0x'}];
@@ -1269,12 +1269,19 @@ else
   l(2).Layout.Column = 1;
   l(2).Layout.Row = 3;  
   l(3) = uilabel('Parent',tablebox,...
-                 'Text','Scale',...
+                 'Text','Data points',...
                  'BackgroundColor',get(gui.Fig,'Color'),...
                  'FontWeight','bold',...
                  'HorizontalAl','left','VerticalAl','center');
   l(3).Layout.Column = 1;
   l(3).Layout.Row = 4;  
+  l(4) = uilabel('Parent',tablebox,...
+                 'Text','Scale',...
+                 'BackgroundColor',get(gui.Fig,'Color'),...
+                 'FontWeight','bold',...
+                 'HorizontalAl','left','VerticalAl','center');
+  l(4).Layout.Column = 1;
+  l(4).Layout.Row = 5;  
 
   for i = 1:N
 
@@ -1285,8 +1292,12 @@ else
     c(i).Layout.Row = 1;
 
     % Weight
-    gui.multifitWeight(i) = uieditfield('numeric','Parent',tablebox,...
-                                        'Value',esfitdata.Opts.weight(i));
+    gui.multifitWeight(i) = uieditfield('text','Parent',tablebox,...
+                                        'Value',num2str(esfitdata.Opts.weight(i)),...
+                                        'Tooltip','dataset weight for global fitting (accepts numeric values and expressions, e.g. 1/240)',...
+                                        'HorizontalAlignment','right',...
+                                        'FontSize',fontsizetbl,...
+                                        'ValueChangedFcn',@(src,evt) changemultifitWeight(src,evt));
     gui.multifitWeight(i).Layout.Column = i+1;
     gui.multifitWeight(i).Layout.Row = 2;
     
@@ -1295,15 +1306,23 @@ else
                                   'Items',esfitdata.BaseLineStrings,...
                                   'ItemsData',esfitdata.BaseLineSettings,...
                                   'Value',esfitdata.BaseLine(i),...
-                                  'BackgroundColor','w');
+                                  'FontSize',fontsizetbl,...
+                                  'BackgroundColor','w',...
+                                  'ValueChangedFcn',@(src,evt) changeBaseLineSelection(src,evt));
     
     gui.multifitBaseline(i).Layout.Column = i+1;
     gui.multifitBaseline(i).Layout.Row = 3;
 
+    % Number of points
+    gui.multifitDatasetpts(i) = uieditfield('numeric','Parent',tablebox,'Editable','off','FontSize',fontsizetbl);
+    gui.multifitDatasetpts(i).Layout.Column = i+1;
+    gui.multifitDatasetpts(i).Layout.Row = 4;
+    gui.multifitDatasetpts(i).Value = numel(data{i});
+
     % Scale
-    gui.multifitScale(i) = uieditfield('numeric','Parent',tablebox,'Editable','off');
+    gui.multifitScale(i) = uieditfield('numeric','Parent',tablebox,'Editable','off','FontSize',fontsizetbl);
     gui.multifitScale(i).Layout.Column = i+1;
-    gui.multifitScale(i).Layout.Row = 4;
+    gui.multifitScale(i).Layout.Row = 5;
     
   end
 
@@ -1321,7 +1340,7 @@ else
                              'Tooltip','Show datasets in different tabs');
   gui.TabsButton.Layout.Row = 3;
 
-  if esfitdata.nDataSets<=6
+  if esfitdata.nDataSets<=8
     gui.TilesButton.Value = 1;
     gui.TabsButton.Value = 0;
   else
@@ -1337,8 +1356,8 @@ showmaskedregions();
 
 % Fit parameter display
 %-------------------------------------------------------------------------------
-lgrid.parbanner = uigridlayout(lgrid.params,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',20);
-lgrid.parbanner.ColumnWidth = {'0.5x','1x','0.25x','1x'};
+lgrid.parbanner = uigridlayout(lgrid.params,[1 6],'Padding',[0 0 0 0],'ColumnSpacing',20);
+lgrid.parbanner.ColumnWidth = {'2x','4.25x','0.1x','4.25x','0.1x','3x'};
 lgrid.parbanner.Layout.Row = 1;
 uilabel('Parent',lgrid.parbanner,...
         'Text','Parameters',...
@@ -1347,6 +1366,7 @@ uilabel('Parent',lgrid.parbanner,...
         'HorizontalAl','left','VerticalAl','center');
 
 startpointbox = uigridlayout(lgrid.parbanner,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
+startpointbox.ColumnWidth = {'1.25x','1x','1x','1x'};
 uilabel('Parent',startpointbox,...
     'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','Start point:',...
@@ -1362,6 +1382,7 @@ gui.selectStartPointButtonBest = uibutton('Parent',startpointbox,...
     'Tooltip','Set start values to current best fit');
   
 selectbox = uigridlayout(lgrid.parbanner,[1 4],'Padding',[0 0 0 0],'ColumnSpacing',0);
+selectbox.ColumnWidth = startpointbox.ColumnWidth;
 selectbox.Layout.Column = 4;
 uilabel('Parent',selectbox,...
     'BackgroundColor',get(gui.Fig,'Color'),...
@@ -1376,6 +1397,18 @@ gui.selectAllButton = uibutton('Parent',selectbox,...
 gui.selectNoneButton = uibutton('Parent',selectbox,...
     'Text','none','Enable','on','ButtonPushedFcn',@(src,evt) selectButtonCallback('none'),...
     'Tooltip','Unselect all parameters');
+
+fitparnumbox = uigridlayout(lgrid.parbanner,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',0);
+fitparnumbox.ColumnWidth = {'2x','1x'};
+fitparnumbox.Layout.Column = 6;
+uilabel('Parent',fitparnumbox,...
+    'BackgroundColor',get(gui.Fig,'Color'),...
+    'FontWeight','bold','Text','Active parameters:',...
+    'HorizontalAl','left','VerticalAl','center');
+gui.nParamsField = uieditfield('numeric','Parent',fitparnumbox,...
+    'Editable','off','FontSize',fontsizetbl,...
+    'Value',numel(esfitdata.pinfo),...
+    'Tooltip','Number of selected active parameters');
 
 % Parameter table
 columnname = {'','','Name','start','lower','upper','current','best','ci95 lower','ci95 upper'};
@@ -1474,18 +1507,22 @@ gui.AutoScaleMenu = uidropdown('Parent',fitoptbox2,...
                                'BackgroundColor','w',...
                                'Tooltip','Autoscaling');
 
+uilabel('Parent',fitoptbox2,...
+    'Text','BaseLine',...
+    'FontWeight','bold',...
+    'HorizontalAlign','left','VerticalAlign','center',...
+    'BackgroundColor',get(gui.Fig,'Color'));
+gui.BaseLineMenu = uidropdown('Parent',fitoptbox2,...
+                              'Items',esfitdata.BaseLineStrings,...
+                              'ItemsData',esfitdata.BaseLineSettings,...
+                              'BackgroundColor','w');
 if esfitdata.nDataSets==1
-  uilabel('Parent',fitoptbox2,...
-      'Text','BaseLine',...
-      'FontWeight','bold',...
-      'HorizontalAlign','left','VerticalAlign','center',...
-      'BackgroundColor',get(gui.Fig,'Color'));
-  gui.BaseLineMenu = uidropdown('Parent',fitoptbox2,...
-                                'Items',esfitdata.BaseLineStrings,...
-                                'ItemsData',esfitdata.BaseLineSettings,...
-                                'BackgroundColor','w',...
-                                'Value',esfitdata.BaseLine,...
-                                'Tooltip','Baseline fitting');
+  gui.BaseLineMenu.Value = esfitdata.BaseLine;
+  gui.BaseLineMenu.Tooltip = 'Baseline fitting';
+else
+  set(gui.BaseLineMenu,'Value',esfitdata.BaseLine(1));
+  set(gui.BaseLineMenu,'Tooltip','Baseline fitting (global setting applied to all data sets)');
+  set(gui.BaseLineMenu,'ValueChangedFcn',@(src,evt) changeBaseLineSelection(src,evt));
 end
 
 fitoptbox3 = uigridlayout(fitoptbox0,[2 2],'Padding',[0 0 0 0],'ColumnSpacing',5,'RowSpacing',5);
@@ -1534,11 +1571,18 @@ gui.ResetButton = uibutton('Parent',fitctrlbox,...
 lgrid.fitsets = uigridlayout(lgrid.right,[2 1],'Padding',[0 0 0 0],'RowSpacing',5);
 lgrid.fitsets.RowHeight = {hElement,'1x',hElement};
 
-uilabel('Parent',lgrid.fitsets,...
+fitsettitlebox = uigridlayout(lgrid.fitsets,[1 2],'Padding',[0 0 0 0],'RowSpacing',5);
+fitsettitlebox.ColumnWidth = {'1x',hElement};
+uilabel('Parent',fitsettitlebox,...
     'BackgroundColor',get(gui.Fig,'Color'),...
     'FontWeight','bold','Text','Fit parameter sets',...
     'Tooltip','List of stored fit parameter sets',...
     'HorizontalAl','left','VerticalAl','top');
+gui.autosave = uibutton('state','Parent',fitsettitlebox,...
+         'Text','','Tooltip','Turn autosave on/off',...
+         'Icon','private/saveicon.png','IconAlignment','center',...
+         'Enable','on','Value',false);
+
 
 % Fit parameter set table
 columnname = {'ID','rmsd','algorithm','target','scale','baseline',''};
@@ -1555,26 +1599,31 @@ gui.FitSetTable = uitable('Parent',lgrid.fitsets,...
                           'CellSelectionCallback',@setListCallback,...
                           'KeyPressFcn',@deleteSetListKeyPressFcn,...
                           'Enable','on');
-fitsetbuttonbox = uigridlayout(lgrid.fitsets,[1 6],'Padding',[0 0 0 0],'ColumnSpacing',0);
-fitsetbuttonbox.ColumnWidth = {hElement,'1x','1x','1x','1x',hElement};
+fitsetbuttonbox = uigridlayout(lgrid.fitsets,[1 5],'Padding',[0 0 0 0],'ColumnSpacing',0);
+fitsetbuttonbox.ColumnWidth = {'1x','1x','1x','1x','1x'};
 gui.selectStartPointButtonSelected = uibutton('Parent',fitsetbuttonbox,...
                                               'Text','set as start',...
                                               'Tooltip','Set as start point for fitting','Enable','off',...
                                               'ButtonPushedFcn',@(src,evt) setStartPoint('selected'));
-gui.selectStartPointButtonSelected.Layout.Column = 2;
+gui.selectStartPointButtonSelected.Layout.Column = 1;
 gui.exportSetButton = uibutton('Parent',fitsetbuttonbox,...
     'Text','export',...
-    'Tooltip','Export fit set to workspace','Enable','off',...
+    'Tooltip','Export fit parameter set to workspace','Enable','off',...
     'ButtonPushedFcn',@exportSetButtonCallback);
-gui.exportSetButton.Layout.Column = 3;
+gui.exportSetButton.Layout.Column = 2;
+gui.saveSetButton = uibutton('Parent',fitsetbuttonbox,...
+    'Text','save',...
+    'Tooltip','Save fit parameter set as mat file','Enable','off',...
+    'ButtonPushedFcn',@saveSetButtonCallback);
+gui.saveSetButton.Layout.Column = 3;
 gui.deleteSetButton = uibutton('Parent',fitsetbuttonbox,...
     'Text','delete',...
-    'Tooltip','Delete fit set','Enable','off',...
+    'Tooltip','Delete fit parameter set','Enable','off',...
     'ButtonPushedFcn',@deleteSetButtonCallback);
 gui.deleteSetButton.Layout.Column = 4;
 gui.clearSetButton = uibutton('Parent',fitsetbuttonbox,...
     'Text','clear',...
-    'Tooltip','Clear fit set table','Enable','off',...
+    'Tooltip','Clear fit parameter set table','Enable','off',...
     'ButtonPushedFcn',@clearSetButtonCallback);
 gui.clearSetButton.Layout.Column = 5;
 
@@ -1600,7 +1649,7 @@ gui.RmsLogPlot = uibutton('state','Parent',rmsdinfobox,...
          'Value',0,'ValueChangedFcn',@updatermsdplot);
 
 hAx = uiaxes('Parent',lgrid.rmsdplot,'Units','pixels','Layer','top');
-gui.rmsdline = plot(hAx,1,NaN,'.');
+gui.rmsdline = line(hAx,1,NaN,'Marker','.','LineStyle','none','DisplayName','rmsdline');
 set(gui.rmsdline,'MarkerSize',5,'Color',[0.2 0.2 0.8]);
 set(hAx,'box','on','YScale','lin','XTick',[],'YAxisLoc','right','Layer','top','YGrid','on');
 
@@ -1686,7 +1735,7 @@ l = uilabel('Parent',nparamsbox,...
     'HorizontalAlign','center','VerticalAlign','center',...
     'BackgroundColor',get(gui.Popup,'Color'));
 l.Layout.Column = 2;
-gui.nParamsField = uieditfield('numeric','Parent',nparamsbox,...
+gui.nParamsFieldPopup = uieditfield('numeric','Parent',nparamsbox,...
         'ToolTip','number of fitting parameters',...
         'Value',esfitdata.nParameters,...
         'Editable','off');
@@ -1854,10 +1903,10 @@ for i = 1:N
   minx = min(x);
   maxx = max(x);
 
-  gui.baselinedata(i) = line(gui.dataaxes(i),x,NaNdata,'Color',[1 1 1]*0.65,'LineWidth',1,'Visible','off');
-  gui.expdata(i) = line(gui.dataaxes(i),x,expdata,'Color','k','Marker','.','LineStyle','none');
-  gui.currsimdata(i) = line(gui.dataaxes(i),x,NaNdata,'Color','r');
-  gui.bestsimdata(i) = line(gui.dataaxes(i),x,NaNdata,'Color',[0 0.6 0]);
+  gui.baselinedata(i) = line(gui.dataaxes(i),x,NaNdata,'Color',[1 1 1]*0.65,'LineWidth',1,'Visible','off','DisplayName','baseline');
+  gui.expdata(i) = line(gui.dataaxes(i),x,expdata,'Color','k','Marker','.','LineStyle','none','DisplayName','expdata');
+  gui.currsimdata(i) = line(gui.dataaxes(i),x,NaNdata,'Color','r','DisplayName','currsim');
+  gui.bestsimdata(i) = line(gui.dataaxes(i),x,NaNdata,'Color',[0 0.6 0],'DisplayName','bestsim');
   gui.dataaxes(i).XLim = [minx maxx];
   gui.dataaxes(i).YLim = YLimits;
   gui.dataaxes(i).ButtonDownFcn = @(src,evt) axesButtonDownFcn(src);
@@ -1872,8 +1921,8 @@ for i = 1:N
     gui.tileID(i) = text(gui.dataaxes(i),minx+0.05*(maxx-minx),YLimits(2)-0.05*diff(YLimits),sprintf('%i',i),'FontWeight','bold');
   end
 
-  gui.residualzero(i) = yline(gui.dataaxes(i),mean(expdata)-max(abs(expdata)));
-  gui.residualdata(i) = line(gui.dataaxes(i),x,NaNdata,'Color',[1 1 1]*0.65,'Marker','.','LineStyle','none');
+  gui.residualzero(i) = yline(gui.dataaxes(i),miny-abs((maxy-miny)/3),'DisplayName','residualzero');
+  gui.residualdata(i) = line(gui.dataaxes(i),x,NaNdata,'Color',[1 1 1]*0.65,'Marker','.','LineStyle','none','DisplayName','residuals');
   set(gui.residualzero(i),'Visible','off')
   set(gui.residualdata(i),'Visible','off')
 end
@@ -1940,13 +1989,13 @@ p_eval = esfitdata.p_start;
 active = ~esfitdata.fixedParams;
 p_eval = p_eval(active);
 esfitdata.Opts.AutoScaleID = get(gui.AutoScaleMenu,'Value');
-if isfield(gui,'BaseLineMenu')
+if esfitdata.nDataSets==1
   esfitdata.Opts.BaseLine = get(gui.BaseLineMenu,'Value');
 else
   weight = zeros(1,sum(esfitdata.datasize));
   for i = 1:esfitdata.nDataSets
     esfitdata.Opts.BaseLine(i) = get(gui.multifitBaseline(i),'Value');
-    esfitdata.Opts.weight(i) = get(gui.multifitWeight(i),'Value');
+    esfitdata.Opts.weight(i) = str2double(get(gui.multifitWeight(i),'Value'));
     weight(esfitdata.idx{i}) = esfitdata.Opts.weight(i);
   end
   esfitdata.weight = weight;
@@ -2045,9 +2094,8 @@ set(gui.AlgorithmSettingsButton,'Enable','off');
 set(gui.AlgorithmMenu,'Enable','off');
 set(gui.TargetMenu,'Enable','off');
 set(gui.AutoScaleMenu,'Enable','off');
-if isfield(gui,'BaseLineMenu')
-  set(gui.BaseLineMenu,'Enable','off');
-else
+set(gui.BaseLineMenu,'Enable','off');
+if esfitdata.nDataSets>1
   set(gui.multifitBaseline,'Enable','off');
   set(gui.multifitWeight,'Enable','off');
 end
@@ -2076,8 +2124,8 @@ end
 
 % Disable multifit settings
 if esfitdata.nDataSets>1
-  set(gui.TilesButton,'Enable','off');
-  set(gui.TabsButton,'Enable','off');
+  % set(gui.TilesButton,'Enable','off');
+  % set(gui.TabsButton,'Enable','off');
   set(gui.multifitWeight,'Enable','off');
   set(gui.multifitBaseline,'Enable','off');
 end
@@ -2093,13 +2141,14 @@ end
 set(gui.ParameterTable,'Data',Data);
 
 % Get fixed parameters
-for p = 1:esfitdata.nParameters
+for p = 1:size(Data,1)
   esfitdata.fixedParams(p) = Data{p,2}==0;
 end
 
 % Disable fitset list controls
 set(gui.selectStartPointButtonSelected,'Enable','off');
 set(gui.exportSetButton,'Enable','off');
+set(gui.saveSetButton,'Enable','off');
 set(gui.deleteSetButton,'Enable','off');
 set(gui.clearSetButton,'Enable','off');
 
@@ -2116,13 +2165,13 @@ set(gui.MaskCheckbox,'Enable','off');
 esfitdata.Opts.AlgorithmID = get(gui.AlgorithmMenu,'Value');
 esfitdata.Opts.TargetID = get(gui.TargetMenu,'Value');
 esfitdata.Opts.AutoScaleID = get(gui.AutoScaleMenu,'Value');
-if isfield(gui,'BaseLineMenu')
+if esfitdata.nDataSets==1
   esfitdata.Opts.BaseLine = get(gui.BaseLineMenu,'Value');
 else
   weight = zeros(1,sum(esfitdata.datasize));
   for i = 1:esfitdata.nDataSets
     esfitdata.Opts.BaseLine(i) = get(gui.multifitBaseline(i),'Value');
-    esfitdata.Opts.weight(i) = get(gui.multifitWeight(i),'Value');
+    esfitdata.Opts.weight(i) = str2double(get(gui.multifitWeight(i),'Value'));
     weight(esfitdata.idx{i}) = esfitdata.Opts.weight(i);
   end
   esfitdata.weight = weight;
@@ -2145,7 +2194,7 @@ catch ME
   end
 end
 
-% Save result to fit set list
+% Save result to fit parameter set list
 esfitdata.currFitSet = result;
 esfitdata.currFitSet.Mask = esfitdata.Opts.useMask && ~all(esfitdata.Opts.Mask);
 
@@ -2190,6 +2239,7 @@ set(gui.SaveButton,'Enable','on');
 if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
   set(gui.selectStartPointButtonSelected,'Enable','on');
   set(gui.exportSetButton,'Enable','on');
+  set(gui.saveSetButton,'Enable','on');
   set(gui.deleteSetButton,'Enable','on');
   set(gui.clearSetButton,'Enable','on');
 end
@@ -2207,9 +2257,8 @@ set(gui.AlgorithmSettingsButton,'Enable','on');
 set(gui.AlgorithmMenu,'Enable','on');
 set(gui.TargetMenu,'Enable','on');
 set(gui.AutoScaleMenu,'Enable','on');
-if isfield(gui,'BaseLineMenu')
-  set(gui.BaseLineMenu,'Enable','on');
-else
+set(gui.BaseLineMenu,'Enable','on');
+if esfitdata.nDataSets>1
   set(gui.multifitBaseline,'Enable','on');
   set(gui.multifitWeight,'Enable','on');
 end
@@ -2245,8 +2294,8 @@ end
 
 % Re-enable multifit settings
 if esfitdata.nDataSets>1
-  set(gui.TilesButton,'Enable','on');
-  set(gui.TabsButton,'Enable','on');
+  % set(gui.TilesButton,'Enable','on');
+  % set(gui.TabsButton,'Enable','on');
   set(gui.multifitWeight,'Enable','on');
   set(gui.multifitBaseline,'Enable','on');
 end
@@ -2421,6 +2470,57 @@ if info.newbest
     end
     data{p,8} = str;
   end
+
+  if gui.autosave.Value
+
+    % Assemble result structure
+    fitresult.algorithm = esfitdata.AlgorithmAbbrev{esfitdata.Opts.AlgorithmID};
+    fitresult.target = esfitdata.TargetAbbrev{esfitdata.Opts.TargetID};
+    if esfitdata.nDataSets>1
+      for k = 1:esfitdata.nDataSets
+        idx = esfitdata.idx{k};
+        fitresult.fit{k} = esfitdata.best.fit(idx);
+        fitresult.fitraw{k} = esfitdata.best.fit(idx)/esfitdata.best.scale(k);
+        fitresult.mask{k} = esfitdata.Opts.Mask(idx);
+        fitresult.residuals{k} = esfitdata.best.residuals(idx);
+        fitresult.baseline{k} = esfitdata.best.baseline(idx);
+      end
+    else
+      fitresult.fit = esfitdata.best.fit;
+      fitresult.fitraw = esfitdata.best.fit/esfitdata.best.scale;
+      fitresult.mask = esfitdata.Opts.Mask;
+      fitresult.residuals = esfitdata.best.residuals;
+      fitresult.baseline = esfitdata.best.baseline;
+    end
+
+    fitresult.baselinetype = esfitdata.best.baselinetype;
+    fitresult.scale = esfitdata.best.scale;
+
+    fitresult.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
+    fitresult.bestfithistory.pfit = esfitdata.besthistory.par;
+    if esfitdata.structureInputs
+      fitresult.bestfithistory.pfit2structs = esfitdata.p2args;
+    end
+
+    fitresult.pnames = {esfitdata.pinfo.Name}.';
+    fitresult.pnames = fitresult.pnames(~esfitdata.fixedParams);
+    fitresult.p_start = esfitdata.p_start;
+    fitresult.p_fixed = esfitdata.fixedParams;
+    fitresult.pfit = esfitdata.best.par(~esfitdata.fixedParams);
+    fitresult.pfit_full = esfitdata.best.par;
+
+    if esfitdata.structureInputs
+      argsfit = esfitdata.p2args(fitresult.pfit_full);
+    else
+      argsfit = [];
+    end
+    fitresult.argsfit = argsfit;
+
+    % Autosave result structure
+    path = pwd;
+    file = 'esfit_autosave.mat';
+    save(fullfile(path,file),'fitresult')
+  end
 end
 
 gui.ParameterTable.Data = data;
@@ -2577,9 +2677,9 @@ if idx==-1, set(gui.FitSetTable,'Selection',nSets); end % R2021b onwards
 if nSets>0, state = 'on'; else, state = 'off'; end
 set(gui.selectStartPointButtonSelected,'Enable',state);
 set(gui.exportSetButton,'Enable',state);
+set(gui.saveSetButton,'Enable',state);
 set(gui.deleteSetButton,'Enable',state);
 set(gui.clearSetButton,'Enable',state);
-
 displayFitSet;
 end
 %===============================================================================
@@ -2593,8 +2693,25 @@ fitresult = esfitdata.FitSets(idx);
 fitresult = rmfield(fitresult,'Mask');
 varname = sprintf('fit%d',ID);
 assignin('base',varname,fitresult);
-fprintf('Fit set %d assigned to variable ''%s''.\n',ID,varname);
+fprintf('Fit parameter set %d assigned to variable ''%s''.\n',ID,varname);
 evalin('base',varname);
+end
+%===============================================================================
+
+%===============================================================================
+function saveSetButtonCallback(~,~)
+global esfitdata gui
+ID = gui.FitSetTable.Data{gui.FitSetTable.Selection,1};
+idx = [esfitdata.FitSets.ID]==ID;
+fitresult = esfitdata.FitSets(idx);
+fitresult = rmfield(fitresult,'Mask');
+varname = sprintf('fit%d',ID);
+[file,path] = uiputfile(strcat(varname,'.mat'));
+if file~=0
+  save(fullfile(path,file),'fitresult')
+  figure(gui.Fig)
+  updateLogBox(sprintf('Fit parameter set %d saved as %s in %s.\n',ID,file,path));
+end
 end
 %===============================================================================
 
@@ -2619,6 +2736,7 @@ end
 if isempty(gui.FitSetTable.Data)
     set(gui.selectStartPointButtonSelected,'Enable','off');
     set(gui.exportSetButton,'Enable','off');
+    set(gui.saveSetButton,'Enable','off');
     set(gui.deleteSetButton,'Enable','off');
     set(gui.clearSetButton,'Enable','off');
 end
@@ -2646,6 +2764,7 @@ esfitdata.lastSetID = 0;
 
 set(gui.selectStartPointButtonSelected,'Enable','off');
 set(gui.exportSetButton,'Enable','off');
+set(gui.saveSetButton,'Enable','off');
 set(gui.deleteSetButton,'Enable','off');
 set(gui.clearSetButton,'Enable','off');
 end
@@ -2658,7 +2777,7 @@ global esfitdata gui
 
 % Update fixed parameters
 Data = gui.ParameterTable.Data;
-for p = 1:esfitdata.nParameters
+for p = 1:size(Data,1)
   esfitdata.fixedParams(p) = Data{p,2}==0;
 end
 
@@ -2748,6 +2867,9 @@ switch type
 end
 
 allParamsFixed = all(~cell2mat(data(:,2)));
+activeParameters = sum(cell2mat(data(:,2)));
+gui.nParamsField.Value = activeParameters;
+gui.nParamsFieldPopup.Value = activeParameters;
 if allParamsFixed
   set(gui.StartButton,'Enable','off');
 else
@@ -2755,6 +2877,39 @@ else
 end
 
 set(gui.ParameterTable,'Data',data);
+end
+%===============================================================================
+
+%===============================================================================
+function changeBaseLineSelection(src,~)
+global gui
+% Update baseline type selection for all datasets
+if isequal(src,gui.BaseLineMenu)
+  for i = 1:numel(gui.multifitBaseline)
+    gui.multifitBaseline(i).Value = gui.BaseLineMenu.Value;
+  end
+else
+  [uniquevalues,~,ic] = unique([gui.multifitBaseline.Value]);
+  if numel(uniquevalues)==1
+    gui.BaseLineMenu.Value = uniquevalues;
+  else
+    counts = accumarray(ic,1);
+    [~,order] = sort(counts,'descend');
+    gui.BaseLineMenu.Value = uniquevalues(order(1));
+  end
+end
+end
+%===============================================================================
+
+%===============================================================================
+function changemultifitWeight(src,evt)
+try
+  newValue = eval(src.Value);
+  newValue = num2str(newValue);
+catch
+  newValue = evt.PreviousValue;
+end
+src.Value = newValue;
 end
 %===============================================================================
 
@@ -2807,10 +2962,26 @@ for i = 1:esfitdata.nDataSets
     if isa(dataplots(j),'matlab.graphics.primitive.Line') && ...
         dataplots(j).Visible && ~any(isnan(dataplots(j).YData))
       plottedData = [plottedData; dataplots(j).YData(:)];
+      if strcmp(dataplots(j).DisplayName,'expdata')
+        plottedExpData = dataplots(j).YData(:);
+      end
     end
   end
-  maxy = max(plottedData);
-  miny = min(plottedData);
+  % Adjust limits based on experimental data and presence of residuals
+  maxy = max(plottedExpData);
+  miny = min(plottedExpData);
+  if gui.ResidualCheckbox.Value
+    miny = miny-2*abs((maxy-miny)/3);
+  end
+  % Check that all plotted data is within axis limits
+  maxyall = max(plottedData);
+  minyall = min(plottedData);
+  if miny>minyall
+    miny = minyall;
+  end
+  if maxy<maxyall
+    maxy = maxyall;
+  end
   YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
 
   set(gui.dataaxes(i),'YLim',YLimits);
@@ -2849,6 +3020,9 @@ cidx = callbackData.Indices(2);
 
 if cidx==2
   allParamsFixed = all(~cell2mat(hTable.Data(:,2)));
+  activeParameters = sum(cell2mat(hTable.Data(:,2)));
+  gui.nParamsField.Value = activeParameters;
+  gui.nParamsFieldPopup.Value = activeParameters;
   if allParamsFixed
     set(gui.StartButton,'Enable','off');
   else
@@ -3112,6 +3286,7 @@ set(gui.SaveButton,'Enable','off');
 if isfield(esfitdata,'FitSets') && numel(esfitdata.FitSets)>0
   set(gui.selectStartPointButtonSelected,'Enable','on');
   set(gui.exportSetButton,'Enable','on');
+  set(gui.saveSetButton,'Enable','on');
   set(gui.deleteSetButton,'Enable','on');
   set(gui.clearSetButton,'Enable','on');
 end
@@ -3128,9 +3303,8 @@ set(gui.ResetButton,'Enable','on');
 set(gui.AlgorithmMenu,'Enable','on');
 set(gui.TargetMenu,'Enable','on');
 set(gui.AutoScaleMenu,'Enable','on');
-if isfield(gui,'BaseLineMenu')
-  set(gui.BaseLineMenu,'Enable','on');
-else
+set(gui.BaseLineMenu,'Enable','on');
+if esfitdata.nDataSets>1
   set(gui.multifitBaseline,'Enable','on');
   set(gui.multifitWeight,'Enable','on');
 end
@@ -3170,7 +3344,7 @@ if strcmp(gui.Popup.Visible,'off')
   if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
     gui.AlgorithmTabs.SelectedTab = gui.AlgorithmTabs.Children(AlgorithmID);
   end
-  set(gui.nParamsField,'Value',sum(~esfitdata.fixedParams));
+  set(gui.nParamsFieldPopup,'Value',sum(~esfitdata.fixedParams));
   set(gui.Popup,'Visible','on')
 elseif strcmp(gui.Popup.Visible,'on')
   set(gui.Popup,'Visible','off');
@@ -3202,7 +3376,7 @@ end
 esfitdata.Opts.AlgorithmID = AlgorithmID;
 
 % Update the FitOpt structure
-N = esfitdata.nParameters; %#ok<NASGU> 
+N = gui.nParamsFieldPopup.Value; %#ok<NASGU> 
 
 if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
   hsetting = gui.AlgorithmTabs.UserData{AlgorithmID};
@@ -3229,7 +3403,7 @@ function updateAlgorithmDefaults()
 global esfitdata gui
 nTabs = numel(gui.AlgorithmTabs.UserData);
 
-nParams = esfitdata.nParameters;
+nParams = gui.nParamsFieldPopup.Value;
 
 for i = 1:nTabs
   hsetting = gui.AlgorithmTabs.UserData{i};
@@ -3272,7 +3446,7 @@ function changeAlgorithmSetting(src,evt)
 % Callback for changed fit options setting
 
 global esfitdata gui
-N = esfitdata.nParameters; %#ok<NASGU> % needed to eval() expressions
+N = gui.nParamsFieldPopup.Value; %#ok<NASGU> % needed to eval() expressions
 
 setting = src.UserData{1};
 

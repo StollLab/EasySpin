@@ -2577,23 +2577,25 @@ delete(hMaskPatches);
 % Show masked-out regions
 maskColor = [1 1 1]*0.95;
 edges = find(diff([1; esfitdata.Opts.Mask(:); 1]));
-excludedRegions = reshape(edges,2,[]).';
 upperlimit = numel(esfitdata.Opts.x);
-excludedRegions(excludedRegions>upperlimit) = upperlimit;
-excludedRegions = esfitdata.Opts.x(excludedRegions);
+edges(edges>upperlimit) = upperlimit;
+excludedRegions = esfitdata.Opts.x(edges);
+excludedRegions = reshape(excludedRegions,2,[]);
 
-% Add a patch for each masked region
-nMaskPatches = size(excludedRegions,1);
-for r = 1:nMaskPatches
-  x_patch = excludedRegions(r,[1 2 2 1]);
-  y_patch = hAx.YLim([1 1 2 2]);
-  patch(hAx,x_patch,y_patch,maskColor,'Tag','maskPatch','EdgeColor','none');
+if ~isempty(excludedRegions)
+  % Add a patch for each masked region
+  nMaskPatches = size(excludedRegions,2);
+  for r = 1:nMaskPatches
+    x_patch = excludedRegions([1 2 2 1],r);
+    y_patch = hAx.YLim([1 1 2 2]);
+    patch(hAx,x_patch,y_patch,maskColor,'Tag','maskPatch','EdgeColor','none');
+  end
+
+  % Reorder so that mask patches are in the back
+  c = hAx.Children([nMaskPatches+1:end, 1:nMaskPatches]);
+  hAx.Children = c;
+  drawnow
 end
-
-% Reorder so that mask patches are in the back
-c = hAx.Children([nMaskPatches+1:end, 1:nMaskPatches]);
-hAx.Children = c;
-drawnow
 
 end
 %===============================================================================
