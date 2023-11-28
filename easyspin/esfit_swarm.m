@@ -1,13 +1,34 @@
+%esfit_swarm    
+%
+%  xfit = esfit_swarm(fcn,lb,ub)
+%  ...  = esfit_swarm(fcn,lb,ub,FitOpt)
+%  [xfit,info] = ...
+%
+%  ...
+%
+%  Input:
+%    fcn     function handle of fcn(x) to minimize
+%    lb      lower bounds of parameters
+%    ub      lower bounds of parameters
+%    Opt     structure with algorithm parameters
+%      .IterFcn   function that is called after each iteration
+
 function [gX,info] = esfit_swarm(fcn,lb,ub,FitOpt)
 
-if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'Verbosity'); FitOpt.Verbosity = 1; end
-if ~isfield(FitOpt,'TolFun'), FitOpt.TolFun = 1e-5; end
-if ~isfield(FitOpt,'IterationPrintFunction'), FitOpt.IterationPrintFunction = @(str)str; end
-if ~isfield(FitOpt,'InfoPrintFunction'), FitOpt.InfoPrintFunction = @(str)str; end
-if ~isfield(FitOpt,'IterFcn'), FitOpt.IterFcn = []; end
-if ~isfield(FitOpt,'SwarmParams'), FitOpt.SwarmParams = [0.2 0.5 2 1]; end
-if ~isfield(FitOpt,'TolStallIter'), FitOpt.TolStallIter = 6; end
+if nargin==0, help(mfilename); return; end
+if nargin<3
+  error('At least 3 inputs expected (function, lb, ub).');
+end
+if nargin==3, FitOpt = struct; end
+
+% Set options
+DefOpt = esfit_algdefaults('particle swarm');
+FitOpt = adddefaults(FitOpt,DefOpt);
+
+nParams = numel(lb);
+if ~isfield(FitOpt,'nParticles') || isempty(FitOpt.nParticles)
+  FitOpt.nParticles = 20 + nParams*10;
+end
 
 lb = lb(:);
 ub = ub(:);
@@ -17,9 +38,6 @@ end
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
-nParams = numel(lb);
-
-if ~isfield(FitOpt,'nParticles'); FitOpt.nParticles = 20 + nParams*10; end
 
 nParticles = FitOpt.nParticles;
 

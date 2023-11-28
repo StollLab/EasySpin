@@ -69,26 +69,41 @@ The input parameters are the following:
 <li><p>
 <code>fcn</code> is the function handle of a simulation or model function: <code>@garlic</code>, <code>@pepper</code>,
 <code>@chili</code>, <code>@saffron</code>, <code>@salt</code>, or a user-supplied custom model function that takes an input parameter vector <code>p</code> and returns simulated data, <code>datasim = fcn(p)</code>.
-</p></li>
+</p>
+<p>
+For global fitting of multiple data sets, a custom model function is required, which takes input parameters and returns a cell array of simulated data sets with dimensions matching the corresponding experimental data sets. Custom model functions based on EasySpin functions can be used with a spin system and experimental structure as input, which must be adapted internally for a series of different simulations that are then returned in a cell array (see the <a href="userguide_fitting.html#globalfit">user guide</a> for an example).
+</p>
+</li>
 
 <li>
+<p>
 <code>p0</code> defines the starting values for the fitting parameters. 
-For EasySpin functions, provide the <a href="spinsystem.html">spin system structure</a> containing all the parameters of the spin system, the experimental parameter structure and, if desired, a simulation options structure.
+</p>
+<p>
+For EasySpin functions and custom functions based on them, provide the <a href="spinsystem.html">spin system structure</a> containing all the parameters of the spin system, the experimental parameter structure and, if desired, a simulation options structure <code>Opt</code>.
+</p>
 <pre class="matlab">
 esfit(data,@pepper,{Sys0,Exp0},{varySys})
 esfit(data,@pepper,{Sys0,Exp0,Opt},{varySys})
-esfit(data,@pepper,{{Sys1,Sys2},Exp0},{{varySys1,varySys2}})
+esfit(data,@pepper,{Sys0,Exp0,Opt},{varySys},FitOpt)
 </pre>
+<p>
 For other functions, <code>p0</code> is an n-element vector.
+</p>
 <pre class="matlab">
 userfcn = @(p) modelfunction(p);
 esfit(data,userfcn,p0,vary)
 </pre>
+<p>
 For parameters that are to be varied during the fitting process, the values in  <code>p0</code> represent the starting values of the fit and the centers of the search ranges, if the fitting parameter variation is defined in <code>vary</code>.
+</p>
 
 <p>
 For multi-component systems, <code>Sys0</code> is a cell array of spin system structures, e.g. <code>{Sys1,Sys2}</code> for a two-component system. The weights for the different components are included in each component structure, e.g. <code>Sys1.weight = 0.7</code> and <code>Sys2.weight = 0.3</code>. The weights are relative (0.7 and 0.3 is the same as 14 and 6) and can be included in the fit. If weight is omitted, it is assumed to be 1. There is no limit on the number of components.
 </p>
+<pre>
+esfit(data,@pepper,{{Sys1,Sys2},Exp0},{{varySys1,varySys2}})
+</pre>
 <p>
 <code>Exp0</code> contains the experimental parameters needed for the simulation. For EPR spectral simulations, make sure to specify the field or frequency range and the number of points you used for the experimental data in <code>Exp.Range</code> or <code>Exp.mwRange</code>. If you let the simulation function automatically pick a range, it will likely be different from the experimental one, and <code>esfit</code> cannot do its work. For example, if <code>x</code> is the experimental field range, use <code>Exp.Range = [min(x) max(x)]</code> and <code>Exp.nPoints = numel(x)</code>.
 </p>
@@ -102,14 +117,19 @@ For multi-component systems, <code>Sys0</code> is a cell array of spin system st
 </li>
 
 <li>
+<p>
 <code>vary</code> contains the maximum variations for the parameters allowed during fitting.
-<br>For EasySpin-style functions, this should mirror the <code>p0</code> input style, e.g. <code>{SysVary}</code> or <code>{SysVary,ExpVary}</code> if experimental parameters should also be varied in the fitting. 
+</p>
+<p>
+For EasySpin-style functions, this should mirror the <code>p0</code> input style, e.g. <code>{SysVary}</code> or <code>{SysVary,ExpVary}</code> if experimental parameters should also be varied in the fitting. 
 For EasySpin functions, if a spin system or experimental parameter should be included in the fitting, give it a non-zero value in this structure. If it should not be included, set its value in this structure to zero, or don't include it at all.
+</p>
 <pre class="matlab">
 Sys0.lwpp = 5;
 SysVary.lwpp = 2;    % the linewidth is searched over a range of about 3 to 7
 SysVary.lwpp = 0;    % the linewidth is kept constant at the value given in Sys0
 </pre>
+<p>
 For multiple components, <code>SysVary</code> should be a cell array containing one structure per component, e.g. <code>{SysVary1,SysVary2}</code> for two components. If none of the parameters of a component are varied in the fit, <code>[]</code> can be specified, e.g. <code>{SysVary1,[]}</code> for a two-component fit where only parameters of the first component are varied.
 </p>
 </li>
@@ -124,16 +144,42 @@ For multiple components, <code>SysVary</code> should be a cell array containing 
 </ul>
 
 <p>
-If no output is requested, <code>esfit</code> starts an <span style="font-weight:bold;">interactive user interface</span> that allows extensive control over the fitting process and also allows the export of the fitting results to the workspace. In the UI, the fitting algorithm can be changed, parameters can be excluded from the fit, and multiple fit sets can be stored. Global fitting of multiple datasets is currently not supported within the esfit GUI.
+If no output is requested, <code>esfit</code> starts an <span style="font-weight:bold;">interactive user interface</span> that allows extensive control over the fitting process and also allows the export of the fitting results to the workspace. In the UI, the fitting algorithm can be changed, parameters can be excluded from the fit, and multiple fit sets can be stored.
 </p>
 
 <p>
 If <code>esfit</code> is called with one output, it runs without a user interface, and returns a structure <code>fit</code> containing the fit results.
+A similar structure is also returned if <code>esfit</code> is used with the graphical user interface and a set of parameters is exported.
 </p>
+
+<div class="optionfield"><code>fit</code> and <code>fitraw</code></div>
+<div class="optiondescr">
+the simulated spectrum scaled to fit the experimental spectrum, and the raw simulated spectrum as returned by the simulation function
+</div>
+
+<div class="optionfield"><code>mask</code></div>
+<div class="optiondescr">
+logical array used as a mask during the fitting procedure (defined in the script or chosen interactively through the graphical user interface)
+</div>
+
+<div class="optionfield"><code>residuals</code></div>
+<div class="optiondescr">
+the residuals vector
+</div>
+
+<div class="optionfield"><code>baseline</code>, <code>baselinetype</code> and <code>scale</code></div>
+<div class="optiondescr">
+the baseline, baseline type and scaling factor used to fit the simulated spectrum to the experimental data
+</div>
 
 <div class="optionfield"><code>pfit</code> and <code>pnames</code></div>
 <div class="optiondescr">
 array of fitted parameter values and corresponding variable names
+</div>
+
+<div class="optionfield"><code>p_start</code>, <code>p_fixed</code> and <code>pfit_full</code></div>
+<div class="optiondescr">
+start values for the fitting parameters, logical array specifying fixed parameters and the full array of fitted parameter values, including not actively fitted parameters (if <code>esfit</code> is used from the graphical user interface)
 </div>
 
 <div class="optionfield"><code>argsfit</code></div>
@@ -161,53 +207,14 @@ the covariance matrix
 the correlation matrix (1 on the diagonal, correlation coefficients between -1 and +1 everywhere else)
 </div>
 
-<div class="optionfield"><code>fitraw</code></div>
+<div class="optionfield"><code>ssr</code>, <code>rmsd</code> and <code>redchisquare</code></div>
 <div class="optiondescr">
-the simulated spectrum as returned by the simulation function
-</div>
-
-<div class="optionfield"><code>fit</code></div>
-<div class="optiondescr">
-the simulated spectrum as returned by the simulation function, scaled to fit the experimental spectrum
-</div>
-
-<div class="optionfield"><code>scale</code> and <code>baseline</code></div>
-<div class="optiondescr">
-the scaling factor and the baseline used to fit the simulated spectrum to the experimental data
-</div>
-
-<div class="optionfield"><code>residuals</code></div>
-<div class="optiondescr">
-the residuals vector
-</div>
-
-<div class="optionfield"><code>ssr</code> and <code>rmsd</code></div>
-<div class="optiondescr">
-the sum of squared residuals and the root-mean-square deviation between the data and the fitted model
+the sum of squared residuals and the root-mean-square deviation between the data and the fitted model, and the reduced chi square value determined considering a noise estimate
 </div>
 
 <div class="optionfield"><code>bestfithistory</code></div>
 <div class="optiondescr">
 structure containing a list of progressively improved rmsd values obtained during the fitting procedure and the corresponding list of fitting parameters. For EasySpin model functions, a conversion function returning the EasySpin input structures given a selected set of fitting parameters is also included.
-</div>
-
-<p>
-A similar structure is returned if <code>esfit</code> is used with the graphical user interface and a set of parameters is exported. The following fields contain information on additional selected fitting options.
-</p>
-
-<div class="optionfield"><code>pfit_full</code></div>
-<div class="optiondescr">
-array of fitted parameter values, including not actively fitted parameters from the graphical user interface
-</div>
-
-<div class="optionfield"><code>p_start</code></div>
-<div class="optiondescr">
-the starting parameters for the fitting
-</div>
-
-<div class="optionfield"><code>mask</code></div>
-<div class="optiondescr">
-logical array used as a mask during the fitting procedure
 </div>
 
 
@@ -217,9 +224,10 @@ The structure <code>FitOpt</code> contains fitting options. The most important o
 
 <div class="optionfield"><code>FitOpt.Method</code></div>
 <div class="optiondescr">
+<p>
 Indicates the least-squares fitting method to be used, consisting of up to two keywords.
 One keyword specifies the algorithm, and another one selects the way residuals are computed during the fitting. Some examples:
-
+</p>
 <pre class="matlab">
 FitOpt.Method = 'simplex fcn';
 FitOpt.Method = 'genetic int';
@@ -252,29 +260,43 @@ the spectra can be transformed before computing the residuals.
 <li><code>'diff'</code>: compute the derivatives of the two spectra.</li>
 <li><code>'fft'</code>: FFT both spectra before computing the residuals.</li>
 </ul>
+<p>
 The default value is <code>'fcn'</code>. If there are many resolved lines, <code>'int'</code> gives better convergence.
 In all cases, the residuals returned in the output refer to the experimental data as provided.
+</p>
 </div>
 
 <div class="optionfield"><code>FitOpt.AutoScale</code></div>
 <div class="optiondescr">
-Possible options are <code>'none'</code>, <code>'lsq'</code> and <code>'maxabs'</code>. If set to 'none', the simulated data is not rescaled. If set to <code>'lsq'</code>, the simulated data are rescaled before comparing to the experimental data, and the scale factor is reported in <code>fit.scale</code>. If set to <code>'maxabs'</code>, the simulated data is scaled to the maximum absolute of the experimental data. By default, it is set to <code>'lsq'</code> if using one of the EasySpin spectral simulation functions, otherwise it is set to 'none'. For global fitting of multiple data sets, if selected, <code>FitOpt.AutoScale</code> scales each dataset individually.
+<p>
+Possible options are <code>'none'</code>, <code>'lsq'</code> and <code>'maxabs'</code>. 
+<br>If set to <code>'none'</code>, the simulated data is not rescaled. 
+If set to <code>'lsq'</code>, the simulated data are rescaled before comparing to the experimental data, and the scale factor is reported in <code>fit.scale</code>. 
+If set to <code>'maxabs'</code>, the simulated data is scaled to the maximum absolute of the experimental data. 
+<br>By default, it is set to <code>'lsq'</code> if using one of the EasySpin spectral simulation functions, otherwise it is set to <code>'none'</code>. For global fitting of multiple data sets, if selected, <code>FitOpt.AutoScale</code> scales each data set individually.
+</p>
 </div>
 
 <div class="optionfield"><code>FitOpt.BaseLine</code></div>
 <div class="optiondescr">
-Polynomial order for the baseline added to the simulated data to match the experimental data (0, 1, 2 or 3), set this to <code>[]</code> if no baseline should be included. For global fitting of multiple data sets, different polynomial order baselines can be used for the different data sets by specifying a vector. The baseline used is returned in <code>fit.baseline</code>.
+<p>
+Polynomial order for the baseline added to the simulated data to match the experimental data (0, 1, 2 or 3), set this to <code>[]</code> if no baseline should be included. For global fitting of multiple data sets, different polynomial order baselines can be used for the different data sets by specifying an array. The baseline used is returned in <code>fit.baseline</code>.
+</p>
 </div>
 
-<div class="optionfield"><code>FitOpt.mask</code></div>
+<div class="optionfield"><code>FitOpt.Mask</code></div>
 <div class="optiondescr">
-Array of 1 and 0 with the same size as the data vector, used to exclude parts of the experimental data from the fitting. Values with mask 0 are excluded from the fit. For global fitting of multiple data sets, <code>FitOpt.mask</code> should be provided as a cell array.
+<p>
+Array of 1 and 0 with the same size as the data vector, used to exclude parts of the experimental data from the fitting. Values with mask 0 are excluded from the fit. For global fitting of multiple data sets, <code>FitOpt.Mask</code> should be provided as a cell array.
 In the graphical user interface, the mask can be selected manually and is returned in the output structure.
+</p>
 </div>
 
-<div class="optionfield"><code>FitOpt.weights</code></div>
+<div class="optionfield"><code>FitOpt.weight</code></div>
 <div class="optiondescr">
-Array of weights to use when combining residual vectors of all datasets for global fitting.
+<p>
+Array of weights to use when combining residual vectors of all data sets for global fitting of multiple data sets. Note that these weights are applied to the residuals of different data sets without prior normalization or extrapolation, therefore, depending on the data sets provided as input, an intrinsic weight determined by different amplitudes and number of points for each data set might also contribute.
+</p>
 </div>
 
 <p>
@@ -283,34 +305,45 @@ There are more options which are recognized by all fitting algorithms:
 
 <div class="optionfield"><code>FitOpt.x</code></div>
 <div class="optiondescr">
-Provides an x axis for plotting the data. If none is provided, <code>esfit</code> uses the data point indices (<code>1:n</code> where <code>n</code> is the number of data points). Example: Assume the data is an EPR spectrum with a field axis of 1000 points between 350 and 370 mT:
-
+<p>
+Provides an x axis for plotting the data. If none is provided, <code>esfit</code> uses the data point indices (<code>1:n</code> where <code>n</code> is the number of data points) internally and does not display x axis labels. 
+</p>
+Example: Assume the data is an EPR spectrum with a field axis of 1000 points between 350 and 370 mT:
 <pre class="matlab">
 Opt.x = linspace(350,370,1000);
 </pre>
-
+</p>
+<p>
 <code>Opt.x</code> does not affect the fitting itself, just the plotting of the data.
+</p>
 </div>
 
 <div class="optionfield"><code>FitOpt.maxTime</code></div>
 <div class="optiondescr">
+<p>
 Time, in minutes, after which <code>esfit</code> will terminate even if the fitting has not yet converged.
+</p>
 </div>
 
 <div class="optionfield"><code>FitOpt.Verbosity</code></div>
 <div class="optiondescr">
+<p>
 A number, 0 or 1. If set to 0, the fitting functions don't write anything to the command window. If set to 1 (default),
 they print information about the progress of the fitting.
+</p>
 </div>
 
 <div class="optionfield"><code>FitOpt.OutArg</code></div>
 <div class="optiondescr">
-This is an array with two numbers <code>[nArgOut useArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function, which may only be required for advanced usage, e.g. when using a custom fitting function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>useArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
+<p>
+This is an array with two numbers <code>[nArgOut iArg]</code> that tells <code>esfit</code> how to use the output arguments of the simulation function, which may only be required for advanced usage, e.g. when using a custom fitting function. <code>nArgOut</code> is the number of outputs provided by the function. <code>esfit</code> will call the function asking for this number of outputs. The second number, <code>iArg</code>, tells <code>esfit</code>  which of the output arguments actually contains the simulated data.
+</p>
 <p>
 E.g. <code>Opt.OutArg = [3 2]</code> indicates to call the function asking for three outputs and then to use output number 2 for the fitting.
-
+</p>
 <p>
 For standard EasySpin simulation functions, <code>OutArg</code> is chosen automatically. For custom simulation functions that deviate in their output behavior, <code>OutArg</code> might be useful.
+</p>
 </div>
 
 <p>
@@ -321,24 +354,9 @@ Each of the available fitting algorithms can be fine-tuned using a set of parame
 Parameters for <span style="font-weight:bold;">Nelder-Mead downhill simplex</span>:
 </p>
 
-<div class="optionfield"><code>FitOpt.RandomStart</code></div>
-<div class="optiondescr">
-If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
-</div>
-
-<div class="optionfield"><code>FitOpt.TolEdgeLength</code></div>
-<div class="optiondescr">
-Termination tolerance for the length of the parameter step.
-</div>
-
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for error function value change.
-</div>
-
-<div class="optionfield"><code>FitOpt.SimplexPars</code></div>
-<div class="optiondescr">
-An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</code> is the reflection coefficient, <code>chi</code> is the expansion coefficient, <code>psi</code> is the contraction coefficient, and <code>sigma</code> is the shrink coefficient. The default values are <code>[1,2,0.5,0.5]</code> for one- and two-dimensional problems (n=1 and 2), and <code>[1,1+2/n,0.75-1/(2*n),1-1/n</code> for higher dimensions (n>2).
+Termination tolerance for error function value change (default = 1e-5).
 </div>
 
 <div class="optionfield"><code>FitOpt.delta</code></div>
@@ -346,28 +364,43 @@ An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</cod
 Edge length of the initial simplex. The default value is 0.1.
 </div>
 
+<div class="optionfield"><code>FitOpt.TolEdgeLength</code></div>
+<div class="optiondescr">
+Termination tolerance for the length of the parameter step (default is 1e-4).
+</div>
+
+<div class="optionfield"><code>FitOpt.SimplexPars</code></div>
+<div class="optiondescr">
+An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</code> is the reflection coefficient, <code>chi</code> is the expansion coefficient, <code>psi</code> is the contraction coefficient, and <code>sigma</code> is the shrink coefficient. The default values are <code>[1,2,0.5,0.5]</code> for one- and two-dimensional problems (n=1 and 2), and <code>[1,1+2/n,0.75-1/(2*n),1-1/n</code> for higher dimensions (n>2).
+</div>
+
 <div class="optionfield"><code>FitOpt.ScaleParams</code></div>
 <div class="optiondescr">
 Rescale fitting parameters to within [-1,1] interval. Default is false.
 </div>
-
-<p>
-Parameters for <span style="font-weight:bold;">Levenberg-Marquardt</span>:
-</p>
 
 <div class="optionfield"><code>FitOpt.RandomStart</code></div>
 <div class="optiondescr">
 If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
 </div>
 
+<p>
+Parameters for <span style="font-weight:bold;">Levenberg-Marquardt</span>:
+</p>
+
+<div class="optionfield"><code>FitOpt.Gradient</code></div>
+<div class="optiondescr">
+Termination tolerance for the gradient (default is 1e-5).
+</div>
+
 <div class="optionfield"><code>FitOpt.TolStep</code></div>
 <div class="optiondescr">
-Termination tolerance for the length of the parameter step.
+Termination tolerance for the length of the parameter step (default is 1e-6).
 </div>
 
 <div class="optionfield"><code>FitOpt.lambda</code></div>
 <div class="optiondescr">
-Starting value of Marquardt parameter &lambda;, default value is 0.001.
+Starting value of Marquardt parameter &lambda;, default value is 1e-3.
 </div>
 
 <div class="optionfield"><code>FitOpt.delta</code></div>
@@ -377,7 +410,13 @@ Step size for computing the finite-difference approximation of the Jacobian. Def
 
 <div class="optionfield"><code>FitOpt.ScaleParams</code></div>
 <div class="optiondescr">
-Rescale fitting parameters to within [-1,1] interval. Default is false</div>
+Rescale fitting parameters to within [-1,1] interval. Default is false. In some cases, better fits are obtained when setting this option to true.
+</div>
+
+<div class="optionfield"><code>FitOpt.RandomStart</code></div>
+<div class="optiondescr">
+If set to 1, the starting point in the parameter space is chosen randomly, within the given limits set by <code>Vary</code>. If set to 0, which is the default value, the center of the parameter space is used as the starting point.
+</div>
 
 <p>
 Parameters for <span style="font-weight:bold;">Monte Carlo</span>:
@@ -385,12 +424,12 @@ Parameters for <span style="font-weight:bold;">Monte Carlo</span>:
 
 <div class="optionfield"><code>FitOpt.nTrials</code></div>
 <div class="optiondescr">
-Number of random trial simulations before termination.
+Number of random trial simulations before termination (default = 20000).
 </div>
 
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for error function value.
+Termination tolerance for error function value (default = 1e-5).
 </div>
 
 <p>
@@ -418,7 +457,7 @@ are fitted, <code>maxGenerations</code> can be decreased.
 
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for error function value.
+Termination tolerance for error function value (default = 1e-5).
 </div>
 
 <p>
@@ -426,7 +465,7 @@ Parameters for the <span style="font-weight:bold;">grid search</span>:
 </p>
 <div class="optionfield"><code>FitOpt.GridSize</code></div>
 <div class="optiondescr">
-A number or an array that specifies how many grid points there should be for each parameter. If one number is given, it is valid for all parameters. For example, let's
+A number or an array that specifies how many grid points there should be for each parameter (default = 7). If one number is given, it is valid for all parameters. For example, let's
 assume that one g value and the linewidth are being fitted:
 
 <pre class="matlab">
@@ -442,9 +481,14 @@ Opt.GridSize = [20 3]; % 10 points along g and 3 along lw, giving a total of 60
 
 </div>
 
+<div class="optionfield"><code>FitOpt.randGrid</code></div>
+<div class="optiondescr">
+Randomize order of grid points (default = true).
+</div>
+
 <div class="optionfield"><code>FitOpt.TolFun</code></div>
 <div class="optiondescr">
-Termination tolerance for error function value.
+Termination tolerance for error function value (default = 1e-5).
 </div>
 
 <p>
@@ -453,17 +497,7 @@ Parameters for the <span style="font-weight:bold;">particle swarm</span>:
 
 <div class="optionfield"><code>FitOpt.nParticles</code></div>
 <div class="optiondescr">
-Number of particles in the particle swarm.
-</div>
-
-<div class="optionfield"><code>FitOpt.TolFun</code></div>
-<div class="optiondescr">
-Termination tolerance for error function value.
-</div>
-
-<div class="optionfield"><code>FitOpt.TolStallIter</code></div>
-<div class="optiondescr">
-Maximum number of consecutive iterations over which the best function value doesn't change. If the best function value stays unchanged for more than this number, the algorithm terminates.
+Number of particles in the particle swarm. The default number corresponds to <code>20 + n*10</code>, where <code>n</code> is the number of parameters.
 </div>
 
 <div class="optionfield"><code>FitOpt.SwarmParams</code></div>
@@ -477,6 +511,16 @@ and describes how much a particle follows the other particles. Together, <code>k
 and <code>c2</code> determine in which direction a particle will move in a given iteration.
 </div>
 
+<div class="optionfield"><code>FitOpt.TolStallIter</code></div>
+<div class="optiondescr">
+Maximum number of consecutive iterations over which the best function value doesn't change (default = 6). If the best function value stays unchanged for more than this number, the algorithm terminates.
+</div>
+
+<div class="optionfield"><code>FitOpt.TolFun</code></div>
+<div class="optiondescr">
+Termination tolerance for error function value (default = 1e-5).
+</div>
+
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
@@ -486,15 +530,36 @@ Here is a very simple example. Assume the experimental data have been loaded int
 </p>
 
 <pre class="matlab">
-Exp.mwFreq = 9.5;
+Exp.mwFreq = 9.5; % GHz
 Sys0.g = [2.1 2.2]
-Sys0.lwpp = 0.1;
+Sys0.lwpp = 0.1; % mT
 SysVary.g = [0.05 0.02];
 esfit(data,@pepper,{Sys0,Exp},{SysVary});
 </pre>
 
 <p>
-See the <a href="examplesmain.html#fitting">example section</a> for a full example. Also, read the <a href="userguide_fitting.html">user guide</a> about fitting.
+Global fitting of multiple data sets can be performed similarly, but requires definition of a custom function that returns the same number of data sets as the provided ones. Assuming <code>data</code> to be a cell array containing data sets recorded at X- and Q-band frequencies, the following code allows global fitting of both with the same spin system structure.
+</p>
+
+<pre class="matlab">
+Exp.mwFreqX = 9.5; % GHz
+Exp.mwFreqQ = 34; % GHz
+Sys0.g = [2.1 2.2]
+Sys0.lwpp = 0.1; % mT
+SysVary.g = [0.05 0.02];
+
+esfit(expdata,@pepperXQ,{Sys0,Exp},{SysVary});
+
+function data = pepperXQ(Sys,Exp)
+Exp.mwFreq = Exp.mwFreqX;
+data{1} = pepper(Sys,Exp);
+Exp.mwFreq = Exp.mwFreqQ;
+data{2} = pepper(Sys,Exp);
+end
+</pre>
+
+<p>
+See the <a href="examplesmain.html#fitting">example section</a> for full examples. Also, read the <a href="userguide_fitting.html">user guide</a> about fitting.
 </p>
 
 <!-- ============================================================= -->

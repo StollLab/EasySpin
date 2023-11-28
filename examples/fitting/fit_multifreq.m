@@ -52,15 +52,19 @@ FitOpt.Method = 'simplex fcn';
 result = esfit(expdata, @chili_multifreq, {Sys, Exp}, {Vary}, FitOpt);
 
 % Plot results
-tiledlayout('flow')
 for k = 1:numel(expdata)
-  nexttile
+  subplot(2,1,k)
   x = 1:numel(expdata{k});
   plot(B{k},expdata{k},B{k},result.fit{k});
 end
 
+% Run fitting in GUI
+FitOpt.x = B;
+esfit(expdata, @chili_multifreq, {Sys, Exp}, {Vary}, FitOpt);
+
 
 % Custom function for simulating slow-motion X- and Q-band EPR spectra
+% ---------------------------------------------------------------------------------
 function y = chili_multifreq(Sys,Exp)
 
 % X-band spectrum

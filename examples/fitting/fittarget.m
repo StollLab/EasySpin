@@ -1,6 +1,6 @@
 % Fitting the spectrum vs fitting its integral
 
-clear, clf, clc
+clear, clc
 
 % This example illustrates how important it is to use good
 % starting values and to tell esfit whether to fit the
@@ -19,7 +19,6 @@ Exp.CenterSweep = [330 150];
 y = addnoise(y,60,'n');
 
 % For fitting, slightly shift the g value.
-
 Sys0 = Sys;
 Sys0.g(3) = 2.21;
 Vary.g = [0 0 0.04];
