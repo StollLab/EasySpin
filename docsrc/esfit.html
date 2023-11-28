@@ -54,7 +54,7 @@ See also the <a href="userguide_fitting.html">user guide</a> on least-squares fi
 <a class="esf" href="garlic.html">garlic</a>,
 <a class="esf" href="pepper.html">pepper</a>, 
 <a class="esf" href="chili.html">chili</a>, etc. to experimental spectral data
-using least-squares fitting algorithms. Additionally, it can also be used for fitting of any other type of data, given a user-defined model function. Global fitting of multiple data sets is supported for user-defined simulation and model functions (see <a href="userguide_fitting.html">user guide</a> for details).
+using least-squares fitting algorithms and calculates uncertainties (error bars) for the fitted parameters. Additionally, it can also be used for fitting of any other type of data, given a user-defined model function. Global fitting of multiple data sets is supported for user-defined simulation and model functions (see <a href="userguide_fitting.html">user guide</a> for details).
 </p>
 
 <p>
@@ -289,6 +289,13 @@ Polynomial order for the baseline added to the simulated data to match the exper
 <p>
 Array of 1 and 0 with the same size as the data vector, used to exclude parts of the experimental data from the fitting. Values with mask 0 are excluded from the fit. For global fitting of multiple data sets, <code>FitOpt.Mask</code> should be provided as a cell array.
 In the graphical user interface, the mask can be selected manually and is returned in the output structure.
+</p>
+</div>
+
+<div class="optionfield"><code>FitOpt.CalculateUncertainties</code></div>
+<div class="optiondescr">
+<p>
+<code>1</code> (default) or <code>0</code>. Determines whether <code>esfit</code> performs an uncertainty quantification for a converged fit.
 </p>
 </div>
 

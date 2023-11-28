@@ -493,6 +493,11 @@ end
 esfitdata.BaseLineSettings = {-1, 0, 1, 2, 3};
 esfitdata.BaseLineStrings = {'none', 'offset', 'linear', 'quadratic', 'cubic'};
 
+% Uncertainty calculation
+if ~isfield(Opt,'CalculateUncertainties')
+  Opt.CalculateUncertainties = 1;
+end
+
 % Weights for global fitting
 if ~isfield(Opt,'weight')
   Opt.weight = ones(1,esfitdata.nDataSets);
@@ -736,7 +741,7 @@ end
 
 % Calculate parameter uncertainties
 %-------------------------------------------------------------------------------
-calculateUncertainties = esfitdata.UserCommand==0 && nActiveParams>0;
+calculateUncertainties = esfitdata.Opts.CalculateUncertainties && esfitdata.UserCommand==0 && nActiveParams>0;
 if calculateUncertainties
   if Verbosity>=1
     if useGUI
@@ -858,7 +863,11 @@ if calculateUncertainties
   end
 else
   if Verbosity>=1
-    msg = 'Fitting stopped by user. Skipping uncertainty quantification.';
+    if esfitdata.Opts.CalculateUncertainties
+      msg = 'Fitting stopped by user. Skipping uncertainty quantification.';
+    else
+      msg = 'Skipping uncertainty quantification as requested.';
+    end    
     if useGUI
       updateLogBox({msg,''});
     else
@@ -1209,7 +1218,7 @@ set(gui.Fig,'Name','esfit - Least-Squares Fitting','NumberTitle','off');
 set(gui.Fig,'CloseRequestFcn',@closeGUI);
   
 spacing = 20*scalefact;
-hPtop = 180*scalefact;
+hPtop = 190*scalefact;
 hElement = 22*scalefact; % height of popup menu, checkboxes, small buttons
 
 fontsizetbl = 11;
@@ -1446,8 +1455,8 @@ end
 lgrid.fitcontrol = uigridlayout(lgrid.right,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',spacing);
 lgrid.fitcontrol.ColumnWidth = {'1.25x','1x'};
 
-fitoptbox0 = uigridlayout(lgrid.fitcontrol,[3 1],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
-fitoptbox0.RowHeight = {hElement,'4x','2x'};
+fitoptbox0 = uigridlayout(lgrid.fitcontrol,[4 1],'Padding',[0 0 0 0],'ColumnSpacing',0,'RowSpacing',5);
+fitoptbox0.RowHeight = {hElement,'4x','3x'};
 
 fitoptbox1 = uigridlayout(fitoptbox0,[1 2],'Padding',[0 0 0 0],'ColumnSpacing',0);
 fitoptbox1.ColumnWidth = {'0.6x','0.8x',hElement};
@@ -1525,7 +1534,7 @@ else
   set(gui.BaseLineMenu,'ValueChangedFcn',@(src,evt) changeBaseLineSelection(src,evt));
 end
 
-fitoptbox3 = uigridlayout(fitoptbox0,[2 2],'Padding',[0 0 0 0],'ColumnSpacing',5,'RowSpacing',5);
+fitoptbox3 = uigridlayout(fitoptbox0,[3 2],'Padding',[0 0 0 0],'ColumnSpacing',5,'RowSpacing',5);
 gui.MaskCheckbox = uicheckbox('Parent',fitoptbox3,...
            'Text','use mask','Tooltip','Use mask with excluded regions',...
            'Value',1);
@@ -1533,6 +1542,11 @@ gui.clearMaskButton = uibutton('Parent',fitoptbox3,...
          'Text','clear mask','Tooltip','Clear mask',...
          'Enable','on',...
          'ButtonPushedFcn',@clearMaskCallback);
+
+gui.ErrorCalcCheckbox = uicheckbox('Parent',fitoptbox3,...
+           'Text','calculate uncertainties','Tooltip','Calculate uncertainties for fitting parameters after convergence',...
+           'Value',esfitdata.Opts.CalculateUncertainties,'ValueChangedFcn','global gui esfitdata; esfitdata.Opts.CalculateUncertainties = gui.ErrorCalcCheckbox.Value;');
+gui.ErrorCalcCheckbox.Layout.Column = [1 2];
 
 gui.BaselineCheckbox = uicheckbox('Parent',fitoptbox3,...
            'Text','plot baseline','Tooltip','Plot baseline on top of data',...
@@ -2940,7 +2954,6 @@ for i = 1:numel(gui.residualdata)
   end
 end
 updateaxislimits()
-
 
 end
 %===============================================================================
