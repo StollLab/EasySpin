@@ -22,7 +22,7 @@
 %
 %     B = linspace(300,400,1001);  % mT
 %     spc = lorentzian(B,342,4);
-%     fieldmod(x,y,20);
+%     fieldmod(B,spc,20);
 
 % References
 % --------------------------------------------------
