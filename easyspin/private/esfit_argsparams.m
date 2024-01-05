@@ -43,7 +43,8 @@ for a = 1:nArgs
         end
         idx = 1:numel(value);
         [irow,icol] = ind2sub(size(value),idx);
-        for i = 1:numel(idx)
+        idxordered = reshape(idx,size(value)).'; % more intuitive order in output/GUI for array inputs
+        for i = idxordered(:).'
           parinfo(p).Arg = a;
           if noCell
             parinfo(p).Cell = 0;
