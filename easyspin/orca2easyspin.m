@@ -156,7 +156,7 @@ if isfield(Sys,'Nucs') && isfield(Sys,'A')
     if ischar(Nucs)
       Nucs = nucstring2list(Nucs);
     end
-    Sys(iSys).NucsIdx = find(keep).';
+    Sys(iSys).NucsIdx = Sys(iSys).NucsIdx(keep);
     Sys(iSys).Nucs = nuclist2string(Nucs(keep));
     Sys(iSys).A = Sys(iSys).A(keep,:);
     if isfield(Sys,'AFrame')

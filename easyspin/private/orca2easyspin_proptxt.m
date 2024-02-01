@@ -79,7 +79,7 @@ for iSection = 1:numel(sections)
       data(iStructure).graw = g_raw;
       data(iStructure).g = g_vecs;
       data(iStructure).gvals = g_vals;
-      data(iStructure).gFrame = eulang(g_vecs);
+      data(iStructure).gFrame = eulang(g_vecs.');
 
     case '$ EPRNMR_DTensor'
       D_raw = readmatrix(allLines(idx0+(8:10)));
@@ -96,7 +96,7 @@ for iSection = 1:numel(sections)
       end
       D_raw = D_raw*100*clight/1e6; % cm^-1 -> MHz
       D_vals = D_vals*100*clight/1e6; % cm^-1 -> MHz
-      D_frame = eulang(D_vecs);
+      D_frame = eulang(D_vecs.');
       data(iStructure).Draw = D_raw;
       data(iStructure).Dvals = D_vals;
       data(iStructure).DFrame = D_frame;
@@ -121,7 +121,7 @@ for iSection = 1:numel(sections)
         Araw{atomno} = A_raw;
         A{atomno} = A_vals;
         if ~all(A_vecs(:)==0)
-          AFrame{atomno} = eulang(A_vecs);
+          AFrame{atomno} = eulang(A_vecs.');
         else
           AFrame{atomno} = [0 0 0];
         end
@@ -132,7 +132,7 @@ for iSection = 1:numel(sections)
       data(iStructure).AFrame = AFrame;
 
     case '$ EPRNMR_QTensor'
-      error('EPRNMR_QTensor is not supported.');
+      warning('EPRNMR_QTensor is not supported for property.txt files. Use the main output file instead.');
 
     case '$ EPRNMR_EFGTensor'
       valuestr = regexp(allLines{idx0+4},'\d+$','match','once');
@@ -154,7 +154,7 @@ for iSection = 1:numel(sections)
         Q_vals = readvec(allLines{i+16}(12:end));
         Qraw{atomno} = Q_raw;
         Q{atomno} = Q_vals;
-        QFrame{atomno} = eulang(Q_vecs);
+        QFrame{atomno} = eulang(Q_vecs.');
         i = i + d;
       end
       data(iStructure).Q = Q;
@@ -212,6 +212,7 @@ for iStructure = nStructures:-1:1
     if Agiven || Qgiven
       idx = idx + 1;
       Sys(iStructure).Nucs{idx} = d.Element{iAtom};
+      Sys(iStructure).NucsIdx(idx) = iAtom;
       if Agiven
         Sys(iStructure).A(idx,1:3) = d.A{iAtom};
         Sys(iStructure).AFrame(idx,1:3) = d.AFrame{iAtom};
