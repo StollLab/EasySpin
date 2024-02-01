@@ -334,9 +334,10 @@ With these angles, EasySpin can transform a g tensor from its diagonal eigenfram
 gpv = [2.1 1.97 2.04];       % principal values
 gFrame = [10 34 -2]*pi/180;  % Euler angles, in radians
 
-R_M2g = erot(gFrame)         % transformation matrix
-g_g = diag(gpv)              % g in the g frame
-g_M = R_M2g.'*g_g*R_M2g      % g in molecular frame
+R_M2g = erot(gFrame)         % transformation matrix from molecular frame to g frame
+R_g2M = R_M2g.';             % transformation matrix from g frame to molecular frame
+g_g = diag(gpv)              % g in g frame
+g_M = R_g2M*g_g*R_g2M.'      % g in molecular frame
 </pre>
 
 <p>
@@ -482,9 +483,10 @@ Here is how principal values and angles can be converted to a full matrix:
 <pre class="matlab">
 Apv = [4 9 13];                   % principal values, MHz
 AFrame = [10 45 -30]*pi/180;      % Euler angles
-A_A = diag(Apv);                  % full matrix in A frame
-R = erot(AFrame);                 % transformation matrix
-A_M = R.'*A_A*R;                  % full matrix in molecular frame
+A_A = diag(Apv);                  % full A matrix in A frame
+R_M2A = erot(AFrame);             % transformation matrix from molecular frame to A frame
+R_A2M = R_M2A.';                  % transformation matrix from A frame to molecular frame
+A_M = R_A2M*A_A*R_A2M;            % full A matrix in molecular frame
 </pre>
 
 <p>
@@ -597,9 +599,10 @@ Here is how principal values and angles can be converted to a full matrix:
 <pre class="matlab">
 Qpv = [-0.9 -1.1 2]*0.125;        % principal values, MHz
 QFrame = [10 45 -30]*pi/180;      % Euler angles
-R = erot(QFrame);                 % transformation matrix
+R_M2Q = erot(QFrame);             % transformation matrix from molecular frame to Q frame
+R_Q2M = R_M2Q.';                  % transformation matrix from Q frame to molecular frame
 Q_Q = diag(Qpv);                  % full matrix in Q frame
-Q_M = R.'*Q_Q*R;                  % full matrix in molecular frame
+Q_M = R_Q2M*Q_Q*R_Q2M.';          % full matrix in molecular frame
 </pre>
 
 <p>
@@ -708,12 +711,13 @@ Internally, EasySpin uses the following procedure to compute the full D tensor i
 </p>
 
 <pre class="matlab">
-Dvals = [-25 -55 80];        % principal values
-DFrame = [10 20 0]*pi/180;   % tilt angles
-D_D = diag(Dvals);           % full D tensor in its eigenframe
+Dvals = [-25 -55 80];              % principal values
+DFrame = [10 20 0]*pi/180;         % tilt angles
+D_D = diag(Dvals);                 % full D tensor in its eigenframe
 
-R = erot(DFrame);            % rotation matrix
-D_M = R.'*diag(Dvals)*R;     % full D tensor in molecular frame
+R_M2D = erot(DFrame);              % transformation matrix from molecular frame to D frame
+R_D2M = R_M2D.';                   % transformation matrix from D frame to molecular frame
+D_M = R_D2M*diag(Dvals)*R_D2M.';   % full D tensor in molecular frame
 </pre>
 
 <p>
