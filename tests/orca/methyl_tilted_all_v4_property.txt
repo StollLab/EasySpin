@@ -1,0 +1,115 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:      -39.8064507889
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Electric_Properties
+   comment:     The SCF Calculated Electric Properties
+   geom. index: 1
+   prop. index: 1
+       Filename                          : methyl_tilted_all_v4.scfp 
+       Do Dipole Moment Calculation      : 1 
+       Do Quadrupole Moment Calculation  : 0 
+       Do Polarizability Calculation     : 0 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        0.0082328970
+        Electronic Contribution:
+                   0          1          2    
+      0       0.000311   0.001329  -0.003012
+        Nuclear Contribution:
+                   0          1          2    
+      0       0.000000   0.000000   0.000075
+        Total Dipole moment:
+                   0          1          2    
+      0       0.000311   0.001329  -0.002937
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_GTensor
+   comment:     Electronic g tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ g tensor: 
+                   0          1          2    
+      0       2.002738   0.000036   0.000141
+      1       0.000036   2.002748  -0.000124
+      2       0.000142  -0.000124   2.002296
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 0C 
+ Isotope: 13 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 134.190303 
+ A tensor (MHz): 
+                   0          1          2    
+      0      82.770562 -14.411607 -56.320851
+      1     -14.411610  78.876361  49.246323
+      2     -56.320849  49.246321 258.762473
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 2
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 1H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -40.350126 -32.731105  14.000533
+      1     -32.731063 -80.593686  -4.148925
+      2      14.000526  -4.148927 -54.166763
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 3
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 2H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -96.135396  -1.000307 -10.524796
+      1      -1.000324 -19.174779 -10.472135
+      2     -10.524798 -10.472142 -59.755328
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 4
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 3H  
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -37.516781  33.978303  -2.390644
+      1      33.978278 -74.094178  13.688953
+      2      -2.390648  13.688976 -63.609305
+-------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+-------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    4        Geometry Index:    1
+    Coordinates:
+            C      0.000000000000    0.000000000000    0.000000000000
+            H      0.886800000000   -0.478600000000    0.382800000000
+            H      0.022000000000    1.045500000000   -0.261600000000
+            H     -0.908800000000   -0.566900000000   -0.121100000000

@@ -147,7 +147,7 @@ while ~feof(f)
       for iNuc=1:numel(AnucIdx)
         idx = AnucIdx(iNuc);
         Apv(idx,1:3) = data(3:5,iNuc).';
-        R = reshape(data(6:14,iNuc),3,3);
+        R = reshape(data(6:14,iNuc),3,3).';
         %A = R*diag(Apv)*R.';
         AFrame(idx,1:3) = eulang(R.',skipFitting).';
       end
