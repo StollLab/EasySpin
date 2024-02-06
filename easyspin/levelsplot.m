@@ -182,7 +182,7 @@ if Opt.StickSpectrum && computeResonances
   subplot(4,1,[1 2 3]);
   cla
 end
-ax = gca;
+axes_levels = gca;
 
 if Opt.SlopeColor
   for iLevel = 1:nLevels
@@ -259,6 +259,7 @@ if computeResonances
       ylim([0 1.1]);
       xlim(xl);
       box on
+      set(gca,'FontSize',axes_levels.FontSize)
     end
     
   else
@@ -306,9 +307,9 @@ else
                 oristr,phi*180/pi,theta*180/pi,mwstr);
 end
 
-xl = xlim(ax);
-yl = ylim(ax);
-text(ax,xl(1),yl(2),str,'VerticalAl','top');
+xl = xlim(axes_levels);
+yl = ylim(axes_levels);
+text(axes_levels,xl(1),yl(2),str,'VerticalAl','top');
 
 % Activate mouseovers only if there is one levelsplot axes in the figure.
 hAx = findobj(gcf,'Tag','diagram');
