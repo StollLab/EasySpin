@@ -245,7 +245,8 @@ The g matrices/tensors for all electron spins in the system are supplied in two 
 <code>gFrame</code> contains the Euler angles specifying the orientations of the g tensors relative to the molecular frame.
 </ul>
 
-<p>See also the reference page on the <a href="hamiltonian.html#ezi">Electron Zeeman interaction</a>.
+<p>
+See also the reference page on the <a href="hamiltonian.html#ezi">Electron Zeeman interaction</a> and the EasySpin function <a class="esf" href="ham_ez.html">ham_ez</a>.
 </p>
 
 <div class="optionfield"><code>g</code></div>
@@ -270,9 +271,9 @@ Axial: For axial g tensors, only two values are needed. The first value is the o
 
 <pre class="matlab">
 Sys.g = [2.25 2.03];                % axial g, for one electron spin
-                                    % = [2.25 2.25 2.03]
+                                    %   = [2.25 2.25 2.03]
 Sys.g = [2.25 2.03; 1.99 1.98];     % axial g, for two electron spins
-                                    % = [2.25 2.25 2.03; 1.99 1.99 1.98]
+                                    %   = [2.25 2.25 2.03; 1.99 1.99 1.98]
 </pre>
 
 <li>
@@ -282,9 +283,9 @@ Isotropic: If g is isotropic, it is sufficient to give its isotropic value once.
 
 <pre class="matlab">
 Sys.g = 2.005;                      % isotropic g, for one electron spin
-                                    % = [2.005 2.005 2.005]
+                                    %   = [2.005 2.005 2.005]
 Sys.g = [2.0023; 2.0025];           % isotropic g, for two electron spins
-                                    % = [2.0023 2.0023 2.0023; 2.0025 2.0025 2.0025]
+                                    %   = [2.0023 2.0023 2.0023; 2.0025 2.0025 2.0025]
 </pre>
 
 <li>
@@ -293,11 +294,12 @@ No value: If no values are given, EasySpin assumes isotropic g values of 2.00231
 </p>
 </ul>
 
-<p>When the principal values of g are given in <code>g</code>, the orientation of the g tensor can be specified by Euler angles in <code>gFrame</code>, see below.
+<p>
+When the principal values of g are given in <code>g</code>, the orientation of the g tensor can be specified by Euler angles in <code>gFrame</code>, see below.
 </p>
 
 <p>
-As an alternative, it is also possible to give the full 3x3 g tensor in <code>g</code>. For example
+Alternatively, it is possible to provide the full 3x3 g tensor in <code>g</code>. For example
 </p>
 
 <pre class="matlab">
@@ -311,14 +313,15 @@ Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0, 0 0 2.1];
 </pre>
 
 <p>
-If you give full g tensors, the Euler angles in <code>gFrame</code> are ignored.
+If you give full g tensors, EasySpin uses them as provided, i.e. the tensors are not symmetrized, and the Euler angles in <code>gFrame</code> are ignored.
 </p>
 
 </div>
 
 <div class="optionfield"><code>gFrame</code></div>
 <div class="optiondescr">
-Each row of this array specifies the orientation of the g tensor frame in the molecular frame (see the page on <a href="frames.html">frames</a>). Each row contains the three <a href="eulerangles.html">Euler angles</a> (in radians) for the rotation that transforms the molecular frame to the g tensor frame. If not specified, <code>gFrame</code> is assumed to be all-zero, that is, the g tensors of all electron spins are aligned with the molecular frame.
+
+  Each row of this array specifies the orientation of the g tensor frame in the molecular frame (see the page on <a href="frames.html">frames</a>). Each row contains the three <a href="eulerangles.html">Euler angles</a> (in radians) for the rotation that transforms the molecular frame to the g tensor frame. If not specified, <code>gFrame</code> is assumed to be all-zero, that is, the g tensors of all electron spins are aligned with the molecular frame.
 
 <pre class="matlab">
 Sys.gFrame = [0 10 0]*pi/180;                % one electron spin
