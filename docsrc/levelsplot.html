@@ -57,11 +57,11 @@ Displays the energy level diagram (Zeeman diagram) for the spin system specified
 </p>
 
 <p>
-If <code>mwFreq</code>, the spectrometer frequency in GHz is given, resonances for this frequency are plotted as well. Their color indicates the transition amplitude: Red lines indicated allowed resonances, gray ones indicate forbidden ones. If the lines are terminated with dots, the relative transition intensity is above 1%. Clicking on a resonance line will print its relative transition probability to the command window.
+If <code>mwFreq</code>, the spectrometer frequency in GHz is given, resonances for this frequency are plotted as well. Their color indicates the transition amplitude: Red lines indicated allowed resonances, gray ones indicate forbidden ones. Clicking on a resonance line will print its relative transition probability to the command window.
 </p>
 
 <p>
-Hovering with the mouse pointer over an energy level displays its number, and hovering over a transition (if the microwave frequency was provided) will display the relative intensity of this transition, with 1 being the value for the most intense transition.
+Hovering with the mouse pointer over an energy level displays its number, and hovering over a transition (if the microwave frequency was provided) will display the resonance field as well as the relative intensity of this transition, with 1 being the value for the most intense transition.
 </p>
 
 <p>
@@ -85,14 +85,14 @@ Number of points along the field axis.
 <div class="optionfield"><code>PlotThreshold</code></div>
 <div class="optiondescr">
 <p>
-Transitons with relative intensity below this value will not be plotted.
+Transitions with relative intensity below this value will not be plotted.
 </p>
 </div>
 
 <div class="optionfield"><code>SlopeColor</code></div>
 <div class="optiondescr">
 <p>
-<code>true</code> or <code>false</code> (default). It set to <code>true</code>, energy level lines are colored according to the magnitude of their slope. This corresponds to the expectation value for |m<sub>S</sub>| for the corresponding state. At anticrossing, this reveals that the state character changes rapidly as a function of field.
+<code>true</code> or <code>false</code> (default). If set to <code>true</code>, energy level lines are colored according to the magnitude of their slope. This corresponds to the expectation value for |m<sub>S</sub>| for the corresponding state. At anticrossing, this reveals that the state character changes rapidly as a function of field.
 </p>
 </div>
 
@@ -117,9 +117,9 @@ spins.g = 2;
 spins.D = [-250 -1750 2000];  % MHz
 Ori = 'z';
 FieldRange = [0 500];  % mT
-Freq = 9.5;  % GHz
+mwFreq = 9.5;  % GHz
 Opt.SlopeColor = true;
-levelsplot(spins,Ori,FieldRange,Freq,Opt);
+levelsplot(spins,Ori,FieldRange,mwFreq,Opt);
 </pre>
 
 <!-- ====================================================== -->
