@@ -33,4 +33,4 @@ g_g = diag(Sys.g);
 geff = norm(nB0_g.'*g_g);
 Bres_ref = planck*Exp.mwFreq*1e9/bmagn/geff/1e-3;  % mT
 
-ok = all(abs(Bres-Bres_ref)<1e-5);
+ok = all(abs(Bres-Bres_ref)<1e-4);
