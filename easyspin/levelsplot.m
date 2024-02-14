@@ -203,6 +203,14 @@ for iLevel = 1:nLevels
   hLevels(iLevel).UserData = iLevel;
 end
 
+try
+  % Adjust axes interactivity and axes toolbar
+  hLevelsAxes.Interactions = [];
+  axtoolbar(hLevelsAxes,{'export','pan','zoomin','zoomout','restoreview'});
+catch
+  % pre-R2018b
+end
+
 box on
 axis tight
 ylabel(sprintf('energy (%s)',energyUnit));
@@ -338,27 +346,44 @@ end
 %-------------------------------------------------------------------------------
 function windowButtonMotionFcn(~,~,~)
 
+persistent hPrevLine
+
+hoverLineWidth = 3;
+defaultLineWidth = 0.5;
+
 % Obtain handle of object under mouse pointer
 hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
+hParent = hObj.Parent;  % this is either the axes or the figure
+
+% Remove any previous thick lines
+if ~isempty(hPrevLine)
+  set(hPrevLine,'LineWidth',defaultLineWidth);
+  hPrevLine = [];
+end
 
 % Construct information string for level, transition or spectral line,
 % using UserData of object under mouse pointer
 switch hObj.Tag
   case 'level'
     infostr = sprintf(' level %d',hObj.UserData);
+    hObj.LineWidth = hoverLineWidth;
+    hPrevLine = hObj;
   case 'transition'
     infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
       hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+    hObj.LineWidth = hoverLineWidth;
+    hPrevLine = hObj;
   case 'line'
     infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
       hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+    hObj.LineWidth = hoverLineWidth;
+    hPrevLine = hObj;
   otherwise
     % Remove information if not over a relevant object
     infostr = '';
 end
 
 % Display information
-hParent = hObj.Parent;  % this is either the axes or the figure
 hText = findobj(hParent,'Tag','infotext');
 set(hText,'String',infostr);
 
