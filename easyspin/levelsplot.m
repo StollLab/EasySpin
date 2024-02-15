@@ -255,8 +255,8 @@ if computeResonances
       h.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
       transitionColor = absintensity(iF)*Opt.AllowedColor + (1-absintensity(iF))*Opt.ForbiddenColor;
       h.Color = transitionColor;
-      h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  relative intensity = %0.4g\n',...
-        Transitions(iF,1),Transitions(iF,2),absintensity(iF));
+      h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  %g mT, relative intensity = %0.4g\n',...
+        Transitions(iF,1),Transitions(iF,2),resonFields(iF),absintensity(iF));
       hTransitions(iF) = h;
     end
 
@@ -348,7 +348,7 @@ function windowButtonMotionFcn(~,~,~)
 
 persistent hPrevLine
 
-hoverLineWidth = 3;
+hoverLineWidth = 2;
 defaultLineWidth = 0.5;
 
 % Obtain handle of object under mouse pointer

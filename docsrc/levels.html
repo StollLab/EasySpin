@@ -44,16 +44,11 @@ out = levels(SpinSystem,phi,theta,B)
 <div class="subtitle">Description</div>
 
 <p>
-This function determines energy levels of the spin system specified in
-the structure <code>SpinSystem</code> by diagonalising its Hamiltonian. The
-direction and strength of the external magnetic field is specified in the other three function arguments.
+This function determines energy levels of the spin system specified in the structure <code>SpinSystem</code> by diagonalising its Hamiltonian. The direction and strength of the external magnetic field is specified in the other three function arguments.
 </p>
 
 <p>
-<code>theta</code> is the angle between the z axis of the molecular frame and
-the magnetic field vector, <code>phi</code> is the angle between x axis and the
-projection of the magnetic field vector on the xy plane of the molecular
-frame. <code>B</code> gives the magnitude of the magnetic field in mT.
+<code>theta</code> is the angle between the z axis of the molecular frame and the magnetic field vector, <code>phi</code> is the angle between the molecular x axis and the projection of the magnetic field vector onto the molecular xy plane. Both angles are in radians. <code>B</code> gives the magnitude of the magnetic field, in mT.
 </p>
 
 <p>
@@ -69,20 +64,15 @@ The three principal directions x, y, and z and intermediate orientations can be 
 </p>
 
 <p>
-<code>out</code> is a vector of the energies of the eigenstates of
-<code>SpinSystem</code>, in ascending order. The energies are in MHz.
+<code>out</code> is a vector of the energies of the eigenstates of <code>SpinSystem</code>, in ascending order. The energies are in MHz.
 </p>
 
 <p>
-<code>phi</code>, <code>theta</code> and <code>B</code> can be vectors,
-in which case energy levels for all possible combinations of their values are calculated. Depending on the dimensions of the three parameters, the output
-<code>out</code> can be an up to 4-dimensional array. The energies are always
-along the last dimension.
+<code>phi</code>, <code>theta</code> and <code>B</code> can be vectors, in which case energy levels for all possible combinations of their values are calculated. Depending on the dimensions of the three parameters, the output <code>out</code> can be an up to 4-dimensional array. The energies are always along the last dimension.
 </p>
 
 <p>
-A scalar <code>theta</code> together with vectors <code>phi</code> and
-<code>B</code> would yield a 3D array <code>out</code>. A set of energies for a single magnetic field orientation is then in <code>out(k,l,:)</code> with <code>k</code>  and <code>l</code> indexing <code>phi</code> and <code>B</code>, respectively.
+A scalar <code>theta</code> together with vectors <code>phi</code> and <code>B</code> would yield a 3D array <code>out</code>. A set of energies for a single magnetic field orientation is then in <code>out(k,l,:)</code> with <code>k</code>  and <code>l</code> indexing <code>phi</code> and <code>B</code>, respectively.
 </p>
 
 <!-- ===================================================================== -->
@@ -97,14 +87,16 @@ clear
 Sys.S = 5/2;
 Sys.g = 2;
 Sys.D = [-250 -1750 2000];  % MHz
-B = 0:500;  % mT
-ori = [0 0];  % rad
-E = levels(Sys,ori,B);
+
+B = 0:500;  % field, mT
+Ori = [10 15]*pi/180;  % phi and theta, rad
+
+E = levels(Sys,Ori,B);
 plot(B,E)
 </pre>
 
 <p>
-produce a plot of the quite complicated dependence of the energy levels of a spin-5/2 system on the external magnetic field magnitude. A number of level anticrossings are present.
+produce a plot of the energy levels of a spin-5/2 system as functions of the external magnetic field magnitude. Several level anticrossings are visible.
 </p>
 
 <!-- ===================================================================== -->

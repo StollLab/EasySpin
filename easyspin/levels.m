@@ -23,15 +23,16 @@
 %     on the dimensions of Ori, phi,theta and B, out can be up
 %     to 4-dimensional. The dimensions are in the order phi,
 %     theta (or Ori), field, level number.
+%   - Ve: array of eigenvectors
 
 function [Energies,Vectors] = levels(varargin)
 
-error(chkmlver); % Error if MATLAB is too old.
+error(chkmlver);  % Error if MATLAB is too old.
 
 switch nargin
   case 0
     help(mfilename);
-    return;
+    return
   case 1
     SpinSystem = varargin{1};
     phi = 0;
@@ -70,15 +71,14 @@ case 2, computeVectors = true;
 otherwise, error('Wrong number of output arguments');
 end
 
-% Check spin system and pre-calculate spin Hamiltonian components.
+% Check spin system and pre-calculate spin Hamiltonian components
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
-
 [H0,muxM,muyM,muzM] = ham(Sys);
 
 if OriList
 
-  % Examine Ori array.
+  % Examine Ori array
   if size(Ori,2)==2
     Ori(:,3) = 0;
   elseif size(Ori,2)==3
@@ -95,9 +95,9 @@ if OriList
   end
   
   % Loop over all parameter combinations
-  zL = ang2vec(Ori(:,1),Ori(:,2)); % z direction in lab frame
+  zL_M = ang2vec(Ori(:,1),Ori(:,2));  % lab frame z direction in molecular frame
   for iOri = 1:nOri
-    muzL = zL(1,iOri)*muxM + zL(2,iOri)*muyM + zL(3,iOri)*muzM;
+    muzL = zL_M(1,iOri)*muxM + zL_M(2,iOri)*muyM + zL_M(3,iOri)*muzM;
     for iField = 1:length(MagnField)
       H = H0 - MagnField(iField)*muzL;
       if computeVectors
@@ -147,7 +147,7 @@ else
   
 end
 
-% Remove singleton dimensions.
+% Remove singleton dimensions
 Energies = squeeze(Energies);
 if computeVectors
   Vectors = squeeze(Vectors);
