@@ -257,7 +257,6 @@ if computeResonances
       h.Color = transitionColor;
       h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  %g mT, relative intensity = %0.4g\n',...
         Transitions(iF,1),Transitions(iF,2),resonFields(iF),absintensity(iF));
-      hTransitions(iF) = h;
     end
 
     if Opt.StickSpectrum
