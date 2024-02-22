@@ -14,30 +14,31 @@
 %    mwFreq     spectrometer frequency, in GHz
 %    Opt        options
 %      Units           energy units for plotting, 'GHz' or 'cm^-1' or 'eV'
-%      nPoints         Number of points
-%      PlotThreshold   All transitions with relative intensity below
+%      nPoints         number of points
+%      PlotThreshold   all transitions with relative intensity below
 %                      this value will not be plotted. Example: 0.005
-%      SlopeColor      true/false. Color energy level lines by their slope,
-%                      (corresponding to their mS expectation value).
-%                      Default is false.
-%      StickSpectrum   true/false. Plot stick spectrum underneath Zeeman
-%                      diagram. Default is false.
+%      SlopeColor      true/false (defaut false). Color energy level lines
+%                      by their slope, (corresponding to their mS expectation
+%                      value).
+%      StickSpectrum   true/false (default false). Plot stick spectrum underneath
+%                      Zeeman diagram. Default is false.
 %
 %  If mwFreq is given, resonances are drawn. Red lines indicate allowed
-%  transitions, gray lines forbidden ones.
+%  transitions, gray lines forbidden ones. Hovering with the cursor over
+%  the lines displays intensity information.
 %
 %  Example:
-%    Sys = struct('S',7/2,'g',2,'D',5e3);
-%    levelsplot(Sys,'xy',6e3,95);
+%    Sys = struct('S',7/2,'g',2,'D',5000);
+%    levelsplot(Sys,'xy',[0 6000],95);
 
 function levelsplot(Sys,varargin)
 
 if nargin==0, help(mfilename); return; end 
 
-% Default parameters
+% Default values for input arguments
 Ori = 'z';
 B = [0 1400];  % mT
-mwFreq = inf;  % GHz
+mwFreq = [];  % GHz
 Opt = struct;
 
 % Parse input arguments
@@ -57,37 +58,22 @@ switch nargin
     B = varargin{2};
   case 2
     Ori = varargin{1};
-    fprintf('Third input (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
+    fprintf('Third input argument (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
   case 1
-    fprintf('Second input argument (orientation) missing; assuming ''%s'' (phi=0, theta=0, chi=0).\n',Ori);
-    fprintf('Third input (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
+    fprintf('Second input argument (orientation) missing; assuming ''%s''.\n',Ori);
+    fprintf('Third input argument (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
   otherwise
-    error('Too many input arguments!');
+    error('Too many input arguments! At most 5 (Sys,Ori,B,mwFreq,Opt) are possible.');
 end
 
 % Check number of output arguments
-if nargout<0, error('Not enough output arguments.'); end
-if nargout>0, error('Too many output arguments.'); end
+%-------------------------------------------------------------------------------
+if nargout~=0, error('levelsplot does not return output arguments.'); end
 
-% Check input parameters
-if isstruct(Ori)
-  error('Second input argument (Ori) wrong: can''t be a structure.');
-end
-if isstruct(B)
-  error('Third input argument (B) wrong: can''t be a structure.');
-end
-if isempty(B) || numel(B)==1
-  error('Input argument that specifies B range needs at least two elements, [Bmin Bmax].')
-end
-if ~isnumeric(mwFreq) || numel(mwFreq)~=1 || ~isreal(mwFreq)
-  error('Fourth input argument (mwFreq) must be a single number.');
-end
-computeResonances = isfinite(mwFreq);
-
-% Supply option defaults
+% Parse Options (fifth input argument)
 %-------------------------------------------------------------------------------
 if ~isstruct(Opt)
-  error('Fifth input (options) must be a structure.');
+  error('Fifth input argument (options) must be a structure.');
 end
 if ~isfield(Opt,'Units')
   Opt.Units = 'GHz';
@@ -107,8 +93,11 @@ if ~isfield(Opt,'StickSpectrum')
   Opt.StickSpectrum = false;
 end
 
-% Parse Ori (second input)
+% Parse Ori (second input argument)
 %-------------------------------------------------------------------------------
+if isstruct(Ori)
+  error('Second input argument (Ori) wrong: can''t be a structure.');
+end
 if ischar(Ori)
   n = letter2vec(Ori);
   [phi,theta] = vec2ang(n);
@@ -125,56 +114,71 @@ else
   error('Orientation (2nd input argument) must be a string (''x'',''y'',''z'',''xy'',''xz'',''yz'',''xyz''), a two-element array [phi theta], or a three-element array [phi theta chi].');
 end
 
-% Set ranges and units
+% Parse B (third input argument)
 %-------------------------------------------------------------------------------
+if isstruct(B)
+  error('Third input argument (B) wrong: can''t be a structure.');
+end
+if isempty(B) || numel(B)==1
+  error('Input argument that specifies B range needs at least two elements, [Bmin Bmax].')
+end
 switch numel(B)
-  case 1
-    B = [0 B];
-    Bvec = linspace(B(1),B(2),Opt.nPoints);
   case 2
     Bvec = linspace(B(1),B(2),Opt.nPoints);
   otherwise
     Bvec = B;
 end
+% Set horizontal and vertical units, scaling and labels
+if max(Bvec)>=2000  % mT
+  Bscale = 1e-3;  % use tesla for plotting
+  fieldUnit = 'magnetic field (T)';
+else
+  Bscale = 1;  % use millitesla for plotting
+  fieldUnit = 'magnetic field (mT)';
+end
+
+% Parse mwFreq (fourth input argument)
+%-------------------------------------------------------------------------------
+if ~isempty(mwFreq)
+  if ~isnumeric(mwFreq) || numel(mwFreq)~=1 || ~isreal(mwFreq)
+    error('Fourth input argument (mwFreq) must be a single number.');
+  end
+end
+computeResonances = ~isempty(mwFreq);
+if ~computeResonances && Opt.StickSpectrum
+  warning('Cannot plot stick spectrum, since microwave frequency is missing.');
+end
 
 % Calculate energy levels
+%-------------------------------------------------------------------------------
 E_MHz = levels(Sys,[phi theta chi],Bvec);
 E = unit_convert(E_MHz,Opt.Units);
 nLevels = size(E,2);
 
-% Set horizontal and vertical units, scaling and labels
-if max(Bvec)>=2000  % mT
-  Bscale = 1e-3;  % use tesla for plotting
-  xLabel = 'magnetic field (T)';
-else
-  Bscale = 1;  % use millitesla for plotting
-  xLabel = 'magnetic field (mT)';
-end
-
 switch Opt.Units
   case 'GHz'
-    yUnits = 'GHz';
+    energyUnit = 'GHz';
     Escale = 1;
   case 'cm^-1'
     if max(abs(E(:)))<1e-2
-      yUnits = '10^{-4} cm^{-1}';
+      energyUnit = '10^{-4} cm^{-1}';
       Escale = 1e4;
     else
-      yUnits = 'cm^{-1}';
+      energyUnit = 'cm^{-1}';
       Escale = 1;
     end
   case 'eV'
     if max(abs(E(:)))<1
-      yUnits = 'meV';
+      energyUnit = 'meV';
       Escale = 1e3;
     else
-      yUnits = 'eV';
+      energyUnit = 'eV';
       Escale = 1;
     end
   otherwise
-    error('Unknown unit ''%s'' in Par.Units.',toUnit);
+    % This was already caught by unit_convert()
+    error('Unsupported unit ''%s'' in Opt.Units.',toUnit);
 end
-yLabel = ['energy (' yUnits ')'];
 
 % Plot energy levels
 %-------------------------------------------------------------------------------
@@ -182,43 +186,50 @@ if Opt.StickSpectrum && computeResonances
   subplot(4,1,[1 2 3]);
   cla
 end
-axes_levels = gca;
+hLevelsAxes = gca;
 
 if Opt.SlopeColor
-  for iLevel = 1:nLevels
+  for iLevel = nLevels:-1:1
     col = abs(deriv(E(:,iLevel)));
-    h = patch([Bvec(:)*Bscale; nan],[E(:,iLevel); nan],[col; nan],'EdgeColor','interp');
-    h.Tag = 'level';
-    h.UserData = iLevel;
+    hLevels(iLevel) = patch([Bvec(:)*Bscale; nan],[E(:,iLevel); nan],[col; nan],'EdgeColor','interp');
   end
   colormap(flipud(parula));
-
 else
-  h = plot(Bvec*Bscale,E*Escale,'b');
-  set(h,'Color',[0 0.4470 0.7410]);
-
-  for iLevel = 1:nLevels
-    h(iLevel).Tag = 'level';
-    h(iLevel).UserData = iLevel;
-  end
+  hLevels = plot(Bvec*Bscale,E*Escale,'b');
+  set(hLevels,'Color',[0 0.4470 0.7410]);
 end
+for iLevel = 1:nLevels
+  hLevels(iLevel).Tag = 'level';
+  hLevels(iLevel).UserData = iLevel;
+end
+
+try
+  % Adjust axes interactivity and axes toolbar
+  hLevelsAxes.Interactions = [];
+  axtoolbar(hLevelsAxes,{'export','pan','zoomin','zoomout','restoreview'});
+catch
+  % pre-R2018b
+end
+
 box on
 axis tight
-ylabel(yLabel);
+ylabel(sprintf('energy (%s)',energyUnit));
 set(gca,'Tag','diagram');
 xl = xlim;
 yl = ylim;
 text(xl(1),yl(1),'','Tag','infotext','VerticalAlignment','bottom');
 
-% Calculate and plot transitions
+% Calculate and plot transitions if requested
 %-------------------------------------------------------------------------------
 if computeResonances
   
+  % Calculate resonance fields
   resfieldsOpt = struct('Threshold',0,'Freq2Field',0);
   Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
   Exp.SampleFrame = [-chi -theta -phi];
   [resonFields,intensity,~,Transitions] = resfields(Sys,Exp,resfieldsOpt);
 
+  % Plot transitions at resonance fields
   if ~isempty(resonFields)
     tpMax = max(abs(intensity));
     if tpMax>0, intensity = intensity/tpMax; end
@@ -233,7 +244,7 @@ if computeResonances
     % compute and plot lower and upper energy levels of transitions
     zL = ang2vec(phi,theta);  % lab z direction in molecular frame representation
     [H0,muzL] = ham(Sys,zL);
-    for iF = 1:numel(resonFields)
+    for iF = numel(resonFields):-1:1
       if absintensity(iF)<Opt.PlotThreshold, continue; end
 
       H = H0 - muzL*resonFields(iF);
@@ -244,8 +255,8 @@ if computeResonances
       h.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
       transitionColor = absintensity(iF)*Opt.AllowedColor + (1-absintensity(iF))*Opt.ForbiddenColor;
       h.Color = transitionColor;
-      h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  relative intensity = %0.4g\n',...
-        Transitions(iF,1),Transitions(iF,2),absintensity(iF));
+      h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  %g mT, relative intensity = %0.4g\n',...
+        Transitions(iF,1),Transitions(iF,2),resonFields(iF),absintensity(iF));
     end
 
     if Opt.StickSpectrum
@@ -259,7 +270,7 @@ if computeResonances
       ylim([0 1.1]);
       xlim(xl);
       box on
-      set(gca,'FontSize',axes_levels.FontSize)
+      set(gca,'FontSize',hLevelsAxes.FontSize)
     end
     
   else
@@ -270,7 +281,7 @@ if computeResonances
     set(h,'Color','r','VerticalAl','bottom');
   end
 end
-xlabel(xLabel);
+xlabel(sprintf('magnetic field (%s)',fieldUnit));
 
 % Display orientation and microwave frequency (if given)
 %-------------------------------------------------------------------------------
@@ -298,38 +309,35 @@ else
   oristr = '';
   chiGiven = numel(Ori)==3;
 end
-
 if chiGiven
-  str = sprintf('  %s (φ,θ,χ) = (%0.1f, %0.1f, %0.1f)°\n%s',...
+  oristr = sprintf('  %s (φ,θ,χ) = (%0.1f, %0.1f, %0.1f)°\n%s',...
                 oristr,phi*180/pi,theta*180/pi,chi*180/pi,mwstr);
 else
-  str = sprintf('  %s (φ,θ) = (%0.1f, %0.1f)°\n%s',...
+  oristr = sprintf('  %s (φ,θ) = (%0.1f, %0.1f)°\n%s',...
                 oristr,phi*180/pi,theta*180/pi,mwstr);
 end
 
-xl = xlim(axes_levels);
-yl = ylim(axes_levels);
-text(axes_levels,xl(1),yl(2),str,'VerticalAl','top');
+xl = xlim(hLevelsAxes);
+yl = ylim(hLevelsAxes);
+text(hLevelsAxes,xl(1),yl(2),oristr,'VerticalAl','top');
 
-% Activate mouseovers only if there is one levelsplot axes in the figure.
-hAx = findobj(gcf,'Tag','diagram');
-if numel(hAx)==1
-  set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
-else
-%  set(gcf,'WindowButtonMotionFcn','');
-end
+% Activate mouseovers (callback function handles multiple axes)
+%-------------------------------------------------------------------------------
+set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
 
 end
+%===============================================================================
+
 
 %-------------------------------------------------------------------------------
 function Eout = unit_convert(E_MHz,toUnit)
 
 switch toUnit
   case 'GHz', Eout = E_MHz/1e3;
-    case 'cm^-1', Eout = unitconvert(E_MHz,'MHz->cm^-1');
-    case 'eV', Eout = unitconvert(E_MHz,'MHz->eV');
+  case 'cm^-1', Eout = unitconvert(E_MHz,'MHz->cm^-1');
+  case 'eV', Eout = unitconvert(E_MHz,'MHz->eV');
   otherwise
-    error('Unknown unit ''%s'' in Par.Units.',toUnit);
+    error('Unsupported unit ''%s'' in Opt.Units.',toUnit);
 end
 
 end
@@ -337,27 +345,45 @@ end
 %-------------------------------------------------------------------------------
 function windowButtonMotionFcn(~,~,~)
 
-% Obtain handle of object under mouse pointer
-hObj = hittest();
+persistent hPrevLine
 
-% Construct information string for level, transition or spectral line
+hoverLineWidth = 2;
+defaultLineWidth = 0.5;
+
+% Obtain handle of object under mouse pointer
+hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
+hParent = hObj.Parent;  % this is either the axes or the figure
+
+% Remove any previous thick lines
+if ~isempty(hPrevLine)
+  set(hPrevLine,'LineWidth',defaultLineWidth);
+  hPrevLine = [];
+end
+
+% Construct information string for level, transition or spectral line,
+% using UserData of object under mouse pointer
 switch hObj.Tag
   case 'level'
-    str = sprintf('level %d',hObj.UserData);
+    infostr = sprintf(' level %d',hObj.UserData);
+    hObj.LineWidth = hoverLineWidth;
+    hPrevLine = hObj;
   case 'transition'
-    str = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+    infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
       hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+    hObj.LineWidth = hoverLineWidth;
+    hPrevLine = hObj;
   case 'line'
-    str = sprintf('transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+    infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
       hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+    hObj.LineWidth = hoverLineWidth;
+    hPrevLine = hObj;
   otherwise
-    % Remove information if not over an object
-    str = '';
+    % Remove information if not over a relevant object
+    infostr = '';
 end
 
 % Display information
-hParent = hObj.Parent;  % this is either the axes or the figure
 hText = findobj(hParent,'Tag','infotext');
-set(hText,'String',[' ' str]);
+set(hText,'String',infostr);
 
 end
