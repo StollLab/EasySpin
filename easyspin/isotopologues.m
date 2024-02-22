@@ -83,7 +83,7 @@ else
   
 end
 
-if ~ischar(NucList)
+if ~ischar(NucList) && ~isstring(NucList)
   if SysInput
     error('List of nuclei in Sys.Nucs must be a string (e.g. ''Cu,Cl,H,H'').');
   else
