@@ -3,7 +3,7 @@ function ok = test()
 % Shorthands 'x', 'y', 'z' for orientations
 
 Sys = struct('S',1,'D',10e3);
-B = linspace(0,100,201);
+B = linspace(0,100,201);  % mT
 Ex = levels(Sys,'x',B);
 Ey = levels(Sys,'y',B);
 Ez = levels(Sys,'z',B);
