@@ -145,8 +145,7 @@ end
 if ~isfield(Exp,'SampleRotation')
   Exp.SampleRotation = [];
 end
-
-doPowderSimulation = isempty(Exp.SampleFrame);
+doPowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
 
 if doPowderSimulation
   logmsg(1,'Powder calculation');

@@ -483,10 +483,10 @@ else
 end
 useDirectorOrdering = ~isempty(Exp.Ordering);
 
-% Determine whether to do a powder simulation
-% (without potential, no powder sim is necessary - it's identical to a
+% Determine whether to average over an orientational grid
+% (without potential, no orientational averaging is necessary - it's identical to a
 % single-orientation sim)
-PowderSimulation = isempty(Exp.SampleFrame) && usePotential;
+integrateOverGrid = isempty(Exp.SampleFrame) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -832,7 +832,7 @@ end
 
 % Set up list of orientations
 %===============================================================================
-if PowderSimulation
+if integrateOverGrid
   if Opt.GridSize(1)==1
     phi = 0;
     theta = 0;
@@ -849,7 +849,7 @@ if PowderSimulation
       [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
-  logmsg(1,'  powder simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
+  logmsg(1,'  grid simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
   if ~isempty(Exp.SampleFrame)
     phi = -Exp.SampleFrame(3);

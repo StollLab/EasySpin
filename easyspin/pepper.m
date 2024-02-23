@@ -1,4 +1,4 @@
-% pepper  Computation of powder cw EPR spectra 
+% pepper  Computation of solid-state cw EPR spectra 
 %
 %   pepper(Sys,Exp)
 %   pepper(Sys,Exp,Opt)
@@ -186,13 +186,13 @@ DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.Harmonic = NaN;
 DefaultExp.mwMode = 'perpendicular';
-DefaultExp.Ordering = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
 DefaultExp.lightBeam = '';  % no photoexcitation
 
+DefaultExp.Ordering = [];
 DefaultExp.SampleRotation = [];
-DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 
@@ -395,24 +395,32 @@ if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
-
-% Detect sample type (powder/partially ordered vs. crystal)
-PowderSimulation = ~isempty(Exp.Ordering) ||(isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry));
-if PowderSimulation
+% Detect sample type (disordered, partially ordered, crystal)
+partiallyOrderedSample = ~isempty(Exp.Ordering);
+crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
+disorderedSample = ~partiallyOrderedSample && ~crystalSample;
+if partiallyOrderedSample
   if ~isempty(Exp.MolFrame)
-    error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
+    error('Exp.MolFrame cannot be used for partially ordered samples (Exp.Ordering given).');
+  elseif ~isempty(Exp.CrystalSymmetry)
+    error('Exp.CrystalSymmetry cannot be used for partially ordered samples (Exp.Ordering given).');
   end
-  if ~isempty(Exp.CrystalSymmetry)
-    error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
-  end
-else
-  if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
-  if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
 end
-Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
+if crystalSample
+  if isempty(Exp.CrystalSymmetry)
+    Exp.CrystalSymmetry = 'P1';
+  end
+  if isempty(Exp.MolFrame)
+    Exp.MolFrame = [0 0 0];
+  end
+end
+if ~disorderedSample && isempty(Exp.SampleFrame)
+  Exp.SampleFrame = [0 0 0];
+end
+Exp.PowderSimulation = disorderedSample || partiallyOrderedSample;
 
 % Process Exp.Ordering
-if ~isempty(Exp.Ordering)
+if partiallyOrderedSample
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
@@ -547,16 +555,16 @@ if numel(Opt.GridSize)<2
 end
 
 % Some compatibility checks for separate spectra output (Opt.separate)
-if PowderSimulation
+if ~crystalSample
   if separateOrientationSpectra
-    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.separate=''orientations'').\nUse other setting for Opt.separate.\n'));
+    error(sprintf('\nCannot return separate orientations for non-crystal spectra (Opt.separate=''orientations'').\nUse other setting for Opt.separate.\n'));
   end
   if separateSiteSpectra
-    error(sprintf('\nCannot return separate sites for powder spectra (Opt.separate=''sites'').\nUse other setting for Opt.separate.\n'));
+    error(sprintf('\nCannot return separate sites for non-crystal spectra (Opt.separate=''sites'').\nUse other setting for Opt.separate.\n'));
   end
 else
   if separateTransitionSpectra
-    error(sprintf('\n  Cannot return separate transitions for crystal spectra (Opt.separate=''transitions'').\n  Use other setting for Opt.separate.\n'));
+    error(sprintf('\nCannot return separate transitions for crystal spectra (Opt.separate=''transitions'').\n  Use other setting for Opt.separate.\n'));
   end
 end
 if Opt.ImmediateBinning && ~summedSpectra
@@ -572,7 +580,7 @@ Opt.Intensity = anisotropicIntensities;
 nOrientations = size(Exp.SampleFrame,1);
 
 % Fold orientational distribution function into grid region
-if ~isempty(Exp.Ordering)
+if partiallyOrderedSample
   orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
 end
 
@@ -633,7 +641,7 @@ if FieldSweep
     % Matrix diagonalization and perturbation methods
     %------------------------------------------------------------------------
     
-    if ~PowderSimulation
+    if crystalSample
       %if ~isfield(Opt,'Perturb'), Opt.Perturb = 0; end
     end
     
@@ -672,7 +680,7 @@ else
   % Matrix diagonalization and perturbation methods
   %------------------------------------------------------------------------
   
-  if ~PowderSimulation
+  if crystalSample
     %if ~isfield(Opt,'Perturb'), Opt.Perturb = 0; end
   end
   
@@ -708,7 +716,7 @@ if ~anisotropicIntensities
 end
 
 nTransitions = size(Transitions,1);
-if ~PowderSimulation && ~isempty(Exp.CrystalSymmetry)
+if crystalSample && ~isempty(Exp.CrystalSymmetry)
   nSites = numel(Pdat)/nTransitions/nOrientations;
 else
   nSites = 1;
@@ -748,16 +756,16 @@ end
 
 if FieldSweep
   if Method~=6
-    LoopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
-    if LoopingTransitionsPresent && PowderSimulation
+    loopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
+    if loopingTransitionsPresent && ~crystalSample
       logmsg(0,'** Looping transitions found. Artifacts at coalescence points possible.');
     end
   else
     % hybrid method: Transitions contains replicas of core sys transitions
-    LoopingTransitionsPresent = 0;
+    loopingTransitionsPresent = false;
   end
 else
-  LoopingTransitionsPresent = 0;
+  loopingTransitionsPresent = false;
 end
 
 if FieldSweep
@@ -853,7 +861,7 @@ elseif ~BruteForceSum
         Sys.lw(2) = 0;
         ConvolutionBroadening = false;
       end
-      if ~PowderSimulation
+      if crystalSample
         thisWid = repmat(thisWid,nTransitions,1);
       end
     else
@@ -883,7 +891,7 @@ elseif ~BruteForceSum
   
   % Spectrum construction
   %-----------------------------------------------------------------------
-  if ~PowderSimulation
+  if crystalSample
     %=======================================================================
     % Single-crystal spectra
     %=======================================================================
@@ -926,7 +934,7 @@ elseif ~BruteForceSum
   elseif ~usingGrid
     
     %=======================================================================
-    % Isotropic powder spectra
+    % Isotropic disordered spectra
     %=======================================================================
     
     if ~anisotropicIntensities, thisInt = 1; end
@@ -956,7 +964,7 @@ elseif ~BruteForceSum
   else
     
     %=======================================================================
-    % Anisotropic powder spectra: interpolation and accumulation/projection
+    % Anisotropic disordered spectra: interpolation and accumulation/projection
     %=======================================================================
     if axialGrid
       if doInterpolation
@@ -1155,8 +1163,8 @@ logmsg(1,'-final-------------------------------------------------');
 
 % Combine branches of looping transitions if separate output
 %-----------------------------------------------------------------------
-if FieldSweep && PowderSimulation
-  if ~summedOutput && LoopingTransitionsPresent
+if FieldSweep && ~crystalSample
+  if ~summedOutput && loopingTransitionsPresent
     [Transitions,~,idx] = unique(Transitions,'rows');
     nTransitions = size(Transitions,1);
     newspec = zeros(nTransitions,Exp.nPoints);

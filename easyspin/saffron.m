@@ -149,11 +149,13 @@ end
 %===============================================================================
 
 DefaultExp.Temperature = [];
+
 DefaultExp.Ordering = [];
+DefaultExp.SampleRotation = [];
 DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
-DefaultExp.SampleRotation = [];
+
 Exp = adddefaults(Exp,DefaultExp);
 
 % Check for obsolete fields and unsupported fields
@@ -182,19 +184,33 @@ if ~isempty(Exp.Temperature)
   error('Exp.Temperature is not supported for pulse EPR simulations.');
 end
 
-% Powder vs. crystal simulation
-PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
-Exp.PowderSimulation = PowderSimulation;
-
-% Partial ordering
-if ~isempty(Exp.Ordering)
-  if ~PowderSimulation
-    error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
-  else
-    error('Partial ordering (Exp.Ordering) is not implemented in saffron.');
+% Detect sample type (disordered, partially ordered, crystal)
+partiallyOrderedSample = ~isempty(Exp.Ordering);
+crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
+disorderedSample = ~partiallyOrderedSample && ~crystalSample;
+if partiallyOrderedSample
+  if ~isempty(Exp.MolFrame)
+    error('Exp.MolFrame cannot be used for partially ordered samples (Exp.Ordering given).');
+  elseif ~isempty(Exp.CrystalSymmetry)
+    error('Exp.CrystalSymmetry cannot be used for partially ordered samples (Exp.Ordering given).');
   end
 end
+if crystalSample
+  if isempty(Exp.CrystalSymmetry)
+    Exp.CrystalSymmetry = 'P1';
+  end
+  if isempty(Exp.MolFrame)
+    Exp.MolFrame = [0 0 0];
+  end
+end
+if ~disorderedSample && isempty(Exp.SampleFrame)
+  Exp.SampleFrame = [0 0 0];
+end
+Exp.PowderSimulation = disorderedSample || partiallyOrderedSample;
 
+if partiallyOrderedSample
+  error('Partially ordered samples are not implemented in saffron.')
+end
 
 if isfield(Exp,'nPoints')
   nDataPoints = prod(Exp.nPoints);
@@ -1880,7 +1896,7 @@ else  % if fastSimulationMode
 
   timeAxis = timeAxis{1};
 
-  % Accumulate powder signal
+  % Integrate signal over orientations
   Signal = 0;
   for iOrientation = 1 : nOrientations
     Signal = Signal + rawSignals{iOrientation}*Exp.OriWeights(iOrientation);

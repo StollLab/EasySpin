@@ -170,12 +170,12 @@ DefaultExp.CenterSweep = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
 DefaultExp.ExciteWidth = inf;
-DefaultExp.Ordering = [];
 
+DefaultExp.Ordering = [];
+DefaultExp.SampleRotation = [];
 DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
-DefaultExp.SampleRotation = [];
 
 % Undocumented and unused fields
 DefaultExp.Harmonic = 0;
@@ -240,21 +240,29 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
   Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
 end
 
-% Detect sample type (powder/partially ordered vs. crystal)
-PowderSimulation = ~isempty(Exp.Ordering) ||(isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry));
-if PowderSimulation
+% Detect sample type (disordered, partially ordered, crystal)
+partiallyOrderedSample = ~isempty(Exp.Ordering);
+crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
+disorderedSample = ~partiallyOrderedSample && ~crystalSample;
+if partiallyOrderedSample
   if ~isempty(Exp.MolFrame)
-    error('Exp.Ordering cannot be used simultaneously with Exp.MolFrame.');
+    error('Exp.MolFrame cannot be used for partially ordered samples (Exp.Ordering given).');
+  elseif ~isempty(Exp.CrystalSymmetry)
+    error('Exp.CrystalSymmetry cannot be used for partially ordered samples (Exp.Ordering given).');
   end
-  if ~isempty(Exp.CrystalSymmetry)
-    error('Exp.Ordering cannot be used simultaneously with Exp.CrystalSymmetry.');
-  end
-else
-  if isempty(Exp.MolFrame), Exp.MolFrame = [0 0 0]; end
-  if isempty(Exp.CrystalSymmetry), Exp.CrystalSymmetry = 'P1'; end
 end
-Exp.PowderSimulation = PowderSimulation;  % for communication with resf*
-
+if crystalSample
+  if isempty(Exp.CrystalSymmetry)
+    Exp.CrystalSymmetry = 'P1';
+  end
+  if isempty(Exp.MolFrame)
+    Exp.MolFrame = [0 0 0];
+  end
+end
+if ~disorderedSample && isempty(Exp.SampleFrame)
+  Exp.SampleFrame = [0 0 0];
+end
+Exp.PowderSimulation = disorderedSample || partiallyOrderedSample;
 
 % Process Exp.Ordering
 if ~isempty(Exp.Ordering)
@@ -359,12 +367,12 @@ if numel(Opt.GridSize)<2
 end
 
 % Some compatibility checks for separate spectra output (Opt.separate)
-if PowderSimulation
+if ~crystalSample
   if separateOrientationSpectra
-    error(sprintf('\nCannot return separate orientations for powder spectra (Opt.separate=''orientations'').\nUse other setting for Opt.separate.\n'));
+    error(sprintf('\nCannot return separate orientations for non-crystal spectra (Opt.separate=''orientations'').\nUse other setting for Opt.separate.\n'));
   end
   if separateSiteSpectra
-    error(sprintf('\nCannot return separate sites for powder spectra (Opt.separate=''sites'').\nUse other setting for Opt.separate.\n'));
+    error(sprintf('\nCannot return separate sites for non-crystal spectra (Opt.separate=''sites'').\nUse other setting for Opt.separate.\n'));
   end
 else
   if separateTransitionSpectra
@@ -462,7 +470,7 @@ end
 % Opt.OriThreshold, endorfrq will decide whether to compute the ENDOR
 % spectrum.
 
-Opt.DoPreSelection = PowderSimulation & Opt.OriPreSelect & ...
+Opt.DoPreSelection = ~crystalSample & Opt.OriPreSelect & ...
   Opt.OriThreshold>0 & isempty(Opt.OriWeights);
 
 if Opt.DoPreSelection
@@ -520,7 +528,7 @@ if suppliedOriWeights
   end
 end
 
-if ~PowderSimulation && ~isempty(Exp.CrystalSymmetry)
+if crystalSample && ~isempty(Exp.CrystalSymmetry)
   nSites = numel(Pdat)/nTransitions/nOrientations;
 else
   nSites = 1;
@@ -548,7 +556,7 @@ xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
 if Info.Selectivity>0
   logmsg(1,'  orientation selection: %g (<1 very weak, 1 weak, 10 strong, >10 very strong)',Info.Selectivity);
   GridTooCoarse = (Opt.GridSize(1)/Opt.minEffKnots<Info.Selectivity);
-  if GridTooCoarse && PowderSimulation
+  if GridTooCoarse && ~crystalSample
     fprintf('  ** Warning: Strong orientation selection ********************************\n');
     fprintf('  Only %0.1f orientations within excitation window.\n',Opt.GridSize(1)/Info.Selectivity);
     fprintf('  Spectrum might be inaccurate!\n');
@@ -648,7 +656,7 @@ if ~BruteForceSum
 
   % Spectrum construction
   %-----------------------------------------------------------------------
-  if ~PowderSimulation
+  if crystalSample
     %=======================================================================
     % Single-crystal spectra
     %=======================================================================
@@ -689,7 +697,7 @@ if ~BruteForceSum
   elseif ~usingGrid
 
     %=======================================================================
-    % Isotropic powder spectra
+    % Isotropic disordered spectra
     %=======================================================================
 
     if ~anisotropicIntensities, thisInt = Idat; end
@@ -704,8 +712,8 @@ if ~BruteForceSum
       %if AnisotropicWidths, thisWid = Wdat(iTrans,:); end
 
       thisspec = lisum1i(Template.y,Template.x,Template.lw,thisPos,thisInt,thisWid,xAxis);
-      thisspec = thisspec*(2*pi); % powder integral (chi)
-      thisspec = Exp.OriWeights*thisspec; % powder integral (phi,theta)
+      thisspec = thisspec*(2*pi); % orientation integral (chi)
+      thisspec = Exp.OriWeights*thisspec; % orientation integral (phi,theta)
 
       if ~separateTransitionSpectra
         spec = spec + thisspec;
@@ -719,7 +727,7 @@ if ~BruteForceSum
   else
 
     %=======================================================================
-    % Powder spectra: interpolation and accumulation/projection
+    % Disordered spectra: interpolation and accumulation/projection
     %=======================================================================
     if axialGrid
       if doInterpolation
@@ -854,7 +862,7 @@ if ~BruteForceSum
         nBroadenings = nBroadenings + numel(Lambda);
       end
 
-      thisspec = thisspec*(2*pi); % powder integal over chi (0..2*pi)
+      thisspec = thisspec*(2*pi); % orientation integal over chi (0..2*pi)
 
       % Accumulate subspectra
       %----------------------------------------------------------
