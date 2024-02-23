@@ -837,6 +837,29 @@
       }
     ]
   },
+  "endorfrq_perturb": {
+    "description": "ENDOR frequencies and amplitudes, using perturbation theory",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      }
+    ]
+  },
   "eprconvert": {
     "description": "GUI for frequency/field/g value conversion"
   },
@@ -1028,7 +1051,7 @@
     ]
   },
   "esfit": {
-    "description": "Lsq fitting of EPR spectra",
+    "description": "Least-squares fitting of EPR spectra",
     "inputs": [
       {
         "name": "expSpec",
@@ -2374,6 +2397,68 @@
   "isotopes": {
     "description": "Browsable list of nuclear isotope data"
   },
+  "isotopologues": {
+    "description": "Generate list of isotopologues",
+    "inputs": [
+      {
+        "name": "NucList",
+        "kind": "required",
+        "type": [
+            "char"
+        ],
+        "purpose": "list of isotopes or elements"
+      },
+      {
+        "name": "nEquiv",
+        "kind": "required",
+        "type": [
+            "numeric",
+            "vector"
+        ],
+        "purpose": "number of equivalent nuclei"
+      },
+      {
+        "name": "Abundances",
+        "kind": "ordered",
+        "type": [
+            "numeric",
+            "vector"
+        ],
+        "purpose": "cell array of nuclear abundances"
+      },
+      {
+        "name": "relThreshold",
+        "kind": "ordered",
+        "type": [
+            "numeric",
+            "scalar"
+        ],
+        "purpose": "abundance threshold relative to most abundand isotopologue"
+      }
+    ]
+  },
+  "isotopologues": {
+    "description": "Generate list of isotopologues",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+            "structure"
+        ],
+        "purpose": "spin system structure"
+      },
+      {
+        "name": "relThreshold",
+        "kind": "ordered",
+        "type": [
+            "numeric",
+            "scalar"
+        ],
+        "purpose": "abundance threshold relative to most abundand isotopologue"
+      }
+    ]
+  },
   "isto": {
     "description": "Irreducible spherical tensor operators",
     "inputs": [
@@ -2455,6 +2540,19 @@
           "choices={'sparse'}"
         ],
         "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "isto2stev": {
+    "description": "Transformation from ISTOs to Stevens operators",
+    "inputs": [
+      {
+        "name": "k",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "tensor rank"
       }
     ]
   },
@@ -2980,6 +3078,65 @@
           "numeric"
         ],
         "purpose": "g value(s), default gfree"
+      }
+    ]
+  },
+  "mlpsvd": {
+    "description": "2D linear prediction and single value decomposition",
+    "inputs": [
+      {
+        "name": "spectrum",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "time",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time vector"
+      },
+      {
+        "name": "method",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'kt', 'ss', 'tls'}"
+        ],
+        "purpose": "LPSVPD algorithm, default 'ss'"
+      },
+      {
+        "name": "order",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real",
+            "integer",
+            "positive"
+          ],
+          [
+            "char",
+            "choices={'mdl', 'aic'}"
+          ]
+        ],
+        "purpose": "number of sinusoids, number or estimation method, default 'mdl'"
+      },
+      {
+        "name": "method2D",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sum', 'stack'}"
+        ],
+        "purpose": "method of handling the 2D data"
       }
     ]
   },
@@ -4528,6 +4685,35 @@
           "char"
         ],
         "purpose": "if given, only the polarisation part is returned"
+      }
+    ]
+  },
+  "signalprocessing": {
+    "description": "Signal translation and cleanup for spidyan",
+    "inputs": [
+      {
+        "name": "TimeAxis",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "time axis, µs"
+      },
+      {
+        "name": "RawSignal",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "raw signal"
+      },
+      {
+        "name": "FreqTranslation",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "vector for frequencies for translation, GHz"
       }
     ]
   },

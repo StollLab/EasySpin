@@ -1,6 +1,6 @@
 % 2D Linear Prediction Singular Value Decomposition down a single dimension
 %
-%  predictedSpectrum = mlpsvd(Spectrum, Time, Method, Order, 2D-Method)
+%  predictedSpectrum = mlpsvd(Spectrum, Time, Method, Order, Method2D)
 % [predictedSpectrum, PredictionParameters] = mlpsvd(...)
 %
 % Performs Linear Prediction SVD using a damped exponential model:
@@ -36,7 +36,7 @@
 % however these methods are known to underestimate the number of components
 %
 %
-% 2D-Method - the method used to simultaneously handle the processing of
+% Method2D - the method used to simultaneously handle the processing of
 %             the spectra in the time domain. if not provided default 'sum'
 % Vanhamme, L.; Van Huffel, S. SPIE 3461, 237 (1998)
 %
@@ -50,7 +50,7 @@
 
 
 
-function [y,parameters] = mlpsvd(data,time,method,order,multi)
+function [y,parameters] = mlpsvd(data,time,method,order,method2d)
 
 % Check inputs+
 
@@ -78,8 +78,8 @@ else
   m = order;
 end
 
-if  nargin<5 || isempty(multi)
-  multi = 'sum';
+if  nargin<5 || isempty(method2d)
+  method2d = 'sum';
 end
 
 N = dim(2);
@@ -88,7 +88,7 @@ N = dim(2);
 L = floor(0.6*N);
 
 % switch between the multispectra methods
-switch multi
+switch method2d
   case 'sum'
     % determine the signal poles by summing
     dat = sum(data,1);
