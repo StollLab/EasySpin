@@ -1,12 +1,11 @@
 % rescaledata    Rescaling of data
 %
 %   yscaled = rescaledata(y,mode)
-%   yscaled = rescaledata(y,mode,region)
 %   yscaled = rescaledata(y,yref,mode)
-%   yscaled = rescaledata(y,yref,mode,region)
+%   yscaled = rescaledata(...,region)
 %   [yscaled, scale] = rescaledata(...)
 %
-% Shifts and rescales the data vector y. If given, yref serves
+% Shifts and rescales the data in array y. If given, yref serves
 % as the reference. mode determines how the scale factor is calculated.
 % Positive scaling is enforced, i.e. the rescaled data is never inverted.
 %
@@ -14,8 +13,10 @@
 %   y           data to be rescaled, 1D array
 %   yref        reference data (used by 'maxabs' and 'lsq'), 1D array
 %   mode:
-%     'maxabs'  scales y such that maximum magnitude of ynew is 1 (no shift)
+%     'maxabs'  scales y such that maximum magnitude of yscaled is 1 (if
+%               yref is not given) or max(abs(yref)) (if yref is given)
 %     'lsq'     least-squares fit of a*y to yref; yref is needed
+%     'area'    normalize integral (sum of datapoints) to 1
 %     'none'    no scaling
 %
 % Outputs:
@@ -35,24 +36,24 @@ switch nargin
     region = [];
   case 2
     y = varargin{1};
-    in2 = varargin{2};
-    if ischar(in2)
+    input2 = varargin{2};
+    if ischar(input2)
       yref = [];
-      Mode = in2;
+      Mode = input2;
     else
-      yref = in2;
+      yref = input2;
       Mode = 'lsq';
     end
     region = [];
   case 3
     y = varargin{1};
-    in2 = varargin{2};
-    if ischar(in2)
+    input2 = varargin{2};
+    if ischar(input2)
       yref = [];
-      Mode = in2;
+      Mode = input2;
       region = varargin{3};
     else
-      yref = in2;
+      yref = input2;
       Mode = varargin{3};
       region = []; 
     end
@@ -63,7 +64,7 @@ switch nargin
     region = varargin{4};
   otherwise
     error('Wrong number of input parameters.');
-end    
+end
 
 % Make sure y is a vector
 if ~isvector(y)
@@ -76,15 +77,15 @@ if ~isempty(yref) && ~isvector(yref)
   if isnumeric(yref)
     error('yref must be a row or column vector.');
   else
-    error('Second input of three must be the reference vector.');
+    error('Second input must be the reference vector.');
   end
 end
 
 N = numel(y);
 
-Modes = {'maxabs','lsq','none'};
-refNeeded = [false true false];
-equalLengthNeeded = [false true false];
+Modes = {'maxabs','lsq','area','none'};
+refNeeded = [false true false false];
+equalLengthNeeded = [false true false false];
 
 ModeID = find(strcmp(Mode,Modes));
 if isempty(ModeID)
@@ -97,7 +98,7 @@ if refNeeded(ModeID)
   if equalLengthNeeded(ModeID)
     equalLength = numel(y)==numel(yref);
     if equalLengthNeeded(ModeID) && ~equalLength
-      error('For least-squares rescaling, vectors must have same number of elements.');
+      error('For least-squares rescaling, y and yref must have same number of elements.');
     end
   end
 end
@@ -130,7 +131,13 @@ switch ModeID
     % Rescale reference instead of signal (otherwise rmsd(scale) is wrong
     scalefactor = yref(idx)\y(idx);
     scalefactor = 1/scalefactor;
-  case 3  % no scaling
+  case 3  % area scaling
+    idx = ~isnan(y);
+    if ~isempty(region)
+      idx = idx & region(:);
+    end
+    scalefactor = 1/sum(y(idx));
+  case 4  % no scaling
     scalefactor = 1;
 end
 
