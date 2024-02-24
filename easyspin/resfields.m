@@ -261,7 +261,7 @@ computeStrains = StrainsPresent && (nargout>2);
 computeGradient = (computeStrains || (nargout>4)) && GradientSwitch;
 computeIntensities = (nargout>1 && IntensitySwitch) || computeGradient;
 computeEigenPairs = computeIntensities || computeGradient || computeStrains;
-  
+
 % Preparing kernel and perturbing system Hamiltonians.
 %-----------------------------------------------------------------------
 logmsg(1,'- Preparations');
@@ -849,7 +849,7 @@ idxTr = [(1:nTransitions).'; inf];
 
 % Preparation for the adaptive iterative bisection
 %---------------------------------------------------------
-Accuracy = mwFreq*Opt.ModellingAccuracy;
+levelAccuracy = mwFreq*Opt.ModellingAccuracy;
 
 M = [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0];
 ZeroRow = NaN*ones(1,nOrientations);
@@ -873,9 +873,9 @@ nRediags = 0;
 minStateStability = 2;
 nMaxSegmentsReached = 0;
 
-logmsg(2,'  ## modelling accuracy %0.3f MHz, max slope %g MHz/mT',Accuracy,maxSlope);
+logmsg(2,'  ## modelling accuracy %0.3f MHz, max slope %g MHz/mT',levelAccuracy,maxSlope);
 
-% Loop over all given orientations.
+% Loop over all given orientations
 %-----------------------------------------------------------------------
 
 startTime = cputime;
@@ -940,84 +940,96 @@ for iOri = 1:nOrientations
     photoWeight = 1;
   end
   
-  %===========================================================
-  % Iterative bisection
-  %-----------------------------------------------------------  
+  %=============================================================================
+  % Build cubic spline model of energy level diagram using iterative bisection
+  %-----------------------------------------------------------------------------
   
-  % Vectors: eigenvectors, E: energies, dEdB: dE/dB
-  % deltaE: transition energies for transitions in list Trans
-  Vectors = cell(1,2); E = cell(1,2); dEdB = cell(1,2); deltaE = cell(1,2);
+  nSegments = 1;  % number of segments to start width
+  Bknots = linspace(Exp.Range(1),Exp.Range(2),nSegments+1);  % segments with equal width
   
-  Bknots = Exp.Range; % initial segment spans full field range
-  nSegments = 1;
-  if higherOrder
-    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata_hO(Bknots(2),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
-    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata_hO(Bknots(1),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
-  else
-    [Vectors{2},E{2},dEdB{2},deltaE{2}] = gethamdata(Bknots(2),kH0,kmuzL,Trans,nLevels);
-    [Vectors{1},E{1},dEdB{1},deltaE{1}] = gethamdata(Bknots(1),kH0,kmuzL,Trans,nLevels);
+  % Preallocations
+  vectors = cell(1,nSegments+1);  % eigenvectors
+  E = cell(1,nSegments+1);  % energies
+  dEdB = cell(1,nSegments+1);  % dE/dB
+  deltaE = cell(1,nSegments+1);  % transition energies for listed transitions
+  
+  % Calculate energies etc. at all segment boundaries (knots)
+  for s = 1:nSegments+1
+    if higherOrder
+      [vectors{s},E{s},dEdB{s},deltaE{s}] = gethamdata_hO(Bknots(s),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+    else
+      [vectors{s},E{s},dEdB{s},deltaE{s}] = gethamdata(Bknots(s),kH0,kmuzL,Trans,nLevels);
+    end
+    nDiagonalizations = nDiagonalizations + 1;
   end
-  nDiagonalizations = nDiagonalizations + 2;
-  unfinished = true;
   
-  % Iterative bisection until energy level diagram is accurately modeled.
-  while any(unfinished) && nSegments<Opt.maxSegments
+  % Iterative bisection to model energy level diagram to desired accuracy
+  converged = false(1,nSegments);
+  while ~all(converged) && nSegments<Opt.maxSegments
     
-    s = find(unfinished,1); % find first unfinished segment
+    s = find(~converged,1);  % find a segment that's not yet converged
     dB = Bknots(s+1) - Bknots(s);
     if E{s+1}(end)-E{s+1}(1) > mwFreq
       if LoopFields
-        ResonancePossible = abs((deltaE{s}+deltaE{s+1})/2-mwFreq) <= maxSlope*dB;
+        transitionPossible = abs((deltaE{s}+deltaE{s+1})/2-mwFreq) <= maxSlope*dB;
       else
-        ResonancePossible = (deltaE{s}-mwFreq).*(deltaE{s+1}-mwFreq) <= 0;
+        transitionPossible = (deltaE{s}-mwFreq).*(deltaE{s+1}-mwFreq) <= 0;
       end
     else
-      ResonancePossible = false;
+      transitionPossible = false;
     end
     
-    if any(ResonancePossible)
-      % diagonalize at center and compute error
-      newB = (Bknots(s)+Bknots(s+1))/2;
-      if higherOrder
-        [Ve,En,Di1,dEn] = gethamdata_hO(newB,zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
-      else
-        [Ve,En,Di1,dEn] = gethamdata(newB,kH0,kmuzL,Trans,nLevels);
-      end
-      nDiagonalizations = nDiagonalizations+1;
-      Error = 2*(1/2*(E{s}+E{s+1}) + dB/8*(dEdB{s}-dEdB{s+1}) - En);
-      Incl = false(1,nCore); % levels to include in accuracy check
-      Incl([u(ResonancePossible) v(ResonancePossible)]) = true;
-      Error = abs(Error(Incl));
-      % bisect
-      Bknots = [Bknots(1:s) newB Bknots(s+1:end)];
-      E = [E(1:s) {En} E(s+1:end)];
-      Vectors = [Vectors(1:s) {Ve} Vectors(s+1:end)];
-      dEdB = [dEdB(1:s) {Di1} dEdB(s+1:end)];
-      deltaE = [deltaE(1:s) {dEn} deltaE(s+1:end)];
-      nSegments = nSegments + 1;
-      % mark unfinished or finished depending on error
-      done = max(Error) <= Accuracy;
-      unfinished = [unfinished(1:s-1) ~done ~done unfinished(s+1:end)];
-    else
-      unfinished(s) = false; % mark segment as finished
+    % If transition within segment is not possible, mark segment as converged and move on
+    if ~any(transitionPossible)
+      converged(s) = true;
+      continue
     end
+    
+    % If transition is possible, diagonalize at midpoint and compute error
+    newB = (Bknots(s)+Bknots(s+1))/2;
+    if higherOrder
+      [Ve,En,dEdBn,dEn] = gethamdata_hO(newB,zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
+    else
+      [Ve,En,dEdBn,dEn] = gethamdata(newB,kH0,kmuzL,Trans,nLevels);
+    end
+    nDiagonalizations = nDiagonalizations + 1;
+
+    % Convergence check - exclude levels that are not involved in resonances
+    include = false(1,nCore);
+    include([u(transitionPossible) v(transitionPossible)]) = true;
+    deviation = 2*((E{s}+E{s+1})/2 + dB/8*(dEdB{s}-dEdB{s+1}) - En);
+    deviation = abs(deviation(include));
+    converged_ = max(deviation) <= levelAccuracy;
+    
+    % Bisect segment by adding midpoint
+    Bknots = [Bknots(1:s) newB Bknots(s+1:end)];
+    E = [E(1:s) {En} E(s+1:end)];
+    vectors = [vectors(1:s) {Ve} vectors(s+1:end)];
+    dEdB = [dEdB(1:s) {dEdBn} dEdB(s+1:end)];
+    deltaE = [deltaE(1:s) {dEn} deltaE(s+1:end)];
+    nSegments = nSegments + 1;
+
+    % Mark the two new segments converged or not depending on error
+    converged = [converged(1:s-1) converged_ converged_ converged(s+1:end)];
     
   end
   
   if nSegments>=Opt.maxSegments
     nMaxSegmentsReached = nMaxSegmentsReached + 1;
+    logmsg(2,'   segmentation terminated, %d segments, max number of segment reached',nSegments);
+  else
+    logmsg(2,'   segmentation converged, %d segments',nSegments);
   end
   
-  logmsg(2,'   segmentation finished, %d segments',nSegments);
   
   % Compute eigenvector cross products to determine how strongly eigenvectors
   % change over a segment.
   for s = nSegments:-1:1
-    %StateStability(:,s) = abs(diag(VV{s+1}'*VV{s}));
-    StateStability(:,s) = abs(sum(conj(Vectors{s+1}).*Vectors{s})).';
+    %StateStability(:,s) = abs(diag(Vectors{s+1}'*Vectors{s}));  % slower
+    StateStability(:,s) = abs(sum(conj(vectors{s+1}).*vectors{s})).';
   end
 
-  % Cubic polynomial coefficients of the entire spline model of the energy level diagram.
+  % Cubic polynomial coefficients of the entire spline model of the energy level diagram
   dB = diff(Bknots);
   SplineModelCoeffs = cell(1,nSegments);
   for s = 1:nSegments
@@ -1035,9 +1047,11 @@ for iOri = 1:nOrientations
     for s = 1:nSegments
 
       % Construct cubic polynomial coeffs of resonance function Ev-Eu-freq
-      Co = SplineModelCoeffs{s};
-      C = Co(:,v(iTrans)) - Co(:,u(iTrans));
-      C(4) = C(4) - mwFreq;
+      coeffs = SplineModelCoeffs{s};
+      Evpoly = coeffs(:,v(iTrans));
+      Eupoly = coeffs(:,u(iTrans));
+      dEpoly = Evpoly - Eupoly;
+      dEpoly(4) = dEpoly(4) - mwFreq;
 
       % Find zeros, first and second derivatives of E(v)-E(u)-mwFreq
       %[Zeros,Diff1,Diff2] = cubicsolve(C,LoopFields);
@@ -1045,7 +1059,7 @@ for iOri = 1:nOrientations
       % Problem here: cubicsolve should only be called if a resonance
       % is possible. This can be determined as above using maxSlope etc.
       % cubicsolve takes too long to find this out (esp. for LoopFields=1).
-      cubicZeros = cubicsolve(C,LoopFields);
+      cubicZeros = cubicsolve(dEpoly,LoopFields);
       if isempty(cubicZeros), continue, end
 
       ResonanceFields = Bknots(s) + dB(s)*cubicZeros;
@@ -1125,13 +1139,13 @@ for iOri = 1:nOrientations
 
             z = cubicZeros(iReson);
 
-            Ua = Vectors{s}(:,uv(1)); Ub = Vectors{s+1}(:,uv(1));
+            Ua = vectors{s}(:,uv(1)); Ub = vectors{s+1}(:,uv(1));
             [~,idx] = max(abs(Ua));
             phase = Ua(idx)/Ub(idx);
             U = Ua*(1-z) + z*phase/abs(phase)*Ub;
             U = U/norm(U);
 
-            Va = Vectors{s}(:,uv(2)); Vb = Vectors{s+1}(:,uv(2));
+            Va = vectors{s}(:,uv(2)); Vb = vectors{s+1}(:,uv(2));
             [~,idx] = max(abs(Va));
             phase = Va(idx)/Vb(idx);
             V = Va*(1-z) + z*phase/abs(phase)*Vb;

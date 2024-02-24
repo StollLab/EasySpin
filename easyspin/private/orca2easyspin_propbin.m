@@ -128,7 +128,7 @@ while ~feof(f)
       for iNuc=1:numel(nucIdx)
         idx = nucIdx(iNuc);
         Apv(idx,1:3) = data(3:5,iNuc).'; %#ok<AGROW>
-        R = reshape(data(6:14,iNuc),3,3);
+        R = reshape(data(6:14,iNuc),3,3).';
         %A = R*diag(Apv)*R.';
         AFrame(idx,1:3) = eulang(R.',skipFitting).'; %#ok<AGROW>
       end
@@ -160,6 +160,7 @@ nAtoms = numel(Atoms);
 
 % Compile spin system
 %-------------------------------------------------------------------------------
+info = struct();
 if isempty(S)
   % spin is not provided by the prop file
 else
@@ -167,10 +168,10 @@ else
 end
 if ~isempty(xyz)
   Sys.xyz = xyz;
-  Sys.Atoms = Atoms;
+  info.NucId = Atoms;
 end
 if ~isempty(Charge)
-  Sys.Charge = Charge;
+  info.Charge = Charge;
 end
 if ~isempty(gpv)
   Sys.g = gpv;
@@ -213,6 +214,7 @@ if nAtoms>0
     NucStr(1) = [];
   end
   Sys.Nucs = NucStr;
+  Sys.NucsIdx = 1:nAtoms;
   
   % Build Sys.A and Sys.AFrame
   if anyHyperfine
@@ -227,6 +229,7 @@ if nAtoms>0
   end
   
 end % if nAtoms>0
+Sys.data = info;
 
 end % function
 %===============================================================================

@@ -1,7 +1,7 @@
 % esfit_grid   Function minimization using grid search
 %
 %  xfit = esfit_grid(fcn,lb,ub)
-%  ...  = esfit_grid(fcn,lb,ub,opt)
+%  ...  = esfit_grid(fcn,lb,ub,FitOpt)
 %  [xfit,info] = ...
 %
 %  Finds x that minimzes fcn(x), running over a grid of parameter values.
@@ -10,31 +10,23 @@
 %    fcn     function handle of fcn(x) to minimize
 %    lb      lower bounds of parameters
 %    ub      lower bounds of parameters
-%    opt     structure with algorithm parameters
+%    FitOpt  structure with algorithm parameters
 %      .TolFun
 %      .GridSize
 %      .randGrid
 %      .maxGridPoints
 %      .IterFcn   function that is called after each iteration
 
-function [bestx,info] = esfit_grid(fcn,lb,ub,opt)
+function [bestx,info] = esfit_grid(fcn,lb,ub,FitOpt)
 
-% Supplement default values for options
-if ~isfield(opt,'TolFun'), opt.TolFun = 1e-5; end
-if ~isfield(opt,'GridSize'), opt.GridSize = 7; end
-if ~isfield(opt,'randGrid'), opt.randGrid = true; end
-if ~isfield(opt,'maxGridPoints'), opt.maxGridPoints = 1e5; end
-if ~isfield(opt,'IterationPrintFunction') || ...
-    isempty(opt.IterationPrintFunction)
-  opt.IterationPrintFunction = @(str)str;
+if nargin==0, help(mfilename); return; end
+if nargin<3
+  error('At least 3 inputs expected (function, lb, ub).');
 end
-if ~isfield(opt,'InfoPrintFunction') || ...
-    isempty(opt.InfoPrintFunction)
-  opt.InfoPrintFunction = @(str)str;
-end
-if ~isfield(opt,'IterFcn') || isempty(opt.IterFcn)
-  opt.IterFcn = @(info)false;
-end
+if nargin==3, FitOpt = struct; end
+
+DefOpt = esfit_algdefaults('grid search');
+FitOpt = adddefaults(FitOpt,DefOpt);
 
 % Process parameter bounds
 lb = lb(:);
@@ -48,7 +40,7 @@ end
 nParams = numel(lb);
 
 % Process grid
-GridSize = opt.GridSize;
+GridSize = FitOpt.GridSize;
 if numel(GridSize)==1
   GridSize = GridSize*ones(1,nParams);
 end
@@ -59,15 +51,15 @@ if any(GridSize<2)
   error('At least two grid points per parameter are needed.');
 end
 nGridPoints = prod(GridSize);
-if nGridPoints>opt.maxGridPoints
-  error('Cannot do grid search with more than %d points. Reduce number of parameters.',opt.maxGridPoints);
+if nGridPoints>FitOpt.maxGridPoints
+  error('Cannot do grid search with more than %d points. Reduce number of parameters.',FitOpt.maxGridPoints);
 end
 
-if opt.Verbosity
-  opt.InfoPrintFunction(sprintf('%d parameters, %d grid points total\n',nParams,nGridPoints));
+if FitOpt.Verbosity
+  FitOpt.InfoPrintFunction(sprintf('%d parameters, %d grid points total\n',nParams,nGridPoints));
 end
 
-if ~isempty(opt.IterFcn) && ~isa(opt.IterFcn,'function_handle')
+if ~isempty(FitOpt.IterFcn) && ~isa(FitOpt.IterFcn,'function_handle')
   error('Opt.IterFcn must be a function handle.');
 end
 
@@ -85,7 +77,7 @@ end
 X = [X{:}].'; % each column represents one point in parameter space
 
 % Randomize order of gridpoints if requested
-if opt.randGrid
+if FitOpt.randGrid
   X = X(:,randperm(nGridPoints));
 end
 
@@ -107,9 +99,9 @@ for idx = 1:nGridPoints
   if newbest
     minF = F;
     bestx = X(:,idx);
-    if opt.Verbosity
+    if FitOpt.Verbosity
       str = sprintf('  Point %4d/%d:   error %0.5e  best so far',iIteration,nGridPoints,F);
-      opt.IterationPrintFunction(str);
+      FitOpt.IterationPrintFunction(str);
     end
   end
   
@@ -120,25 +112,29 @@ for idx = 1:nGridPoints
   info.nEvals = nEvals;
   info.iter = iIteration;
   info.newbest = newbest;
-  UserStop = opt.IterFcn(info);
+  if ~isempty(FitOpt.IterFcn)
+    UserStop = FitOpt.IterFcn(info);
+  else
+    UserStop = false;
+  end
   
   elapsedTime = (cputime-startTime)/60;
-  if elapsedTime>opt.maxTime, stopCode = 1; end
+  if elapsedTime>FitOpt.maxTime, stopCode = 1; end
   if UserStop, stopCode = 2; end
-  if minF<opt.TolFun, stopCode = 3; end
+  if minF<FitOpt.TolFun, stopCode = 3; end
   
   if stopCode~=0, break; end
   
 end
 
-if opt.Verbosity>0
+if FitOpt.Verbosity>0
   switch stopCode
     case 0, msg = 'Terminated: all grid points searched.';
-    case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',opt.maxTime);
+    case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = 'Terminated: Stopped by user.';
-    case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',opt.TolFun);
+    case 3, msg = sprintf('Terminated: Found a parameter set with error less than %g.',FitOpt.TolFun);
   end
-  opt.InfoPrintFunction(msg);
+  FitOpt.InfoPrintFunction(msg);
 end
 
 info.stop = stopCode;

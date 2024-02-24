@@ -53,6 +53,10 @@ end
 %--------------------------------------------------------------------------
 [output_path,output_name,output_ext] = fileparts(OrcaOutput);
 
+if output_ext==".txt" && numel(output_name)>9 && output_name(end-8:end)=="_property"
+  error('orca2easyspin() currently does not support reading spin Hamiltonian parameters from _property.txt files. Provide the main output file instead.')
+end
+
 if output_ext==".prop"
   % binary property file (ORCA versions < 5)
   readmode = 'propbin';
@@ -152,7 +156,7 @@ if isfield(Sys,'Nucs') && isfield(Sys,'A')
     if ischar(Nucs)
       Nucs = nucstring2list(Nucs);
     end
-    Sys(iSys).NucsIdx = find(keep).';
+    Sys(iSys).NucsIdx = Sys(iSys).NucsIdx(keep);
     Sys(iSys).Nucs = nuclist2string(Nucs(keep));
     Sys(iSys).A = Sys(iSys).A(keep,:);
     if isfield(Sys,'AFrame')

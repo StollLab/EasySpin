@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>Release notes</title>
 </head>
 
@@ -44,7 +44,7 @@ $ReleaseID$
 <li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.</li>
 <li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.</li>
 <li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.</li>
-<li><a class="esf" href="diptensor.html">diptensor</a> calculates dipolar coupling tensors.</li>
+<li>The new function <a class="esf" href="diptensor.html">diptensor</a> calculates electron-electron, electron-nucleus and nucleus-nucleus dipolar coupling tensors. It supports anisotropic g tensors.</li>
 <li><a class="esf" href="isto.html">isto</a> provides matrix representations of irreducible spherical tensor operators.</li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support tilted Stevens tensor operators via fields such as <code>Sys.B2Frame</code></li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support nuclear chemical shielding tensor via the fields <code>Sys.sigma</code> and <code>Sys.sigmaFrame</code>.</li>
@@ -67,7 +67,8 @@ $ReleaseID$
 <li>Fixed problem with strong orientational potentials in <a class="esf" href="chili.html">chili</a>.
 <li>Improved support for data files from Magnettech spectrometers.
 <li>Improved automatic field range determination in <a class="esf" href="garlic.html">garli</a>.
-<li><a class="esf" href="curry.html">curry</a>: Fix wrong weights in powder agerages.
+<li><a class="esf" href="curry.html">curry</a>: Fix wrong weights in powder averages.
+<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a>: Fix inverted tensor frame Euler angles.
 </ul>
 
 <p>Incompatible changes</p>

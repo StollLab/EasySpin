@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>Spin system</title>
 </head>
 
@@ -245,7 +245,8 @@ The g matrices/tensors for all electron spins in the system are supplied in two 
 <code>gFrame</code> contains the Euler angles specifying the orientations of the g tensors relative to the molecular frame.
 </ul>
 
-<p>See also the reference page on the <a href="hamiltonian.html#ezi">Electron Zeeman interaction</a>.
+<p>
+See also the reference page on the <a href="hamiltonian.html#ezi">Electron Zeeman interaction</a> and the EasySpin function <a class="esf" href="ham_ez.html">ham_ez</a>.
 </p>
 
 <div class="optionfield"><code>g</code></div>
@@ -270,9 +271,9 @@ Axial: For axial g tensors, only two values are needed. The first value is the o
 
 <pre class="matlab">
 Sys.g = [2.25 2.03];                % axial g, for one electron spin
-                                    % = [2.25 2.25 2.03]
+                                    %   = [2.25 2.25 2.03]
 Sys.g = [2.25 2.03; 1.99 1.98];     % axial g, for two electron spins
-                                    % = [2.25 2.25 2.03; 1.99 1.99 1.98]
+                                    %   = [2.25 2.25 2.03; 1.99 1.99 1.98]
 </pre>
 
 <li>
@@ -282,9 +283,9 @@ Isotropic: If g is isotropic, it is sufficient to give its isotropic value once.
 
 <pre class="matlab">
 Sys.g = 2.005;                      % isotropic g, for one electron spin
-                                    % = [2.005 2.005 2.005]
+                                    %   = [2.005 2.005 2.005]
 Sys.g = [2.0023; 2.0025];           % isotropic g, for two electron spins
-                                    % = [2.0023 2.0023 2.0023; 2.0025 2.0025 2.0025]
+                                    %   = [2.0023 2.0023 2.0023; 2.0025 2.0025 2.0025]
 </pre>
 
 <li>
@@ -293,11 +294,12 @@ No value: If no values are given, EasySpin assumes isotropic g values of 2.00231
 </p>
 </ul>
 
-<p>When the principal values of g are given in <code>g</code>, the orientation of the g tensor can be specified by Euler angles in <code>gFrame</code>, see below.
+<p>
+When the principal values of g are given in <code>g</code>, the orientation of the g tensor can be specified by Euler angles in <code>gFrame</code>, see below.
 </p>
 
 <p>
-As an alternative, it is also possible to give the full 3x3 g tensor in <code>g</code>. For example
+Alternatively, it is possible to provide the full 3x3 g tensor in <code>g</code>. For example
 </p>
 
 <pre class="matlab">
@@ -311,14 +313,15 @@ Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0, 0 0 2.1];
 </pre>
 
 <p>
-If you give full g tensors, the Euler angles in <code>gFrame</code> are ignored.
+If you give full g tensors, EasySpin uses them as provided, i.e. the tensors are not symmetrized, and the Euler angles in <code>gFrame</code> are ignored.
 </p>
 
 </div>
 
 <div class="optionfield"><code>gFrame</code></div>
 <div class="optiondescr">
-Each row of this array specifies the orientation of the g tensor frame in the molecular frame (see the page on <a href="frames.html">frames</a>). Each row contains the three <a href="eulerangles.html">Euler angles</a> (in radians) for the rotation that transforms the molecular frame to the g tensor frame. If not specified, <code>gFrame</code> is assumed to be all-zero, that is, the g tensors of all electron spins are aligned with the molecular frame.
+
+  Each row of this array specifies the orientation of the g tensor frame in the molecular frame (see the page on <a href="frames.html">frames</a>). Each row contains the three <a href="eulerangles.html">Euler angles</a> (in radians) for the rotation that transforms the molecular frame to the g tensor frame. If not specified, <code>gFrame</code> is assumed to be all-zero, that is, the g tensors of all electron spins are aligned with the molecular frame.
 
 <pre class="matlab">
 Sys.gFrame = [0 10 0]*pi/180;                % one electron spin
@@ -334,9 +337,10 @@ With these angles, EasySpin can transform a g tensor from its diagonal eigenfram
 gpv = [2.1 1.97 2.04];       % principal values
 gFrame = [10 34 -2]*pi/180;  % Euler angles, in radians
 
-R_M2g = erot(gFrame)         % transformation matrix
-g_g = diag(gpv)              % g in the g frame
-g_M = R_M2g.'*g_g*R_M2g      % g in molecular frame
+R_M2g = erot(gFrame)         % transformation matrix from molecular frame to g frame
+R_g2M = R_M2g.';             % transformation matrix from g frame to molecular frame
+g_g = diag(gpv)              % g in g frame
+g_M = R_g2M*g_g*R_g2M.'      % g in molecular frame
 </pre>
 
 <p>
@@ -482,9 +486,10 @@ Here is how principal values and angles can be converted to a full matrix:
 <pre class="matlab">
 Apv = [4 9 13];                   % principal values, MHz
 AFrame = [10 45 -30]*pi/180;      % Euler angles
-A_A = diag(Apv);                  % full matrix in A frame
-R = erot(AFrame);                 % transformation matrix
-A_M = R.'*A_A*R;                  % full matrix in molecular frame
+A_A = diag(Apv);                  % full A matrix in A frame
+R_M2A = erot(AFrame);             % transformation matrix from molecular frame to A frame
+R_A2M = R_M2A.';                  % transformation matrix from A frame to molecular frame
+A_M = R_A2M*A_A*R_A2M;            % full A matrix in molecular frame
 </pre>
 
 <p>
@@ -597,9 +602,10 @@ Here is how principal values and angles can be converted to a full matrix:
 <pre class="matlab">
 Qpv = [-0.9 -1.1 2]*0.125;        % principal values, MHz
 QFrame = [10 45 -30]*pi/180;      % Euler angles
-R = erot(QFrame);                 % transformation matrix
+R_M2Q = erot(QFrame);             % transformation matrix from molecular frame to Q frame
+R_Q2M = R_M2Q.';                  % transformation matrix from Q frame to molecular frame
 Q_Q = diag(Qpv);                  % full matrix in Q frame
-Q_M = R.'*Q_Q*R;                  % full matrix in molecular frame
+Q_M = R_Q2M*Q_Q*R_Q2M.';          % full matrix in molecular frame
 </pre>
 
 <p>
@@ -708,12 +714,13 @@ Internally, EasySpin uses the following procedure to compute the full D tensor i
 </p>
 
 <pre class="matlab">
-Dvals = [-25 -55 80];        % principal values
-DFrame = [10 20 0]*pi/180;   % tilt angles
-D_D = diag(Dvals);           % full D tensor in its eigenframe
+Dvals = [-25 -55 80];              % principal values
+DFrame = [10 20 0]*pi/180;         % tilt angles
+D_D = diag(Dvals);                 % full D tensor in its eigenframe
 
-R = erot(DFrame);            % rotation matrix
-D_M = R.'*diag(Dvals)*R;     % full D tensor in molecular frame
+R_M2D = erot(DFrame);              % transformation matrix from molecular frame to D frame
+R_D2M = R_M2D.';                   % transformation matrix from D frame to molecular frame
+D_M = R_D2M*diag(Dvals)*R_D2M.';   % full D tensor in molecular frame
 </pre>
 
 <p>

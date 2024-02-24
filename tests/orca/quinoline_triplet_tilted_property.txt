@@ -1,0 +1,262 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+# -----------------------------------------------------------
+$ SCF_Energy
+   description: The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:     -401.5054149685
+# -----------------------------------------------------------
+$ DFT_Energy
+   description: The DFT energy
+   geom. index: 1
+   prop. index: 1
+   Number of Alpha Electrons                 35.0000115426 
+   Number of Beta  Electrons                 33.0000260983 
+   Total number of  Electrons                68.0000376409 
+   Exchange energy                          -41.6550633920 
+   Correlation energy                        -2.2510668835 
+   Correlation energy NL                      0.0000000000 
+   Exchange-Correlation energy              -43.9061302755 
+   Embedding correction                       0.0000000000 
+   Total DFT Energy (No VdW correction)    -401.5054149685 
+# -----------------------------------------------------------
+$ Mayer_Pop
+   description: The Mayer population analysis
+   geom. index: 1
+   prop. index: 1
+     Number of atoms                     : 17
+     Threshold for printing              : 0.1000000
+     Number of bond orders printed       : 36
+  NA   - Mulliken gross atomic population
+  ZA   - Total nuclear charge
+  QA   - Mulliken gross atomic charge
+  VA   - Mayer's total valence
+  BVA  - Mayer's bonded valence
+  FA   - Mayer's free valence
+  ATOM       NA         ZA         QA         VA         BVA        FA
+  0   0     7.3398     7.0000    -0.3398     3.1081     3.0112     0.0969
+  1   0     6.2957     6.0000    -0.2957     4.0968     4.0824     0.0144
+  2   0     5.9249     6.0000     0.0751     3.4124     3.4036     0.0088
+  3   0     6.1734     6.0000    -0.1734     4.1002     3.9598     0.1404
+  4   0     6.9043     6.0000    -0.9043     4.6203     4.6054     0.0149
+  5   0     6.5571     6.0000    -0.5571     4.5814     4.3242     0.2572
+  6   0     6.0556     6.0000    -0.0556     3.5919     3.5709     0.0210
+  7   0     6.0597     6.0000    -0.0597     3.6119     3.6032     0.0087
+  8   0     5.6462     6.0000     0.3538     2.8200     2.5426     0.2774
+  9   0     4.8973     6.0000     1.1027     2.0617     2.0460     0.0157
+ 10   0     0.8653     1.0000     0.1347     0.9673     0.9671     0.0002
+ 11   0     0.8774     1.0000     0.1226     0.9799     0.9798     0.0001
+ 12   0     0.9017     1.0000     0.0983     1.0057     1.0046     0.0011
+ 13   0     0.8900     1.0000     0.1100     0.9954     0.9935     0.0019
+ 14   0     0.8776     1.0000     0.1224     0.9890     0.9887     0.0003
+ 15   0     0.8829     1.0000     0.1171     0.9969     0.9967     0.0002
+ 16   0     0.8510     1.0000     0.1490     0.9903     0.9885     0.0018
+      Bond orders larger than 0.1000000
+           Atom A     A.N. of A          Atom B    A.N. of B              Bond order
+                0             7               1            6                1.297862
+                0             7               4            6                0.546234
+                0             7               5            6                0.198945
+                0             7               8            6               -0.245188
+                0             7               9            6                1.188974
+                1             6               2            6                1.518899
+                1             6               4            6                0.602972
+                1             6               5            6                0.317018
+                1             6               8            6               -0.352628
+                1             6               9            6               -0.367322
+                1             6              10            1                1.027615
+                2             6               3            6                0.936927
+                2             6               4            6                0.192705
+                2             6               8            6                0.119144
+                2             6               9            6               -0.225985
+                2             6              11            1                0.983202
+                3             6               4            6                1.616124
+                3             6               5            6                0.583315
+                3             6               7            6                0.148915
+                3             6               8            6               -0.259465
+                3             6              12            1                1.035872
+                4             6               5            6                1.771989
+                4             6               6            6                0.113310
+                4             6               8            6               -0.619730
+                4             6               9            6                0.342666
+                5             6               6            6                0.890848
+                5             6               8            6               -0.190443
+                5             6               9            6               -0.366955
+                5             6              13            1                1.046877
+                6             6               7            6                1.448195
+                6             6               8            6                0.164118
+                6             6              14            1                1.011798
+                7             6               8            6                1.105181
+                7             6              15            1                1.003210
+                8             6               9            6                1.781727
+                8             6              16            1                1.064649
+# -----------------------------------------------------------
+$ VdW_Correction
+   description: The Van der Waals Correction
+   geom. index: 1
+   prop. index: 1
+        Van der Waals Correction:       -0.0172810222
+# -----------------------------------------------------------
+$ Calculation_Info
+   description: Details of the calculation
+   geom. index: 1
+   prop. index: 1
+     Multiplicity:                          3
+     Charge:                                0
+     number of atoms:                       17
+     number of electrons:                   0
+     number of frozen core electrons:       1
+     number of correlated electrons:        0
+     number of basis functions:             477
+     number of aux C basis functions:       0
+     number of aux J basis functions:       567
+     number of aux JK basis functions:      0
+     number of aux CABS basis functions:    0
+     Total Energy                           -401.522696
+# -----------------------------------------------------------
+$ SCF_Electric_Properties
+   description: The SCF Calculated Electric Properties
+   geom. index: 1
+   prop. index: 1
+       Filename                          : quinoline_triplet_tilted.scfp 
+       Do Dipole Moment Calculation      : true 
+       Do Quadrupole Moment Calculation  : false 
+       Do Polarizability Calculation     : false 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        2.3494487762
+        Electronic Contribution:
+                  0    
+      0       0.708442
+      1       0.612822
+      2       1.227020
+        Nuclear Contribution:
+                  0    
+      0      -1.148657
+      1      -0.894169
+      2      -1.989538
+        Total Dipole moment:
+                  0    
+      0      -0.440214
+      1      -0.281347
+      2      -0.762518
+# -----------------------------------------------------------
+$ EPRNMR_GTensor
+   description: Electronic g tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ raw g tensor: 
+                  0          1          2    
+      0       2.002383  -0.000310   0.000378
+      1      -0.000150   2.003302  -0.000234
+      2       0.000566  -0.000335   2.003173
+ g tensor: 
+                  0          1          2    
+      0      -0.912561  -0.210025   0.350888
+      1      -0.083499  -0.744269  -0.662640
+      2       0.400326  -0.633998   0.661653
+ G eigenvalues: 
+                  0          1          2    
+      0       2.002155   2.002996   2.003708
+# -----------------------------------------------------------
+$ EPRNMR_DTensor
+   description: ZFS D tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Raw D tensor (cm^-1): 
+                  0          1          2    
+      0       0.022239   0.001026  -0.021486
+      1       0.001026  -0.019667   0.001778
+      2      -0.021486   0.001778  -0.002572
+ D Eigenvalues: 
+                  0          1          2    
+      0      -0.020438  -0.014206   0.034644
+ D Eigenvectors: 
+                  0          1          2    
+      0      -0.175894   0.468029   0.866031
+      1       0.936074   0.351804  -0.000005
+      2      -0.304676   0.810668  -0.499990
+ Final D value (cm^-1)   0.051966
+ Final E value (cm^-1)   0.059963
+# -----------------------------------------------------------
+$ EPRNMR_ATensor
+   description: Hyperfine A tensor
+   geom. index: 1
+   prop. index: 1
+ Number of stored nuclei 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 0 N  
+ Isotope: 14 
+ Nuclear Spin:  1.0 
+ Prefactor (MHz): 38.567697 
+ Raw A tensor (MHz): 
+                  0          1          2    
+      0      16.396848  -0.092795 -10.323083
+      1      -0.095204  -1.632010  -0.165050
+      2     -10.323073  -0.160898   4.476127
+ A Tensor eigenvectors:
+                   0          1          2    
+      0      -0.412995   0.281824   0.866031
+      1       0.563646   0.826017  -0.000010
+      2      -0.715359   0.488131  -0.499990
+ A Eigenvalues: 
+                  0          1          2    
+      0      -1.355657  -1.760093  22.356715
+A(iso)  6.413655
+# -----------------------------------------------------------
+$ EPRNMR_QTensor
+   description: Electric Field Gradient Q tensor
+   geom. index: 1
+   prop. index: 1
+ Number of stored nuclei 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Calculate RHO(0):                  true
+ Nucleus: 0 N  
+ Isotope: 14 
+ Nuclear Spin:  1.0 
+ Prefactor (MHz): 0.020440 
+ Raw Q tensor (au**-3): 
+                  0          1          2    
+      0       0.408161  -0.342103  -0.326642
+      1      -0.342103  -0.439126  -0.592564
+      2      -0.326642  -0.592564   0.030966
+ Q Tensor eigenvectors:
+                   0          1          2    
+      0      -0.387541   0.866028  -0.315924
+      1       0.631864   0.000009  -0.775079
+      2      -0.671237  -0.499996  -0.547215
+ EFG Eigenvalues (atomic units): 
+                  0          1          2    
+      0       0.400183   0.596742  -0.996926
+   Q(iso)  0.000000
+ Electron density at nucleus 200.303992
+# -------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+# -------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    17 
+    Geometry Index:     1 
+    Coordinates:
+               0 N     -0.279450000000   -1.169990000000    1.694560000000
+               1 C     -0.045920000000   -2.469910000000    2.099050000000
+               2 C     -0.453850000000   -3.572680000000    1.392480000000
+               3 C     -1.163110000000   -3.388080000000    0.164010000000
+               4 C     -1.421380000000   -2.079580000000   -0.283320000000
+               5 C     -2.112720000000   -1.773650000000   -1.480750000000
+               6 C     -2.350020000000   -0.407630000000   -1.891780000000
+               7 C     -1.903370000000    0.625310000000   -1.118150000000
+               8 C     -1.196680000000    0.346480000000    0.105870000000
+               9 C     -0.947520000000   -0.988470000000    0.537420000000
+              10 H      0.497610000000   -2.570870000000    3.040470000000
+              11 H     -0.240550000000   -4.575950000000    1.761930000000
+              12 H     -1.500830000000   -4.244440000000   -0.420940000000
+              13 H     -2.474000000000   -2.591950000000   -2.106520000000
+              14 H     -2.886950000000   -0.219940000000   -2.821770000000
+              15 H     -2.073390000000    1.660850000000   -1.412630000000
+              16 H     -0.830520000000    1.153770000000    0.740080000000

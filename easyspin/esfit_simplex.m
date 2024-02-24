@@ -1,6 +1,6 @@
 %esfit_simplex    Nelder/Mead simplex minimization algorithm
 %
-%   xmin = esfit_simplex(fcn,x0,lb,ub,Opt)
+%   xmin = esfit_simplex(fcn,x0,lb,ub,FitOpt)
 %   [xmin,info] = ...
 %
 %   Tries to find x that minimizes fcn(x), starting at x0. Opt are options
@@ -12,7 +12,7 @@
 %     x0    ... initial parameter values
 %     lb    ... lower bounds for parameters
 %     ub    ... upper bounds for parameters
-%     Opt   ... structure with options
+%     FitOpt... structure with options
 %       .delta         edge length of initial simplex
 %       .SimplexPars   [rho, chi, psi, sigma]
 %          rho ...     reflection coefficient
@@ -28,49 +28,36 @@
 %     info  ... structure with additional information (initial simplex,
 %               last simplex, number of iterations, time elapsed)
 
-function [x,info] = esfit_simplex(fcn,x0,lb,ub,Opt)
+function [x,info] = esfit_simplex(fcn,x0,lb,ub,FitOpt)
 
 if nargin==0, help(mfilename); return; end
+if nargin<4
+  error('At least 4 inputs expected (function, x0, lb, ub).');
+end
+if nargin==4, FitOpt = struct; end
 
-if nargin<3, Opt = struct; end
-
-% Edge length for initial simplex
-if ~isfield(Opt,'delta'), Opt.delta = 0.1; end
-delta = Opt.delta;
-
-if ~isfield(Opt,'ScaleParams'), Opt.ScaleParams = false; end
+% Set options
+DefOpt = esfit_algdefaults('Nelder-Mead simplex');
+FitOpt = adddefaults(FitOpt,DefOpt);
 
 % Nelder/Mead algorithm parameters
-if ~isfield(Opt,'maxTime'), Opt.maxTime = inf; end
-if ~isfield(Opt,'SimplexPars')
-  Opt.SimplexPars = [1, 2, 0.5, 0.5];
+if ~isfield(FitOpt,'SimplexPars') || isempty(FitOpt.SimplexPars)
+  FitOpt.SimplexPars = [1, 2, 0.5, 0.5];
   n = numel(x0);
   if n>2
     % Use adaptive parameters
     % see F. Gao, L. Han, Comput. Optim. Anal. 2010
     % https://doi.org/10.1007/s10589-010-9329-3 
-    Opt.SimplexPars = [1, 1+2/n, 0.75-1/(2*n), 1-1/n];
+    FitOpt.SimplexPars = [1, 1+2/n, 0.75-1/(2*n), 1-1/n];
   end
 end
 
-rho = Opt.SimplexPars(1); % reflection coefficient
-chi = Opt.SimplexPars(2); % expansion coefficient
-psi = Opt.SimplexPars(3); % contraction coefficient
-sigma = Opt.SimplexPars(4); % reduction coefficient
+rho = FitOpt.SimplexPars(1); % reflection coefficient
+chi = FitOpt.SimplexPars(2); % expansion coefficient
+psi = FitOpt.SimplexPars(3); % contraction coefficient
+sigma = FitOpt.SimplexPars(4); % reduction coefficient
 
-if ~isfield(Opt,'TolEdgeLength'), Opt.TolEdgeLength = 1e-4; end
-if ~isfield(Opt,'TolFun'), Opt.TolFun = 1e-4; end
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
-if ~isfield(Opt,'IterFcn'), Opt.IterFcn = []; end
-
-if ~isfield(Opt,'IterationPrintFunction') || ...
-    isempty(Opt.IterationPrintFunction)
-  Opt.IterationPrintFunction = @(str)str;
-end
-if ~isfield(Opt,'InfoPrintFunction') || ...
-    isempty(Opt.InfoPrintFunction)
-  Opt.InfoPrintFunction = @(str)str;
-end
+delta = FitOpt.delta;
 
 x0 = x0(:);
 lb = lb(:);
@@ -94,8 +81,12 @@ if any(x0<lb) || any(x0>ub)
   error('Some elements in x0 are out of bounds.');
 end
 
+if FitOpt.RandomStart
+  x0 = lb + rand(nParams,1).*(ub-lb);
+end
+
 % Transform to (-1,1) interval
-transformParams = Opt.ScaleParams;
+transformParams = FitOpt.ScaleParams;
 if transformParams
   transform = @(x) 2*(x-lb)./(ub-lb)-1;
   untransform = @(x) lb + (ub-lb).*(x/2+1/2);
@@ -138,10 +129,10 @@ v = v(:,idx);
 Procedure = 'initial simplex';
 iIteration = iIteration + 1;
 
-if Opt.Verbosity>0
+if FitOpt.Verbosity>0
   logStringFormat = ' iteration %3d: value %0.5e   edge %0.5e   %s';
   str = sprintf(logStringFormat,iIteration,fv(1),delta,Procedure);
-  Opt.IterationPrintFunction(str);
+  FitOpt.IterationPrintFunction(str);
 end
 
 % Main algorithm: iterate until the following two conditions are both met
@@ -156,13 +147,13 @@ while true
   % Check whether to stop the iteration loop
   %-----------------------------------------------------------
   elapsedTime = (cputime-startTime)/60;
-  if elapsedTime>Opt.maxTime
+  if elapsedTime>FitOpt.maxTime
     stopCode = 1;
     break
   end
   largestValDiff = max(abs(fv(1)-fv(2:nParams+1)));
   longestEdgeLength = max(max(abs(v(:,2:nParams+1)-v(:,1))));
-  if largestValDiff<=Opt.TolFun && longestEdgeLength<=Opt.TolEdgeLength
+  if largestValDiff<=FitOpt.TolFun && longestEdgeLength<=FitOpt.TolEdgeLength
     stopCode = 3;
     break
   end
@@ -252,8 +243,8 @@ while true
   info.nEvals = nEvals;
   info.iter = iIteration;
   info.newbest = fv(1)<fv_old(1);
-  if ~isempty(Opt.IterFcn)
-    UserStop = Opt.IterFcn(info);
+  if ~isempty(FitOpt.IterFcn)
+    UserStop = FitOpt.IterFcn(info);
   else
     UserStop = false;
   end
@@ -261,10 +252,10 @@ while true
     stopCode = 2;
   end
   
-  if Opt.Verbosity>0
+  if FitOpt.Verbosity>0
     thisstep = max(max(abs(v(:,2:nParams+1)-v(:,ones(1,nParams)))));
     str = sprintf(logStringFormat,iIteration,fv(1),thisstep,Procedure);
-    Opt.IterationPrintFunction(str);
+    FitOpt.IterationPrintFunction(str);
   end
 
   if stopCode~=0, break; end
@@ -282,14 +273,14 @@ info.F = fv(:,1);
 info.nIterations = iIteration;
 info.elapsedTime = elapsedTime;
 
-if Opt.Verbosity>0
+if FitOpt.Verbosity>0
   switch stopCode
-    case 1, msg = sprintf('Time limit of %f minutes reached.',Opt.maxTime);
+    case 1, msg = sprintf('Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = sprintf('Stopped by user.');
-    case 3, msg = sprintf('Converged (edge length < %g and all errors < %g).',Opt.TolEdgeLength,Opt.TolFun);
+    case 3, msg = sprintf('Converged (edge length < %g and all errors < %g).',FitOpt.TolEdgeLength,FitOpt.TolFun);
   end
   str = sprintf('Terminated: %s\n',msg);
-  Opt.InfoPrintFunction(str);
+  FitOpt.InfoPrintFunction(str);
 end
 
 info.stop = stopCode;

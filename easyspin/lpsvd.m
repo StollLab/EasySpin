@@ -13,7 +13,7 @@
 % Method - the method string input determines the LPSVD algorithm used,
 %          if not provided it will default to 'ss'
 %
-% methods:
+% Methods:
 % 'kt' Based on:
 % Kumaresan, R.;Tufts, D.W.; IEEE Trans. Acoust. Speech Signal ASSP-30 833 (1982)
 %

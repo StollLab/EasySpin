@@ -1,31 +1,34 @@
 function ok = test()
 
+% Load file that contains a planar methyl radical with C3 axis tilted away
+% from the z axis of the ORCA frame.
 Sys = orca2easyspin('orca\methyl_tilted_all.oof');
 
-% Extract atomic coordinates
+% The "molecular frame" in this script refers to the ORCA frame, i.e. the
+% XYZ frame used to define the atom locations.
+
+% Extract needed atomic positions (in molecular frame)
 xyz = Sys.xyz.';
 C = xyz(:,1);
 H1 = xyz(:,2);
 H2 = xyz(:,3);
-H3 = xyz(:,4);
 
-% Calculate molecular z axis
-zM = cross(H1-C,H2-C);
-zM = zM/norm(zM);
+% Calculate C3 symmetry axis (in molecular frame; within sign)
+C3axis_M = cross(H1-C,H2-C);
+C3axis_M = C3axis_M/norm(C3axis_M);
 
-% Assert that z axis of carbon A tensor is along molecular z axis
-R_A2M_C = erot(Sys.AFrame(1,:));
-zA_C = R_A2M_C(:,3);
-ok(1) = areequal(zM,zA_C,1e-3,'rel');
+% Get transformation matrices from molecular frame to A tensor frames
+zA_A = [0;0;1];  % z axis of A tensor, represented in A frame
+for k = 1:4
+  R_M2A = erot(Sys.AFrame(k,:));
+  R_A2M = R_M2A.';
+  zA_M{k} = R_A2M*zA_A;  % z axis of A tensor, represented in molecular frame
+end
 
-% Assert that z axes of hydrogen A tensors are in molecular xyz plane
-R_A2M_H1 = erot(Sys.AFrame(2,:));
-zA_H1 = R_A2M_H1(:,3);
-R_A2M_H2 = erot(Sys.AFrame(3,:));
-zA_H2 = R_A2M_H2(:,3);
-R_A2M_H3 = erot(Sys.AFrame(4,:));
-zA_H3 = R_A2M_H3(:,3);
+% Assert that carbon A tensor z axis is along C3 symmetry axis
+ok(1) = areequal(abs(zA_M{1}.'*C3axis_M),1,1e-3,'rel');
 
-ok(2) = areequal(zM.'*zA_H1,0,1e-3,'abs');
-ok(3) = areequal(zM.'*zA_H2,0,1e-3,'abs');
-ok(4) = areequal(zM.'*zA_H3,0,1e-3,'abs');
+% Assert that hydrogen A tensor z axes are perpendicular to C3 symmetry axis
+for k = 2:4
+  ok(k) = areequal(zA_M{k}.'*C3axis_M,0,1e-3,'abs');
+end

@@ -1,12 +1,12 @@
 function ok = test(opt)
 
-% Read and parse funtion signatures JSON file
+% Read and parse function signatures JSON file
 esPath = fileparts(which('sop'));
 fname =  [esPath filesep 'functionSignatures.json'];
 fid = fopen(fname);
 raw = fread(fid,inf);
-str = char(raw');
 fclose(fid);
+str = char(raw');
 val = jsondecode(str);
 funcsigs = fieldnames(val);
 
@@ -26,11 +26,14 @@ for i = numel(funcs):-1:1
   funcs{i} = funcs{i}(1:end-2);
 end
 
-% Make joint list of functions and signatures
+% Make joint list of functions and signatures, exclude functions where
+% no signature information is provided
 items = union(funcs,funcsigs);
 exclusions = {'Contents', 'runprivate', 'eschecker',...
   'crystalfield', 'eeint', 'hfine', 'nnint', 'nquad', 'sham', ...
-  'soint', 'zeeman', 'zeemanho', 'zfield','eigfields'};  % items to exclude
+  'soint', 'zeeman', 'zeemanho', 'zfield','eigfields',...
+  'esfit_genetic','esfit_grid','esfit_legacy','esfit_levmar','esfit_montecarlo',...
+  'esfit_simplex','esfit_swarm','easyspinversioncheck','easyspinupdate'};  % items to exclude
 items = setdiff(items,exclusions);
 
 % Determine for each item whether function and signature are present

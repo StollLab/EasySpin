@@ -6,7 +6,7 @@ Sys.S = 5/2;
 Sys.g = 2;
 Sys.D = 3e3*[1 0.2];
 
-E = levels(Sys);
+E = levels(Sys,'z',0);
 
 E0 = eig(ham(Sys,[0;0;0]));
 

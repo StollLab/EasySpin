@@ -166,7 +166,7 @@ for iStructure = 1:nStructures
     if det(V)<0
       V(:,1) = -V(:,1);
     end
-    gFrame = eulang(V);
+    gFrame = eulang(V.');
   else
     g_raw = [];
     g_sym = [];
@@ -197,7 +197,7 @@ for iStructure = 1:nStructures
     end
     D_raw = D_raw*100*clight/1e6;  % cm^-1 -> MHz
     D_vals = D_vals*100*clight/1e6;  % cm^-1 -> MHz
-    DFrame = eulang(D_vecs);
+    DFrame = eulang(D_vecs.');
   else
     D_raw = [];
     D_vals = [];
@@ -243,7 +243,7 @@ for iStructure = 1:nStructures
         A_vals = sscanf(L{idx}(13:end),'%f %f %f').';
         R = readmatrix(L(idx+2:idx+4),5);
         A{iAtom} = A_vals;
-        AFrame{iAtom} = eulang(R);
+        AFrame{iAtom} = eulang(R.');
         k = k+5;
 
       elseif regexp(L{k},'^\s*Raw EFG matrix\s*')
@@ -276,7 +276,7 @@ for iStructure = 1:nStructures
           K = e2qQh/(4*I)/(2*I-1);
           eta = (eq(1)-eq(2))/eq(3);
           Q{iAtom} = K*[-(1-eta),-(1+eta),2];
-          QFrame{iAtom} = eulang(R);
+          QFrame{iAtom} = eulang(R.');
         end
         k = k+3;
       end
@@ -328,6 +328,7 @@ for iStructure = nStructures:-1:1
     if ~isempty(d.A{iAtom}) || ~isempty(d.Q{iAtom})
       idx = idx + 1;
       Sys(iStructure).Nucs{idx} = d.Element{iAtom};
+      Sys(iStructure).NucsIdx(idx) = iAtom;
       if ~isempty(d.A{iAtom})
         Sys(iStructure).A(idx,1:3) = d.A{iAtom};
         Sys(iStructure).AFrame(idx,1:3) = d.AFrame{iAtom};
@@ -335,6 +336,11 @@ for iStructure = nStructures:-1:1
       if ~isempty(d.Q{iAtom})
         Sys(iStructure).Q(idx,1:3) = d.Q{iAtom};
         Sys(iStructure).QFrame(idx,1:3) = d.QFrame{iAtom};
+      else
+        if isfield(Sys(iStructure),'Q')
+          Sys(iStructure).Q(idx,1:3) = 0;
+          Sys(iStructure).QFrame(idx,1:3) = 0;
+        end
       end
     end
   end
