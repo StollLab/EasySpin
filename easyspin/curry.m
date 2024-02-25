@@ -286,7 +286,7 @@ Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
 
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
-[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+[Exp,Opt,nOrientations] = p_symandgrid(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);

@@ -576,8 +576,7 @@ anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
 
 % Set up grid etc.
-[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.SampleFrame,1);
+[Exp,Opt,nOrientations] = p_symandgrid(Sys,Exp,Opt);
 
 % Fold orientational distribution function into grid region
 if partiallyOrderedSample
@@ -776,6 +775,7 @@ end
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
 Exp.deltaX = xAxis(2)-xAxis(1);
 
+
 %=======================================================================
 %=======================================================================
 %    SPECTRUM CONSTRUCTION (incl. INTERPOLATION and PROJECTION)
@@ -790,6 +790,7 @@ Exp.deltaX = xAxis(2)-xAxis(1);
 logmsg(1,'-absorption spectrum construction----------------------');
 
 BruteForceSum = useEigenFields | Opt.BruteForce;
+
 axialGrid = Opt.nOctants==0;
 usingGrid = Opt.nOctants>=0;
 
@@ -885,6 +886,7 @@ elseif ~BruteForceSum
     msg = '(separate transitions)';
   else
     nSpectra = 1;
+    msg = '';
   end
   spec = zeros(nSpectra,Exp.nPoints);
   logmsg(1,'  spectrum array size: %dx%d %s',size(spec,1),size(spec,2),msg);  
@@ -1121,9 +1123,13 @@ elseif ~BruteForceSum
   
 else % if Opt.ImmediateBinning elseif ~BruteForceSum ...
   
-  logmsg(1,'  no interpolation',nOrientations);
-  logmsg(1,'  constructing stick spectrum');
+  logmsg(1,'  constructing stick spectrum (no interpolation)');
   logmsg(1,'  summation over %d orientations',nOrientations);
+
+  if ~isempty(Opt.separate)
+    error('Cannot return separate subspectra when constructing stick spectrum.');
+  end
+
   spec = zeros(1,Exp.nPoints);
   prefactor = (Exp.nPoints-1)/(SweepRange(2)-SweepRange(1));
   for iOri = 1:nOrientations

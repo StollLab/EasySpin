@@ -20,7 +20,7 @@
 %   Opt.nOctants
 %   Opt.GridParams (for powders)
 
-function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
+function [Exp,Opt,nOrientations] = p_symandgrid(Sys,Exp,Opt)
 
 logmsg(1,'-orientations------------------------------------------');
 
