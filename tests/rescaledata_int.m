@@ -4,7 +4,7 @@ function ok = test()
 
 N = 100;
 y = 2 + rand(1,N);
-y_ = rescaledata(y,'area');
+y_ = rescaledata(y,'int');
 yref = y/sum(y);
 
 thr = 1e-12;

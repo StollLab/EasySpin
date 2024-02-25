@@ -16,7 +16,8 @@
 %     'maxabs'  scales y such that maximum magnitude of yscaled is 1 (if
 %               yref is not given) or max(abs(yref)) (if yref is given)
 %     'lsq'     least-squares fit of a*y to yref; yref is needed
-%     'area'    normalize integral (sum of datapoints) to 1
+%     'int'     normalize integral (sum of datapoints) to 1
+%     'dint'    normalize double integral (sum of cumsum of datapoints) to 1
 %     'none'    no scaling
 %
 % Outputs:
@@ -83,9 +84,9 @@ end
 
 N = numel(y);
 
-Modes = {'maxabs','lsq','area','none'};
-refNeeded = [false true false false];
-equalLengthNeeded = [false true false false];
+Modes = {'maxabs','lsq','int','dint','none'};
+refNeeded = [false true false false false];
+equalLengthNeeded = [false true false false false];
 
 ModeID = find(strcmp(Mode,Modes));
 if isempty(ModeID)
@@ -131,13 +132,19 @@ switch ModeID
     % Rescale reference instead of signal (otherwise rmsd(scale) is wrong
     scalefactor = yref(idx)\y(idx);
     scalefactor = 1/scalefactor;
-  case 3  % area scaling
+  case 3  % scaling by integral
     idx = ~isnan(y);
     if ~isempty(region)
       idx = idx & region(:);
     end
     scalefactor = 1/sum(y(idx));
-  case 4  % no scaling
+  case 4  % scaling by double integral
+    idx = ~isnan(y);
+    if ~isempty(region)
+      idx = idx & region(:);
+    end
+    scalefactor = 1/sum(cumsum(y(idx)));
+  case 5  % no scaling
     scalefactor = 1;
 end
 
