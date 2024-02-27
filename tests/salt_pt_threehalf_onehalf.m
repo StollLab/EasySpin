@@ -1,7 +1,7 @@
 function ok = test(opt)
 
 %-------------------------------------------------------------
-%S=3/2, I=1/2
+% ENDOR spectrum of a S=3/2, I=1/2 system
 %-------------------------------------------------------------
 
 Sys.S = 3/2;
@@ -9,17 +9,19 @@ Sys.D = 200;
 Sys.Nucs='1H';
 Sys.A = [3 5];
 Sys.lwEndor = 0.2;
+
 Exp.Field = 350;
 Exp.mwFreq = 9.5;
 Exp.Range = [0 30];
-Opt.Method='matrix';
-[x,a]=salt(Sys,Exp,Opt);
-Opt.Method='perturb2';
-[x,b]=salt(Sys,Exp,Opt);
-b=rescaledata(b,a,'minmax');
+
+Opt.Method = 'matrix';
+[nu,spc_matrix] = salt(Sys,Exp,Opt);
+Opt.Method = 'perturb2';
+[nu,spc_pt2] = salt(Sys,Exp,Opt);
+
 if opt.Display
-  plot(x,a,'k',x,b,'r');
+  plot(nu,spc_matrix,nu,spc_pt2);
   legend('matrix','perturb2');
 end
 
-ok = areequal(b,a,0.01,'rel');
+ok = areequal(spc_pt2,spc_matrix,0.01,'rel');
