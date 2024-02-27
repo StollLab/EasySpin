@@ -145,9 +145,9 @@ end
 if ~isfield(Exp,'SampleRotation')
   Exp.SampleRotation = [];
 end
-doPowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
+disorderedSample = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
 
-if doPowderSimulation
+if disorderedSample
   logmsg(1,'Powder calculation');
 else
   logmsg(1,'Crystal calculation');
@@ -167,10 +167,10 @@ if ~isfield(Opt,'GridSize')
 end
 logmsg(1,'  grid size: %d',Opt.GridSize);
 if ~isfield(Opt,'GridSymmetry')
-  Opt.GridSymmetry = [];  % needed for p_symandgrid
+  Opt.GridSymmetry = [];  % needed for p_gridsetup
 end
 if ~isfield(Opt,'GridFrame')
-  Opt.GridFrame = [];  % needed for p_symandgrid
+  Opt.GridFrame = [];  % needed for p_gridsetup
 end
 if ~isfield(Opt,'deltaB')
   Opt.deltaB = 1;  % mT
@@ -282,11 +282,11 @@ muOpzM = muOpzM*c;  % MHz/mT -> J/T
 
 % Set up sample orientations
 %-------------------------------------------------
-Exp.PowderSimulation = doPowderSimulation; % for communication with p_*
+Opt.GridIntegration = disorderedSample;  % for communication with p_*
 
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
-[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+[Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);

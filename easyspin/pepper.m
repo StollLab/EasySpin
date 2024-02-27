@@ -395,6 +395,22 @@ if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
 end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
+% Temperature and non-equilibrium populations
+nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
+if nonEquiPops
+  msg = '  user-specified non-equilibrium state';
+else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
+  if isfinite(Exp.Temperature)
+    msg = sprintf('  temperature %g K',Exp.Temperature);
+  else
+    msg = '  no temperature';
+  end
+end
+logmsg(1,msg);
+
 % Detect sample type (disordered, partially ordered, crystal)
 partiallyOrderedSample = ~isempty(Exp.Ordering);
 crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
@@ -417,7 +433,7 @@ end
 if ~disorderedSample && isempty(Exp.SampleFrame)
   Exp.SampleFrame = [0 0 0];
 end
-Exp.PowderSimulation = disorderedSample || partiallyOrderedSample;
+Opt.GridIntegration = disorderedSample || partiallyOrderedSample;  % for communication with p_*
 
 % Process Exp.Ordering
 if partiallyOrderedSample
@@ -436,22 +452,6 @@ if partiallyOrderedSample
     logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
   end
 end
-
-% Temperature and non-equilibrium populations
-nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
-if nonEquiPops
-  msg = '  user-specified non-equilibrium state';
-else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isfinite(Exp.Temperature)
-    msg = sprintf('  temperature %g K',Exp.Temperature);
-  else
-    msg = '  no temperature';
-  end
-end
-logmsg(1,msg);
 
 [Exp.R_sample,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
 
@@ -511,9 +511,7 @@ DefaultOpt.Intensity = 'on';
 DefaultOpt.BruteForce = 0;
 DefaultOpt.ImmediateBinning = 0;
 DefaultOpt.PaddingMultiplier = 3; % for padding before convolution
-
-GridSizeMatrix = [19 4];
-GridSizePerturb = [19 4];
+DefaultOpt.GridSize = [19 4];
 
 Opt = adddefaults(Opt,DefaultOpt);
 
@@ -535,23 +533,11 @@ if usePerturbationTheory && nonEquiPops
   error('Perturbation theory not available for systems with non-equilibrium populations.');
 end
 
-if ~isfield(Opt,'GridSize')
-  if usePerturbationTheory
-    Opt.GridSize = GridSizePerturb;
-  else
-    Opt.GridSize = GridSizeMatrix;
-  end
-end
-
 if Opt.GridSize(1)<Opt.GridSizeMinimum
   error('Options.GridSize must not be less than %d.',Opt.GridSizeMinimum);
 end
 if numel(Opt.GridSize)<2
-  if usePerturbationTheory
-    Opt.GridSize(2) = GridSizePerturb(2);
-  else
-    Opt.GridSize(2) = GridSizeMatrix(2);
-  end
+  Opt.GridSize(2) = DefaultOpt.GridSize(2);
 end
 
 % Some compatibility checks for separate spectra output (Opt.separate)
@@ -576,7 +562,7 @@ anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
 
 % Set up grid etc.
-[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+[Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
 nOrientations = size(Exp.SampleFrame,1);
 
 % Fold orientational distribution function into grid region

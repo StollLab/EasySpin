@@ -1,32 +1,35 @@
 % Symmetry determination and orientational grid
 %
 % requires
-%   Exp.PowderSimulation (required)
-%   Exp.SampleFrame (for oriented samples such as crystals)
-%   Sys (for symm() call)
+%   Sys (for hamsymm() call)
 %   Sys.initState (optional)
+%   Exp.SampleFrame (for crystals)
+%   Opt.GridIntegration (required)
 %   Opt.GridSymmetry (optional)
 %   Opt.GridFrame (optional)
+%   Opt.GridSize
 %
 % sets
-%   Exp.phi  (for powders)
-%   Exp.theta  (for powders)
-%   Exp.OriWeights
-%   Exp.tri  (for powders)
-%   Exp.MolFrame
-%   Exp.OriWeights
-%   Opt.GridSymmetry (for powders)
-%   Opt.GridFrame (for powders)
-%   Opt.nOctants
-%   Opt.GridParams (for powders)
+%   for all samples
+%     Exp.OriWeights
+%     Opt.nOctants
+%   for disordered samples:
+%     Exp.MolFrame
+%     Exp.phi
+%     Exp.theta
+%     Exp.tri
+%     Opt.GridSymmetry
+%     Opt.GridFrame
+%     Opt.GridParams
 
-function [Exp,Opt] = p_symandgrid(Sys,Exp,Opt)
+function [Exp,Opt] = p_gridsetup(Sys,Exp,Opt)
 
 logmsg(1,'-orientations------------------------------------------');
 
-if Exp.PowderSimulation
+if Opt.GridIntegration
+  % disordered sample (powder or frozen solution) or partially ordered sample
   
-  logmsg(1,'  powder sample (randomly oriented centers)');
+  logmsg(1,'  disordered sample (randomly oriented centers)');
   
   if isempty(Opt.GridSymmetry)
     
@@ -35,7 +38,7 @@ if Exp.PowderSimulation
     [Opt.GridSymmetry,Opt.GridFrame] = hamsymm(Sys);
     nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
     if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
-      logmsg(1,'  Hamiltonian symmetry is axial, non-equilibrium state\n   -> reduction to rhombic');
+      logmsg(1,'  Hamiltonian symmetry is axial (Dinfh), non-equilibrium state given in Sys.initState\n   -> reducing symmetry to rhombic (D2h).');
       Opt.GridSymmetry = 'D2h';
     end
   
@@ -51,7 +54,7 @@ if Exp.PowderSimulation
   logmsg(1,'  %s',msg);
   
   tiltedFrame = sum(diag(Opt.GridFrame))~=3; % test for eye(3)
-    
+  
   % Display grid symmetry group and grid frame
   if tiltedFrame
     msg = 'tilted';
@@ -74,12 +77,10 @@ if Exp.PowderSimulation
   % Transform grid vectors to molecular frame representation, convert to
   % polar angles, and store in Exp.MolFrame
   [Exp.phi,Exp.theta] = vec2ang(Opt.GridFrame*Vecs);
-  clear Vecs
   chi = zeros(size(Exp.theta));
   Exp.MolFrame = [-chi; -Exp.theta; -Exp.phi].';
   nOrientations = numel(Exp.phi);
   
-  %closedPhi = true;
   Opt.GridParams = [nOrientations,Opt.GridSize(1),grid.closedPhi,Opt.nOctants,grid.maxPhi];
 
   % Display information about orientational grid
@@ -100,7 +101,7 @@ if Exp.PowderSimulation
     logmsg(1,'  %d orientations (GridSize = %d)',nOrientations,Opt.GridSize(1));
   end
   
-else % no powder simulation, i.e. crystal
+else  % crystal sample 
   
   % Check Exp.SampleFrame
   [nC1,nC2] = size(Exp.SampleFrame);

@@ -140,7 +140,6 @@ DefaultOpt.Intensity = 'on';
 % Opt.Enhancement is off by default, since in many ENDOR experiments
 % RF transmitter characteristics cancel the effect.
 DefaultOpt.Enhancement = 'off';
-DefaultOpt.PowderSimulation = 0;
 
 % Undocumented fields
 DefaultOpt.OriWeights = [];
@@ -365,20 +364,6 @@ if isempty(Transitions)
 end
 
 
-%------------------------------------------------------------------------
-%if Opt.PowderSimulation & Opt.PreSelection
-%  selSys = anisosubsys(Sys);
-%  [selF,selGx,selGy,selGz] = ham(selSys);
-%  selN = length(selF);
-%  lev = repmat(1:selN,selN,1);
-%  logmsg(2,'  anisotropic spin system contains %d of %d nuclei',...
-%    selSys.nNuclei,Sys.nNuclei);
-%else
-%  logmsg(2,'  no pre-selection');
-%end
-%------------------------------------------------------------------------
-
-
 
 %=======================================================================
 %                      PEAK DATA GENERATION
@@ -467,20 +452,6 @@ for iOri = 1:nOrientations
   
   % Lab frame axes in molecular frame representation.
   [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
-  
-  %-----------------------------------------------------------------------
-  % Orientation pre-selection
-  %-----------------------------------------------------------------------
-  %if 0 & Opt.PowderSimulation & Opt.PreSelection
-  %  E = eig(selF+Par.Field*(zLab(1)*selGx + zLab(2)*selGy + zLab(3)*selGz));
-  %  E = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
-  %  xi = (E(lev)-E(lev.')-mwFreq)/max(Sys.HStrain)/0.849321800288;
-  %  SelWeight = max(exp(-2*xi(:).^2));
-  %  if (SelWeight<Opt.SelectionThreshold), continue; end
-  %else
-  %  SelWeight = 1;
-  %end
-  %-----------------------------------------------------------------------
   
   
   % Compute eigenstate energies and vectors.

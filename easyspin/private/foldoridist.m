@@ -1,9 +1,9 @@
-% Fold orientational distribution function into unorifunique region of grid
+% Fold orientational distribution function into unique region of grid
 % symmetry.
 %
 % Input:
 %   f        ... orientational distribution function, f(beta,gamma)
-%                where (alpha,beta,gamma) are the Euler angles for the
+%                where (beta,gamma) are the Euler angles for the
 %                transformation from sample frame to molecular frame
 %   GridSymm ... grid symmetry group ('D2h', 'C2h', 'Ci', 'C1')
 %

@@ -204,8 +204,8 @@ switch program
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
       error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.SampleFrame instead.');
     end
-    PowderSimulation = isempty(Exp.SampleFrame);
-    Exp.PowderSimulation = PowderSimulation; % for communication with resf*
+    PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
+    Opt.GridIntegration = PowderSimulation; % for communication with resf*
 
     % Partial ordering
     if ~isempty(Exp.Ordering)

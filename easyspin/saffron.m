@@ -206,7 +206,7 @@ end
 if ~disorderedSample && isempty(Exp.SampleFrame)
   Exp.SampleFrame = [0 0 0];
 end
-Exp.PowderSimulation = disorderedSample || partiallyOrderedSample;
+Opt.GridIntegration = disorderedSample || partiallyOrderedSample;  % for communication with p_*
 
 if partiallyOrderedSample
   error('Partially ordered samples are not implemented in saffron.')
@@ -301,7 +301,7 @@ end
 % Set up orientation loop
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 if ~isfield(Exp,'OriWeights')
-  [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+  [Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
 end
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);

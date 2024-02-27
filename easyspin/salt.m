@@ -262,7 +262,7 @@ end
 if ~disorderedSample && isempty(Exp.SampleFrame)
   Exp.SampleFrame = [0 0 0];
 end
-Exp.PowderSimulation = disorderedSample || partiallyOrderedSample;
+Opt.GridIntegration = disorderedSample || partiallyOrderedSample;  % for communication with p_*
 
 % Process Exp.Ordering
 if ~isempty(Exp.Ordering)
@@ -314,10 +314,6 @@ end
 
 if isfield(Exp,'HStrain')
   error('You gave Exp.HStrain, but it should be Sys.HStrain. Please correct.');
-end
-
-if isfield(Exp,'Orientation')
-  disp('Exp.Orientation given, did you mean Exp.Orientations?');
 end
 
 [Exp.R_sample,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
@@ -452,7 +448,7 @@ if Sys.nNuclei==0
 end
 %====================================================================
 
-[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+[Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
 nOrientations = size(Exp.SampleFrame,1);
 
 % Fold orientational distribution function into grid region.

@@ -6,7 +6,7 @@ function [angles_M2L,nOrientations,nSites,averageOverChi] = p_crystalorientation
 
 %{
 Inputs:
-  Exp.PowderSimulation:   true/false (defined if coming from pepper/salt/saffron/curry)
+  Opt.GridIntegration:     true/false (defined if coming from pepper/salt/saffron/curry)
   Exp.MolFrame:           set by pepper/salt/saffron for powders, by user for cystals
   Exp.SampleRotation      rotation of the sample in the lab frame
   Exp.CrystalSymmetry:    space group, only used for crystal simulations
@@ -21,10 +21,6 @@ Outputs:
   averageOverChi:  whether to compute average over chi angle
 %}
 
-% Exp.PowderSimulation is set only if this function is called from an EasySpin
-% function that does a powder simulation (pepper, salt, saffron, curry, etc).
-doPowderSimulation = isfield(Exp,'PowderSimulation') && Exp.PowderSimulation;
-
 if ~isfield(Exp,'MolFrame')
   error('Internal error: Exp.MolFrame missing. Please report.');
 end
@@ -35,7 +31,9 @@ if size(Exp.MolFrame,2)~=3
   error('Exp.MolFrame requires three columns (three Euler angles).')
 end
 
-if ~doPowderSimulation
+gridIntegration = isfield(Opt,'GridIntegration') && Opt.GridIntegration;
+
+if ~gridIntegration
   
   % Crystals
   %-----------------------------------------------------------------------------------
