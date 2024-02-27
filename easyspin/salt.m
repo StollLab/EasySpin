@@ -452,8 +452,7 @@ if Sys.nNuclei==0
 end
 %====================================================================
 
-[Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
-nOrientations = size(Exp.SampleFrame,1);
+[Exp,Opt,nOrientations] = p_symandgrid(Sys,Exp,Opt);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)

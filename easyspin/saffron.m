@@ -301,7 +301,7 @@ end
 % Set up orientation loop
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 if ~isfield(Exp,'OriWeights')
-  [Exp,Opt] = p_symandgrid(Sys,Exp,Opt);
+  [Exp,Opt,nOrienations] = p_symandgrid(Sys,Exp,Opt);
 end
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
