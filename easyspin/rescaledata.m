@@ -90,7 +90,13 @@ equalLengthNeeded = [false true false false false];
 
 ModeID = find(strcmp(Mode,Modes));
 if isempty(ModeID)
-  error('Unknown scaling mode ''%s''',Mode);
+  Modes_v5 = {'lsq0','lsq1','lsq2','minmax'};
+  ModeID = strcmp(Mode,Modes_v5);
+  if any(ModeID)
+    error('Mode ''%s'' is obsolete. Use basecorr() instead.',Mode);
+  else
+    error('Unknown scaling mode ''%s''.',Mode);
+  end
 end
 if refNeeded(ModeID)
   if isempty(yref)
