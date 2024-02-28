@@ -91,6 +91,14 @@ end
 %-------------------------------------------------------------------------------
 logmsg(1,'Experimental parameters');
 
+% Supply defaults
+DefaultExp.SampleFrame = [];
+DefaultExp.CrystalSymmetry = [];
+DefaultExp.MolFrame = [];
+DefaultExp.SampleRotation = [];
+DefaultExp.Ordering = [];
+Exp = adddefaults(Exp,DefaultExp);
+
 % Check for obsolete fields
 if isfield(Exp,'Orientations')
   error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
@@ -102,11 +110,6 @@ end
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
-end
-
-% Partial ordering is not supported
-if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
-  error('Partial ordering (via Exp.Ordering) is not supported.')
 end
 
 % Field
@@ -132,26 +135,21 @@ if any(T<0)
 end
 zeroTemp = any(T==0);
 
-% Other fields
-if ~isfield(Exp,'SampleFrame')
-  Exp.SampleFrame = [];
+% Detect sample type (disordered, partially ordered, crystal)
+[Exp,Opt] = p_sampletype(Exp,Opt);
+Opt.GridIntegration = Opt.disorderedSample;  % for communication with p_*
+disorderedSample = Opt.disorderedSample;
+
+if Opt.partiallyOrderedSample
+  error('Partially ordered samples are not supported in curry().');
 end
-if ~isfield(Exp,'CrystalSymmetry')
-  Exp.CrystalSymmetry = '';
-end
-if ~isfield(Exp,'MolFrame')
-  Exp.MolFrame = [];
-end
-if ~isfield(Exp,'SampleRotation')
-  Exp.SampleRotation = [];
-end
-disorderedSample = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
 
 if disorderedSample
   logmsg(1,'Powder calculation');
 else
   logmsg(1,'Crystal calculation');
 end
+
 
 % Options
 %-------------------------------------------------------------------------------
@@ -282,11 +280,10 @@ muOpzM = muOpzM*c;  % MHz/mT -> J/T
 
 % Set up sample orientations
 %-------------------------------------------------
-Opt.GridIntegration = disorderedSample;  % for communication with p_*
 
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 
-[Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
+[Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);

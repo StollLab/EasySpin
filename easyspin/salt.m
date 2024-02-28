@@ -241,46 +241,8 @@ if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
 end
 
 % Detect sample type (disordered, partially ordered, crystal)
-partiallyOrderedSample = ~isempty(Exp.Ordering);
-crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
-disorderedSample = ~partiallyOrderedSample && ~crystalSample;
-if partiallyOrderedSample
-  if ~isempty(Exp.MolFrame)
-    error('Exp.MolFrame cannot be used for partially ordered samples (Exp.Ordering given).');
-  elseif ~isempty(Exp.CrystalSymmetry)
-    error('Exp.CrystalSymmetry cannot be used for partially ordered samples (Exp.Ordering given).');
-  end
-end
-if crystalSample
-  if isempty(Exp.CrystalSymmetry)
-    Exp.CrystalSymmetry = 'P1';
-  end
-  if isempty(Exp.MolFrame)
-    Exp.MolFrame = [0 0 0];
-  end
-end
-if ~disorderedSample && isempty(Exp.SampleFrame)
-  Exp.SampleFrame = [0 0 0];
-end
-Opt.GridIntegration = disorderedSample || partiallyOrderedSample;  % for communication with p_*
-
-% Process Exp.Ordering
-if ~isempty(Exp.Ordering)
-  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
-    lambda = Exp.Ordering;
-    Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
-    logmsg(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
-  elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial ordering (user-supplied function)');
-  else
-    error('Exp.Ordering must be either a single number or a function handle.');
-  end
-  if nargin(Exp.Ordering)==1
-    Exp.Ordering = @(beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
-  elseif nargin(Exp.Ordering)>2
-    logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
-  end
-end
+[Exp,Opt] = p_sampletype(Exp,Opt);
+crystalSample = Opt.crystalSample;
 
 if EasySpinLogLevel>=1
   if ~AutoRange
@@ -448,8 +410,8 @@ if Sys.nNuclei==0
 end
 %====================================================================
 
-[Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
-nOrientations = size(Exp.SampleFrame,1);
+% Set up orientational grid
+[Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
 
 % Fold orientational distribution function into grid region.
 if ~isempty(Exp.Ordering)

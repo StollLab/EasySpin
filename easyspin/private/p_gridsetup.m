@@ -22,7 +22,7 @@
 %     Opt.GridFrame
 %     Opt.GridParams
 
-function [Exp,Opt] = p_gridsetup(Sys,Exp,Opt)
+function [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt)
 
 logmsg(1,'-orientations------------------------------------------');
 
@@ -123,3 +123,4 @@ else  % crystal sample
   end
   
 end
+

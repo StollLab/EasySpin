@@ -185,30 +185,9 @@ if ~isempty(Exp.Temperature)
 end
 
 % Detect sample type (disordered, partially ordered, crystal)
-partiallyOrderedSample = ~isempty(Exp.Ordering);
-crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
-disorderedSample = ~partiallyOrderedSample && ~crystalSample;
-if partiallyOrderedSample
-  if ~isempty(Exp.MolFrame)
-    error('Exp.MolFrame cannot be used for partially ordered samples (Exp.Ordering given).');
-  elseif ~isempty(Exp.CrystalSymmetry)
-    error('Exp.CrystalSymmetry cannot be used for partially ordered samples (Exp.Ordering given).');
-  end
-end
-if crystalSample
-  if isempty(Exp.CrystalSymmetry)
-    Exp.CrystalSymmetry = 'P1';
-  end
-  if isempty(Exp.MolFrame)
-    Exp.MolFrame = [0 0 0];
-  end
-end
-if ~disorderedSample && isempty(Exp.SampleFrame)
-  Exp.SampleFrame = [0 0 0];
-end
-Opt.GridIntegration = disorderedSample || partiallyOrderedSample;  % for communication with p_*
+[Exp,Opt] = p_sampletype(Exp,Opt);
 
-if partiallyOrderedSample
+if Opt.partiallyOrderedSample
   error('Partially ordered samples are not implemented in saffron.')
 end
 
@@ -301,7 +280,7 @@ end
 % Set up orientation loop
 Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
 if ~isfield(Exp,'OriWeights')
-  [Exp,Opt] = p_gridsetup(Sys,Exp,Opt);
+  [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
 end
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
