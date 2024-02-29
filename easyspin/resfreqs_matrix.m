@@ -195,8 +195,6 @@ end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
-Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
-
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 

@@ -281,8 +281,6 @@ muOpzM = muOpzM*c;  % MHz/mT -> J/T
 % Set up sample orientations
 %-------------------------------------------------
 
-Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
-
 [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms

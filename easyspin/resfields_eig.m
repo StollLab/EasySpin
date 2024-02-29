@@ -107,8 +107,6 @@ end
 
 mwFreq = Exp.mwFreq*1e3;
 
-Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
-
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,averageOverChi] = p_crystalorientations(Exp,Opt);
 

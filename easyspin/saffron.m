@@ -277,11 +277,11 @@ if fastSimulationMode
 end
 
 
-% Set up orientation loop
-Exp.R_sample = p_samplerotmatrix(Exp.SampleRotation);
+% Set up grid
 if ~isfield(Exp,'OriWeights')
   [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
 end
+
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
 if numel(Exp.OriWeights)~=nOrientations

@@ -68,4 +68,9 @@ if partiallyOrderedSample
   end
 end
 
+% Prepare sample rotation matrix (needed to rotate grid in pepper/salt)
+if partiallyOrderedSample
+  [Exp.R_sample,Opt.rotatedSample] = p_samplerotmatrix(Exp.SampleRotation);
+end
+
 end

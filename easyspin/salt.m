@@ -278,8 +278,6 @@ if isfield(Exp,'HStrain')
   error('You gave Exp.HStrain, but it should be Sys.HStrain. Please correct.');
 end
 
-[Exp.R_sample,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
-
 %==========================================================================
 
 
@@ -701,7 +699,7 @@ if ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centerPhi = zeros(1,numel(centerTheta));
-        if rotateSample
+        if Opt.rotatedSample
           v = ang2vec(centerPhi,centerTheta);
           [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
         end
@@ -731,7 +729,7 @@ if ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centerTheta = mean(fthe(idxTri));
         centerPhi = mean(fphi(idxTri));
-        if rotateSample
+        if Opt.rotatedSample
           v = ang2vec(centerPhi,centerTheta);
           [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
         end

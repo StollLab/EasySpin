@@ -415,8 +415,6 @@ logmsg(1,msg);
 [Exp,Opt] = p_sampletype(Exp,Opt);
 crystalSample = Opt.crystalSample;
 
-[Exp.R_sample,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
-
 %=======================================================================
 
 
@@ -931,9 +929,10 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
         centerPhi = zeros(1,numel(centerTheta));
-        if rotateSample
-          v = ang2vec(centerPhi,centerTheta);
-          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
+        if Opt.rotatedSample
+          zS_M = ang2vec(centerPhi,centerTheta);  % sample z axis in mol. frame
+          zL_M = Exp.R_sample*zS_M;
+          [centerPhi,centerTheta] = vec2ang(zL_M);
         end
         OrderingWeights = orifun(-centerTheta,-centerPhi);
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
@@ -962,9 +961,10 @@ elseif ~BruteForceSum
       if ~isempty(Exp.Ordering)
         centerTheta = mean(fthe(idxTri));
         centerPhi = mean(fphi(idxTri));
-        if rotateSample
-          v = ang2vec(centerPhi,centerTheta);
-          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
+        if Opt.rotatedSample
+          zS_M = ang2vec(centerPhi,centerTheta);  % sample z axis in mol. frame
+          zL_M = Exp.R_sample*zS_M;
+          [centerPhi,centerTheta] = vec2ang(zL_M);
         end
         OrderingWeights = orifun(-centerTheta,-centerPhi);
         if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
