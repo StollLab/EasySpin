@@ -137,7 +137,6 @@ zeroTemp = any(T==0);
 
 % Detect sample type (disordered, partially ordered, crystal)
 [Exp,Opt] = p_sampletype(Exp,Opt);
-Opt.GridIntegration = Opt.disorderedSample;  % for communication with p_*
 disorderedSample = Opt.disorderedSample;
 
 if Opt.partiallyOrderedSample

@@ -78,17 +78,17 @@ if isfield(Exp,'Detection')
   error('Exp.Detection is obsolete. Use Exp.mwMode instead.');
 end
 
-DefaultParameters.mwFreq = NaN;
-DefaultParameters.Range = [0 realmax];
-DefaultParameters.mwMode = 'perpendicular';
-DefaultParameters.Temperature = NaN; % not implemented!!
+DefaultExp.mwFreq = NaN;
+DefaultExp.Range = [0 realmax];
+DefaultExp.mwMode = 'perpendicular';
+DefaultExp.Temperature = NaN; % not implemented!!
 
-DefaultParameters.SampleFrame = [0 0 0];
-DefaultParameters.CrystalSymmetry = 1;
-DefaultParameters.MolFrame = [0 0 0];
-DefaultParameters.SampleRotation = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
+DefaultExp.SampleRotation = [];
 
-Exp = adddefaults(Exp,DefaultParameters);
+Exp = adddefaults(Exp,DefaultExp);
 
 if isnan(Exp.mwFreq), error('Parameters.mwFreq missing!'); end
 

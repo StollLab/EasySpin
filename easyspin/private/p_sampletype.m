@@ -1,29 +1,30 @@
-% Detect sample type (disordered, partially ordered, crystal)
+% Detect sample type (disordered, partially ordered, crystal) and process
+% sample orientation.
 %
 %  Required fields in input structures:
-%    Exp.Ordering
-%    Exp.MolFrame
-%    Exp.CrystalSymmetry
 %    Exp.SampleFrame
+%    Exp.CrystalSymmetry
+%    Exp.MolFrame
+%    Exp.Ordering
 %
 %  Output:
-%    Exp.MolFrame
-%    Exp.CrystalSymmetry
 %    Exp.SampleFrame
+%    Exp.CrystalSymmetry
+%    Exp.MolFrame
 %    Exp.Ordering
 %
 %    Opt.partiallyOrderedSample
 %    Opt.disorderedSample
 %    Opt.crystalSample
-%    Opt.GridIntegration
 
 function [Exp,Opt] = p_sampletype(Exp,Opt)
 
+% Determine sample type
 partiallyOrderedSample = ~isempty(Exp.Ordering);
 crystalSample = ~partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
 disorderedSample = ~partiallyOrderedSample && ~crystalSample;
 
-% Check fore presence/absence of Exp.MolFrame and Exp.CrystalSymmetry
+% Check Exp.MolFrame and Exp.CrystalSymmetry, supplement if needed
 if partiallyOrderedSample
   if ~isempty(Exp.MolFrame)
     error('Exp.MolFrame cannot be used for partially ordered samples (Exp.Ordering given).');
@@ -40,15 +41,16 @@ if crystalSample
   end
 end
 
-% Supply ExpSampleFrame if absent
-if ~disorderedSample && isempty(Exp.SampleFrame)
+% Supply Exp.SampleFrame if absent
+if isempty(Exp.SampleFrame)
   Exp.SampleFrame = [0 0 0];
 end
+if ~isnumeric(Exp.SampleFrame)
+  error('Exp.SampleFrame must be an Nx3 array.');
+end
 
-Opt.partiallyOrderedSample = partiallyOrderedSample;
-Opt.crystalSample = crystalSample;
-Opt.disorderedSample = disorderedSample;
-Opt.GridIntegration = disorderedSample || partiallyOrderedSample;  % for communication with p_*
+% Check whether sample is rotated
+Opt.rotatedSample = any(Exp.SampleFrame(:)) || (isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation));
 
 % Process Exp.Ordering
 if partiallyOrderedSample
@@ -68,9 +70,17 @@ if partiallyOrderedSample
   end
 end
 
-% Prepare sample rotation matrix (needed to rotate grid in pepper/salt)
-if partiallyOrderedSample
-  [Exp.R_sample,Opt.rotatedSample] = p_samplerotmatrix(Exp.SampleRotation);
+% Calculate sample orientation
+[Opt.R_L2S,Opt.rotatedSample] = p_samplerotation(Exp);
+
+if ~crystalSample && numel(Opt.R_L2S)>1
+  error('For disordered and partially ordered samples, only a single sample orientation (Exp.SampleFrame) can be used.');
 end
+
+
+% Collect output
+Opt.partiallyOrderedSample = partiallyOrderedSample;
+Opt.crystalSample = crystalSample;
+Opt.disorderedSample = disorderedSample;
 
 end

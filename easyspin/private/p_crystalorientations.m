@@ -6,12 +6,11 @@ function [angles_M2L,nOrientations,nSites,averageOverChi] = p_crystalorientation
 
 %{
 Inputs:
-  Opt.GridIntegration     true/false (defined if coming from pepper/salt/saffron/curry)
-  Exp.MolFrame            set by pepper/salt/saffron for powders, by user for cystals
-  Exp.SampleRotation      rotation of the sample in the lab frame
+  Opt.crystalSample       true/false (defined if coming from pepper/salt/saffron/curry)
   Exp.CrystalSymmetry     space group, only used for crystal simulations
-  Exp.MolFrame            molecular frame orientation in crystal frame, only used for crystal sims
+  Exp.MolFrame            set by pepper/salt/saffron for powders, by user for cystals
   Opt.Sites               list of sites to include, e.g. [1 3] in a 4-site group
+  Opt.R_L2S               transformation from lab to sample frame
 
 Outputs:
   angles_M2L       list of orientations Euler angles, one per row
@@ -21,22 +20,25 @@ Outputs:
   averageOverChi   whether to compute average over chi angle
 %}
 
-if ~isfield(Exp,'MolFrame')
-  error('Internal error: Exp.MolFrame missing. Please report.');
-end
-
 % MolFrame contains an Nx3 array of Euler angles (in radians)
 % specifying the relative orientation between sample and molecular frame.
 if size(Exp.MolFrame,2)~=3
-  error('Exp.MolFrame requires three columns (three Euler angles).')
+  error('Exp.MolFrame requires three numbers per row (three Euler angles).')
 end
 
-gridIntegration = isfield(Opt,'GridIntegration') && Opt.GridIntegration;
+pepperCall = isfield(Opt,'rotatedSample');
 
-if ~gridIntegration
+% Process sample orientation if not already done by
+% pepper/salt/saffron/curry
+if ~pepperCall
+  [Opt.R_L2S,Opt.rotatedSample] = p_samplerotation(Exp);
+  Opt.crystalSample = true;
+end
+
+if Opt.crystalSample
   
   % Crystals
-  %-----------------------------------------------------------------------------------
+  %-----------------------------------------------------------------------------
   % Get site-to-site transformations for given crystal space group
   % (matrices for active rotations; defined in sample/crystal frame)
   if isempty(Exp.CrystalSymmetry)
@@ -67,7 +69,7 @@ if ~gridIntegration
     R_S2M = eye(3);
   end
   R_M2S = R_S2M.';
-  
+
   % Generate list of mol frame orientations, represented in sample/crystal frame
   xyzM_M = eye(3);           % xM, yM, zM in mol frame representation
   xyzM0_S = R_M2S*xyzM_M;   % transformation to crystal/sample frame
@@ -75,56 +77,29 @@ if ~gridIntegration
     xyzM_S{iSite} = Rsite_C{iSite}*xyzM0_S;   % active rotation in sample/crystal frame
   end
 
-  % Lab-to-sample/crystal frame transformation, R_L2S
-  % - R_L2S col 1,2,3: lab axis 1,2,3 represented in sample/crystal frame
-  % - R_L2S row 1,2,3: crystal axis 1,2,3 represented in lab frame
-  if ~isnumeric(Exp.SampleFrame)
-    error('Exp.SampleFrame must be an Nx3 array.');
-  end
-  if ~isempty(Exp.SampleFrame)
-    nSamples = size(Exp.SampleFrame,1);
-    logmsg(1,'  %d sample orientation(s) given in Exp.SampleFrame',nSamples);
-    
-    % Construct transformation matrices (lab frame to sample/crystal frame)
-    for s = nSamples:-1:1
-      R_L2S{s} = erot(Exp.SampleFrame(s,:));
-    end
-    
-  else
-    R_L2S = {eye(3)};
-  end
-  nOrientations = numel(R_L2S);
-  
-  % Apply (active) sample rotation
-  [Rrot,rotateSample] = p_samplerotmatrix(Exp.SampleRotation);
-  if rotateSample
-    for s = 1:nSamples
-      R_L2S{s} = R_L2S{s}*Rrot;
-    end
-  end
-  
   % Generate list of lab frame orientations, represented in the
   % various site molecular frames
   % (M = molecular frame of reference site)
   % (Mi = molecular frame of site # i)
-  angles_M2L = zeros(nOrientations*nSites,3);
+  nSampleOrientations = numel(Opt.R_L2S);
+  angles_M2L = zeros(nSampleOrientations*nSites,3);
   idx = 1;
-  for iOri = 1:nOrientations
-    R_S2L = R_L2S{iOri}.';
+  for iSampleOri = 1:nSampleOrientations
+    R_S2L_ = Opt.R_L2S{iSampleOri}.';
     for iSite = 1:nSites
-      xyzMi_L = R_S2L*xyzM_S{iSite};  % transformation to lab frame
+      xyzMi_L = R_S2L_*xyzM_S{iSite};  % transformation to lab frame
       angles_M2L(idx,:) = eulang(xyzMi_L,true);  % Euler angles for Mi -> L frame
       idx = idx + 1;
     end
   end
-  nOrientations = nOrientations*nSites;
+  nOrientations = nSampleOrientations*nSites;
   
   averageOverChi = false;
   
 else
   
   % Disordered and partially ordered systems (require grid integration)
-  %-----------------------------------------------------------------------------------
+  %-----------------------------------------------------------------------------
   % Grid orientations are supplied by pepper etc in Exp.MolFrame.
   
   % Exp.MolFrame transforms from sample(=lab) to molecular frame, but
@@ -149,5 +124,5 @@ else
   if ~isempty(Exp.MolFrame)
     logmsg(1,'  powder simulation; disregarding Exp.MolFrame');
   end
-  
+
 end

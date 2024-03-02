@@ -204,19 +204,18 @@ switch program
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
       error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.SampleFrame instead.');
     end
-    PowderSimulation = isempty(Exp.MolFrame) && isempty(Exp.CrystalSymmetry);
-    Opt.GridIntegration = PowderSimulation; % for communication with resf*
+
+    info.partiallyOrderedSample = ~isempty(Exp.Ordering);
+    info.crystalSample = ~info.partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
+    info.disorderedSample = ~info.partiallyOrderedSample && ~info.crystalSample;
 
     % Partial ordering
-    if ~isempty(Exp.Ordering)
-      if ~PowderSimulation
-        error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
-      end
+    if info.partiallyOrderedSample
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-        UserSuppliedOrderingFcn = false;
+        userSuppliedOrderingFcn = false;
         logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
-        UserSuppliedOrderingFcn = true;
+        userSuppliedOrderingFcn = true;
         logmsg(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');
@@ -242,7 +241,7 @@ switch program
       msg = '  no temperature';
     end
     
-    varargout = {UserSuppliedOrderingFcn, NonEquiPops, msg};
+    varargout = {userSuppliedOrderingFcn, NonEquiPops, msg};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'chili'
     if isfield(Exp,'MOMD')
@@ -427,10 +426,10 @@ switch program
       %  error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
       %end
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-        UserSuppliedOrderingFcn = false;
+        userSuppliedOrderingFcn = false;
         logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
-        UserSuppliedOrderingFcn = true;
+        userSuppliedOrderingFcn = true;
         logmsg(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');
@@ -456,7 +455,7 @@ switch program
       end
     end
     
-    varargout = {Exp, CenterField, ParallelMode, UserSuppliedOrderingFcn, PowderSimulation};
+    varargout = {Exp, CenterField, ParallelMode, userSuppliedOrderingFcn, PowderSimulation};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'cardamom'

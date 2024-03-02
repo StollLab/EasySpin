@@ -4,7 +4,8 @@
 %   Sys (for hamsymm() call)
 %   Sys.initState (optional)
 %   Exp.SampleFrame (for crystals)
-%   Opt.GridIntegration (required)
+%   Opt.disorderedSample (required)
+%   Opt.partiallyOrderedSample (required)
 %   Opt.GridSymmetry (optional)
 %   Opt.GridFrame (optional)
 %   Opt.GridSize
@@ -26,7 +27,7 @@ function [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt)
 
 logmsg(1,'-orientations------------------------------------------');
 
-if Opt.GridIntegration
+if Opt.disorderedSample || Opt.partiallyOrderedSample
   % disordered sample (powder or frozen solution) or partially ordered sample
   
   logmsg(1,'  disordered sample (randomly oriented centers)');
@@ -105,9 +106,8 @@ else  % crystal sample
   
   % Check Exp.SampleFrame
   [nC1,nC2] = size(Exp.SampleFrame);
-  if nC2~=2 && nC2~=3
-    error('Exp.SampleFrame must be a Nx3 or Nx2 array, yours is %dx%d.',...
-        nC1,nC2);
+  if nC2~=3
+    error('Exp.SampleFrame must be a Nx3 array, yours is %dx%d.',nC1,nC2);
   end
   nOrientations = size(Exp.SampleFrame,1);
   
@@ -119,7 +119,7 @@ else  % crystal sample
   if nOrientations==1
     logmsg(1,'  crystal sample, single orientation');
   else
-    logmsg(1,'  crystal sample with %d user-specified orientations',nOrientations);
+    logmsg(1,'  crystal sample, %d orientations',nOrientations);
   end
   
 end

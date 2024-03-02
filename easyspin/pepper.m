@@ -415,6 +415,7 @@ logmsg(1,msg);
 [Exp,Opt] = p_sampletype(Exp,Opt);
 crystalSample = Opt.crystalSample;
 
+
 %=======================================================================
 
 
@@ -931,7 +932,7 @@ elseif ~BruteForceSum
         centerPhi = zeros(1,numel(centerTheta));
         if Opt.rotatedSample
           zS_M = ang2vec(centerPhi,centerTheta);  % sample z axis in mol. frame
-          zL_M = Exp.R_sample*zS_M;
+          zL_M = Opt.R_L2S{1}*zS_M;
           [centerPhi,centerTheta] = vec2ang(zL_M);
         end
         OrderingWeights = orifun(-centerTheta,-centerPhi);
@@ -963,7 +964,7 @@ elseif ~BruteForceSum
         centerPhi = mean(fphi(idxTri));
         if Opt.rotatedSample
           zS_M = ang2vec(centerPhi,centerTheta);  % sample z axis in mol. frame
-          zL_M = Exp.R_sample*zS_M;
+          zL_M = Opt.R_L2S{1}*zS_M;
           [centerPhi,centerTheta] = vec2ang(zL_M);
         end
         OrderingWeights = orifun(-centerTheta,-centerPhi);

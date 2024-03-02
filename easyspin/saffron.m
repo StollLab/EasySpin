@@ -1726,6 +1726,7 @@ if fastSimulationMode
   %===============================================================
   logmsg(1,'-final-------------------------------------------------');
   logmsg(1,'Data processing...');
+  info = struct;
   if ~isENDOR
     switch nDimensions
       case 1
@@ -1780,8 +1781,6 @@ if fastSimulationMode
     if processData
       if nDimensions==2, info.f1 = f1; info.f2 = f2; else, info.f = f1; end
       info.fd = fd;
-    else
-      info = struct;
     end
 
   else
@@ -1791,7 +1790,6 @@ if fastSimulationMode
     if max(abs(fd))<1e-300
       fd = fd*0;
     end
-    info = struct;
   end
 
   % Assign output
