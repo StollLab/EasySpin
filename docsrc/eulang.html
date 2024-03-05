@@ -36,7 +36,7 @@ Get Euler angles from rotation matrix.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Angles = eulang(Rp)
+angles = eulang(Rp)
 [alpha,beta,gamma] = eulang(Rp)
 </pre>
 
@@ -44,7 +44,7 @@ Angles = eulang(Rp)
 <div class="subtitle">Description</div>
 
 <p>
-Given a <a href="eulerangles.html">rotation matrix</a> <code>Rp</code>, the function <code>eulang</code> computes the <a href="eulerangles.html">Euler angles</a> defining the same rotation and returns them separately or as a 3-element vector <code>Angles = [alpha, beta, gamma]</code>. The angles are in radians.
+Given a <a href="eulerangles.html">rotation matrix</a> <code>Rp</code>, the function <code>eulang</code> computes the <a href="eulerangles.html">Euler angles</a> defining the same rotation and returns them separately or as a 3-element vector <code>angles = [alpha, beta, gamma]</code>. The angles are in radians.
 </p>
 
 <p>
@@ -63,7 +63,7 @@ Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) descr
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>eulang</code> detemines the Euler angles by least-squares fitting, starting from angles analytically extracted from a few elements of the given rotation matrix.
+<code>eulang</code> first checks if the input matrix is orthogonal and then determines the Euler angles analytically from the matrix elements. If the input matrix is close to orthogonal, <code>eulang</code> replaces it by its closest orthogonal neighbor using singular-value decomposition. If the the matrix is too far from orthogonal, <code>eulang</code> errors.
 </p>
 
 <!-- ============================================================= -->
@@ -98,6 +98,49 @@ ans =
    34.0000   72.0000 -143.0000
 </pre>
 
+<p>
+If the elements of a rotation matrix are not known to sufficient precision, the matrix might not be orthogonal:
+</p>
+
+<pre class="matlab">
+R_approx = [-0.04    0.99   -0.11
+            -0.77    0.04    0.63
+             0.63    0.11    0.77];
+det(R_approx)
+</pre>
+
+<pre class="mloutput">
+ans =
+    0.9935
+</pre>
+
+<p>
+and <code>eulang</code> will refuse to calculate Euler angles. To orthogonalize the matrix, use
+</p>
+
+<pre class="matlab">
+[U,~,V] = svd(R_approx)
+R = U*V.'
+</pre>
+
+<pre class="mloutput">
+R =
+   -0.0394    0.9931   -0.1103
+   -0.7747    0.0394    0.6311
+    0.6311    0.1103    0.7678
+</pre>
+
+<p><code>eulang</code> now works:</p>
+
+<pre class="matlab">
+eulang(R)
+</pre>
+
+<pre class="mloutput">
+ans =
+    0.1730    0.6954    1.3978
+</pre>
+   
 <!-- ============================================================= -->
 <div class="subtitle">See also</div>
 

@@ -2,10 +2,6 @@
 
 function Sys = orca2easyspin_propbin(propfilename)
 
-% Whether or not to use least-squares fitting for
-% rotation matrix -> Euler angle conversion using eulang()
-skipFitting = true;
-
 DebugMode = false;
 
 Sys = [];
@@ -108,7 +104,7 @@ while ~feof(f)
       else
         R = reshape(data(4:12),3,3);
         %g = R*diag(gpv)*R.';
-        gFrame = eulang(R.',skipFitting);
+        gFrame = eulang(R.');
       end
       
     % D tensor -----------------------------------------
@@ -119,7 +115,7 @@ while ~feof(f)
       Dpv = Dpv*1e-4*clight;   % cm^-1 -> MHz
       R = reshape(data(6:14),3,3);
       %D = R*diag(Dpv)*R.';
-      DFrame = eulang(R.',skipFitting);
+      DFrame = eulang(R.');
       
     % A matrices ---------------------------------------
     case {6, 15, 24, 31, 38}
@@ -130,7 +126,7 @@ while ~feof(f)
         Apv(idx,1:3) = data(3:5,iNuc).'; %#ok<AGROW>
         R = reshape(data(6:14,iNuc),3,3).';
         %A = R*diag(Apv)*R.';
-        AFrame(idx,1:3) = eulang(R.',skipFitting).'; %#ok<AGROW>
+        AFrame(idx,1:3) = eulang(R.').'; %#ok<AGROW>
       end
     
     % EFG tensors ----------------------------------------
@@ -141,7 +137,7 @@ while ~feof(f)
         efg_au = data(2:4,iNuc).'; % EFG, atomic unit (Eh/e/a0^2)
         efg(idx,1:3) = efg_au*(hartree/echarge/bohrrad^2); % -> SI unit (V/m^2)
         R = reshape(data(5:13,iNuc),3,3).';
-        efgFrame(idx,1:3) = eulang(R.',skipFitting);
+        efgFrame(idx,1:3) = eulang(R.');
       end
     
     % Spin densities at nuclei -------------------------

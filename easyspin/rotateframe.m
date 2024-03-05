@@ -44,14 +44,12 @@ end
 xyz = erot(ori).';  % transpose!
 % columns of xyz are the x, y and z vector in the reference frame
 
-skipFitting = true;
-
 nrho = numel(rho);
 ori_rot = zeros(nrho,3);
 for irho = 1:numel(rho)
   R = rotaxi2mat(nRot,rho(irho));
   xyz_rotated = R.'*xyz;  % active rotation!
-  ori_rot(irho,:) = eulang(xyz_rotated.',skipFitting);
+  ori_rot(irho,:) = eulang(xyz_rotated.',true);
 end
 
 end
