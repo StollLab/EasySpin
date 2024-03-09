@@ -1905,7 +1905,7 @@ end
 
 for i = 1:N
 
-  expdata = esfitdata.data(esfitdata.idx{i});
+  expdata = real(esfitdata.data(esfitdata.idx{i}));
 
   NaNdata = NaN(1,numel(expdata));
   
@@ -1949,7 +1949,7 @@ if strcmp(evt,'switch')
 
     % Get relevant quantities
     x = esfitdata.Opts.x(idx);
-    expdata = esfitdata.data(idx);
+    expdata = real(esfitdata.data(idx));
 
     if isfield(esfitdata,'curr') && isfield(esfitdata.curr,'sim')
       currsim = real(esfitdata.curr.sim(idx));
@@ -2036,7 +2036,7 @@ for i = 1:esfitdata.nDataSets
   idx = esfitdata.idx{i};
 
   % Get current spectrum
-  expdata = esfitdata.data(idx);
+  expdata = real(esfitdata.data(idx));
   currsim = real(esfitdata.curr.sim(idx));
   currbaseline = real(esfitdata.curr.baseline(idx));
 
@@ -2235,8 +2235,8 @@ set(gui.ParameterTable,'Data',Data);
 % Hide current sim plot in data axes
 for i = 1:esfitdata.nDataSets
   idx = esfitdata.idx{i};
-  expdata = esfitdata.data(idx);
-  bestsim = esfitdata.best.fit(idx);
+  expdata = real(esfitdata.data(idx));
+  bestsim = real(esfitdata.best.fit(idx));
   set(gui.currsimdata(i),'YData',NaN(1,numel(expdata)));
   residualzero = get(gui.residualzero(i),'Value');
   set(gui.residualdata(i),'YData',(expdata(:)-bestsim(:))+residualzero);
@@ -2401,7 +2401,7 @@ for i = 1:esfitdata.nDataSets
 
   % Get relevant quantities
   x = esfitdata.Opts.x(idx);
-  expdata = esfitdata.data(idx);
+  expdata = real(esfitdata.data(idx));
   bestsim = real(esfitdata.best.fit(idx));
   currsim = real(esfitdata.curr.sim(idx));
   currbaseline = real(esfitdata.curr.baseline(idx));
@@ -3195,6 +3195,7 @@ for i = 1:esfitdata.nDataSets
   edges = find(diff([1; esfitdata.Opts.Mask(idx); 1]));
   excludedRegions = reshape(edges,2,[]).';
   excludedRegions(:,1) = excludedRegions(:,1)-1;
+  excludedRegions(excludedRegions==0) = 1;
   upperlimit = numel(x);
   excludedRegions(excludedRegions>upperlimit) = upperlimit;
   excludedRegions = x(excludedRegions);

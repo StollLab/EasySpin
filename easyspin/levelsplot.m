@@ -17,7 +17,7 @@
 %      nPoints         number of points
 %      PlotThreshold   all transitions with relative intensity below
 %                      this value will not be plotted. Example: 0.005
-%      SlopeColor      true/false (defaut false). Color energy level lines
+%      SlopeColor      true/false (default false). Color energy level lines
 %                      by their slope, (corresponding to their mS expectation
 %                      value).
 %      StickSpectrum   true/false (default false). Plot stick spectrum underneath
@@ -131,10 +131,10 @@ end
 % Set horizontal and vertical units, scaling and labels
 if max(Bvec)>=2000  % mT
   Bscale = 1e-3;  % use tesla for plotting
-  fieldUnit = 'magnetic field (T)';
+  fieldUnit = 'T';
 else
   Bscale = 1;  % use millitesla for plotting
-  fieldUnit = 'magnetic field (mT)';
+  fieldUnit = 'mT';
 end
 
 % Parse mwFreq (fourth input argument)
@@ -184,9 +184,10 @@ end
 %-------------------------------------------------------------------------------
 if Opt.StickSpectrum && computeResonances
   subplot(4,1,[1 2 3]);
-  cla
 end
+cla
 hLevelsAxes = gca;
+linecolor = [0 0.4470 0.7410];
 
 if Opt.SlopeColor
   for iLevel = nLevels:-1:1
@@ -196,7 +197,7 @@ if Opt.SlopeColor
   colormap(flipud(parula));
 else
   hLevels = plot(Bvec*Bscale,E*Escale,'b');
-  set(hLevels,'Color',[0 0.4470 0.7410]);
+  set(hLevels,'Color',linecolor);
 end
 for iLevel = 1:nLevels
   hLevels(iLevel).Tag = 'level';
@@ -263,14 +264,21 @@ if computeResonances
       xl = xlim;
       subplot(4,1,4);
       cla
+      yline(0);
       for iF = 1:numel(resonFields)
-        hLine = line([1 1]*resonFields(iF)*Bscale,[0 intensity(iF)],'LineWidth',2,'Tag','line');
+        hLine = line([1 1]*resonFields(iF)*Bscale,[0 intensity(iF)],'Color',linecolor,'LineWidth',2,'Tag','line');
         hLine.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
       end
-      ylim([0 1.1]);
+      if any(intensity<0)
+        ylim([-1 1]*1.1);
+      else
+        ylim([0 1.1]);
+      end
       xlim(xl);
       box on
       set(gca,'FontSize',hLevelsAxes.FontSize)
+      hStickSpectrum = gca;
+      hStickSpectrum.UserData = linkprop([hStickSpectrum hLevelsAxes],'XLim');
     end
     
   else
@@ -355,7 +363,7 @@ hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
 hParent = hObj.Parent;  % this is either the axes or the figure
 
 % Remove any previous thick lines
-if ~isempty(hPrevLine)
+if ~isempty(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
   set(hPrevLine,'LineWidth',defaultLineWidth);
   hPrevLine = [];
 end
@@ -385,5 +393,10 @@ end
 % Display information
 hText = findobj(hParent,'Tag','infotext');
 set(hText,'String',infostr);
+
+% Update position (for infotext to remain visible after zooming in)
+if ~isempty(hText) && ~isempty(infostr)
+  hText.Position(1:2) = [hParent.XLim(1) hParent.YLim(1)];
+end
 
 end

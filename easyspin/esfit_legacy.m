@@ -1071,7 +1071,7 @@ if windowClosing, return; end
 
 % Get relevant quantities
 x = esfitdata.Opts.x(:);
-expdata = esfitdata.data(:);
+expdata = real(esfitdata.data(:));
 bestsim = real(esfitdata.best.fit(:));
 currsim = real(esfitdata.curr.sim(:));
 currpar = esfitdata.curr.par;
@@ -1477,7 +1477,7 @@ esfitdata.modelErrorHandler = @(ME) GUIErrorHandler(ME);
 p_eval = esfitdata.p_start;
 active = ~esfitdata.fixedParams;
 p_eval = p_eval(active);
-expdata = esfitdata.data(:);
+expdata = real(esfitdata.data(:));
 esfitdata.Opts.AutoScaleID = esfitdata.AutoScaleSettings{get(findobj('Tag','AutoScaleMenu'),'Value')};
 esfitdata.Opts.BaseLine = esfitdata.BaseLineSettings{get(findobj('Tag','BaseLineMenu'),'Value')};
 esfitdata.Opts.useMask = get(findobj('Tag','MaskCheckbox'),'Value')==1;
@@ -1556,7 +1556,7 @@ esfitdata.curr = [];
 
 % Readjust vertical range
 mask = esfitdata.Opts.Mask;
-expdata = esfitdata.data(:);
+expdata = real(esfitdata.data(:));
 maxy = max(expdata(mask));
 miny = min(expdata(mask));
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
@@ -1893,7 +1893,7 @@ esfitdata.besthistory.par = [];
 
 % Readjust vertical range
 mask = esfitdata.Opts.Mask;
-expdata = esfitdata.data(:);
+expdata = real(esfitdata.data(:));
 maxy = max(expdata(mask));
 miny = min(expdata(mask));
 YLimits = [miny maxy] + [-1 1]*esfitdata.Opts.PlotStretchFactor*(maxy-miny);
