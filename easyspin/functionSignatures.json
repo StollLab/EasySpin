@@ -2444,7 +2444,7 @@
         "name": "Sys",
         "kind": "required",
         "type": [
-            "structure"
+            "struct"
         ],
         "purpose": "spin system structure"
       },
@@ -4423,7 +4423,7 @@
           "scalar"
         ],
         "purpose": "coupling coefficient"
-      }
+      },
       {
         "name": "type",
         "kind": "required",
