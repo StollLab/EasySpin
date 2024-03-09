@@ -4384,8 +4384,8 @@
       }
     ]
   },
-  "resonatorfunc": {
-    "description": "Resonator voltage reflection coefficient",
+  "resonatorprofile": {
+    "description": "Resonator profile (transfer function, voltage reflection coefficient or power reflection coefficient)",
     "inputs": [
       {
         "name": "nu",
@@ -4424,7 +4424,15 @@
         ],
         "purpose": "coupling coefficient"
       }
-    ]
+      {
+        "name": "type",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "type of output to return"
+      }    
+	  ]
   },
   "rotateframe": {
     "description": "Rotate a frame given by Euler angles",
