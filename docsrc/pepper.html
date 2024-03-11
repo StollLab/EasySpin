@@ -194,15 +194,15 @@ The three <a href="eulerangles.html">Euler angles</a>, in radians, for the trans
 <em>scalar</em> (default: zero) or <em>function handle</em></div>
 <div class="optiondescr">
 <p>
-If a number is given in this field, it specifies the orientational distribution of the paramagnetic molecules in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
+If a number of function handle is given in this field, it specifies the orientational distribution of the paramagnetic molecules in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
 </p>
 
 <p>
-If a number is given, the orientational distribution is non-isotropic and computed as P(&alpha;,&beta;,&gamma;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &lambda; is the number specified in <code>Exp.Ordering</code>. The angles &alpha;, &beta; and &gamma; (in radians) are the Euler angles that transform the <a href="frames.html">sample frame</a> to the <a href="frames.html">molecular frame</a>. In particular, &beta; is the angle between the sample-frame z axis and the molecular-frame z axis. and 
+If a number is given, the orientational distribution is non-isotropic and computed as P(&alpha;,&beta;,&gamma;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &lambda; is the number specified in <code>Exp.Ordering</code>. The angles &alpha;, &beta; and &gamma; (in radians) are the Euler angles that transform the <a href="frames.html">sample frame</a> to the <a href="frames.html">molecular frame</a>. In particular, &beta; is the angle between the sample-frame z axis and the molecular-frame z axis.
 </p>
 
 <p>
-Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&beta;) is maximal at &beta; = 90&deg; (preferential orientation of molecular z axis in the sample xy plane), for positive values it is maximal at &beta; = 0&deg; and &beta; = 180&deg; (preferential alignment of the molecular z axis with the sample z axis). The larger the magnitude of &lambda;, the sharper the distributions.
+Typical values for &lambda; are between about -10 and +10. For negative values, the orientational distribution function P(&alpha;,&beta;,&gamma;) is maximal at &beta; = 90&deg; (preferential orientation of molecular z axis in the sample xy plane), for positive values it is maximal at &beta; = 0&deg; and &beta; = 180&deg; (preferential alignment of the molecular z axis with the sample z axis). The larger the magnitude of &lambda;, the sharper the distributions.
 </p>
 
 <p>
@@ -219,11 +219,11 @@ plot(beta*180/pi,P);
 </pre>
 
 <p>
-If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one (<code>beta</code>) or three input arguments (<code>alpha</code>, <code>beta</code> and <code>gamma</code>), in radians. The function must accept arrays and return an array <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>alpha(k)</code>, <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
+If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept three input arguments (<code>alpha</code>, <code>beta</code> and <code>gamma</code>), in radians. The function must accept arrays and return an array <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>alpha(k)</code>, <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
 </p>
 
 <pre class="matlab">
-Exp.Ordering = @(alpha,beta,gamma) gaussian(beta,0,15/180*pi);
+Exp.Ordering = @(alpha,beta,gamma) gaussian(beta,0,15*pi/180);
 </pre>
 
 <p>
@@ -247,7 +247,7 @@ Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
 </p>
 
 <p>
-When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
+When providing a function for <code>Exp.Ordering</code>, make sure that the grid symmetry used in the simulation is the same or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
 </p>
 
 <p>
@@ -255,8 +255,19 @@ If the orientational distribution provided via <code>Exp.Ordering</code> is very
 </p>
 
 <p>
-If you use <code>Exp.Ordering</code> (which is for partially ordered samples), you cannot use <code>Exp.MolFrame</code> and <code>Exp.CrystalSymmetry</code> (which are for crystals).
+The distributions in <code>Exp.Ordering</code> do not have to be normalized. <code>pepper</code> normalizes it internally. If you want to calculate the normalization factor, use numerical integration with <code>integral3</code>:
 </p>
+
+<pre class="matlab">
+lambda = 3;
+P = @(alpha,beta,gamma) exp(lambda*(3*cos(beta).^2)/2);
+integral3(P,0,2*pi,0,pi,0,2*pi)
+</pre>
+
+<pre class="mloutput">
+ans =
+   3.2090e+03
+</pre>
 
 </div>
 

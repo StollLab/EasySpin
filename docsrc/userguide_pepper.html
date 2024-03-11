@@ -575,26 +575,23 @@ such partially ordered systems are different from those of powders and frozen so
 </p>
 
 <p>
-<a href="pepper.html" class="esf">pepper</a> can include partial ordering in the spectral simulation. For this, set a value
-(different from zero) in the experiment structure field <code>Exp.Ordering</code>. It is a number which specifies the nature and
-the degree of the ordering.
+<a href="pepper.html" class="esf">pepper</a> can include partial ordering in the spectral simulation. Information about the ordering is provided via <code>Exp.Ordering</code>. There are two ways to specify ordering, either using a single number or by providing an anonymous function. If <code>Exp.Ordering</code>is zero or empty, no ordering is used. 
 </p>
 
 <p>
-If it is zero, no ordering is used. Positive values mean that the molecules are partially aligned
-so that the magnetic field vector is mostly approximately parallel to the molecular z axis.
-Negative values specify partial ordering such that molecular orientations with
-the magnetic field vector in the molecular xy plane are more probable.
+If <code>Exp.Ordering</code> is set to a number, a simple axial built-in ordering function is used.
+Positive values mean that the molecules are partially aligned so that the molecular z axis is predominantly along the sample z axis.
+Negative values specify partial ordering such that molecular orientations with the molecular z axis perpendicular to the sample z axis are dominant.
 </p>
 
 <pre class="matlab">
 Exp.Ordering = 0;   % all orientations equally populated
-Exp.Ordering = -1;  % slightly preferential orientation with field in the molecular xy plane
-Exp.Ordering = +10; % strongly aligned such that field is along the molecular z axis
+Exp.Ordering = -1;  % slightly preferential orientation with molecular z along sample z axis
+Exp.Ordering = +10; % strongly aligned such that molecular z axis is perpendicular to sample z axis
 </pre>
 
 <p>
-The ordering function used is very simple (see the <a href="pepper.html" class="esf">pepper</a> documentation for more information), but sufficient for many cases. Here is a simulation of a sample where the molecules are preferentially oriented such that the molecular z axis is close to the magnetic field vector:
+The built-in ordering function is very simple (see the <a href="pepper.html" class="esf">pepper</a> documentation for more information), but sufficient for many cases. Here is a simulation of a sample where the molecules are preferentially oriented such that the molecular z axis is parallel to the sample z axis:
 </p>
 
 <pre class="matlab">
@@ -606,19 +603,15 @@ pepper(Sys,Exp);
 </pre>
 
 <p>
-You can also define your own custom orientational distribution in a separate function and supply to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. Written as an anonymous function, the built-in orientational distribution is equivalent to
+The second way to provide information about the orientational distribution is to write a separate function and supply to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. The function takes the three Euler angles that transform the sample frame to the molecular frame as input (in analogy to <code>Exp.MolFrame</code>). Here is an example. Written as an anonymous function, the built-in orientational distribution is
 </p>
 
 <pre class="matlab">
-Exp.Ordering = @(beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
+Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
 </pre>
 
 <p>
-where the EasySpin function <a href="plegendre.html">plegendre</a> returns the associated Legendre polynomial and <code>lambda</code> corresponds to the number given in <code>Exp.Ordering</code>.
-</p>
-
-<p>
-If you use <code>Exp.Ordering</code> (which is for partially ordered samples), you cannot use <code>Exp.MolFrame</code> (which is for crystals).
+The EasySpin function <a href="plegendre.html">plegendre</a> returns the associated Legendre polynomial and <code>lambda</code> corresponds to the number given in <code>Exp.Ordering</code>.
 </p>
 
 <!-- ============================================================= -->

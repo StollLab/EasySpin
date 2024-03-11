@@ -462,11 +462,10 @@ if isfield(Exp,'CrystalSymmetry')
 end
 
 % Ordering of director frame (partial ordering)
-
 if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
-    Exp.Ordering = @(beta) exp(lambda*plegendre(2,0,cos(beta)));
+    Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
     logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
     logmsg(1,'  partial director ordering (user-supplied function)');
@@ -474,14 +473,14 @@ if ~isempty(Exp.Ordering)
     error('Exp.Ordering must be either a single number or a function handle.');
   end
   if nargin(Exp.Ordering)==1
-    Exp.Ordering = @(beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
-  elseif nargin(Exp.Ordering)>2
-    logmsg(1,'  Ordering function in Exp.Ordering must take 1 argument (beta) or 2 arguments (beta,gamma).');
+    Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)~=3
+    logmsg(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
   end
 else
   logmsg(1,'  director ordering: none');
 end
-useDirectorOrdering = ~isempty(Exp.Ordering);
+partiallyOrderedSample = ~isempty(Exp.Ordering);
 
 % Determine whether to average over an orientational grid
 % (without potential, no orientational averaging is necessary - it's identical to a
@@ -836,12 +835,12 @@ if integrateOverGrid
   if Opt.GridSize(1)==1
     phi = 0;
     theta = 0;
-    GridWeights = 4*pi;
+    gridWeights = 4*pi;
     Opt.GridSymmetry = 'O3';
   else
     grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
     Vecs = grid.vecs;
-    GridWeights = grid.weights;
+    gridWeights = grid.weights;
     % Transform vector to reference frame representation and convert to polar angles.
     if isempty(Opt.GridFrame)
       [phi,theta] = vec2ang(Vecs);
@@ -858,23 +857,23 @@ else
     phi = 0;
     theta = 0;
   end
-  GridWeights = 4*pi;
+  gridWeights = 4*pi;
   logmsg(2,'  single-orientation simulation');
 end
 nOrientations = numel(phi);
 Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
-if useDirectorOrdering
-  OrderingWeights = orifun(-theta,-phi);
-  if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
-  if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+if partiallyOrderedSample
+  orderingWeights = Exp.Ordering(0,-theta,-phi);
+  if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
+  if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
   logmsg(2,'  orientational potential');
 else
-  OrderingWeights = ones(1,nOrientations);
+  orderingWeights = ones(1,nOrientations);
 end
 
-Weights = GridWeights.*OrderingWeights;
+Weights = gridWeights.*orderingWeights;
 Weights = 4*pi*Weights/sum(Weights);
 
 

@@ -12,7 +12,6 @@ Exp.mwRange = [9 11];
 
 Opt.LLMK = [100 0 0 0];
 Opt.Verbosity = 0;
-Opt.GridSymmetry = 'Dinfh';
 
 c200 = 3;
 

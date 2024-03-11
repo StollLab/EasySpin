@@ -944,8 +944,8 @@ elseif ~BruteForceSum
 
       % Obtain user-supplied orientational distribution weights
      if Opt.partiallyOrderedSample
-        centerTheta = mean(fthe(idxTri));
         centerPhi = mean(fphi(idxTri));
+        centerTheta = mean(fthe(idxTri));
         chi = linspace(0,2*pi,20);
         dchi = mean(diff(chi));
         c = cos(chi);
@@ -954,7 +954,8 @@ elseif ~BruteForceSum
         ow = zeros(1,numel(chi));
         R_S2L = Opt.R_L2S{1}.';
         for iOri = 1:numel(centerPhi)
-          R_L2M = erot(centerPhi(iOri),centerTheta(iOri),0);
+          R_M2L = erot(centerPhi(iOri),centerTheta(iOri),0);
+          R_L2M = R_M2L.';
           xL_M = R_L2M(:,1)*c + R_L2M(:,2)*s;
           yL_M = -R_L2M(:,1)*s + R_L2M(:,2)*c;
           for iChi = 1:numel(chi)
@@ -968,9 +969,10 @@ elseif ~BruteForceSum
         end
         if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-        fWeights = fWeights(:).*orderingWeights(:);
-        fWeights = 4*pi/sum(fWeights)*fWeights;
-      end
+        
+        fWeights = fWeights(:).*orderingWeights(:)/sum(orderingWeights);
+     end
+     fWeights = 4*pi*fWeights/sum(fWeights);
 
       logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end
