@@ -25,47 +25,61 @@
 
 function [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt)
 
-logmsg(1,'-orientations------------------------------------------');
+logmsg(1,'-grid/orientations-------------------------------------');
 
-if Opt.disorderedSample || Opt.partiallyOrderedSample
-  % disordered sample (powder or frozen solution) or partially ordered sample
+useGrid = Opt.disorderedSample || Opt.partiallyOrderedSample;
+if useGrid
+  % disordered sample (powder or frozen solution)
   
   logmsg(1,'  disordered sample (randomly oriented centers)');
   
-  if isempty(Opt.GridSymmetry)
-    
-    % Determine grid symmetry from Hamiltonian symmetry
-    msg = 'automatic determination of grid symmetry and orientation';
-    [Opt.GridSymmetry,Opt.GridFrame] = hamsymm(Sys);
-    nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
-    if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
-      logmsg(1,'  Hamiltonian symmetry is axial (Dinfh), non-equilibrium state given in Sys.initState\n   -> reducing symmetry to rhombic (D2h).');
-      Opt.GridSymmetry = 'D2h';
-    end
-  
-  else
-    
-    msg = 'user-specified grid symmetry';
-    if isempty(Opt.GridFrame)
-      Opt.GridFrame = eye(3);
+  % Set grid symmetry group
+  if isempty(Opt.GridSymmetry)    
+    if Opt.disorderedSample
+      % Determine grid symmetry from Hamiltonian symmetry
+      [Opt.GridSymmetry,Opt.GridFrame] = hamsymm(Sys);
+      nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
+      if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
+        logmsg(1,'  Hamiltonian symmetry is axial (Dinfh), non-equilibrium state given in Sys.initState\n   -> reducing symmetry to rhombic (D2h).');
+        Opt.GridSymmetry = 'D2h';
+      end
     else
-      msg = [msg ' and grid frame orientation'];
+      % Use Ci grid symmetry for partially ordered samples (since symmetry
+      % of ordering function is unknown)
+      if isempty(Opt.GridSymmetry)
+        Opt.GridSymmetry = 'Ci';
+      end
     end
+    msg = '  grid: automatically determined grid symmetry';
+  else
+    msg = '  grid: user-specified grid symmetry';
   end
-  logmsg(1,'  %s',msg);
+  logmsg(1,msg);
+
+  if Opt.partiallyOrderedSample && ~strcmp(Opt.GridSymmetry,'Ci')
+    error('For partially ordered samples, Ci grid symmetry is required.');
+  end
+
+  % Set grid frame orientation
+  if isempty(Opt.GridFrame)
+    Opt.GridFrame = eye(3);
+    msg = '  grid: default grid frame orientation';
+  else
+    msg = '  grid: user-specified grid frame orientation';
+  end
+  logmsg(1,msg);
   
+  % Display grid symmetry group and grid frame orientation
   tiltedFrame = sum(diag(Opt.GridFrame))~=3; % test for eye(3)
-  
-  % Display grid symmetry group and grid frame
   if tiltedFrame
     msg = 'tilted';
   else
     msg = 'non-tilted';
   end
-  logmsg(1,'  grid: symmetry %s, frame %s',Opt.GridSymmetry,msg);
+  logmsg(1,'  grid: symmetry %s, %s frame',Opt.GridSymmetry,msg);
   if tiltedFrame
-    str = '  grid frame orientation in molecular frame (Euler angles, deg):\n    [%s]';
-    logmsg(1,str,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
+    msg = '  grid: frame orientation in molecular frame (Euler angles, deg):\n    [%s]';
+    logmsg(1,msg,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
   end
   
   % Get spherical grid
@@ -102,7 +116,7 @@ if Opt.disorderedSample || Opt.partiallyOrderedSample
     logmsg(1,'  %d orientations (GridSize = %d)',nOrientations,Opt.GridSize(1));
   end
   
-else  % crystal sample 
+else  % Crystal sample 
   
   % Check Exp.SampleFrame
   [nC1,nC2] = size(Exp.SampleFrame);
@@ -123,4 +137,3 @@ else  % crystal sample
   end
   
 end
-

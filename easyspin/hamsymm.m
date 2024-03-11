@@ -199,8 +199,8 @@ if ~higherZeemanPresent
 end
 
 % Set of field vectors for the test operations.
-q = 7; % small theta aliquod
-qq = 6.3456; % small phi aliquod
+q = 7; % small theta aliquot
+qq = 6.3456; % small phi aliquot
 the = pi/180* [q,  q, q,q/2,q/2,  q,180-q,180-q,180-q,90-q,    q,  q];
 phi = pi/180*([0,120,90, 90,  0,-90,    0,  -90,  180,  90,-2*qq,180]+qq);
 Field = 350; % mT

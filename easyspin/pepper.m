@@ -27,7 +27,7 @@
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
-%      SampleRotation      3-element array of Euler angles (in radians) for sample rotation
+%      SampleRotation      sample rotation {rho,nL} with rotation angle rho and axis nL (lab frame)
 %      SampleFrame         3-element array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
@@ -525,11 +525,6 @@ Opt.Intensity = anisotropicIntensities;
 % Set up orientational grid
 [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
 
-% Fold orientational distribution function into grid region
-if Opt.partiallyOrderedSample
-  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
-end
-
 %=======================================================================
 %=======================================================================
 %                   PEAK DATA COMPUTATION
@@ -918,28 +913,17 @@ elseif ~BruteForceSum
     if axialGrid
       if doInterpolation
         % set up fine interpolation grid
-        grid = sphgrid(0,nfKnots);
-        fphi = grid.phi;
-        fthe = grid.theta;
+        fgrid = sphgrid(0,nfKnots);
+        fphi = fgrid.phi;
+        fthe = fgrid.theta;
       else
         fthe = Exp.theta;
       end
-      fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
+      fWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
       
       % Obtain user-supplied orientational distribution weights
-      if ~isempty(Exp.Ordering)
-        centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
-        centerPhi = zeros(1,numel(centerTheta));
-        if Opt.rotatedSample
-          zS_M = ang2vec(centerPhi,centerTheta);  % sample z axis in mol. frame
-          zL_M = Opt.R_L2S{1}*zS_M;
-          [centerPhi,centerTheta] = vec2ang(zL_M);
-        end
-        OrderingWeights = orifun(-centerTheta,-centerPhi);
-        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
-        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-        fSegWeights = fSegWeights(:).*OrderingWeights(:);
-        fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
+      if Opt.partiallyOrderedSample
+        error('Cannot use axial grid for partially ordered samples.');
       end
 
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
@@ -947,31 +931,45 @@ elseif ~BruteForceSum
     else % nonaxial grid symmetry
       if doInterpolation
         % set up fine interpolation grid
-        [grid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
-        fphi = grid.phi;
-        fthe = grid.theta;
+        [fgrid,tri] = sphgrid(Opt.GridSymmetry,nfKnots);
+        fphi = fgrid.phi;
+        fthe = fgrid.theta;
       else
         tri = Exp.tri;
         fthe = Exp.theta;
         fphi = Exp.phi;
       end
       idxTri = tri.idx.';
-      Areas = tri.areas;
+      fWeights = tri.areas;
 
       % Obtain user-supplied orientational distribution weights
-      if ~isempty(Exp.Ordering)
+     if Opt.partiallyOrderedSample
         centerTheta = mean(fthe(idxTri));
         centerPhi = mean(fphi(idxTri));
-        if Opt.rotatedSample
-          zS_M = ang2vec(centerPhi,centerTheta);  % sample z axis in mol. frame
-          zL_M = Opt.R_L2S{1}*zS_M;
-          [centerPhi,centerTheta] = vec2ang(zL_M);
+        chi = linspace(0,2*pi,20);
+        dchi = mean(diff(chi));
+        c = cos(chi);
+        s = sin(chi);
+        orderingWeights = zeros(1,numel(centerPhi));
+        ow = zeros(1,numel(chi));
+        R_S2L = Opt.R_L2S{1}.';
+        for iOri = 1:numel(centerPhi)
+          R_L2M = erot(centerPhi(iOri),centerTheta(iOri),0);
+          xL_M = R_L2M(:,1)*c + R_L2M(:,2)*s;
+          yL_M = -R_L2M(:,1)*s + R_L2M(:,2)*c;
+          for iChi = 1:numel(chi)
+            R_L2M(:,1) = xL_M(:,iChi);
+            R_L2M(:,2) = yL_M(:,iChi);
+            R_S2M = R_L2M*R_S2L;
+            [alpha,beta,gamma] = eulang(R_S2M,true);
+            ow(iChi) = Exp.Ordering(alpha,beta,gamma);
+          end
+          orderingWeights(iOri) = trapz(ow)*dchi;
         end
-        OrderingWeights = orifun(-centerTheta,-centerPhi);
-        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
-        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-        Areas = Areas(:).*OrderingWeights(:);
-        Areas = 4*pi/sum(Areas)*Areas;
+        if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
+        if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+        fWeights = fWeights(:).*orderingWeights(:);
+        fWeights = 4*pi/sum(fWeights)*fWeights;
       end
 
       logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
@@ -1018,22 +1016,22 @@ elseif ~BruteForceSum
       projectThis = doProjection && ~LoopTransition;
       if projectThis
         if axialGrid
-          thisspec = projectzones(fPos,fInt,fSegWeights,xAxis);
+          thisspec = projectzones(fPos,fInt,fWeights,xAxis);
         else
-          thisspec = projecttriangles(idxTri,Areas,fPos,fInt,xAxis);
+          thisspec = projecttriangles(idxTri,fWeights,fPos,fInt,xAxis);
         end
         % minBroadening = ?
       else % do summation
         if axialGrid
           fPosC = (fPos(1:end-1) + fPos(2:end))/2;
-          fIntC = fSegWeights(:).'.*(fInt(1:end-1) + fInt(2:end))/2;
+          fIntC = fWeights(:).'.*(fInt(1:end-1) + fInt(2:end))/2;
           fSpread = abs(fPos(1:end-1) - fPos(2:end));
           fWidM  = (fWid(1:end-1) + fWid(2:end))/2;
           c1 = 1.57246; c2 = 18.6348;
         else
           fPosSorted = sort(fPos(idxTri),1);
           fPosC = mean(fPosSorted,1);
-          fIntC = Areas(:).'.*mean(fInt(idxTri),1);
+          fIntC = fWeights(:).'.*mean(fInt(idxTri),1);
           fSpread = fPosSorted(3,:) - fPosSorted(1,:);
           fWidM = mean(fWid(idxTri),1);
           c1 = 2.8269; c2 = 42.6843;

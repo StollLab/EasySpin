@@ -72,6 +72,7 @@ if iscell(SampleRotation) && numel(SampleRotation)==2
 else
   error('Exp.SampleRotation must be of the form {rho,nL}, with the rotation angle rho and the lab-frame rotation axis nL.');
 end
+
 if numel(rho)~=1
   error('Exp.SampleRotation: the first element must a single rotation angle rho.');
 end

@@ -866,7 +866,6 @@ Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
 if useDirectorOrdering
-  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
   OrderingWeights = orifun(-theta,-phi);
   if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
   if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end

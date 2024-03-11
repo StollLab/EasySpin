@@ -17,7 +17,6 @@
 %       nPoints       number of points
 %       Temperature   temperature of the sample, by default off (NaN)
 %       ExciteWidth   ENDOR excitation width, FWHM, in MHz
-%       Ordering      coefficient for non-isotropic orientational distribution
 %   - Opt: simulation options
 %       Verbosity           0, 1, 2
 %       Method        'matrix', 'perturb1', 'perturb2'='perturb'
@@ -244,6 +243,10 @@ end
 [Exp,Opt] = p_sampletype(Exp,Opt);
 crystalSample = Opt.crystalSample;
 
+if Opt.partiallyOrderedSample
+  error('Partially ordered samples are not implemented in salt.')
+end
+
 if EasySpinLogLevel>=1
   if ~AutoRange
     msg = sprintf('field %g mT, rf range [%g %g] MHz, %d points',...
@@ -410,11 +413,6 @@ end
 
 % Set up orientational grid
 [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
-
-% Fold orientational distribution function into grid region.
-if ~isempty(Exp.Ordering)
-  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
-end
 
 
 %==========================================================================
@@ -695,21 +693,6 @@ if ~BruteForceSum
       end
       fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
 
-      % Obtain user-supplied orientational distribution weights
-      if ~isempty(Exp.Ordering)
-        centerTheta = (fthe(1:end-1)+fthe(2:end))/2;
-        centerPhi = zeros(1,numel(centerTheta));
-        if Opt.rotatedSample
-          v = ang2vec(centerPhi,centerTheta);
-          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
-        end
-        OrderingWeights = orifun(-centerTheta,-centerPhi);
-        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
-        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-        fSegWeights = fSegWeights(:).*OrderingWeights(:);
-        fSegWeights = 4*pi/sum(fSegWeights)*fSegWeights;
-      end
-
       logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
 
     else % nonaxial symmetry
@@ -724,21 +707,6 @@ if ~BruteForceSum
       end
       idxTri = tri.idx.';
       Areas = tri.areas;
-
-      % Obtain user-supplied orientational distribution weights
-      if ~isempty(Exp.Ordering)
-        centerTheta = mean(fthe(idxTri));
-        centerPhi = mean(fphi(idxTri));
-        if Opt.rotatedSample
-          v = ang2vec(centerPhi,centerTheta);
-          [centerPhi,centerTheta] = vec2ang(Exp.R_sample*v);
-        end
-        OrderingWeights = orifun(-centerTheta,-centerPhi);
-        if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
-        if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-        Areas = Areas(:).*OrderingWeights(:);
-        Areas = 4*pi/sum(Areas)*Areas;
-      end
 
       logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end

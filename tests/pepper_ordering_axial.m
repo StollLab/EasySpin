@@ -1,33 +1,35 @@
 function [ok,data] = test(opt,olddata)
 
 %=======================================================================
-% Partially oriented system with axial spin parameters
+% Partially oriented system with axial g tensor and axial ordering
 %=======================================================================
-Sys = struct('g',[2, 2, 2.2],'lw',1);
-Exp = struct('mwFreq',9.5,'Range',[300 350]);
-Opt = struct('Verbosity',0);
-[x,spc] = pepper(Sys,Exp,Opt);
+Sys.g = [2, 2, 2.2];
+Sys.lw = 1;
+Exp.mwFreq = 9.5;
+Exp.Harmonic = 0;
+Exp.Range = [300 350];
+[B,spc] = pepper(Sys,Exp);
 
-lambda = -10:2:10;
+lambda = [-5 -2 2 5];
 
 for k = 1:numel(lambda)
   Exp.Ordering = lambda(k);
-  [x,spc(k+1,:)] = pepper(Sys,Exp,Opt);
+  [B,spc(k+1,:)] = pepper(Sys,Exp);
 end
 
 if opt.Display
   if ~isempty(olddata)
     subplot(3,1,1);
-    plot(x,spc); title('current');
+    plot(B,spc); title('current');
     subplot(3,1,2);
-    plot(x,olddata.spc); title('old');
+    plot(B,olddata.spc); title('old');
     subplot(3,1,3);
-    plot(x,olddata.spc-spc); title('difference');
+    plot(B,olddata.spc-spc); title('difference');
   else
-    plot(x,spc);
+    plot(B,spc);
     xlabel('magnetic field (mT)');
     ylabel('intensity (arb.u.)');
-    title('pepper: non-isotropic orientational distribution, axial system');
+    title('pepper: axial orientational distribution');
   end
 end
 

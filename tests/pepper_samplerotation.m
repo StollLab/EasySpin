@@ -15,10 +15,11 @@ Exp.Harmonic = 0;
 nrot_L = [0.2 -0.8 0.5];    % rotation axis, lab-fixed
 rho = deg2rad(266);     % rotation angle
 
-sampleframe0 = [10 50 -30]*pi/180;   % initial crystal orientation
+sampleframe0 = [10 50 -30]*pi/180;   % initial sample orientation
 
 % Sample rotation using rotateframe()
 Exp.SampleFrame = rotateframe(sampleframe0,nrot_L,rho);
+Exp.SampleRotation = [];
 [B,spc1] = pepper(Sys,Exp);
 
 % Sample rotation using Exp.SampleRotation

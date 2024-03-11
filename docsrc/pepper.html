@@ -178,7 +178,6 @@ rho = pi/4;
 Exp.SampleRotation = {rho,[0;1;0]};       % rotation around lab y axis (yL)
 Exp.SampleRotation = {rho,'z'};           % rotation around lab z axis (zL)
 Exp.SampleRotation = {rho,'x'};           % rotation around lab x axis (xL)
-Exp.SampleRotation = rho;                 % xL is the default if no axis is supplied
 </pre>
 
 </div>
@@ -199,7 +198,7 @@ If a number is given in this field, it specifies the orientational distribution 
 </p>
 
 <p>
-If a number is given, the orientational distribution is non-isotropic and computed according to the formula P(&beta;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &beta; is the angle between the sample z axis (z axis of the <a href="frames.html">sample frame</a>) and the molecular z axis ( axis of the <a href="frames.html">molecular frame</a>), and &lambda; is the number specified in <code>Exp.Ordering</code>.
+If a number is given, the orientational distribution is non-isotropic and computed as P(&alpha;,&beta;,&gamma;) = exp(-U(&beta;)) with U(&beta;) = -&lambda;(3 cos<sup>2</sup>&beta; - 1)/2, where &lambda; is the number specified in <code>Exp.Ordering</code>. The angles &alpha;, &beta; and &gamma; (in radians) are the Euler angles that transform the <a href="frames.html">sample frame</a> to the <a href="frames.html">molecular frame</a>. In particular, &beta; is the angle between the sample-frame z axis and the molecular-frame z axis. and 
 </p>
 
 <p>
@@ -220,11 +219,11 @@ plot(beta*180/pi,P);
 </pre>
 
 <p>
-If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one  (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
+If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one (<code>beta</code>) or three input arguments (<code>alpha</code>, <code>beta</code> and <code>gamma</code>), in radians. The function must accept arrays and return an array <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>alpha(k)</code>, <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
 </p>
 
 <pre class="matlab">
-Exp.Ordering = @(beta,gamma) gaussian(beta,0,15/180*pi);
+Exp.Ordering = @(alpha,beta,gamma) gaussian(beta,0,15/180*pi);
 </pre>
 
 <p>
@@ -232,7 +231,7 @@ If the function cannot be written as a single line, define a separate function a
 </p>
    
 <pre class="matlab">
-function P = oridist(beta,gamma)
+function P = oridist(alpha,beta,gamma)
 gamma0 = 0;
 beta0 = pi/4;
 kappa = 10;
@@ -256,7 +255,7 @@ If the orientational distribution provided via <code>Exp.Ordering</code> is very
 </p>
 
 <p>
-If you use <code>Exp.Ordering</code> (which is for partially ordered samples), you cannot use <code>Exp.MolFrame</code> (which is for crystals).
+If you use <code>Exp.Ordering</code> (which is for partially ordered samples), you cannot use <code>Exp.MolFrame</code> and <code>Exp.CrystalSymmetry</code> (which are for crystals).
 </p>
 
 </div>
