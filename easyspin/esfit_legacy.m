@@ -588,8 +588,8 @@ p_start = esfitdata.p_start;
 lb = esfitdata.pvec_lb;
 ub = esfitdata.pvec_ub;
 
-esfitdata.best.rmsd = inf;
-esfitdata.best.rmsdtarget = inf;
+esfitdata.best.rmsd = Inf;
+esfitdata.best.rmsdtarget = Inf;
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------

@@ -38,7 +38,7 @@ switch nargin
     help(mfilename);
     return
   case 1
-    Temperature = inf;
+    Temperature = Inf;
   case 2
     % everything ok
   otherwise
@@ -217,7 +217,7 @@ switch nargout
     fprintf('S1 = %g, S2 = %g (total %d electronic states)\n',Sa,Sb,sum(2*Sys.S+1));
     fprintf('%d manifolds (highest to lowest energy):\n',numel(S));
     for iS = numel(Energies):-1:1
-      if Temperature~=inf
+      if ~isinf(Temperature)
         popStr = sprintf('\n     population %0.3e/state, %0.3e total',...
           Populations(iS)/(2*CoupledSystems{iS}.S+1),Populations(iS));
       else

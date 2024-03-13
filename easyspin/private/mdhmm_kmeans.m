@@ -168,7 +168,7 @@ function centroids0 = kppseed(data, nSeeds)
 
 % Adapted from code by Mo Chen (sth4nth@gmail.com).
 [nPoints,nDims] = size(data);
-D = inf(nPoints,1);
+D = Inf(nPoints,1);
 
 centroids0 = zeros(nSeeds,nDims);
 centroids0(1,:) = data(ceil(nPoints*rand),:);

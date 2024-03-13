@@ -192,7 +192,7 @@ linecolor = [0 0.4470 0.7410];
 if Opt.SlopeColor
   for iLevel = nLevels:-1:1
     col = abs(deriv(E(:,iLevel)));
-    hLevels(iLevel) = patch([Bvec(:)*Bscale; nan],[E(:,iLevel); nan],[col; nan],'EdgeColor','interp');
+    hLevels(iLevel) = patch([Bvec(:)*Bscale; NaN],[E(:,iLevel); NaN],[col; NaN],'EdgeColor','interp');
   end
   colormap(flipud(parula));
 else

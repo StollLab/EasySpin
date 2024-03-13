@@ -50,7 +50,7 @@ end
 %-------------------------------------------------------------------------------
 isUnpackaged = esVersion(1)=='$';
 if isUnpackaged
-  daysToExpiry = inf;
+  daysToExpiry = Inf;
   versionOK = true;
 else
   nowDate = datetime('today');

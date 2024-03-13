@@ -4,7 +4,7 @@ function ok = test(opt)
 esPath = fileparts(which('sop'));
 fname =  [esPath filesep 'functionSignatures.json'];
 fid = fopen(fname);
-raw = fread(fid,inf);
+raw = fread(fid,Inf);
 fclose(fid);
 str = char(raw');
 val = jsondecode(str);

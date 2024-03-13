@@ -46,7 +46,7 @@ if numel(Sys.HStrain)==1, Sys.HStrain = [1 1 1]*Sys.HStrain; end
 %----------------------------------------------------------------------
 DefaultParams.mwFreq = NaN;
 DefaultParams.Field = NaN;
-DefaultParams.ExciteWidth = inf;
+DefaultParams.ExciteWidth = Inf;
 DefaultParams.Orientations = [];
 
 if ~isfield(Params,'Field'), error('Params.Field is missing!'); end

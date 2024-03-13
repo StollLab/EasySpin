@@ -31,7 +31,7 @@ function y = lshape(x,x0,fwhm,varargin)
 if nargin==0, help(mfilename); return; end
 
 % Functions are normalized for diff=0: the integral
-% from -inf to inf is 1. Derivatives of these
+% from -Inf to Inf is 1. Derivatives of these
 % functions are with respect to x.
 
 % parse input parameters

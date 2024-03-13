@@ -148,7 +148,7 @@ maxIts  = setOpts( 'maxIts', 100, 1 );
 maxTotalIts     = setOpts( 'maxTotalIts', 5e3 );
 
 % Print out information this often (and set to Inf to suppress)
-printEvery  = setOpts( 'printEvery', inf );
+printEvery  = setOpts( 'printEvery', Inf );
 
 errFcn      = setOpts( 'errFcn', [] );
 

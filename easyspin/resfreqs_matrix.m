@@ -927,11 +927,11 @@ end
 % Assert positive intensities, but only for thermal equilibrium populations
 if computeIntensities && (~computeNonEquiPops)
   if any(TransitionRates<0)
-    logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
+    logmsg(-Inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
 if any(Wdat(:)<0)
-  logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
+  logmsg(-Inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
 

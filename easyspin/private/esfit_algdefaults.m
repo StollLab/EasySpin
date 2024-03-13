@@ -5,7 +5,7 @@ info.TolFun = 'termination tolerance for error function value';
 FitOpt.TolFun = 1e-5;
 
 info.maxTime = 'time, in minutes, after which esfit will terminate even if the fitting has not yet converged';
-FitOpt.maxTime = inf;
+FitOpt.maxTime = Inf;
 FitOpt.IterFcn = [];
 FitOpt.IterationPrintFunction = @(str)str;
 FitOpt.InfoPrintFunction = @(str)str;

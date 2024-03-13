@@ -47,6 +47,6 @@ if opt.Display
   subplot(2,1,2);
   plot(f,real(fd));
   axis tight
-  xlim([0 inf]);
+  xlim([0 Inf]);
   xlabel('frequency (MHz)');
 end

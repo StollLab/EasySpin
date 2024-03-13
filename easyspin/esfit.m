@@ -629,8 +629,8 @@ p_start = esfitdata.p_start;
 lb = esfitdata.pvec_lb;
 ub = esfitdata.pvec_ub;
 
-esfitdata.best.rmsd = inf;
-esfitdata.best.rmsdtarget = inf;
+esfitdata.best.rmsd = Inf;
+esfitdata.best.rmsdtarget = Inf;
 
 % Run minimization over space of active parameters
 %-------------------------------------------------------------------------------
@@ -1955,13 +1955,13 @@ if strcmp(evt,'switch')
       currsim = real(esfitdata.curr.sim(idx));
       currbaseline = real(esfitdata.curr.baseline(idx));
     else
-      currsim = NaN*ones(size(expdata));
-      currbaseline = NaN*ones(size(expdata));
+      currsim = NaN(size(expdata));
+      currbaseline = NaN(size(expdata));
     end
     if isfield(esfitdata,'best') && isfield(esfitdata.best,'fit')
       bestsim = real(esfitdata.best.fit(idx));
     else
-      bestsim = NaN*ones(size(expdata));
+      bestsim = NaN(size(expdata));
     end
 
     % Update plotted data

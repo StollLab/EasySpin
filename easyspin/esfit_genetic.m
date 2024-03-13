@@ -51,14 +51,14 @@ startTime = cputime;
 % Generate initial population
 Population = lb+ (ub-lb).*rand(FitOpt.PopulationSize,nParams);
 
-bestScore = inf;
+bestScore = Inf;
 bestx = zeros(size(Population(1,:)));
 
 % Score initial population
 if FitOpt.Verbosity
   FitOpt.IterationPrintFunction('initial population');
 end
-Scores = ones(1,FitOpt.PopulationSize)*inf;
+Scores = Inf(1,FitOpt.PopulationSize);
 for k = 1:FitOpt.PopulationSize
   Scores(k) = fcn(Population(k,:));
   nEvals = nEvals+1;

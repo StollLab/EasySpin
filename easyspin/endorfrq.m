@@ -11,7 +11,7 @@
 %      mwFreq              spectrometer frequency [GHz]
 %      Field               magnetic field [mT]
 %      Temperature         in K (optional, by default off (NaN))
-%      ExciteWidth         FWHM of excitation [MHz] (optional, default inf)
+%      ExciteWidth         FWHM of excitation [MHz] (optional, default Inf)
 %      Range               frequency range [MHz] (optional, default [])
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
@@ -76,7 +76,7 @@ Sys = adddefaults(Sys,DefaultSys);
 %---------------------------------------------------------------------
 DefaultExp.mwFreq = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.ExciteWidth = inf;
+DefaultExp.ExciteWidth = Inf;
 DefaultExp.Field = NaN;
 
 DefaultExp.SampleFrame = [0 0 0];
@@ -288,7 +288,7 @@ if isempty(Opt.Transitions)
   % preallocate the transition rate matrix
   TransitionRates = zeros(nStates);
   maxE = zeros(nStates);
-  minE = ones(nStates)*inf;
+  minE = Inf(nStates);
   
   % calculate transition rates over all orientations
   for iOri = 1:length(theta)
@@ -375,7 +375,7 @@ if (ComputeIntensities), msg = [msg ', intensities']; end
 logmsg(1,msg);
 
 % Preallocations.
-Pdat = ones(nTransitions,nOrientations)*NaN;
+Pdat = NaN(nTransitions,nOrientations);
 Idat = [];
 if ComputeIntensities, Idat = zeros(nTransitions,nOrientations); end
 
@@ -409,9 +409,9 @@ end
 % Initialize parameters for orientation selectivity determination.
 % Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth
 if OrientationSelection
-  maxEPRfreq = -inf;
-  minEPRfreq = inf;
-  minExWidth = inf;
+  maxEPRfreq = -Inf;
+  minEPRfreq = Inf;
+  minExWidth = Inf;
 end
 
 % Keep only orientations with weights above weight threshold.

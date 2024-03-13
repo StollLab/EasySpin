@@ -554,7 +554,7 @@ if FieldSweep
     %------------------------------------------------------------------------
     anisotropicWidths = false;
     if StrainWidths
-      logmsg(-inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
+      logmsg(-Inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
     end
     
     Exp1 = Exp;
@@ -959,7 +959,7 @@ elseif ~BruteForceSum
     if ~anisotropicIntensities, fInt = ones(size(fthe)); end
     if ~anisotropicWidths, fWid = zeros(size(fthe)); end
     
-    minBroadening = inf;
+    minBroadening = Inf;
     nBroadenings = 0;
     sumBroadenings = 0;
     spcidx = 0;

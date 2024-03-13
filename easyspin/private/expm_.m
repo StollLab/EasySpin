@@ -220,7 +220,7 @@ elseif isreal(A) && all(A(:) >= 0)
   for j=1:m
     e = A'*e;
   end
-  c = norm(e,inf);
+  c = norm(e,Inf);
   mv = m;
 else
   [c,~,~,it] = normest1(@afun_power);

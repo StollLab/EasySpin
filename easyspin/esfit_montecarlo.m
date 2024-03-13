@@ -33,7 +33,7 @@ if any(lb>ub)
 end
 nParams = numel(lb);
 
-Fmin = inf;
+Fmin = Inf;
 bestx = zeros(nParams,1);
 startTime = cputime;
   

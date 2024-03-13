@@ -57,7 +57,7 @@ kernel = [3 3 3];
 pdf = smooth3(pdf,'gaussian',kernel);
 
 % Put a finite floor on bin populations
-% This prevents inf and large values after taking log
+% This prevents Inf and large values after taking log
 thr = 1e-14;
 pdf(pdf<thr) = thr;
 

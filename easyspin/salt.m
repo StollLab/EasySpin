@@ -168,7 +168,7 @@ DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
-DefaultExp.ExciteWidth = inf;
+DefaultExp.ExciteWidth = Inf;
 
 DefaultExp.Ordering = [];
 DefaultExp.SampleRotation = [];
@@ -272,8 +272,8 @@ end
 logmsg(1,msg);
 
 if Exp.Harmonic>0 && all(Sys.lwEndor==0)
-  logmsg(-inf,'WARNING: Cannot compute derivative of a stick spectrum! Returning absorption spectrum.');
-  logmsg(-inf,'WARNING:   Add a line width (strain or convolution) or set Harmonic=0.');
+  logmsg(-Inf,'WARNING: Cannot compute derivative of a stick spectrum! Returning absorption spectrum.');
+  logmsg(-Inf,'WARNING:   Add a line width (strain or convolution) or set Harmonic=0.');
   Exp.Harmonic = 0;
 end
 
@@ -714,7 +714,7 @@ if ~BruteForceSum
     if ~anisotropicIntensities, fInt = ones(size(fthe)); end
     if ~anisotropicWidths, fWid = zeros(size(fthe)); end
 
-    minBroadening = inf;
+    minBroadening = Inf;
     nBroadenings = 0;
     sumBroadenings = 0;
     spcidx = 0;

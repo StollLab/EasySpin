@@ -83,7 +83,7 @@ end
 
 % Evaluate function over grid
 %--------------------------------------------------------------------------
-minF = inf;
+minF = Inf;
 bestx = NaN(nParams,1);
 startTime = cputime;
 stopCode = 0;

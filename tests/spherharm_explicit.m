@@ -23,7 +23,7 @@ return
 
 function v = explicitY(L,M,theta,phi)
 
-v = inf;
+v = Inf;
 
 switch L
   case 0

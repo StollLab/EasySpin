@@ -320,7 +320,7 @@ if fastSimulationMode
       Sys.T1T2(2) = Sys.T2;
     end
   end
-  Sys.T1T2(Sys.T1T2==0) = inf;
+  Sys.T1T2(Sys.T1T2==0) = Inf;
 
   if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
     error('T1 and T2 in Sys.T1 and Sys.T2 must be positive, in microseconds.');

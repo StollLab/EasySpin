@@ -66,9 +66,9 @@ v = (ub-lb).*rand(nParams,nParticles)*k;
 
 bestX = X;
 gX = bestX(:,1);
-bestF = inf(1,nParticles);
-F = inf(1,nParticles);
-globalbestF = inf;
+bestF = Inf(1,nParticles);
+F = Inf(1,nParticles);
+globalbestF = Inf;
 startTime = cputime;
 nStalledIterations = 0; % counts the number of iterations globalbestF hasn't changed
 

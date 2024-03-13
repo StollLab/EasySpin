@@ -107,9 +107,9 @@ if ~stopCode
     % Check gradient and J'*J
     if ~stopCode
       g = Je'*f;
-      norm_g = norm(g,inf);
+      norm_g = norm(g,Inf);
       A = Je'*Je;
-      if  isinf(norm_g) || isinf(norm(A(:),inf))
+      if  isinf(norm_g) || isinf(norm(A(:),Inf))
         stopCode = -5;
       end
     end
@@ -212,10 +212,10 @@ while ~stopCode
   end
   
   g = Je'*f;
-  norm_g = norm(g,inf);
+  norm_g = norm(g,Inf);
   A = Je'*Je;
   
-  if isinf(norm_g) || isinf(norm(A(:),inf)), stopCode = -5; break; end
+  if isinf(norm_g) || isinf(norm(A(:),Inf)), stopCode = -5; break; end
   elapsedTime = (cputime-startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 3; break; end
 
@@ -336,7 +336,7 @@ if any(isnan(f))
   error('f contains at least one NaN value.')
 end
 if any(isinf(f))
-  error('f contains at least one inf value.')
+  error('f contains at least one Inf value.')
 end
 if  any(~isreal(f))
   error('f is not real-valued.');

@@ -153,7 +153,7 @@ function  varargout = mexpfit2(tData,yData,xGuess,Options)
 %     k     decay rates for least squares fit
 %     c     linear coefficients of least squares fit
 %     info  information vector
-%           info(1:3) = final values of  F(x)  |F'|inf  |dx|2  
+%           info(1:3) = final values of  F(x)  |F'|_Inf  |dx|2  
 %           info(4) = no. of evaluations of (F,Jacobian)
 %           info(5) = 1 :  Stopped by small gradient
 %                     2 :  Stopped by small x-step
@@ -161,7 +161,7 @@ function  varargout = mexpfit2(tData,yData,xGuess,Options)
 %                     4 :  Stopped by extreme step
 %                     5 :  Stopped by stalling.
 %     perf  (optional). If present, then array, holding 
-%           perf(1:2,:) = values of  F(x) and || F'(x) ||inf
+%           perf(1:2,:) = values of  F(x) and || F'(x) ||_Inf
 %           perf(3,:) = mu-values.
 
 % Hans Bruun Nielsen,  IMM, DTU.  00.02.14
@@ -194,7 +194,7 @@ MaxFunEvals = Options(4);
 A = Jacobian'*Jacobian;
 Gradient = Jacobian'*Differences;
 F = (Differences'*Differences)/2;
-GradientNorm = norm(Gradient,inf);
+GradientNorm = norm(Gradient,Inf);
 mu = Options(5) * max(diag(A));
 Trace = nargout>3;
 if  Trace
@@ -253,7 +253,7 @@ while ~StopCriterion
       Differences = NewDifferences; 
       A = Jacobian'*Jacobian;
       Gradient = Jacobian'*Differences;
-      GradientNorm = norm(Gradient,inf);
+      GradientNorm = norm(Gradient,Inf);
     else  % Marquardt fail
       mu = mu*nu;
       nu = 2*nu;

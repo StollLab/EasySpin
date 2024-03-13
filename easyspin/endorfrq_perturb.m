@@ -115,13 +115,13 @@ if isfield(Exp,'mwMode')
   end
 end
 if isfield(Exp,'Temperature')
-  if Exp.Temperature<inf
+  if Exp.Temperature<Inf
     err = 'ENDOR temperature effects are not supported with perturbation theory. Use matrix diagonalization.';
   end
 end
 error(err);
 
-if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = inf; end
+if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = Inf; end
 OrientationSelection = ~isinf(Exp.ExciteWidth);
 lwExcite2 = Exp.ExciteWidth^2;
 
@@ -187,9 +187,9 @@ states = allcombinations(mI{:},'i');
 % Initialize parameters for orientation selectivity determination.
 % Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth
 if OrientationSelection
-  maxEPRfreq = -inf;
-  minEPRfreq = inf;
-  minExWidth = inf;
+  maxEPRfreq = -Inf;
+  minEPRfreq = Inf;
+  minExWidth = Inf;
 end
 
 % Loop over all orientations

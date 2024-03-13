@@ -836,7 +836,7 @@ end
 
 if computeStrains
   msg = [msg ', strain widths'];
-  Wdat = ones(nTransitions,nOrientations)*NaN;
+  Wdat = NaN(nTransitions,nOrientations);
 else
   Wdat = [];
 end
@@ -850,14 +850,14 @@ else
 end
 logmsg(1,'- Resonance data: computing %s',msg);
 
-idxTr = [(1:nTransitions).'; inf];
+idxTr = [(1:nTransitions).'; Inf];
 
 % Preparation for the adaptive iterative bisection
 %---------------------------------------------------------
 levelAccuracy = mwFreq*Opt.ModellingAccuracy;
 
 M = [2 -2 1 1; -3 3 -2 -1; 0 0 1 0; 1 0 0 0];
-ZeroRow = NaN*ones(1,nOrientations);
+ZeroRow = NaN(1,nOrientations);
 if higherOrder
   maxSlope = 0;
   for iOri = 1:nOrientations
@@ -1447,12 +1447,12 @@ end
 % Assert positive intensities, but only for thermal equilibrium populations
 if ~computeNonEquiPops
   if any(Idat(:)<0)
-    logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
+    logmsg(-Inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
 % Assert positive widths
 if any(Wdat(:)<0)
-  logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
+  logmsg(-Inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
 if nMaxSegmentsReached>0

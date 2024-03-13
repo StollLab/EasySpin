@@ -39,7 +39,7 @@ function [ n, bin ] = histcnd( x, edges )
 % N(k1,k2,...) will count the vector X(i,:) if for each dimension
 % j = 1,2,..., EDGES{j}(kj) <= X(i,j) < EDGES{j}(kj+1). The last bin will
 % count any values of X that match EDGES(end).  Values outside the values
-% in EDGES are not counted. Use -inf and inf in EDGES to include all
+% in EDGES are not counted. Use -Inf and Inf in EDGES to include all
 % non-NaN values.
 % 
 % [N,BIN] = HISTCND(X,EDGES) also returns subscript indices BIN.
