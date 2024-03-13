@@ -946,8 +946,7 @@ elseif ~BruteForceSum
      if Opt.partiallyOrderedSample
         centerPhi = mean(fphi(idxTri));
         centerTheta = mean(fthe(idxTri));
-        orderingWeights = orifun_M2L_chiint(centerPhi,centerTheta,...
-          Opt.R_L2S{1},Exp.Ordering);
+        orderingWeights = orifun_M2L(Exp.Ordering,Opt.R_L2S{1},centerPhi,centerTheta);
         if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
         fWeights = fWeights(:).*orderingWeights(:)/sum(orderingWeights);
