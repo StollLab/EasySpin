@@ -946,30 +946,10 @@ elseif ~BruteForceSum
      if Opt.partiallyOrderedSample
         centerPhi = mean(fphi(idxTri));
         centerTheta = mean(fthe(idxTri));
-        chi = linspace(0,2*pi,20);
-        dchi = mean(diff(chi));
-        c = cos(chi);
-        s = sin(chi);
-        orderingWeights = zeros(1,numel(centerPhi));
-        ow = zeros(1,numel(chi));
-        R_S2L = Opt.R_L2S{1}.';
-        for iOri = 1:numel(centerPhi)
-          R_M2L = erot(centerPhi(iOri),centerTheta(iOri),0);
-          R_L2M = R_M2L.';
-          xL_M = R_L2M(:,1)*c + R_L2M(:,2)*s;
-          yL_M = -R_L2M(:,1)*s + R_L2M(:,2)*c;
-          for iChi = 1:numel(chi)
-            R_L2M(:,1) = xL_M(:,iChi);
-            R_L2M(:,2) = yL_M(:,iChi);
-            R_S2M = R_L2M*R_S2L;
-            [alpha,beta,gamma] = eulang(R_S2M,true);
-            ow(iChi) = Exp.Ordering(alpha,beta,gamma);
-          end
-          orderingWeights(iOri) = trapz(ow)*dchi;
-        end
+        orderingWeights = orifun_M2L_chiint(centerPhi,centerTheta,...
+          Opt.R_L2S{1},Exp.Ordering);
         if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values.'); end
         if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-        
         fWeights = fWeights(:).*orderingWeights(:)/sum(orderingWeights);
      end
      fWeights = 4*pi*fWeights/sum(fWeights);
