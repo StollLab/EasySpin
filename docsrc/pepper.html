@@ -416,7 +416,7 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
 <p>
-Specifies the threshold for <code>pepper</code>'s transition pre-selection. Any transition with an estimated relative average amplitude less than this number is not included in the calculation. The relative average amplitude of the strongest transition is 1, the default is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the computation.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </p>
 </div>
 

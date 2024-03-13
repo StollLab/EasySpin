@@ -235,6 +235,12 @@ t_ = Opt.Threshold;
 if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
   error('Options.Threshold must be a number >=0 and <1.');
 end
+preSelectionThreshold = Opt.Threshold(1);
+if numel(Opt.Threshold)==1
+  postSelectionThreshold = preSelectionThreshold;
+else
+  postSelectionThreshold = Opt.Threshold(2);
+end
 
 StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
 computeStrains = StrainsPresent && (nargout>2);
@@ -850,18 +856,13 @@ logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitio
 
 idxWeakResonances = [];
 if computeIntensities && ~UserTransitions
-  if numel(Opt.Threshold)==1
-    PostSelectionThreshold = Opt.Threshold(1);
-  else
-    PostSelectionThreshold = Opt.Threshold(2);
-  end
   maxIntensity = max(abs(Idat),[],2); % maximum over orientations
   absoluteMaxIntensity = max(maxIntensity);
-  idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*PostSelectionThreshold);
+  idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*postSelectionThreshold);
   if ~isempty(idxWeakResonances)
-    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),PostSelectionThreshold);
+    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),postSelectionThreshold);
   else
-    logmsg(2,'  ## all resonances above relative intensity threshold %f',PostSelectionThreshold);
+    logmsg(2,'  ## all resonances above relative intensity threshold %f',postSelectionThreshold);
   end
 else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');

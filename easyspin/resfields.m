@@ -244,6 +244,12 @@ t_ = Opt.Threshold;
 if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
   error('Options.Threshold must be a number >=0 and <1.');
 end
+preSelectionThreshold = Opt.Threshold(1);
+if numel(Opt.Threshold)==1
+  postSelectionThreshold = preSelectionThreshold;
+else
+  postSelectionThreshold = Opt.Threshold(2);
+end
 
 IntensitySwitch = Opt.Intensity;
 GradientSwitch = Opt.Gradient;
@@ -551,6 +557,7 @@ if UserTransitions
       logmsg(1,'  using all %d transitions',nStates_*(nStates_-1)/2);
       [u,v] = find(triu(ones(nStates_),1));
       Transitions = sortrows([u,v]);
+      postSelectionThreshold = 0;
     else
       error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
     end
@@ -569,7 +576,7 @@ if UserTransitions
 else % Automatic transition pre-selection
   
   nElStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
-  if Opt.Threshold(1)==0
+  if preSelectionThreshold==0
     logmsg(1,'  selection threshold is zero -> using all transitions');
     TransitionRates = ones(nCore);
   elseif CoreSys.nElectrons==1 && CoreSys.nNuclei==0 ...
@@ -579,9 +586,9 @@ else % Automatic transition pre-selection
   else
     if nOrientations>1 % if powder or multiple orientations
       % Set a coarse grid, independent of the Hamiltonian symmetry
-      logmsg(1,'  selection threshold %g',Opt.Threshold(1));
+      logmsg(1,'  selection threshold %g',preSelectionThreshold);
       logmsg(2,'  ## (selection threshold %g, grid size %d, grid symmetry %s)',...
-        Opt.Threshold(1),Opt.TPSGridSize,Opt.TPSGridSymm);
+        preSelectionThreshold,Opt.TPSGridSize,Opt.TPSGridSymm);
       TPSgrid = sphgrid(Opt.TPSGridSymm,Opt.TPSGridSize);
       phi = TPSgrid.phi;
       theta = TPSgrid.theta;
@@ -659,7 +666,7 @@ else % Automatic transition pre-selection
   % Remove lower triangular part
   idxLowerTriangle = logical(tril(ones(nCore)));
   % Remove nuclear transitions
-  if max(HFIStrength)<0.5 && Opt.Threshold(1)>0
+  if max(HFIStrength)<0.5 && preSelectionThreshold>0
     idxNuclearTransitions = logical(kron(eye(nElStates_),ones(nCore/nElStates_)));
     keepidx = ~idxLowerTriangle & ~idxNuclearTransitions;
   else
@@ -671,7 +678,7 @@ else % Automatic transition pre-selection
   clear keepidx u v idxLowerTriangle idxNuclearTransitions
 
   % Use threshold for number determination
-  nTransitions = sum(TransitionRates>Opt.Threshold(1)*max(TransitionRates));
+  nTransitions = sum(TransitionRates>preSelectionThreshold*max(TransitionRates));
   
   % Sort transition rates in descending order
   [~,idx] = sort(TransitionRates,'descend');
@@ -1369,18 +1376,13 @@ logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitio
 %-----------------------------------------------------------------------
 idxWeakResonances = [];
 if computeIntensities
-  if numel(Opt.Threshold)==1
-    PostSelectionThreshold = Opt.Threshold(1);
-  else
-    PostSelectionThreshold = Opt.Threshold(2);
-  end
   maxIntensity = max(abs(Idat),[],2); % maximum over orientations
   absoluteMaxIntensity = max(maxIntensity);
-  idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*PostSelectionThreshold);
+  idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*postSelectionThreshold);
   if ~isempty(idxWeakResonances)
-    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),PostSelectionThreshold);
+    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),postSelectionThreshold);
   else
-    logmsg(2,'  ## all resonances above relative intensity threshold %f',PostSelectionThreshold);
+    logmsg(2,'  ## all resonances above relative intensity threshold %f',postSelectionThreshold);
   end
 else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');

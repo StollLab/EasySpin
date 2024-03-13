@@ -140,8 +140,7 @@ Determines manually the level pairs which are used in the spectrum calculation. 
 
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
-Specifies the relative threshold for <code>endorfrq</code>'s automatic transition selection scheme. Any transition with a relative average amplitude less than
-this number is not included in the calculation. The relative average amplitude of the strongest ENDOR transition found is 1. If level pairs are manually specified in <code>Transitions</code>, the threshold setting is ignored.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </div>
 
 <div class="optionfield"><code>Nuclei</code></div>
