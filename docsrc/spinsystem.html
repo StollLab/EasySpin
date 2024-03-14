@@ -802,7 +802,7 @@ Sys2.B2Frame = ang;
 </pre>
 
 <p>
-In the special case of high-spin 3d<sup>5</sup> ions such as Fe(III), Mn(II), and Cr(I) in axially distorted cubic enviroments, the fourth-order terms are often written in terms of the traditional a and F parameters instead of B<sub>4</sub>. For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>. EasySpin versions prior to 6 had a dedicated field <code>Sys.aF</code> for these. Since EasySpin 6, this is no longer supported. Instead, the fourth-order terms should be specified using <code>Sys.B4</code> and <code>Sys.B4Frame</code>. Pay attention that the frames for the a and the F term are different.
+In the special case of high-spin 3d<sup>5</sup> ions such as Fe(III), Mn(II), and Cr(I) in axially distorted cubic environments, the fourth-order terms are often written in terms of the traditional a and F parameters instead of B<sub>4</sub>. For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>. EasySpin versions prior to 6 had a dedicated field <code>Sys.aF</code> for these. Since EasySpin 6, this is no longer supported. Instead, the fourth-order terms should be specified using <code>Sys.B4</code> and <code>Sys.B4Frame</code>. Pay attention that the frames for the a and the F term are different.
 </p>
 
 </div>
@@ -833,7 +833,7 @@ Sys.B2Frame = [0 pi/3 0];  % in radians
 For each pair of electron spins, a <a href="hamiltonian.html#eei">bilinear coupling matrix</a> (composed of isotropic, anisotropic, and antisymmetric terms) can be given. You can enter it in one of several ways:
 </p>
 <ul>
-<li>Give the isotropic, symmetric, and antisymemtric parts separately in <code>Sys.J</code>, <code>Sys.dip</code>, and <code>Sys.dvec</code>.
+<li>Give the isotropic, symmetric, and antisymmetric parts separately in <code>Sys.J</code>, <code>Sys.dip</code>, and <code>Sys.dvec</code>.
 <li>Give the principal values of the coupling matrix in <code>Sys.ee</code> (with <code>Sys.eeFrame</code>).
 <li>Give the total coupling matrix in <code>Sys.ee</code>.
 </ul>

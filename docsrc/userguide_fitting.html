@@ -32,7 +32,7 @@
 <!-- ============================================================= -->
 
 <p>
-This user guide explains how to extract magnetic parameters from experimental EPR spectra by fitting an EasySpin simulation result to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">esfit</a> contains all the necessary machinery. The function can also be used for least-squares fitting arbitrary models to arbitratry data. <a class="esf" href="esfit.html">esfit</a> calculates uncertainties (error bars) for the fitted parameters.
+This user guide explains how to extract magnetic parameters from experimental EPR spectra by fitting an EasySpin simulation result to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">esfit</a> contains all the necessary machinery. The function can also be used for least-squares fitting arbitrary models to arbitrary data. <a class="esf" href="esfit.html">esfit</a> calculates uncertainties (error bars) for the fitted parameters.
 </p>
 
 <p>
@@ -171,14 +171,14 @@ Often, experimental spectral data come in text files, containing two columns of 
 </pre>
 
 <p>
-<code>textread</code> is a very flexible function that can accomodate many different text file formats. E.g. it can skip header lines if told to do so, it can accomodate comment lines, etc. See the MATLAB documentation for more details.
+<code>textread</code> is a very flexible function that can accommodate many different text file formats. E.g. it can skip header lines if told to do so, it can accommodate comment lines, etc. See the MATLAB documentation for more details.
 </p>
 
 <!-- ============================================================= -->
 <a name="startsys"><div class="subtitle">Start set of parameters</div></a>
 
 <p>
-<code>esfit</code> needs to know with which parameter values to start looking for an optimal fit. These starting parameters are given as a spin system within the third input argument to <code>esfit</code>. For example, if the spectrum is that of a simple S=1/2 with rhombic g and an isotropic linewidth, one would start with
+<code>esfit</code> needs to know with which parameter values to start looking for an optimal fit. These starting parameters are given as a spin system within the third input argument to <code>esfit</code>. For example, if the spectrum is that of a simple S=1/2 with rhombic g and an isotropic line width, one would start with
 </p>
 
 <pre class="matlab">
@@ -221,7 +221,7 @@ Next, <code>esfit</code> has to be told which parameters of the spin system give
 </p>
 
 <p>
-This information is given in the fourth input parameter to <code>esfit</code>. If only the linewidth should be fitted, and it should be varied by at most +/-0.3 mT, use
+This information is given in the fourth input parameter to <code>esfit</code>. If only the line width should be fitted, and it should be varied by at most +/-0.3 mT, use
 </p>
 
 <pre class="matlab">
@@ -233,7 +233,7 @@ With <code>Sys0.lw = 1</code>, this would mean that the search range extends fro
 </p>
 
 <p>
-If the second principal value of the g tensor and the linewidth should be fitted simultaneously, use
+If the second principal value of the g tensor and the line width should be fitted simultaneously, use
 </p>
 
 <pre class="matlab">
@@ -339,7 +339,7 @@ The latter three are global search methods: they do not have a single starting p
 
 <p>
 The third global method is a genetic algorithm: It makes simulations for several, let's say N, parameter sets (called a population), computes the fitting
-error (called the fitness) for all of them and then proceeds to generate N new parameter sets from the old ones using mechansims like mutation, cross-over
+error (called the fitness) for all of them and then proceeds to generate N new parameter sets from the old ones using mechanisms like mutation, cross-over
 and reproduction. This way, a new generation of parameter sets is (pro-)created, just like in biological evolution. The benefit of this algorithm is that
 if a good parameter is encountered, it is likely to propagate down the generations and across the population.
 </p>

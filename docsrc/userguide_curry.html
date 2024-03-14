@@ -169,7 +169,7 @@ chimol = curry(Sys,Exp,Opt)
 </pre>
 
 <p>
-Very often, magnetic susceptibility is understood to be in zero field. However, to measure the derivative of the magnetization with respect to the magnetic field (that is what the magnetic suceptibilty is) a magnetic field is needed. For various experimental reasons this field is often not infinitesimally small but can be quite substantial. Therefore, if larger fields are used it might be more correct to use the following:
+Very often, magnetic susceptibility is understood to be in zero field. However, to measure the derivative of the magnetization with respect to the magnetic field (that is what the magnetic susceptibility is) a magnetic field is needed. For various experimental reasons this field is often not infinitesimally small but can be quite substantial. Therefore, if larger fields are used it might be more correct to use the following:
 </p>
 
 <pre class="matlab">
@@ -183,7 +183,7 @@ chisim_si = (4*pi*1e-6) *chisim_cgs ; % convert to SI units
 <a name="output"><div class="subtitle">Specifying the type of output</div></a>
 
 <p>
-<code>curry</code> can calculate a variety of quantities related to magnetic susceptility and magnetic moment. Use <code>Opt.Output</code> to specify what <code>curry</code> should calculate. One or more keywords are possible. A few examples are
+<code>curry</code> can calculate a variety of quantities related to magnetic susceptibility and magnetic moment. Use <code>Opt.Output</code> to specify what <code>curry</code> should calculate. One or more keywords are possible. A few examples are
 </p>
 
 <pre class="matlab">
@@ -204,7 +204,7 @@ Opt.Output = 'chimol muBM';         % reverse order to the default
 </pre>
 
 <p>
-Several ways to represent the magnetic suscpetibilty are used. Beside &chi;<sub>zz</sub> (where often the index is omitted), the product of temperature and susceptibilty &chi;<sub>zz</sub>T and the inverse of the susceptibilty 1/&chi;<sub>zz</sub> are common. Also the effective magnetic moment &mu;<sub>eff</sub> is used. All of them contain the same information, however their appearance is quite different. A free paramagnet is described by &chi;<sub>zz</sub> = C/T with Curie constant C and temperature T. Hence, &chi;<sub>zz</sub> approaches C at low temperatures and tend towards zero at high temperatures. In contrast 1/&chi;<sub>zz</sub> decrease linearly with decreasing temperature. &chi;<sub>zz</sub>T is simply a constant line at C. In the section <a href="#fitting">Least-squares fitting</a> we will discuss implications of that.
+Several ways to represent the magnetic susceptibility are used. Beside &chi;<sub>zz</sub> (where often the index is omitted), the product of temperature and susceptibility &chi;<sub>zz</sub>T and the inverse of the susceptibility 1/&chi;<sub>zz</sub> are common. Also the effective magnetic moment &mu;<sub>eff</sub> is used. All of them contain the same information, however their appearance is quite different. A free paramagnet is described by &chi;<sub>zz</sub> = C/T with Curie constant C and temperature T. Hence, &chi;<sub>zz</sub> approaches C at low temperatures and tend towards zero at high temperatures. In contrast 1/&chi;<sub>zz</sub> decrease linearly with decreasing temperature. &chi;<sub>zz</sub>T is simply a constant line at C. In the section <a href="#fitting">Least-squares fitting</a> we will discuss implications of that.
 </p>
 
 <p>
@@ -263,7 +263,7 @@ chimol_CGS = chimol_SI/(4*pi*1e-6);  % conversion from SI to CGS-emu units
 </p>
 
 <p>
-For more information on the various frames and how to specify the relative orientations, see the <a href="frames.html">descroption of frames</a>.
+For more information on the various frames and how to specify the relative orientations, see the <a href="frames.html">description of frames</a>.
 </p>
 
 <p>
@@ -308,7 +308,7 @@ You can use EasySpin's least-squares fitting tool <a class="esf" href="esfit.htm
 </p>
 
 <p>
-In almost all cases magnetometry data is given in absolute units, therefore it is definetly NOT recommended to scale data before least-square fitting. Use <code>FitOpt.AutoScale = false;</code>.
+In almost all cases magnetometry data is given in absolute units, therefore it is definitely NOT recommended to scale data before least-square fitting. Use <code>FitOpt.AutoScale = false;</code>.
 </p>
 
 <p>

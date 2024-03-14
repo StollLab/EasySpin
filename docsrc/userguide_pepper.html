@@ -199,7 +199,7 @@ line broadening models in a simulation.
 
 <p>
 The simplest way to include line broadening is to convolute a stick spectrum
-with a (Gaussian or Lorentzian) lineshape after the end of the simulation.
+with a (Gaussian or Lorentzian) line shape after the end of the simulation.
 Such a convolution broadening is specified in the spin system field <code>lwpp</code>.
 </p>
 
@@ -210,7 +210,7 @@ Sys.lwpp = [1 2];   % Gaussian PP of 1mT + Lorentzian PP of 2 mT
 </pre>
 
 <p>
-The line width is in mT and refers to peak-to-peak (PP) line widhts.
+The line width is in mT and refers to peak-to-peak (PP) line widths.
 Instead, FWHM (full width at half height) line widths can be provided in the field
 <code>Sys.lw</code>.
 </p>
@@ -297,7 +297,7 @@ On many cw EPR spectrometers, the field range is specified using center field an
 </p>
 
 <p>
-<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accomodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
 </p>
 
 <p>
@@ -440,7 +440,7 @@ Options.Verbosity = 1;
 <p>
 <code>'Verbosity'</code> tells <code>pepper</code> how much of progress
 information to show in the command window. 0 (the default)
-suppresses all output, 1 is normal intormation, and 2 prints more information,
+suppresses all output, 1 is normal information, and 2 prints more information,
 relevant only for debugging.
 </p>
 
@@ -529,7 +529,7 @@ to the number of components in a simulation.
 <a name="manynuclei"><div class="subtitle">Systems with several nuclei</div></a>
 
 <p>
-<code>pepper</code> uses matrix diagonalization as thed default method for simulating spectra. For systems with several nuclei this can be very time-consuming. To accelerate such computations, <code>pepper</code> provides first- and second-order perturbation theory as an alternative methods. The relevant simulation option that tells EasySpin about is <code>Opt.Method</code>.
+<code>pepper</code> uses matrix diagonalization as the default method for simulating spectra. For systems with several nuclei this can be very time-consuming. To accelerate such computations, <code>pepper</code> provides first- and second-order perturbation theory as an alternative methods. The relevant simulation option that tells EasySpin about is <code>Opt.Method</code>.
 </p>
 
 <p>
@@ -631,7 +631,7 @@ For this, all you need to do is the following
 <li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
 otherwise EasySpin does not know what to do.
 <li>Give a frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. You can also omit these, in which case <code>pepper</code> will determine an adequate range automatically.
-<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional linewidth parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
+<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>
 
 <p>
@@ -643,7 +643,7 @@ clear
 Sys.g = [2.008 2.006 2.002];
 Sys.Nucs = '14N';
 Sys.A = [20 20 100];
-Sys.lwpp = 10;           % peak-to-peak linewidth, in MHz
+Sys.lwpp = 10;           % peak-to-peak line width, in MHz
 Exp.Field = 340;         % static field, in mT
 Exp.mwRange = [9.3 9.7];   % frequency range, in GHz
 pepper(Sys,Exp);

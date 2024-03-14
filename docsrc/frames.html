@@ -67,7 +67,7 @@ The <em>lab frame</em> L is fixed in the laboratory. Its three unit vectors are 
 </p>
 
 <ul>
-<li>zL is along the static magnetic field B<sub>0</sub>, in agreement with the universal convention in magnetic resonance. For an electromagnet with horizontal B<sub>0</sub>, zL is horizontal and points to the left. For a standard superconducting magnet with vertical B<sub>0</sub>, zL is vertical and points up. For a split-coil superconducing magnet with horizontal B<sub>0</sub>, zL is horizontal and points to the left.</li>
+<li>zL is along the static magnetic field B<sub>0</sub>, in agreement with the universal convention in magnetic resonance. For an electromagnet with horizontal B<sub>0</sub>, zL is horizontal and points to the left. For a standard superconducting magnet with vertical B<sub>0</sub>, zL is vertical and points up. For a split-coil superconducting magnet with horizontal B<sub>0</sub>, zL is horizontal and points to the left.</li>
 <li>yL points away from the user.</li>
 <li>xL is defined such that the (xL, yL, zL) coordinate frame is right-handed. For an electromagnet, xL is vertical and points up. For a standard superconducting magnet, xL is horizontal and points to the right.</li>
 </ul>
@@ -81,7 +81,7 @@ The following figure illustrates this.
 </div>
 
 <p>
-By default, the B<sub>1</sub> field of the incident microwave excitation is along xL for the standard perpendicular mode. For parallel-mode EPR, B<sub>1</sub> is along zL. You can specify non-standard mirowave excitation geometries using <code>Exp.mwMode</code>.
+By default, the B<sub>1</sub> field of the incident microwave excitation is along xL for the standard perpendicular mode. For parallel-mode EPR, B<sub>1</sub> is along zL. You can specify non-standard microwave excitation geometries using <code>Exp.mwMode</code>.
 </p>
 
 <p>
@@ -241,7 +241,7 @@ Prior to version 5, EasySpin used <code>Sys.gpa</code>, <code>Sys.Apa</code> etc
 <div class="subtitle"><a name="MC">Molecule orientation within a crystal</a></div>
 
 <p>
-In crystals, the spin centers rarely align with the crystal axes. Therefore, it is often necessary to specify a tilt between the sample frame (S), which is fixed relative to the crystal, and the molecular frame (M), which is fixed relateive to the spin center. In EasySpin, you can do this with <code>Exp.MolFrame</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>sample/crystal frame to the molecular frame</em> (C&rarr;M).
+In crystals, the spin centers rarely align with the crystal axes. Therefore, it is often necessary to specify a tilt between the sample frame (S), which is fixed relative to the crystal, and the molecular frame (M), which is fixed relative to the spin center. In EasySpin, you can do this with <code>Exp.MolFrame</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>sample/crystal frame to the molecular frame</em> (C&rarr;M).
 </p>
 
 <pre class="matlab">

@@ -51,13 +51,13 @@ U = propint(SaveU,tp,freq,phase)
 <p>
 <code>propint</code> computes a pulse propagator by numerically integrating
 
-<pre class="eqn">
+<div class="eqn">
 <img src="eqn/propint1.png" alt="[eqn]"><!--MATH
 \begin{equation*}
 \dot{U}(t) = -\mr{i}2\pi [H_0 + H_1\cos(2\pi\nu t +\phi)] U(t)
 \end{equation*}
 -->
-</pre>
+</div>
 
 over the interval <code>t=tp(1)</code> to <code>t=tp(2)</code>
 using steps of <code>dt = 1/freq/n</code>.</p>

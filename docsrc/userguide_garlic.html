@@ -154,7 +154,7 @@ Sys.A = [10 12]; % MHz
 Remember that <code>garlic</code> (and other EasySpin functions, too),
 take the hyperfine coupling values to be in <b>MHz</b>.
 Often, values for hyperfine couplings are given in G (Gauss) or mT
-(Milltesla), so you have to convert these values.
+(millitesla), so you have to convert these values.
 For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
 The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
 function <a class="esf" href="unitconvert.html">unitconvert</a>:
@@ -235,7 +235,7 @@ On many cw EPR spectrometers, the field range is specified using center field an
 </p>
 
 <p>
-<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accomodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
 </p>
 
 <p>
@@ -320,7 +320,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 
 <p>
 Lines in an isotropic cw EPR spectrum are not infinitely narrow,
-the have a certain linewidth. This linewidth
+the have a certain line width. This line width
 can be supplied to <code>garlic</code> in the <code>lwpp</code>
 or the <code>lw</code> field of the spin system structure, in mT.
 </p>
@@ -449,7 +449,7 @@ Remember that for fast-motion simulations of systems with more than one nucleus,
 </p>
 
 <p>
-<a class="esf" href="garlic.html">garlic</a> doesn't compute the fast-motion linewidths: It calls <a class="esf" href="fastmotion.html">fastmotion</a>. After the spectrum with the fast-motion linewidths is constucted, <code>garlic</code> convolutes it using the Lorentzian (and possibly Gaussian) FWHM from <code>Sys.lw</code>. This way, residual broadenings are easily included.
+<a class="esf" href="garlic.html">garlic</a> doesn't compute the fast-motion line widths: It calls <a class="esf" href="fastmotion.html">fastmotion</a>. After the spectrum with the fast-motion line widths is constructed, <code>garlic</code> convolutes it using the Lorentzian (and possibly Gaussian) FWHM from <code>Sys.lw</code>. This way, residual broadenings are easily included.
 </p>
 
 <p>
@@ -481,7 +481,7 @@ For this, all you need to do is the following
 <li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
 otherwise EasySpin does not know what to do.
 <li>Give a frequency range (in GHz) in <code>Exp.Range</code> or <code>Exp.CenterSweep</code>. You can also omit these, in which case <code>pepper</code> will determine an adequate range automatically.
-<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional linewidth parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
+<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>
 
 <p>
@@ -494,7 +494,7 @@ Sys.g = 2.005;
 Sys.Nucs = '1H,1H,1H,14N';
 Sys.A = [6 5 2 1.7];
 Sys.n = [2 2 2 1];
-Sys.lwpp = 0.1;                   % peak-to-peak linewidth, in MHz
+Sys.lwpp = 0.1;                   % peak-to-peak line width, in MHz
 Exp.Field = 340;                  % static field, in mT
 garlic(Sys,Exp);
 </pre>

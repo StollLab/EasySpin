@@ -69,7 +69,7 @@ Sys.ZeemanFreq = 9.5; % in GHz
 
 Here, we already encounter the first difference between <a class="esf" href="spidyan.html">spidyan</a> and <a class="esf" href="saffron.html">saffron</a>. 
 <a class="esf" href="saffron.html">saffron</a> simulates powder averaged (or single crystal) EPR experiments, <a class="esf" href="spidyan.html">spidyan</a> only works with one single spin system at a time.
-While <a class="esf" href="spidyan.html">spidyan</a> still accepts <code>Sys.g</code>, it can be more convenient to define the Zeeman frequency <code>Sys.ZeemanFreq</code> of the investigated spinpacket.
+While <a class="esf" href="spidyan.html">spidyan</a> still accepts <code>Sys.g</code>, it can be more convenient to define the Zeeman frequency <code>Sys.ZeemanFreq</code> of the investigated spin packet.
 
 <p>
 After the spin system follows the experiment. Here we are creating a two-pulse sequence:
@@ -231,7 +231,7 @@ Although trajectory is slightly different, both adiabatic pulses end up in the s
 <p>
 The quality, of adiabatic pulses is in general described by a parameter called critical adiabaticity <code>Q<sub>crit</sub></code>, which measures the ability of the pulse to invert the spin and depends on the amplitude and the sweep rate.
 The flip angle and <code>Q<sub>crit</sub></code> are related through the Landau-Zener-Stückelberg-Majorana equation:, e.g, a <code>Q<sub>crit</sub></code> of 5 corresponds to a &pi; pulse and a <code>Q<sub>crit</sub></code> of about 0.7 to a &pi;/2 pulse.
-Hence, it is not only possible to define the pulses with <code>Pulse.Flip</code>, but instead you can provide <code>Pulse.Amplitude</code> or <code>Pulse.Qcrit</code> for frquency-swept pulses.
+Hence, it is not only possible to define the pulses with <code>Pulse.Flip</code>, but instead you can provide <code>Pulse.Amplitude</code> or <code>Pulse.Qcrit</code> for frequency-swept pulses.
 
 <p>
 Adiabatic pulses have the big advantage, that they invert all spins within their excitation band equally.
@@ -355,7 +355,7 @@ uses <i>&Scirc;<sub>z</sub></i> and <i>&Scirc;<sub>x</sub></i> of the first spin
 <p>
 For each of the components of <code>Exp.DetOperator</code> a frequency for downconversion in GHz must be provided. 
 Detection operators that correspond only to elements on the diagonal of the detection operator do not need to be down converted.
-Such operators are any <i>&Scirc;<sub>z</sub></i>-operatos, written like <code>'z1'</code>, polarization operators between two levels, specified for example with  <code>z(1|2)1</code> and population operators selective operators, specfied with like <code>e(2)</code>.
+Such operators are any <i>&Scirc;<sub>z</sub></i>-operators, written like <code>'z1'</code>, polarization operators between two levels, specified for example with  <code>z(1|2)1</code> and population operators selective operators, specified with like <code>e(2)</code>.
 
 <p>
 Assuming that both spins are of the same type, we could write for the above example:
@@ -384,7 +384,7 @@ Instead of using <code>Exp.DetWindow</code>, which only allows detection <em>aft
 If neither <code>Exp.DetWindow</code> nor <code>Exp.DetSequence</code> are defined, <a class="esf" href="spidyan.html">spidyan</a> detects the entire sequence by default.
 
 <p>
-Detection is controlled through boleans for each element in <code>Exp.Sequence</code> separately. Here are a few examples:
+Detection is controlled through booleans for each element in <code>Exp.Sequence</code> separately. Here are a few examples:
 
 <pre class="matlab">
 Exp.Sequence = {p90 tau p180 2*tau}; % the pulse experiment
@@ -423,13 +423,13 @@ Next we set up two chirp pulses that are being swept from the outside of the spe
 <pre class="matlab">
 Pulse1.Type = 'quartersin/linear'; % make it a chirp
 Pulse1.trise = 0.05; % smooth edges in time domain with a quarter sine, in mus
-Pulse1.Qcrit = 10; % use critical adabaticity instead of Par.Flip or Par.Amplitude
+Pulse1.Qcrit = 10; % use critical adiabaticity instead of Par.Flip or Par.Amplitude
 Pulse1.tp = 1; % pulse length in mus
 Pulse1.Frequency = [500 170]; % frequency band, relative to Exp.mwFreq
 
 Pulse2.Type = 'quartersin/linear'; % make it a chirp
 Pulse2.trise = 0.05; % smooth edges in time domain with a quarter sine, in mus
-Pulse2.Qcrit = 10; % use critical adabaticity instead of Par.Flip or Par.Amplitude
+Pulse2.Qcrit = 10; % use critical adiabaticity instead of Par.Flip or Par.Amplitude
 Pulse2.tp = 1; % pulse length in mus
 Pulse2.Frequency = [-500 -170]; % frequency band, relative to Exp.mwFreq
 
@@ -489,7 +489,7 @@ Andrin Doll, et al.<br>
 <p>
 This example explores how spin selective excitation and detection operators are used.
 First we start with the specification of a spin system.
-Since we are interested in seeing the pulses and not spindynamis, we are going to set the spin-spin coupling to zero.
+Since we are interested in seeing the pulses and not spin dynamics, we are going to set the spin-spin coupling to zero.
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];
@@ -590,7 +590,7 @@ We then are going to use the indirect dimension to increase the length of the pu
 Let us start with the pulse and <code>Exp.Sequence</code>
 
 <pre class="matlab">
-% eperiment setup
+% experiment setup
 Pulse.Type = 'rectangular';
 Pulse.tp = 0.001; % pulse length in &mu;s
 Pulse.Amplitude = 30; % pulse amplitude in MHz
@@ -664,7 +664,7 @@ spidyan(Sys,Exp,Opt);
 <a name="spinecho_nitroxide"><div class="subtitle">Spin echo of a nitroxide</div></a>
 
 <p>
-Per call <a class="esf" href="spidyan.html">spidyan</a> can process a signle pack. 
+Per call <a class="esf" href="spidyan.html">spidyan</a> can process a single spin packet. 
 If you want to simulate a pulse sequence with an entire spectrum, you would usually use <a class="esf" href="saffron.html">saffron</a>, unless you want to use special excitation operators, change the detection operator or detect between and  during pulses.
 In such a case you can manually define an orientation loop which calls <a class="esf" href="spidyan.html">spidyan</a>.
 
@@ -726,7 +726,7 @@ For detection we are detecting the electron coherence in a 0.1 &mu;s window cent
 Since we are using frequency-swept pulses, the position of the echo is not at &tau; after the end of the &pi; pulse, but we also need to take the pulse length into account.
 
 <p>
-With this we can loop over the orientations and cummulate the signal:
+With this we can loop over the orientations and accumulate the signal:
 
 <pre class="matlab">
 Signal = 0; % initialize Signal
@@ -762,7 +762,7 @@ ylabel('Signal (arb.u.)')
 
 <p>
 If you are investigating spin dynamics, it is often not necessary to simulate entire spectra. 
-Instead you can use any distribution of spinpackets (a distribution of different resonance frequencies is needed for an echo to form).
+Instead you can use any distribution of spin packets (a distribution of different resonance frequencies is needed for an echo to form).
 
 <p>
 Here we are going to cover how to loop <a class="esf" href="spidyan.html">spidyan</a> over a Gaussian line.
@@ -807,12 +807,12 @@ Exp.DetFreq = 9.5; % GHz
 
 <p>
 Now, all that is left, is looping over the spins.
-In contrast to the <a href="#spinecho_nitroxide">example with the nitroxide</a>, we do not need to rotate any tensors anymore, and can just load the resonance frequency and then plot the cummulated signal:
+In contrast to the <a href="#spinecho_nitroxide">example with the nitroxide</a>, we do not need to rotate any tensors anymore, and can just load the resonance frequency and then plot the accumulated signal:
 
 <pre class="matlab">
 Signal = 0; % initialize the signal
 
-% Loop over the spinpackets and sum up the traces ------------
+% Loop over the spin packets and sum up the traces ------------
 for i = 1 : nSpinpackets
   
   Sys_.ZeemanFreq = ZeemanFreqVec(i); % Set Zeeman frequency
@@ -887,7 +887,7 @@ But if your data processing involves the imaginary part of the signal and you en
 <p>
 In some simulations you may observe echoes in your timetrace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the nitroxide spectrum in the example above) is insufficiently sampled.
-This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. 
+This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echoes stay in place. You can also compute the required increment for the spin packet distribution in frequency domain by an inverse Nyquist criterion. 
 If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
 
 <p>

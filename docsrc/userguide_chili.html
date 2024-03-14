@@ -131,7 +131,7 @@ Sys.A = [10; 12]; % MHz
 </pre>
 
 <p>
-Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (milltesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="unitconvert.html">unitconvert</a>:
+Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (millitesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="unitconvert.html">unitconvert</a>:
 </p>
 
 <pre class="matlab">
@@ -245,7 +245,7 @@ chili(Nx,Exp);
 <a name="potential"><div class="subtitle">The orientational potential</div></a>
 
 <p>
-<code>chili</code> can also include an orientational potential-energy function in the simulation. This is used to model hindered rotational diffusion, i.e. when not all orientations of the spin center relative to its immediate ennvironment (protein, membrane, etc) are equally accessible energetically.
+<code>chili</code> can also include an orientational potential-energy function in the simulation. This is used to model hindered rotational diffusion, i.e. when not all orientations of the spin center relative to its immediate environment (protein, membrane, etc) are equally accessible energetically.
 </p>
 
 <p>
@@ -461,7 +461,7 @@ For this, all you need to do is the following:
 <ul>
 <li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>, otherwise EasySpin does not know what to do.
 <li>Give a microwave frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. You can also omit these, in which case <code>pepper</code> will try to determine an adequate range automatically.
-<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in units of MHz. For a frequency sweep, these convolutional linewidth parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
+<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in units of MHz. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>
 
 <p>
