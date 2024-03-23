@@ -228,7 +228,7 @@ for iTest = 1:numel(TestFileNames)
   testResults(iTest).msg = str;
   testResults(iTest).msgLink = strLink;
   
-  fprintf(fid,str);
+  fprintf(fid,strLink);
 end
 
 % Display results of code coverage analysis
