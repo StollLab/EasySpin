@@ -54,7 +54,7 @@ grid = sphgrid(GridSymmetry,GridSize)
 Since all spectra in EPR are invariant with respect to inversion of the system, only centrosymmetric point groups are supported. For each point group, <code>sphgrid</code> returns a grid only over its unique surface. The following table lists the possible values for <code>GridSymmetry</code> together with the unique surface boundaries.
 </p>
 
-<pre class="eqn">
+<div class="eqn">
 <img src="eqn/sphgrid1.png" alt="[eqn]"><!--MATH
 \begin{center}
 \begin{tabular}{lccc}
@@ -80,7 +80,7 @@ Value & Point group & \multicolumn{2}{c}{Unique surface} \\
 \end{tabular}
 \end{center}
 -->
-</pre>
+</div>
 
 <p>
 Note that some unique surfaces have open &phi; borders. This is treated correctly by <code>sphgrid</code>. There are never knots on open borders.

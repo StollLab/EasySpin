@@ -164,7 +164,7 @@ If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
 <div class="optiondescr">
 A cell array that contains the pulse definition and the inter-pulse delays.
 Available pulse types and their parameters are described at <a href="pulse.html">pulse</a>. 
-For a pulse it is necessary to insert a structure containing the pulse defintion, free evolution events are declared with a scalar that corresponds to their lenght in microsecond:
+For a pulse it is necessary to insert a structure containing the pulse definition, free evolution events are declared with a scalar that corresponds to their length in microsecond:
 <pre class="matlab">
 P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
 P90.tp = 0.032;		  	% Pulse Length in microseconds
@@ -201,7 +201,7 @@ In each row the first element is the phase, and the second element the detection
 PC = [0, 1; pi, -1];   		% phase cycle
 Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 </pre>
-Phace cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
+Phase cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 
 <div class="optionfield"><code>mwPolarization</code></div>
@@ -302,7 +302,7 @@ Detection operators that can not be defined using the <code>sop</code> syntax, c
 <pre class="matlab">
 Exp.DetOperator = {[0 1; 0 0] [1/2 0; 0 -1/2]};   % the same operators as a above for <i>S</i> = 1/2 in matrix form
 </pre>
-For convencience it is possible write a single detection operator without the curly brackets:
+For convenience it is possible write a single detection operator without the curly brackets:
 <pre class="matlab">
 Exp.DetOperator = '+1'; % same as {'+1'}
 
@@ -538,9 +538,9 @@ To have the program adapt the time step, remove the field <code>Opt.IntTimeStep<
 <div class="optiondescr">
 Integration time step in microseconds, optional. 
 If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>).
-Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillaton or 1/50th of the largest time step size to fulfill the Nyquist criterion.
+Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillation or 1/50th of the largest time step size to fulfil the Nyquist criterion.
 <p>
-User provided intgration time steps must at least fulfill the Nyquist criterion, or an error is thrown. 
+User provided integration time steps must at least fulfil the Nyquist criterion, or an error is thrown. 
 For integration time steps larger than the recommended ones, a warning is printed to the command line.
 </p>
 </div>
@@ -578,7 +578,7 @@ The imaginary part of a custom excitation operator is only considered if <code>C
 
 <p>
 The data type of the returned time-domain signal depends on experiment parameters. 
-If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding being the detected transiend and the second dimension specified detection operators. 
+If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding being the detected transient and the second dimension specified detection operators. 
 If one the specified detection operators is a ladder operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
 The time axis is returned in <code>t</code> and will be a vector with the same length as <code>sig</code>.
 </p>
@@ -684,7 +684,7 @@ InterestingState =
 If <code>Opt.StateTrajectories</code> is active during at least one event, <code>out.StateTrajectories</code> contains the state trajectories.
 This means, it contains the state (density matrix) of each propagation step during the events selected in <code>Opt.StateTrajectories</code>.
 <code>out.StateTrajectories</code> is an n-dimensional cell array where the dimensions once again correspond to <code>Exp.nPoints</code>.
-To get the state trajectories for the second data point in the first dimension and for the fourth datapoint in the second dimension of aboves example, write:
+To get the state trajectories for the second data point in the first dimension and for the fourth datapoint in the second dimension of the example above, write:
 <pre class="matlab">
 InterestingStateTrajectory = out.StateTrajectories{2,4}
 </pre>

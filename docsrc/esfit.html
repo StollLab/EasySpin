@@ -126,8 +126,8 @@ For EasySpin functions, if a spin system or experimental parameter should be inc
 </p>
 <pre class="matlab">
 Sys0.lwpp = 5;
-SysVary.lwpp = 2;    % the linewidth is searched over a range of about 3 to 7
-SysVary.lwpp = 0;    % the linewidth is kept constant at the value given in Sys0
+SysVary.lwpp = 2;    % the line width is searched over a range of about 3 to 7
+SysVary.lwpp = 0;    % the line width is kept constant at the value given in Sys0
 </pre>
 <p>
 For multiple components, <code>SysVary</code> should be a cell array containing one structure per component, e.g. <code>{SysVary1,SysVary2}</code> for two components. If none of the parameters of a component are varied in the fit, <code>[]</code> can be specified, e.g. <code>{SysVary1,[]}</code> for a two-component fit where only parameters of the first component are varied.
@@ -473,7 +473,7 @@ Parameters for the <span style="font-weight:bold;">grid search</span>:
 <div class="optionfield"><code>FitOpt.GridSize</code></div>
 <div class="optiondescr">
 A number or an array that specifies how many grid points there should be for each parameter (default = 7). If one number is given, it is valid for all parameters. For example, let's
-assume that one g value and the linewidth are being fitted:
+assume that one g value and the line width are being fitted:
 
 <pre class="matlab">
 Vary.g = [0 0.001 0]; Vary.lw = 0.2;

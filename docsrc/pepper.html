@@ -364,7 +364,7 @@ Determines the number of orientations (knots) in a powder simulation for which s
 </p>
 <ul>
 <li>
-<code>N1</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which spectra are explicitly calculated using the physical theory. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spectrum and the narrower the linewidth relative to the anisotropy, the higher <code>N1</code> must be to yield smooth powder spectra.
+<code>N1</code> gives the number of orientations between &theta;=0&deg; and &theta;=90&deg; for which spectra are explicitly calculated using the physical theory. Common values for <code>N1</code> are between 10 (10&deg; increments) and 91 (1&deg; increments). The larger the anisotropy of the spectrum and the narrower the line width relative to the anisotropy, the higher <code>N1</code> must be to yield smooth powder spectra.
 
 <li><code>N2</code> is the refinement factor for the interpolation of the orientational grid. E.g. if <code>N2=4</code>, then between each pair of computed orientations three additional orientations are calculated by spline interpolation. Values higher than 10 are rarely necessary. If <code>N2</code> is not given, a default value is used.
 </ul>

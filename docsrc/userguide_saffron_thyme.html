@@ -104,7 +104,7 @@ We added a total of three lines: <code>p90.tp</code>, <code>Exp.mwFreq</code> an
 </p>
 
 <p>
-We also set <code>Exp.nPoints</code> to 5 to make the output more comprehendable and to save time.
+We also set <code>Exp.nPoints</code> to 5 to make the output more comprehensible and to save time.
 </p>
 
 <p>
@@ -184,7 +184,7 @@ If down-conversion is switched off, the signal is returned in the simulation fra
 The last field related to detection is <code>Exp.DetIntegrate</code>, which, if switched on, tell <a class="esf" href="saffron.html">saffron</a> to integrate the signal.
 
 <p>
-Something to keep in mind: The entire detection window is used. This means, that if there is other echos within the detection window, those will get integrated as well and might interfere with your data. 
+Something to keep in mind: The entire detection window is used. This means, that if there is other echoes within the detection window, those will get integrated as well and might interfere with your data. 
 
 <!-- ============================================================= -->
 <a name="frequency_modulated_pulses">
@@ -229,7 +229,7 @@ Chirp180.trise = 0.030;
 
 <p>
 With <code>Par.Frequency</code> we define the frequency sweep, in MHz. This is defined in relation to <code>Exp.mwFreq</code> which we will add later.
-<code>Par.tp</code> is the rise time and specific to the amplitode modulation function that we chose with <code>Par.Type = 'quartersin/linear';</code>.
+<code>Par.tp</code> is the rise time and specific to the amplitude modulation function that we chose with <code>Par.Type = 'quartersin/linear';</code>.
 
 <p>
 Now the last thing to do is to set up the <code>Exp</code> structure. 
@@ -473,7 +473,7 @@ Keep this in mind, if you need &langle;<i>&Scirc;</i><sub>y</sub>&rangle;.
 <p>
 In some simulations you may observe echoes in your timetrace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum is insufficiently sampled (not enough orientations are used).
-This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echos stay in place. 
+This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echoes stay in place. 
 The number of orientations that are being used for the simulation can be controlled with <code>Opt.GridSize</code>.
 By default <a class="esf" href="saffron.html">saffron</a> assumes <code>Opt.GridSize = 31</code>.
 

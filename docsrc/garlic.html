@@ -54,7 +54,7 @@ See also the <a href="userguide_garlic.html">user guide</a> on how to use <code>
 <div class="subtitle">Description</div>
 
 <p>
-<code>garlic</code> computes isotropic and fast-motional cw EPR spectra of douplet radicals in solution, i.e., of spin systems with an electron spin S=1/2 coupled to an arbitrary number of nuclear spins I>=1/2 with small hyperfine couplings.
+<code>garlic</code> computes isotropic and fast-motional cw EPR spectra of doublet radicals in solution, i.e., of spin systems with an electron spin S=1/2 coupled to an arbitrary number of nuclear spins I>=1/2 with small hyperfine couplings.
 </p>
 
 <p>
@@ -113,7 +113,7 @@ For example, <code>Sys.n = [2,3]</code>, if the spin system contains two <sup>1<
 <div class="optionfield"><code>lwpp</code></div>
 <div class="optiondescr">
 <p>
-1- or 2-element array of peak-to-peak (PP) linewidths (all in mT).
+1- or 2-element array of peak-to-peak (PP) line widths (all in mT).
 </p>
 <ul>
 <li>1 element: <code>GaussianPP</code>.</li>
@@ -124,7 +124,7 @@ For example, <code>Sys.n = [2,3]</code>, if the spin system contains two <sup>1<
 <div class="optionfield"><code>lw</code></div>
 <div class="optiondescr">
 <p>
-1- or 2-element array of FWHM linewidths (all in mT).
+1- or 2-element array of FWHM line widths (all in mT).
 </p>
 <ul>
 <li>1 element: <code>GaussianFWHM</code>.</li>
@@ -225,9 +225,9 @@ Determines how the spectrum is constructed once all the line positions, intensit
 <li>
 <code>'explicit'</code> instructs <code>garlic</code> to explicitly evaluate the line shape functions (Gaussian, Lorentzian) for every single line in the spectrum and add them up. This is the most accurate, but also by far the slowest method.
 <li>
-<code>'binning'</code> tells <code>garlic</code> to first construct a stick spectrum with delta peaks, and then convolute it with the requested broadening line shape. This method is the fastest, but can run into problems if the Gaussian or Lorentzian linewidth is on the order of, or smaller than, the field increment. In these cases, either use another accumulation method, increase the number of points in the spectrum (<code>Exp.nPoints</code>), or increase the linewidth. <code>'binning'</code>  does not work for simulations in the fast-motion regime, since there each line has a different linewidth.
+<code>'binning'</code> tells <code>garlic</code> to first construct a stick spectrum with delta peaks, and then convolute it with the requested broadening line shape. This method is the fastest, but can run into problems if the Gaussian or Lorentzian line width is on the order of, or smaller than, the field increment. In these cases, either use another accumulation method, increase the number of points in the spectrum (<code>Exp.nPoints</code>), or increase the line width. <code>'binning'</code>  does not work for simulations in the fast-motion regime, since there each line has a different line width.
 <li>
-<code>'template'</code> instructs <code>garlic</code> to build the spectrum by pre-computing a high-resolution version of the broadening line shape function and then use it as a template to interpolatively construct the total spectrum from it. This method is almost as accurate as the <code>'explicit'</code> method, but significantly faster. Still, in situations with very many peaks, it can be quite slow. This won't work for simulations in the fast-motion regime, since there each line has a different linewidth.
+<code>'template'</code> instructs <code>garlic</code> to build the spectrum by pre-computing a high-resolution version of the broadening line shape function and then use it as a template to construct the total spectrum from it by interpolation. This method is almost as accurate as the <code>'explicit'</code> method, but significantly faster. Still, in situations with very many peaks, it can be quite slow. This won't work for simulations in the fast-motion regime, since there each line has a different line width.
 </ul>
 </div>
 
