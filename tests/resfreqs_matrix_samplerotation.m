@@ -9,11 +9,11 @@ Exp.SampleFrame = [0 0 0];
 % Rotate sample such that zM, yM and xM end up along zL
 % and calculate resonance fields
 rotaxis = [1 1 1];
-Exp.SampleRotation = {0,rotaxis};
+Exp.SampleRotation = {rotaxis,0};
 [nuz,~] = resfreqs_matrix(Sys,Exp);
-Exp.SampleRotation = {2*pi/3,rotaxis};
+Exp.SampleRotation = {rotaxis,2*pi/3};
 [nuy,~] = resfreqs_matrix(Sys,Exp);
-Exp.SampleRotation = {-2*pi/3,rotaxis};
+Exp.SampleRotation = {rotaxis,-2*pi/3};
 [nux,~] = resfreqs_matrix(Sys,Exp);
 
 % Reference values for resonance fields

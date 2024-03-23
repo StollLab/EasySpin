@@ -4438,24 +4438,29 @@
     "description": "Rotate a frame given by Euler angles",
     "inputs": [
       {
-        "name": "Ori0",
+        "name": "ang0",
         "kind": "required",
         "type": [
           "numeric",
           "size=1,3",
           "real"
         ],
-        "purpose": "initial frame orientation, Euler angles"
+        "purpose": "Euler angles for initial frame orientation, radians"
       },
       {
         "name": "nRot",
         "kind": "required",
         "type": [
+          [
           "numeric",
           "size=3,1",
           "real"
+          ],
+          [
+           "char"
+          ]
         ],
-        "purpose": "axis of rotation, 3-vector"
+        "purpose": "rotation axis, 3-vector or letter code"
       },
       {
         "name": "rho",
@@ -4472,7 +4477,7 @@
             "vector"
           ]
         ],
-        "purpose": "angle(s) of rotation, radians"
+        "purpose": "rotation angle(s), radians"
       }
     ]
   },

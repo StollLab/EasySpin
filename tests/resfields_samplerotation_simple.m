@@ -11,7 +11,7 @@ Exp.MolFrame = [80 10 120]*pi/180;
 
 rotaxis = [1;1;3];
 rho = 10*pi/180;
-Exp.SampleRotation = {rho,rotaxis};
+Exp.SampleRotation = {rotaxis,rho};
 
 % Resonance field calculation using resfields
 Bres1 = resfields(Sys,Exp);

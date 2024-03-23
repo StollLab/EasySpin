@@ -24,7 +24,7 @@ nRot = 'x';                  % rotate around lab frame x axis (xL)
 rho = deg2rad(0:10:180);     % rotate in 10 degree steps over 180 degrees
 
 for k = 1:numel(rho)
-  Exp.SampleRotation = {rho(k),nRot};
+  Exp.SampleRotation = {nRot,rho(k)};
   [B,spc(k,:)] = pepper(P1,Exp);
 end
 

@@ -1,34 +1,37 @@
 % rotateframe   Rotate a frame around a given axis
 %
-%    ori_rot = rotateframe(ori,nRot,rho)
+%    ang = rotateframe(ang0,nRot,rho)
+%    [ang,R] = rotateframe(ang0,nRot,rho)
 %
-%    Rotates a frame described by the three Euler angles in ori around the axis
+%    Rotates a frame described by the three Euler angles in ang0 around the axis
 %    given in nRot by the rotation angles listed in rho.
 %
 %    Input:
-%     ori    Euler angles describing the frame orientation
-%     nRot   rotation axis
-%               e.g., nRot = [1;0;0] is the x axis
-%               does not need to be normalized 
-%     rho    rotation angle, or list of rotation angles, for the rotation
-%               around nRot
+%     ang0   Euler angles describing the frame orientation, in radians
+%     nRot   letter or vector specifying the rotation axis
+%              nRot = [1;0;0]
+%              nRot = 'x' is the x axis
+%              vectors do not need to be normalized 
+%     rho    rotation angle, or array of rotation angles, for the rotation
+%               around nRot, in radians
 %
 %    Output:
-%     ori_rot  list of Euler angle sets for the rotated frames, one per row.
+%     ang    list of Euler angle sets for the rotated frames, one per row.
+%     R      list of rotation matrices for the rotated frames, one per row.
 %
 %    Example:
-%       ori0 = [0 45 0]*pi/180;
+%       ang0 = [0 45 0]*pi/180;
 %       nRot = [1;0;0];
 %       rho = (0:30:180)*pi/180;
-%       ori_rot = rotateframe(ori0,nRot,rho);
+%       ang = rotateframe(ang0,nRot,rho);
 
-function ori_rot = rotateframe(ori,nRot,rho)
+function [ang,R] = rotateframe(ang0,nRot,rho)
 
 if nargin==0
   help(mfilename);
 end
 
-if numel(ori)~=3
+if numel(ang0)~=3
   error('First input (initial frame) must contain three numbers, the three Euler angles.');
 end
 
@@ -40,16 +43,16 @@ else
   end
 end
 
-% Get frame unit vectors
-xyz = erot(ori).';  % transpose!
-% columns of xyz are the x, y and z vector in the reference frame
-
+% Preallocate outputs
 nrho = numel(rho);
-ori_rot = zeros(nrho,3);
+ang = zeros(nrho,3);
+R = cell(nrho,1);
+
+R0 = erot(ang0);
 for irho = 1:numel(rho)
-  R = rotaxi2mat(nRot,rho(irho));
-  xyz_rotated = R.'*xyz;  % active rotation!
-  ori_rot(irho,:) = eulang(xyz_rotated.',true);
+  Rrot = rotaxi2mat(nRot,rho(irho));  % matrix for active rotation
+  R{irho} = R0*Rrot;
+  ang(irho,:) = eulang(R{irho},true);
 end
 
 end

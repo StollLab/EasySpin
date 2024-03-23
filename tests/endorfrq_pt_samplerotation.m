@@ -10,11 +10,11 @@ Exp.SampleFrame = [0 0 0];
 % Rotate sample such that zM, yM and xM end up along zL
 % and calculate splitting between ENDOR peaks
 rotaxis = [1 1 1];
-Exp.SampleRotation = {0,rotaxis};
+Exp.SampleRotation = {rotaxis,0};
 [nuz,~] = endorfrq_perturb(Sys,Exp);
-Exp.SampleRotation = {2*pi/3,rotaxis};
+Exp.SampleRotation = {rotaxis,2*pi/3};
 [nuy,~] = endorfrq_perturb(Sys,Exp);
-Exp.SampleRotation = {-2*pi/3,rotaxis};
+Exp.SampleRotation = {rotaxis,-2*pi/3};
 [nux,~] = endorfrq_perturb(Sys,Exp);
 hf_splitting = abs([diff(nux) diff(nuy) diff(nuz)]);
 

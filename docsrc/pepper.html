@@ -175,9 +175,9 @@ Specifies the sample rotation as <code>{rho,nRot_L}</code>. <code>rho</code> is 
 
 <pre class="matlab">
 rho = pi/4;
-Exp.SampleRotation = {rho,[0;1;0]};       % rotation around lab y axis (yL)
-Exp.SampleRotation = {rho,'z'};           % rotation around lab z axis (zL)
-Exp.SampleRotation = {rho,'x'};           % rotation around lab x axis (xL)
+Exp.SampleRotation = {[0;1;0],rho};       % rotation around lab y axis (yL)
+Exp.SampleRotation = {'z',rho};           % rotation around lab z axis (zL)
+Exp.SampleRotation = {'x',rho};           % rotation around lab x axis (xL)
 </pre>
 
 </div>

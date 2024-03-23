@@ -27,7 +27,7 @@
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
 %      Temperature         temperature, in K
-%      SampleRotation      sample rotation {rho,nL} with rotation angle rho and axis nL (lab frame)
+%      SampleRotation      sample rotation {nL,rho} with rotation angle rho and axis nL (lab frame)
 %      SampleFrame         3-element array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
@@ -847,12 +847,17 @@ elseif ~BruteForceSum
       iOriSite = 1;  % index into Pdat/Idat/Wdat
       spcidx = 0;  % index into spectral output array
       for iOri = 1:nOrientations
-        if separateSiteSpectra, spcidx = 0;
-        elseif separateOrientationSpectra, spcidx = spcidx+1;
-        else, spcidx = 1;
+        if separateSiteSpectra
+          spcidx = 0;
+        elseif separateOrientationSpectra
+          spcidx = spcidx+1;
+        else
+          spcidx = 1;
         end
         for iSite = 1:nSites
-          if separateSiteSpectra, spcidx = spcidx + 1; end
+          if separateSiteSpectra
+            spcidx = spcidx + 1;
+          end
           %logmsg(3,'  orientation %d of %d, site %d of %d',iOri,nOrientations,iSite,nSites);
 
           thisPos = Pdat(:,iOriSite);

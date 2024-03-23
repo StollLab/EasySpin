@@ -9,13 +9,13 @@ Exp.SampleFrame = [0 0 0];
 % Rotate sample such that zM, yM and xM end up along
 % the static field direction zL and calculate resonance fields
 rotaxis = [1 1 1];
-Exp.SampleRotation = {0,rotaxis};  % zM along zL
+Exp.SampleRotation = {rotaxis,0};  % zM along zL
 Bz = resfields_eig(Sys,Exp);
 
-Exp.SampleRotation = {2*pi/3,rotaxis};  % yM along zL
+Exp.SampleRotation = {rotaxis,2*pi/3};  % yM along zL
 By = resfields_eig(Sys,Exp);
 
-Exp.SampleRotation = {-2*pi/3,rotaxis};  % xM along zL
+Exp.SampleRotation = {rotaxis,-2*pi/3};  % xM along zL
 Bx = resfields_eig(Sys,Exp);
 
 % Reference values for resonance fields

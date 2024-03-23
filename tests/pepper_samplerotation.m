@@ -24,7 +24,7 @@ Exp.SampleRotation = [];
 
 % Sample rotation using Exp.SampleRotation
 Exp.SampleFrame = sampleframe0;
-Exp.SampleRotation = {rho,nrot_L};
+Exp.SampleRotation = {nrot_L,rho};
 [B,spc2] = pepper(Sys,Exp);
 
 ok = areequal(spc1,spc2,1e-10,'rel');

@@ -19,7 +19,7 @@ Sys.gFrame = deg2rad([10 40 20]);
 rho = deg2rad(37);  % sample rotation angle
 n = [1 4 7];  % sample rotation axis
 
-Exp.SampleRotation = {rho,n};
+Exp.SampleRotation = {n,rho};
 Exp.SampleFrame = [];
 [B,spc1] = pepper(Sys,Exp,Opt);
 

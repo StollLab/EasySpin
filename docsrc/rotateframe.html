@@ -56,9 +56,11 @@ Ori = rotateframe(Ori0,nRot,rho)
 
 <p>
 <code>rho</code> is the angle of rotation, in units of radians. The rotation is defined in a positive sense around the rotation axis <code>nRot</code>. <code>rho</code> can be be a single number or an array. If an array is given, <code>rotateframe</code> calculates the rotated frame for each angle in the <code>rho</code> array.
+</p>
 
 <p>
 The output <code>Ori</code> is a set of <a href="eulerangles.html">Euler angles</a> that describe the new frame orientations resulting from the rotation. If <code>rho</code> contains more than one value, <code>Ori</code> contains multiple rows, with one Euler angle set per row.
+</p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
@@ -79,8 +81,26 @@ ori = rotateframe(ori0,xL,rho);     % frame orientation after rotation
 <div class="subtitle">Algorithm</div>
 
 <p>
-This function uses <a class="esf" href="rotaxi2mat.html">rotaxi2mat</a> to perform the rotation.
-Also, see the page on <a href="frames.html">frames</a> and <a href="eulerangles.html">Euler angles</a> for more details.
+This function uses <a class="esf" href="erot.html">erot</a>, <a class="esf" href="rotaxi2mat.html">rotaxi2mat</a> and <a class="esf" href="eulang.html">eulang</a> to perform the rotation. The call
+</p>
+
+<pre class="matlab">
+ori = rotateframe(ori0,xL,rho);
+</pre>
+
+<p>
+calculates the Euler angles of the rotated frame using
+</p>
+
+<pre class="matlab">
+R0 = erot(ori0);
+Rrot = rotaxi2mat(xL,rho);
+R = R0*Rrot;
+ori = eulang(R);
+</pre>
+
+<p>
+Refer to the page on <a href="frames.html">frames</a> and <a href="eulerangles.html">Euler angles</a> for more details.
 </p>
 
 <!-- ============================================================= -->
