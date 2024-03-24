@@ -15,7 +15,7 @@
 %   spec   simulated spectrum or time trace
 %   info   structure with additional information
 
-function [x,spec,info] = compisoloop(simfcn,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra)
+function [x,spec,info] = compisoloop(simfcn,Sys,Exp,Opt,autoRange,thirdOutput,separateSpectra)
 
 includeInverseDomain = isequal(simfcn,@saffron);
 
@@ -49,7 +49,7 @@ if autoRange
   end
 end
 
-if separateComponentSpectra
+if separateSpectra
   spec = [];
   if includeInverseDomain
     data_invdomain = [];
@@ -85,7 +85,7 @@ for iComponent = 1:nComponents
     fdProvided = isfield(info_,'fd');
 
     % Accumulate or append spectra
-    if separateComponentSpectra
+    if separateSpectra
       %if isvector(spec_), catdim = 1; else, catdim = ndims(spec_)+1; end
       catdim = 1;
       spec = cat(catdim,spec,spec_*Sys_.weight);

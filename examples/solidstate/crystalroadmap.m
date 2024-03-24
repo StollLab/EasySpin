@@ -7,22 +7,26 @@ clear, clf
 Sys.g = [2, 2.1, 2.2];
 Sys.gFrame = [10 20 30]*pi/180;  % rad
 
-% Experimental parameters
+% Sample parameters
+Exp.CrystalSymmetry = 'P212121';     % space group
+Exp.MolFrame = [50 20 110]*pi/180;   % orientation of spin system in crystal
+
+% Initial crystal orientation
+Exp.SampleFrame = [40 80 20];   % initial crystal orientation
+
+% Information about crystal orientation/rotation
+rotaxis = [1 0 0];  % rotation axis
+rho = linspace(0,pi,91);  % rotation angle
+Exp.SampleRotation = {rotaxis,rho};
+
+% Field and frequency settings
 Exp.mwFreq = 9.8;  % GHz
 Exp.Range = [310 360];  % mT
-Exp.CrystalSymmetry = 'P212121';  % space group
-
-% Generate crystal orientations obtained by rotation
-nRot_L = [1 1 0];  % rotation axis
-rho = linspace(0,pi,91);  % rotation angle
-frame0 = [0 0 0];  % initial crystal orientation
-frames = rotateframe(frame0,nRot_L,rho);
-Exp.SampleFrame = frames;
 
 % Calculate resonance fields
 Bres = resfields(Sys,Exp);
 
-% plotting
+% Plotting
 plot(Bres,rho*180/pi);
 xlabel('magnetic field (mT)');
-ylabel('\rho (deg)');
+ylabel('rotation angle (deg)');

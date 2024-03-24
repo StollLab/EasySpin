@@ -21,4 +21,4 @@ Exp.CrystalSymmetry = 'Fd-3m';      % space group of diamond (#227)
 Opt.separate = 'sites';
 
 [B,spc,info] = pepper(P1,Exp,Opt);
-plot(B,spc);
+stackplot(B,spc);

@@ -124,6 +124,9 @@ else  % Crystal sample
     error('Exp.SampleFrame must be a Nx3 array, yours is %dx%d.',nC1,nC2);
   end
   nOrientations = size(Exp.SampleFrame,1);
+  if isfield(Exp,'SampleRotation') && ~isempty(Exp.SampleRotation)
+    nOrientations = nOrientations*numel(Exp.SampleRotation{2});
+  end
   
   Opt.nOctants = -2;
   

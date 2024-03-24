@@ -9,14 +9,14 @@ Exp.mwFreq = 9.5;
 Exp.Range = [200 400];
 
 Exp.CrystalSymmetry = 34;
-Exp.SampleFrame = rand(1,3)*pi;
+Exp.SampleFrame = [63 15 148]*pi/180;
 
 Opt.Sites = []; % all sites
 [x,y0] = pepper(Sys,Exp);
 
 y1 = 0;
 nSites = 4;
-for s=1:nSites
+for s = 1:nSites
   Opt.Sites = 1;
   y1 = y1 + pepper(Sys,Exp);
 end

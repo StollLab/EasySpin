@@ -170,7 +170,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 <div class="optionfield"><code>SampleRotation</code></div>
 <div class="optiondescr">
 <p>
-Specifies the sample rotation as <code>{rho,nRot_L}</code>. <code>rho</code> is the rotation angle (in radians) around an axis <code>nRot_L</code> fixed in the <a href="frames.html">laboratory frame</a>. The axis is represented in lab-frame coordinates, and it does not need to be normalized. This rotation is applied to sample starting from the orientation given in <code>Exp.SampleFrame</code>.
+Specifies the sample rotation as <code>{nRot_L,rho}</code>. <code>nRot_L</code> fixed in the <a href="frames.html">laboratory frame</a>. The axis is represented in lab-frame coordinates, and it does not need to be normalized. <code>rho</code> is the rotation angle (in radians), or list of rotation angles, around the rotation axis. This rotation is applied to sample starting from the orientation given in <code>Exp.SampleFrame</code>.
 </p>
 
 <pre class="matlab">
@@ -178,6 +178,9 @@ rho = pi/4;
 Exp.SampleRotation = {[0;1;0],rho};       % rotation around lab y axis (yL)
 Exp.SampleRotation = {'z',rho};           % rotation around lab z axis (zL)
 Exp.SampleRotation = {'x',rho};           % rotation around lab x axis (xL)
+
+rho = deg2rad(0:30:180);
+Exp.SampleRotation = {'x',rho};           % a series of rotations
 </pre>
 
 </div>

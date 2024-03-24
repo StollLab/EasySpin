@@ -1,29 +1,36 @@
 % Plots a CW EPR spectrum (or spectra) simulated using pepper/chili/garlic
 function cwepr_plot(xAxis,spec,Exp)
 
-cla
 if Exp.FrequencySweep
   if xAxis(end)<1
-    plot(xAxis*1e3,spec);
-    xlabel('frequency (MHz)');
+    xAxis = xAxis*1e3;
+    xl = 'frequency (MHz)';
   else
-    plot(xAxis,spec);
-    xlabel('frequency (GHz)');
+    xl = 'frequency (GHz)';
   end
-  title(sprintf('%0.8g mT',Exp.Field));
+  titlestr = sprintf('%0.8g mT',Exp.Field);
 else
   if xAxis(end)<10000
-    plot(xAxis,spec);
-    xlabel('magnetic field (mT)');
+    xl = 'magnetic field (mT)';
   else
-    plot(xAxis/1e3,spec);
-    xlabel('magnetic field (T)');
+    xAxis = xAxis*1e3;
+    xl = 'magnetic field (T)';
   end
-  title(sprintf('%0.8g GHz',Exp.mwFreq));
+  titlestr = sprintf('%0.8g GHz',Exp.mwFreq);
+end
+
+crystalRotation = isfield(Exp,'SampleRotation') && ...
+  ~isempty(Exp.SampleRotation) && numel(Exp.SampleRotation{2})>1;
+
+if crystalRotation && (size(spec,1)==numel(Exp.SampleRotation{2}))
+  h = stackplot(xAxis,spec,2,1,'');
+  set(h,'Color',h(1).Color);
+else
+  plot(xAxis,spec);
 end
 axis tight
+xlabel(xl);
 ylabel('intensity (arb.u.)');
-
+title(titlestr);
 
 end
-

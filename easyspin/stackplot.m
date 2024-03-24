@@ -12,7 +12,7 @@
 %  If scale is missing, scale = 1 is assumed.
 %  If scale is set to 0, no rescaling is done.
 
-function varargout = stackplot(x,y,scale,step,SliceLabels)
+function varargout = stackplot(x,y,scale,step,sliceLabels)
 
 if nargin==0, help(mfilename); return; end
 
@@ -30,10 +30,13 @@ end
 if size(y,2)==numel(x), y = y.'; end
 
 nSlices = size(y,2);
-if nargin<5, SliceLabels = 1:nSlices; end
-if numel(SliceLabels)~=nSlices
-  error('Number of y tick labels must equal number of slices.');
+if nargin<5, sliceLabels = 1:nSlices; end
+if ~isempty(sliceLabels)
+  if numel(sliceLabels)~=nSlices
+    error('Number of y tick labels must equal number of slices.');
+  end
 end
+
 for k = 1:nSlices
   yy = y(:,k);
   shift(k) = (k-1)*step;  %#ok
@@ -57,9 +60,9 @@ end
 
 h = plot(x,y);
 set(gca,'YTick',shift);
-set(gca,'YTickLabel',SliceLabels);
+set(gca,'YTickLabel',sliceLabels);
 axis tight
 
 if nargout==1
-  varargout={h};
+  varargout{1} = h;
 end

@@ -16,6 +16,8 @@
 %    Opt.partiallyOrderedSample
 %    Opt.disorderedSample
 %    Opt.crystalSample
+%    Opt.R_L2S
+%    Opt.rotatedSample
 
 function [Exp,Opt] = p_sampletype(Exp,Opt)
 

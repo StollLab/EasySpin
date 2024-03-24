@@ -111,21 +111,20 @@ if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-3; end
 if ~isfield(Opt,'separate'), Opt.separate = ''; end
 [separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
+
 summedOutput = separateOutput==1;
 separateComponentSpectra = separateOutput==2;
 separateTransitionSpectra = separateOutput==3;
 separateOrientationSpectra = separateOutput==4;
 separateSiteSpectra = separateOutput==5;
-if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
-  separateComponentSpectra = true;
-end
+separateSpectra = ~summedOutput;
 
 singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
   
   thirdOutput = nargout>=3;
-  [xAxis,spec,info] = compisoloop(@pepper,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
-  
+  [xAxis,spec,info] = compisoloop(@pepper,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateSpectra);
+
   % Output and plotting
   switch nargout
     case 0
@@ -458,8 +457,13 @@ end
 DefaultOpt.Verbosity = 0;
 DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
-DefaultOpt.separateOutput = '';
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
+
+if Opt.crystalSample && numel(Opt.R_L2S)>1
+  DefaultOpt.separate = 'orientations';
+else
+  DefaultOpt.separate = '';
+end
 
 % Undocumented fields, pepper
 %DefaultOptions.TPSGridSize = 4;      % resfields
