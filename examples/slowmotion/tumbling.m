@@ -21,5 +21,5 @@ end
 
 % Plot simulated spectra
 %-------------------------------------------------------------------------------
-stackplot(B,spc);
+stackplot(B,spc,'maxabs',2,compose('t_{corr} = %1.0f ns',tcorr*1e9));
 xlabel('magnetic field (mT)');

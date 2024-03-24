@@ -9,7 +9,7 @@ clear, clf, clc
 Exp.Sequence = '2pESEEM';
 Exp.mwFreq = 9.5; % GHz
 Exp.dt = 0.015; % mus
-Exp.nPoints = 128;
+Exp.nPoints = 1024;
 Exp.ExciteWidth = 200; % MHz
 Exp.tau = 0.001; % mus
 
@@ -28,5 +28,6 @@ for k = 1:numel(Fields)
 end
 
 spc = spc/max(abs(spc(:)));
-stackplot(info.f,spc,0,0.025);
+stackplot(info.f,spc,{'maxabs',4},Fields,compose('%1.0f mT',Fields));
 xlim([0 max(info.f)]);
+xlabel('\nu (MHz)')

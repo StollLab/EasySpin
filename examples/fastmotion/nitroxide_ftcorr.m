@@ -13,7 +13,7 @@ Sys.lw = [0 0.1]; % Lorentzian, mT
 
 % Simulation
 %---------------------------------------------------------------------
-logtcorr = [-10.5 -10 -9.5 -9]; % £= log10(tcorr/seconds)
+logtcorr = [-10.5 -10 -9.5 -9]; % = log10(tcorr/seconds)
 
 Exp.mwFreq = 9.5;
 Exp.Range = [336 341];

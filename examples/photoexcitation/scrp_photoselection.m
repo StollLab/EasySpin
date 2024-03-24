@@ -46,7 +46,7 @@ Exp.lightBeam = 'parallel';
 [B,spc(:,1)] = pepper(Sys,Exp);
 
 % Plot spectra
-stackplot(B,spc,0,15,{'parallel','perpendicular','unpolarized'})
+stackplot(B,spc,'none',1,{'parallel','perpendicular','unpolarized'})
 xlim(Exp.Range)
 xlabel('{\itB} (mT)')
 

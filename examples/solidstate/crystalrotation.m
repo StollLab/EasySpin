@@ -27,5 +27,5 @@ Exp.SampleRotation = {nRot,rho};
 Opt.separate = 'orientations';
 [B,spc] = pepper(P1,Exp,Opt);
 
-stackplot(B,spc,4);
+stackplot(B,spc,'none',1,compose('%1.0f°',rho*180/pi));
 xlabel('magnetic field (mT)');

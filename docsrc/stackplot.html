@@ -40,6 +40,7 @@ stackplot(x,y)
 stackplot(x,y,scale)
 stackplot(x,y,scale,step)
 stackplot(x,y,scale,step,labels)
+stackplot(x,y,scale,step,labels,colors)
 </pre>
 
 <!-- =========================================================== -->
@@ -53,20 +54,17 @@ the columns or rows of <code>y</code> are plotted.
  </p>
 
 <p>
-If <code>scale</code> is given, the data in the slices are rescaled to
-so that their values span a range of <code>scale</code>. If <code>scale</code>
-is not given, a value of 1 is assumed. If <code>scale</code> is set to zero,
-no rescaling is done, and the slices are taken as is.
+If <code>scale</code> is given, the data in the slices are rescaled as specified in <code>scale</code>. The options are <code>'none'</code> to plot the data as is, <code>'maxabs'</code> for normalization to the maximum amplitude for each slice, <code>'int'</code> or <code>'dint'</code> for normalized integrals or double integrals, respectively. If an additional value is given, i.e. <code>scale = {'maxabs',4}</code>, the slices are additionally multiplied by the given value after normalization (useful if the positions of the stacked lines should correspond to a specific axis, e.g. a non-linear field axis).
 </p>
 
 <p>
-The rescaled slices are then plotted with a separation of <code>step</code>
-between them. If <code>step</code> is not given, a value of 1 is assumed.
+The rescaled slices are then plotted with a separation determined by <code>step</code>, the relative step size multiplied by the maximum absolute value of the rescaled data to give the final spacing. Alternatively, a list of values at which to plot the slices can be provided (this is best used in combination with a scaling factor in <code>scale</code>). 
+If <code>step</code> is not given, a value of 1.5 is assumed.
 </p>
 
 <p>
-To condense slices, increase <code>scale</code> or/and decrease <code>step</code>.
-To space the slices further apart, decrease <code>scale</code> or/and increase <code>step</code>.
+To condense slices, decrease <code>step</code>.
+To space the slices further apart, increase <code>step</code>.
 </p>
 
 <!-- =========================================================== -->
@@ -78,16 +76,16 @@ Here is a simple example of how to display five 1024-point data in a stacked plo
 
 <pre class="matlab">
 x = 1:1024;
-y = rand(5,1024);
+y = rand(5,1024)-0.5;
 stackplot(x,y);
 </pre>
 
 <p>
-To separate the traces more, you can use a small scaling factor
+To separate the traces more, you can use a larger relative step size
 </p>
 
 <pre class="matlab">
-stackplot(x,y,0.2);
+stackplot(x,y,'none',5);
 </pre>
 
 <p>
@@ -96,13 +94,65 @@ To label each trace separately, provide <code>labels</code>.
 
 <pre class="matlab">
 L = {'first','second','third','fourth','fifth'};
-stackplot(x,y,0.2,1,L);
+stackplot(x,y,'none',5,L);
 </pre>
 
+<p>
+Another example using a stacked plot to display orientation selection effects in ENDOR spectra recorded at different magnetic fields is shown below.
+</p>
+
+<pre class="matlab">
+% ENDOR orientation selection in a powder
+clear, clf
+
+% Spin system
+Sys.S = 1/2;
+Sys.g = [2.3 2.1 2];
+Sys.Nucs = '1H';
+Sys.A = [3 6 2]; % MHz
+Sys.HStrain = [1 1 1]*220; % MHz
+Sys.lwEndor = 0.2; % MHz
+
+% EPR experiment settings
+Exp.mwFreq = 9.5; % GHz
+Exp.Range = [250 400]; % mT
+Exp.Harmonic = 0;
+
+[B,spec] = pepper(Sys,Exp);
+
+% ENDOR experiment settings
+ExpEndor.mwFreq = Exp.mwFreq;
+ExpEndor.ExciteWidth = 100;
+ExpEndor.Range = [8 20]; % MHz
+
+Fields = [295 310 323 332 339]; % mT
+
+for iField = 1:numel(Fields)   % loop over all field values
+  ExpEndor.Field = Fields(iField);
+  [freq,spectra(iField,:)] = salt(Sys,ExpEndor);
+end
+
+% Plot EPR spectrum
+nexttile
+hold on; box on
+plot(B,spec,'k')
+cc = lines(1);
+xline(Fields,'Color',cc)
+title('EPR spectrum')
+
+% Stack plot for ENDOR spectra
+nexttile([2 1])
+stackplot(freq,spectra,{'none',0.3},Fields,compose('%1.0f mT',Fields),cc);
+xlabel('frequency (MHz)');
+title('ENDOR spectra');
+</pre>
 
 <!-- =========================================================== -->
 <div class="subtitle">See also</div>
 
+<p>
+<a class="esf" href="rescaledata.html">basecorr</a>
+</p>
 
 <hr>
 </section>

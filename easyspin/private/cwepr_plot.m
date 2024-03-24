@@ -23,7 +23,7 @@ crystalRotation = isfield(Exp,'SampleRotation') && ...
   ~isempty(Exp.SampleRotation) && numel(Exp.SampleRotation{2})>1;
 
 if crystalRotation && (size(spec,1)==numel(Exp.SampleRotation{2}))
-  h = stackplot(xAxis,spec,2,1,'');
+  h = stackplot(xAxis,spec,'maxabs',2,'');
   set(h,'Color',h(1).Color);
 else
   plot(xAxis,spec);

@@ -22,7 +22,7 @@ for iField = 1:numel(Fields)   % loop over all field values
 end
 
 % Stack plot
-stackplot(freq,spectra);
+stackplot(freq,spectra,{'none',0.2},Fields,compose('%1.0f mT',Fields));
 xlabel('frequency (MHz)');
 title('ENDOR spectra');
 

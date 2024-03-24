@@ -4941,9 +4941,10 @@
         "type": [
           "numeric",
           "scalar",
-          "real"
+          "cell",		  
+		  "choices={'maxabs','int','dint','none'}"
         ],
-        "purpose": "rescale slices, 0 no rescaling, default 1"
+        "purpose": "rescale mode for slices, default 'maxabs'"
       },
       {
         "name": "step",
@@ -4962,6 +4963,16 @@
           "cell"
         ],
         "purpose": "slice labels"
+      },
+      {
+        "name": "colors",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+		  "real",
+		  "char"
+        ],
+        "purpose": "slice colors"
       }
     ]
   },
