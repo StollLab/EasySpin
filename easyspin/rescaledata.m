@@ -5,7 +5,7 @@
 %   yscaled = rescaledata(...,region)
 %   [yscaled, scale] = rescaledata(...)
 %
-% Shifts and rescales the data in array y. If given, yref serves
+% Rescales the data in array y. If given, yref serves
 % as the reference. mode determines how the scale factor is calculated.
 % Positive scaling is enforced, i.e. the rescaled data is never inverted.
 %

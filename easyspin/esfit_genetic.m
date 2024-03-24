@@ -73,11 +73,11 @@ for k = 1:FitOpt.PopulationSize
   info.iter = 0;
   info.newbest = newbest;
   if ~isempty(FitOpt.IterFcn)
-    stopCode = FitOpt.IterFcn(info);
-    if stopCode, break; end
+    UserStop = FitOpt.IterFcn(info);
   else
-    stopCode = false;
+    UserStop = false;
   end
+  if UserStop, stopCode = 3; break; end
 end
 [Scores,idx] = sort(Scores);
 Population = Population(idx,:);
@@ -197,7 +197,7 @@ end
 if FitOpt.Verbosity>0
   switch stopCode
     case 0, msg = sprintf('Maximum number of generations (%d) reached.',FitOpt.maxGenerations);
-    case 1, msg = sprintf('Terminated: Time limit of %f minutes reached.',FitOpt.maxTime);
+    case 1, msg = sprintf('Time limit of %f minutes reached.',FitOpt.maxTime);
     case 2, msg = sprintf('Error below threshold %g.',FitOpt.TolFun);
     case 3, msg = sprintf('Stopped by user.');
   end

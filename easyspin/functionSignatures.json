@@ -4071,7 +4071,7 @@
     ]
   },
   "rescaledata": {
-    "description": "Rescale data, including lsq baseline fit",
+    "description": "Rescale data",
     "inputs": [
       {
         "name": "y",
@@ -4096,30 +4096,7 @@
         "kind": "required",
         "type": [
           "char",
-          "choices={'minmax','maxabs','lsq','lsq0','lsq1','lsq2','lsq3'}"
-        ],
-        "purpose": "rescaling method"
-      }
-    ]
-  },
-  "rescaledata": {
-    "description": "Rescale data, including lsq baseline fit",
-    "inputs": [
-      {
-        "name": "y",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "vector"
-        ],
-        "purpose": "data"
-      },
-      {
-        "name": "mode",
-        "kind": "required",
-        "type": [
-          "char",
-          "choices={'minmax','maxabs'}"
+          "choices={'maxabs','lsq','int','dint','none'}"
         ],
         "purpose": "rescaling method"
       }
