@@ -66,7 +66,7 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 % Check Matlab version.
-error(chkmlver);
+warning(chkmlver);
 
 switch nargin
   case 1, error('Experimental parameters (2nd input) are missing!');

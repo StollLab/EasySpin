@@ -41,7 +41,7 @@ if nargin==0, help(mfilename); return; end
 % General
 %---------------------------------------------------------------------
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Check number of input arguments.
 switch nargin

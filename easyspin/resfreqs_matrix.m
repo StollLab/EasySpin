@@ -41,7 +41,7 @@ if nargin==0, help(mfilename); return; end
 % General
 %---------------------------------------------------------------------
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Guard against wrong number of input or output arguments.
 if nargin<1, error('Please supply a spin system as first parameter.'); end

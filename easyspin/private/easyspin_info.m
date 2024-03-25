@@ -6,7 +6,7 @@ function varargout = easyspin_info()
 
 Display = nargout==0;
 
-error(chkmlver);
+warning(chkmlver);
 
 MATLABversion = builtin('version');
 

@@ -24,7 +24,7 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 % Check Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Get time for performance report at the end
 startTime = datetime;

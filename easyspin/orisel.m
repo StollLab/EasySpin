@@ -31,7 +31,7 @@ function varargout = orisel(Sys,Params,Options)
 
 if nargin==0, help(mfilename); return; end
 
-error(chkmlver);
+warning(chkmlver);
 
 if nargin<3, Options = struct; end
 

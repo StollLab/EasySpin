@@ -70,7 +70,7 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 % Check Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end

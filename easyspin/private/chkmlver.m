@@ -1,19 +1,28 @@
 % chkmlver  Check MATLAB version for EasySpin
 %
-%    errorString = chkmlver
+%    msg = chkmlver
 %
-%    Returns a non-empty error string in errorString if the MATLAB
+%    Returns a non-empty string in msg if the MATLAB
 %    version is not suitable for running EasySpin.
 %
-%    Usage: error(chkmlver)
+%    Usage: warning(chkmlver), error(chkmlver)
 
-function errorString = chkmlver
+function msg = chkmlver
 
-minimalVersion = '9.2';
-minimalVersionString = '9.2 (R2017a)';
+minimalMATLABVersion = '9.11';  % 9.11 = R2021b
+minimalMATLABVersionString = 'R2021b';
 
-if verLessThan('matlab',minimalVersion)
-  errorString = sprintf('\n  ================================================================\n  Easyspin: MATLAB version not supported\n  ----------------------------------------------------------------\n  This version of EasySpin requires MATLAB %s and later.\n  Your MATLAB version %s is not supported.\n  ================================================================\n',minimalVersionString,version);
+if verLessThan('matlab',minimalMATLABVersion)  %#ok<*VERLESSMATLAB>
+  msg = sprintf([...
+    '\n\n'...
+    '=========================================================================\n'...
+    'Easyspin: MATLAB version not supported\n'...
+    '-------------------------------------------------------------------------\n'...
+    'This version of EasySpin requires MATLAB %s and later.\n'...
+    'Your MATLAB version %s is not supported.\n'...
+    'EasySpin might still run, but there is no guarantee.\n'...
+    '=========================================================================\n'],...
+    minimalMATLABVersionString,version);
 else
-  errorString = '';
+  msg = '';
 end

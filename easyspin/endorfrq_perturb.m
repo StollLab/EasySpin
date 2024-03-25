@@ -7,7 +7,7 @@ function varargout = endorfrq_perturb(Sys,Exp,Opt)
 %   Hagston and Holmes, J. Phys B: Atom. Molec. Phys. 13, 3505-3519 (1980)
 
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Check number of input arguments.
 switch nargin

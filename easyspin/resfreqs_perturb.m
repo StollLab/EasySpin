@@ -36,7 +36,7 @@ function varargout = resfreqs_perturb(Sys,Exp,Opt)
 % Compute resonance fields based on formulas from Iwasaki, J.Magn.Reson. 16, 417-423 (1974)
 
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Check number of input arguments.
 switch nargin

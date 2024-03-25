@@ -32,7 +32,7 @@ function varargout = endorfrq(Sys,Exp,Opt)
 
 if nargin==0, help(mfilename); return; end
 
-error(chkmlver);
+warning(chkmlver);
 if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
 if nargout>4, error('Too many output arguments.'); end

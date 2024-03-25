@@ -35,7 +35,7 @@
 
 function [Energies,Vectors] = levels(varargin)
 
-error(chkmlver);  % Error if MATLAB is too old.
+warning(chkmlver);  % Error if MATLAB is too old.
 
 switch nargin
   case 0

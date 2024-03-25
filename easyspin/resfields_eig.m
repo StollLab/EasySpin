@@ -37,7 +37,7 @@ if nargin==0, help(mfilename); return; end
 % in the definition of A and B
 
 % Check Matlab version.
-error(chkmlver);
+warning(chkmlver);
 
 % Add empty Options structure if not specified.
 switch nargin
