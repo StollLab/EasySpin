@@ -140,6 +140,11 @@ DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
+% Check for obsolete fields
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
+end
+
 if isnan(Exp.Field)
   Exp.Field = 0.0;
   logmsg(1,'Exp.Field is missing, assuming 0.0 mT');

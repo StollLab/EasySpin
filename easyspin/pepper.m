@@ -202,7 +202,7 @@ if isfield(Exp,'Orientations')
   error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
 end
 if isfield(Exp,'CrystalOrientation')
-  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
 end
 
 % Check microwave frequency and static field

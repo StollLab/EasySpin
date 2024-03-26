@@ -120,6 +120,11 @@ DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
+% Check for obsolete fields
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
+end
+
 if isnan(Exp.mwFreq), error('Exp.mwFreq is missing!'); end
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
