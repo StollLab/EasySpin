@@ -250,7 +250,7 @@ if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
   error('Options.Threshold must be a number >=0 and <1.');
 end
 preSelectionThreshold = Opt.Threshold(1);
-if numel(Opt.Threshold)==1
+if isscalar(Opt.Threshold)
   postSelectionThreshold = preSelectionThreshold;
 else
   postSelectionThreshold = Opt.Threshold(2);

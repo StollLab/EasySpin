@@ -178,7 +178,7 @@ if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) ||
 end
 
 % Determine excitation mode
-[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
+[xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 % Temperature, non-equilibrium populations
 if isfield(Exp,'Temperature')
@@ -306,8 +306,8 @@ c2 = c.^2;
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  R = erot(Orientations(iOri,:));
-  n0 = R.'*nB0;  % transform to molecular frame representation
+  R_L2M = erot(Orientations(iOri,:)).';  % lab frame -> molecular frame
+  n0 = R_L2M*nB0_L;  % transform to molecular frame representation
   vecs(:,iOri) = n0;
   
   geff(iOri) = norm(g.'*n0);
@@ -346,13 +346,13 @@ for iOri = nOrientations:-1:1
     end
   else
     if mwmode.linearpolarizedMode
-      nB1_ = R.'*nB1; % transform to molecular frame representation
+      nB1_ = R_L2M*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
     elseif mwmode.unpolarizedMode
-      nk_ = R.'*nk; % transform to molecular frame representation
+      nk_ = R_L2M*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
     elseif mwmode.circpolarizedMode
-      nk_ = R.'*nk; % transform to molecular frame representation
+      nk_ = R_L2M*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
         mwmode.circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
@@ -376,7 +376,7 @@ for iOri = nOrientations:-1:1
   for mS = S:-1:-S+1
     imS = imS + 1;
 
-    % first-order
+    % first-order correction
     if highSpin
       E1D = -uDu/2*(3-6*mS);
     else
@@ -398,7 +398,7 @@ for iOri = nOrientations:-1:1
       E1A = 0;
     end
 
-    % second-order
+    % second-order correction
     E2D = 0;
     if secondOrder
       if highSpin
@@ -469,6 +469,7 @@ if immediateBinning
   B = [];
   Int = [];
   Wid = [];
+  Transitions = [];
   spec = spec/dB/prod(nNucStates);
   spec = spec*(2*pi); % powder chi integral
 else
@@ -481,6 +482,7 @@ else
   %-------------------------------------------------------------------
   nNucSublevels = prod(nNucStates);
   Int = repelem(Intensity,nNucSublevels,1)/nNucSublevels;
+  Int = flipud(Int);
   
   % Widths
   %-------------------------------------------------------------------
@@ -495,9 +497,9 @@ else
   if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     
     if any(Sys.gStrain(:))
-      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3; % -> MHz
+      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3;  % -> MHz
       if any(Sys.gFrame(:))
-        R_g2M = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
+        R_g2M = erot(Sys.gFrame(1,:)).';  % g frame -> molecular frame
         gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
       end
     else
@@ -571,8 +573,20 @@ else
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
   end
-    
+  
+  % Transitions
+  %-------------------------------------------------------------------
+  Transitions = [];
+  lowerLevels = (1:nNucSublevels).';
+  for mSidx = 1:2*S
+    upperLevels = lowerLevels + nNucSublevels;  % only correct for weak HFC
+    newTransitions = [lowerLevels upperLevels];
+    Transitions = [Transitions; newTransitions];  %#ok
+    lowerLevels = upperLevels;
+  end
+
   spec = 0;
+
 end
 
 % Reshape arrays in the case of crystals with site splitting
@@ -584,8 +598,6 @@ if nSites>1 && ~pepperCall
   if ~isempty(Int), Int = reshape(Int,siz); end
   if ~isempty(Wid), Wid = reshape(Wid,siz); end
 end
-
-Transitions = NaN;  % not implemented
 
 % Arrange output
 %---------------------------------------------------------------

@@ -127,7 +127,7 @@ if nNuclei>0
   end
 end
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   if Sys.fullA
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
@@ -163,7 +163,7 @@ end
 err = '';
 if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end
 
-[xi1,xik,nB1,nk,nB0,mwmode] = p_excitationgeometry(Exp.mwMode);
+[xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 if isfield(Exp,'Temperature')
   if numel(Exp.Temperature)>1
@@ -242,7 +242,7 @@ if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
 
 B0 = Exp.Field*1e-3; % mT -> T
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
   invA{iNuc} = inv(A_); % gives an error with zero hf couplings
@@ -285,7 +285,7 @@ end
 gg = g*g.';
 trgg = trace(gg);
 
-% prefactor for transition rate
+% Prefactor for transition rate
 mS = S:-1:-S+1;
 c = bmagn/2 * sqrt(S*(S+1)-mS.*(mS-1));
 c = c/planck/1e9;
@@ -293,8 +293,8 @@ c2 = c.^2;
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  R = erot(Orientations(iOri,:));
-  n0 = R.'*nB0;  % transform to molecular frame representation
+  R_L2M = erot(Orientations(iOri,:)).';  % lab frame -> molecular frame
+  n0 = R_L2M*nB0_L;  % transform to molecular frame representation
   vecs(:,iOri) = n0;
   
   geff(iOri) = norm(g.'*n0);
@@ -332,13 +332,13 @@ for iOri = nOrientations:-1:1
     end
   else
     if mwmode.linearpolarizedMode
-      nB1_ = R.'*nB1; % transform to molecular frame representation
+      nB1_ = R_L2M*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
     elseif mwmode.unpolarizedMode
-      nk_ = R.'*nk; % transform to molecular frame representation
+      nk_ = R_L2M*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
     elseif mwmode.circpolarizedMode
-      nk_ = R.'*nk; % transform to molecular frame representation
+      nk_ = R_L2M*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
         circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
@@ -451,6 +451,7 @@ if immediateBinning
   nu = [];
   Int = [];
   Wid = [];
+  Transitions = [];
   spec = spec/dnu/prod(nNucStates);
   spec = spec*(2*pi); % powder chi integral
 else
@@ -462,6 +463,7 @@ else
   %-------------------------------------------------------------------
   nNucSublevels = prod(nNucStates);
   Int = repelem(Intensity,nNucSublevels,1)/nNucSublevels;
+  Int = flipud(Int);
   
   % Widths
   %-------------------------------------------------------------------
@@ -476,9 +478,9 @@ else
   if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     
     if any(Sys.gStrain(:))
-      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*E0*1e3; % -> MHz
+      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*E0*1e3;  % -> MHz
       if any(Sys.gFrame(:))
-        R_g2M = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
+        R_g2M = erot(Sys.gFrame(1,:)).';  % g frame -> molecular frame
         gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
       end
     else
@@ -551,26 +553,35 @@ else
   else
     Wid = [];
   end
+
+  % Transitions
+  %-------------------------------------------------------------------
+  Transitions = [];
+  lowerLevels = (1:nNucSublevels).';
+  for mSidx = 1:2*S
+    upperLevels = lowerLevels + nNucSublevels;  % only correct for weak HFC
+    newTransitions = [lowerLevels upperLevels];
+    Transitions = [Transitions; newTransitions];  %#ok
+    lowerLevels = upperLevels;
+  end
   
   spec = 0;
+  
 end
 
 % Reshape arrays in the case of crystals with site splitting
-d = dbstack;
-pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
-if (nSites>1) && ~pepperCall
+db = dbstack;
+pepperCall = numel(db)>2 && strcmp(db(2).name,'pepper');
+if nSites>1 && ~pepperCall
   siz = [nTransitions*nSites, numel(nu)/nTransitions/nSites];
   nu = reshape(nu,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end
   if ~isempty(Wid), Wid = reshape(Wid,siz); end
 end
 
-Transitions = NaN;  % not implemented
-
 % Arrange output
 %---------------------------------------------------------------
 Output = {nu,Int,Wid,Transitions,spec};
 varargout = Output(1:max(nargout,1));
 
-return
-
+end
