@@ -148,5 +148,3 @@ fprintf('Last two Euler angle non-zero: %s\n',hamsymm(Sys));
 
 Sys.AFrame = [-12 -52 5];
 fprintf('Three Euler angle non-zero: %s\n',hamsymm(Sys));
-
-% END *****************************

@@ -29,25 +29,26 @@
 <div class="functitle">rotateframe</div>
 
 <p>
-Rotate frame around a specific axis in spectrometer.
+Rotate a frame around a specific axis.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Ori = rotateframe(Ori0,nRot,rho)
+ang = rotateframe(ang0,nRot,rho)
+[ang,R] = rotateframe(ang0,nRot,rho)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>rotateframe</code> rotates the frame described by the three Euler angles (in radians) in <code>Ori0</code> by the angle <code>rho</code> (in radians) around the rotation axis <code>nRot</code>, returning the rotated frames in <code>Ori</code>.
+<code>rotateframe</code> rotates the frame described by the three Euler angles (in radians) in <code>ang0</code> by the angle <code>rho</code> (in radians) around the rotation axis <code>nRot</code>, returning the rotated frames in <code>ang</code> (Euler angles) and <code>R</code> (rotation matrix).
 </p>
 
 <p>
-<code>Ori0</code> describes the frame orientation before the rotation. It is a row vector of three <a href="eulerangles.html">Euler angles</a> (in radians). See the page on <a href="frames.html">frames</a> for details.
+<code>ang0</code> describes the frame orientation before the rotation. It is a row vector of three <a href="eulerangles.html">Euler angles</a> (in radians). See the page on <a href="frames.html">frames</a> for details.
 </p>
 
 <p>
@@ -59,7 +60,11 @@ Ori = rotateframe(Ori0,nRot,rho)
 </p>
 
 <p>
-The output <code>Ori</code> is a set of <a href="eulerangles.html">Euler angles</a> that describe the new frame orientations resulting from the rotation. If <code>rho</code> contains more than one value, <code>Ori</code> contains multiple rows, with one Euler angle set per row.
+The output <code>ang</code> is a set of <a href="eulerangles.html">Euler angles</a> that describe the new frame orientations resulting from the rotation. If <code>rho</code> contains more than one value, <code>ang</code> contains multiple rows, with one Euler angle set per row.
+</p>
+
+<p>
+The output <code>R</code> is the rotation matrix that corresponds to the Euler angles in <code>ang</code>. If multiple rotation angles are given, <code>R</code> is a cell array where each cell contains a rotation matrix for one rotation angle.
 </p>
 
 <!-- ============================================================= -->
@@ -70,11 +75,10 @@ Here is a simple example that involves the rotation of a crystal around the lab 
 </p>
 
 <pre class="matlab">
-clear
 xL = [1;0;0];                       % space-fixed x axis
 rho = 20*pi/180;                    % rotation angle (radians)
-ori0 = [40 65 0]*pi/180;            % initial frame orientation
-ori = rotateframe(ori0,xL,rho);     % frame orientation after rotation
+ang0 = [40 65 0]*pi/180;            % Euler angles for initial frame orientation
+[ang,R] = rotateframe(ang0,xL,rho);     % frame orientation after rotation
 </pre>
 
 <!-- ============================================================= -->
@@ -85,7 +89,7 @@ This function uses <a class="esf" href="erot.html">erot</a>, <a class="esf" href
 </p>
 
 <pre class="matlab">
-ori = rotateframe(ori0,xL,rho);
+ang = rotateframe(ang0,xL,rho);
 </pre>
 
 <p>
@@ -93,10 +97,10 @@ calculates the Euler angles of the rotated frame using
 </p>
 
 <pre class="matlab">
-R0 = erot(ori0);
+R0 = erot(ang0);
 Rrot = rotaxi2mat(xL,rho);
 R = R0*Rrot;
-ori = eulang(R);
+ang = eulang(R);
 </pre>
 
 <p>

@@ -6,25 +6,28 @@
 
 clear, clc, clf
 
-Sys.S = 7/2;
-Sys.g = 1.992;
-Sys.D = 1200;  % D, in MHz
-Sys.DStrain = 200;  % FWHM of Gaussian distribution of D, in MHz
-Sys.lwpp = 2;  % mT
+% Parameters of Gd complex
+Gd.S = 7/2;
+Gd.g = 1.992;
+Gd.D = [1200 0];  % D and E, in MHz
+Gd.DStrain = 200;  % FWHM of Gaussian distribution of D, in MHz
+Gd.lwpp = 2;  % mT
 
+% Experimental parameters
 Exp.mwFreq = 95;  % GHz
 Exp.Range = [2900 3900];  % mT
-Exp.Temperature = 80;  % K
+Exp.Temperature = 10;  % K
 Exp.Harmonic = 0;
 
 % Simulation of individual transitions contributing to absorption spectrum
 Opt.separate = 'transitions';
-[B,spec0,info] = pepper(Sys,Exp,Opt);
+[B,spec0,info] = pepper(Gd,Exp,Opt);
 
 % Plotting
-nTransitions = size(info.Transitions,1);
-%colororder(parula(nTransitions+1))
+tr = info.Transitions;
+nTransitions = size(tr,1);
 plot(B,spec0)
 xlabel('magnetic field (mT)')
-legend([num2str(info.Transitions(:,1)), repmat(' \leftrightarrow ',nTransitions,1),num2str(info.Transitions(:,2))])
+str = [num2str(tr(:,1)), repmat(' \leftrightarrow ',nTransitions,1), num2str(tr(:,2))];
+legend(str)
 legend boxoff

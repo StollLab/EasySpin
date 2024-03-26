@@ -48,11 +48,15 @@ Given a <a href="eulerangles.html">rotation matrix</a> <code>Rp</code>, the func
 </p>
 
 <p>
+The calculated Euler angles are such that if provided to <a class="esf" href="erot.html">erot</a>, the input rotation matrix is recovered.
+</p>
+
+<p>
 For details about Euler angles and rotation matrices, see the page on <a href="eulerangles.html">relative orientations</a>.
 </p>
 
 <p>
-The rotation matrix must be a 3x3 real matrix with determinant +1 to within 0.1, otherwise the function errors. For smaller deviations, a warning is issued.
+The rotation matrix must be a 3x3 real matrix with determinant +1 to within 0.01, otherwise the function errors. For smaller deviations, a warning is issued.
 </p>
 
 <p>
@@ -65,6 +69,15 @@ Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) descr
 <p>
 <code>eulang</code> first checks if the input matrix is orthogonal and then determines the Euler angles analytically from the matrix elements. If the input matrix is close to orthogonal, <code>eulang</code> replaces it by its closest orthogonal neighbor using singular-value decomposition. If the the matrix is too far from orthogonal, <code>eulang</code> errors.
 </p>
+
+<p>
+You can manually use SVD to orthogonalize a matrix using
+</p>
+
+<pre class="matlab">
+[U,~,V] = svd(R);  % calculate SVD, ignoring singular values
+R = U*V.';         % construct orthogonal rotation matrix 
+</pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>

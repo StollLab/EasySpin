@@ -2,15 +2,15 @@
 %===============================================================================
 clear, clc
 
-% This script plots the Gaussian distribution over zero0-field splitting
+% This script plots the Gaussian distribution over zero-field splitting
 % parameter D and E that EasySpin models based on the spin system fields
 % Sys.D, Sys.DStrain and Sys.DStrainCorr.
 
 % Relevant spin system parameters
 % (Change these parameters to see how they affect the distribution)
 % (The correlation coefficient should be between -1 and 1.)
-Sys.D = [1 0.1]; % D and E
-Sys.DStrain = [0.2 0.2]; % FWHM of D and E Gaussian distributions
+Sys.D = [1 0.1]; % D and E, in MHz
+Sys.DStrain = [0.2 0.2]; % FWHM of D and E Gaussian distributions, MHz
 Sys.DStrainCorr = -0.9; % correlation coefficient between D and E
 
 % Get center of (D,E) distribution
@@ -46,8 +46,8 @@ contour(D,E,weights);
 set(gca,'Layer','top');
 shading flat
 grid on
-xlabel('D');
-ylabel('E');
+xlabel('D (MHz)');
+ylabel('E (MHz)');
 colorbar
 title(sprintf('Gaussian (D,E) distribution, correlation coefficient %g',Sys.DStrainCorr));
 

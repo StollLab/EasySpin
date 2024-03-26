@@ -40,7 +40,7 @@ if ~nocheck
     error('eulang: Rotation matrix is not orthogonal, deviation is %f.',orthogonalityError);
   elseif orthogonalityError>1e-8
     fprintf('eulang: Rotation matrix is not orthogonal, deviation is %g.\n',orthogonalityError);
-    fprintf('eulang: Orthogonalizing using single-value decomposition.\n');
+    fprintf('eulang: Orthogonalizing using singular-value decomposition (SVD).\n');
     [U,~,V] = svd(R);
     R = U*V.';
   end

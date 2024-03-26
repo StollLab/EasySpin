@@ -30,7 +30,7 @@ B0 = linspace(0,B0max,200); % mT
 E = levels(Tb,'z',B0)/1e3; % MHz -> GHz
 
 % Plot the energy level diagram
-h = plot(B0/1e3,E,'k');
+h = plot(B0/1e3,E);
 set(h,'LineWidth',1.5);
 xlabel('magnetic field (T)');
 ylabel('energy (GHz)');

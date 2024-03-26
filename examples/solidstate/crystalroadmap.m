@@ -12,11 +12,11 @@ Exp.CrystalSymmetry = 'P212121';     % space group
 Exp.MolFrame = [50 20 110]*pi/180;   % orientation of spin system in crystal
 
 % Initial crystal orientation
-Exp.SampleFrame = [40 80 20];   % initial crystal orientation
+Exp.SampleFrame = [40 80 20];   % initial crystal orientation, rad
 
 % Information about crystal orientation/rotation
 rotaxis = [1 0 0];  % rotation axis
-rho = linspace(0,pi,91);  % rotation angle
+rho = linspace(0,pi,91);  % rotation angle, rad
 Exp.SampleRotation = {rotaxis,rho};
 
 % Field and frequency settings

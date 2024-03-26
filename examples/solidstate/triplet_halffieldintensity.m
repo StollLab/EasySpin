@@ -47,7 +47,7 @@ spc_Dloop = normalize(spc_Dloop);
 spc_HStrain = normalize(spc_HStrain);
 
 % Plotting
-plot(B,spc_DStrain,'b',B,spc_Dloop,'g',B,spc_HStrain,'r');
+plot(B,spc_DStrain,B,spc_Dloop,B,spc_HStrain);
 grid on
 axis tight
 legend('DStrain','loop over D distribution','HStrain only','location','best');

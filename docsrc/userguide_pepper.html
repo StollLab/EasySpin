@@ -30,9 +30,7 @@
 
 
 <p>
-This user guide explains how to simulate solid-state cw EPR spectra of powders
-or single crystals using EasySpin's function <a class="esf" href="pepper.html">pepper</a>. It is assumed that you are familiar with the
-basics of MATLAB, esp. with structures.
+This user guide explains how to simulate solid-state cw EPR spectra of powders, frozen solutions, partially ordered samples and single crystals using EasySpin's function <a class="esf" href="pepper.html">pepper</a>. It is assumed that you are familiar with the basics of MATLAB, esp. with structures.
 </p>
 
 <p>
@@ -65,16 +63,13 @@ There are the following advanced topics:
 <a name="calling"><div class="subtitle">Running the simulation</div></a>
 
 <p>
-Solid-state cw EPR spectra of powders and single crystals are computed
-by the EasySpin function <a class="esf" href="pepper.html">pepper</a>.
-It can be called with two or three parameters and can return both field axis
-and spectrum.
+Solid-state cw EPR spectra are computed by the EasySpin function <a class="esf" href="pepper.html">pepper</a>. It can be called with two or three parameters and can return both field axis and spectrum.
 </p>
 
 <pre class="matlab">
-pepper(Sys,Exp);                      % plots the spectrum
-[Field,Spec] = pepper(Sys,Exp);       % returns the field axis and the spectrum
-[Field,Spec] = pepper(Sys,Exp,Opt);   % additional simulation options in Opt
+pepper(Sys,Exp);                  % plots the spectrum
+[B,spec] = pepper(Sys,Exp);       % returns the field axis and the spectrum
+[B,spec] = pepper(Sys,Exp,Opt);   % additional simulation options in Opt
 </pre>
 
 <p>
@@ -82,21 +77,15 @@ Don't forget the ; (semicolon) at the end of the line to suppress output to the 
 </p>
 
 <p>
-The first argument <code>Sys</code> tells <code>pepper</code> all about the
-<a href="spinsystem.html">spin system</a>, and the second argument <code>Exp</code> gives the experimental
-parameters. The third, optional, argument <code>Opt</code> contains settings
-concerning the simulation itself, like the number of orientations for powder simulations.
+The first argument <code>Sys</code> tells <code>pepper</code> all about the <a href="spinsystem.html">spin system</a>, and the second argument <code>Exp</code> gives the experimental parameters (sample properties and spectrometer settings). The third, optional, argument <code>Opt</code> contains settings concerning the simulation itself, like the number of orientations for powder simulations.
 </p>
 
 <p>
-The outputs <code>Field</code> and <code>Spec</code> are arrays containing the magnetic field values
-and the spectrum, respectively. If no output is requested, <code>pepper</code> simple plots the spectrum.
-If the outputs are requested, <code>pepper</code> does not plot the spectrum, but you can plot it
-yourself using
+The outputs <code>B</code> and <code>spec</code> are arrays containing the magnetic field values and the spectrum, respectively. If no output is requested, <code>pepper</code> plots the spectrum. If the outputs are requested, <code>pepper</code> does not plot the spectrum, but you can plot it yourself using
 </p>
 
 <pre class="matlab">
-plot(Field,Spec);
+plot(B,spec);
 </pre>
 
 <p>
@@ -105,14 +94,13 @@ Setting up a simulation and running it takes only a few lines of code. A very si
 
 <pre class="matlab">
 Sys.g = [2 2.1];
-Sys.lwpp = 0.5;
-Exp.mwFreq = 9.5;
+Sys.lwpp = 0.5;    % mT
+Exp.mwFreq = 9.5;  % GHz
 pepper(Sys,Exp);
 </pre>
 
 <p>
-This simulates and plots the 9.5 GHz EPR spectrum of an S=1/2 system with an axial g tensor.
-Copy and paste the code above to your MATLAB command window to see the graph.
+This simulates and plots the 9.5 GHz EPR spectrum of an S=1/2 system with an axial g tensor. Copy and paste the code above to your MATLAB command window to see the plot.
 </p>
 
 <!-- ============================================================= -->
@@ -120,26 +108,21 @@ Copy and paste the code above to your MATLAB command window to see the graph.
 
 <p>
 The first input argument to <code>pepper</code> is a structure specifying
-the <a href="spinsystem.html">spin system</a>.
-It contains fields for the electron spin(s), the nuclear spins,
-and the various interaction parameters like g and hyperfine tensors.
+the <a href="spinsystem.html">spin system</a>. It contains fields for the electron spin(s), the nuclear spins, and the various interaction parameters like g and hyperfine tensors.
 </p>
 
 <p>
-<code>pepper</code> automatically assumes <code>S=1/2</code> for the spin quantum number.
-For systems with higher spin or more than one unpaired electron, the spin quantum number
-should be given in the field <code>S</code>.
+<code>pepper</code> automatically assumes <code>S=1/2</code> for the spin quantum number. For systems with higher spin or more than one unpaired electron, the spin quantum number(s) should be given in the field <code>S</code>.
 </p>
 
 <pre class="matlab">
-Sys.S = 1;          % a triplet state
-Sys.S = 5/2;        % for e.g. high-spin Mn2+ or high-spin Fe3+
-Sys.S = [1/2, 1/2];  % for a biradical
+Sys.S = 1;           % a triplet
+Sys.S = 5/2;         % a sexted, e.g. high-spin Mn(II) or high-spin Fe(III)
+Sys.S = [1/2, 1/2];  % a biradical
 </pre>
 
 <p>
-The field <code>g</code> contains the principal values of the g tensor(s). A simple rhombic
-S=1/2 system (e.g., a low-spin Fe<sup>3+</sup>) is
+The field <code>g</code> contains the principal values of the g tensor(s). A simple rhombic S=1/2 system (e.g., a low-spin Fe<sup>3+</sup>) is
 </p>
 
 <pre class="matlab">
@@ -147,9 +130,7 @@ Sys.g = [1.8, 2, 2.1];
 </pre>
 
 <p>
-Nuclear spins are included by specifying <code>Nucs</code> (comma-separated
-list of nuclei) and <code>A</code> (array of hyperfine tensor principal values,
-in MHz).
+Nuclear spins are included by specifying <code>Nucs</code> (comma-separated list of nuclei) and <code>A</code> (array of hyperfine tensor principal values, in MHz).
 </p>
 
 <pre class="matlab">
@@ -158,7 +139,7 @@ Sys.A = [-1,-1,2]*4.2;  % hyperfine principal values in MHz
 </pre>
 
 <p>
-If the A tensor is tilted with respect to the molecular frame, the <a href="eulerangles.html">tilt angles</a> can be provided via the field <code>AFrame</code>
+If the A tensor is tilted with respect to the <a href="frames.html">molecular frame</a>, the <a href="eulerangles.html">tilt angles</a> can be provided via the field <code>AFrame</code>
 </p>
 
 <pre class="matlab">
@@ -166,53 +147,43 @@ Sys.AFrame = [0 30 0]*pi/180; % [alpha beta gamma] in radians
 </pre>
 
 <p>
-The zero-field splitting is specified in the <code>D</code> field, in units of
-MHz. There are several different input possibilities:
+The zero-field splitting is specified in the <code>D</code> field, in units of MHz. There are several different input possibilities:
 </p>
 
 <pre class="matlab">
-Sys.D = 120;          % D = 120 MHz, E = 0
+Sys.D = 120;          % D = 120 MHz, E = 0 MHz
 Sys.D = [120 15];     % D = 120 MHz, E = 15 MHz
 Sys.D = [-25,-55,80]; % principal values of D tensor, in MHz
 </pre>
 
 <p>
-D and E are related to the principal values of the D tensor (see reference
-page on the <a href="hamiltonian.html#zfi">zero-field splitting</a>).
+D and E are related to the principal values of the D tensor (see reference page on the <a href="hamiltonian.html#zfi">zero-field splitting</a>).
 </p>
 
 <p>
-Details about all the spin Hamilton parameters can be found on the
-<a href="hamiltonian.html">spin Hamiltonian reference page</a>. It is also
-possible to include several electron spins. Refer to the
-page about <a href="spinsystem.html">spin system structures</a> for details.
+Details about all the spin Hamilton parameters can be found on the <a href="hamiltonian.html">spin Hamiltonian reference page</a>. It is also possible to include several electron spins. Refer to the page about <a href="spinsystem.html">spin system structures</a> for details.
 </p>
 
 <!-- ============================================================= -->
 <a name="broadenings"><div class="subtitle">Broadenings</div></a>
 
 <p>
-No cw EPR spectrum is infinitely sharp. Lines are usually broadened due
-to several reasons. <code>pepper</code> provides means to include several
+No cw EPR spectrum is infinitely sharp. Lines are usually broadened for several reasons. <code>pepper</code> provides means to include several
 line broadening models in a simulation.
 </p>
 
 <p>
-The simplest way to include line broadening is to convolute a stick spectrum
-with a (Gaussian or Lorentzian) line shape after the end of the simulation.
-Such a convolution broadening is specified in the spin system field <code>lwpp</code>.
+The simplest way to include line broadening is to convolute a stick spectrum with a (Gaussian or Lorentzian) line shape after the end of the simulation. Such a convolutional broadening is specified in the spin system field <code>lwpp</code>.
 </p>
 
 <pre class="matlab">
 Sys.lwpp = 0.5;     % Gaussian broadening of 0.5 mT PP
 Sys.lwpp = [0 2];   % Lorentzian broadening of 2 mT PP
-Sys.lwpp = [1 2];   % Gaussian PP of 1mT + Lorentzian PP of 2 mT
+Sys.lwpp = [1 2];   % Gaussian PP of 1 mT + Lorentzian PP of 2 mT
 </pre>
 
 <p>
-The line width is in mT and refers to peak-to-peak (PP) line widths.
-Instead, FWHM (full width at half height) line widths can be provided in the field
-<code>Sys.lw</code>.
+The line width is in mT and refers to peak-to-peak (PP) line widths in the first-harmonic EPR spectrum. FWHM (full width at half height) line widths can be provided instead in the field <code>Sys.lw</code>.
 </p>
 
 <pre class="matlab">
@@ -221,18 +192,16 @@ Sys.lw = [0 2];   % Lorentzian broadening of 2 mT FWHM
 </pre>
 
 <p>
-For details about line shapes and conversion formulas to/from FWHM and
-peak-to-peak widths, see the  page on <a href="lineshapes.html">line shapes</a>.
+For details about line shapes and conversion formulas between FWHM and
+PP widths, see the page on <a href="lineshapes.html">line shapes</a>.
 </p>
 
 <p>
-Physically, there are several origins for line broadening. Large contribution
-to broadening often comes from unresolved hyperfine couplings and from distributions in the various magnetic parameters lige g, A and D that result from structural variations from one paramagnetic center to the next.
+Physically, there are several possible origins for line broadening. Large contributions to broadening often comes from unresolved hyperfine couplings and from distributions in the various magnetic parameters like g, A and D that result from structural variations from one paramagnetic center to the next in the sample.
 </p>
 
 <p>
-To include effects from unresolved hyperfine couplings, an orientation-dependent
-phenomenological broadening can be specified in <code>HStrain</code>:
+To include effects from unresolved hyperfine couplings, an orientation-dependent phenomenological broadening can be specified in <code>HStrain</code>:
 </p>
 
 <pre class="matlab">
@@ -245,33 +214,26 @@ Distributions in magnetic parameters are called <em>strains</em>. g and A strain
 
 <pre class="matlab">
 Sys.gStrain = [0.01 0.02 0.005];
-Sys.AStrain = [10 10 30]; % in MHz
+Sys.AStrain = [10 10 30];  % in MHz
 </pre>
 
 <p>
-The three values in <code>gStrain</code> are the FWHM parameters of the Gaussian
-distributions of the respective g principal values given in <code>Sys.g</code>.
-<code>AStrain</code> is the same for the A tensor. The g and A strains are
-correlated.
+The three values in <code>gStrain</code> are the FWHM for uncorrelated Gaussian distributions of the respective g principal values given in <code>Sys.g</code>. <code>AStrain</code> is the same for the A tensor. The g and A strains can be set to be correlated using <code>Sys.gAStainCorr</code>.
 </p>
 
 <p>
-Distributions of the D tensor values can be given in <code>DStrain</code>, where
-the first value is the width of the (scalar) D distribution, and the second is
-the width for the E distribution.
+Distributions of the D tensor values can be given in <code>DStrain</code>, where the first value is the FWHM of a Gaussian distribution of D, and the second is the width for a Gaussian distribution of E.
 </p>
 
 <p>
-All these broadening parameters can be combined. However, usually a modelling
-of the broadening with <code>lwpp</code> or <code>HStrain</code> is absolutely
-sufficient.
+All these broadening parameters can be combined. However, usually a modelling of the broadening with <code>lwpp</code> or <code>HStrain</code> is sufficient.
 </p>
 
 <!-- ============================================================= -->
 <a name="expparams"><div class="subtitle">Basic experimental settings</div></a>
 
 <p>
-The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+The second input argument, <code>Exp</code>, collects experimental settings. This includes additional information about the sample as well as spectrometer settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
 </p>
 
 <p>
@@ -284,7 +246,7 @@ Exp.mwFreq = 34.9;   % Q-band
 </pre>
 
 <p>
-<span class="param">Field range</span>. There are two ways to enter the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
+<span class="param">Field range</span>. There are two ways to provide the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
 </p>
 
 <pre class="matlab">
@@ -293,11 +255,7 @@ Exp.Range = [300 380];      % in mT
 </pre>
 
 <p>
-On many cw EPR spectrometers, the field range is specified using center field and sweep width, so <code>Exp.CenterSweep</code> is often the more natural choice.
-</p>
-
-<p>
-<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+If <code>Exp.CenterSweep</code> and <code>Exp.Range</code> are omitted, EasySpin tries to determine a field range large enough to accommodate the full EPR spectrum. This automatic ranging works for many simple systems, but fails in more complicated situations. EasySpin will issue an error when it fails.
 </p>
 
 <p>
@@ -309,30 +267,25 @@ Exp.nPoints = 5001;
 </pre>
 
 <p>
-You can set any value, unlike some EPR spectrometers, where often only powers of 2 are available (1024, 2048, 4096, 8192).
-</p>
-
-<p>
 <span class="param">Harmonic</span>. By default, EasySpin computes the first-harmonic absorption spectrum, i.e. the first derivative of the absorption spectrum. By changing <code>Exp.Harmonic</code>, you can request the absorption spectrum directly or the second-harmonic (second derivative) of it.
 </p>
 
 <pre class="matlab">
-Exp.Harmonic = 0; % absorption spectrum, direct detection
-Exp.Harmonic = 1; % first harmonic (default)
-Exp.Harmonic = 2; % second harmonic
+Exp.Harmonic = 0;  % absorption spectrum, direct detection
+Exp.Harmonic = 1;  % first harmonic (default)
+Exp.Harmonic = 2;  % second harmonic
 </pre>
 
 <p>
-<span class="param">Modulation amplitude</span>. If you want to include effects of field modulation like overmodulation, use <code>Exp.ModAmp</code>
+<span class="param">Modulation amplitude</span>. If you want to include effects of field modulation like overmodulation, use <code>Exp.ModAmp</code>.
 </p>
 
 <pre class="matlab">
-Exp.ModAmp = 0.2; % 0.2 mT (2 G) modulation amplitude, peak-to-peak
+Exp.ModAmp = 0.2;   % 0.2 mT (2 G) modulation amplitude, peak-to-peak
 </pre>
 
 <p>
-<span class="param">Time constant</span>. To include the effect of the time constant, apply the
-function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
+<span class="param">Time constant</span>. To include the effect of the time constant of an RC filter, apply the function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
 </p>
 
 <!-- ============================================================= -->
@@ -343,7 +296,7 @@ For more advanced spectral simulations, EasySpin offers more possibilities in th
 </p>
 
 <p>
-<span class="param">Mode</span>. Most cw EPR resonators operate in <em>perpendicular</em> mode, i.e., the oscillating magnetic field component of the microwave in the resonator is perpendicular to the static field. Some resonators can operate in <em>parallel</em> mode, where the microwave field is parallel to the static one. EasySpin can simulate both types of spectra:
+<span class="param">Mode</span>. Most cw EPR resonators operate in <em>perpendicular</em> mode, i.e., the oscillating magnetic field component of the microwave in the resonator is perpendicular to the static magnetic field. Some resonators can operate in <em>parallel</em> mode, where the microwave field is parallel to the static one. EasySpin can simulate both types of spectra:
 </p>
 
 <pre class="matlab">
@@ -356,11 +309,11 @@ Exp.mwMode = 'parallel';      % parallel mode
 </p>
 
 <pre class="matlab">
-Exp.Temperature = 4.2; % temperature in kelvin
+Exp.Temperature = 4.2;  % temperature, in kelvin
 </pre>
 
 <p>
-With this setting, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings.
+With this, EasySpin includes the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, including the temperature typically does not affect the spectral shape. However, temperature strongly affects the spectral shape for high-spin systems with large zero-field splittings, and for coupled spin systems with significant exchange couplings.
 </p>
 
 <p>
@@ -380,28 +333,17 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 <a name="crystals"><div class="subtitle">Powders and crystals</div></a>
 
 <p>
-If not specified otherwise, <code>pepper</code> computes a powder spectrum. To simulate the spectrum for a single crystal, use the experiment structure field <code>Exp.SampleFrame</code> to provide the crystal/sample orientation. This field should contain the tilt angles that transform the <a href="frames.html">laboratory frame to the crystal/sample frame</a>.
+If not specified otherwise, <code>pepper</code> computes a powder spectrum, i.e. it assumes that the orientations of the spin centers are randomly but uniformly distributed in the sample. To simulate the spectrum for a single crystal, use the experiment structure field <code>Exp.MolFrame</code> to provide the orientation of the spin center within the crystal, <code>Exp.CrystalSymmetry</code> to provide the symmetry of the crystal, and <code>Exp.SampleFrame</code> to specify how the crystal is oriented in the spectrometer. For details see the dedicated page on <a href="crystalsim.html">crystal simulations</a>.
 </p>
 
 <p>
-For a crystal sample with its frame aligned with the laboratory frame, the setting is 
+<code>Exp.MolFrame</code> contains the tilt angles that transform the <a href="frames.html">sample/crystal frame to the molecular frame</a>.
 </p>
 
 <pre class="matlab">
-Exp.SampleFrame = [0 0 0];   % crystal/sample frame aligned with lab frame
+Exp.MolFrame = [0 0 0];          % molecular frame aligned with sample frame
+Exp.MolFrame = [0 30 0]*pi/180;  % molecular frame titled
 </pre>
-
-<p>
-If you need more than one sample orientation at the same time (for example for a twinned crystal), specify more than one orientation.
-</p>
-
-<pre class="matlab">
-Exp.SampleFrame = [0 0 0; 0 pi/4 0];   % two orientations, one per row
-</pre>
-
-<p>
-If <code>Exp.SampleFrame</code> is missing or set to <code>[]</code> (an empty array), <code>pepper</code> simulates the powder spectrum.
-</p>
 
 <p>
 In most crystals, there is a set of symmetry-related sites with identical paramagnetic centers differing only in their orientation in the crystal. This depends on the space group of the crystal. Provide information about this in the field <code>Exp.CrystalSymmetry</code>, e.g.
@@ -415,7 +357,19 @@ Exp.CrystalSymmetry = '2/m';     % point group, Hermann-Mauguin notation
 </pre>
 
 <p>
-With the crystal symmetry given, <code>pepper</code> not only computes the spectrum for the orientation given in <code>Exp.SampleFrame</code>, but also for all symmetry-related sites. For this to work correctly, make sure to set <code>Exp.MolFrame</code> consistent with EasySpin's <a href="frames.html#sampleframe">crystal frame definitions</a>.
+With the crystal symmetry given, EasySpin includes all symmetry-related sites into the simulated spectrum.
+</p>
+
+<p>
+Finally, use <code>Exp.SampleFrame</code> to specify how the crystal is oriented relative to the laboratory frame. For a crystal sample with its frame aligned with the laboratory frame, the setting is 
+</p>
+
+<pre class="matlab">
+Exp.SampleFrame = [0 0 0];   % sample/crystal frame aligned with lab frame
+</pre>
+
+<p>
+If <code>Exp.SampleFrame</code> is missing or set to <code>[]</code> (an empty array), <code>pepper</code> simulates the powder spectrum.
 </p>
 
 
@@ -423,69 +377,50 @@ With the crystal symmetry given, <code>pepper</code> not only computes the spect
 <a name="options"><div class="subtitle">Simulation options</div></a>
 
 <p>
-The third input argument to <code>pepper</code> contains simulation options.
-All of them have reasonable default values, but sometimes it might be necessary
-to change one of them. In the following the most important ones are presented.
+The third input argument to <code>pepper</code> contains simulation options. All of them have reasonable default values, but sometimes it might be necessary to change one of them. In the following the most important ones are presented.
 </p>
 
 <p>
-If you want <code>pepper</code> to print information about the simulation to
-the command window during the computation, use
+If you want <code>pepper</code> to print information about the simulation to the command window during the computation, use
 </p>
 
 <pre class="matlab">
-Options.Verbosity = 1;
+Opt.Verbosity = 1;
 </pre>
 
 <p>
-<code>'Verbosity'</code> tells <code>pepper</code> how much of progress
-information to show in the command window. 0 (the default)
-suppresses all output, 1 is normal information, and 2 prints more information,
-relevant only for debugging.
+<code>Opt.Verbosity</code> tells <code>pepper</code> how much of progress information to show in the command window. 0 (the default) suppresses all output, 1 is normal information, and 2 prints more information, relevant only for debugging.
 </p>
 
 <p>
-Another useful option is <code>GridSize</code>, which determines how many
-orientations <code>pepper</code> will include in the simulation of a powder
-spectrum. If this value is too low, the spectrum shape contains ripples.
-<code>GridSize</code> is the number of orientations between the z axis and
-the x axis (between theta = 0 and theta = 90 degrees).
+Another useful option is <code>Opt.GridSize</code>, which determines how many orientations <code>pepper</code> includes in the simulation of a powder spectrum. If this value is too low, the spectrum shape contains ripples. <code>Opt.GridSize</code> is the number of orientations between the z axis and the x axis (between theta = 0 and theta = 90 degrees).
 </p>
 
 <pre class="matlab">
-Options.GridSize = 31; % corresponds to 3-degree increments
+Opt.GridSize = 31;   % corresponds to 3-degree increments
 </pre>
 
 <p>
-The higher <code>GridSize</code>, the finer the orientational grid.
-The default value of 19 (5-degree increments) is appropriate for most systems.
-A value larger than 181 (0.5-degree increments) is rarely needed.
+The higher <code>Opt.GridSize</code>, the finer the orientational grid. The default value of 19 (5-degree increments) is appropriate for many systems. A value larger than 181 (0.5-degree increments) is rarely needed.
 </p>
 
 <p>
 After having computed the spectrum for a number of orientations specified
-by <code>GridSize</code>, the simulation function interpolates these spectra for
-additional orientations before summing up all spectra. This interpolative
-refinement can be configured with a second number in <code>GridSize</code>.
-<code>GridSize = [19 4]</code> means that <code>pepper</code> interpolates
-additional 4 spectra between two adjacent orientations evaluated.
+by <code>Opt.GridSize</code>, the simulation function interpolates these spectra for additional orientations before summing up all spectra. This interpolative refinement can be configured with a second number in <code>Opt.GridSize</code>. <code>Opt.GridSize = [19 4]</code> means that <code>pepper</code> interpolates additional 4 spectra between two adjacent orientations evaluated.
 </p>
 
 <pre class="matlab">
-Options.GridSize = [19 10];  % massive interpolation
-Options.GridSize = [19 0];   % no interpolation
+Opt.GridSize = [19 10];  % massive interpolation
+Opt.GridSize = [19 0];   % no interpolation
 </pre>
 
 <p>
-The option <code>separate</code> can be used to obtain a set of individual transition spectra instead of the total spectrum:
+The option <code>Opt.separate</code> can be used to obtain a set of individual transition spectra instead of the total spectrum:
 </p>
 
 <pre class="matlab">
-% separate subspectra for all transitions
-Options.separate = 'transitions';
-
-% one overall spectrum
-Options.separate = '';
+Opt.separate = 'transitions';  % separate subspectra for all transitions
+Opt.separate = '';             % one overall spectrum
 </pre>
 
 <p>
@@ -496,8 +431,7 @@ There are more option fields available. For details, see the documentation page 
 <a name="multicomponent"><div class="subtitle">Multiple components</div></a>
 
 <p>
-Often, an EPR spectrum shows a mixture of spin species.
-To simulate these spectra, each of the component spectra has to be simulated and added with the appropriate weight (depending on spin concentration) to the total spectrum.
+Often, an EPR spectrum shows a mixture of spin species. To simulate these spectra, each of the component spectra has to be simulated and added with the appropriate weight (depending on spin concentration) to the total spectrum.
 </p>
 
 <p>
@@ -506,23 +440,21 @@ This can be done automatically by <code>pepper</code>. Just provide the componen
 
 <pre class="matlab">
 Sys1.g = 2;
-Sys1.lwpp = 1;
-Sys1.weight = 2;
+Sys1.lwpp = 1;   % mT
 Sys2.g = 2.1;
-Sys2.lwpp = 0.8;
+Sys2.lwpp = 0.8;  % mT
+
+Sys1.weight = 2;
 Sys2.weight = 1;
 
-Exp.mwFreq = 9.5;
-Exp.Range = [300 360];
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [300 360];  % mT
 
 pepper({Sys1,Sys2},Exp);
 </pre>
 
 <p>
-You don't have to specify <code>Sys.weight</code> - if it's absent it is assumed to be 1. These
-weights are absolute, i.e. a simulation with <code>Sys.weight=20</code> yields a spectrum that
-is 10 times more intense than the one obtained with <code>Sys.weight=2</code>. There is no limit
-to the number of components in a simulation.
+You don't have to specify <code>Sys.weight</code> - if it's absent it is assumed to be 1. These weights are absolute, i.e. a simulation with <code>Sys.weight=20</code> yields a spectrum that is 10 times more intense than the one obtained with <code>Sys.weight=2</code>. There is no limit to the number of components in a simulation.
 </p>
 
 <!-- ============================================================= -->
@@ -540,12 +472,12 @@ As an example, we look at the simulation of the spectrum of Cu<sup>2+</sup> porp
 Sys.S = 1/2;
 Sys.g = [2 2.2];
 Sys = nucspinadd(Sys,'63Cu',[50 500]);
-A = [20 30];
+A = [20 30];   % MHz
 Sys = nucspinadd(Sys,'14N',A);
 Sys = nucspinadd(Sys,'14N',A);
 Sys = nucspinadd(Sys,'14N',A);
 Sys = nucspinadd(Sys,'14N',A);
-Sys.lwpp = 0.5;
+Sys.lwpp = 0.5;  % mT
 </pre>
 
 <p>
@@ -553,8 +485,8 @@ With matrix diagonalization (<code>Opt.Method='matrix'</code>, which is the defa
 </p>
 
 <pre class="matlab">
-Exp.mwFreq = 9.5;
-Exp.Range = [260 380];
+Exp.mwFreq = 9.5;   % GHz
+Exp.Range = [260 380];  % mT
 Opt.Method = 'matrix';
 [x,y1] = pepper(Sys,Exp,Opt);
 Opt.Method = 'perturb2';
@@ -567,11 +499,7 @@ plot(x,y1,'r',x,y2,'b');
 <a name="ordering"><div class="subtitle">Partially ordered systems</div></a>
 
 <p>
-In powders and frozen solutions (disordered systems), paramagnetic molecules are randomly oriented
-in the sense that any orientation can occur with equal probability. In other situations, like in polymers,
-biomembranes or liquid crystals, the paramagnetic molecules may be partially aligned or ordered, so that
-some orientations are more probable than others. As a result, the spectra of
-such partially ordered systems are different from those of powders and frozen solutions.
+In powders and frozen solutions (disordered systems), paramagnetic molecules are randomly oriented in the sense that any orientation can occur with equal probability. In other situations, like in polymers, biomembranes or liquid crystals, the paramagnetic molecules may be partially aligned or ordered, so that some orientations are more probable than others. As a result, the spectra of such partially ordered systems are different from those of powders and frozen solutions.
 </p>
 
 <p>
@@ -579,9 +507,7 @@ such partially ordered systems are different from those of powders and frozen so
 </p>
 
 <p>
-If <code>Exp.Ordering</code> is set to a number, a simple axial built-in ordering function is used.
-Positive values mean that the molecules are partially aligned so that the molecular z axis is predominantly along the sample z axis.
-Negative values specify partial ordering such that molecular orientations with the molecular z axis perpendicular to the sample z axis are dominant.
+If <code>Exp.Ordering</code> is set to a number, a simple axial built-in ordering function is used. Positive values mean that the molecules are partially aligned so that the molecular z axis is predominantly along the sample z axis. Negative values specify partial ordering such that molecular orientations with the molecular z axis perpendicular to the sample z axis are dominant.
 </p>
 
 <pre class="matlab">
@@ -591,19 +517,19 @@ Exp.Ordering = +10; % strongly aligned such that molecular z axis is perpendicul
 </pre>
 
 <p>
-The built-in ordering function is very simple (see the <a href="pepper.html" class="esf">pepper</a> documentation for more information), but sufficient for many cases. Here is a simulation of a sample where the molecules are preferentially oriented such that the molecular z axis is parallel to the sample z axis:
+The built-in ordering function is very simple (see the <a href="pepper.html" class="esf">pepper</a> documentation for more information), but useful for many cases. Here is a simulation of a sample where the molecules are preferentially oriented such that the molecular z axis is parallel to the sample z axis:
 </p>
 
 <pre class="matlab">
 Sys.g = [2 2 2.2];
-Sys.lwpp = 1;
-Exp.mwFreq = 9.5;
+Sys.lwpp = 1;      % mT
+Exp.mwFreq = 9.5;  % GHz
 Exp.Ordering = +2;
 pepper(Sys,Exp);
 </pre>
 
 <p>
-The second way to provide information about the orientational distribution is to write a separate function and supply to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. The function takes the three Euler angles that transform the sample frame to the molecular frame as input (in analogy to <code>Exp.MolFrame</code>). Here is an example. Written as an anonymous function, the built-in orientational distribution is
+The second way to provide information about the orientational distribution is to write a separate function and supply to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. The function takes as input the three Euler angles that transform the sample frame to the molecular frame (in analogy to <code>Exp.MolFrame</code>). Here is an example. Written as an anonymous function, the built-in orientational distribution is
 </p>
 
 <pre class="matlab">
@@ -618,9 +544,7 @@ The EasySpin function <a href="plegendre.html">plegendre</a> returns the associa
 <a name="freqsweep"><div class="subtitle">Frequency-swept spectra</div></a>
 
 <p>
-<code>pepper</code>, like the other cw EPR simulation functions <code>garlic</code>
-and <code>chili</code>, does field sweeps by default. However, you can it them to
-simulate frequency-swept spectra as well.
+<code>pepper</code>, like the other cw EPR simulation functions <code>garlic</code> and <code>chili</code>, does field sweeps by default. However, you can ask them to simulate frequency-swept spectra as well.
 </p>
 
 <p>
@@ -628,8 +552,7 @@ For this, all you need to do is the following
 </p>
 
 <ul>
-<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
-otherwise EasySpin does not know what to do.
+<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>, otherwise EasySpin does not know what to do.
 <li>Give a frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. You can also omit these, in which case <code>pepper</code> will determine an adequate range automatically.
 <li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>
@@ -642,27 +565,26 @@ Here is an example of a frequency-swept spectrum of a nitroxide radical:
 clear
 Sys.g = [2.008 2.006 2.002];
 Sys.Nucs = '14N';
-Sys.A = [20 20 100];
-Sys.lwpp = 10;           % peak-to-peak line width, in MHz
-Exp.Field = 340;         % static field, in mT
+Sys.A = [20 20 100];       % MHz
+Sys.lwpp = 10;             % peak-to-peak line width, in MHz
+Exp.Field = 340;           % static field, in mT
 Exp.mwRange = [9.3 9.7];   % frequency range, in GHz
 pepper(Sys,Exp);
 </pre>
 
 <p>
-By default, <code>pepper</code> returns the absorption spectrum (<code>Exp.Harmonic=0</code>) when you simulate a frequency-swept spectrum. To get the first or second derivative, change <code>Exp.Harmonic</code> to 1 or 2. Note however that <code>Exp.ModAmp</code> is not supported for frequency sweeps.
+By default, <code>pepper</code> returns the absorption spectrum (<code>Exp.Harmonic=0</code>) when you simulate a frequency-swept spectrum. To get the first or second derivative, change <code>Exp.Harmonic</code> to 1 or 2.
 </p>
 
 <p>
-All other capabilities of <code>pepper</code> apply equally to frequency sweep and to field sweeps. For example,
-you can simulate crystals or multi-component spectra, and you can change the excitation mode. Importantly, just like field sweeps, frequency sweeps can be simulated using different methods: matrix diagonalization (<code>Opt.Method='matrix'</code>; highly accurate but potentially slow) or perturbation theory (<code>Opt.Method='perturb'</code>, <code>Opt.Method='perturb1'</code>, <code>Opt.Method='perturb2'</code>; less accurate but much faster).
+All other capabilities of <code>pepper</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate crystals or multi-component spectra, and you can change the excitation mode. Importantly, just like field sweeps, frequency sweeps can be simulated using different methods: matrix diagonalization (<code>Opt.Method='matrix'</code>; highly accurate but potentially slow) or perturbation theory (<code>Opt.Method='perturb'</code>, <code>Opt.Method='perturb1'</code>, <code>Opt.Method='perturb2'</code>; less accurate but much faster).
 </p>
 
 <!-- ============================================================= -->
 <a name="degeneracies"><div class="subtitle">Degeneracies</div></a>
 
 <p>
-EasySpin is not able to handle systems with degenerate energy levels in an exact fashion when using matrix diagonalization. To make it possible to simulate EPR spectra of such systems, EasySpin automatically adds small random perturbations to non-zero Hamiltonian matrix elements. The level of this added noice can be adjusted in <code>Opt.FuzzLevel</code>. The default value is 1e-10 and should be adequate for most cases.
+EasySpin is not able to handle systems with degenerate energy levels in an exact fashion when using matrix diagonalization. To make it possible to simulate EPR spectra of such systems, EasySpin automatically adds small random perturbations to non-zero Hamiltonian matrix elements. The level of this added noise can be adjusted in <code>Opt.FuzzLevel</code>. The default value is 1e-10 and should be adequate for most cases.
 </p>
 
 <p>

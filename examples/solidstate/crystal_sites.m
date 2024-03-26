@@ -1,6 +1,6 @@
 % single-crystal spectra with separate output of site spectra
 %================================================================
-clear, clc
+clear, clc, clf
 
 % Substitutional nitrogen center (P1) in diamond
 P1.g = 2.0024;
@@ -18,7 +18,10 @@ Exp.MolFrame = [45 ma 0]*pi/180;    % P1 molecular frame orientation in crystal
 Exp.SampleFrame = [10 20 30]*pi/180;  % crystal orientation in spectrometer
 Exp.CrystalSymmetry = 'Fd-3m';      % space group of diamond (#227)
 
+% Simulate spectrum, keeping sites separate
 Opt.separate = 'sites';
+[B,spc] = pepper(P1,Exp,Opt);
 
-[B,spc,info] = pepper(P1,Exp,Opt);
+% Plot site spectra separately
 stackplot(B,spc);
+xlabel('magnetic field (mT)');

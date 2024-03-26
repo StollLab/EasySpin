@@ -4,6 +4,7 @@
 % spectrum with a single line in reality is the result of overlap of many
 % modulation sidebands.
 % See Kaelin et al, J.Magn.Reson. 160, 166-182 (2003)
+% https://doi.org/10.1016/S1090-7807(02)00186-6
 
 clear, clf
 

@@ -47,7 +47,7 @@ grid = sphgrid(GridSymmetry,GridSize)
 </p>
 
 <p>
-<code>GridSymmetry</code> specifies the symmetry of the grid. The higher the symmetry, the smaller can the needed sphere surface be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
+<code>GridSymmetry</code> specifies the symmetry of the grid. The higher the symmetry, the smaller the needed sphere surface can be, since rotational and reflectional symmetry makes parts of the surface redundant for EPR calculations.
 </p>
 
 <p>
@@ -84,24 +84,31 @@ Value & Point group & \multicolumn{2}{c}{Unique surface} \\
 
 <p>
 Note that some unique surfaces have open &phi; borders. This is treated correctly by <code>sphgrid</code>. There are never knots on open borders.
+</p>
 
 <p>
 <code>GridSize</code> specifies the number of knots on the quarter meridian &theta; = [0, &pi;/2], &phi;=0, i.e. from the North pole to the equator. The number of knots along the equator depends on the range of &phi;. Roughly, <code>GridSize</code> knots are taken for each quarter of the equator.
+</p>
 
 <p>
 The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>. <code>vecs</code> is a 3xn array containing the orientations as column vectors. <code>phi</code> and <code>theta</code> are the polar angles in radians. <code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weight is normalised to 4&pi;.
+</p>
 
 <p>
-<code>tri</code> is a structure with the fields <code>idx</code> and <code>areas</code> from a Delaunay triangulation of the orientational grid. <code>idx</code> is a nX3 array containing indices for the triangles along the rows. <code>areas</code> is a vector giving the (spherical) area of each Delaunay triangle.
+<code>tri</code> is a structure with the fields <code>idx</code> and <code>areas</code> from a Delaunay triangulation of the orientational grid. <code>idx</code> is a nx3 array containing indices for the triangles along the rows. <code>areas</code> is a vector giving the (spherical) area of each Delaunay triangle.
+</p>
 
 <div class="subtitle">Examples</div>
 
 <p>
 A three-point grid over an octant gives
+</p>
+
 <pre class="matlab">
 grid = sphgrid('D2h',4,'c');
 [grid.phi; grid.theta]*180/pi, grid.weights
 </pre>
+
 <pre class="mloutput">
 ans =
   Columns 1 through 6
@@ -132,6 +139,7 @@ To plot a spherical grid over the upper hemisphere, use
 [grid,tri] = sphgrid('Ci',10);
 v = grid.vecs;
 trisurf(tri.idx,v(1,:),v(2,:),v(3,:));
+axis equal
 </pre>
 
 <div class="subtitle">See also</div>

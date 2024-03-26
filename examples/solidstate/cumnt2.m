@@ -19,8 +19,8 @@ Exp.Range = [10 90];  % mT
 Exp.Harmonic = 0;
 
 % Crystal
-Exp.CrystalSymmetry = 'P-1';  % triclinic space group no. 2
-Exp.MolFrame = [0 pi/3 0];  % assumed
+Exp.CrystalSymmetry = 'P-1';  % space group no. 2 (triclinic)
+Exp.MolFrame = [0 pi/3 0];   % assumed (rad)
 
 % Options
 Opt.Verbosity = 0;
@@ -32,7 +32,8 @@ Exp.SampleFrame = [0 pi/2 0];
 [B,spec2] = pepper(Sys,Exp,Opt);
 
 % Plotting
-plot(B,spec1,'r',B,spec2,'b'); axis tight
+plot(B,spec1,B,spec2);
+axis tight
 legend('0^o','90^o');
 xlabel('magnetic field (mT)');
 title(sprintf('%g GHz single-crystal spectra of Cu(mnt)_2',Exp.mwFreq));

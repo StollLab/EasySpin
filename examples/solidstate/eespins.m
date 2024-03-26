@@ -8,12 +8,12 @@ Sys.g = [2 2.05 2.1; 2.2 2.25 2.3];
 Sys.lwpp = 1;
 
 % Electron-electron couplings
-Sys.J = 50; % isotropic coupling, in MHz
-Sys.dip = 100; % axial dipolar coupling, in MHz
+Sys.J = 50;     % isotropic coupling, in MHz
+Sys.dip = 100;  % axial dipolar coupling, in MHz
 
 % X band conditions
-Exp.mwFreq = 9.5;
-Exp.Range = [280 350];
+Exp.mwFreq = 9.5;  % GHz
+Exp.Range = [280 350];  % mT
 
 pepper(Sys,Exp);
 

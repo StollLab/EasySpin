@@ -13,22 +13,20 @@ foreach $subdir (@allcategories) {
   $Description{$subdir} = $subdir;
 }
 
-$Description{'solidstate'} = 'Solid-state cw EPR simulations';
-$Description{'isotropic'} = 'Isotropic cw EPR simulations';
-$Description{'fastmotion'} = 'Fast-motion cw EPR simulations';
-$Description{'slowmotion'} = 'Slow-motion cw EPR simulations';
+$Description{'analysis'} = 'Data analysis';
 $Description{'endor'} = 'ENDOR simulations';
+$Description{'fitting'} = 'Least-squares fitting';
+$Description{'liquids'} = 'Isotropic cw EPR simulations';
+$Description{'magnetometry'} = 'Magnetometry';
+$Description{'photoexcitation'} = 'Spin-polarized systems';
+$Description{'pulse evolve'} = 'Pulse EPR simulations (evolve)';
 $Description{'pulse saffron'} = 'Pulse EPR simulations (saffron)';
 $Description{'pulse spidyan'} = 'Pulse EPR simulations (spidyan)';
-$Description{'pulse evolve'} = 'Pulse EPR simulations (evolve)';
-$Description{'exchange'} = 'Chemical exchange';
-$Description{'photoexcitation'} = 'Spin-polarized systems';
 $Description{'pulse shaping'} = 'Pulse shaping etc.';
-$Description{'analysis'} = 'Data analysis';
-$Description{'varia'} = 'Other examples';
-$Description{'fitting'} = 'Least-squares fitting';
-$Description{'magnetometry'} = 'Magnetometry';
+$Description{'slowmotion'} = 'Slow-motion cw EPR simulations';
+$Description{'solidstate'} = 'Solid-state cw EPR simulations';
 $Description{'trajectories'} = 'EPR spectra from MD trajectories';
+$Description{'varia'} = 'Other examples';
 
 open(D,'>../docsrc/examplesmain.html');
 

@@ -55,4 +55,8 @@ for irho = 1:numel(rho)
   ang(irho,:) = eulang(R{irho},true);
 end
 
+if isscalar(R)
+  R = R{1};
+end
+
 end

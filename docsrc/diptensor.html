@@ -46,21 +46,21 @@ T = diptensor(nuc1,nuc2,rvec)
 <div class="subtitle">Description</div>
 
 <p>
-<code>diptensor</code> calculates the dipolar coupling tensor <code>T</code> (in MHz) between two spins, using the inter-spin distance vector <code>rvec</code> (in nm). It works for dipolar couplings between two electrons, for dipolar couplings between two nuclei, and for dipolar hyperfine couplings between an electron and a nucleus. See the corresponding interactions in the <a href="hamiltonian.html">spin Hamiltonian</a>.
+<code>diptensor</code> calculates the dipolar coupling tensor <code>T</code> (in MHz) between two spins, using the inter-spin distance vector <code>rvec</code> (in nm). It works for dipolar couplings between two electrons, for dipolar couplings between two magnetic nuclei, and for dipolar hyperfine couplings between an electron and a magnetic nucleus. See the corresponding interactions in the <a href="hamiltonian.html">spin Hamiltonian</a>.
 </p>
 
 <p>
-<code>g1</code>, <code>g2</code> and <code>g</code> specify the g tensor for an electron. Provide a single number for an isotropic g value. For an anisotropic g tensor, provide either the full 3x3 matrix or the principal values and the Euler angles
+<code>g1</code>, <code>g2</code> and <code>g</code> specify the g tensor for an electron. For an isotropic g value, provide a single number. For an anisotropic g tensor, provide either the full 3x3 matrix or the principal values and the Euler angles
 </p>
 
 <pre class="matlab">
 g = 2.005;  % isotropic g
-g = diag([2.0085 2.0065 2.0023]);  % full g matrix (here diagonal)
+g = diag([2.0085 2.0065 2.0023]);      % full g matrix (here diagonal)
 g = {[2 2.05 2.13],[30 68 0]*pi/180};  % principal values and Euler angles
 </pre>
 
 <p>
-The Euler angles define the transformation between the molecular frame (in which `rvec` is assumed to be defined) and the g tensor eigenframe. This is identical to the `gFrame` field in the <a href="spinsystem.html">spin system structure</a>.
+The Euler angles define the transformation between the molecular frame (in which <code>rvec</code> is assumed to be defined) and the g tensor eigenframe. This is identical to the <code>gFrame</code> field in the <a href="spinsystem.html">spin system structure</a>.
 </p>
 
 <p>
@@ -81,10 +81,12 @@ The tensor <code>T</code> is a 3x3 matrix, in units of MHz. It is for the Hamilt
 <p>
 The dipolar coupling tensor between two electrons spaced 1 nm apart along the molecular z direction is
 </p>
+
 <pre class="matlab">
 rvec = [0; 0; 1];  % nm
 T = diptensor(gfree,gfree,rvec)
 </pre>
+
 <pre class="mloutput">
 T =
     52.0410         0         0
@@ -95,10 +97,12 @@ T =
 <p>
 The hyperfine coupling tensor between an electron and a proton located 0.3 nm away along the molecular x axis is
 </p>
+
 <pre class="matlab">
 rvec = [0.3; 0; 0];  % nm
 A = diptensor(gfree,'1H',rvec)
 </pre>
+
 <pre class="mloutput">
 A =
     5.8566         0         0
@@ -109,6 +113,7 @@ A =
 <p>
 The dipolar coupling tensor between two electrons 1.5 nm apart in the direction given by polar angles theta = pi/4 and phi = pi/3 is
 </p>
+
 <pre class="matlab">
 phi = pi/3;    % rad
 theta = pi/4;  % rad
@@ -116,6 +121,7 @@ r = 1.5;       % nm
 rvec = ang2vec(phi,theta)*r;
 T = diptensor(gfree,gfree,rvec)
 </pre>
+
 <pre class="mloutput">
 T =
     9.6372  -10.0153  -11.5647
@@ -145,6 +151,7 @@ The associated principal directions are the columns of the eigenvector matrix
 [Tpd,Tpv] = eig(T);
 Tpd              % eigenvector matrix
 </pre>
+
 <pre class="mloutput">
 Tpd =
     0.3536    0.8660    0.3536
@@ -166,6 +173,7 @@ g2 = [1.9052         0    0.0244
 rvec = [0;0.3;1];
 T = diptensor(g1,g2,rvec)
 </pre>
+
 <pre class="mloutput">
 T =
    45.0248   -1.4288   -0.1124
@@ -187,6 +195,7 @@ g2Frame = [0 12 0]*pi/180;
 rvec = [0;0.3;1];
 T = diptensor({g1pv,g1Frame},{g2pv,g2Frame},rvec)
 </pre>
+
 <pre class="mloutput">
 T =
    45.0238   -1.4284   -0.1130
@@ -203,6 +212,7 @@ T0 = trace(T)*eye(3)   % isotropic component
 Ts = (T+T.')/2 - T0    % traceless symmetric component
 Ta = (T-T.')/2         % antisymmetric component
 </pre>
+
 <pre class="mloutput">
 T0 =
    -8.4518         0         0

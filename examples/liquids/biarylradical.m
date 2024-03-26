@@ -6,17 +6,17 @@
 clear, clf
 
 % Hyperfine couplings in units of Gauss (from literature)
-A_Gauss = [+4.34,-2.39,-0.65,-2.81,-0.23,+24.24];
-A_MHz = unitconvert(A_Gauss/10,'mT->MHz',gfree); % conversion to MHz
+A_Gauss = [+4.34,-2.39,-0.65,-2.81,-0.23,+24.24];  % G
+A_MHz = unitconvert(A_Gauss/10,'mT->MHz',gfree);  % conversion to MHz
 
 % The spin system contains a total of 12 nuclei, in groups of 2
 Sys.g = 2.00316;
 Sys.Nucs = '14N,1H,1H,1H,1H,1H';
 Sys.n = [2 2 2 2 2 2];
 Sys.A = A_MHz;
-Sys.lwpp = [0,0.006];
+Sys.lwpp = [0,0.006];  % mT
 
-Exp.mwFreq = 9.532;
+Exp.mwFreq = 9.532;  % GHz
 Exp.nPoints = 8192;
 
 % Simulation and plotting of the solution cw EPR spectrum
