@@ -29,7 +29,7 @@
 %    Pos     line positions (in mT)
 %    Int     line intensities
 %    Wid     Gaussian line widths, full width half maximum (FWHM)
-%    Trans   list of transitions included in the computation
+%    Trans   list of transitions
 
 function varargout = resfields_perturb(Sys,Exp,Opt)
 
@@ -464,7 +464,6 @@ if immediateBinning
   B = [];
   Int = [];
   Wid = [];
-  Transitions = [];
   spec = spec/dB/prod(nNucStates);
   spec = spec*(2*pi); % powder chi integral
 else
@@ -476,11 +475,7 @@ else
   % Intensities
   %-------------------------------------------------------------------
   nNucSublevels = prod(nNucStates);
-  Int = [];
-  for iTrans = nTransitions:-1:1
-    Int = [Int; repmat(Intensity(iTrans,:),nNucSublevels,1)];  %#ok
-  end
-  Int = Int/nNucSublevels;
+  Int = repelem(Intensity,nNucSublevels)/nNucSublevels;
   
   % Widths
   %-------------------------------------------------------------------
@@ -571,17 +566,7 @@ else
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
   end
-  
-  % Transitions
-  %-------------------------------------------------------------------
-  nI = prod(nNucStates);
-  Transitions = [];
-  Manifold = (1:nI).';
-  for k = 1:2*S
-    Transitions = [Transitions; [Manifold Manifold+nI]];  %#ok
-    Manifold = Manifold + nI;
-  end
-  
+    
   spec = 0;
 end
 
@@ -594,6 +579,8 @@ if nSites>1 && ~pepperCall
   if ~isempty(Int), Int = reshape(Int,siz); end
   if ~isempty(Wid), Wid = reshape(Wid,siz); end
 end
+
+Transitions = NaN;  % not implemented
 
 % Arrange output
 %---------------------------------------------------------------
