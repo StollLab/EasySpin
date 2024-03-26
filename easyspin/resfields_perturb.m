@@ -480,7 +480,7 @@ else
   % Intensities
   %-------------------------------------------------------------------
   nNucSublevels = prod(nNucStates);
-  Int = repelem(Intensity,nNucSublevels)/nNucSublevels;
+  Int = repelem(Intensity,nNucSublevels,1)/nNucSublevels;
   
   % Widths
   %-------------------------------------------------------------------

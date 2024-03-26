@@ -660,7 +660,7 @@ if ~anisotropicIntensities
   if ~useEigenFields, Idat = mean(Idat(:))*ones(size(Idat)); end
 end
 
-nTransitions = size(Transitions,1);
+nTransitions = size(Pdat,1);
 if crystalSample && ~isempty(Exp.CrystalSymmetry)
   nSites = numel(Pdat)/nTransitions/nOrientations;
 else
