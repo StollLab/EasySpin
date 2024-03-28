@@ -7,7 +7,7 @@
 %   of a spin sytem and the associated symmetry frame.
 %
 %   Input:
-%   - Sys: Spin system specification structure
+%   - Sys: Spin system structure
 %
 %   Output:
 %   - PGroup: Schoenfliess point group symbol, one of
@@ -20,40 +20,38 @@ if nargin==0, help(mfilename); return; end
 
 if nargin>1
   options = varargin{end};
-  DebugMode = strfind(options,'debug');
+  debugMode = strfind(options,'debug');
 else
-  DebugMode = false;
+  debugMode = false;
 end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
 sysfields = fieldnames(Sys);
 
-highOrderTermsPresent = ~isempty(Sys.B);
-
 higherZeemanPresent = false;
 higherZeemanFields = strncmp(sysfields,'Ham',3).';
 if any(higherZeemanFields) 
   for n = find(higherZeemanFields)
     if any(Sys.(sysfields{n})(:))
-        highOrderTermsPresent = true;
-        higherZeemanPresent = true;
+      higherZeemanPresent = true;
     end
   end
 end
 
-crystalFieldPresent = false;
+crystalFieldTermsPresent = false;
 cf = strncmp(sysfields,'CF',2).';
 if any(cf)
   for n = find(cf)
     if any(Sys.(sysfields{n})(:))
-      crystalFieldPresent = true;
-      highOrderTermsPresent = true;
+      crystalFieldTermsPresent = true;
     end
   end
 end
 
-if DebugMode
+highOrderTermsPresent = ~isempty(Sys.B) || higherZeemanPresent || crystalFieldTermsPresent;
+
+if debugMode
   if highOrderTermsPresent
     fprintf('High-order terms present!\n');
   else
@@ -72,7 +70,7 @@ fullsigma = Sys.fullsigma;
 fullTensorsGiven = any([fullg fullA fullD fullee fullQ fullsigma fullnn]);
 
 if ~fullTensorsGiven && ~highOrderTermsPresent
-  if DebugMode
+  if debugMode
     fprintf('Check whether isotropic...\n')
   end  
   if isisotropic(Sys)
@@ -94,7 +92,7 @@ doQMAnalysis = highOrderTermsPresent || fullTensorsGiven || equivalentSpins;
 % QM analysis has problems with two axial tensors at arbitrary angle: returns
 % Ci, since it is not able to identify common rotation axis.
 
-if DebugMode
+if debugMode
   if doQMAnalysis
     fprintf('Quantum mechanical symmetry analysis...\n'); 
   else
@@ -103,9 +101,9 @@ if DebugMode
 end
 
 if doQMAnalysis
-  [PGroup, RMatrix] = hamsymm_eigs(Sys,higherZeemanPresent,DebugMode);
+  [PGroup, RMatrix] = hamsymm_eigs(Sys,higherZeemanPresent,debugMode);
 else
-  [PGroup, RMatrix] = hamsymm_geom(Sys,DebugMode);
+  [PGroup, RMatrix] = hamsymm_geom(Sys,debugMode);
 end
 
 % For calculations using photoselection, accurate results are in general
@@ -122,7 +120,7 @@ end
 
 
 %-------------------------------------------------------------------------------
-function [Group,RMatrix] = hamsymm_eigs(Sys,higherZeemanPresent, DebugMode)
+function [Group,RMatrix] = hamsymm_eigs(Sys,higherZeemanPresent,debugMode)
 
 % Collect all frame orientations described by Euler angles from the spin system
 %-------------------------------------------------------------------------------
@@ -159,8 +157,8 @@ pa = pa(sort(ii),:);
 % axes exchange (xyz) -> (yzx) -> (zxy) using three rotation matrices
 % (Rz, Rx, Ry).
 
-LockedFrame = 0;
-if ~LockedFrame
+lockedFrame = 0;
+if ~lockedFrame
   % Initialize.
   Rz = eye(3);
   Rx = Rz([2 3 1],:);
@@ -199,14 +197,14 @@ if ~higherZeemanPresent
 end
 
 % Set of field vectors for the test operations.
-q = 7; % small theta aliquot
-qq = 6.3456; % small phi aliquot
+q = 7.3234;  % small theta increment
+qq = 6.3456;  % small phi increment
 the = pi/180* [q,  q, q,q/2,q/2,  q,180-q,180-q,180-q,90-q,    q,  q];
 phi = pi/180*([0,120,90, 90,  0,-90,    0,  -90,  180,  90,-2*qq,180]+qq);
 Field = 350; % mT
-FieldVecs = Field*ang2vec(phi,the); % 3x8 array
+FieldVecs = Field*ang2vec(phi,the);  % 3x12 array
 
-if DebugMode
+if debugMode
   fprintf('===========================================================\n');
 end
 
@@ -217,12 +215,19 @@ end
 % of g (standard) frame. Then we try to find a higher
 % symmetry in one of the frames.
 
-iGroup = 0; % nothing
-RMatrix = Rz; % eye(3)
+highestSymmetry = 0;  % no symmetry (i.e. C1)
+RMatrix = Rz;  % eye(3)
 GroupNames = {'Ci','C2h','D2h','C4h','D4h',...
   'S6','D3d','C6h','D6h','Th','Oh','Dinfh','O3'};
 
+if debugMode
+  fprintf('initial symmetry: C1\n');
+end
+
 for iFrame = 1:nFrames % loop over all potential frames
+  if debugMode
+    fprintf('Frame %d ------------------------\n',iFrame)
+  end
 
   % Rotate all orientations.
   % This is a passive rotation of the FieldVecs from
@@ -234,8 +239,7 @@ for iFrame = 1:nFrames % loop over all potential frames
   % has changed, but not its representation.
   R = Rots(:,:,iFrame);
   B = R*FieldVecs;
-  
-  pg = 0;
+
   if higherZeemanPresent
     eA = eig(ham(Sys,B(:,1)));
     eB = eig(ham(Sys,B(:,2)));
@@ -244,67 +248,99 @@ for iFrame = 1:nFrames % loop over all potential frames
     eA = eig(H0 - B(1,1)*mux - B(2,1)*muy - B(3,1)*muz);
     eB = eig(H0 - B(1,2)*mux - B(2,2)*muy - B(3,2)*muz);
     eC = eig(H0 - B(1,3)*mux - B(2,3)*muy - B(3,3)*muz);
-
   end
-  C3 = eqeig(eB,eA); % is there a C3 along z?
-  C4 = eqeig(eC,eA); % is there a C4 along z?
+
+  C3 = eqeig(eB,eA);  % is there a C3 along z?
+  C4 = eqeig(eC,eA);  % is there a C4 along z?
   
-  if DebugMode
-    fprintf('%d C4 axes and %d C3 axes along z\n',C4,C3);
+  if debugMode
+    if C3
+      fprintf('C3z axis found\n');
+    else
+      fprintf('No C3z axis found\n');
+    end
+    if C4
+      fprintf('C4z axis found\n');
+    else
+      fprintf('No C4z axis found\n');
+    end
   end
 
-  switch C4*2+C3
-  case 0 % none: Ci, C2h, D2h
+  if ~C3 && ~C4  % none: Ci, C2h, D2h
+
     if higherZeemanPresent
       C2z = eqeig(eA,eig(ham(Sys,B(:,12))));
     else
       C2z = eqeig(eA,eig(H0-B(1,12)*mux-B(2,12)*muy-B(3,12)*muz));
     end
     if ~C2z
-      pg = 1; % Ci
+      pg = 1;  % Ci
     else % D2h, C2h
-      if higherZeemanPresent, sigmaxz = eqeig(eA,eig(ham(Sys,B(:,11))));
-      else, sigmaxz = eqeig(eA,eig(H0-B(1,11)*mux-B(2,11)*muy-B(3,11)*muz));
+      if higherZeemanPresent
+        sigmaxz = eqeig(eA,eig(ham(Sys,B(:,11))));
+      else
+        sigmaxz = eqeig(eA,eig(H0-B(1,11)*mux-B(2,11)*muy-B(3,11)*muz));
       end
       if sigmaxz
-        pg = 3; % D2h
+        pg = 3;  % D2h
       else
-        pg = 2; % C2h
+        pg = 2;  % C2h
       end
     end
     
-  case 1 % C3 axis: S6,D3d,Th,C6h,D6h
-    if higherZeemanPresent, sigmaxy = eqeig(eA,eig(ham(Sys,B(:,7))));
-    else, sigmaxy = eqeig(eA,eig(H0-B(1,7)*mux-B(2,7)*muy-B(3,7)*muz));
+  elseif C3 && ~C4  % C3 axis: S6, D3d, Th, C6h, D6h
+
+    if higherZeemanPresent
+      sigmaxy = eqeig(eA,eig(ham(Sys,B(:,7))));
+    else
+      sigmaxy = eqeig(eA,eig(H0-B(1,7)*mux-B(2,7)*muy-B(3,7)*muz));
     end
-    if sigmaxy % Th, C6h, D6h
-      if higherZeemanPresent,C2z = eqeig(eC,eig(ham(Sys,B(:,6))));
-      else, C2z = eqeig(eC,eig(H0-B(1,6)*mux-B(2,6)*muy-B(3,6)*muz));
-      end
-      if C2z % C6h, D6h
-        if higherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8)))); 
-        else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));  
-        end
-        if C2x, pg = 9; else, pg = 8; end
+    if sigmaxy  % Th, C6h, D6h
+      if higherZeemanPresent
+        C2z = eqeig(eC,eig(ham(Sys,B(:,6))));
       else
-        pg = 10;
+        C2z = eqeig(eC,eig(H0-B(1,6)*mux-B(2,6)*muy-B(3,6)*muz));
       end
-    else % S6, D3d
-      if higherZeemanPresent,C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
-      else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
+      if C2z  % C6h, D6h
+        if higherZeemanPresent
+          C2x = eqeig(eC,eig(ham(Sys,B(:,8)))); 
+        else
+          C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));  
+        end
+        if C2x
+          pg = 9;  % D6h
+        else
+          pg = 8;  % C6h
+        end
+      else
+        pg = 10;  % Th
+      end
+    else  % S6, D3d
+      if higherZeemanPresent
+        C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
+      else
+        C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
       end
       if ~C2x
-        if higherZeemanPresent, C2y = eqeig(eA,eig(ham(Sys,B(:,9))));
-        else, C2y = eqeig(eA,eig(H0-B(1,9)*mux-B(2,9)*muy-B(3,9)*muz));
+        if higherZeemanPresent
+          C2y = eqeig(eA,eig(ham(Sys,B(:,9))));
+        else
+          C2y = eqeig(eA,eig(H0-B(1,9)*mux-B(2,9)*muy-B(3,9)*muz));
         end
       end
-      if C2x||C2y; pg = 7; else, pg = 6; end
+      if C2x || C2y
+        pg = 7;  % D3d
+      else
+        pg = 6;  % S6
+      end
     end
     
-  case 2 % C4 axis: C4h,D4h,Oh
+  elseif ~C3 && C4  % C4 axis: C4h, D4h, Oh
     
-    if higherZeemanPresent, C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
-    else, C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
+    if higherZeemanPresent
+      C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
+    else
+      C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
     end
     if C2x % D4h, Oh
       if higherZeemanPresent
@@ -314,74 +350,62 @@ for iFrame = 1:nFrames % loop over all potential frames
         C3d = eqeig(eig(H0-B(2,10)*mux-B(3,10)*muy-B(1,10)*muz),...
                     eig(H0-B(1,10)*mux-B(2,10)*muy-B(3,10)*muz));
       end
-      if C3d, pg = 11; else, pg = 5; end
+      if C3d
+        pg = 11;  % Oh
+      else
+        pg = 5;  % D4h
+      end
     else
-      pg = 4;
+      pg = 4;  % C4h
     end
     
-  case 3 % C3 and C4 axes: Dinfh,O3
+  else  % C3 and C4 axes: Dinfh, O3
+
     if higherZeemanPresent
       Cinfx = eqeig(eC,eig(ham(Sys,B(:,4))));
     else
       Cinfx = eqeig(eC,eig(H0-B(1,4)*mux-B(2,4)*muy-B(3,4)*muz));
     end
-    if Cinfx, pg=13; else, pg=12; end
-    
-  end  % switch
-  
-  if DebugMode
-    if pg>0
-      fprintf('\nFrame %d: Point group %s\n',iFrame,GroupNames{pg});
+    if Cinfx
+      pg = 13;  % O3
     else
-      fprintf('\nFrame %d: No point group identified.\n',iFrame);
+      pg = 12;  % Dinfh
     end
-    fprintf('-----------------------------------------------------------\n');
+    
+  end
+  
+  if debugMode
+    if pg>0
+      fprintf('Point group %s\n',GroupNames{pg});
+    else
+      fprintf('No point group identified.\n');
+    end
   end
 
   % Update if symmetry is higher than current best.
-  if pg>iGroup
-    iGroup = pg;
+  if pg>highestSymmetry
+    highestSymmetry = pg;
     RMatrix = R;
-    if DebugMode
-      disp('Highest symmetry up to now!');
+    if debugMode
+      disp('Highest symmetry up to now.');
     end
   end
   
-  if DebugMode
-    disp('Columns of R: tensor axis vectors in molecular reference frame.');
-    disp(R)
-    if isfield(Sys,'A')
-      for kk=1:size(Sys.A,1)
-        if ~isfield(Sys,'AFrame')
-          A = R.'*diag(Sys.A(kk,:))*R;
-        else
-          A = R.'*erot(Sys.AFrame(kk,:)).'*diag(Sys.A(kk,:))*erot(Sys.AFrame(kk,:))*R;
-        end
-        fprintf('diag(A(%d,:)) in this frame [%3.4f %3.4f %3.4f]\n',kk,A(1), ...
-          A(5),A(9));
-      end
-    end
-    pause
-  end
-
 end
 
 
 % Output assignment
 %-------------------------------------------------------------------------------
 % Assertion that a point group has been found.
-if iGroup==0
+if highestSymmetry==0
   error('No point group found! Save input spin system and report bug!');
 end
 
-Group = GroupNames{iGroup};
+Group = GroupNames{highestSymmetry};
 
-if DebugMode
+if debugMode
   fprintf('===========================================================\n');
   fprintf('Symmetry = %s\n',Group);
-  %disp('A in this frame');
-  %A = RMatrix.'*erot(Sys.AFrame).'*diag(Sys.A)*erot(Sys.AFrame)*RMatrix;
-  %disp(A)
 end
 
 end
@@ -391,7 +415,7 @@ end
 %===============================================================================
 % Determine if two sets of eigenvalues are (approximately) equal
 function tf = eqeig(eA,eB)
-threshold = 1e-8;
+threshold = 1e-12;
 eA = sort(eA);
 eB = sort(eB);
 tf = norm(eA-eB) < threshold*norm(eA);
@@ -400,9 +424,9 @@ end
 
 %===============================================================================
 % Determine point group symmetry using geometric reasoning
-function [SymGrp,SymFrame] = hamsymm_geom(Sys,DebugMode)
+function [SymGrp,symFrame] = hamsymm_geom(Sys,debugMode)
 
-if DebugMode
+if debugMode
   fprintf('===========================================================\n');
 end
 
@@ -468,7 +492,7 @@ for iC = 1:nNucCouplings
   Name{end+1} = sprintf('nn%d',iC);
 end
 
-if DebugMode
+if debugMode
   fprintf('  %d tensor(s)\n',numel(Sym));
 end
 
@@ -478,7 +502,7 @@ Sym(isotropic) = [];
 Ax(isotropic) = [];
 Name(isotropic) = [];
 
-if DebugMode
+if debugMode
   fprintf('  %d anisotropic tensor(s)\n',numel(Sym));
 end
 
@@ -487,11 +511,11 @@ end
 %-------------------------------------------------------------------------------
 pointGroups = {'O3','Dinfh','D2h','C2h','Ci'};
 Grp = 0;
-SymFrame = eye(3);
-if DebugMode, fprintf('  O3 as starting symmetry\n'); end
+symFrame = eye(3);
+if debugMode, fprintf('  O3 as starting symmetry\n'); end
 for iTens = 1:numel(Sym)
-  [Grp,SymFrame] = combinesymms(Grp,SymFrame,Sym(iTens),Ax{iTens});
-  if DebugMode
+  [Grp,symFrame] = combinesymms(Grp,symFrame,Sym(iTens),Ax{iTens});
+  if debugMode
     fprintf('   + %s (%s) = %s\n',pointGroups{Sym(iTens)+1},Name{iTens},pointGroups{Grp+1});
   end
 end
@@ -501,24 +525,26 @@ end
 
 
 %===============================================================================
-function [SymGroup,SymFrame] = tensorsymmetry(PrincipalValues,EulerAngles)
+function [symGroup,symFrame] = tensorsymmetry(principalValues,EulerAngles)
 
-O3 = 0; Dinfh = 1; D2h = 2;
+O3 = 0;
+Dinfh = 1;
+D2h = 2;
 
-nValueEqualities = sum(diff(sort(PrincipalValues))==0);
+nValueEqualities = sum(diff(sort(principalValues))==0);
 
 switch nValueEqualities
 case 0
-  SymGroup = D2h;
+  symGroup = D2h;
   zAxis = 3;
 case 2
-  SymGroup = O3;
+  symGroup = O3;
   zAxis = 3;
 case 1
-  SymGroup = Dinfh;
-  if (PrincipalValues(2)==PrincipalValues(3))
+  symGroup = Dinfh;
+  if principalValues(2)==principalValues(3)
     zAxis = 1;
-  elseif (PrincipalValues(1)==PrincipalValues(3))
+  elseif principalValues(1)==principalValues(3)
     zAxis = 2;
   else 
     zAxis = 3;
@@ -526,9 +552,9 @@ case 1
 end
 
 idx = [2 3 1 2 3];
-SymFrame = erot(EulerAngles).';
+symFrame = erot(EulerAngles).';
 % Columns: tensor frame axes in reference frame representation.
-SymFrame = SymFrame(:,idx(zAxis+(0:2)));
+symFrame = symFrame(:,idx(zAxis+(0:2)));
 
 end
 
@@ -545,7 +571,7 @@ end
 %      Sym is the combined symmetry group, and Rot contains the combined axes
 %      orientation. Sym2 must be either O3, Dinf or D2h.
 
-function [TotalSym,TotalRot] = combinesymms(Sym1,Rot1,Sym2,Rot2)
+function [totalSym,totalRot] = combinesymms(Sym1,Rot1,Sym2,Rot2)
 
 % Rotation matrix R = erot([alpha beta gamma])
 %   Cols: tensor frame axes in reference frame representation
@@ -555,13 +581,13 @@ function [TotalSym,TotalRot] = combinesymms(Sym1,Rot1,Sym2,Rot2)
 O3 = 0; Dinfh = 1; D2h = 2; C2h = 3; Ci = 4;
 
 % Angle limits for parallel and perpendicular tests
-delta = 0.2;
-ParallelLimit = delta*pi/180; % maximum
-PerpLimit = (90-delta)*pi/180; % minimum
+delta = 0.2;  % deg
+parallelLimit = delta*pi/180;  % maximum
+perpLimit = (90-delta)*pi/180;  % minimum
 
 % Sort Sym1 and Sym2 so that Sym1 > Sym2
 % (Sym1 is of lower symmetry than Sym2)
-if (Sym1<Sym2)
+if Sym1<Sym2
   [Sym2,Sym1] = deal(Sym1,Sym2);
   [Rot2,Rot1] = deal(Rot1,Rot2);
 end
@@ -570,15 +596,15 @@ end
 %-------------------------------------------------------------------------------
 % - If Sym1 is Ci, the total symmetry remains Ci, since it cannot be lower.
 % - If Sym2 is O3, the total symmetry is unchanged.
-if (Sym1==Ci) || (Sym2==O3)
-  TotalSym = Sym1;
-  TotalRot = Rot1;
+if Sym1==Ci || Sym2==O3
+  totalSym = Sym1;
+  totalRot = Rot1;
   return
 end
 % - If Sym1 is O3, the total symmetry is the new one (either Dinfh or D2h).
-if (Sym1==O3)
-  TotalSym = Sym2;
-  TotalRot = Rot2;
+if Sym1==O3
+  totalSym = Sym2;
+  totalRot = Rot2;
   return
 end
 
@@ -594,24 +620,24 @@ end
 % a) z axes coincide -> Dinfh as before
 % b) z axes perpendicular -> D2h with z perpendicular to both z1 and z2
 % c) otherwise -> C2h with z perpendicular to both z1 and z2
-if (Sym1==Dinfh) && (Sym2==Dinfh)
+if Sym1==Dinfh && Sym2==Dinfh
   
   z1 = Rot1(:,3);
   z2 = Rot2(:,3);
   z1z2Angle = real(acos(abs(z1'*z2)));
-  if (z1z2Angle<ParallelLimit) % z axes parallel
-    TotalSym = Dinfh;
-    TotalRot = Rot1;
-  elseif (z1z2Angle>PerpLimit) % z axes perpendicular
-    TotalSym = D2h;
+  if z1z2Angle<parallelLimit  % z axes parallel
+    totalSym = Dinfh;
+    totalRot = Rot1;
+  elseif z1z2Angle>perpLimit  % z axes perpendicular
+    totalSym = D2h;
     newz = cross(z1,z2);
     newz = newz/norm(newz);
-    TotalRot = [cross(z1,newz) z1 newz];
+    totalRot = [cross(z1,newz) z1 newz];
   else % all other angles between z1 and z2
-    TotalSym = C2h;
+    totalSym = C2h;
     newz = cross(z1,z2);
     newz = newz/norm(newz);
-    TotalRot = [cross(z1,newz) z1 newz];
+    totalRot = [cross(z1,newz) z1 newz];
   end
 
 % [2] D2h + Dinfh
@@ -620,20 +646,20 @@ if (Sym1==Dinfh) && (Sym2==Dinfh)
 % - Dinfh z perpendicular to one D2h axis (i.e. Dinfh z in a D2h
 %   mirror plane) -> C2h with the perpendicular D2h axis as z axis
 % - otherwise Ci with arbitrary orientation
-elseif (Sym1==D2h) && (Sym2==Dinfh)
+elseif Sym1==D2h && Sym2==Dinfh
   z2 = Rot2(:,3); % Dinfh z axis
   z2Angles = real(acos(abs(z2'*Rot1)));
-  if any(z2Angles<ParallelLimit)
-    TotalSym = D2h;
-    TotalRot = Rot1;
-  elseif any(z2Angles>PerpLimit) % z in a D2h sigma plane
-    TotalSym = C2h;
+  if any(z2Angles<parallelLimit)
+    totalSym = D2h;
+    totalRot = Rot1;
+  elseif any(z2Angles>perpLimit) % z in a D2h sigma plane
+    totalSym = C2h;
     [~,newzidx] = max(z2Angles);
     idx = [2 3 1 2 3];
-    TotalRot = Rot1(:,idx(newzidx+(0:2)));
+    totalRot = Rot1(:,idx(newzidx+(0:2)));
   else
-    TotalSym = Ci;
-    TotalRot = Rot1; % can be arbitrary
+    totalSym = Ci;
+    totalRot = Rot1; % can be arbitrary
   end
   
 % [3] C2h + Dinfh
@@ -641,20 +667,20 @@ elseif (Sym1==D2h) && (Sym2==Dinfh)
 % - Dinfh z parallel to C2h z axis -> C2h as before
 % - Dinfh z in the C2h mirror plane -> C2h as before
 % - Dinfh z arbitrary -> Ci, arbitrary frame
-elseif (Sym1==C2h) && (Sym2==Dinfh)
+elseif Sym1==C2h && Sym2==Dinfh
   
   z1 = Rot1(:,3);
   z2 = Rot2(:,3);
   z1z2Angle = real(acos(abs(z1'*z2)));
-  if (z1z2Angle<ParallelLimit)
-    TotalSym = C2h;
-    TotalRot = Rot1;
-  elseif (z1z2Angle>PerpLimit)
-    TotalSym = C2h;
-    TotalRot = Rot1;
+  if z1z2Angle<parallelLimit
+    totalSym = C2h;
+    totalRot = Rot1;
+  elseif z1z2Angle>perpLimit
+    totalSym = C2h;
+    totalRot = Rot1;
   else
-    TotalSym = Ci;
-    TotalRot = Rot1; % can be arbitrary
+    totalSym = Ci;
+    totalRot = Rot1; % can be arbitrary
   end
   
 % [4] D2h + D2h
@@ -662,17 +688,17 @@ elseif (Sym1==C2h) && (Sym2==Dinfh)
 % - all axes collinear -> D2h as before
 % - only one axis collinear -> C2h with collinar axis as z
 % - all axes skew -> Ci, arbitrary frame
-elseif (Sym1==D2h) && (Sym2==D2h)
+elseif Sym1==D2h && Sym2==D2h
   
   allAngles = real(acos(abs(Rot2'*Rot1)));
   % row 1: angles of x2, row 2: angles of y2, row 3: angles of z2 
   % col 1: angles of x1, col 2: angles of y1, col 3: angles of z1
-  AxisCollinear = min(allAngles)<ParallelLimit;
+  AxisCollinear = min(allAngles)<parallelLimit;
   if all(AxisCollinear)
-    TotalSym = D2h;
-    TotalRot = Rot1;
+    totalSym = D2h;
+    totalRot = Rot1;
   elseif any(AxisCollinear)
-    TotalSym = C2h;
+    totalSym = C2h;
     % find collinear axes
     %[minAngles,minidx2] = min(allAngles);
     [minAngles] = min(allAngles);
@@ -680,26 +706,26 @@ elseif (Sym1==D2h) && (Sym2==D2h)
     %newzidx2 = minidx2(newzidx1);
     % Axes newzidx2 of frame 2 and newzidx1 of frame 1 are collinear
     idx = [2 3 1 2 3];
-    TotalRot = Rot1(:,idx(newzidx1+(0:2)));
+    totalRot = Rot1(:,idx(newzidx1+(0:2)));
   else
-    TotalSym = Ci;
-    TotalRot = Rot1;% can be arbitrary
+    totalSym = Ci;
+    totalRot = Rot1;% can be arbitrary
   end
   
 % [5] C2h + D2h
 %-------------------------------------------------------------------------------
 % - any D2h axis collinar with C2h z axis -> C2h as before
 % - otherwise Ci, arbitrary frame
-elseif (Sym1==C2h) && (Sym2==D2h)
+elseif Sym1==C2h && Sym2==D2h
 
   z1 = Rot1(:,3);
   z1Angles = real(acos(abs(z1'*Rot2)));
-  if any(z1Angles<ParallelLimit)
-    TotalSym = C2h;
-    TotalRot = Rot1;
+  if any(z1Angles<parallelLimit)
+    totalSym = C2h;
+    totalRot = Rot1;
   else
-    TotalSym = Ci;
-    TotalRot = Rot1; % can be arbitrary
+    totalSym = Ci;
+    totalRot = Rot1; % can be arbitrary
   end
 
 else
