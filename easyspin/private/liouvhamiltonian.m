@@ -186,4 +186,4 @@ H2 = H2 + triu(H2,1).';
 % Combine rank-0, rank-1 and rank-2 parts of Hamiltonian
 H = H0 + H1 + H2;
 
-return
+end

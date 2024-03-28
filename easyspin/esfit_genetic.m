@@ -204,4 +204,4 @@ if FitOpt.Verbosity>0
   FitOpt.InfoPrintFunction(sprintf('Terminated: %s\n',msg));
 end
 
-return
+end

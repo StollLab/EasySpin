@@ -320,4 +320,4 @@ if nargout==1
   out.outcomes = allOutcomes;
 end
 
-return
+end

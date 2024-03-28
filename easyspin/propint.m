@@ -197,4 +197,4 @@ case 1, varargout = {U};
 case 2, varargout = {U,Ustore};
 end
 
-return
+end

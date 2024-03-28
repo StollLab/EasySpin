@@ -15,4 +15,4 @@ error(err);
 
 vec = Sys.Spins;
 
-return
+end

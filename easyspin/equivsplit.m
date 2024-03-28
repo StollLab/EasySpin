@@ -52,4 +52,4 @@ for q = 2:n
   Intensity = conv(Intensity,E,'full');
 end
 
-return
+end

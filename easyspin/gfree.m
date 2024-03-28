@@ -13,4 +13,4 @@ function [g,sigma] = gfree
 g =     2.00231930436256;
 sigma = 0.00000000000035;
 
-return
+end

@@ -9,4 +9,4 @@ function e = eps0
 
 e = 1/mu0/clight^2;
 
-return
+end

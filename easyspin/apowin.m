@@ -111,4 +111,4 @@ switch nargout
     varargout = {w};
 end
 
-return
+end

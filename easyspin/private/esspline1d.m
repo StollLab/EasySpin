@@ -153,11 +153,12 @@ else
   out = reshape(yy.',nDims,nn);
 end
 
-return
+end
 
 %-------------------------------------------------------------
 % Test, comparing against spline and csape.
 
+function test1
 spparms('autommd',0);
 n = 20; nd = 20;
 x = 1:n;
@@ -169,10 +170,12 @@ subplot(3,1,2);
 plot(xx,spline(x,[zeros(nd,1) y zeros(nd,1)],xx),'b.',xx,esspline1d(y,1,xx),'r');
 subplot(3,1,3);
 plot(xx,fnval(csape(x,y(:,[1:end-1,1]),'p'),xx),'b.',xx,esspline1d(y(:,[1:end-1,1]),2,xx),'r');
+end
 
 % Speed test against spline
 %---------------------------------------
-spparms('autommd',0);
+function test2
+  spparms('autommd',0);
 n = 20; nd = 5;
 x = (1:n).';
 kk = 100;
@@ -183,3 +186,4 @@ t1 = cputime; for k=1:kk, p1=esspline1d(y,1); end; t1 = cputime-t1;
 t2 = cputime; for k=1:kk, p2=spline(x,yz); end; t2 = cputime-t2; t1/t2
 t1 = cputime; for k=1:kk, c1=esspline1d(y,1,xx); end; t1 = cputime-t1;
 t2 = cputime; for k=1:kk, c2=spline(x,yz,xx); end; t2 = cputime-t2; t1/t2
+end

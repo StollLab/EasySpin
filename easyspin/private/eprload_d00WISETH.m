@@ -30,6 +30,6 @@ if St<0, error('Unable to close D00 file.'); end
 
 Abscissa = [];
 Parameters = [];
-return
+end
 %-------------------------------------------------------------------------------
 

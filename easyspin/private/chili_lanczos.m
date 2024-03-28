@@ -106,4 +106,4 @@ end
 specchange = specchange(1:k);
 specchange(isnan(specchange)) = [];
 
-return
+end

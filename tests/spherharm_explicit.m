@@ -18,7 +18,7 @@ for L = 0:2
   q = q + 1;
 end
 
-return
+end
 
 
 function v = explicitY(L,M,theta,phi)
@@ -44,4 +44,6 @@ switch L
       case 1,  v = -1/2*sqrt(15/2/pi) * cos(theta).*sin(theta) .* exp(+1i*phi);
       case 2,  v =  1/4*sqrt(15/2/pi) * sin(theta).^2          .* exp(+2i*phi);
     end
+end
+
 end

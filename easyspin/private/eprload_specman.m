@@ -95,7 +95,7 @@ if (numel(Abscissa)==1)
   Abscissa = Abscissa{1}(:);
 end
 
-return
+end
 
 function par = SpecMandsc(filename)
 h = fopen(filename);
@@ -135,7 +135,7 @@ while feof(h)<1
   end
 end
 fclose(h);
-return
+end
 
 function res = SpecManpar(par)
 
@@ -249,7 +249,7 @@ for k = 1:size(sweepax, 1)
         counter = counter + 1;
     end
 end
-return
+end
 
 function [tk,rstr] = gettoken(istr, tok)
 
@@ -262,7 +262,7 @@ else
     tk=strtrim(istr(1:pos-1));
     rstr=strtrim(istr(pos+length(tok):end));
 end
-return
+end
 
 function res = safeget(strct, fld, deflt)
 % function res = safeget(strct, fld, deflt)
@@ -287,7 +287,7 @@ if isfield(strct, fld)
 else
     res = deflt;
 end
-return
+end
 
 function [val, unit, pref, pref_val] = kvgetvalue(str)
 % KVGETVALUE read string value in ci-standard units
@@ -315,4 +315,4 @@ if length(unit) > 1 && ~isempty(unit)
     pref_val = koeff(kk);
   end
 end
-return
+end

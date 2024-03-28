@@ -57,4 +57,4 @@ switch nargout
     varargout = {x,spec};
 end
 
-return
+end

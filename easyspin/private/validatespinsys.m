@@ -1222,14 +1222,14 @@ Sys.nStates = hsdim(Sys.Spins);
 FullSys = Sys;
 FullSys.processed = true;
 
-return
+end
 %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
 %-------------------------------------------------------------------------------
 function ok = issize(A,siz)
 ok = isequal(size(A),siz);
-return
+end
 
 %-------------------------------------------------------------------------------
 function msg = sizecheck(Sys,FieldName,siz)
@@ -1239,7 +1239,7 @@ if ok
 else
   msg = sprintf('Spin system field %s has wrong size for the given spins.',FieldName);
 end
-return
+end
 
 %-------------------------------------------------------------------------------
 function err = pa_obsolete_message(Sys,pa,Frame)
@@ -1248,4 +1248,4 @@ if isfield(Sys,pa)
 else
   err = '';
 end
-return
+end

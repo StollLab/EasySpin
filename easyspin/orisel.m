@@ -185,4 +185,4 @@ switch nargout
   case 2, varargout = {Weights,Transitions};
 end
 
-return
+end

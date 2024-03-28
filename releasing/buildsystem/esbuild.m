@@ -239,7 +239,7 @@ fprintf(' ok\n');
 
 disp('Done!');
 
-return
+end
 
 
 %========================================================================
@@ -285,6 +285,7 @@ for k = 1:length(mFiles)
   fclose(outfile);
 end
 
+end
 
 function replacestr(fname,S0,S1)
 
@@ -310,4 +311,6 @@ if found
     fprintf(fid,'%s\n',Lines{k});
   end
   fclose(fid);
+end
+
 end

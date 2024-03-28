@@ -24,4 +24,4 @@ end
 
 C = A*B - B*A;
 
-return
+end

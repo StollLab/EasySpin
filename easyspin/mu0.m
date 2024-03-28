@@ -9,4 +9,4 @@ function m = mu0
 
 m = 1.25663706212e-6;
 
-return
+end

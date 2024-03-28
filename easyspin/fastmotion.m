@@ -223,7 +223,7 @@ else
   lw = A;
 end
 
-return
+end
 %============================================================
 %============================================================
 %============================================================
@@ -233,7 +233,7 @@ function c_MHz = convertcoeffs(c_angfrq)
 c = c_angfrq/1e6/(1);
 c = c/pi; % FWHM of Lorentzian is 1/pi/T2
 c_MHz = c;
-return
+end
 
 
 function mIall = all_mI(I)
@@ -248,4 +248,4 @@ for iNuc = nNucs:-1:1
   n = n*nI(iNuc);
   mIall = [mI(:),repmat(mIall,nI(iNuc),1)];
 end
-return
+end

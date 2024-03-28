@@ -594,6 +594,7 @@ else
   varargout = {isotopologue};
 end
 
+end
 
 %-------------------------------------------------------------------------------
 %{
@@ -703,7 +704,7 @@ for iSet = 1:nMultiSets
   multiplicity(iSet) = prod((1:n)./sort(k_));
 end
 
-return
+end
 
 
 %-------------------------------------------------------------------------------
@@ -754,4 +755,4 @@ while iNuc>=1
 end
 IsoListAbund = IsoListAbund.';
 
-return
+end

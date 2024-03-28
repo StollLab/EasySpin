@@ -48,4 +48,4 @@ FD = sqrt(FD/numel(Averages));
 % Convert column vector back to row.
 if RowVec, FD = FD.'; end
 
-return
+end

@@ -84,10 +84,10 @@ if readmode=="mainout" && ~existMain
   error('Cannot access ORCA output file %s.',mainOutputFile);
 end
 if readmode=="propbin" && ~existPropBin
-  error('Cannot access ORCA property file %s.',binaryPropFile);
+  error('Cannot access binary ORCA property file %s.',binaryPropFile);
 end
 if readmode=="proptxt" && ~existPropTxt
-  error('Cannot access ORCA property file %s.',textPropFile);
+  error('Cannot access text-based ORCA property file %s.',textPropFile);
 end
 
 

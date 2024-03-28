@@ -82,4 +82,4 @@ if ~useSparseMatrices
   Hnq = full(Hnq);
 end
 
-return
+end

@@ -38,4 +38,4 @@ else
   nStates = prod(2*S+1) * prod((2*I+1).^nEquivI) * prod(2*L+1);
 end
 
-return
+end

@@ -122,3 +122,5 @@ Hnn = (Hnn+Hnn')/2; % Hermitianize
 if ~sparseResult
   Hnn = full(Hnn); % sparse -> full
 end
+
+end

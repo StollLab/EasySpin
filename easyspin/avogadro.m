@@ -11,4 +11,4 @@ function N_A = avogadro
 
 N_A =   6.02214076e23; % exact (as of SI redefinition 2019)
 
-return
+end

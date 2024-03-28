@@ -14,4 +14,4 @@ function [u,sigma] = amu
 u =     1.66053906660e-27;
 sigma = 0.00000000050e-27;
 
-return
+end

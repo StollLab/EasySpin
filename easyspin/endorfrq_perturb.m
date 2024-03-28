@@ -390,4 +390,4 @@ Transitions = [];
 Output = {EndorFreqs,EndorIntensities,Transitions,Info};
 varargout = Output(1:max(nargout,1));
 
-return
+end

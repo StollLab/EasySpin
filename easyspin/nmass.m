@@ -13,4 +13,4 @@ function [mn,sigma] = nmass
 mn =    1.67492749804e-27;
 sigma = 0.00000000095e-27;
 
-return
+end

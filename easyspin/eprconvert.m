@@ -30,7 +30,7 @@ else
     esguimain(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
-
+end
 
 % --- Executes just before eprconvert is made visible.
 function eprconvert_OpeningFcn(hObject, eventdata, handles, varargin)
@@ -59,7 +59,7 @@ guidata(handles.eprconvert, handles);
 
 % UIWAIT makes eprconvert wait for user response (see UIRESUME)
 % uiwait(handles.eprconvert);
-
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = eprconvert_OutputFcn(hObject, eventdata, handles)
@@ -137,6 +137,7 @@ end
 handles.gVal = planck*handles.FreqSI/bmagn/handles.FieldSI;
 guidata(handles.eprconvert,handles);
 UpdateDisplay(handles);
+end
 
 function ComputeFreqButton_Callback(hObject, eventdata, handles)
 if isempty(handles.FieldSI)
@@ -150,11 +151,12 @@ end
 handles.FreqSI = bmagn*handles.gVal*handles.FieldSI/planck;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
+end
 
-function FieldList_CreateFcn(hObject, eventdata, handles)
-function FieldList_Callback(hObject, eventdata, handles)
-function FreqList_CreateFcn(hObject, eventdata, handles)
-function FreqList_Callback(hObject, eventdata, handles)
+%function FieldList_CreateFcn(hObject, eventdata, handles)
+%function FieldList_Callback(hObject, eventdata, handles)
+%function FreqList_CreateFcn(hObject, eventdata, handles)
+%function FreqList_Callback(hObject, eventdata, handles)
 
 function [Unit,prefactor] = GetFreqUnit(handles)
 UnitStr = get(handles.FreqUnits,'String');
@@ -166,7 +168,7 @@ switch Unit
   case 'cm^-1', prefactor = 100*clight;
   case 'eV', prefactor = planck/echarge;
 end
-return
+end
 
 function [Unit,prefactor] = GetFieldUnit(handles)
 UnitStr = get(handles.FieldUnits,'String');
@@ -178,27 +180,27 @@ switch Unit
   case 'G', prefactor = 1e-4;
   case 'kG', prefactor = 1e-1;
 end
-return
+end
 
 function Freq = GetFreqInSIUnits(handles)
 Freq = str2num(get(handles.FreqEdit,'String'));
 [Unit,prefactor] = GetFreqUnit(handles);
 Freq = prefactor*Freq;
-return
+end
 
 function Field = GetFieldInSIUnits(handles)
 Field = str2num(get(handles.FieldEdit,'String'));
 [Unit,prefactor] = GetFieldUnit(handles);
 Field = prefactor*Field;
-return
+end
 
 function g = GetgValue(handles)
 g = str2num(get(handles.gEdit,'String'));
-return
+end
 
 function SetgVal(g,handles)
 set(handles.gEdit,'String',sprintf('%g',g));
-return
+end
 
 %---------------------------------------------------------------
 function UpdateDisplay(handles)
@@ -232,7 +234,7 @@ set(handles.FieldList,'String',FieldStr,'FontSize',10);
 
 g = handles.gVal;
 set(handles.gEdit,'String',sprintf('%g',g));
-
+end
 
 % --- Executes on button press in ClearButton.
 function ClearButton_Callback(hObject, eventdata, handles)
@@ -242,7 +244,7 @@ handles.FieldSI = [];
 handles.gVal = [];
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
-
+end
 
 % --- Executes on button press in WbandButton.
 function WbandButton_Callback(hObject, eventdata, handles)
@@ -253,7 +255,7 @@ function WbandButton_Callback(hObject, eventdata, handles)
 handles.FreqSI = 94e9;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
-
+end
 % --- Executes on button press in QbandButton.
 function QbandButton_Callback(hObject, eventdata, handles)
 % hObject    handle to QbandButton (see GCBO)
@@ -263,6 +265,7 @@ function QbandButton_Callback(hObject, eventdata, handles)
 handles.FreqSI = 34e9;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
+end
 
 % --- Executes on button press in XbandButton.
 function XbandButton_Callback(hObject, eventdata, handles)
@@ -273,4 +276,4 @@ function XbandButton_Callback(hObject, eventdata, handles)
 handles.FreqSI = 9.8e9;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
-
+end

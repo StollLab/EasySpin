@@ -135,7 +135,7 @@ otherwise
   
 end
 
-return
+end
 
 
 %--------------------------------------------------------------------------
@@ -227,7 +227,7 @@ if fullSphere
   z(2*GridSize-1,:) = y(idx);
 end
 
-return
+end
 
 %--------------------------------------------------------------------------
 function yy = fastlinearinterp1d(y,xx)
@@ -235,4 +235,4 @@ function yy = fastlinearinterp1d(y,xx)
 % Linearly interpolates 1D vector y defined over 1:length(y) at values xx.
 k = min(max(1+floor(xx-1),1),length(y)-1);
 yy = y(k) + (xx-k).*(y(k+1)-y(k));
-return
+end

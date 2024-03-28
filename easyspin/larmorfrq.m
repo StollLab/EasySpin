@@ -47,4 +47,4 @@ for iF = 1:numel(Fields)
   LarmFreq(iF,:) = prefac*Fields(iF);  %#ok
 end
 
-return
+end

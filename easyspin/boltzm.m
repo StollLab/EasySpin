@@ -10,4 +10,4 @@ function k_B = boltzm
 
 k_B = 1.380649e-23; % exact (as of SI redefinition 2019)
 
-return
+end

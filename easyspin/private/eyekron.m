@@ -41,6 +41,8 @@ else
   K = kron(I,A);
 end
 
+end
+
 function K = manualeyekron(nI,A)
 
 if issparse(A)
@@ -67,4 +69,4 @@ else
   
 end
 
-return
+end

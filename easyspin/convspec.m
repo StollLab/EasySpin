@@ -133,7 +133,7 @@ out = reshape(out(Range{:}),sz_original);
 % Remove imaginary numerical noise.
 if isreal(spec), out = real(out); end
 
-return
+end
 %=======================================================================
 
 
@@ -171,5 +171,5 @@ for i = 1:nDims
   out = out .* permute(x,[2:i 1 i+1:nDims]); % Permute to i'th dimension
 end
 
-return
+end
 %=======================================================================

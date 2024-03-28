@@ -260,4 +260,4 @@ switch nargout
     error('rfmixer() cannot return %d output arguments.',nargout);
 end
 
-return
+end

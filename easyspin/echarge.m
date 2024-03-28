@@ -10,4 +10,4 @@ function e = echarge
  
 e = 1.602176634e-19; % exact (as of 2019 SI redefinition)
 
-return
+end

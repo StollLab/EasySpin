@@ -13,4 +13,4 @@ function [Rinf,sigma] = rydberg
 Rinf = 10973731.568160;
 sigma =       0.000021;
 
-return
+end

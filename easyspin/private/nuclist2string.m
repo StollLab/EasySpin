@@ -29,4 +29,4 @@ NucString = strcat(Nucs{:});
 % Remove trailing comma
 NucString(end) = [];
 
-return
+end

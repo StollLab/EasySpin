@@ -10,4 +10,4 @@ function h = planck
 
 h = 6.62607015e-34; % exact, as of 2019 SI redefinition
 
-return
+end

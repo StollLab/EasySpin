@@ -10,4 +10,4 @@ function F = faraday
   
 F = evolt*avogadro; % exact, as of 2019 SI redefinition
 
-return
+end

@@ -221,14 +221,5 @@ parameters.model = @(time)  (amp .*exp(1i*phase))*exp((-damp + 1i*2*pi*freq)*tim
 if idx == 1
   y = y.';
 end
-return
 
-
-
-
-
-
-
-
-
-
+end

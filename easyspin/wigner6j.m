@@ -140,38 +140,38 @@ else
   value = pre*s;
 end
  
-%end
+end
 
 
 %==========================================================
 function v = bino(a,b)
 v = prod((a-b+1:a)./(1:b));
-return
+end
 
 function v = fac(a)
 v = prod(1:a);
-return
+end
 
 function ok = isint(x)
 ok = x==floor(x);
-return
+end
 
 function yes = istriangle(a,b,c)
 yes = (a+b>=c) & (b+c>=a) & (c+a>=b);
-return
+end
 
 %------------------------------------------------------------
 
 %{
 function v = tricoeff(a,b,c)
 v = sqrt(factorial(a+b-c)*factorial(a-b+c)/factorial(a+b+c+1)*factorial(-a+b+c));
-return
+end
 
 function v = facln(x)
 v = gammaln(x+1);
-return
+end
 
 function v = tricoeffln(a,b,c)
 v = (facln(a+b-c) + facln(a-b+c) + facln(-a+b+c) - facln(a+b+c+1));
-return
+end
 %}

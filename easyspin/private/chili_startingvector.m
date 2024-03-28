@@ -62,7 +62,7 @@ end
 stvec = stvec/norm(stvec);
 stvec = sparse(stvec);
 
-return
+end
 
 %===============================================================================
 % Integrand of the orientational integral over z in the starting vector.
@@ -85,4 +85,4 @@ if p==4 && lambda(4), B = B + lambda(4)/(6*sqrt(10))*plegendre(4,2,z); end
 
 val = plegendre(L,K,z).*exp(A).*besseli(K/2,B)*(2*pi);
 
-return
+end

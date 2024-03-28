@@ -10,4 +10,4 @@ function value = hbar
  
 value = planck/2/pi; % exact, as of SI redefinition 2019
 
-return
+end

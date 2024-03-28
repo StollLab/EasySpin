@@ -119,7 +119,7 @@ end
 varargout = {-k,c,yFitted};
 varargout = varargout(1:nargout);
 
-return
+end
 
 function kGuessed = GuessSingleDecay(t,y)
 % estimate coefficients for y = A*exp(-k*x)+Offset
@@ -131,7 +131,7 @@ kGuessed = A/integral_;
 if (kGuessed<0)
   kGuessed = 1/(length(t)/2*dt);
 end
-return
+end
 
 function  varargout = mexpfit2(tData,yData,xGuess,Options)
 % MEXPFIT   Least squares fit to sum of decaying exponentials
@@ -286,7 +286,7 @@ info = [F,GradientNorm,NormStep,nFunEvals,StopCriterion];
 varargout = {X,c,info,Performance};
 varargout = varargout(1:nargout);
 
-return
+end
 
 
 % ==========  auxiliary function  =================================
@@ -319,4 +319,5 @@ for  j = 1:nExponents
   b(j) = b(j) - jj'*Residuals;
   Jacobian(:,j) = c(j)*jj - A*(AA\b);
 end
-   
+
+end

@@ -29,7 +29,7 @@ if ~isempty(UserStruct)
   end
 end
 
-return
+end
 
 % spellcheckfields   Checks the upper/lowercase spelling of fields
 %
@@ -69,4 +69,4 @@ for iF = 1:numel(Fields)
   Out.(Name) = Value;
 end
 
-return
+end

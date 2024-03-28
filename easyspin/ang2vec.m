@@ -54,4 +54,4 @@ switch nargout
     varargout = {x,y,z};
 end
 
-return
+end

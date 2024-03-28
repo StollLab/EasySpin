@@ -186,14 +186,5 @@ parameters.phase = phase;
 parameters.model = @(time) exp(time(:)*(-damp' + 1i*2*pi*freq')) * (amp .*exp(1i*phase));
 
 y = reshape(y,dim);
-return
 
-
-
-
-
-
-
-
-
-
+end

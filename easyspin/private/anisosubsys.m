@@ -32,4 +32,4 @@ subSys = nucspinrmv(subSys,find(rmv));
 subSys.processed = 0;
 subSys = validatespinsys(subSys);
 
-return
+end

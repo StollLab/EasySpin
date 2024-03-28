@@ -28,9 +28,11 @@ end
 % Compare
 ok = areequal(y0,y2,1e-10,'rel') && areequal(y1,y3,1e-10,'rel');
 
+end
+
 function y = dawsonF(x)
 y = real(sqrt(pi)/2i*(faddeeva_(x,38)-exp(-x.^2)));
-return
+end
 
 function w = faddeeva_(z,N)
 
@@ -68,3 +70,5 @@ Z = (L+1i*z)./(L-1i*z);
 p = polyval(a,Z);    % Polynomial evaluation
 
 w = 2*p./(L-1i*z).^2+(1/sqrt(pi))./(L-1i*z); % Evaluate w(z)
+
+end

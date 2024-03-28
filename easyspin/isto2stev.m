@@ -40,3 +40,5 @@ for t = 1:2*k+1
     C(o,t) = trace(O{o}.'*T{t})/traceTT;
   end
 end
+
+end

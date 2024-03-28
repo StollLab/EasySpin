@@ -44,4 +44,4 @@ end
 
 [~,idx] = sortrows(pq);
 
-return
+end

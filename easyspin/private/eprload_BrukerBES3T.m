@@ -234,7 +234,7 @@ if ~isempty(Scaling)
 end
 
 Parameters = parsefieldparams(Parameters);
-return
+end
 %-------------------------------------------------------------------------------
 
 
@@ -305,4 +305,4 @@ for k=1:numel(allLines)
   
 end
 
-return
+end

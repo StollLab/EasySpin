@@ -86,11 +86,11 @@ end
 
 F = reshape(coefs,size(ri));
 
-return
+end
 
 %=============================================================================
 % Test against csape from the Spline Toolbox
-
+function test1
 clear, spparms('autommd',0);
 n = 10; m = 10;
 nn = 5000;
@@ -112,3 +112,4 @@ zcs = zeros(n+1,m); zcs(2:end,:) = z1; zcs(end+1,end) = 0;
 t = cputime; zz1 = fnval(csape({r,c},zcs,{'c','p'}),[rr;cc]); t1 = cputime - t;
 t = cputime; zz2 = esspline2d(z1,rr,cc,[1 2]); t2 = cputime - t;
 fprintf('(z,p): error %f, relative time %f\n',max(abs(zz1(:)-zz2(:))), t2/t1);
+end

@@ -123,4 +123,4 @@ end
 varargout = {Spin,gn,qm,Abund,Nucs};
 varargout = varargout(1:nargout);
 
-return
+end

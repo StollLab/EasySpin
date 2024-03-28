@@ -120,3 +120,5 @@ F = (F+F')/2; % Hermitianise
 if ~useSparseMatrices
   F = full(F); % sparse -> full
 end
+
+end

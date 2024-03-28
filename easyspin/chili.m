@@ -510,6 +510,11 @@ if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
 if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 % Opt.Verbosity
 
+% Common typo
+if isfield(Opt,'LLKM')
+  error('Opt.LLKM is not used by chili(), provide Opt.LLMK instead.');
+end
+
 % Obsolete options
 if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
