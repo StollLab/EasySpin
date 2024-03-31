@@ -17,14 +17,20 @@ if nargout>1
   error('At most one output argument is possible.');
 end
 
-% Version and expiry date settings
-esVersion = '$ReleaseID$';
-expiryDate = '$ExpiryDate$'; % Installed version is not valid after ExpiryDate.
-
 % Determine whether this function has been called by an EasySpin function
-ESfilenames = {'cardamom','chili','curry','esfit','garlic','pepper','saffron','salt','spidyan'};
+EasySpinFilenames = {'cardamom','chili','curry','esfit','garlic','pepper','saffron','salt','spidyan'};
 db = dbstack;
-internalCall = numel(db)>=2 && any(strcmp(db(2).name,ESfilenames));
+internalCall = numel(db)>=2 && any(strcmp(db(2).name,EasySpinFilenames));
+
+
+% Version and expiry date settings
+%-------------------------------------------------------------------------------
+persistent esVersion expiryDate
+if isempty(esVersion)
+  info = easyspin_info;
+  esVersion = info.Version;
+  expiryDate = info.ExpiryDate;
+end
 
 
 % Don't check at every iteration
@@ -45,6 +51,7 @@ if internalCall
     nCalls = 1;
   end
 end
+
 
 % Check for expiry
 %-------------------------------------------------------------------------------
@@ -91,9 +98,9 @@ else
     varargout = {err};
   else
     if isUnpackaged
-      fprintf('Your EasySpin installation is valid. It is unpackaged.');
+      fprintf('Your EasySpin installation is valid.\nIt is unpackaged.\n');
     elseif versionOK
-      fprintf('Your EasySpin installation is valid. It will expire in %d days.\n',daysToExpiry);
+      fprintf('Your EasySpin installation is valid.\nIt expires in %d days.\n',daysToExpiry);
     else
       disp(err);
     end

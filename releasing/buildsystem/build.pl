@@ -12,9 +12,11 @@ our ($SourceDir, $BuildsDir, $TempRepoDir); # directories
 our ($StableMajorVersion,  $KeyForStableVersion, $MonthsToExpireStable); # settings for the stable versions
 our ($DefaultMajorVersion, $KeyForDefaultVersion, $MonthsToExpireDefault); # settings for the default versions
 our ($KeyForDeveloperVersion, $KeyForExperimentalVersion, $MonthsToExpireDeveloper); # settings for the experimental versions
-our (@VersionCutoff, $esbuild, $KeyGitHub); # some other settings
+our (@VersionCutoff, $KeyGitHub); # some other settings
 
-require './config.pl'; # load the configuration file
+print 'Reading config file\n';
+
+require './config.pl';  # load the configuration file
 
 # settings ------------------------------------------------------------------
 # options for File locking - to ensure only one instance is running:
@@ -23,6 +25,7 @@ our $WaitTime = 90; # time to wait between Attempts in seconds
 
 # ---------------------------------------------------------------------------------
 # creating a lock File 
+print 'Creating lock file \n';
 my $LockFilename = "build.lock";
 open (my $LockFile,'>'.$SourceDir.'/'.$LockFilename) or die $!;
 
@@ -201,13 +204,12 @@ else {
 }
 
 # ---------------------------------------------------------------------------------
-# Processes all the TagsToBuild
-my $MatchPattern = '(v?)(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
+my $MatchVersionPattern = '(v?)(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
 # loop over all tags that should be built
 foreach (@TagsToBuild) {
     my $thisBuild = $_;
-    my @thisBuildID = ($thisBuild =~ m/$MatchPattern/);
+    my @thisBuildID = ($thisBuild =~ m/$MatchVersionPattern/);
 
     print "Building $thisBuild \n";
 
@@ -217,53 +219,33 @@ foreach (@TagsToBuild) {
     # update to tag that is being built
     system("git --git-dir=$TempRepoDir/.git --work-tree=$TempRepoDir checkout $thisBuild ");
 
+    # Generate HTML file that contains list of examples
     # ---------------------------------------------------------------------------------
-    # Update html file that contains the examples
-    if (-e "$TempRepoDir/scripts/") {
-        # this catches the legacy version from before releasing and scripts folders where merged
-        chdir($TempRepoDir.'scripts/');
-    }
-    else {
-        # this should be the default behavior, after merge of releasing and scripts folder
-        chdir($TempRepoDir.'releasing/');
-    }
-    
+    chdir($TempRepoDir.'releasing/');
     print "Creating list with examples. \n";
     system('perl mkexamples.pl');
-
     chdir($WorkingDir);
 
+    # Build documentation (compile math with LaTeX etc.)
     # ---------------------------------------------------------------------------------
-    # Build .svg NumericVersions of formulae in the html documentation and replace the AvailableTags in html Files
-    print "Building documentation. \n";
+    print "Building documentation.\n";
     system("perl docbuilder.pl");
 
+    # Write esbuild_config.m 
     # ---------------------------------------------------------------------------------
-    # Update variables in esbuild.m 
-    my $matchReleaseID = '%ReleaseID%'; # pattern to find ReleaseID 
-    my $matchvsyntax = '%v_syntax%'; # pattern to find ReleaseID 
-
     my $vMatchPattern = '(v)(\d+.\d+.*)';
     my $MATLABtag;
-    my $vSyntaxtag;
-    
+ 
     my @ShortTag = ($thisBuild =~ m/$vMatchPattern/);
-    if (@ShortTag[0]) {
-        $vSyntaxtag = "true";
-    }
-    else {
-        $vSyntaxtag = "false";
-    }
-
-    if (@ShortTag[1]) {
-         $MATLABtag = @ShortTag[1];
+ 
+    if ($ShortTag[1]) {
+        $MATLABtag = $ShortTag[1];
     }
     else {
         $MATLABtag = $thisBuild;
     }
     
-    my $replaceReleaseID = "$MATLABtag"; # Update ReleaseID
-      
+    my $ReleaseID = "$MATLABtag";
 
     my $ReleaseChannel;
     my $MonthsToExpire;
@@ -288,46 +270,28 @@ foreach (@TagsToBuild) {
         $MonthsToExpire = $MonthsToExpireDeveloper;
     }
 
-    my $matchReleaseChannel = '%ReleaseChannel%';
-    my $replaceReleaseChannel = "$ReleaseChannel";
+    my $SourceDir = "$TempRepoDir";
 
-    my $matchExpiry = '%Months';
-    my $replaceExpiry = "$MonthsToExpire";
-
-    my $matchSourceDir = '%SourceDir%';
-    my $replaceSourceDir = "$TempRepoDir";
-
-    my $matchZipDestDir = '%ZipDestDir%';
-    my $replaceZipDestDir = "$BuildsDir";
-
-    my $esbuildNew = "local$esbuild";
-
-    print("Updating esbuild.m\n");
-    open(my $Input,'<'.$esbuild) or die("Cannot open $esbuild!");
-    open(my $Output,'>'.$esbuildNew) or die("Cannot open $esbuildNew!");
-    while (<$Input>) {
-        $_ =~ s/$matchReleaseID/$replaceReleaseID/g;
-        $_ =~ s/$matchvsyntax/$vSyntaxtag/g;
-        $_ =~ s/$matchReleaseChannel/$replaceReleaseChannel/g;
-        $_ =~ s/$matchExpiry/$replaceExpiry/g;
-        $_ =~ s/$matchSourceDir/$replaceSourceDir/g;
-        $_ =~ s/$matchZipDestDir/$replaceZipDestDir/g;
-        print $Output $_;    
-    }
-
-    close($Input) or die("Cannot close $_!");
+    print("Writing esbuild config file\n");
+    my $esbuildconfig = "esbuild_config.m";
+    open(my $Output,'>'.$esbuildconfig) or die("Cannot open $esbuildconfig!");
+    print $Output "releaseID = '$ReleaseID';\n";
+    print $Output "releaseChannel = '$ReleaseChannel';\n";
+    print $Output "monthsToExpiry = $MonthsToExpire;\n";
+    print $Output "sourceDir = '$TempRepoDir';\n";
+    print $Output "zipDestDir = '$BuildsDir';\n";
     close($Output) or die("Cannot close $_!");
 
+    # Call Matlab to run esbuild.m. This generates a packaged zip file
     # ---------------------------------------------------------------------------------
-    # Call Matlab to run esbuild.m
     my $MatlabOptions = '-nosplash -nodesktop -nodisplay';
-    my $MatlabTarget = qq(-r "run('$esbuildNew');exit;");
-
-    print("Triggering MATLAB build \n");
+    my $MatlabTarget = qq(-r "run('esbuild.m');exit;");
+    print("Running MATLAB build\n");
     system('matlab '.$MatlabOptions." ".$MatlabTarget);
+    system("rm $esbuildconfig");
+    print("MATLAB build completed\n");
 
-    system("rm $esbuildNew");
-
+    # Publish zip file
     # ---------------------------------------------------------------------------------
     # Decide wether to upload version, the first conditional checks if the build version follows semantic versioning or if not (e.g. easyspin-evolve)
     if ($thisBuildID[1]) {

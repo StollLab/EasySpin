@@ -73,9 +73,7 @@ system("mkdir $tempdir");
 # set up options for latex and related commands
 $latexoptions = "--interaction=batchmode --output-directory=$tempdir";
 
-$dvipsoptions = '-q';
-$pstoimgoptions = '-antialias -scale=1.45 -quiet -multipage -crop=a';
-$dvipngoptions = "-q* -T tight -D 150 -o";
+$dvipngoptions = "-q* -T tight -D 150";
 
 $templateposition = '%formulaposition';
 
@@ -104,7 +102,6 @@ foreach $htmlfile (@names) {
     open file or die("Cannot open $file!");
     $html = join('',<file>);
     close file;
-    # print $html;
 
     # remove image tags from HTML file
     #---------------------------------------------------------------
@@ -116,9 +113,8 @@ foreach $htmlfile (@names) {
     @latexcode = $html =~ /<\!--MATH(.*?)-->/sg;
     $n_equations = scalar(@latexcode);
 
-
     if ($n_equations>0) {
-      print "  ".$htmlfile.":  ".$n_equations." latex expressions\n";
+      printf "%2d  %s\n", $n_equations, $htmlfile;
       
       $latex = join("\n\\newpage\n",@latexcode);
 
@@ -131,7 +127,6 @@ foreach $htmlfile (@names) {
       $tmpfile = File::Spec->catfile($tempdir, $tmpfile);
 
       $tmptex = join(".",$tmpfile,"tex");
-      $tmpps  = join(".",$tmpfile,"ps");
       $tmpdvi = join(".",$tmpfile,"dvi");
 
       open(HANDLE,"> $tmptex") or die ("Could not open $tmptex!");
@@ -146,20 +141,16 @@ foreach $htmlfile (@names) {
       else {
         system("latex $latexoptions $tmptex >/dev/null");
       }
-        
+      
       if ($isWindows){
         $target = join("",$tmpfile,"%d.png");
-        system("dvipng $dvipngoptions$target $tmpdvi > NUL");
+        system("dvipng $dvipngoptions -o$target $tmpdvi > NUL");
       }
       else {
-        system("dvips  $dvipsoptions -o $tmpps $tmpdvi");
-        
-        system("pstoimg $pstoimgoptions $tmpps");
+        $target = join("",$tmpfile,"%d.png");
+        system("dvipng $dvipngoptions -o $target $tmpdvi > /dev/null");
 
         chdir($tempdir);
-        # # rename all image files to remove _ and leading zeros (e.g. myfile_01.png -> myfile1.png)
-        system('rename s/_0/_/ *.png');
-        system('rename s/_// *.png');
 
         chdir($WorkingDir);
       }
@@ -171,8 +162,8 @@ foreach $htmlfile (@names) {
 
       }
       else {
-        system("mv $tmpfile*.png $pngdir");
-        system("rm $tmpfile.*");
+        system("mv '$tmpfile'*.png $pngdir");
+        system("rm '$tmpfile'.*");
       }
 
       # insert <img> tags into HTML file

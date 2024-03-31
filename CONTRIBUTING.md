@@ -38,7 +38,7 @@ Propose and discuss any new functionality first in an [issue](https://github.com
 Currently, there are no formal coding style guidelines. Check out the existing code base to get an idea of how to write code. A few principles are worth mentioning:
 
 - The main criterion for code is readability. Don't sacrifice that for performance. Prefer simple over complicated data structures. Avoid crytpic code.
-- Write code such that it runs in MATLAB R2017a. Don't use more recent MATLAB features.
+- Write code such that it runs in MATLAB R2021b. Don't use more recent MATLAB features.
 - Use 2-space indents, instead of 4-space indents. This is because some EasySpin functions are deeply nested.
 - Use variable names that are explicit, but not too long. USe camelCase instead of snake_case.
 - Add a judicious amount of white space and empty line to make the code readable.

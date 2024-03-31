@@ -65,7 +65,7 @@ if (-e "$UploadDir") {
 system("mkdir $UploadDir");
 
 # ---------------------------------------------------------------------------------
-# determin the releasechannel
+# determine the release channel
 my $ReleaseChannel;
 my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
