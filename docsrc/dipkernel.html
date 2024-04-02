@@ -44,7 +44,7 @@ K = dipkernel(t,r,gAB)
 <div class="subtitle">Description</div>W
 
 <p>
-<code>dipkernel</code> calculates the DEER signal for two coupled electron spins-1/2 spaced a distance <code>r</code>r apart. <code>t</code> is the pump pulse position time axis (in microseconds), and <code>r</code> is the distance or array of distances (in nanometers).
+<code>dipkernel</code> calculates the DEER signal for two coupled electron spins-1/2 spaced a distance <code>r</code> apart. <code>t</code> is the pump pulse position time axis (in microseconds), and <code>r</code> is the distance or array of distances (in nanometers).
 </p>
 
 <p>
@@ -52,18 +52,20 @@ If <code>r</code> is a single value, then the output <code>K</code> contains a s
 </p>
 
 <p>
-The optional input <code>gAB</code> contains the g factors of the two electron spins, <code>[gA gB</code>. If omitted, the free-electron g value 2.002319 (see <code>gfree</code>) is used for both spins.
+The optional input <code>gAB</code> contains the g factors of the two electron spins, <code>[gA gB]</code>. If omitted, the free-electron g value 2.002319 (see <a class="esf" href="gfree.html">gfree</code>) is used for both spins.
 </p>
 
 <p>
 <code>dipkernel</code> assumes a complete powder average, and absence of exchange couplings and orientation selection.
 </p>
+
 <!-- ========================================================== -->
 <div class="subtitle">Examples</div>
 
 <p>
 Calculate the DEER signal for two electron spins spaced 3.1 nm apart:
 </p>
+
 <pre class="matlab">
 r = 3.1;   % nm
 t = linspace(-0.1,3,301);  % µs
@@ -74,6 +76,7 @@ plot(t,V)
 <p>
 Calculate the DEER signal for two electron spins with a distribution of distances:
 </p>
+
 <pre class="matlab">
 r = linspace(0,6,1001);   % distance range
 P = gaussian(r,3.5,0.3);  % distance distribution

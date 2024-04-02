@@ -116,12 +116,14 @@ For experiments with a microwave (or THz) beam, use <code>Exp.mwMode = {k, pol}<
 </p>
 
 <p>
-For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the microwave propagation direction <code>nk</code> and the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
+For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
+</p>
+
 <pre class="matlab">
 k = 'y';   % propagation along y lab axis
 pol = -pi/2; % B1 along x lab axis
 [phi,theta] = vec2ang(k);  % convert to angles
-[nB1,~,nk]  = erot([phi,theta,pol],'rows')
+[nB1,~,~]  = erot([phi,theta,pol],'rows')
 </pre>
 
 <p>

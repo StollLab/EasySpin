@@ -2,7 +2,7 @@
 %
 %   h = planck
 %
-%   Returns the Planck constant in SI units, joule times second.
+%   Returns the Planck constant in SI units (J s = J/Hz).
 
 function h = planck
 

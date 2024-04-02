@@ -1,14 +1,13 @@
 % avogadro  Avogadro number 
 %
-%   N = avogadro
+%   NA = avogadro
 %
-%   Returns the Avogadro constant
-%   in mol^-1.
+%   Returns the Avogadro constant in mol^-1.
 
-function N_A = avogadro
+function NA = avogadro
 
 % 2018 CODATA value
 
-N_A =   6.02214076e23; % exact (as of SI redefinition 2019)
+NA =   6.02214076e23; % exact (as of SI redefinition 2019)
 
 end

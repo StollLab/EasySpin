@@ -2,7 +2,7 @@
 %
 %   e = echarge
 %
-%   Returns the elementary charge in SI units, in coulomb.
+%   Returns the (positive) elementary charge in SI units, in coulomb.
 
 function e = echarge
 

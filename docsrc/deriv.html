@@ -71,7 +71,7 @@ To compute the first derivative of a sin function
 x = linspace(0,5*pi,1001);
 y = sin(x);
 dydx = deriv(x,y);
-plot(x,y,'k',x,dydx,'g');
+plot(x,y,x,dydx);
 legend('original function','derivative');
 </pre>
 

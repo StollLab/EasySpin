@@ -1054,7 +1054,7 @@
     "description": "Least-squares fitting of EPR spectra",
     "inputs": [
       {
-        "name": "expSpec",
+        "name": "data",
         "kind": "required",
         "type": [
           "numeric"
@@ -1062,10 +1062,10 @@
         "purpose": "data"
       },
       {
-        "name": "SimFcn",
+        "name": "fcn",
         "kind": "required",
         "type": "function_handle",
-        "purpose": "simulation function"
+        "purpose": "simulation/model function"
       },
       {
         "name": "p0",

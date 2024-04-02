@@ -3,7 +3,7 @@
 %   e = eps0
 %
 %   Returns the electric constant (also known as vacuum
-%   permittivity) in SI units, farads per meter.
+%   permittivity) in SI units, F/m = C^2/N/m^2.
 
 function e = eps0
 
