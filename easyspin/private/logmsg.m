@@ -38,5 +38,5 @@ if nargin>1
   fprintf(varargin{2:end});
   fprintf('\n');
 else
-  error('At least two input arguments expected!');
+  error('At least two input arguments expected.');
 end

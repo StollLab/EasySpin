@@ -467,9 +467,9 @@ function plotTrajectories(Sim,RTraj)
       xMol = squeeze(RTraj(:,1,iTraj,:));
       yMol = squeeze(RTraj(:,2,iTraj,:));
       zMol = squeeze(RTraj(:,3,iTraj,:));
-      hx(iTraj) = plot3(xMol(1,:),xMol(2,:),xMol(3,:));
-      hy(iTraj) = plot3(yMol(1,:),yMol(2,:),yMol(3,:));
-      hz(iTraj) = plot3(zMol(1,:),zMol(2,:),zMol(3,:));
+      hx(iTraj) = plot3(xMol(1,:),xMol(2,:),xMol(3,:));  %#ok
+      hy(iTraj) = plot3(yMol(1,:),yMol(2,:),yMol(3,:));  %#ok
+      hz(iTraj) = plot3(zMol(1,:),zMol(2,:),zMol(3,:));  %#ok
     end
     set(hx,'Tag','xTrajectory','Visible','off','Color',[0.9 0 0]);
     set(hy,'Tag','yTrajectory','Visible','off','Color',[0 0.5 0]);

@@ -55,7 +55,7 @@ switch basistype
     BasisNew = generatebasis_LMK(Basis);
 end
 
-return
+end
 
 %-------------------------------------------------------------------------------
 % LjKKM: K-symmetrized basis in ordering as in Freed programs:
@@ -78,7 +78,7 @@ for L = Basis.Llist
       Mmx = min(L,Mmax);
       for M = -Mmx:1:Mmx
         iBasis = iBasis + 1;
-        basisList(iBasis,:) = [L jK K M];
+        basisList(iBasis,:) = [L jK K M];  %#ok
       end % M
     end % K
   end % jK
@@ -89,6 +89,7 @@ BasisNew.L = basisList(:,1);
 BasisNew.jK = basisList(:,2);
 BasisNew.K = basisList(:,3);
 BasisNew.M = basisList(:,4);
+end
 
 %-------------------------------------------------------------------------------
 % LMKjK: K-symmetrized basis in ordering close to LMK
@@ -110,7 +111,7 @@ for L = Basis.Llist
       if (K==0), jK = (-1)^L; else, jK= sign(K); end
       if jK<jKmin, continue; end
       iBasis = iBasis + 1;
-      basisList(iBasis,:) = [L M abs(K) jK];
+      basisList(iBasis,:) = [L M abs(K) jK];  %#ok
     end % K
   end % M
 end % L
@@ -121,7 +122,7 @@ BasisNew.M = basisList(:,2);
 BasisNew.K = basisList(:,3);
 BasisNew.jK = basisList(:,4);
 
-return
+end
 
 %-------------------------------------------------------------------------------
 % LMK: LMK basis (not K-symmetrized) in the following ordering: 
@@ -140,7 +141,7 @@ for L = Basis.Llist
     Kmx = min(L,Kmax);
     for K = -Kmx:deltaK:Kmx
       iBasis = iBasis + 1;
-      basisList(iBasis,:) = [L M K];
+      basisList(iBasis,:) = [L M K];  %#ok
     end % K
   end % M
 end % L
@@ -149,3 +150,4 @@ BasisNew = Basis;
 BasisNew.L = basisList(:,1);
 BasisNew.M = basisList(:,2);
 BasisNew.K = basisList(:,3);
+end

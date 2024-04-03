@@ -16,9 +16,11 @@ Exp.Field = 0;
 Opt.Units = 'CGS';
 Opt.Output = 'chimol';
 
-Exp.CrystalOrientation = [0 0 0];
+Exp.MolFrame = [0 0 0];
+
+Exp.SampleFrame = [0 0 0];
 chiz = curry(Sys,Exp,Opt);
-Exp.CrystalOrientation = [0 pi/2 0];
+Exp.SampleFrame = [0 -pi/2 0];
 chix = curry(Sys,Exp,Opt);
 
 data.chix = chix;

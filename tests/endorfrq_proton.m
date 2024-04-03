@@ -4,7 +4,7 @@ function ok = test()
 
 Sys = struct('S',1/2,'g',[2 2 2],'Nucs','1H','A',[3 7 12]);
 Par = struct('mwFreq',9.5,'Field',350);
-Par.CrystalOrientation = [0 0 0];
+Par.SampleFrame = [0 0 0];
 
 p = endorfrq(Sys,Par);
 p = sort(p);

@@ -16,11 +16,10 @@
 %      Range               frequency sweep range, [numin numax], in GHz
 %      CenterField         frequency sweep range, [center sweep], in GHz
 %      Temperature         temperature, in K
-%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      Transitions         nx2 array of level pairs
@@ -42,7 +41,7 @@ if nargin==0, help(mfilename); return; end
 % General
 %---------------------------------------------------------------------
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Guard against wrong number of input or output arguments.
 if nargin<1, error('Please supply a spin system as first parameter.'); end
@@ -132,14 +131,19 @@ DefaultExp.Range = NaN;
 DefaultExp.Field = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = 'perpendicular';
-DefaultExp.mwPolarization = '';
+DefaultExp.mwMode = 'perpendicular';
 
-DefaultExp.CrystalOrientation = [];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
+DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
+
+% Check for obsolete fields
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
+end
 
 if isnan(Exp.Field)
   Exp.Field = 0.0;
@@ -162,54 +166,55 @@ end
 Exp.Range = Exp.Range*1e3; % GHz -> MHz, for comparison with Pdat
 
 % Determine excitation mode
-p_excitationgeometry;
+[xi1,xik,nB1_L,nk_L,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
-% Temperature, non-equilibrium populations
-computeNonEquiPops = isfield(Sys,'Pop') && ~isempty(Sys.Pop);
-if computeNonEquiPops
-  nElectronStates = prod(2*Sys.S+1);
-  if numel(Sys.Pop)~=nElectronStates
-    error('Sys.Pop must have %d elements.',nElectronStates);
+% Photoselection
+if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
+
+usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
+
+if usePhotoSelection
+  if ~isfield(Sys,'tdm') || isempty(Sys.tdm)
+    error('To include photoselection weights, Sys.tdm must be given.');
   end
-  if ~isfield(Sys,'PopBasis')
-    PopBasis = 'Molecular';
+  if ischar(Exp.lightBeam)
+    k = [0;1;0]; % beam propagating along yL
+    switch Exp.lightBeam
+      case 'perpendicular'
+        alpha = -pi/2; % gives E-field along xL
+      case 'parallel'
+        alpha = pi; % gives E-field along zL
+      case 'unpolarized'
+        alpha = NaN; % unpolarized beam
+      otherwise
+        error('Unknown string in Exp.lightBeam. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
+    end
+    Exp.lightBeam = {k alpha};
   else
-    PopBasis = Sys.PopBasis;
+    if ~iscell(Exp.lightBeam) || numel(Exp.lightBeam)~=2
+      error('Exp.lightBeam should be a 2-element cell {k alpha}.')
+    end
   end
-  computeBoltzmannPopulations = false;
-elseif isempty(Exp.Temperature)
-  computeBoltzmannPopulations = false;
-else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.');
-  end
-  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Options parsing and setting.
 %---------------------------------------------------------------------
 
 % documented fields
-DefaultOptions.Transitions = [];
-DefaultOptions.Threshold = 1e-4;
+DefaultOptions.Transitions = [];  % list of transitions to include
+DefaultOptions.Threshold = 1e-4;  % cutoff threshold for transition pre-selection
 DefaultOptions.Hybrid = 0;
 DefaultOptions.HybridCoreNuclei = [];
 
 % undocumented fields
-DefaultOptions.nTRKnots = 3;
 DefaultOptions.FuzzLevel = 1e-10;
-DefaultOptions.MaxKnots = 2000;
-DefaultOptions.RediagLimit = 0.95;
-
 DefaultOptions.Intensity = 1;
 DefaultOptions.Sparse = false;
 
@@ -235,6 +240,12 @@ t_ = Opt.Threshold;
 if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
   error('Options.Threshold must be a number >=0 and <1.');
 end
+preSelectionThreshold = Opt.Threshold(1);
+if numel(Opt.Threshold)==1
+  postSelectionThreshold = preSelectionThreshold;
+else
+  postSelectionThreshold = Opt.Threshold(2);
+end
 
 StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
 computeStrains = StrainsPresent && (nargout>2);
@@ -252,40 +263,39 @@ else
   logmsg(1,'  using full matrices');
 end
 
-CoreSys = Sys;
-
 % Perturbational treatment of SHF nuclei
-if (CoreSys.nNuclei>=1) && Opt.Hybrid
+if Sys.nNuclei>=1 && Opt.Hybrid
   if Opt.Sparse
     error('Cannot use sparse matrices in hybrid mode.');
+  end 
+  if any(Opt.HybridCoreNuclei>Sys.nNuclei)
+    error('At least one entry in Opt.HybridCoreNuclei is incorrect. There are only %d nuclei.',Sys.nNuclei);
   end
-    
-  if any(Opt.HybridCoreNuclei>CoreSys.nNuclei)
-    error('Opt.HybridCoreNuclei is incorrect!');
-  end
-  perturbNuclei = ones(1,CoreSys.nNuclei);
-  perturbNuclei(Opt.HybridCoreNuclei) = 0;
-  
-  idx = find(perturbNuclei);
+
+  perturbNuclei = true(1,Sys.nNuclei);
+  perturbNuclei(Opt.HybridCoreNuclei) = false;  
+  idxPerturbNuclei = find(perturbNuclei);
   % :TODO: Allow 1st-order PT only if (2nd-order) error smaller than field increment.
-  nPerturbNuclei = numel(idx);
-  str1 = sprintf('%d ',idx);
-  if isempty(str1), str1 = 'none'; end
-  logmsg(1,['  nuclei with first-order treatment: ' str1]);
+  nPerturbNuclei = numel(idxPerturbNuclei);
+  if nPerturbNuclei==0
+    str_ = 'none';
+  else
+    str_ = sprintf('%d ',idxPerturbNuclei);
+  end
+  logmsg(1,['  nuclei with first-order perturbation treatment: ' str_]);
   
   % Remove perturbational nuclei from core system
-  CoreSys = nucspinrmv(CoreSys,idx);
-  CoreSys.processed = 0;
+  CoreSys = nucspinrmv(Sys,idxPerturbNuclei);
+  CoreSys.processed = false;
   CoreSys = rmfield(CoreSys,'lwpp');
   [CoreSys,err] = validatespinsys(CoreSys);
   error(err);
   
   % Prepare terms for nuclear Hamiltonians
   for iiNuc = nPerturbNuclei:-1:1
-    iNuc = idx(iiNuc);
+    iNuc = idxPerturbNuclei(iiNuc);
     I = Sys.I(iNuc);
     [Ix,Iy,Iz] = sop(I,'x','y','z');
-    nPerturbTransitions(iiNuc) = (2*I+1)^2;
     
     % Hyperfine interaction
     for iElectron = 1:Sys.nElectrons
@@ -332,7 +342,7 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
     
   end
   
-  % Components of S vectors for computing <u|S|u>
+  % Components of S vector operator for computing <u|S|u>
   for iEl = Sys.nElectrons:-1:1
     S(iEl).x = sop(CoreSys,[iEl,1]);
     S(iEl).y = sop(CoreSys,[iEl,2]);
@@ -341,6 +351,7 @@ if (CoreSys.nNuclei>=1) && Opt.Hybrid
   
 else
   nPerturbNuclei = 0;
+  CoreSys = Sys;
 end
 
 % Hamiltonian components for the core system.
@@ -351,28 +362,71 @@ if higherOrder
   nSHFNucStates = nFull/nCore;
 else
   if Opt.Sparse
-    [kF,kGxM,kGyM,kGzM] = sham(CoreSys,[],'sparse');
-    nLevels = length(kF);
+    [kH0,kmuxM,kmuyM,kmuzM] = ham(CoreSys,[],'sparse');
+    nLevels = length(kH0);
   else
-    [kF,kGxM,kGyM,kGzM] = sham(CoreSys);
-    nLevels = length(kF);
+    [kH0,kmuxM,kmuyM,kmuzM] = ham(CoreSys);
+    nLevels = length(kH0);
   end
-  nCore = length(kF);
+  nCore = length(kH0);
   nFull = hsdim(Sys);
   nSHFNucStates = nFull/nCore;
+end
+
+% Temperature, non-equilibrium populations
+computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
+if computeNonEquiPops
+
+  initState = Sys.initState{1};
+  initStateBasis = Sys.initState{2};
+
+  % Check and adapt input dimensions
+  nElectronStates = prod(2*Sys.S+1);
+
+  [sz1,sz2] = size(initState);
+  if sz1==sz2
+    % Density matrix
+    if nElectronStates~=sz1 && nCore~=sz1
+      error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nCore)
+    end
+    if numel(initState)==nElectronStates^2 && numel(initState)~=nCore^2
+      initState = kron(initState,eye(nCore/nElectronStates))/(nCore/nElectronStates);
+    end
+  else
+    % Vector of populations
+    if numel(initState)~=nElectronStates && numel(initState)~=nCore
+      error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nCore);
+    end
+    initState = initState(:);
+    if numel(initState)==nElectronStates && numel(initState)~=nCore
+      initState = kron(initState,ones(nCore/nElectronStates,1))/(nCore/nElectronStates);
+    end
+  end
+  
+  computeBoltzmannPopulations = false;
+elseif isempty(Exp.Temperature)
+  computeBoltzmannPopulations = false;
+else
+  if numel(Exp.Temperature)~=1
+    error('If given, Exp.Temperature must be a single number.');
+  end
+  if isinf(Exp.Temperature)
+    error('If given, Exp.Temperature must be a finite value.');
+  end
+  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
 % Add slight numerical noise to non-zero elements in the Hamiltonian to break
 % possible degeneracies. Apply if there are more than one electrons or nuclei.
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
-if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
-  noise = 2*rand(size(kF))-1;
-  noise = 1+Opt.FuzzLevel*(noise+noise.')/2; % make sure it's Hermitian
-  kF = kF.*noise;
-  kGxM = kGxM.*noise;
-  kGyM = kGyM.*noise;
-  kGzM = kGzM.*noise;
+if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
+  noise = 1 + Opt.FuzzLevel*(2*rand(size(kH0))-1);
+  noise = (noise+noise.')/2; % make sure it's Hermitian
+  kH0 = kH0.*noise;
+  kmuxM = kmuxM.*noise;
+  kmuyM = kmuyM.*noise;
+  kmuzM = kmuzM.*noise;
 end
 
 if nPerturbNuclei>0
@@ -386,50 +440,35 @@ end
 
 
 % Spin-polarized systems: precompute zero-field energies, states, populations
-if computeNonEquiPops
-
-  Pop = Sys.Pop;
-  nElStates = prod(2*Sys.S+1);
-  if numel(Pop) == nElectronStates
-    % Vector of zero-field populations for the core system
-    ZFPopulations = Pop(:);
-    if strcmp(PopBasis,'Molecular')
-      ZFPopulations = ZFPopulations/sum(ZFPopulations);
-    end
-    ZFPopulations = kron(ZFPopulations,ones(nCore/nElStates,1));
-  else
-    ZFPopulations = Pop;%/sum(diag(Pop));
-    ZFPopulations = kron(ZFPopulations,diag(ones(nCore/nElStates,1)));
-  end
+if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
   
   % Pre-compute zero-field energies and eigenstates
   if higherOrder
-    [ZFStates,ZFEnergies] = eig(sham(CoreSys, zeros(1,3)));
+    [ZFStates,ZFEnergies] = eig(ham(CoreSys, zeros(1,3)));
   else
     if Opt.Sparse
-      [ZFStates,ZFEnergies] = eigs(kF,length(kF));
+      [ZFStates,ZFEnergies] = eigs(kH0,length(kH0));
     else
-      [ZFStates,ZFEnergies] = eig(kF);
+      [ZFStates,ZFEnergies] = eig(kH0);
     end
   end
   [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
   ZFStates = ZFStates(:,idx);
-  % Correct zero-field states for S=1 and axial D
-  if CoreSys.S==1
-    if ZFEnergies(2)==ZFEnergies(3)
-      logmsg(1,'  >>>> manual zero-field states (D>0)');
-      v1 = ZFStates(:,2);
-      v2 = ZFStates(:,3);
-      ZFStates(:,2) = (v1-v2)/sqrt(2);
-      ZFStates(:,3) = (v1+v2)/sqrt(2);
-    elseif ZFEnergies(2)==ZFEnergies(1)
-      logmsg(1,'  >>>> manual zero-field states (D<0)');
-      v1 = ZFStates(:,1);
-      v2 = ZFStates(:,2);
-      ZFStates(:,2) = (v1-v2)/sqrt(2);
-      ZFStates(:,1) = (v1+v2)/sqrt(2);
-    end
+  % Check for degeneracies and issue error
+  if numel(unique(ZFEnergies))~=numel(ZFEnergies)
+    error(['Degenerate energy levels detected at zero-field. This prevents unambiguous assignment of ' ...
+           'the provided sublevel populations to the zero-field states. Please provide the non-equilibrium' ...
+           'state using the full density matrix. See documentation for details.'])
   end
+
+  if isvector(initState)
+    % Convert population vector to density matrix
+    initState = ZFStates*diag(initState)*ZFStates';
+  else
+    % Convert density matrix in zero-field basis to uncoupled basis
+    initState = ZFStates*initState*ZFStates';
+  end
+
 else
   %ZFEnergies = sort(real(eig(kF)));
 end
@@ -492,17 +531,16 @@ if computeStrains
   
   % D strain
   %-----------------------------------------------
-  [UseDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
+  [useDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
   
   % g-A strain
   %-------------------------------------------------
   % g strain tensor is taken to be along the g tensor itself.
-  UsegStrain = any(CoreSys.gStrain(:));
+  usegStrain = any(CoreSys.gStrain(:));
   simplegStrain = CoreSys.nElectrons==1;
-  if UsegStrain
+  if usegStrain
     logmsg(1,'  g strain present');
-    usegAStrain = true;
-    for iEl = 1:CoreSys.nElectrons
+    for iEl = CoreSys.nElectrons:-1:1
       gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:));
       if any(CoreSys.gFrame(iEl,:))
         R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
@@ -511,21 +549,20 @@ if computeStrains
     end
     if ~simplegStrain
       logmsg(1,'  multiple g strains present');
-      for iEl = 1:CoreSys.nElectrons
+      for iEl = CoreSys.nElectrons:-1:1
         kSxM{iEl} = sop(CoreSys,[iEl,1]);
         kSyM{iEl} = sop(CoreSys,[iEl,2]);
         kSzM{iEl} = sop(CoreSys,[iEl,3]);
       end
     end
   else
-    usegAstrain = false;
-    for iEl = 1:CoreSys.nElectrons
+    for iEl = CoreSys.nElectrons:-1:1
       gStrainMatrix{iEl} = 0;
     end
   end
   
-  UseAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
-  if UseAStrain
+  useAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
+  if useAStrain
     if isfield(CoreSys,'AFrame')
       R = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
     else
@@ -547,9 +584,9 @@ if computeStrains
     clear Ix_ Iy_ Iz_ Sx_ Sy_ Sz_
   end
   if any(CoreSys.HStrain), logmsg(2,'  ## using H strain'); end
-  if UsegStrain, logmsg(2, ' ## using g strain'); end
-  if UseAStrain, logmsg(2,'  ## using A strain'); end
-  if UseDStrain, logmsg(2,'  ## using D strain'); end
+  if usegStrain, logmsg(2, ' ## using g strain'); end
+  if useAStrain, logmsg(2,'  ## using A strain'); end
+  if useDStrain, logmsg(2,'  ## using D strain'); end
   
 else
   logmsg(1,'  no strains specified',nTransitions);
@@ -607,64 +644,77 @@ for iOri = 1:nOrientations
   [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   if higherOrder
     [Vs,E] = gethamdata_hO(Exp.Field,zLab, CoreSys,Opt.Sparse, [], nLevels);
-    if Opt.Sparse
-      g1 = zeemanho(CoreSys,[],[],'sparse',1);
-      [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'sparse');
-    else
-      g1 = zeemanho(CoreSys,[],[],'',1);
-      [g0{1},g0{2},g0{3}] = zeeman(CoreSys,[],'');
+    if Opt.Sparse, sp = 'sparse'; else, sp = ''; end
+    [g0e{1},g0e{2},g0e{3}] = ham_ez(CoreSys,[],sp);
+    [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
+    [g0o{1},g0o{2},g0o{3}] = ham_oz(CoreSys,[],sp);
+    for k = 1:3
+      g0{k} = g0e{k} + g0n{k} + g0o{k};
     end
+    g1 = ham_ezho(CoreSys,[],[],sp,1);
     for n =3:-1:1
-      kGM{n} = g1{1}{n}+g0{n};
+      kGM{n} = g0{n}-g1{1}{n};
     end
     % z laboratoy axis: external static field
-    kGzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
+    kmuzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
     % x laboratory axis: B1 excitation field
-    kGxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
+    kmuxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
     % y laboratory vector: needed for integration over all B1 field orientations.
-    kGyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
+    kmuyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
   else
     % z laboratoy axis: external static field
-    kGzL = zLab(1)*kGxM + zLab(2)*kGyM + zLab(3)*kGzM;
+    kmuzL = zLab(1)*kmuxM + zLab(2)*kmuyM + zLab(3)*kmuzM;
     % x laboratory axis: B1 excitation field
-    kGxL = xLab(1)*kGxM + xLab(2)*kGyM + xLab(3)*kGzM;
+    kmuxL = xLab(1)*kmuxM + xLab(2)*kmuyM + xLab(3)*kmuzM;
     % y laboratory vector: needed for integration over all B1 field orientations.
-    kGyL = yLab(1)*kGxM + yLab(2)*kGyM + yLab(3)*kGzM;
+    kmuyL = yLab(1)*kmuxM + yLab(2)*kmuyM + yLab(3)*kmuzM;
     
-    if issparse(kF)
-      [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
-    else
-      [Vs,E] = gethamdata(Exp.Field, kF, kGzL, [], nLevels);
-    end
+    [Vs,E] = gethamdata(Exp.Field, kH0, kmuzL, [], nLevels);
   end
   Pdat(:,iOri) = E(v) - E(u);
   
   % Calculate intensities if requested
   if computeIntensities
-        
+
+    % Calculate photoselection weight if needed
+    if usePhotoSelection
+      k = Exp.lightBeam{1};  % propagation direction
+      alpha = Exp.lightBeam{2};  % polarization angle
+      if averageOverChi
+        ori = Orientations(iOri,1:2);  % omit chi
+      else
+        ori = Orientations(iOri,1:3);
+      end
+      photoWeight = photoselect(Sys.tdm,ori,k,alpha);
+      % Add isotropic contribution (from scattering)
+      photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
+    else
+      photoWeight = 1;
+    end
+
     % Compute quantum-mechanical transition rate
     for iTrans = nTransitions:-1:1
       
       U = Vs(:,u(iTrans)); % lower-energy state (u)
       V = Vs(:,v(iTrans)); % higher-energy state (v, Ev>Eu)
-      mu = [V'*kGxL*U; V'*kGyL*U; V'*kGzL*U]; % magnetic transition dipole moment
-      if AverageOverChi
-        if linearpolarizedMode
-          TransitionRate = ((1-xi1^2)*norm(mu)^2+(3*xi1^2-1)*abs(nB0.'*mu)^2)/2;
-        elseif unpolarizedMode
-          TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/4;
-        elseif circpolarizedMode
-          TransitionRate = ((1+xik^2)*norm(mu)^2-(3*xik^2-1)*abs(nB0.'*mu)^2)/2 - ...
-            circSense*xik*(nB0.'*cross(1i*mu,conj(mu)));
+      mu_L = [V'*kmuxL*U; V'*kmuyL*U; V'*kmuzL*U]; % magnetic transition dipole moment, in lab frame
+      if averageOverChi
+        if mwmode.linearpolarizedMode
+          TransitionRate = ((1-xi1^2)*norm(mu_L)^2+(3*xi1^2-1)*abs(nB0_L.'*mu_L)^2)/2;
+        elseif mwmode.unpolarizedMode
+          TransitionRate = ((1+xik^2)*norm(mu_L)^2-(3*xik^2-1)*abs(nB0_L.'*mu_L)^2)/4;
+        elseif mwmode.circpolarizedMode
+          TransitionRate = ((1+xik^2)*norm(mu_L)^2-(3*xik^2-1)*abs(nB0_L.'*mu_L)^2)/2 - ...
+            mwmode.circSense*xik*(nB0_L.'*cross(1i*mu_L,conj(mu_L)));
         end
       else
-        if linearpolarizedMode
-          TransitionRate = abs(nB1.'*mu)^2;
-        elseif unpolarizedMode
-          TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2)/2;
-        elseif circpolarizedMode
-          TransitionRate = (norm(mu)^2-abs(nk.'*mu)^2) - ...
-            circSense*(nk.'*cross(1i*mu,conj(mu)));
+        if mwmode.linearpolarizedMode
+          TransitionRate = abs(nB1_L.'*mu_L)^2;
+        elseif mwmode.unpolarizedMode
+          TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2)/2;
+        elseif mwmode.circpolarizedMode
+          TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2) - ...
+            mwmode.circSense*(nk_L.'*cross(1i*mu_L,conj(mu_L)));
         end
       end
       if abs(TransitionRate)<1e-12, TransitionRate = 0; end
@@ -696,18 +746,17 @@ for iOri = 1:nOrientations
       end
       
     elseif computeNonEquiPops
-      switch PopBasis
-      	case 'Molecular'
-        % Compute level populations by projection from zero-field populations and states
-        for iState = 1:nCore
-          Populations(iState) = (abs(ZFStates'*Vs(:,iState)).^2).'*ZFPopulations;
-        end
-      case 'Spin'
-        for iState = 1:nCore
-          Populations(iState) = (abs(ZFPopulations.'*Vs(:,iState)).^2);
-        end  
+      switch initStateBasis
+        case 'eigen'
+          for iState = 1:nCore
+            Populations(iState) = initState(iState,iState);
+          end
+        otherwise
+          for iState = 1:nCore
+            Populations(iState) = Vs(:,iState)'*initState*Vs(:,iState);
+          end
       end
-      Polarization = Populations(u) - Populations(v);
+      Polarization = real(Populations(u) - Populations(v));
       if nPerturbNuclei>0
         Polarization = Polarization/prod(2*Sys.I+1);
       end
@@ -715,10 +764,10 @@ for iOri = 1:nOrientations
     else
       % no temperature given
       % same polarization for each electron transition
-      %Polarization = Polarization/prod(2*System.S+1); % needed to make consistent with high-temp limit
+      %Polarization = Polarization/prod(2*Sys.S+1); % needed to make consistent with high-temp limit
       Polarization = 1/prod(2*Sys.I+1);
     end
-    Idat(:,iOri) = TransitionRates(:).*Polarization(:);
+    Idat(:,iOri) = TransitionRates(:).*Polarization(:)*photoWeight;
     
   end
   
@@ -733,7 +782,7 @@ for iOri = 1:nOrientations
       LineWidth2 = LineWidthSquared;
       
       % D strain
-      if UseDStrain
+      if useDStrain
         for iEl = 1:CoreSys.nElectrons
           LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
           LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
@@ -741,15 +790,15 @@ for iOri = 1:nOrientations
       end
       
       % A strain
-      if UseAStrain
+      if useAStrain
         LineWidth2 = LineWidth2 + abs(m(dHdAx))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAy))^2;
         LineWidth2 = LineWidth2 + abs(m(dHdAz))^2;
       end
       
       % g strain
-      if UsegStrain
-        dg2 = (m(kGzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
+      if usegStrain
+        dg2 = (m(kmuzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
         LineWidth2 = LineWidth2 + abs(dg2);
       end
       Wdat(iTrans,iOri) = sqrt(LineWidth2);
@@ -812,18 +861,13 @@ logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitio
 
 idxWeakResonances = [];
 if computeIntensities && ~UserTransitions
-  if numel(Opt.Threshold)==1
-    PostSelectionThreshold = Opt.Threshold(1);
-  else
-    PostSelectionThreshold = Opt.Threshold(2);
-  end
   maxIntensity = max(abs(Idat),[],2); % maximum over orientations
   absoluteMaxIntensity = max(maxIntensity);
-  idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*PostSelectionThreshold);
+  idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*postSelectionThreshold);
   if ~isempty(idxWeakResonances)
-    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),PostSelectionThreshold);
+    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),postSelectionThreshold);
   else
-    logmsg(2,'  ## all resonances above relative intensity threshold %f',PostSelectionThreshold);
+    logmsg(2,'  ## all resonances above relative intensity threshold %f',postSelectionThreshold);
   end
 else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');
@@ -888,11 +932,11 @@ end
 % Assert positive intensities, but only for thermal equilibrium populations
 if computeIntensities && (~computeNonEquiPops)
   if any(TransitionRates<0)
-    logmsg(-inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
+    logmsg(-Inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
 if any(Wdat(:)<0)
-  logmsg(-inf,'*********** Negative width encountered in resfields!! Please report! **************');
+  logmsg(-Inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
 
@@ -987,4 +1031,4 @@ if ~isempty(Wdat), Wdat = Wdat(I,:); end
 Output = {Pdat,Idat,Wdat,Transitions};
 varargout = Output(1:max(nargout,1));
 
-return
+end

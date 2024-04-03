@@ -8,7 +8,7 @@ clear, clf
 
 Sys.Nucs = '14N';
 Sys.g = [2.009, 2.006, 2.002];
-Sys.A = mt2mhz([6, 36]/10);
+Sys.A = unitconvert([6, 36]/10,'mT->MHz');
 Sys.TransProb = ([ 0.3, 0.7;
                    0.4, 0.6 ]);      % transition probability matrix
 Sys.Orientations = pi*rand(3,2);   % orientations of each state, in radians

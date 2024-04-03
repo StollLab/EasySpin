@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>resfields_eig</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+
+<div class="functitle">resfields_eig</div>
+
+<p>
+Exact resonance fields (eigenfields) of a spin system.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+B = resfields_eig(Sys,Par)
+B = resfields_eig(sys,Par,Opt)
+[B,Int] = resfields_eig(...)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+Given a spin system <code>Sys</code> and a set of orientations <code>Par.SampleFrame</code>,
+<code>resfields_eig</code> computes exact resonance fields (so called eigenfields)
+for a cw EPR experiment.
+</p>
+
+<p>
+<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>.
+
+<p>
+<code>Par</code> is a structure containing fields for the experimental parameters.
+</p>
+
+<div class="optionfield"><code>mwFreq</code></div>
+<div class="optiondescr">
+Required parameter giving the spectrometer frequency in GHz.
+</div>
+
+<div class="optionfield"><code>SampleFrame</code></div>
+<div class="optiondescr">
+<p>
+An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
+</p>
+<pre class="matlab">
+Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
+Exp.SampleFrame = [0 pi/2 0];                % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
+</pre>
+</div>
+
+<div class="optionfield"><code>mwMode</code></div>
+<div class="optiondescr">
+<p>
+Specifies the microwave excitation mode. Possible settings are
+</p>
+<pre class="matlab">
+Exp.mwMode = 'perpendicular';  % default
+Exp.mwMode = 'parallel';
+Exp.mwMode = {k pol};
+</pre>
+
+<p>
+<em>Resonator experiments:</em><br>
+For conventional experiments with linearly polarized microwave in a resonator, use <code>'perpendicular'</code> (default) or <code>'parallel'</code>. In the perpendicular mode, the microwave magnetic field B<sub>1</sub> is oscillating along the laboratory x axis (xL), perpendicular to the external static magnetic field B<sub>0</sub>. In the parallel mode, it is oscillating along the laboratory z axis (zL), parallel to B<sub>0</sub>. The perpendicular mode is by far the most common.
+</p>
+
+<p>
+<em>Beam experiments:</em><br>
+For experiments with a microwave (or THz) beam, use <code>Exp.mwMode = {k pol}</code>. <code>k</code> specifies the propagation direction, in one of three possible ways: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element cartesian vector, e.g. <code>[0;1;0]</code> specifies the lab y axis; (iii) two polar angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between the microwave propagation direction and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis.
+</p>
+
+<p>
+For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the microwave propagation direction <code>nk</code> and the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
+<pre class="matlab">
+k = 'y';   % propagation along y lab axis
+pol = -pi/2; % B1 along x lab axis
+[phi,theta] = vec2ang(k);  % convert to angles
+[nB1,~,nk]  = erot([phi,theta,pol],'rows')
+</pre>
+
+<p>
+For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly polarized radiation, set <code>pol='circular+'</code> or <code>pol='circular-'</code>, depending on the sense of rotation.
+</p>
+
+</ul>
+
+</div>
+
+<div class="optionfield"><code>Range</code></div>
+<div class="optiondescr">
+<em>2-element vector</em> <code>[Bmin Bmax]</code><br>
+If set, <code>resfields_eig</code> will only return eigenfields falling between <code>Bmin</code>
+and <code>Bmax</code> (both in mT).
+</div>
+
+<p>
+The structure <code>Opt</code> contains computational options.
+</p>
+
+<div class="optionfield"><code>Freq2Field</code>, <code>1</code> (default) or <code>0</code>
+</div>
+<div class="optiondescr">
+Determines whether the frequency-to-field conversion factor is included in the line intensities of field-swept spectra. <code>1</code> indicates yes, <code>0</code> indicates no. The factor is the generalized 1/g Aasa-V&auml;nng&aring;rd factor. This setting is ignored for frequency-swept spectra.
+</div>
+
+<div class="optionfield"><code>Threshold</code></div>
+<div class="optiondescr">
+Relative threshold for eigenfields. Only eigenfields with a relative transition intensity above the threshold are returned. The relative intensity of the strongest transition is 1. The default value is 1e-4.
+</div>
+
+<p>
+<code>resfields_eig</code> returns the resonance fields (mT) in <code>B</code> and,
+optionally,
+transition intensities (MHz^2/mT^2) in <code>Int</code>.
+The intensities returned are integrated over the plane normal to the external
+magnetic field direction if only two of the three Euler angles are
+specified in <code>Ori</code> (see above).
+</p>
+
+<div class="subtitle">Examples</div>
+
+<p>
+The resonance fields of an S=3/2 system with orthorhombic zero-field
+splitting for an arbitrary orientation are
+</p>
+
+<pre class="mloutput">
+B =
+   59.5729
+  123.0851
+  148.9710
+  253.3805
+  387.0805
+  512.8191
+</pre>
+
+<p>
+These values are exact within the numerical accuracy of MATLAB's generalised
+eigenproblem solver <code>eig(A,B)</code>.
+</p>
+
+<div class="subtitle">Algorithm</div>
+
+<p>
+<code>resfields_eig</code> solves a generalised eigenproblem in Liouville space describing
+the fixed-frequency swept-field situation in cw EPR experiments. This approach
+was first described in R.L. Belford et al., J.Magn.Reson. 11, 251-265 (1973).
+</p>
+
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="pepper.html">pepper</a>,
+<a class="esf" href="resfields.html">resfields</a>,
+<a class="esf" href="resfields.html">resfields_perturb</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

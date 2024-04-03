@@ -51,7 +51,7 @@ if useLentz
 else
   
   % Right-to-left evaluation, straightforward
-  spec = inf;
+  spec = Inf;
   for m = k:-1:1
     spec = z + alpha(m) - beta(m)^2./spec;
   end
@@ -59,4 +59,4 @@ else
   
 end
 
-return
+end

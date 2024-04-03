@@ -1,8 +1,10 @@
 function ok = test()
 
-x_mT = 1;
-g = 2;
-v1 = mt2mhz(x_mT,g);
-v2 = x_mT*1e-3*g*bmagn/planck/1e6;
+value_mT = 1;
+g = 2.005;
+value_MHz = mt2mhz(value_mT,g);
+value_MHz_ref = value_mT*1e-3*bmagn*g/1e6/planck;
 
-ok = areequal(v1,v2,1e-10,'rel');
+ok = areequal(value_MHz,value_MHz_ref,1e-14,'rel');
+
+end

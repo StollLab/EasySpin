@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>unitconvert</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">unitconvert</div>
+
+<p>
+Unit conversion function.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+output = unitconvert(input, units)
+output = unitconvert(input, units, g)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>unitconvert</code> takes the <code>input</code> value and uses to conversion
+specified as a string in <code>units</code> to provide the <code>output</code> value.
+</p>
+
+<p>
+In the unit conversions including magnetic field units, 
+<code>g</code> gives the g factor for the conversion. 
+If it is omitted, the g factor of the free electron 2.0023... is used
+(see <a class="esf" href="gfree.html">gfree</a>).
+</p>
+
+<p>
+<code>input</code> can be a vector of values. In this case, <code>g</code>
+can be a scalar or a vector of the same size as <code>input</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Conversion Units</div>
+
+<p>
+The following strings are supported for unit conversions:
+</p>
+
+<table style="width:100%"> 
+<tr>
+	<td bgcolor=""></td>
+	<td bgcolor="f3f3f3"><code>'cm^-1->eV'</code></td> 
+	<td bgcolor="f3f3f3"><code>'cm^-1->K'</code></td>  
+	<td bgcolor="f3f3f3"><code>'cm^-1->mT'</code></td>  
+	<td bgcolor="f3f3f3"><code>'cm^-1->MHz'</code></td>
+</tr>
+<tr>
+	<td bgcolor="f3f3f3"><code>'eV->cm^-1'</code></td>
+	<td bgcolor=""></td> 
+	<td bgcolor="f3f3f3"><code>'eV->K'</code></td>  
+	<td bgcolor="f3f3f3"><code>'eV->mT'</code></td>  
+	<td bgcolor="f3f3f3"><code>'eV->MHz'</code></td>
+</tr>
+<tr>
+	<td bgcolor="f3f3f3"><code>'K->cm^-1'</code></td> 
+	<td bgcolor="f3f3f3"><code>'K->eV'</code></td>
+	<td bgcolor=""></td>  
+	<td bgcolor="f3f3f3"><code>'K->mT'</code></td>  
+	<td bgcolor="f3f3f3"><code>'K->MHz'</code></td>
+</tr>
+<tr>
+	<td bgcolor="f3f3f3"><code>'mT->cm^-1'</code></td> 
+	<td bgcolor="f3f3f3"><code>'mT->eV'</code></td>  
+	<td bgcolor="f3f3f3"><code>'mT->K' </code></td>
+	<td bgcolor=""></td>  
+	<td bgcolor="f3f3f3"><code>'mT->MHz'</code></td>
+</tr>
+<tr>
+	<td bgcolor="f3f3f3"><code>'MHz->cm^-1'</code></td> 
+	<td bgcolor="f3f3f3"><code>'MHz->eV'</code></td>  
+	<td bgcolor="f3f3f3"><code>'MHz->K' </code></td>  
+	<td bgcolor="f3f3f3"><code>'MHz->mT'</code></td>
+	<td bgcolor=""></td>
+</tr>
+
+</table>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+An electron spin with a g factor of 2.1 with a resonance frequency of
+8.7 GHz is in magnetic field of about 296 mT.
+</p>
+
+<pre class="matlab">
+B = unitconvert(8.7e3,'MHz->mT',2.1)
+</pre>
+<pre class="mloutput">
+B =
+  295.9977
+</pre>
+
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="mhz2mt.html">mhz2mt</a>,
+<a class="esf" href="mt2mhz.html">mt2mhz</a>
+</p>
+
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

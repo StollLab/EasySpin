@@ -5,14 +5,14 @@ function ok = test()
 
 Exp.Range = [330 350];
 Exp.mwFreq = 9.5;
-Exp.CrystalOrientation = rand(1,3)*2*pi;
+Exp.SampleFrame = rand(1,3)*2*pi;
 
 Sys.g = 2;
-Exp.mwPolarization = 'linear';
+Exp.mwMode = {pi/2 pi/2};
 [dum,Int1] = resfields_perturb(Sys,Exp);
-Exp.mwPolarization = 'circular+';
+Exp.mwMode = {0 'circular+'};
 [dum,Int2] = resfields_perturb(Sys,Exp);
-Exp.mwPolarization = 'circular-';
+Exp.mwMode = {0 'circular-'};
 [dum,Int3] = resfields_perturb(Sys,Exp);
 
 IntPos = [Int1 Int2 Int3];
@@ -22,11 +22,11 @@ IntPos_expected = [0.25 1 0];
 okPos = all(abs(IntPos-IntPos_expected)<1e-6);
 
 Sys.g = -2;
-Exp.mwPolarization = 'linear';
+Exp.mwMode = {pi/2 pi/2};
 [dum,Int1] = resfields_perturb(Sys,Exp);
-Exp.mwPolarization = 'circular+';
+Exp.mwMode = {0 'circular+'};
 [dum,Int2] = resfields_perturb(Sys,Exp);
-Exp.mwPolarization = 'circular-';
+Exp.mwMode = {0 'circular-'};
 [dum,Int3] = resfields_perturb(Sys,Exp);
 
 IntNeg = [Int1 Int2 Int3];

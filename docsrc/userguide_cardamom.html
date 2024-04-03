@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>User guide: cardamom</title>
 </head>
 
@@ -166,15 +166,15 @@ Sys.A = [10 12]; % MHz
 Remember that <code>cardamom</code> (and other EasySpin functions, too),
 take the hyperfine coupling values to be in <b>MHz</b>.
 Often, values for hyperfine couplings are given in G (Gauss) or mT
-(Milltesla), so you have to convert these values.
+(millitesla), so you have to convert these values.
 For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
 The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
-function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+function <a class="esf" href="unitconvert.html">unitconvert</a>:
 </p>
 
 <pre class="matlab">
-A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
-A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+A_MHz = unitconvert(A_mT,'mT->MHz');    % mT -> MHz conversion
+A_MHz = unitconvert(A_G/10,'mT->MHz');  %  G -> MHz conversion (1 G = 0.1 mT)
 </pre>
 
 <!--
@@ -347,7 +347,7 @@ On many cw EPR spectrometers, the field range is specified using center field an
 </p>
 
 <p>
-<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accomodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
 </p>
 
 <p>
@@ -473,14 +473,14 @@ Save for the jump model, which requires a simulation time step <code>Par.dt</cod
 
 <p>
 In a frozen solution of spin-labeled protein, the protein  molecules assume all possible orientations. For slow-motion spectra, the situation is more complex. 
-The spin label will undergo "local" rotational diffusion, which may or may not be under the influece of an orientational potential. 
+The spin label will undergo "local" rotational diffusion, which may or may not be under the influence of an orientational potential. 
 The protein itself, depending on its size and environment, might also be undergoing "global" rotational diffusion, which would couple to the local diffusion of the spin label. Otherwise, the protein might be "fixed" on the timescale of a cw EPR measurement.
 For the latter case, if the spin label is under the influence of an orientational potential, the distribution of protein orientations must be taken into account.
 If there is no potential, then it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
 </p>
 
 <p>
-The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>cardamom</code>, the powder spectrum is simulated whenever you specify an orientational potential. To get a single-crystal spectrum, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Par.Orients</code>. <code>Par.Orients</code> contains the Euler tilt angles (in radians), betwen the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>cardamom</code>, the powder spectrum is simulated whenever you specify an orientational potential. To get a single-crystal spectrum, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Par.Orients</code>. <code>Par.Orients</code> contains the Euler tilt angles (in radians), between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
 </p>
 
 <p>

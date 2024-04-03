@@ -16,11 +16,10 @@
 %      Range               field sweep range, [Bmin Bmax], in mT
 %      CenterField         field sweep range, [center sweep], in mT
 %      Temperature         temperature, in K
-%      CrystalOrientation  nx3 array of Euler angles (in radians) for crystal orientations
+%      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwPolarization      'linear', 'circular+', 'circular-', 'unpolarized'
-%      Mode                excitation mode: 'perpendicular', 'parallel', [k_tilt alpha_pol]
+%      Mode                excitation mode: 'perpendicular', 'parallel', {[}k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
@@ -30,21 +29,25 @@
 %    Pos     line positions (in mT)
 %    Int     line intensities
 %    Wid     Gaussian line widths, full width half maximum (FWHM)
-%    Trans   list of transitions included in the computation
+%    Trans   list of transitions
 
 function varargout = resfields_perturb(Sys,Exp,Opt)
 
+if nargin==0, help(mfilename); return; end
+
 % Compute resonance fields based on formulas from
-% Iwasaki, J.Magn.Reson. 16, 417-423 (1974)
+% M. Iwasaki, J.Magn.Reson. 16, 417-423 (1974)
+% Second-order perturbation treatment of the general spin hamiltonian in an
+% arbitrary coordinate system
+% https://doi.org/10.1016/0022-2364(74)90223-6
 
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Check number of input arguments.
-switch (nargin)
-  case 0, help(mfilename); return;
+switch nargin
   case 2, Opt = struct;
-  case 3,
+  case 3
   otherwise
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
 end
@@ -52,7 +55,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel;
+global EasySpinLogLevel
 EasySpinLogLevel = Opt.Verbosity;
 
 % Spin system
@@ -108,7 +111,7 @@ nTransitions = 2*S; % number of allowed transitions for one electron spin
 
 I = Sys.I;
 nNuclei = Sys.nNuclei;
-if (nNuclei>0)
+if nNuclei>0
   nNucStates = 2*I+1;
 else
   nNucStates = 1;
@@ -124,7 +127,7 @@ if nNuclei>0
   end
 end
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   if Sys.fullA
     A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
   else
@@ -143,14 +146,19 @@ DefaultExp.mwFreq = NaN;
 DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.Mode = '';
-DefaultExp.mwPolarization = '';
+DefaultExp.mwMode = '';
 
-DefaultExp.CrystalOrientation = [];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
+DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
+
+% Check for obsolete fields
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
+end
 
 if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
 
@@ -170,7 +178,7 @@ if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) ||
 end
 
 % Determine excitation mode
-p_excitationgeometry;
+[xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 % Temperature, non-equilibrium populations
 if isfield(Exp,'Temperature')
@@ -185,8 +193,38 @@ else
 end
 error(err);
 
+% Photoselection
+if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
+if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
+
+usePhotoSelection = ~isempty(Exp.lightBeam) && Exp.lightScatter<1;
+
+if usePhotoSelection
+  if ~isfield(Sys,'tdm') || isempty(Sys.tdm)
+    error('To include photoselection weights, Sys.tdm must be given.');
+  end
+  if ischar(Exp.lightBeam)
+    k = [0;1;0]; % beam propagating along yL
+    switch Exp.lightBeam
+      case 'perpendicular'
+        alpha = -pi/2; % gives E-field along xL
+      case 'parallel'
+        alpha = pi; % gives E-field along zL
+      case 'unpolarized'
+        alpha = NaN; % unpolarized beam
+      otherwise
+        error('Unknown string in Exp.lightBeam. Use '''', ''perpendicular'', ''parallel'' or ''unpolarized''.');
+    end
+    Exp.lightBeam = {k alpha};
+  else
+    if ~iscell(Exp.lightBeam) || numel(Exp.lightBeam)~=2
+      error('Exp.lightBeam should be a 2-element cell {k alpha}.')
+    end
+  end
+end
+
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 
 
 % Options
@@ -195,7 +233,7 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
 if ~isfield(Opt,'PerturbOrder'), Opt.PerturbOrder = 2; end
 
-if (numel(Opt.PerturbOrder)~=1) || ~isreal(Opt.PerturbOrder)
+if numel(Opt.PerturbOrder)~=1 || ~isreal(Opt.PerturbOrder)
   error('Opt.PerturbOrder must be either 1 or 2.');
 end
 switch Opt.PerturbOrder
@@ -217,7 +255,7 @@ if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
 
 E0 = Exp.mwFreq*1e3; % MHz
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
   invA{iNuc} = inv(A_); % gives an error with zero hf couplings
@@ -233,7 +271,7 @@ immediateBinning = Opt.ImmediateBinning;
 
 if immediateBinning
 else
-  if (nNuclei>0)
+  if nNuclei>0
     idxn = allcombinations(idxn{:});
   else
     idxn = 1;
@@ -268,8 +306,8 @@ c2 = c.^2;
 
 % Loop over all orientations
 for iOri = nOrientations:-1:1
-  R = erot(Orientations(iOri,:));
-  n0 = R.'*nB0;  % transform to molecular frame representation
+  R_L2M = erot(Orientations(iOri,:)).';  % lab frame -> molecular frame
+  n0 = R_L2M*nB0_L;  % transform to molecular frame representation
   vecs(:,iOri) = n0;
   
   geff(iOri) = norm(g.'*n0);
@@ -280,36 +318,51 @@ for iOri = nOrientations:-1:1
   
   % Compute intensities
   %----------------------------------------------------------------
+  % Compute photoselection weight if needed
+  if usePhotoSelection
+    k = Exp.lightBeam{1};  % propagation direction
+    alpha = Exp.lightBeam{2};  % polarization angle
+    if averageOverChi
+      ori = Orientations(iOri,1:2);  % omit chi
+    else
+      ori = Orientations(iOri,1:3);
+    end
+    photoWeight = photoselect(Sys.tdm,ori,k,alpha);
+    % Add isotropic contribution (from scattering)
+    photoWeight = (1-Exp.lightScatter)*photoWeight + Exp.lightScatter;
+  else
+    photoWeight = 1;
+  end
 
   % Compute quantum-mechanical transition rate
-  if (AverageOverChi)
-    if (linearpolarizedMode)
+  if averageOverChi
+    if mwmode.linearpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1-xi1^2)*(trgg-norm(g*u)^2);
-    elseif (unpolarizedMode)
+    elseif mwmode.unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
-    elseif (circpolarizedMode)
+    elseif mwmode.circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
-        circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
+        mwmode.circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
-    if (linearpolarizedMode)
-      nB1_ = R.'*nB1; % transform to molecular frame representation
+    if mwmode.linearpolarizedMode
+      nB1_ = R_L2M*nB1; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*norm(cross(g.'*nB1_,u))^2;
-    elseif (unpolarizedMode)
-      nk_ = R.'*nk; % transform to molecular frame representation
+    elseif mwmode.unpolarizedMode
+      nk_ = R_L2M*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
-    elseif (circpolarizedMode)
-      nk_ = R.'*nk; % transform to molecular frame representation
+    elseif mwmode.circpolarizedMode
+      nk_ = R_L2M*nk; % transform to molecular frame representation
       TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
-        circSense*2*c2*det(g)*xik/norm(g.'*n0);
+        mwmode.circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
   end
 
-  % Compute Aasa-V�nng�rd 1/g factor (frequency-to-field conversion factor)
+  % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
   dBdE = (planck/bmagn*1e9)/geff(iOri);
   
   % Combine all factors into overall line intensity
-  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE;
+  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE*photoWeight;
   
   if highSpin
     Du = D*u;
@@ -323,13 +376,13 @@ for iOri = nOrientations:-1:1
   for mS = S:-1:-S+1
     imS = imS + 1;
 
-    % first-order
+    % first-order correction
     if highSpin
       E1D = -uDu/2*(3-6*mS);
     else
       E1D = 0;
     end
-    if (nNuclei>0)
+    if nNuclei>0
       for iNuc = 1:nNuclei
         K = A{iNuc}*u;
         nK = norm(K);
@@ -345,7 +398,7 @@ for iOri = nOrientations:-1:1
       E1A = 0;
     end
 
-    % second-order
+    % second-order correction
     E2D = 0;
     if secondOrder
       if highSpin
@@ -355,7 +408,7 @@ for iOri = nOrientations:-1:1
       else
         E2DA = 0;
       end
-      if (nNuclei>0)
+      if nNuclei>0
         for n = 1:nNuclei
           k_ = k(:,n);
           Ak = A{n}.'*k_;
@@ -422,20 +475,14 @@ if immediateBinning
 else
   % Positions
   %-------------------------------------------------------------------
-  B = [];
-  for iTrans = 1:nTransitions
-    B = [B Bfinal{iTrans}];
-  end
-  B = B.'*1e3; % T -> mT
+  B = [Bfinal{:}].';
+  B = B*1e3;  % T -> mT
   
   % Intensities
   %-------------------------------------------------------------------
   nNucSublevels = prod(nNucStates);
-  Int = [];
-  for iTrans = nTransitions:-1:1
-    Int = [Int; repmat(Intensity(iTrans,:),nNucSublevels,1)];
-  end
-  Int = Int/nNucSublevels;
+  Int = repelem(Intensity,nNucSublevels,1)/nNucSublevels;
+  Int = flipud(Int);
   
   % Widths
   %-------------------------------------------------------------------
@@ -450,16 +497,16 @@ else
   if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     
     if any(Sys.gStrain(:))
-      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3; % -> MHz
+      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3;  % -> MHz
       if any(Sys.gFrame(:))
-        R_g2M = erot(Sys.gFrame(1,:)).'; % g frame -> molecular frame
+        R_g2M = erot(Sys.gFrame(1,:)).';  % g frame -> molecular frame
         gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
       end
     else
       gStrainMatrix = zeros(3);
     end
     
-    if any(Sys.AStrain) && (Sys.nNuclei>0)
+    if any(Sys.AStrain) && Sys.nNuclei>0
       AStrainMatrix = diag(Sys.AStrain);
       if isfield(Sys,'AFrame')
         Rp = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame
@@ -529,15 +576,17 @@ else
   
   % Transitions
   %-------------------------------------------------------------------
-  nI = prod(nNucStates);
   Transitions = [];
-  Manifold = (1:nI).';
-  for k = 1:2*S
-    Transitions = [Transitions; [Manifold Manifold+nI]];
-    Manifold = Manifold + nI;
+  lowerLevels = (1:nNucSublevels).';
+  for mSidx = 1:2*S
+    upperLevels = lowerLevels + nNucSublevels;  % only correct for weak HFC
+    newTransitions = [lowerLevels upperLevels];
+    Transitions = [Transitions; newTransitions];  %#ok
+    lowerLevels = upperLevels;
   end
-  
+
   spec = 0;
+
 end
 
 % Reshape arrays in the case of crystals with site splitting
@@ -555,4 +604,4 @@ end
 Output = {B,Int,Wid,Transitions,spec};
 varargout = Output(1:max(nargout,1));
 
-return
+end

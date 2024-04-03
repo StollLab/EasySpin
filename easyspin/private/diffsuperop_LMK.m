@@ -180,7 +180,7 @@ else
   
 end
 
-return
+end
 
 %===============================================================================
 % Calculate matrix representations of angular-momentum operators in LMK basis.
@@ -217,7 +217,7 @@ didx = 1:nBasis;
 J2 = sparse(didx,didx,L.*(L+1));
 Jz = sparse(didx,didx,K);
 
-return
+end
 
 
 %===============================================================================
@@ -282,4 +282,6 @@ for iOp = 1:nOps
   
   DLMK{iOp} = sparse(D_);
   
+end
+
 end

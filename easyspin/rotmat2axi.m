@@ -32,4 +32,4 @@ else
   n = n/norm(n);
 end
 
-return
+end

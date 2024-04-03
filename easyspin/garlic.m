@@ -4,6 +4,7 @@
 %   garlic(Sys,Exp,Opt)
 %   spec = ...
 %   [B,spec] = ...
+%   [B,spec,info] = ...
 %
 %   Computes the solution cw EPR spectrum of systems with
 %   an unpaired electron and arbitrary numbers of nuclear spins.
@@ -47,13 +48,14 @@
 %                     'explicit' - explicit evaluation of line shape for each line
 %      IsoCutoff    relative isotopologue abundance cutoff threshold
 %                     between 0 and 1, default 1e-6
+%      separate     subspectra output, '' (default) or 'components'
 %
 %   Output
 %     B                magnetic field axis (mT)
 %     spec             spectrum (arbitrary units)
+%     info             structure with details about the calculation
 %
-%     If no output parameter is specified, the simulated spectrum
-%     is plotted.
+%     If no output parameter is specified, the simulated spectrum is plotted.
 
 function varargout = garlic(Sys,Exp,Opt)
 
@@ -64,7 +66,7 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 % Check Matlab version.
-error(chkmlver);
+warning(chkmlver);
 
 switch nargin
   case 1, error('Experimental parameters (2nd input) are missing!');
@@ -89,9 +91,9 @@ EasySpinLogLevel = Opt.Verbosity;
 %==================================================================
 % Loop over components and isotopologues
 %==================================================================
-FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+Exp.FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
 
-if FrequencySweep
+if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
     (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
 else
@@ -107,100 +109,51 @@ else
   end
 end
 
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
-summedOutput = Output==1;
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+if separateTransitionSpectra
+  error('garlic does not support Opt.separate=''transitions''.')
+end
+if separateSiteSpectra
+  error('garlic does not support Opt.separate=''sites''.')
+end
+if separateOrientationSpectra
+  error('garlic does not support Opt.separate=''orientations''.')
+end
+
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
   
-  if ~iscell(Sys), Sys = {Sys}; end
-  
-  nComponents = numel(Sys);
-  if nComponents>1
-    logmsg(1,'  %d component spin systems...');
-  else
-    logmsg(1,'  single spin system');
-  end
-  
-  for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
-    nIsotopologues(c) = numel(SysList{c});
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  
-  if sum(nIsotopologues)>1 && SweepAutoRange
-    if FrequencySweep
-      str = 'Exp.mwRange or Exp.mwCenterSweep';
-    else
-      str = 'Exp.Range or Exp.CenterSweep';
-    end
-    error('Multiple components: Please specify sweep range manually using %s.',str);
-  end
-  
-  separateSpectra = ~summedOutput && ...
-    (nComponents>1 || sum(nIsotopologues)>1);
-  if separateSpectra
-    spec = [];
-    Opt.Output = 'summed'; % summed spectrum for each isotopologue
-  else
-    spec = 0;
-  end
-  
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [xAxis,spec_,Transitions] = garlic(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
-      if separateSpectra
-        spec = [spec; spec_*Sys_.weight];
-      else
-        spec = spec + spec_*Sys_.weight;
-      end
-      
-    end
-  end
+  thirdOutput = nargout>=3;
+  [xAxis,spec,info] = compisoloop(@garlic,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
     case 0
-      cla
-      if FrequencySweep
-        if xAxis(end)<1
-          plot(xAxis*1e3,spec);
-          xlabel('frequency (MHz)');
-        else
-          plot(xAxis,spec);
-          xlabel('frequency (GHz)');
-        end
-        title(sprintf('%0.8g mT',Exp.Field));
-      else
-        if xAxis(end)<10000
-          plot(xAxis,spec);
-          xlabel('magnetic field (mT)');
-        else
-          plot(xAxis/1e3,spec);
-          xlabel('magnetic field (T)');
-        end
-        title(sprintf('%0.8g GHz',Exp.mwFreq));
-      end
-      axis tight
-      ylabel('intensity (arb.u.)');    
-    case 1, varargout = {spec};
-    case 2, varargout = {xAxis,spec};
-    case 3, varargout = {xAxis,spec,Transitions};
+      cwepr_plot(xAxis,spec,Exp);
+    case 1
+      varargout = {spec};
+    case 2
+      varargout = {xAxis,spec};
+    case 3
+      varargout = {xAxis,spec,info};
   end
   return
 end
 %==================================================================
 
 if EasySpinLogLevel>=1
-  logmsg(1,['=begin=garlic=====' datestr(now) '=================']);
+  logmsg(1,['=begin=garlic=====' char(datetime) '=================']);
 end
 
 %-------------------------------------------------------------------------
@@ -262,11 +215,29 @@ ConvolutionBroadening = any(Sys.lw>0) || FastMotionRegime;
 DefaultExp.Harmonic = [];
 DefaultExp.nPoints = 1024;
 DefaultExp.ModAmp = 0;
-DefaultExp.Mode = 'perpendicular';
+DefaultExp.mwMode = 'perpendicular';
 DefaultExp.mwPhase = 0;
 DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
 Exp = adddefaults(Exp,DefaultExp);
+
+% Check for obsolete fields
+if isfield(Exp,'Orientations')
+  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
+end
+if isfield(Exp,'CrystalOrientation')
+  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
+end
+
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
+% Partial ordering is not supported
+if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
+  error('Partial ordering (via Exp.Ordering) is not supported.')
+end
 
 % Microwave frequency
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
@@ -293,6 +264,12 @@ else
     error('Uninterpretable magnetic field in Exp.Field.');
   end
   logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+end
+
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
 end
 
 % Sweep range (magnetic field or frequency)
@@ -364,14 +341,14 @@ if noBroadening && (Exp.Harmonic~=0)
 end
 
 % Resonator mode
-if strcmp(Exp.Mode,'perpendicular')
-  ParallelMode = 0;
-elseif strcmp(Exp.Mode,'parallel')
-  ParallelMode = 1;
+if strcmp(Exp.mwMode,'perpendicular')
+  ParallelMode = false;
+elseif strcmp(Exp.mwMode,'parallel')
+  ParallelMode = true;
 else
-  error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Temperature
 if ~isnan(Exp.Temperature)
@@ -412,17 +389,11 @@ end
 
 
 % Complain if fields only valid in pepper() are given
-if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is not used by garlic.');
-end
-if isfield(Exp,'Ordering')
-  warning('Exp.Ordering is not used by garlic.');
-end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by garlic.');
 end
-if isfield(Exp,'CrystalOrientation')
-  warning('Exp.CrystalOrientation is not used by garlic.');
+if isfield(Exp,'SampleFrame')
+  warning('Exp.SampleFrame is not used by garlic.');
 end
 
 
@@ -432,6 +403,10 @@ end
 %-------------------------------------------------------------------------
 % Simulation options
 %-------------------------------------------------------------------------
+% Obsolete options
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Options.separate instead.');
+end
 
 % Stretch factor for automatically detected field range
 if ~isfield(Opt,'Stretch')
@@ -514,7 +489,7 @@ if Sys.nNuclei>0
   else
     for iNuc=1:Sys.nNuclei
       Adiag_ = eig(Sys.A((iNuc-1)*3+(1:3),:));
-      a_all(iNuc) = mean(Adiag_)*1e6; % isotropic A values, MHz -> Hz
+      a_all(iNuc) = mean(Adiag_)*1e6; %#ok % isotropic A values, MHz -> Hz  
     end
   end
   n_all = Sys.n;
@@ -575,7 +550,7 @@ for iNucGrp = 1:Sys.nNuclei
         I = I_this(iF);
         mI = -I:I;
         B_ = 0;
-        RelChangeB = inf;
+        RelChangeB = Inf;
         gamman = 0; % to obtain start field, neglect NZI
         for iter = 1:Opt.MaxIterations
           nu = mwFreq + gamman/h*B_;
@@ -592,10 +567,10 @@ for iNucGrp = 1:Sys.nNuclei
         end
         if iter>maxIterationsDone, maxIterationsDone = iter; end
         if iter==Opt.MaxIterations
-          error(sprintf('Breit-Rabi solver didn''t converge after %d iterations!',iter));
+          error('Breit-Rabi solver didn''t converge after %d iterations!',iter);
         end
-        Positions = [Positions B_];
-        Intensities = [Intensities nn(iF)/nLines*ones(size(B_))];
+        Positions = [Positions B_];  %#ok
+        Intensities = [Intensities nn(iF)/nLines*ones(size(B_))];  %#ok
       end
       logmsg(1,'  maximum %d iterations done',maxIterationsDone);
       
@@ -634,8 +609,8 @@ for iNucGrp = 1:Sys.nNuclei
           if iter==Opt.MaxIterations
             error('Newton-Raphson has convergence problem!');
           end
-          Positions(end+1) = Bb; % T
-          Intensities(end+1) = nn(iF)/nLines;
+          Positions(end+1) = Bb;  %#ok % T
+          Intensities(end+1) = nn(iF)/nLines;  %#ok
         end
       end
       logmsg(1,'  maximum %d iterations done',maxIterationsDone);
@@ -662,8 +637,8 @@ for iNucGrp = 1:Sys.nNuclei
         E1 = -aiso/4-gnbB*(mI+1/2)+(I+1/2)*aiso/2*sqrt(1+2*(mI+1/2)/(I+1/2)*alpha+alpha^2);
         E2 = -aiso/4-gnbB*(mI-1/2)-(I+1/2)*aiso/2*sqrt(1+2*(mI-1/2)/(I+1/2)*alpha+alpha^2);
         nu_ = (E1-E2)/planck; % J -> Hz
-        Positions = [Positions nu_]; % Hz
-        Intensities = [Intensities nn(iF)/nLines*ones(size(nu_))];
+        Positions = [Positions nu_];   %#ok % Hz
+        Intensities = [Intensities nn(iF)/nLines*ones(size(nu_))];  %#ok
       end
       
     else
@@ -684,8 +659,8 @@ for iNucGrp = 1:Sys.nNuclei
           c(6) = pre(4) * mI * (1+6*(I-1)*I*(I+1)*(I+2)-10*(-3+2*I*(I+1))*mI^2+14*mI^4);
           dE = sum(c(1:PerturbOrder+1));
           nu_ = dE/planck; % Joule -> Hz
-          Positions(end+1) = nu_; % Hz
-          Intensities(end+1) = nn(iF)/nLines;
+          Positions(end+1) = nu_;   %#ok % Hz
+          Intensities(end+1) = nn(iF)/nLines;  %#ok
         end
       end
       
@@ -815,10 +790,10 @@ switch Opt.AccumMethod
     logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
   
     if LorentzianLw==0
-      error('Cannot use templated linshape accumulation with zero linewidth.');
+      error('Cannot use templated linshape accumulation with zero Lorentzian linewidth.');
     end
     if Exp.mwPhase~=0
-      error('Cannot use templated linshape accumulation with non-zero Exp.mwPhase.');
+      error('Cannot use templated lineshape accumulation with non-zero Exp.mwPhase.');
     end
     
     dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
@@ -826,13 +801,14 @@ switch Opt.AccumMethod
     xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
     dxFine = xAxisFine(2) - xAxisFine(1);
     
-    xT = 1e5;
-    wT = xT/20; % 0.0025 at borders for Harmonic = -1
-    Template = lorentzian(0:2*xT-1,xT,wT,Exp.Harmonic-1);
+    x0T = 1e5;
+    wT = x0T/20; % 0.0025 at borders for Harmonic = -1
+    xT = 0:2*x0T-1;
+    Template = lorentzian(xT,x0T,wT,Exp.Harmonic-1);
     if numel(LorentzianLw)==1
       LorentzianLw = LorentzianLw*ones(size(Positions));
     end
-    spec = lisum1i(Template,xT,wT,Positions,Intensities,LorentzianLw,xAxisFine);
+    spec = lisum1i(Template,x0T,wT,Positions,Intensities,LorentzianLw,xAxisFine);
     Exp.ConvHarmonic = 0;
     LorentzianLw = 0;
 
@@ -906,9 +882,9 @@ if ConvolutionBroadening
   if FieldSweep
     unitstr = 'mT';
   else
-    unitstr = 'MHz';
     fwhmL = fwhmL/1e3; % MHz -> GHz
     fwhmG = fwhmG/1e3; % MHz -> GHz
+    unitstr = 'GHz';
   end
   
   % Convolution with Lorentzian
@@ -920,7 +896,7 @@ if ConvolutionBroadening
       if HarmonicL==0
         % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
       else
-        error('Lorentzian linewidth is smaller than increment - cannot perform convolution.');
+        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmL,unitstr,dxFine,2*dxFine,unitstr);
       end
     end
   end
@@ -934,7 +910,7 @@ if ConvolutionBroadening
       if HarmonicG==0
         % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
       else
-        error('Gaussian linewidth is smaller than increment - cannot perform convolution.');
+        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmG,unitstr,dxFine,2*dxFine,unitstr);
       end
     end
   end
@@ -962,16 +938,20 @@ end
 %===================================================================
 
 switch nargout
-  case 1, varargout = {spec};
-  case 2, varargout = {xAxis,spec};
-  case 3, varargout = {xAxis,spec,Positions};
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    info.resfields = Positions;
+    varargout = {xAxis,spec,info};
 end
 if EasySpinLogLevel>=1
-  logmsg(1,'=end=garlic=======%s=================\n',datestr(now));
+  logmsg(1,'=end=garlic=======%s=================\n',char(datetime));
 end
 clear global EasySpinLogLevel
 
-return
+end
 
 
 %===================================================================
@@ -995,4 +975,4 @@ end
 % Bin in-range lines into spectrum
 Spectrum = full(sparse(1,idxPositions(inRange),Amplitudes(inRange),1,nPoints));
 
-return
+end

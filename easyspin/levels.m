@@ -1,51 +1,56 @@
 % levels  Energy levels of a spin system 
 %
-%   En = levels(SpinSystem)
-%   En = levels(SpinSystem,Ori,B)
-%   En = levels(SpinSystem,phi,theta,B)
-%   [En,Ve] = levels(...);
+%   E = levels(SpinSystem,Ori,B)
+%   E = levels(SpinSystem,phi,theta,B)
+%   [E,V] = levels(...)
 %
 %   Calculates energy levels of a spin system.
 %
 %   Input:
-%   - SpinSystem: spin system specification structure
-%   - phi,theta: vectors of orientation angles of
-%     magnetic field (in radians); assumed zero if not given
+%   - SpinSystem: spin system structure
+%   - phi,theta: vectors of polar angles (in radians) specifying orientation
+%                of magnetic field in molecular frame
 %   - Ori: orientations of the field in the molecular frame
 %       a) nx2 array of Euler angles (phi,theta), or
 %       b) nx3 array of Euler angles (phi,theta,chi), or
 %       c) 'x', 'y', 'z', 'xy', 'xz', 'yz', 'xyz' for special directions
-%   - B: array of magnetic field magnitudes (mT), assumed 0 if not given
+%       phi and theta are the polar angles; the field direction is
+%       independent of chi
+%   - B: array of magnetic field magnitudes (mT)
 %
 %   Output:
-%   - En: array containing all energy eigenvalues (in MHz), sorted,
-%     for all possible (phi,theta,B) or (Ori,B) combinations. Depending
-%     on the dimensions of Ori, phi,theta and B, out can be up
-%     to 4-dimensional. The dimensions are in the order phi,
-%     theta (or Ori), field, level number.
+%   - E: array containing all energy eigenvalues (in MHz), sorted,
+%        for all possible (phi,theta,B) or (Ori,B) combinations. Depending
+%        on the dimensions of Ori, phi, theta and B, E can be up
+%        to 4-dimensional. The dimensions are in the order phi,
+%        theta (or Ori), field, level number.
+%   - V: array of eigenvectors
+%
+%   Example:
+%
+%    Sys = struct('S',5/2,'D',1000);
+%    B = linspace(0,600,601);  % mT
+%    E = levels(Sys,'z',B);
+%    plot(B,E);
 
 function [Energies,Vectors] = levels(varargin)
 
-error(chkmlver); % Error if MATLAB is too old.
+warning(chkmlver);  % Error if MATLAB is too old.
 
 switch nargin
   case 0
     help(mfilename);
-    return;
+    return
   case 1
-    SpinSystem = varargin{1};
-    phi = 0;
-    theta = 0;
-    MagnField = 0;
-    OriList = false;
+    error('At least three input arguments (Sys, Ori, B0) expected.');
   case 2
     error('Third input argument (magnetic field range) is missing.');
   case 3
     OriList = true;
     [SpinSystem,Ori,MagnField] = deal(varargin{:});
     if ischar(Ori)
-      n = letter2vec(Ori);
-      Ori = vec2ang(n).';
+      zL = letter2vec(Ori);
+      Ori = vec2ang(zL).';
     end
   case 4
     OriList = false;
@@ -54,13 +59,10 @@ switch nargin
     error('Wrong number of input arguments!')
 end
 
-nFieldPoints = 200;
+nFieldPoints = 101;
 switch numel(MagnField)
   case 1
-    if MagnField>0
-      MagnField = [0 MagnField];
-      MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
-    end
+    % single field value given
   case 2
     MagnField = linspace(MagnField(1),MagnField(2),nFieldPoints);
   otherwise
@@ -71,18 +73,19 @@ switch nargout
 case 0, computeVectors = false;
 case 1, computeVectors = false;
 case 2, computeVectors = true;
-otherwise, error('Wrong number of output arguments');
+otherwise, error('Wrong number of output arguments!');
 end
 
-% Check spin system and pre-calculate spin Hamiltonian components.
+% Check spin system
 [Sys,err] = validatespinsys(SpinSystem);
 error(err);
 
-[F,GxM,GyM,GzM] = sham(Sys);
+% Pre-calculate spin Hamiltonian components
+[H0,muxM,muyM,muzM] = ham(Sys);
 
 if OriList
 
-  % Examine Ori array.
+  % Examine Ori array
   if size(Ori,2)==2
     Ori(:,3) = 0;
   elseif size(Ori,2)==3
@@ -93,28 +96,26 @@ if OriList
   nOri = size(Ori,1);
   
   % Pre-allocate results array
-  Energies = zeros(nOri,numel(MagnField),length(F));
+  Energies = zeros(nOri,numel(MagnField),length(H0));
   if computeVectors
-    Vectors = zeros(nOri,numel(MagnField),length(F),length(F));
+    Vectors = zeros(nOri,numel(MagnField),length(H0),length(H0));
   end
   
   % Loop over all parameter combinations
-  zL = ang2vec(Ori(:,1),Ori(:,2)); % z direction in lab frame
+  zL_M = ang2vec(Ori(:,1),Ori(:,2));  % lab frame z direction in molecular frame
   for iOri = 1:nOri
-    G = zL(1,iOri)*GxM + zL(2,iOri)*GyM + zL(3,iOri)*GzM;
+    muzL = zL_M(1,iOri)*muxM + zL_M(2,iOri)*muyM + zL_M(3,iOri)*muzM;
     for iField = 1:length(MagnField)
-      H = F + MagnField(iField)*G;
+      H = H0 - MagnField(iField)*muzL;
       if computeVectors
-        [V_,E] = eig(H);
-        E = diag(E);
-        [E,idx] = sort(E);
-        V_ = V_(:,idx);
+        [V_,E_] = eig(H);
+        E_ = diag(E_);
         Vectors(iOri,iField,:,:) = V_;
       else
-        E = eig(H);
-        E = sort(E);
+        E_ = eig(H);
+        E_ = sort(E_);
       end
-      Energies(iOri,iField,:) = E;
+      Energies(iOri,iField,:) = E_;
     end
   end
 
@@ -126,35 +127,38 @@ else
   costheta = cos(theta);
   sintheta = sin(theta);
   
-  % Pre-allocate results array
-  Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(F));
+  % Pre-allocate output arrays
+  Energies = zeros(numel(phi),numel(theta),numel(MagnField),length(H0));
   if computeVectors
-    Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(F),length(F));
+    Vectors = zeros(numel(phi),numel(theta),numel(MagnField),length(H0),length(H0));
   end
   
   % Loop over all parameter combinations
   for iphi = 1:length(phi)
-    GxyM = cosphi(iphi)*GxM + sinphi(iphi)*GyM;
+    muxyM = cosphi(iphi)*muxM + sinphi(iphi)*muyM;
     for itheta = 1:length(theta)
-      G = sintheta(itheta)*GxyM + costheta(itheta)*GzM;
+      muzL = sintheta(itheta)*muxyM + costheta(itheta)*muzM;
       for iField = 1:length(MagnField)
+        H = H0 - MagnField(iField)*muzL;
         if computeVectors
-          [Vectors(iphi,itheta,iField,:,:),E] = eig(F + MagnField(iField)*G);
-          E = diag(E);
+          [V_,E_] = eig(H);
+          E_ = diag(E_);
+          Vectors(iphi,itheta,iField,:,:) = V_;
         else
-          E = sort(eig(F + MagnField(iField)*G));
+          E_ = eig(H);
+          E_ = sort(E_);
         end
-        Energies(iphi,itheta,iField,:) = E;
+        Energies(iphi,itheta,iField,:) = E_;
       end
     end
   end
   
 end
 
-% Remove singleton dimensions.
+% Remove singleton dimensions
 Energies = squeeze(Energies);
 if computeVectors
   Vectors = squeeze(Vectors);
 end
 
-return
+end

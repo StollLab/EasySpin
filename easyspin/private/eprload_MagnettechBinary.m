@@ -56,18 +56,18 @@ GainMantissa = readfbs();
 GainExponent = readfbs();
 Parameters.Gain = GainMantissa*10^round(GainExponent);
 Parameters.Number = readfbs();
-reserve = readfbs();
+[~] = readfbs();
 Parameters.Time_const = readfbs(); % s
-reserve = readfbs();
-reserve = readfbs();
+[~] = readfbs();
+[~] = readfbs();
 Parameters.NumberSamples = readfbs();
 if temperatureAvailable
   Parameters.Temperature = fread(hMagnettechFile,1,'int32'); % degree C
 else
-  reserve = fread(hMagnettechFile,1,'int32');
+  [~] = fread(hMagnettechFile,1,'int32');
   Parameters.Temperature = [];
 end
-reserve = readfbs();
+[~] = readfbs();
 Parameters.FileFlags = fread(hMagnettechFile,1,'uint8');
 if mwFreqAvailable
   mwf = fread(hMagnettechFile,3,'uint8');

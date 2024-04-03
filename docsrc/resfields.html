@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>resfields</title>
 </head>
 
@@ -99,17 +99,21 @@ This field specifies the temperature of the spin system in the EPR experiment, i
 </p>
 
 <p>
-To specify non-equilibrium populations, use the spin system field <code>Sys.Pop</code>. See the <a href="spinpolarization.html">user guide on spin polarization</a>.
+To specify non-equilibrium populations, use the spin system field <code>Sys.initState</code>. See the <a href="spinpolarization.html">user guide on spin polarization</a>.
 </p>
 </div>
 
-<div class="optionfield"><code>CrystalOrientation</code></div>
+<div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
-A list of orientations for which resonance fields should be computed. It can be either a nx2 or a nx3 array, giving either two or three <a href="eulerangles.html">Euler angles</a>, in radians, per row to describe each orientation. The angles describe the transformation from the <a href="frames.html">crystal frame (C) to the lab frame(L)</a>. The external field is along the lab z axis (zL), and the microwave field is along the lab x axis (xL). Resonance fields and frequencies depend only on the first two angles, intensities also on the third.
-
 <p>
-&phi;, in the first column, is the angle between the xC axis and the xCyC plane projection of the orientation of the external field (zL) in the molecular frame of the spin system. &theta;, in the second column, is the angle at which the external field is off the zC axis. The optional &chi;, in the third column, specifies the third Euler angle and fixes the xL axis of the laboratory in the crystal frame. If the third angle is not given, it is assumed to be zero.
+An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
 </p>
+<pre class="matlab">
+Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
+Exp.SampleFrame = [0 pi/2 0];                % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relative to lab frame
+Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
+</pre>
 </div>
 
 <div class="optionfield"><code>CrystalSymmetry</code></div>
@@ -130,41 +134,71 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">
-The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the crystal frame (xC,yC,zC).
+<p>
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the sample frame (xS,yS,zS).
 </p>
 </div>
 
-<div class="optionfield"><code>mwPolarization</code></div>
-<div class="optiondescr">
-Gives the polarization of the incident radiation. The following values are possible: <code>'linear'</code> (default), <code>'circular+'</code>, <code>'circular-'</code>, <code>'unpolarized'</code>. <code>'circular+'</code> (<code>'circular-</code>) means that the magnetic field component of the radiation is rotating in the positive (negative) sense around the propagation direction.
-</div>
 
-<div class="optionfield"><code>Mode</code></div>
+<div class="optionfield"><code>mwMode</code></div>
 <div class="optiondescr">
-Determines the excitation mode. Possible values: <code>'perpendicular'</code> (default), <code>'parallel'</code>, <code>[k_tilt alpha_pol]</code>.
+<p>
+Specifies the microwave excitation mode. Possible settings are
+</p>
+<pre class="matlab">
+Exp.mwMode = 'perpendicular';  % default
+Exp.mwMode = 'parallel';
+Exp.mwMode = {k pol};
+</pre>
 
 <p>
 <em>Resonator experiments:</em><br>
-For conventional experiments involving linear polarized microwave in a standard resonator, use <code>'perpendicular'</code> (default) or <code>'parallel'</code>. In the perpendicular mode, the microwave field B<sub>1</sub> is along the laboratory x axis (xL), in the parallel mode it is along the z axis (zL), parallel to the external static field B<sub>0</sub>. The perpendicular detection mode is by far the most common.
+For conventional experiments with linearly polarized microwave in a resonator, use <code>'perpendicular'</code> (default) or <code>'parallel'</code>. In the perpendicular mode, the microwave magnetic field B<sub>1</sub> is oscillating along the laboratory x axis (xL), perpendicular to the external static magnetic field B<sub>0</sub>. In the parallel mode, it is oscillating along the laboratory z axis (zL), parallel to B<sub>0</sub>. The perpendicular mode is by far the most common.
+</p>
 
 <p>
 <em>Beam experiments:</em><br>
-For beam experiments, specify the angle between the propagation vector k and the static magnetic field B<sub>0</sub> in <code>k_tilt</code>, in radians. <code>Param.Mode = 0</code> corresponds to Faraday geometry, where B<sub>0</sub> and k are parallel. <code>Param.Mode = pi/2</code> corresponds to Voigt mode, where B<sub>0</sub> and k are perpendicular. B<sub>0</sub> is along the laboratory z axis (zL), <code>[0; 0; 1]</code> in the lab frame. Together, B0 and k define the zL-yL plane, where yL is the laboratory y axis.
+For experiments with a microwave (or THz) beam, use <code>Exp.mwMode = {k pol}</code>. <code>k</code> specifies the propagation direction, in one of three possible ways: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element cartesian vector, e.g. <code>[0;1;0]</code> specifies the lab y axis; (iii) two polar angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between the microwave propagation direction and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis.
+</p>
 
 <p>
-<code>alpha_pol</code> gives the polarization angle of the radiation. <code>alpha_pol</code> is the angle off the zL-yL plane in the plane perpendicular to the propagation vector k. This has only an effect for linearly polarized excitation (<code>Param.Mode = 'linear'</code>).
+For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the microwave propagation direction <code>nk</code> and the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
+<pre class="matlab">
+k = 'y';   % propagation along y lab axis
+pol = -pi/2; % B1 along x lab axis
+[phi,theta] = vec2ang(k);  % convert to angles
+[nB1,~,nk]  = erot([phi,theta,pol],'rows')
+</pre>
 
 <p>
-In the lab frame, the direction of propagation is
-<pre class="matlab">
-nk  = [0; sin(k_tilt); cos(k_tilt)]
-</pre>
-and the direction of the linearly polarized B1 field is
-<pre class="matlab">
-nB1 = [sin(alpha_pol); -cos(alpha_pol)*cos(k_tilt); cos(alpha_pol)*sin(k_tilt)]
-</pre>
+For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly polarized radiation, set <code>pol='circular+'</code> or <code>pol='circular-'</code>, depending on the sense of rotation.
+</p>
+
 </ul>
 
+</div>
+
+<div class="optionfield"><code>lightBeam</code></div>
+<div class="optiondescr">
+<p>
+Specifies mode of photoexcitation. If photoexcitation is present, photoselection weights will be calculated and included into the spectral line intensities. For this, the transition dipole moment direction must be provided in <code>Sys.tdm</code> (see <a href="spinsystem.html#light">here</a>).
+</p>
+<p>
+Possible settings for <code>lightBeam</code> are
+<ul>
+<li><code>Exp.lightBeam = ''</code> - no photoexcitation (default)
+<li><code>Exp.lightBeam = 'perpendicular'</code> - polarized light incident along the lab y direction (perpendicular to B<sub>0</sub>) with E-field along the lab x direction (also perpendicular to B<sub>0</sub>)
+<li><code>Exp.lightBeam = 'parallel'</code> - polarized light incident along the lab y direction (perpendicular to B<sub>0</sub>) with E-field along the lab z direction (parallel to B<sub>0</sub>)
+<li><code>Exp.lightBeam = 'unpolarized'</code> - unpolarized light incident along the lab y direction (perpendicular to B0) with E-field uniformly distributed in the lab xz plane
+<li><code>Exp.lightBeam = {k alpha}</code> - light incident along propagation direction <code>k</code> with polarization given by <code>alpha</code>. There are three ways to specify <code>k</code>: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element cartesian vector, e.g. <code>[0;1;0]</code> specifies the lab y axis; (iii) two angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between the propagation direction and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis. <code>alpha</code> is the polarization angle, in radians. To represent an unpolarized beam, set <code>alpha=NaN</code>.
+</ul>
+</div>
+
+<div class="optionfield"><code>lightScatter</code></div>
+<div class="optiondescr">
+<p>
+Contribution of isotropically scattered light to photoexcitation (see <code>lightBeam</code>), as a value between 0 and 1. 0 means no isotropic contribution (only direct excitation by polarized or unpolarized beam), 1 indicates 100 percent isotropic contribution (essentially beam direction and polarization have no effect).
+</p>
 </div>
 
 <div class="subtitle2">Input: Options</div>
@@ -179,6 +213,12 @@ The fields are different for <code>resfields</code>/<code>resfreqs_matrix</code>
 <p>
 For <code>resfields</code> and <code>resfreqs_matrix</code>, the option fields are
 
+<div class="optionfield"><code>Freq2Field</code>, <code>1</code> (default) or <code>0</code>
+</div>
+<div class="optiondescr">
+Determines whether the frequency-to-field conversion factor is included in the line intensities of field-swept spectra. <code>1</code> indicates yes, <code>0</code> indicates no. The factor is the generalized 1/g Aasa-V&auml;nng&aring;rd factor. This setting is ignored for frequency-swept spectra.
+</div>
+
 <div class="optionfield"><code>Transitions</code></div>
 <div class="optiondescr">
 <em>mx2 vector of integer</em>, or <code>'all'</code><br>
@@ -192,7 +232,7 @@ If <code>'all'</code> is given, all transitions are included.
 
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
-Specifies the threshold for <code>resfields</code>'s transition pre-selection. Any transition with an estimated relative average amplitude less than this number is not included in the calculation. The relative average amplitude of the strongest transition is 1, the default is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the computation.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </div>
 
 <div class="optionfield"><code>Sites</code></div>
@@ -232,6 +272,11 @@ Determines the perturbation theory order. Can be 1 or 2.
 Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, nothing is shown. 1 logs relevant information, 2 gives more details.
 </div>
 
+<div class="optionfield"><code>FuzzLevel</code></div>
+<div class="optiondescr">
+The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot  handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10). This field is only used when matrix diagonalization is used.
+</div>
+
 <div class="subtitle2">Outputs</div>
 
 <p>
@@ -246,40 +291,42 @@ There are up to five outputs from <code>resfields</code>, <code>resfields_pertur
 <div class="subtitle">Examples</div>
 
 <p>
-A comparison between the resonance field position obtained from <code>resfields</code> (spline modelling approach) and <code>eigfields</code> (exact solution) shows that differences are negligible.
+A comparison between the resonance field position obtained from <code>resfields</code> (spline modelling approach) and <code>resfields_eig</code> (exact solution) shows that differences are negligible.
 </p>
 
 <p>
-First we compute the resonance fields for an axial spin system with two equivalent protons.
+First we compute the resonance fields for an axial spin system one electron and one proton.
 </p>
 
 <pre class="matlab">
-Sys = struct('S',.5,'g',[2.3,2.3,2],...
-'Nucs','1H,1H','A',[10 10 500; 10 10 500]);
-Param = struct('mwFreq',9.5,'Range',[200 400]);
-[p,t] = sphgrid('Dinfh',201);
-Param.CrystalOrientation = [p;t].'';
-x = resfields(Sys,Param);
+clear
+Sys.g = [2.05 2.05 2.2];
+Sys.Nucs = '1H';
+Sys.A = [10 10 500];
+Exp.mwFreq = 9.5;
+Exp.Range = [200 400];
+grid = sphgrid('Dinfh',201);
+angles = [grid.phi; grid.theta].';
+Exp.SampleFrame = angles;
+B = resfields(Sys,Exp);
 </pre>
 
 <p>
-Next we compute line positions using <code>eigfields</code>, which is much slower.
+Next we compute line positions using <code>resfields_eig</code>, which is much slower.
 </p>
 <pre class="matlab">
-xr = [];
-for i=1:length(p)
-  Param.CrystalOrientation = [p(i),t(i)];
-  xr(:,i) = eigfields(Sys,Param);
-end
+Br = resfields_eig(Sys,Exp);
+Br = cell2mat(Br);
 </pre>
 
 <p>
 After plotting the result
 </p>
 <pre class="matlab">
-h = plot(t*180/pi,xr,'k.',t*180/pi,x,'r');
-ylim([290 360]);
-xlabel('theta [deg]'); ylabel('field [mT]');
+theta_deg = grid.theta*180/pi;
+plot(Br,theta_deg,'k.',B,theta_deg,'r');
+xlabel('field (mT)');
+ylabel('theta (deg)');
 </pre>
 
 <p>
@@ -290,7 +337,7 @@ we see that the resonances obtained by the two methods are practically identical
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="eigfields.html">eigfields</a>,
+<a class="esf" href="resfields_eig.html">resfields_eig</a>,
 <a class="esf" href="garlic.html">garlic</a>,
 <a class="esf" href="levels.html">levels</a>,
 <a class="esf" href="levelsplot.html">levelsplot</a>,

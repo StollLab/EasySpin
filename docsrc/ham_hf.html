@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_hf</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_hf</div>
+
+<p>
+Hyperfine interaction Hamiltonian.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Hhf = ham_hf(Sys)
+Hhf = ham_hf(Sys,eSpins,nucSpins)
+Hhf = ham_hf(Sys,eSpins,nucSpins,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_hf</code> constructs the hyperfine interaction part of the <a href="hamiltonian.html#hfi">spin Hamiltonian</a> of <a href="spinsystem.html#A">spin system</a> spin system <code>Sys</code>, that is
+</p>
+
+<div class="eqn">
+<img src="eqn/ham_hf1.png" alt="[eqn]"><!--MATH
+\begin{equation*}
+\Op{H}_\mr{HF}
+=
+\sum_k
+\sum_q
+\opvc{S}_k^\trp \mx{A}_{kq}\opvc{I}_q
+\quad.
+\end{equation*}
+-->
+</div>
+
+<p>
+The operator matrix <code>Hhf</code> is in units of MHz.
+If <code>eSpins</code> and <code>nucSpins</code> are specified, they select the electron and nuclear spins to include.
+For <code>eSpins</code>, 1 indicated the first electron spin.
+For <code>nucSpins</code>, 1 indicates the first nuclear spin.
+For example, for a system with 3 electron spins and 2 nuclei, <code>eSpins=2</code> and <code>nucSpins=[1 2]</code> indicates the hyperfine interactions of electron 2 with both nuclei.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+For a two-spin system <code>AB</code>
+</p>
+
+<pre class="matlab">
+AB = struct('S',1/2,'Nucs','23Na','g',[2 2 2],'A',[230 210 200]);
+AB.AFrame = [23 45 67]*pi/180;
+</pre>
+
+<p>
+with a hyperfine coupling matrix tilted with respect to the standard molecular frame, the eigenvalues of the hyperfine Hamiltonian are
+</p>
+
+<pre class="matlab">
+E = eig(ham_hf(AB))
+</pre>
+
+<pre class="mloutput">
+E =
+ -270.1785
+ -267.8967
+ -262.5431
+  146.7712
+  150.1785
+  157.8967
+  172.5431
+  173.2288
+</pre>
+
+<p>
+Obviously the slight anisotropy in A causes the states of the combined spin S+I to split in zero field.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

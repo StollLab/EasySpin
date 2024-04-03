@@ -44,4 +44,4 @@ end
 % see e.g. Brink & Satchler, Angular Momentum, 3rd ed., p. 39, eq. (3.3)
 value = (-1)^(j1-j2+m) * sqrt(2*j+1) * wigner3j(j1,j2,j,m1,m2,-m);
 
-return
+end

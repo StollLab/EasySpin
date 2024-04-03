@@ -1,24 +1,24 @@
 function ok = test()
 
-% this test asserts the output is correctly returned for the various cases
+% This test asserts the output is correctly returned for the various cases
 % where the length of the transient (in points) changes due to events
 % changing their length.
+
 Sys.ZeemanFreq = 9.400;
 
 Pulse.tp = 0.030;
 Pulse.Flip = pi;
+Pulse.Type = 'rectangular';
 Pulse.Frequency =  200;
 
 % Experiment/Sequence
 tau = 0.3;
-Exp.Sequence = {tau Pulse tau}; % us
+Exp.Sequence = {tau Pulse tau}; % µs
 Exp.mwFreq = 9.400; % GHz
-
-% Options
-
 Exp.Dim1 = {'p1.Position' 0.1};
 Exp.Dim2 = {'p1.Position' 0.01};
 
+% Options
 Opt.IntTimeStep = 3.8e-6;
 
 TimeAxisChanged = zeros(1,4);

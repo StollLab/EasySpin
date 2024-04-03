@@ -4,8 +4,8 @@
 %
 % Checks whether the installed version of EasySpin has expired.
 
-% Add the following lines between %{ and %} to a file that should check the
-% expiry date:
+% To utilize this expiry checker, add the following lines between %{ and %} to
+% a file that should check the expiry date:
 %{
 % Check expiry date
 error(eschecker);
@@ -18,16 +18,28 @@ if nargout>1
 end
 
 % Determine whether this function has been called by an EasySpin function
-ESfilenames = {'cardamom','chili','curry','esfit','garlic','pepper','saffron','salt','spidyan'};
+EasySpinFilenames = {'cardamom','chili','curry','esfit','garlic','pepper','saffron','salt','spidyan'};
 db = dbstack;
-internalCall = numel(db)>=2 && any(strcmp(db(2).name,ESfilenames));
+internalCall = numel(db)>=2 && any(strcmp(db(2).name,EasySpinFilenames));
 
-persistent VersionOK nCalls
-if isempty(VersionOK), VersionOK = false; end
-if isempty(nCalls), nCalls = 1; end
 
+% Version and expiry date settings
+%-------------------------------------------------------------------------------
+persistent esVersion expiryDate
+if isempty(esVersion)
+  info = easyspin_info;
+  esVersion = info.Version;
+  expiryDate = info.ExpiryDate;
+end
+
+
+% Don't check at every iteration
+%-------------------------------------------------------------------------------
+persistent versionOK nCalls
+if isempty(versionOK), versionOK = false; end
+if isempty(nCalls), nCalls = 0; end
 if internalCall
-  if VersionOK && nCalls<100
+  if versionOK && nCalls<100
     nCalls = nCalls + 1;
     if nargout==1
       varargout = {''};
@@ -41,60 +53,38 @@ if internalCall
 end
 
 
-% Expiry time settings
+% Check for expiry
 %-------------------------------------------------------------------------------
-esVersion = '$ReleaseID$';
-% Installed version is not valid after ExpiryDate.
-ExpiryDate = 888888; % serial date number of expiry date
-% Files in tempdir with dates beyond HorizonDate are ignored during the check
-HorizonDate = 999999; % serial date number
-
-
-% Test 1: Expired if system date is after expiry date
-%-------------------------------------------------------------------------------
-NowDate = fix(datenum(builtin('clock')));
-DaysToExpiry = fix(ExpiryDate - NowDate);
-isExpired1 = DaysToExpiry<0;
-
-
-% Test 2: Expired if temp directory modification date is after expiry date
-%-------------------------------------------------------------------------------
-try
-  List = dir(tempdir); % List(1).name should be '.'
-  if numel(List(1).name)==1
-    TmpDirDate = fix(List(1).datenum);
-  else
-    TmpDirDate = 0;
-  end
-catch
-  lasterr('');
-  TmpDirDate = 0;
-end
-if TmpDirDate>=HorizonDate, TmpDirDate = 0; end
-isExpired2 = TmpDirDate>ExpiryDate;
-
-VersionOK = ~isExpired1 && ~isExpired2;
-
-
-% Show warning if close to expiry date
-%-------------------------------------------------------------------------------
-if VersionOK && DaysToExpiry<30
-  disp(   '***************************************************************');
-  fprintf('This EasySpin version will expire in %d days.\n',DaysToExpiry);
-  disp(   'Please visit easyspin.org and download the latest version.');
-  disp(   '***************************************************************');
+isUnpackaged = esVersion(1)=='$';
+if isUnpackaged
+  daysToExpiry = Inf;
+  versionOK = true;
+else
+  nowDate = datetime('today');
+  expiryDate = datetime(expiryDate);
+  daysToExpiry = days(expiryDate-nowDate);
+  versionOK = daysToExpiry>0;
 end
 
 
 % Set error message if version is expired
 %-------------------------------------------------------------------------------
-if VersionOK
-  err = '';
-else
-  if isExpired1
-    err = sprintf('Your EasySpin version %s has expired (1;%d,%d).\nPlease visit easyspin.org and update to the latest version.',esVersion,NowDate,ExpiryDate);
-  elseif isExpired2
-    err = sprintf('Your EasySpin version %s has expired (2;%d,%d).\nPlease visit easyspin.org and update to the latest version.',esVersion,TmpDirDate,ExpiryDate);
+err = '';
+if ~isUnpackaged
+  if ~versionOK
+    err = sprintf('Your EasySpin version %s has expired.\nPlease visit easyspin.org and update to the latest version.',esVersion);
+  end
+end
+
+
+% Show warning if close to expiry date
+%-------------------------------------------------------------------------------
+if ~isUnpackaged
+  if versionOK && daysToExpiry<30
+    disp(   '***************************************************************');
+    fprintf('This EasySpin version will expire in %d days.\n',daysToExpiry);
+    disp(   'Please visit easyspin.org and download the latest version.');
+    disp(   '***************************************************************');
   end
 end
 
@@ -107,8 +97,10 @@ else
   if nargout==1
     varargout = {err};
   else
-    if VersionOK
-      fprintf('Your EasySpin installation is ok. It will expire in %d days.\n',DaysToExpiry);
+    if isUnpackaged
+      fprintf('Your EasySpin installation is valid.\nIt is unpackaged.\n');
+    elseif versionOK
+      fprintf('Your EasySpin installation is valid.\nIt expires in %d days.\n',daysToExpiry);
     else
       disp(err);
     end

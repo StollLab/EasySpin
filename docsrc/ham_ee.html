@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_ee</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_ee</div>
+
+<p>
+Electron-electron interaction Hamiltonian.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+F = ham_ee(Sys)
+F = ham_ee(Sys,eSpins)
+F = ham_ee(Sys,eSpins,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_ee</code> returns the electron-electron interaction part of the <a href="hamiltonian.html#eei">spin Hamiltonian</a> of the <a href="spinsystem.html#ee">spin system</a> given in <code>Sys</code>, in units of MHz.
+</p>
+
+<p>
+If the vector <code>eSpins</code> is specified, only the interactions between the electron spins listed in <code>eSpins</code> is computed. For example, if <code>eSpins = [1 3]</code> and the spin system contains 3 electrons, only the interaction between electron spins 1 and electron 3 is returned. Otherwise, all electron spins are considered.
+</p>
+
+<p>
+In the <a href="spinsystem.html#ee">spin system structure</a>, there are two ways to specify the electron-electron interactions: either via the field <code>Sys.ee</code>, or via <code>Sys.J</code>, <code>Sys.dip</code>, and <code>Sys.dvec</code>. To specify the orientation of the interaction matrix, use <code>Sys.eeFrame</code>.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+
+<p>
+For a two-electron system <code>AB</code>
+</p>
+
+<pre class="matlab">
+AB.S = [1/2 1/2];
+AB.g = [2 2.1];
+AB.ee = [1 1 -2]*40;  % MHz
+</pre>
+
+<p>
+the electron-electron interaction Hamiltonian (in MHz) is
+</p>
+
+<pre class="matlab">
+H = ham_ee(AB)
+</pre>
+<pre class="mloutput">
+H =
+    20     0     0     0
+     0   -20   -20     0
+     0   -20   -20     0
+     0     0     0    20
+</pre>
+with the energies
+<pre class="matlab">
+E = eig(H)
+</pre>
+<pre class="mloutput">
+E =
+   -20
+   -20
+     0
+    40
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

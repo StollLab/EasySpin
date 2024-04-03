@@ -5,7 +5,7 @@ function ok = test()
 
 fitAlg = 'simplex';
 
-dataMethod = {'fcn','int','iint','diff','fft'};
+dataMethod = {'fcn','int','dint','diff','fft'};
 
 nMethods = numel(dataMethod);
 
@@ -16,18 +16,16 @@ Exp.Field = 350;
 Exp.mwRange = [9.5 10.5];
 
 spc = pepper(Sys,Exp);
-%rng(1)
-%data = addnoise(spc,50,'u');
 
 Vary.g = [0.02 0.02];
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 
 rmsd = zeros(1,nMethods);
 
 for iMethod = 1:nMethods
   FitOpt.Method = [fitAlg ' ' dataMethod{iMethod}];
-  [~,~,resid] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
-  rmsd(iMethod) = sqrt(mean(resid.^2));
+  result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);
+  rmsd(iMethod) = result.rmsd/max(result.fit);
 end
 
 ok = rmsd<1e-10;

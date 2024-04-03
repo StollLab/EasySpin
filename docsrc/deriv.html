@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>deriv</title>
 </head>
 
@@ -57,7 +57,7 @@ There is a caveat about using <code>deriv</code>. A numerical derivative is comp
 by taking differences of adjacent elements in <code>y</code>. So it is save to use
 <code>deriv</code> for smooth signals, but it gives very noisy derivative for noisy
 signals. In such a case, it is much better to apply a simultaneous smoothing/differentiation
-usign the function <a class="esf" href="datasmooth.html">datasmooth</a>.
+using the function <a class="esf" href="datasmooth.html">datasmooth</a>.
 </p>
 
 <!-- =========================================================== -->
@@ -71,7 +71,7 @@ To compute the first derivative of a sin function
 x = linspace(0,5*pi,1001);
 y = sin(x);
 dydx = deriv(x,y);
-plot(x,y,'k',x,dydx,'g');
+plot(x,y,x,dydx);
 legend('original function','derivative');
 </pre>
 

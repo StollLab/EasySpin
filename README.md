@@ -2,24 +2,24 @@
 
 ## Description
 
-EasySpin is a MATLAB-based toolbox for the simulation and analysis of Electron Paramagnetic Resonance (EPR) spectra as well as magnetometry data. The homepage of EasySpin is at [easyspin.org](http://easyspin.org). This is the GitHub repository of EasySpin's source code, including tests, documentation source, and build scripts.
+EasySpin is a MATLAB-based toolbox for the simulation and data analysis in Electron Paramagnetic Resonance (EPR) spectroscopy and magnetometry.This is the GitHub repository of EasySpin's source code, including tests, documentation source, and build scripts.
 
-To get a tested and packaged version of EasySpin, download it from [easyspin.org](http://easyspin.org).
+To get a tested and packaged version of EasySpin, or to access the documentation, go to EasySpin's main site at [easyspin.org](https://easyspin.org).
 
 ## Resources
 
-- **Homepage:** <http://easyspin.org>
-- **Documentation:** <http://easyspin.org/documentation>
-- **Discussion forum:** <http://easyspin.org/forum/>
-- **Source code:** <https://github.com/StollLab/easyspin>
+- **Homepage:** <https://easyspin.org>
+- **Documentation:** <https://easyspin.org/documentation>
+- **Discussion forum:** <https://easyspin.org/forum/>
+- **Source code repository:** <https://github.com/StollLab/easyspin>
 
 ## Contributions
 
-Before contributing to EasySpin, please read the [contributing](/CONTRIBUTING.md) and [testing](/tests/TESTING.md) guides.
+Contributions to EasySpin are welcome! You can contribute by filing issues, by fixing or improving the documentation, by fixing [issues](https://github.com/StollLab/EasySpin/issues), or by implementing new features. Before you start, please read the guides for [contributing](/CONTRIBUTING.md) and for [testing](/tests/README.md).
 
-## Source Code Organization
+## Repository Organization
 
-The EasySpin source code is organized as follows:
+The EasySpin repository is organized as follows:
 
     easyspin/      source code for EasySpin's toolbox functions
     docsrc/        source code for the documentation
@@ -29,4 +29,4 @@ The EasySpin source code is organized as follows:
 
 ## Documentation
 
-A local copy of the documentation can be built with a perl script `docbuilder.pl`. For more information see the [documentation](/releasing/DOCUMENTATION.md) in the `releasing` subfolder.
+You can build a local copy of the documentation. See the [documentation](/releasing/README.md) in the `releasing` subfolder.

@@ -272,7 +272,7 @@ if ~isempty(Scaling)
 end
 
 Parameters = parsefieldparams(Parameters);
-return
+end
 %-------------------------------------------------------------------------------
 
 
@@ -303,7 +303,7 @@ for k = 1:numel(allLines)
   line = allLines{k};
   if isempty(line), continue; end
   
-  [Key,n,err_,idx] = sscanf(line,'%s',1);
+  [Key,~,~,idx] = sscanf(line,'%s',1);
   if isempty(Key); continue; end
   
   if ~isletter(Key(1)), continue; end
@@ -323,4 +323,4 @@ for k = 1:numel(allLines)
   
 end
 
-return
+end

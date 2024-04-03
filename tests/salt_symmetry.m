@@ -7,11 +7,11 @@ Sy = struct('S',1/2,'Nucs','14N','g',[2.3 2.3 2],...
 Ex = struct('Range',[17 31],'Field',326.5,'nPoints',2^10,'mwFreq',9.7);
 Si = struct('Threshold',1e-5,'GridSize',[20 5],'Intensity','on',...
   'Enhancement','off','Verbosity',opt.Verbosity,...
-  'GridSymmetry','Ci','Output','separate');
+  'GridSymmetry','Ci','separate','transitions');
 
 Sy.AFrame = pi/180*[0 -30 0];
 Sy.QFrame = pi/180*[0 45 0];
-[a,b,tr] = salt(Sy,Ex,Si);
+[a,b,info] = salt(Sy,Ex,Si);
 
 if opt.Display
   if ~isempty(olddata)
@@ -25,7 +25,7 @@ if opt.Display
     plot(a,b);
     title('Low symmetry test (Ci, tilted A and Q)');
   end
-  xlabel('frequency [MHz]');
+  xlabel('frequency (MHz)');
 end
 
 data.b = b;

@@ -49,7 +49,7 @@ function [logLikIter, eqDistr, TransProb, mu, Sigma] = ...
 iterMax = 200;
 thresh = 1e-4;
   
-previous_loglik = -inf;
+previous_loglik = -Inf;
 converged = false;
 iter = 1;
 logLikIter = [];
@@ -198,7 +198,7 @@ for iStep=2:nSteps
 end
 
 if any(scale==0)
- loglik = -inf;
+ loglik = -Inf;
 else
  loglik = sum(log(scale));
 end

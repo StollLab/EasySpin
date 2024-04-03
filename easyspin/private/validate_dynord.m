@@ -158,9 +158,11 @@ if isDiffSim
 
   % expand to rhombic tensor
   switch numel(Dyn.Diff)
-    case 1, Dyn.Diff = Dyn.Diff([1 1 1]);
-    case 2, Dyn.Diff = Dyn.Diff([1 1 2]);
-    case 3, % Diff already rhombic
+    case 1
+      Dyn.Diff = Dyn.Diff([1 1 1]);
+    case 2
+      Dyn.Diff = Dyn.Diff([1 1 2]);
+    case 3 % Diff already rhombic
     otherwise
       err = 'Sys.Diff must have 1, 2 or 3 elements (isotropic, axial, rhombic).';
       return

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_zf</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_zf</div>
+
+<p>
+Electronic zero-field interaction Hamiltonian.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+F = ham_zf(Sys)
+F = ham_zf(Sys,eSpins)
+F = ham_zf(Sys,eSpins,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes the <a href="hamiltonian.html#zfi">Hamiltonian</a> of all electronic zero-field
+interactions (ZFIs) in the <a href="spinsystem.html#D">spin system</a> described by the structure
+<code>Sys</code>.
+</p>
+
+<p>
+If the vector <code>eSpins</code> is given, the ZFI of only the specified electron spins is returned (1 is the first electron spin, 2 the
+second, etc). Otherwise, all electrons are included.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format
+instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+The zero-field term <img src="eqn/ham_zf1.png" alt="[eqn]"><!--MATH $\boldsymbol{S}^\mr{T}D\boldsymbol{S}$ --> of a
+simple spin system
+</p>
+
+<pre class="matlab">
+Sys = struct('S',1,'g',2,'D',[1680 110]);
+</pre>
+
+<p>
+in GHz is
+</p>
+
+<pre class="matlab">
+ham_zf(Sys)/1e3
+</pre>
+<pre class="mloutput">
+ans =
+    0.5600         0    0.1100
+         0   -1.1200         0
+    0.1100         0    0.5600
+</pre>
+
+<p>
+The same result is obtained by using 3 values instead of 2 in the <code>D</code> field.
+
+<pre class="matlab">
+D = 1680; E = 110;
+Dvalues = [-1,-1,+2]/3*D + [+1,-1,0]*E;
+Sys = struct('S',1,'g',2,'D',Dvalues);
+</pre>
+
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="zfsframes.html">zfsframes</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

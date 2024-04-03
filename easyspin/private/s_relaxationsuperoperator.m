@@ -68,7 +68,7 @@ end
 
 
 
-% Assigns default values or inf to all T1 relaxation paths which are zero.
+% Assigns default values or Inf to all T1 relaxation paths which are zero.
 T1(T1==0) = 1e10;
 T2(T2==0) = 1e10;
 

@@ -31,7 +31,6 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-
 % --- Executes just before eprconvert is made visible.
 function eprconvert_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -59,7 +58,6 @@ guidata(handles.eprconvert, handles);
 
 % UIWAIT makes eprconvert wait for user response (see UIRESUME)
 % uiwait(handles.eprconvert);
-
 
 % --- Outputs from this function are returned to the command line.
 function varargout = eprconvert_OutputFcn(hObject, eventdata, handles)
@@ -113,11 +111,11 @@ guidata(handles.eprconvert,handles);
 
 %-----------------------------------------------------------------
 function ComputeFieldButton_Callback(hObject, eventdata, handles)
-if isempty(handles.FreqSI),
+if isempty(handles.FreqSI)
   errordlg('Invalid frequency value!');
   return;
 end
-if isempty(handles.gVal),
+if isempty(handles.gVal)
   errordlg('Invalid g value!');
   return;
 end
@@ -126,11 +124,11 @@ UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
 
 function ComputegButton_Callback(hObject, eventdata, handles)
-if isempty(handles.FreqSI),
+if isempty(handles.FreqSI)
   errordlg('Invalid frequency value!');
   return;
 end
-if isempty(handles.FieldSI),
+if isempty(handles.FieldSI)
   errordlg('Invalid field value!');
   return;
 end
@@ -139,11 +137,11 @@ guidata(handles.eprconvert,handles);
 UpdateDisplay(handles);
 
 function ComputeFreqButton_Callback(hObject, eventdata, handles)
-if isempty(handles.FieldSI),
+if isempty(handles.FieldSI)
   errordlg('Invalid field value!');
   return;
 end
-if isempty(handles.gVal),
+if isempty(handles.gVal)
   errordlg('Invalid g value!');
   return;
 end
@@ -151,10 +149,10 @@ handles.FreqSI = bmagn*handles.gVal*handles.FieldSI/planck;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
 
-function FieldList_CreateFcn(hObject, eventdata, handles)
-function FieldList_Callback(hObject, eventdata, handles)
-function FreqList_CreateFcn(hObject, eventdata, handles)
-function FreqList_Callback(hObject, eventdata, handles)
+%function FieldList_CreateFcn(hObject, eventdata, handles)
+%function FieldList_Callback(hObject, eventdata, handles)
+%function FreqList_CreateFcn(hObject, eventdata, handles)
+%function FreqList_Callback(hObject, eventdata, handles)
 
 function [Unit,prefactor] = GetFreqUnit(handles)
 UnitStr = get(handles.FreqUnits,'String');
@@ -166,7 +164,6 @@ switch Unit
   case 'cm^-1', prefactor = 100*clight;
   case 'eV', prefactor = planck/echarge;
 end
-return
 
 function [Unit,prefactor] = GetFieldUnit(handles)
 UnitStr = get(handles.FieldUnits,'String');
@@ -178,27 +175,22 @@ switch Unit
   case 'G', prefactor = 1e-4;
   case 'kG', prefactor = 1e-1;
 end
-return
 
 function Freq = GetFreqInSIUnits(handles)
 Freq = str2num(get(handles.FreqEdit,'String'));
 [Unit,prefactor] = GetFreqUnit(handles);
 Freq = prefactor*Freq;
-return
 
 function Field = GetFieldInSIUnits(handles)
 Field = str2num(get(handles.FieldEdit,'String'));
 [Unit,prefactor] = GetFieldUnit(handles);
 Field = prefactor*Field;
-return
 
 function g = GetgValue(handles)
 g = str2num(get(handles.gEdit,'String'));
-return
 
 function SetgVal(g,handles)
 set(handles.gEdit,'String',sprintf('%g',g));
-return
 
 %---------------------------------------------------------------
 function UpdateDisplay(handles)
@@ -233,7 +225,6 @@ set(handles.FieldList,'String',FieldStr,'FontSize',10);
 g = handles.gVal;
 set(handles.gEdit,'String',sprintf('%g',g));
 
-
 % --- Executes on button press in ClearButton.
 function ClearButton_Callback(hObject, eventdata, handles)
 
@@ -242,7 +233,6 @@ handles.FieldSI = [];
 handles.gVal = [];
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
-
 
 % --- Executes on button press in WbandButton.
 function WbandButton_Callback(hObject, eventdata, handles)
@@ -273,4 +263,3 @@ function XbandButton_Callback(hObject, eventdata, handles)
 handles.FreqSI = 9.8e9;
 UpdateDisplay(handles);
 guidata(handles.eprconvert,handles);
-

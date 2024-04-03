@@ -28,10 +28,10 @@
 
 function y = lshape(x,x0,fwhm,varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 % Functions are normalized for diff=0: the integral
-% from -inf to inf is 1. Derivatives of these
+% from -Inf to Inf is 1. Derivatives of these
 % functions are with respect to x.
 
 % parse input parameters
@@ -67,7 +67,7 @@ elseif numel(fwhm)==1
 end
 
 % compute Gaussian component, if demanded
-if (alphaGauss~=0)
+if alphaGauss~=0
   [GaussAbs,GaussDisp] = gaussian(x,x0,fwhmG,diff);
   if (phase~=0)
     Gauss = GaussAbs*cos(phase) +  GaussDisp*sin(phase);
@@ -79,9 +79,9 @@ else
 end
 
 % compute Lorentzian component, if demanded
-if (alphaGauss~=1)
+if alphaGauss~=1
   [LorentzAbs,LorentzDisp] = lorentzian(x,x0,fwhmL,diff);
-  if (phase~=0)
+  if phase~=0
     Lorentz = LorentzAbs*cos(phase) +  LorentzDisp*sin(phase);
   else
     Lorentz = LorentzAbs;
@@ -93,4 +93,4 @@ end
 % build hybrid line shape, also known as pseudo-Voigt function
 y = alphaGauss*Gauss + (1-alphaGauss)*Lorentz;
 
-return
+end

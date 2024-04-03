@@ -28,7 +28,7 @@ alpha = zeros(1,N);
 beta = zeros(1,N);
 
 specchange = NaN(1,N);
-oldspec = inf;
+oldspec = Inf;
 
 % Initialize continued-fraction evaluations
 errorRecomputationInterval = min(10,ceil(N/20));
@@ -79,7 +79,7 @@ for k = 1:N
     Delta = C.*D;
     spec = specold.*Delta;
     if ~mod(k,errorRecomputationInterval)
-      specchange(k) = norm(Delta-1,inf);
+      specchange(k) = norm(Delta-1,Inf);
       converged = specchange(k)<Opt.Threshold;
       %fprintf('%3d: %g\n',k,specchange(k));
     end
@@ -106,4 +106,4 @@ end
 specchange = specchange(1:k);
 specchange(isnan(specchange)) = [];
 
-return
+end

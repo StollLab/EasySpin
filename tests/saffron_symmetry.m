@@ -17,7 +17,7 @@ Sys.AFrame = [167 -78 -47]*pi/180;
 [x,y2] = saffron(Sys,Exp);
 
 if opt.Display
-  xlabel('time [us]');
+  xlabel('time (µs)');
   plot(x,real(y1),'r',x,real(y2),'b');
   legend('non tilted','tilted');
   title(mfilename)

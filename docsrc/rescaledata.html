@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>rescaledata</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">rescaledata</div>
+
+<p>
+Rescale data using various criteria.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+y_ = rescaledata(y,mode)
+y_ = rescaledata(y,yref,mode)
+y_ = rescaledata(...,region)
+[y_,scalefactors] = rescaledata(...)
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function rescales the data in the vector <code>y</code> and returns it in <code>y_</code>. The type of rescaling depends on the setting <code>mode</code> and on the presence or absence of a reference data vector <code>yref</code>.
+</p>
+
+<p>
+If a second data array is given in <code>yref</code>, the data in <code>y</code> are rescaled in a way depending on the value of <code>mode</code>:
+</p>
+
+<ul>
+<li><code>'maxabs'</code>: scales <code>y</code> such that its maximum absolute will match that of <code>yref</code> </li>
+<li><code>'lsq'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y</code> (scale only)</li>
+</ul>
+
+<p>
+In all cases, positive rescaling is enforced, i.e. the rescaled data is not inverted.
+</p>
+
+<p>
+Without a reference data vector, the rescale options (given in <code>mode</code>) are:
+</p>
+
+<ul>
+<li><code>'maxabs'</code>:
+scales <code>y</code> such that its maximum absolute value equals 1.
+</li>
+<li><code>'int'</code>:
+scales <code>y</code> such that the integral (calculated as the sum of the datapoints) equals 1.
+</li>
+<li><code>'dint'</code>:
+scales <code>y</code> such that the double integral (calculated as the sum of the cumulative sum o the datapoints) equals 1.
+</li>
+</ul>
+
+<p>
+<code>scalefactors</code> is an optional output that provides the calculated scale factor.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Generate a Gaussian signal and a noisy version of it
+</p>
+
+<pre class="matlab">
+n = 200;
+x = linspace(-1,1,n);
+yn = gaussian(x,0,0.5);
+y1 = addnoise(yn,20,'n');
+plot(x,yn,x,y1)
+</pre>
+
+<p>
+The noisy signal can be rescaled in various ways to fit the noise-free one:
+</p>
+
+<pre class="matlab">
+y2 = rescaledata(yn,y1,'maxabs');
+y3 = rescaledata(yn,y1,'lsq');
+plot(x,y1,x,y2,x,y3);
+legend('input','maxabs','lsq');
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="basecorr.html">basecorr</a>,
+<a class="esf" href="deriv.html">deriv</a>,
+<a class="esf" href="rcfilt.html">rcfilt</a>,
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

@@ -9,7 +9,7 @@ Sys.ZeemanFreq = 33.500;
 
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.015; % us
+Pulse.trise = 0.015; % µs
 Pulse.tp = 0.1;
 Pulse.Flip = pi;
 
@@ -19,7 +19,7 @@ Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.00001; % us
+Exp.TimeStep = 0.00001; % µs
 
 
 % Detection -------------------------

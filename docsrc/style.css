@@ -264,3 +264,7 @@ table.brieflist td {
   padding-left: 0.5em;
   padding-right: 0.5em;
 }
+
+html {
+  scroll-padding-top: 50px;
+}

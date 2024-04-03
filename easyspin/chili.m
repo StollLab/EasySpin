@@ -4,6 +4,8 @@
 %   spc = chili(...)
 %   [B,spc] = chili(...)
 %   [nu,spc] = chili(...)
+%   [B,spc,info] = chili(...)
+%   [nu,spc,info] = chili(...)
 %
 %   Computes a slow-motion cw EPR spectrum.
 %
@@ -49,12 +51,14 @@
 %      GridSize       grid size for powder simulation
 %      PostConvNucs   nuclei to include perturbationally via post-convolution
 %      Verbosity      0: no display, 1: show info
-%      Symmetry       symmetry to use for powder simulation
+%      GridSymmetry   grid symmetry to use for powder simulation
+%      separate       subspectra output, '' (default) or 'components'
 %
 %   Output:
 %     B               magnetic field axis vector, in mT (for field sweeps)
 %     nu              frequency axis vector, in GHz (for frequency sweeps)
 %     spc             simulated spectrum, arbitrary units
+%     info            structure containing details about the calculation
 %
 %     If no output arguments are specified, chili plots the simulated spectrum.
 
@@ -66,11 +70,11 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 % Check Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
-if nargout>2, error('Too many output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
 
@@ -89,9 +93,9 @@ if ~singleIso
   logmsg(1,'-- slow motion regime simulation ----------------------------------');
 end
 
-FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
+Exp.FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
 
-if FrequencySweep
+if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
     (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
 else
@@ -100,70 +104,43 @@ else
 end
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
-if ~isfield(Opt,'Output'), Opt.Output = 'summed'; end
-[Output,err] = parseoption(Opt,'Output',{'summed','separate'});
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
 error(err);
-summedOutput = Output==1;
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
+if separateTransitionSpectra
+  error('chili does not support Opt.separate=''transitions''.')
+end
+if separateSiteSpectra
+  error('chili does not support Opt.separate=''sites''.')
+end
+if separateOrientationSpectra
+  error('chili does not support Opt.separate=''orientations''.')
+end
 
-if ~isfield(Sys,'singleiso') || ~Sys.singleiso
+singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
+if ~singleIsotopologue
   
-  if ~iscell(Sys), Sys = {Sys}; end
-  
-  nComponents = numel(Sys);
-  logmsg(1,'%d component(s)',nComponents);
-  
-  % Determine isotopologues for each components
-  for c = 1:nComponents
-    SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);
-    nIsotopologues(c) = numel(SysList{c});
-    logmsg(1,'  component %d: %d isotopologues',c,nIsotopologues(c));
-  end
-  
-  if sum(nIsotopologues)>1 && SweepAutoRange
-    if FrequencySweep
-      str = 'Exp.mwRange or Exp.mwCenterSweep';
-    else
-      str = 'Exp.Range or Exp.CenterSweep';
-    end
-    error('Multiple components: Please specify sweep range manually using %s.',str);
-  end
-  
-  separateSpectra = ~summedOutput && ...
-    (nComponents>1 || sum(nIsotopologues)>1);
-  if separateSpectra
-    spec = [];
-    Opt.Output = 'summed'; % summed spectrum for each isotopologue
-  else
-    spec = 0;
-  end
-  
-  % Loop over all components and isotopologues
-  for iComponent = 1:nComponents
-    for iIsotopologue = 1:nIsotopologues(iComponent)
-      
-      % Simulate single-isotopologue spectrum
-      Sys_ = SysList{iComponent}(iIsotopologue);
-      Sys_.singleiso = true;
-      [xAxis,spec_] = chili(Sys_,Exp,Opt);
-      
-      % Accumulate or append spectra
-      if separateSpectra
-        spec = [spec; spec_*Sys_.weight];
-      else
-        spec = spec + spec_*Sys_.weight;
-      end
-      
-    end
-  end
+  thirdOutput = nargout>=3;
+  [xAxis,spec,info] = compisoloop(@chili,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
   % Output and plotting
   switch nargout
     case 0
-      plotresults(xAxis,spec,Exp,FrequencySweep);
+      cwepr_plot(xAxis,spec,Exp);
     case 1
       varargout = {spec};
     case 2
       varargout = {xAxis,spec};
+    case 3
+      varargout = {xAxis,spec,info};
   end
   return
 end
@@ -234,8 +211,8 @@ if isfield(Sys,'lambda') && ~isempty(Sys.lambda)
   LMK = [2 0 0; 2 0 2; 4 0 0; 4 0 2];
   str = '    Sys.Potential = [';
   for p = 1:numel(lam)
-    str = [str sprintf('%d %d %d %g',LMK(p,1),LMK(p,2),LMK(p,3),lam(p))];
-    if p~=numel(lam), str = [str '; ']; end
+    str = [str sprintf('%d %d %d %g',LMK(p,1),LMK(p,2),LMK(p,3),lam(p))];  %#ok
+    if p~=numel(lam), str = [str '; ']; end  %#ok
   end
   str = [str ']'];
   error('\n  Sys.lambda is obsolete.\n  Use the following instead:\n\n%s;    % L M K lambda\n',str);
@@ -305,9 +282,14 @@ if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
 if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
 if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
 if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
 if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
+
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
 
 % Number of points
 if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -462,12 +444,12 @@ else
 end
 
 % Resonator mode
-switch Exp.Mode
+switch Exp.mwMode
   case 'perpendicular', ParallelMode = false;
   case 'parallel', ParallelMode = true;
-  otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+  otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 if ParallelMode
   error('chili does not support parallel-mode spectra.');
 end
@@ -475,9 +457,6 @@ end
 logmsg(1,'  %d points',Exp.nPoints);
 
 % Complain if fields only valid in pepper() are given
-if isfield(Exp,'Orientations')
-  warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-end
 if isfield(Exp,'CrystalSymmetry')
   warning('Exp.CrystalSymmetry is not used by chili.');
 end
@@ -485,34 +464,28 @@ end
 % Ordering of director frame (partial ordering)
 if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
-    lam = Exp.Ordering;
-    if lam~=0
-      Exp.Ordering = @(phi,theta) exp(lam*plegendre(2,0,cos(theta))).*ones(size(phi));
-      logmsg(1,'  director ordering: built-in function, coefficient = %g',lam);
-    else
-      Exp.Ordering = [];
-      logmsg(1,'  director ordering: none');
-    end
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
+    logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    if nargin(Exp.Ordering)<2
-      error('The function in Exp.Ordering must accept two inputs.');
-    end
-    if nargout(Exp.Ordering)<1
-      error('The function in Exp.Ordering must provide one output.');
-    end
-    logmsg(1,'  director ordering: user-supplied function)');
+    logmsg(1,'  partial director ordering (user-supplied function)');
   else
-    error('Exp.Ordering must be a single number or a function handle.');
+    error('Exp.Ordering must be either a single number or a function handle.');
+  end
+  if nargin(Exp.Ordering)==1
+    Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)~=3
+    logmsg(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
   end
 else
   logmsg(1,'  director ordering: none');
 end
-useDirectorOrdering = ~isempty(Exp.Ordering);
+partiallyOrderedSample = ~isempty(Exp.Ordering);
 
-% Determine whether to do a powder simulation
-% (without potential, no powder sim is necessary - it's identical to a
+% Determine whether to average over an orientational grid
+% (without potential, no orientational averaging is necessary - it's identical to a
 % single-orientation sim)
-PowderSimulation = isempty(Exp.CrystalOrientation) && usePotential;
+integrateOverGrid = isempty(Exp.SampleFrame) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -536,6 +509,22 @@ if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
 if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
 if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
 % Opt.Verbosity
+
+% Common typo
+if isfield(Opt,'LLKM')
+  error('Opt.LLKM is not used by chili(), provide Opt.LLMK instead.');
+end
+
+% Obsolete options
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Opt.separate instead.');
+end
 
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
@@ -751,7 +740,7 @@ if generalLiouvillian
   logmsg(1,'  construction of Liouvillian: general code');
   
   % calculate spin operators
-  for iSpin = 1:numel(Sys.Spins)
+  for iSpin = numel(Sys.Spins):-1:1
     SpinOps{iSpin,1} = sop(Sys.Spins,[iSpin,1],'sparse'); % Sx
     SpinOps{iSpin,2} = sop(Sys.Spins,[iSpin,2],'sparse'); % Sy
     SpinOps{iSpin,3} = sop(Sys.Spins,[iSpin,3],'sparse'); % Sz
@@ -802,7 +791,7 @@ Basis = processbasis(Basis,max(Potential.K),Sys.I,Symmetry);
 if Sys.fullg
   idx = 1:3;
   for iElectron = 1:Sys.nElectrons
-    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));
+    mean_g(iElectron) = mean(eig(Sys.g(idx,:)));  %#ok
     idx = idx + 3;
   end
   gavg = mean(mean_g);
@@ -824,7 +813,7 @@ if FieldSweep
       nu = Exp.mwFreq*B0./B_;
     case 'approxlin'
       B0 = CenterField;
-      nu = Exp.mwFreq - mt2mhz(B_-B0,gavg)/1e3; % GHz
+      nu = Exp.mwFreq - unitconvert(B_-B0,'mT->MHz',gavg)/1e3; % GHz
     otherwise
       error('Unknown setting ''%s'' in Opt.FieldSweepMethod.',Opt.FieldSweepMethod);
   end
@@ -847,15 +836,16 @@ end
 
 % Set up list of orientations
 %===============================================================================
-if PowderSimulation
+if integrateOverGrid
   if Opt.GridSize(1)==1
     phi = 0;
     theta = 0;
-    GridWeights = 4*pi;
+    gridWeights = 4*pi;
+    Opt.GridSymmetry = 'O3';
   else
     grid = sphgrid(Opt.GridSymmetry,Opt.GridSize(1));
     Vecs = grid.vecs;
-    GridWeights = grid.weights;
+    gridWeights = grid.weights;
     % Transform vector to reference frame representation and convert to polar angles.
     if isempty(Opt.GridFrame)
       [phi,theta] = vec2ang(Vecs);
@@ -863,33 +853,32 @@ if PowderSimulation
       [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
-  logmsg(1,'  powder simulation with %d orientations',numel(phi));
+  logmsg(1,'  grid simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
-  if ~isempty(Exp.CrystalOrientation)
-    phi = Exp.CrystalOrientation(1);
-    theta = Exp.CrystalOrientation(2);
+  if ~isempty(Exp.SampleFrame)
+    phi = -Exp.SampleFrame(3);
+    theta = -Exp.SampleFrame(2);
   else
     phi = 0;
     theta = 0;
   end
-  GridWeights = 4*pi;
+  gridWeights = 4*pi;
   logmsg(2,'  single-orientation simulation');
 end
 nOrientations = numel(phi);
 Basis.DirTilt = any(theta~=0);
 
 % Partial ordering for protein/macromolecule
-if useDirectorOrdering
-  orifun = foldoridist(Exp.Ordering,Opt.GridSymmetry);
-  OrderingWeights = orifun(phi,theta);
-  if any(OrderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
-  if all(OrderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
+if partiallyOrderedSample
+  orderingWeights = Exp.Ordering(0,-theta,-phi);
+  if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
+  if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
   logmsg(2,'  orientational potential');
 else
-  OrderingWeights = ones(1,nOrientations);
+  orderingWeights = ones(1,nOrientations);
 end
 
-Weights = GridWeights.*OrderingWeights;
+Weights = gridWeights.*orderingWeights;
 Weights = 4*pi*Weights/sum(Weights);
 
 
@@ -1029,7 +1018,7 @@ if generalLiouvillian
     normPeqVec = norm(sqrtPeq)^2;
     logmsg(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
-      fprintf('The norm of the equilibrium population vector in this truncated basis is %g. It should be close to 1. The basis might be too small.',normPeqVec);
+      fprintf('The norm of the equilibrium population vector in this truncated basis is %0.3g.\n It should be close to 1. The basis might be too small.\n',normPeqVec);
     end
   else
     logmsg(1,'  using provided vector');
@@ -1120,7 +1109,7 @@ for iOri = 1:nOrientations
       if any(F.F1(:))
         for i = 1:3
           for j = 1:3
-            Q1{i,j} = Q1B{i,j} + Q1G{i,j};
+            Q1{i,j} = Q1B{i,j} + Q1G{i,j};  %#ok
           end
         end
       else
@@ -1128,7 +1117,7 @@ for iOri = 1:nOrientations
       end
       for i = 1:5
         for j = 1:5
-          Q2{i,j} = Q2B{i,j} + Q2G{i,j};
+          Q2{i,j} = Q2B{i,j} + Q2G{i,j};  %#ok
         end
       end
       if Opt.useLMKbasis
@@ -1152,7 +1141,7 @@ for iOri = 1:nOrientations
       EZ2_ = Sys.EZ2;
       if isfield(Sys,'NZ0')
         for iNuc = 1:numel(Sys.NZ0)
-          NZ0_(iNuc) = Sys.NZ0(iNuc);
+          NZ0_(iNuc) = Sys.NZ0(iNuc);  %#ok
         end
       end
     end
@@ -1196,7 +1185,7 @@ for iOri = 1:nOrientations
       maxL = numel(XLMK)-1; % maxmimum L in XLMK ( = 2*L from potential)
       xlk = [];
       for L_ = 0:maxL
-        xlk(L_+1,1:2*L_+1) = XLMK{L_+1}(L_+1,:);
+        xlk(L_+1,1:2*L_+1) = XLMK{L_+1}(L_+1,:);  %#ok
       end
       Dynamics.xlk = xlk;
       Dynamics.maxL = maxL;      
@@ -1349,7 +1338,7 @@ if Opt.highField
   spec = spec/2;
 end
 
-if FrequencySweep
+if Exp.FrequencySweep
   spec = spec*1e3;
 end
 
@@ -1365,6 +1354,10 @@ end
 %===============================================================================
 % Phasing
 %===============================================================================
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
 spec = real(exp(1i*Exp.mwPhase)*spec);
 
 
@@ -1386,7 +1379,7 @@ if doPostConvolution
   % Experimental parameters for isotropic shf spectrum
   if FieldSweep
     pcExp.Range = Exp.Range;
-    pcExp.mwFreq = mt2mhz(mean(Exp.Range),pcSys.g)/1e3; % GHz
+    pcExp.mwFreq = unitconvert(mean(Exp.Range),'mT->MHz',pcSys.g)/1e3; % GHz
     Range = Exp.Range;
   else
     pcExp.mwRange = Exp.mwRange;
@@ -1473,8 +1466,8 @@ if fwhmG>0 && ConvolutionBroadening
     fwhmG = fwhmG/1e3; % MHz -> GHz
   end
   dx = xAxis(2) - xAxis(1);
-  AlwaysConvolve = true;
-  if AlwaysConvolve%(fwhmG/dx>2)
+  alwaysConvolve = true;
+  if alwaysConvolve%(fwhmG/dx>2)
     logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;
@@ -1529,6 +1522,9 @@ switch nargout
     varargout = {outspec};
   case 2
     varargout = {xAxis,outspec};
+  case 3
+    info = struct;  % not implemented yet
+    varargout = {xAxis,outspec,info};
 end
 %===============================================================================
 
@@ -1537,7 +1533,7 @@ logmsg(1,'-------------------------------------------------------------------');
 
 clear global EasySpinLogLevel
 
-return
+end
 %===============================================================================
 %===============================================================================
 %===============================================================================
@@ -1619,7 +1615,7 @@ Basis.v = [...
   Basis.MpSymm ...
   Basis.pImax];
 
-return
+end
 
 
 %===============================================================================
@@ -1683,37 +1679,8 @@ if isfield(Dyn,'lw')
     % Lorentzian T2 from FWHM in freq domain 1/T2 = pi*FWHM
     Dyn.T2 = 1/LorentzFWHM/pi;
   else
-    Dyn.T2 = inf;
+    Dyn.T2 = Inf;
   end
 end
 
-return
-
-
-%===============================================================================
-function plotresults(xAxis,spec,Exp,FrequencySweep)
-
-cla
-if FrequencySweep
-  if xAxis(end)<1
-    plot(xAxis*1e3,spec);
-    xlabel('frequency (MHz)');
-  else
-    plot(xAxis,spec);
-    xlabel('frequency (GHz)');
-  end
-  title(sprintf('%0.8g mT',Exp.Field));
-else
-  if xAxis(end)<10000
-    plot(xAxis,spec);
-    xlabel('magnetic field (mT)');
-  else
-    plot(xAxis/1e3,spec);
-    xlabel('magnetic field (T)');
-  end
-  title(sprintf('%0.8g GHz',Exp.mwFreq));
 end
-axis tight
-ylabel('intensity (arb.u.)');
-
-return

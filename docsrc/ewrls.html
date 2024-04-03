@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>ewrls</title>
 </head>
 
@@ -56,8 +56,8 @@ should represent one scan, and there should be multiple scans. It returns the fi
 
 <p>
 The filter contains two parameters: The filter length <code>p</code> is typically in the range 5-50 and
-deterimes how many consequtive points are used to predict the next point. The memory factor <code>lambda</code>
-is a positive number slighty smaller than 1 (typically 0.9-0.99) and determines the memory of the filter,
+determines how many consecutive points are used to predict the next point. The memory factor <code>lambda</code>
+is a positive number slightly smaller than 1 (typically 0.9-0.99) and determines the memory of the filter,
 larger <code>lambda</code> values corresponding to longer memory.
 
 <p>
@@ -79,7 +79,7 @@ the backward direction. This is the default.
 <div class="subtitle">Examples</div>
 
 <p>
-Let's generate some dummy data
+Let's generate some artificial data
 </p>
 
 <pre class="matlab">
@@ -113,14 +113,14 @@ The method implemented in <code>ewrl</code> is described in
 
 <ul>
 <li>
-C.J. Cochrane, P.M. Lenahan, <a href="http://dx.doi.org/10.1016/j.jmr.2008.08.004">Real time exponentially weighted recursive least squares adaptive signal
+C.J. Cochrane, P.M. Lenahan, <a href="https://doi.org/10.1016/j.jmr.2008.08.004">Real time exponentially weighted recursive least squares adaptive signal
 averaging for enhancing the sensitivity of continuous wave magnetic resonance</a>, J. Magn. Reson. 195 (2008), 17-22.
 <li>
 C.J. Cochrane, P.M. Lenahan,
 Adaptive Signal Averaging Technique that Reduces the Acquisition Time of Continuous Wave Magnetic Resonance Experiments,
 EPR Newsletter 19/4 (2010), 10-11.
 <li>
-C.G. Brinton, D.J. Hirsh, <a href="http://dx.doi.org/10.1063/1.3293381">Note: Sensitivity enhancement in continuous-wave electron paramagnetic
+C.G. Brinton, D.J. Hirsh, <a href="https://doi.org/10.1063/1.3293381">Note: Sensitivity enhancement in continuous-wave electron paramagnetic
 resonance: Adaptive signal averaging versus a moving average</a>, Rev. Sci. Instr. 81 (2010), 026102.
 </ul>
 

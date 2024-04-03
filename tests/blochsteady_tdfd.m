@@ -4,8 +4,8 @@ function ok = test(opt)
 %-------------------------------------------------------
 
 g = 2;  % g value
-T1 = 1; % longitudinal relaxation time, us
-T2 = 1; % transverse relaxation time, us
+T1 = 1; % longitudinal relaxation time, µs
+T2 = 1; % transverse relaxation time, µs
 deltaB0 = 0.1; % in mT
 B1 = 0.002; % microwave field, in mT
 Bm = 0.3; % peak-to-peak field modulation amplitude, in mT

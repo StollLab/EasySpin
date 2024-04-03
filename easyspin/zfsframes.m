@@ -61,7 +61,7 @@ disp('  Dx = -D/3+E     Dy = -D/3-E        Dz = 2/3*D');
 %disp('  Gaffney 1993:     |Dx|>=|Dy|>=|Dz|    (very exotic)');
 
 ax = perms([3 2 1]);
-for k=1:6
+for k = 6:-1:1
   Dx = D(ax(k,1));
   Dy = D(ax(k,2));
   Dz = D(ax(k,3));
@@ -79,7 +79,6 @@ end
 %  if abs(ED(k))==min(abs(ED)) & E_(k)>=0, name{k} = [name{k} 'Blumberg1']; end
 %end
 
-warning('off','MATLAB:divideByZero');
 ED_ = E_./D_;
 
 disp('D and E in all possible principal axis systems:');
@@ -88,7 +87,6 @@ for k=1:6
   fprintf('  %d%d%d->xyz:  D = %-+5.3f    E = %-+5.3f    E/D = %-+5.2f    %s\n',...
     ax_(1),ax_(2),ax_(3),D_(k),E_(k),ED_(k),name{k});
 end
-disp('The Blumberg convention is the recommended one.')
 disp(' ');
 
-return
+end

@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>mdhmm</title>
 </head>
 
@@ -51,7 +51,7 @@ HMM = mdhmm(dihedrals,dt,nStates,nLag,Opt)
 <code>mdhmm</code> accepts up to five input arguments
 
 <ul>
-<li><code>dihedrals</code>: trajectory or tracetories of dihedrals
+<li><code>dihedrals</code>: trajectory or trajectories of dihedrals
 <li><code>dt</code>: time step (in seconds) of the dihedral trajectory
 <li><code>nStates</code>: desired number of states for the HMM
 <li><code>nLag</code>: desired lag time for the HMM, as a multiplication factor for <code>dt</code>

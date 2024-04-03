@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>Release notes</title>
 </head>
 
@@ -34,22 +34,33 @@ $ReleaseID$
 
 <p>Major new features</p>
 <ul>
-<li><a class="esf" href="cardamom.html">cardamom</a> can simulate dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.
-<li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.
-<li><a class="esf" href="chili.html">chili</a> supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).
-<li><a class="esf" href="saffron.html">saffron</a> now supports general pulse experiments, including shaped pulses.
-<li><a href="spidyan.html">spidyan</a> fully integrates the package SPIDYAN for more fundamental spin dynamics simulations.
-<li>A set of new functions provides support for basic manipulations with quaternions: <a href="euler2quat.html">euler2quat</a>, <a class="esf" href="rotmat2quat.html">rotmat2quat</a>, <a class="esf" href="quat2euler.html">quat2euler</a>, <a class="esf" href="quat2rotmat.html">quat2rotmat</a>, <a class="esf" href="quatvecmult.html">quatvecmult</a>, <a class="esf" href="quatmult.html">quatmult</a>, <a class="esf" href="quatinv.html">quatinv</a>.
-<li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.
-<li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.
-<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.
-<li><a class="esf" href="diptensor.html">diptensor</a> calculates dipolar coupling tensors.</li>
+<li>Major overhaul of <a class="esf" href="esfit.html">esfit</a>, it now calculates uncertainties of fitted parameters as well as correlations.</li>
+<li>The new function <a class="esf" href="cardamom.html">cardamom</a> simulates dynamic cw EPR spectra from stochastic trajectories, molecular dynamics (MD) trajectories, and Markov-state jump models.</li>
+<li><a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> and <a class="esf" href="stochtraj_jump.html">stochtraj_jump</a> calculate stochastic rotational trajectories for Brownian diffusion and discrete jump models.</li>
+<li><a class="esf" href="chili.html">chili</a> now supports arbitrary spin systems as well as general orientational potentials (for hindered diffusion).</li>
+<li><a class="esf" href="saffron.html">saffron</a> now supports general pulse experiments, including shaped pulses.</li>
+<li><a href="spidyan.html">spidyan</a> fully integrates the package SPIDYAN for more fundamental spin dynamics simulations.</li>
+<li>A set of new functions provides support for basic manipulations with quaternions: <a class="esf" href="euler2quat.html">euler2quat</a>, <a class="esf" href="rotmat2quat.html">rotmat2quat</a>, <a class="esf" href="quat2euler.html">quat2euler</a>, <a class="esf" href="quat2rotmat.html">quat2rotmat</a>, <a class="esf" href="quatvecmult.html">quatvecmult</a>, <a class="esf" href="quatmult.html">quatmult</a>, <a class="esf" href="quatinv.html">quatinv</a>.</li>
+<li><a class="esf" href="wignerd.html">wignerd</a> can evaluate single matrix elements for an array of Euler angle sets.</li>
+<li><a class="esf" href="oripotentialplot">oripotentialplot</a> plots orientational potentials, as used by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="cardamom.html">cardamom</a>.</li>
+<li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.</li>
+<li>The new function <a class="esf" href="diptensor.html">diptensor</a> calculates electron-electron, electron-nucleus and nucleus-nucleus dipolar coupling tensors. It supports anisotropic g tensors.</li>
 <li><a class="esf" href="isto.html">isto</a> provides matrix representations of irreducible spherical tensor operators.</li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support tilted Stevens tensor operators via fields such as <code>Sys.B2Frame</code></li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support nuclear chemical shielding tensor via the fields <code>Sys.sigma</code> and <code>Sys.sigmaFrame</code>.</li>
 <li>The field <code>Sys.aF</code> in <a class="esf" href="spinsystem.html">spin systems</a> is no longer supported. Use <code>Sys.B4</code> and <code>Sys.B4Frame</code> instead.</li>
 <li>Interconvert between spherical and cartesian tensors with the new functions <a class="esf" href="tensor_cart2sph.html">tensor_cart2sph</a> and <a class="esf" href="tensor_sph2cart.html">tensor_sph2cart</a>.</li>
 <li><a class="esf" href="rotview.html">rotview</a> provides a graphical interface to visualize and explore Euler angles and their associated rotations.</li>
+<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a> supports ORCA5 and can now directly read in the main ORCA output file.</li>
+<li>Photoselection is now supported when simulating EPR spectra of photo-generated species. See function <a class="esf" href="photoselect.html">photoselect</a>.</li>
+<li>Significantly extended support for spin-polarized systems (triplets, radical pairs, etc.) in <a class="esf" href="pepper.html">pepper</a> with the new fields <code>Sys.initState</code>.</li>
+<li><a class="esf" href="cgmatrix.html">cgmatrix</a> has additional input and output options.</li>
+<li>The command <a class="esf" href="easyspin.html">easyspin</a> is new. Call <code>easyspin doc</code> to see the documentation. Call <code>easyspin info</code> to display information about the currently installed EasySpin version. Call <code>easyspin compile</code> to compile the C files contained in EasySpin.</li>
+<li><a class="esf" href="pulse.html">pulse</a> has a new amplitude modulation function <code>tanh2</code>, which adds tanh<sup>2</sup> roll-offs to the pulse edges.</li>
+<li>The interactive table of nuclear isotopes <a class="esf" href="isotopes.html">isotopes</a> has a redesigned interface.</li>
+<li>The syntax for obtaining subspectra from simulation function has changed, the field name in the <code>Opt</code> structure has changed from <code>Opt.Output</code> to <code>Opt.separate</code> and has more options: <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code> and <code>'orientations'</code>. There is extended support for returning subspectra across all EasySpin simulation functions.</li>
+<li>For baseline correction with <a class="esf" href="basecorr.html">basecorr</a>, a fitting region can now be provided.</li>
+<li><a class="esf" href="eulang.html">eulang</a> now calculates Euler angles for a near-orthogonal matrix by first orthogonalizing it using singular-value decomposition.</li>
 <li><a class="esf" href="fftso3.html">fftso3</a> performs a Fast Fourier Transform over the space of rotations, SO(3).</li>
 </ul>
 
@@ -58,11 +69,19 @@ $ReleaseID$
 <li>Fixed problem with strong orientational potentials in <a class="esf" href="chili.html">chili</a>.
 <li>Improved support for data files from Magnettech spectrometers.
 <li>Improved automatic field range determination in <a class="esf" href="garlic.html">garli</a>.
-<li><a class="esf" href="curry.html">curry</a>: Fix wrong weights in powder agerages.
+<li><a class="esf" href="curry.html">curry</a>: Fix wrong weights in powder averages.
+<li><a class="esf" href="orca2easyspin.html">orca2easyspin</a>: Fix inverted tensor frame Euler angles.
 </ul>
 
 <p>Incompatible changes</p>
 <ul>
+<li>The function <code>symm</code> has been renamed to <a class="esf" ref="hamsymm.html">hamsymm</a>.</li>
+<li>To specify spin-polarized system, use <code>Sys.initState</code> instead of <code>Exp.Temperature</code> or <code>Sys.Pop</code>.</li>
+<li>The interface of <a class="esf" href="esfit.html">esfit</a> has changed completely. Refer to the <a class="esf" href="esfit.html">esfit</a> documentation for details.
+<li>The <code>Scaling</code> option of </code><a class="esf" href="esfit.html">esfit</a> has been removed. Use <code>FitOpt.AutoScale</code> instead.
+<li>The interface of <a class="esf" href="hfine.html">hfine</a> has changed.
+<li>The field <code>Sys.orf</code> (orbital reduction factor) has been removed. Instead, use <code>Sys.gL</code> to specify the orbital g factor, and <code>Sys.soc</code> to specify the strength of the spin-orbit coupling.</li>
+<li>The function <code>rescale</code> has been renamed to </code><a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
 <li><a class="esf" href="chili.html">saffron</a>: The input syntax has changed significantly. See the <a href="saffron.html">reference page</a>, the <a href="userguide_saffron.html">user guide</a>, and the <a href="examplesmain.html">examples</a>.
 <li><a class="esf" href="chili.html">chili</a>: The input field name and syntax for orienting potentials has changed. Instead of <code>Sys.lambda</code>, use <code>Sys.Potential</code>. The new input syntax allows the specification of general orientational potentials.
 <li><a class="esf" href="wignerd.html">wignerd</a> input syntax has changed. Instead of providing all three Euler angles in a single array <code>angles</code>, supply them separately as <code>alpha</code>, <code>beta</code>, and <code>gamma</code>.
@@ -70,11 +89,20 @@ $ReleaseID$
 <li>The function <code>rotatecrystal</code> has been removed. Use <code>Exp.SampleRotation</code> instead.</li>
 <li><a class="esf" href="sphgrid.html">sphgrid</a> now returns angles, vectors, and weights together in a structure.</li>
 <li>The function <code>sphtri</code> has been removed; it's functionality is now incorporated into <a class="esf" href="sphgrid.html">sphgrid</a>.</li>
-<li>The oldest supported Matlab version is now R2014b (8.4).
+<li>The option name to specify powder averages has changed. Instead of <code>Opt.nKnots</code>, use the new field <code>Opt.GridSize</code>.</li>
+<li><code>easyspininfo</code> and <code>easyspincompile</code> are no longer supported. Use <code>easyspin info</code> and <code>easyspin compile</code> instead. See help for the <a class="esf" href="easyspin.htlm">easyspin</a> command.</li>
+<li><code>Exp.mwPolarization</code> and <code>Exp.Mode</code> have been removed and replaced with <code>Exp.mwMode</code>.</li>
+<li>The function <code>eigfields</code> has been renamed to <a href="resfields_eig.html">resfields_eig</a>.</li>
+<li>To specify the sample orientation, use <code>Exp.SampleFrame</code>. <code>ExpCrystalOrientations</code> is no longer supported. To convert, flip the order and the sign of the angles. Example: <code>Exp.CrystalOrientations = [10 40 -30]*pi/180</code> is now <code>Exp.SampleFrame = [30 -40 -10]*pi/180</code>.</li>
+<li>The function <code>rotplane</code> has been removed. Use <a class="esf" href="rotateframe">rotateframe</a> instead.</li>
+<li>The third output of <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="salt.html">salt</a>, <a class="esf" href="garlic.html">garlic</a> and <a class="esf" href="chili.html">chili</a> is now a structure instead of a numeric array.</li>
+<li>The function <code>resonatorfunc</code> was renamed to <a class="esf" href="resonatorprofile.html">resonatorprofile</a> and extended to return either the transfer function, the voltage reflection coefficient or the power reflection coefficient.
+<li>The function <a class="esf" href="stackplot.html">stackplot</a> was updated to allow more flexibility in controlling plot options.
+<li>The oldest supported Matlab version is now R2021b.
 </ul>
 
 <div class="subtitle">
-5.2.0
+5.2.x
 </div>
 
 <p>Major new features</p>
@@ -154,7 +182,7 @@ $ReleaseID$
 <li>The function <code>smooth</code> has been renamed to <a class="esf" href="datasmooth.html">datasmooth</a>.
 <li><a class="esf" href="esfit.html">esfit</a> can now handle user-defined simulation functions with arbitrary output arguments, through <code>FitOpt.OutArg</code>.
 <li>All <a href="constants.html">fundamental constants</a> are updated to 2014 CODATA recommended values.
-<li>The new function <a class="esf" href="cgmatrix.html">cgmatrix<a> calculates matrices for the tranformation between uncoupled and coupled representations in two-spin systems.
+<li>The new function <a class="esf" href="cgmatrix.html">cgmatrix<a> calculates matrices for the transformation between uncoupled and coupled representations in two-spin systems.
 <li>The new function <a class="esf" href="curry.html">curry</a> can calculate SQUID magnetometer data (magnetic moment and magnetic susceptibility) for arbitrary spin systems.
 <li>EasySpin can now import results from ORCA property calculations using <a class="esf" href="orca2easyspin.html">orca2easyspin</a>.
 <li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="garlic.html">garlic</a> now support arbitrary angles between static and microwave magnetic field.
@@ -162,7 +190,7 @@ $ReleaseID$
 <li>EasySpin can now simulate frequency-swept EPR spectra. All cw-EPR simulation functions (<a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>) support both field-swept or frequency-swept spectra.
 <li><a class="esf" href="eprload.html">eprload</a> can now import data not only from Bruker, but also from SpecMan, Magnettech, ActiveSpectrum, Adani and JEOL spectrometers.
 <li>New pre-defined fundamental constants: <a class="esf" href="hbar.html">hbar</a> (reduced Planck constant, &hbar;=h/2&pi;), <a class="esf" href="mu0.html">mu0</a> (magnetic constant, vacuum permeability), <a class="esf" href="eps0.html">eps0</a> (electric constant, vacuum permittivity), <a class="esf" href="evolt.html">evolt</a> (electron volt).
-<li>Improved lineshape functions: <a class="esf" href="gaussian.html">gaussian</a> can calculate arbitrary high-order derivatives. <a class="esf" href="gaussian.html">gaussian</a> and <a class="esf" href="lorentzian.html">lorentzian</a> can calculate absorption and dispersion line shapes and phase-combine them.
+<li>Improved line shape functions: <a class="esf" href="gaussian.html">gaussian</a> can calculate arbitrary high-order derivatives. <a class="esf" href="gaussian.html">gaussian</a> and <a class="esf" href="lorentzian.html">lorentzian</a> can calculate absorption and dispersion line shapes and phase-combine them.
 <li>The new function <a class="esf" href="hilberttrans.html">hilberttrans</a> calculates the Hilbert transform.
 <li>Four-pulse ESEEM is now a predefined experiment in <a class="esf" href="saffron.html">saffron</a>.
 </ul>
@@ -170,11 +198,22 @@ $ReleaseID$
 <p>Incompatible changes</p>
 <ul>
 <li>The intensities of simulated crystal spectra are scaled up by a factor of 8&pi;<sup>2</sup> compared to earlier versions. This is to make their intensities consistent with powder spectra.
-<li> In all simulation functions, <code>Exp.Orientations</code> has been replaced by <code>Exp.CrystalOrientation</code>.
+<li> In all simulation functions, <code>Exp.Orientations</code> has been replaced by <code>Exp.CrystalOrientations</code>.
 <li> A new frame interface has been implemented. <code>Sys.gpa</code>, <code>Sys.Apa</code>, <code>Sys.Qpa</code>, <code>Sys.Dpa</code>, <code>Sys.eepa</code>, <code>Sys.Diffpa</code> have been replaced by <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.QFrame</code>, <code>Sys.DFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.DiffFrame</code>. See the documentation on <a href="spinsystem.html">spin systems</a> and on <a href="frames.html">frames</a>.
 <li> In <a class="esf" href="chili.html">chili</a>, <code>Exp.psi</code> is moved to <code>Sys.psi</code>, and <code>Exp.MOMD</code> is abolished.
 <li> In <a class="esf" href="saffron.html">saffron</a>, <code>Exp.T1T2</code> is moved to <code>Sys.T1T2</code>.
 <li><code>Sys.aFrame</code> (frame direction for <code>aF</code> high-order term) renamed to <code>Sys.aFFrame</code>.
+<li>All functions providing Hamiltonians have been renamed to more systematic names:
+<a>sham</a> to <a class="esf">ham</a>,
+<a>hfine</a> to <a class="esf">ham_zf</a>,
+<a>nquad</a> to <a class="esf">ham_nq</a>,
+<a>zfield</a> to <a class="esf">ham_zf</a>,
+<a>eeint</a> to <a class="esf">ham_ee</a>,
+<a>nnint</a> to <a class="esf">ham_nn</a>,
+<a>soint</a> to <a class="esf">ham_so</a>,
+<a>crystalfield</a> to <a class="esf">ham_cf</a>,
+<a>zeemanho</a> to <a class="esf">ham_ezho</a>, and
+<a>zeeman</a> has been split into <a class="esf">ham_ez</a>, <a class="esf">ham_nz</a>, and <a class="esf">ham_oz</a>.
 </ul>
 
 <p>Major bug fixes</p>
@@ -206,7 +245,7 @@ $ReleaseID$
 
 <p>New features</p>
 <ul>
-<li>All Hamiltonian funtions now support sparse matrix output (<a class="esf" href="sham.html">sham</a>, <a class="esf" href="eeint.html">eeint</a>, <a class="esf" href="hfine.html">hfine</a>, <a class="esf" href="nquad.html">nquad</a>, <a class="esf" href="zfield.html">zfield</a>, <a class="esf" href="zeeman.html">zeeman</a>).
+<li>All Hamiltonian functions now support sparse matrix output (<a class="esf" href="sham.html">sham</a>, <a class="esf" href="eeint.html">eeint</a>, <a class="esf" href="hfine.html">hfine</a>, <a class="esf" href="nquad.html">nquad</a>, <a class="esf" href="zfield.html">zfield</a>, <a class="esf" href="zeeman.html">zeeman</a>).
 </ul>
 
 <p>Bug fixes</p>
@@ -275,7 +314,7 @@ $ReleaseID$
 
 <p>Bug fixes
 <ul>
-<li>Compatibility adjustement for newest Matlab release R2012a.
+<li>Compatibility adjustment for newest Matlab release R2012a.
 <li><a class="esf" href="wigner3j.html">wigner3j</a> and <a class="esf" href="clebschgordan.html">clebschgordan</a> work now for large angular momenta.
 <li><a class="esf" href="esfit.html">esfit</a> now stays within the specified search range.
 <li>Many small bug fixes.
@@ -304,7 +343,7 @@ to match the intensity of spectra returned by <a class="esf" href="pepper.html">
 <li>Full D matrices and Q matrices are now supported.
 <li>In systems with several electron spins, D strain can be specified for each spin.
 <li>An isotropic biquadratic exchange interaction term can be added via <code>ee2</code> in a spin system structure.
-<li>The new function <a class="esf" href="spinladder.html">spinladder</a> computes manifold parametes for exchange-coupled spin systems in the strong-exchange limit.
+<li>The new function <a class="esf" href="spinladder.html">spinladder</a> computes manifold parameters for exchange-coupled spin systems in the strong-exchange limit.
 <li><a class="esf" href="pepper.html">pepper</a> can now simulate oligometallic clusters with nuclear spins using a new fast hybrid method (<code>Opt.Method='hybrid'</code>).
 <li><a class="esf" href="garlic.html">garlic</a> supports different levels of theory: <code>Opt.Method = 'exact'</code>, <code>'perturb1</code>, <code>'perturb2'</code>.
 </ul>
@@ -439,9 +478,9 @@ changed from <code>(Sys,Exp,Ori,Opt)</code> to <code>(Sys,Exp,Opt)</code>. The o
 <li><a class="esf" href="chili.html">chili</a> now supports the MOMD model for slow-motion simulations.
 <li><a class="esf" href="pepper.html">pepper</a> now automatically simulates isotope mixtures.
 <li><a class="esf" href="pepper.html">salt</a> now can use first-order perturbation theory for the simulation, resulting
-in speedups of several orders of magnitude for spin systems with several nuclei compared to matrix diagonalization.
+in speed-ups of several orders of magnitude for spin systems with several nuclei compared to matrix diagonalization.
 <li><a class="esf" href="pepper.html">pepper</a> now can use second-order perturbation theory for the simulation, resulting
-in speedups of several orders of magnitude for spin systems with several nuclei compared to matrix diagonalization.
+in speed-ups of several orders of magnitude for spin systems with several nuclei compared to matrix diagonalization.
 <li>A genetic algorithm and hybrid global/local methods are now available for least-squares fitting with <a class="esf" href="esfit.html">esfit</a>.
 <li>The new function <a class="esf" href="saffron.html">saffron</a> simulates pulse EPR spectra.
 <li>Site splitting in crystal spectra is now included in simulations with <a class="esf" href="pepper.html">pepper</a>
@@ -466,7 +505,7 @@ The following changes are incompatible with older versions and might require ada
 <p>
 <ul>
 <li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed from <code>[spc,Params,B]</code> to <code>[B,spc,Params]</code>.
-<li>The input syntax for <a class="esf" href="resfields.html">resfields</a> and <a class="esf" href="eigfields.html">eigfields</a> has
+<li>The input syntax for <a class="esf" href="resfields.html">resfields</a> and <a class="esf" href="resfields_eig.html">resfields_eig</a> has
 changed from <code>(Sys,Exp,Ori,Opt)</code> to <code>(Sys,Exp,Opt)</code>. The orientations are now given in <code>Exp.Orientations</code>.
 <li>The new function <a class="esf" href="fieldmod.html">fieldmod</a> replaces the old function <code>pseumod</code>.
 </ul>
@@ -504,7 +543,7 @@ New function <a class="esf" href="degree.html">degree</a> to convert between rad
 
 <ul>
 <li>
-Substantial speedup of simulations on several platforms.
+Substantial speed-up of simulations on several platforms.
 <li>
 Updated free g value in <a class="esf" href="gfree.html">gfree</a> to 2006 value.
 <li>
@@ -583,7 +622,7 @@ Support for MATLAB 6.1 (R12.1) is discontinued.
 
 <p>Major changes and bugfixes</p>
 <ul>
-<li>Speedup for <a class="esf" href="chili.html">chili</a>.
+<li>Speed-up for <a class="esf" href="chili.html">chili</a>.
 <li>Bug fixes in <a class="esf" href="chili.html">chili</a>
 and <a class="esf" href="garlic.html">garlic</a>: scaling of correlation time.
 <li>Bug fixes in <a class="esf" href="eprload.html">eprload</a>: sometimes wrong abscissa vectors.
@@ -675,12 +714,12 @@ the nematic phase of liquid crystals.
 <a class="esf" href="makespec.html">makespec</a> constructs a stick
 spectrum from a list of peak positions and amplitudes.
 </li>
-<li>Functions to add/remove spins from a spin sytem:
+<li>Functions to add/remove spins from a spin system:
 <a class="esf" href="nucspinadd.html">nucspinadd</a> and
 <a class="esf" href="nucspinrmv.html">nucspinrmv</a>.
 </li>
 <li>
-Nuclear quadrupole moments and abundance data now availabe in
+Nuclear quadrupole moments and abundance data now available in
 <a class="esf" href="isotopes.html">isotopes</a>, accessible via
 <a class="esf" href="nucqmom.html">nucqmom</a> and
 <a class="esf" href="nucabund.html">nucabund</a>.
@@ -719,10 +758,6 @@ optionally as three separate arguments.
 <a class="esf" href="eulang.html">eulang</a> now computes Euler angles from a
 rotation matrix by least-squares fitting, not via analytical expressions.
 </li>
-<!--<li>
-<a class="esf" href="symm.html">symm</a> works now much faster for large spin
-systems, since it analyses the spin system geometrically instead of quantum mechanically.
-</li>-->
 </ul>
 
 <div class="subtitle">
@@ -819,7 +854,7 @@ the help for this function is displayed.
 </div>
 
 <ul>
-<li><code>resbef</code> renamed to <code>eigfields</code> and
+<li><code>resbef</code> renamed to <code>resfields_eig</code> and
 substantially extended in functionality.
 <li>
 <code>eulang</code> restrictions relaxed, it now works for

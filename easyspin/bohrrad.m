@@ -13,4 +13,4 @@ function [a0,sigma] = bohrrad
 a0 =    0.529177210903e-10;
 sigma = 0.000000000080e-10;
 
-return
+end

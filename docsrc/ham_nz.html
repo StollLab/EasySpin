@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_nz</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_nz</div>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<p>
+Nuclear Zeeman Hamiltonian, nuclear magnetic dipole moment.
+</p>
+
+<pre class="matlab">
+H = ham_nz(Sys, B)
+H = ham_nz(Sys, B, idx)
+H = ham_nz(Sys, B, idx, 'sparse')
+[mux, muy, muz] = ham_nz(Sys)
+[mux, muy, muz] = ham_nz(Sys, idx)
+[mux, muy, muz] = ham_nz(Sys, idx, 'sparse')
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_nz</code> calculates the matrix representing the nuclear Zeeman Hamiltonian (in units of MHz) for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
+
+<p>
+<code>Sys</code> is a spin system structure.
+</p>
+
+<p>
+<code>idx</code> is a number or array that indicates which nuclear spins should be included. For example, <code>1</code> indicates the first nuclear spin, and <code>[2 3]</code> indicates the second and third nuclear spin. If <code>idx</code> is omitted, all nuclear spins are included in the operators.
+</p>
+
+<p>
+<code>B</code> is a 3-element magnetic field vector (in mT). If given, the complete nuclear Zeeman Hamiltonian is returned. <code>B</code> is understood to be in the <a href="frames.html">molecular frame</a>, for example <code>[0 0 340]</code> indicates a field along the molecular z axis.
+</p>
+
+<p>
+If <code>B</code> is omitted, the function returns the three nuclear magnetic dipole moment component operators <code>mux</code>, <code>muy</code> and <code>muz</code>, defined along the principal axes of the molecular frame. They are in units of MHz/mT. The complete nuclear Zeeman Hamiltonian is obtained via <code>H = -(mux*B(1)+muy*B(2)+muz*B(3))</code>.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, results are returned in sparse format instead of full format.
+</p>
+
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+For the spin system
+</p>
+
+<pre class="matlab">
+ABC = struct('S',1/2,'g',[2.1 2.1 2],'Nucs','14N','A',[1 1 1]);
+</pre>
+
+<p>
+the nuclear Zeeman Hamiltonian for a given magnetic field along the molecular x axis is
+</p>
+
+<pre class="matlab">
+B = [340;0;0];
+H = ham_nz(ABC,B)
+</pre>
+
+<pre class="mloutput">
+H =
+         0   -0.7399         0         0         0         0
+   -0.7399         0   -0.7399         0         0         0
+         0   -0.7399         0         0         0         0
+         0         0         0         0   -0.7399         0
+         0         0         0   -0.7399         0   -0.7399
+         0         0         0         0   -0.7399         0
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

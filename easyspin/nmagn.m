@@ -12,3 +12,5 @@ function [mu_n,sigma] = nmagn
 
 mu_n =  5.0507837461e-27;
 sigma = 0.0000000015e-27;
+
+end

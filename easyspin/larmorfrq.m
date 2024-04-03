@@ -44,7 +44,7 @@ gn = abs(nucgval(Nucs));
 
 prefac = gn*nmagn/1e3/planck/1e6;
 for iF = 1:numel(Fields)
-  LarmFreq(iF,:) = prefac*Fields(iF);
+  LarmFreq(iF,:) = prefac*Fields(iF);  %#ok
 end
 
-return
+end

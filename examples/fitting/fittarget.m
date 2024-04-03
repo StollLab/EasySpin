@@ -1,10 +1,10 @@
 % Fitting the spectrum vs fitting its integral
 
-clear, clf
+clear, clc
 
-% This example illustrates how important it is to tell esfit
-% whether to fit the spectrum directly or to fit its
-% integral.
+% This example illustrates how important it is to use good
+% starting values and to tell esfit whether to fit the
+% spectrum directly or to fit its integral.
 
 % Generate a simple spectrum of one unpaired electron and
 % a hydrogen nucleus
@@ -19,10 +19,9 @@ Exp.CenterSweep = [330 150];
 y = addnoise(y,60,'n');
 
 % For fitting, slightly shift the g value.
-
 Sys0 = Sys;
-Sys0.g(3) = 2.22;
-Vary.g = [0 0 0.02];
+Sys0.g(3) = 2.21;
+Vary.g = [0 0 0.04];
 SimOpt.Method = 'perturb';
 
 % Using 'fcn', the spectra are directly compared. For
@@ -30,7 +29,7 @@ SimOpt.Method = 'perturb';
 % 'fcn' ends up in wrong minima much more often than 'int'.
 
 FitOpt.Method = 'simplex fcn';
-esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(y,@pepper,{Sys0,Exp,SimOpt},{Vary},FitOpt);
 
 FitOpt.Method = 'simplex int';
-esfit(@pepper,y,Sys0,Vary,Exp,SimOpt,FitOpt);
+esfit(y,@pepper,{Sys0,Exp,SimOpt},{Vary},FitOpt);

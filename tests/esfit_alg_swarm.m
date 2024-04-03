@@ -18,11 +18,11 @@ spc = pepper(Sys,Exp);
 
 Vary.g = [0.02 0.02]; 
 
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.nParticles = 10;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
-[~,~,residuals] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
-rmsd = sqrt(mean(residuals.^2));
+result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);
+rmsd = result.rmsd/max(result.fit);
 
 ok = rmsd<1e-4;

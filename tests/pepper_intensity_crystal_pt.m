@@ -1,9 +1,8 @@
 function ok = test()
 
-% Compare integrated intensity of a powder spectrum of an
-% isotropic-g spin system with explicit expressions
+% Compare line intensity (perturbation theory) of a single-orientation spectrum of an
+% spin system with anisotrpic g with an explicit analytical expression.
 
-clear Sys Exp Opt
 Sys.g = [2.1 2.1 2.0];
 g = diag(Sys.g);
 Sys.lwpp = 1;
@@ -12,18 +11,19 @@ Exp.mwFreq = 9.6;
 Exp.Range = [320 350];
 Exp.Harmonic = 0;
 Exp.nPoints = 10000;
-phi = 2*pi*rand;
-theta = pi*rand;
-chi = 2*pi*rand;
-Exp.CrystalOrientation = [phi theta chi];
+
+alpha = 2*pi*rand;
+beta = pi*rand;
+gamma = 2*pi*rand;
+Exp.MolFrame = [alpha beta gamma];
 
 Opt.Method = 'perturb2';
-[x1,y1] = pepper(Sys,Exp);
+[x1,y1] = pepper(Sys,Exp,Opt);
 Int1 = sum(y1)*(x1(2)-x1(1));
 
-R = erot(Exp.CrystalOrientation).';
-n0 = R(:,3);
-n1 = R(:,1);
+R = erot(Exp.MolFrame);
+n0 = R(:,3);  % B0 field direction (lab z) in molecular frame
+n1 = R(:,1);  % B1 field direction (lab x) in molecular frame
 g0 = norm(n0.'*g);
 u = (n0.'*g)/norm(n0.'*g);
 TP = norm(cross(n1.'*g,u))^2;

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.pack.js"></script>
+   <script>hljs.initHighlightingOnLoad();</script>
+   <title>resonatorprofile</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">resonatorprofile</div>
+
+<p>
+Resonator profile
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+resonatorprofile(nu,nu0,Qu,beta,type)
+out = resonatorprofile(nu,nu0,Qu,beta,type)
+[nu,out] = resonatorprofile([],nu0,Qu,beta,type)
+
+% Different output options
+H = resonatorprofile(nu,nu0,Qu,beta,'transferfunction')
+Gamma = resonatorprofile(nu,nu0,Qu,beta,'voltagereflection')
+Prefl = resonatorprofile(nu,nu0,Qu,beta,'powerreflection')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes the resonator profile and can return the transfer function, the voltage reflection coefficient or the power reflection coefficient. <code>nu</code> is the frequency range vector, in GHz, over which it is computed. If it is empty, an appropriate range is chose automatically. <code>nu0</code> is the resonator resonance frequency in GHz. <code>Qu</code> is the unloaded Q-factor of the resonator. <code>beta</code> is the coupling coefficient: 1 for critical coupling (matched), less than 1 for undercoupling, and greater than 1 for overcoupling.
+</p>
+
+<p>
+The loaded Q-factor is related to the unloaded Q-factor <code>Qu</code> and the coupling coefficient <code>beta</code> through:
+  <div class="eqn">
+	<img src="eqn/resonatorprofile1.png" alt="[eqn]"><!--MATH
+	\begin{equation*}
+	Q_L = \frac{Q_U}{1+\beta}
+	\end{equation*}
+	-->
+  </div>  
+</p>
+
+<p>
+The option <code>type</code> can be used to request either of the following:
+<ul>
+  <li><code>transferfunction</code> - the resonator transfer function 
+  <div class="eqn">
+	<img src="eqn/resonatorprofile2.png" alt="[eqn]"><!--MATH
+	\begin{equation*}
+	H(\nu) = \frac{1}{1+ i Q_U \left(\frac{\nu}{\nu_0} - \frac{\nu_0}{\nu}\right)}
+	\end{equation*}
+	-->
+	</div>  
+  </li>
+  <li><code>voltagereflection</code> - the voltage reflection coefficient, i.e. the ratio of the E-fields of the reflected wave and the incoming wave
+  <div class="eqn">
+	<img src="eqn/resonatorprofile3.png" alt="[eqn]"><!--MATH
+	\begin{equation*}
+	\Gamma = \frac{1 - \beta + i Q_U \left(\frac{\nu}{\nu_0} - \frac{\nu_0}{\nu}\right)}{1 + \beta + i Q_U \left(\frac{\nu}{\nu_0} - \frac{\nu_0}{\nu}\right)} = \frac{1-\beta H(\nu)}{1 +\beta H(\nu)}
+	\end{equation*}
+	-->
+	</div>  
+  </li>
+  <li><code>powerreflection</code> - the power reflection coefficient
+  <div class="eqn">
+	<img src="eqn/resonatorprofile4.png" alt="[eqn]"><!--MATH
+	\begin{equation*}
+	P_\text{reflected} = |\Gamma|^2
+	\end{equation*}
+	-->
+	</div>  
+  </li>
+</ul> 
+</p>
+
+<p>
+If no output is requested, <code>resonatorprofile</code> plots the results.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a simple example
+</p>
+
+<pre class="matlab">
+nu = linspace(9.2,9.8,1001);   % GHz
+nu0 = 9.5;                     % GHz
+Qu = 1000;
+beta = 1;
+resonatorprofile(nu,nu0,Qu,beta,'voltagereflection');
+</pre>
+
+<p>
+To plot the power reflection coefficient on a logarithmic dB scale, use
+</p>
+
+<pre class="matlab">
+P_refl = resonatorprofile(nu,nu0,Qu,beta,'powerreflection');
+plot(nu,10*log10(P_refl));
+xlabel('frequency (GHz)');
+ylabel('reflected power (dB)');
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="resonator.html">resonator</a>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

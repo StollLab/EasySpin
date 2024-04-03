@@ -6,7 +6,7 @@
 %   [k,c,yFit] = exponfit(...)
 %   k = exponfit(...)
 %
-%   Computes least square fits for single or double exponential
+%   Computes least-squares fits for single or double exponential
 %   decays or recoveries. For matrices it works along columns and
 %   returns the result in corresponding matrix form. The fitting model
 %   is of the form
@@ -26,30 +26,31 @@
 
 function varargout = exponfit(x,yData,nExponents,noconst)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargin<2) || (nargin>4), error('Wrong number of input arguments!'); end
-if (nargout<1), error('Not enough output arguments.'); end
-if (nargout>3), error('Too many output arguments.'); end
+if nargin<2 || nargin>4, error('Wrong number of input arguments!'); end
+if nargout<1, error('Not enough output arguments.'); end
+if nargout>3, error('Too many output arguments.'); end
 
-if (nargin<3), nExponents = 1; end
-if (nargin<4), noconst = '-'; end
+if nargin<3, nExponents = 1; end
+if nargin<4, noconst = '-'; end
 
 switch nExponents
   case {1,2}
+    % ok
   otherwise
     error('Number of exponents must be 1 or 2.');
 end
 
-ComputeFitFunc = (nargout>2);
+computeFitFunc = nargout>2;
 
-IncludeOffset=  ~strcmp(noconst,'noconst');
+includeOffset = ~strcmp(noconst,'noconst');
 
-Options = [IncludeOffset 1e-11 1e-11 1e4 1e-3];
+Options = [includeOffset 1e-11 1e-11 1e4 1e-3];
 
 nRows = size(yData,1);
-Flipped = (nRows==1);
-if Flipped, yData = yData.'; end
+flipped = (nRows==1);
+if flipped, yData = yData.'; end
 [nRows,nCols] = size(yData);
 x = x(:);
 
@@ -57,11 +58,11 @@ x = x(:);
 scale = max(abs(x));
 x = x/scale;
 
-% Pre-allocation.
+% Pre-allocation
 k = zeros(nExponents,nCols);
 c = zeros(nExponents+1,nCols);
 
-if ComputeFitFunc
+if computeFitFunc
   yFitted = zeros(nRows,nCols);
 else
   yFitted = [];
@@ -71,16 +72,16 @@ for iCol = 1:nCols
   
   % Get column data and invert if it is not a decay.
   ySlice = yData(:,iCol);
-  IsRecovery = ySlice(1)<ySlice(end);
-  if IsRecovery, ySlice = -ySlice; end
+  isRecovery = ySlice(1)<ySlice(end);
+  if isRecovery, ySlice = -ySlice; end
   
   % Get an initial guess for the decay constant(s).
-  kStart = -GuessSingleDecay(x,ySlice);
+  kStart = -guessSingleDecay(x,ySlice);
   if (nExponents==2), kStart = [.8;1.3]*kStart; end
   
   % Do the separable nonlinear least squares fitting.
-  [k(:,iCol),c_,info] = mexpfit2(x,ySlice,kStart,Options);
-  if ~IncludeOffset
+  [k(:,iCol),c_,~] = mexpfit2(x,ySlice,kStart,Options);
+  if ~includeOffset
     c(1,iCol) = 0;
     c(2:end,iCol) = c_;
   else
@@ -88,13 +89,13 @@ for iCol = 1:nCols
   end
   
   % Undo the inversion.
-  if IsRecovery
+  if isRecovery
     c(:,iCol) = -c(:,iCol);
   end
   
   
   % Compute fitted function.
-  if ComputeFitFunc
+  if computeFitFunc
     switch nExponents
     case 1
       yFitted(:,iCol) = c(1,iCol) + c(2,iCol)*exp(k(1,iCol)*x);
@@ -109,7 +110,7 @@ end
 % Rescale
 k = k/scale;
 
-if Flipped
+if flipped
   yFitted = yFitted.';
 else
   k = k.';
@@ -119,21 +120,21 @@ end
 varargout = {-k,c,yFitted};
 varargout = varargout(1:nargout);
 
-return
+end
 
-function kGuessed = GuessSingleDecay(t,y)
+function kGuessed = guessSingleDecay(t,y)
 % estimate coefficients for y = A*exp(-k*x)+Offset
 C = y(end);
 A = y(1)-C;
 dt = t(2)-t(1);
 integral_ = sum(y-C)*dt;
 kGuessed = A/integral_;
-if (kGuessed<0)
+if kGuessed<0
   kGuessed = 1/(length(t)/2*dt);
 end
-return
+end
 
-function  varargout = mexpfit2(tData,yData,xGuess,Options)
+function varargout = mexpfit2(tData,yData,xGuess,Options)
 % MEXPFIT   Least squares fit to sum of decaying exponentials
 %
 %   [k,c,info{,perf}] = mexpfit(tData,yData,k0,Options)
@@ -153,7 +154,7 @@ function  varargout = mexpfit2(tData,yData,xGuess,Options)
 %     k     decay rates for least squares fit
 %     c     linear coefficients of least squares fit
 %     info  information vector
-%           info(1:3) = final values of  F(x)  |F'|inf  |dx|2  
+%           info(1:3) = final values of  F(x)  |F'|_Inf  |dx|2  
 %           info(4) = no. of evaluations of (F,Jacobian)
 %           info(5) = 1 :  Stopped by small gradient
 %                     2 :  Stopped by small x-step
@@ -161,7 +162,7 @@ function  varargout = mexpfit2(tData,yData,xGuess,Options)
 %                     4 :  Stopped by extreme step
 %                     5 :  Stopped by stalling.
 %     perf  (optional). If present, then array, holding 
-%           perf(1:2,:) = values of  F(x) and || F'(x) ||inf
+%           perf(1:2,:) = values of  F(x) and || F'(x) ||_Inf
 %           perf(3,:) = mu-values.
 
 % Hans Bruun Nielsen,  IMM, DTU.  00.02.14
@@ -190,11 +191,11 @@ MinGradNorm = Options(2);
 MaxFunEvals = Options(4);
 
 %  Initial values
-[Differences,Jacobian,c] = func(x,tData,yData,IncludeOffset);
+[Differences,Jacobian,~] = func(x,tData,yData,IncludeOffset);
 A = Jacobian'*Jacobian;
 Gradient = Jacobian'*Differences;
 F = (Differences'*Differences)/2;
-GradientNorm = norm(Gradient,inf);
+GradientNorm = norm(Gradient,Inf);
 mu = Options(5) * max(diag(A));
 Trace = nargout>3;
 if  Trace
@@ -245,7 +246,7 @@ while ~StopCriterion
     nFunEvals = nFunEvals + 1;   
     newF = (NewDifferences'*NewDifferences)/2;
     dF = F - newF;
-    if  (dL > 0) & (dF > 0)
+    if  (dL > 0) && (dF > 0)
       mok = mok + 1;
       mu = mu * max(1/3, 1 - (2*dF/dL - 1)^3);   nu = 2;
       x = xnew;   F = newF;
@@ -253,11 +254,11 @@ while ~StopCriterion
       Differences = NewDifferences; 
       A = Jacobian'*Jacobian;
       Gradient = Jacobian'*Differences;
-      GradientNorm = norm(Gradient,inf);
+      GradientNorm = norm(Gradient,Inf);
     else  % Marquardt fail
       mu = mu*nu;
       nu = 2*nu;
-      if  (mok>n) & (nu>8)
+      if  (mok>n) && (nu>8)
         StopCriterion = 5;
       end
     end
@@ -276,7 +277,7 @@ if  Trace
 else
   X = x;
 end
-[r,Jacobian,c] = func(x, tData, yData, IncludeOffset);
+[r,~,c] = func(x, tData, yData, IncludeOffset);
 F = .5*dot(r,r);   
 if IncludeOffset
   c = c([n+1 1:n]);
@@ -286,7 +287,7 @@ info = [F,GradientNorm,NormStep,nFunEvals,StopCriterion];
 varargout = {X,c,info,Performance};
 varargout = varargout(1:nargout);
 
-return
+end
 
 
 % ==========  auxiliary function  =================================
@@ -319,4 +320,5 @@ for  j = 1:nExponents
   b(j) = b(j) - jj'*Residuals;
   Jacobian(:,j) = c(j)*jj - A*(AA\b);
 end
-   
+
+end

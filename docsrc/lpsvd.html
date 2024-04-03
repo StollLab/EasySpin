@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>lpsvd</title>
 </head>
 
@@ -47,26 +47,30 @@ predictedSpectrum = lpsvd(spectrum, time, method, order)
 <code>lpsvd</code> estimates the parameters for a linear combination of 
 exponentially damped sinusoids needed to fit the input spectrum through 
 linear prediction singular value decomposition or related methods.
+</p>
+
 <p>
 The model for the exponentially damped sinusoid is:
+</p>
 <p>
 y(time) = amp * exp(1i*phase) * exp(time * (1i*2*pi*freq - damp) )
+</p>
 <p>
 The function requires 2-4 input parameters: the <code>spectrum</code> to be fit and 
 its corresponding <code>time</code> vector are necessary; the <code>method</code> and <code>order</code> if not 
 provided will revert to the defaults. 
+</p>
 <p>
-The third input determines the <code>method</code> used to fit the model to 
-the spectrum, the three possible inputs include:
+The third input determines the <code>method</code> used to fit the model to the spectrum, the three possible inputs include:
+</p>
 <ul>
 <li><code>'kt'</code>: Kumaresan and Tufts linear prediction and singular value decomposition algorithm 
 <li><code>'ss'</code>: State space and singular value decomposition method (default)
 <li><code>'tls'</code>: Hankel total least squares method
 </ul>
 <p>
-The fourth input is an initial estimate for the number of damped sinusoids 
-present in the <code>spectrum</code>. If an integer is provided that will be
-used otherwise the order can be estimated via:
+The fourth input is an initial estimate for the number of damped sinusoids present in the <code>spectrum</code>. If an integer is provided that will be used otherwise the order can be estimated via:
+</p>
 <ul>
 <li><code>'mdl'</code>: minimum description length (default) 
 <li><code>'aic'</code>: Akaike information protocol
@@ -77,17 +81,19 @@ However these two methods are known to underestimate the number of components.
 
 <!-- =================================================================== -->
 <div class="subtitle">Examples</div>
+
 <p>
-Generate an example set of damped siunsoids and add noise</p>
+Generate an example set of damped sinusoids and add noise
+</p>
 
 <pre class="matlab">
 clear
-dt = 4/1000; % us
+dt = 4/1000; % µs
 n = 1024;
 time = (0:n-1)*dt;
 
-T2 = 0.4; %us
-w = -50:10:50; % MHz
+T2 = 0.4;  % µs
+w = -50:10:50;  % MHz
 A = -1.1:.2:0.9;
 
 y = exp(1i*0)*exp(-time/T2).*(A*exp(1i*2*pi*w'*time));
@@ -102,8 +108,11 @@ plot(time,imag(y),time,imag(yn)); xlabel('time (ns)')
 subplot(2,1,2)
 plot(xf,real(yf),xf,real(ynf)); xlabel('frequency (MHz)'); xlim([-100 100])
 </pre>
+
 <p>
-Perform lpsvd on the noisy data</p>
+Perform lpsvd on the noisy data
+</p>
+
 <pre class="matlab">
 yp = lpsvd(yn,time,'ss','aic');
 ypf = fftshift(fft(yp));
@@ -117,7 +126,9 @@ plot(xf,real(ynf),xf,real(ypf)); xlabel('frequency (MHz)'); xlim([-100 100])
 <!-- =================================================================== -->
 <div class="subtitle">References</div>
 
+<p>
 The methods implemented in <code>lpsvd</code> are described in
+</p>
 
 <ul>
 <li>

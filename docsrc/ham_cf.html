@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_cf</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_cf</div>
+
+<p>
+Crystal field Hamiltonian (for orbital angular momenta)
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+H = ham_cf(Sys)
+H = ham_cf(Sys,OAMs)
+H = ham_cf(Sys,OAMs,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes the <a href="hamiltonian.html#zfi">Hamiltonian</a>, in MHz, for the crystal-field interactions of the orbital angular momenta (OAMs) in the <a href="spinsystem.html#D">spin system</a> described by the structure <code>Sys</code>.
+</p>
+
+<p>
+If the vector <code>OAMs</code> is given, the crystal field Hamiltonian of only the specified orbital angular momenta is returned (1 is the first OAM, 2 the second, etc.). Otherwise, all OAMs are included.
+</p>
+
+<p>
+The crystal field is assumed to be expanded in terms of extended Stevens operators, with the linear-combination parameters in the spin system fields <code>Sys.CF1</code>, <code>Sys.CF2</code>, etc. Each of these fields must have 2k+1 elements for each OAM (with index q going from +k to -k), e.g. <code>Sys.CF1</code> should have 3 elements. Alternatively, only one element can be given, which then corresponds to the q=0 element, all others being zero.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a very simple example.
+</p>
+
+<pre class="matlab">
+clear, clc
+Sys.S = 1/2;    % spin-1/2
+Sys.L = 1;      % and orbital angular momentum 1
+Sys.soc = 20;   % spin-orbit coupling, MHz
+Sys.CF1 = 100;  % rank-1 crystal field parameter, (k,q)=(1,0), in MHz
+
+H = ham_cf(Sys)
+</pre>
+
+<pre class="mloutput">
+H =
+  100.0000         0         0         0         0         0
+         0         0         0         0         0         0
+         0         0 -100.0000         0         0         0
+         0         0         0  100.0000         0         0
+         0         0         0         0         0         0
+         0         0         0         0         0 -100.0000
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>,
+<a class="esf" href="zfsframes.html">zfsframes</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

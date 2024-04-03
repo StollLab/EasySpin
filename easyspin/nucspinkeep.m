@@ -15,11 +15,11 @@
 
 function NewSys = nucspinkeep(Sys,keepidx)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 NewSys = Sys;
 
-if (nargin<2), return; end
+if nargin<2, return; end
 if isempty(keepidx), return; end
 
 if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
@@ -38,4 +38,4 @@ rmvidx(keepidx) = [];
 
 NewSys = nucspinrmv(Sys,rmvidx);
 
-return
+end

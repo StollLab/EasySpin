@@ -12,17 +12,21 @@ our ($SourceDir, $BuildsDir, $TempRepoDir); # directories
 our ($StableMajorVersion,  $KeyForStableVersion, $MonthsToExpireStable); # settings for the stable versions
 our ($DefaultMajorVersion, $KeyForDefaultVersion, $MonthsToExpireDefault); # settings for the default versions
 our ($KeyForDeveloperVersion, $KeyForExperimentalVersion, $MonthsToExpireDeveloper); # settings for the experimental versions
-our (@VersionCutoff, $esbuild, $KeyGitHub); # some other settings
+our (@VersionCutoff, $KeyGitHub); # some other settings
 
-require './config.pl'; # load the configuration file
+print 'Reading config file\n';
 
-# settings ------------------------------------------------------------------
-# options for File locking - to ensure only one instance is running:
+require './config.pl';  # load the configuration file
+
+# Settings
+# ---------------------------------------------------------------------------------
+# Options for lile locking - to ensure only one instance is running
 our $NumberOfAttempts = 3; # number of Attempts to obtain a lock
 our $WaitTime = 90; # time to wait between Attempts in seconds
 
+# Creating a lock File 
 # ---------------------------------------------------------------------------------
-# creating a lock File 
+print 'Creating lock file \n';
 my $LockFilename = "build.lock";
 open (my $LockFile,'>'.$SourceDir.'/'.$LockFilename) or die $!;
 
@@ -47,8 +51,8 @@ else {
     exit;
 }
 
+# Set up build environment
 # ---------------------------------------------------------------------------------
-# set up build environment
 system(qq(ssh-add $KeyGitHub)); # private key to log into bitbucket, needs to be adapted to specific user
 
 # delete and reinitialize temporary directory of EasySpin if a previous build crashed
@@ -58,52 +62,52 @@ if (-e "$TempRepoDir") {
 system("mkdir $TempRepoDir");
 system(qq(git clone git\@github.com:StollLab/EasySpin.git $TempRepoDir));
 
-# create the directory where builds are stored if not already available
+# Create the directory where builds are stored if not already available
 unless (-e "$BuildsDir") {
     system("mkdir $BuildsDir");
 }
 
-# delete temporary build directory where p files are encoded in if a previous build crashed
+# Delete temporary build directory where p files are encoded in if a previous build crashed
 system("rm -rf /tmp/easyspin*");
 
 
+# Process tag
 # -----------------------------------------------------------------
-# process tag
 my @TagsToBuild = ();
 
 my @NewestVersion = (0, 0, 0);  # (stable, default, dev)
 
-my $callTags = qq(git --git-dir=$TempRepoDir/.git tag); # read tagfile
+my $callTags = qq(git --git-dir=$TempRepoDir/.git tag);  # read tagfile
 my @TagFile = `$callTags`;
 
 # compute the numeric value of the cutoff version
 my $NumericCutoff = 100000*$VersionCutoff[0]+1000*$VersionCutoff[1]+$VersionCutoff[2];
 
 unless ($ARGV[0]) {
-    #  if called without an argument, all missing versions are built
+    # If called without an argument, all missing versions are built
 
     my @AvailableTags = ();
 
-    # process the hg AvailableTags File and grab the NumericVersion numbers, including the dev NumericVersions, but not 'tip'
+    # Process the hg AvailableTags File and grab the NumericVersion numbers, including the dev NumericVersions, but not 'tip'
     foreach (@TagFile) {
-        my @BuildID = ($_ =~ m/(\d+)\.(\d+)\.(\d+)(.*?)\s/);
+        my @vBuildID = ($_ =~ m/(v?)(\d+)\.(\d+)\.(\d+)(.*?)\s/);
 
-        if (@BuildID and $BuildID[0]){
-            my $NumericVersion = 100000*$BuildID[0]+1000*$BuildID[1]+$BuildID[2];
+        if (@vBuildID and $vBuildID[1]){
+            my $NumericVersion = 100000*$vBuildID[1]+1000*$vBuildID[2]+$vBuildID[3];
 
             if ($NumericVersion >= $NumericCutoff) {
-            my $ID = "$BuildID[0].$BuildID[1].$BuildID[2]$BuildID[3]";
-            push @AvailableTags,$ID;
+                my $ID = "$vBuildID[0]$vBuildID[1].$vBuildID[2].$vBuildID[3]$vBuildID[4]";
+                push @AvailableTags,$ID;
             }
 
         }
     }
 
-    # get highest NumericVersion number for the three branches
+    # Get highest NumericVersion number for the three branches
 
-    # scan through all the AvailableTags, and compare them to the NewestVersions
+    # Scan through all the AvailableTags, and compare them to the NewestVersions
     foreach (@AvailableTags) {
-        my @BuildID = ($_ =~ m/(\d+).(\d+).(\d+)(.*)/); # match major, minor, patch and everything that follows
+        my @BuildID = ($_ =~ m/v?(\d+).(\d+).(\d+)(.*)/); # match major, minor, patch and everything that follows
         my $NumericVersion = 100000*$BuildID[0]+1000*$BuildID[1]+$BuildID[2];
         
         if ($BuildID[3]){ # check if the currently processed tag is a developer NumericVersion
@@ -139,15 +143,15 @@ unless ($ARGV[0]) {
 
     print "The most recent NumericVersions are @NewestVersion \n";
 
-    #  Get the currently available builds in the build directory
+    # Get the currently available builds in the build directory
     opendir(my $FilesInBuildDir,$BuildsDir);
     my @AvailableBuilds = readdir($FilesInBuildDir);
 
     my $zipFiles = '';
     for my $File (@AvailableBuilds) {
-        my @BuildID = ($File =~ m/(\d+).(\d+).(\d+)(.*).zip/);
+        my @BuildID = ($File =~ m/(v?)(\d+).(\d+).(\d+)(.*).zip/);
         if (@BuildID){
-            my $ID = "$BuildID[0].$BuildID[1].$BuildID[2]$BuildID[3],";
+            my $ID = "$BuildID[0]$BuildID[1].$BuildID[2].$BuildID[3]$BuildID[4],";
             $zipFiles = join( "", $zipFiles, $ID);
         }
     }
@@ -162,14 +166,14 @@ unless ($ARGV[0]) {
     }
 }
 else {
-    # if build.pl is called with a commandline argument
+    # If build.pl is called with a commandline argument
     my $cmdLineArgument = $ARGV[0];
     my $TagExists = 0;
 
-    # try to match the commandline argument against the semantic versioning
-    my @SemanticBuildID = ($cmdLineArgument =~ m/(\d+)\.(\d+)\.(\d+)(.*?)/);
+    # Try to match the commandline argument against the semantic versioning
+    my @SemanticBuildID = ($cmdLineArgument =~ m/v?(\d+)\.(\d+)\.(\d+)(.*?)/);
 
-    # if argument corresponds to semantic versioning, make sure version is newer than cutoff version
+    # If argument corresponds to semantic versioning, make sure version is newer than cutoff version
     if (@SemanticBuildID){
         my $NumericVersion = 100000*$SemanticBuildID[0]+1000*$SemanticBuildID[1]+$SemanticBuildID[2];
 
@@ -179,176 +183,175 @@ else {
 
     }
 
-    # check if provided tag actually exists in tag file
+    # Check if provided tag actually exists in tag file
     foreach (@TagFile) {
         if ($_ =~ m/\b$cmdLineArgument\b/) {
             $TagExists = 1  ;
         }
     }
 
-    # error if tag is not existent
+    # Error if tag is not existent
     unless ($TagExists) {
-        die "the tag '$cmdLineArgument' was not found \n";
+        die "The tag '$cmdLineArgument' was not found \n";
     }
     push @TagsToBuild, $cmdLineArgument;
 }
 
-print("The following versions will now be built: @TagsToBuild \n");
+if (@TagsToBuild == 0) {
+    print("No new versions to build. \n");
+}
+else {
+    print("The following versions will now be built: @TagsToBuild \n");
+}
 
+
+# Loop over all tags that should be built
 # ---------------------------------------------------------------------------------
-# Processes all the TagsToBuild
-my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
-
-# loop over all tags that should be built
 foreach (@TagsToBuild) {
-    my $thisBuild = $_;
-    my @thisBuildID = ($thisBuild =~ m/$MatchPattern/);
+    my $thisTag = $_;
 
-    print "Building $thisBuild \n";
+    print "Building git tag $thisTag \n";
 
-    # clean cloned repo
+    # Update git repository
+    # ---------------------------------------------------------------------------------
+    # Clean cloned repo
     system("git --git-dir=$TempRepoDir/.git --work-tree=$TempRepoDir clean -f");
 
-    # update to tag that is being built
-    system("git --git-dir=$TempRepoDir/.git --work-tree=$TempRepoDir checkout $thisBuild ");
+    # Update to tag that is being built
+    system("git --git-dir=$TempRepoDir/.git --work-tree=$TempRepoDir -c advise.detachedHead=false checkout $thisTag ");
 
+    # Generate HTML file that contains list of examples
     # ---------------------------------------------------------------------------------
-    # Update html file that contains the examples
-    if (-e "$TempRepoDir/scripts/") {
-        # this catches the legacy version from before releasing and scripts folders where merged
-        chdir($TempRepoDir.'scripts/');
-    }
-    else {
-        # this should be the default behavior, after merge of releasing and scripts folder
-        chdir($TempRepoDir.'releasing/');
-    }
-    
+    chdir($TempRepoDir.'releasing/');
     print "Creating list with examples. \n";
     system('perl mkexamples.pl');
-
     chdir($WorkingDir);
 
+    # Build documentation (compile math with LaTeX etc.)
     # ---------------------------------------------------------------------------------
-    # Build .svg NumericVersions of formulae in the html documentation and replace the AvailableTags in html Files
-    print "Building documentation. \n";
+    print "Building documentation.\n";
     system("perl docbuilder.pl");
 
+    # Write esbuild_config.m 
     # ---------------------------------------------------------------------------------
-    # Update variables in esbuild.m 
-    my $matchReleaseID = '%ReleaseID%'; # pattern to find ReleaseID 
-    my $replaceReleaseID = "$thisBuild"; # Update ReleaseID
+    my $vMatchPattern = '(v)(\d+.\d+.*)';
+    my $ReleaseID;
+ 
+    my @ShortTag = ($thisTag =~ m/$vMatchPattern/);
     
-
+    print "ShortTag[0]: $ShortTag[0]\n";
+    print "ShortTag[1]: $ShortTag[1]\n";
+ 
+    if ($ShortTag[1]) {
+        $ReleaseID = $ShortTag[1];
+    }
+    else {
+        $ReleaseID = $thisTag;
+    }
+    
     my $ReleaseChannel;
     my $MonthsToExpire;
 
-    if ($thisBuildID[0]) {
-        if ($thisBuildID[3]) {
+    my $MatchVersionPattern = '(v?)(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
+    my @thisBuildID = ($thisTag =~ m/$MatchVersionPattern/);
+    if ($thisBuildID[1]) {
+        if ($thisBuildID[4]) {
             $ReleaseChannel = $KeyForDeveloperVersion;
             $MonthsToExpire = $MonthsToExpireDeveloper;
         }
-        elsif ($thisBuildID[0] eq $StableMajorVersion) {
+        elsif ($thisBuildID[1] eq $StableMajorVersion) {
             $ReleaseChannel = $KeyForStableVersion;
             $MonthsToExpire = $MonthsToExpireStable;
         }
-        elsif ($thisBuildID[0] eq $DefaultMajorVersion) {
+        elsif ($thisBuildID[1] eq $DefaultMajorVersion) {
             $ReleaseChannel = $KeyForDefaultVersion;
             $MonthsToExpire = $MonthsToExpireDefault;
         }
     }
-    else {
-        # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
+    else {  # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
         $ReleaseChannel = $KeyForExperimentalVersion;
         $MonthsToExpire = $MonthsToExpireDeveloper;
     }
 
-    my $matchReleaseChannel = '%ReleaseChannel%';
-    my $replaceReleaseChannel = "$ReleaseChannel";
+    my $SourceDir = "$TempRepoDir";
 
-    my $matchExpiry = '%Months';
-    my $replaceExpiry = "$MonthsToExpire";
-
-    my $matchSourceDir = '%SourceDir%';
-    my $replaceSourceDir = "$TempRepoDir";
-
-    my $matchZipDestDir = '%ZipDestDir%';
-    my $replaceZipDestDir = "$BuildsDir";
-
-    my $esbuildNew = "local$esbuild";
-
-    print("Updating esbuild.m\n");
-    open(my $Input,'<'.$esbuild) or die("Cannot open $esbuild!");
-    open(my $Output,'>'.$esbuildNew) or die("Cannot open $esbuildNew!");
-    while (<$Input>) {
-        $_ =~ s/$matchReleaseID/$replaceReleaseID/g;
-        $_ =~ s/$matchReleaseChannel/$replaceReleaseChannel/g;
-        $_ =~ s/$matchExpiry/$replaceExpiry/g;
-        $_ =~ s/$matchSourceDir/$replaceSourceDir/g;
-        $_ =~ s/$matchZipDestDir/$replaceZipDestDir/g;
-        print $Output $_;    
-    }
-
-    close($Input) or die("Cannot close $_!");
+    print("Writing esbuild config file\n");
+    print "  ReleaseID:       $ReleaseID\n";
+    print "  Release channel: $ReleaseChannel\n";
+    print "  Months:          $MonthsToExpire\n";
+    print "  Source dir:      $TempRepoDir\n";
+    print "  Zip dest. dir:   $BuildsDir\n";
+    
+    my $esbuildconfigfile = "esbuild_config.m";
+    open(my $Output,'>'.$esbuildconfigfile) or die("Cannot open $esbuildconfigfile!");
+    print $Output "releaseID = '$ReleaseID';\n";
+    print $Output "releaseChannel = '$ReleaseChannel';\n";
+    print $Output "monthsToExpiry = $MonthsToExpire;\n";
+    print $Output "sourceDir = '$TempRepoDir';\n";
+    print $Output "zipDestDir = '$BuildsDir';\n";
     close($Output) or die("Cannot close $_!");
-
+    
+    
+    # Call Matlab to run esbuild.m. This generates a packaged zip file
     # ---------------------------------------------------------------------------------
-    # Call Matlab to run esbuild.m
     my $MatlabOptions = '-nosplash -nodesktop -nodisplay';
-    my $MatlabTarget = qq(-r "run('$esbuildNew');exit;");
-
-    print("Triggering MATLAB build \n");
+    my $MatlabTarget = qq(-r "run('esbuild.m');exit;");
+    print("Running MATLAB build\n");
     system('matlab '.$MatlabOptions." ".$MatlabTarget);
+    system("rm $esbuildconfigfile");
+    print("MATLAB build completed\n");
 
-    system("rm $esbuildNew");
 
+    # Publish zip file
     # ---------------------------------------------------------------------------------
     # Decide wether to upload version, the first conditional checks if the build version follows semantic versioning or if not (e.g. easyspin-evolve)
-    if ($thisBuildID[0]) {
-        # Translate semantic version, compare to NewestVersions and decide wether it needs to be uploaded
-        my $NumericVersion = 100000*$thisBuildID[0]+1000*$thisBuildID[1]+$thisBuildID[2];
+    my $uploadBuild = 0;
+    if ($thisBuildID[1]) {
+        # Translate semantic version, compare to newest version and decide wether it needs to be uploaded
+        my $NumericVersion = 100000*$thisBuildID[1]+1000*$thisBuildID[2]+$thisBuildID[3];
 
-        if ($thisBuildID[3]){ # check if is an developer NumericVersion
-            if ($thisBuildID[3] eq 'alpha') {
+        if ($thisBuildID[4]){ # check if is an developer NumericVersion
+            if ($thisBuildID[4] eq 'alpha') {
                 $NumericVersion = $NumericVersion + 0.2 
             }
-            elsif ($thisBuildID[3] eq 'beta') {
+            elsif ($thisBuildID[4] eq 'beta') {
                 $NumericVersion = $NumericVersion + 0.3
             }
-            elsif ($thisBuildID[3] eq 'dev') {
+            elsif ($thisBuildID[4] eq 'dev') {
                 $NumericVersion = $NumericVersion + 0.1
             }
-            if ($thisBuildID[4]) {
-                $NumericVersion = $NumericVersion + 0.0001*$thisBuildID[4];
+            if ($thisBuildID[5]) {
+                $NumericVersion = $NumericVersion + 0.0001*$thisBuildID[5];
             }
         }
-
-        my $UploadBuild = 0;
         foreach my $VersionToCompare (@NewestVersion) {
             if ($NumericVersion == $VersionToCompare) {
-                $UploadBuild = 1;
+                $uploadBuild = 1;
             }
         }
-
-        # upload the current build by calling publish.pl
-        if ($UploadBuild) {
-
-            system(qq(perl publish.pl $thisBuild));
-        
-        }
+    }
+    
+    # Upload the current build by calling publish.pl
+    if ($uploadBuild) {
+        print "Calling publish script for upload.\n";
+        system(qq(perl publish.pl $thisTag));
+    }
+    else {
+        print "No upload.\n";
     }
 }
 
-# ---------------------------------------------------------------------------------
 # Clean up temporary EasySpin directories
+# ---------------------------------------------------------------------------------
 if (-e "$TempRepoDir") {
     system("rm -rf $TempRepoDir");
 }
 
+# Remove lock file and exit
 # ---------------------------------------------------------------------------------
-# Clean up LockFile and exit
-print "removing LockFile \n";
+print "removing lock file \n";
 close $LockFile;
 system('rm '.$SourceDir.'/'.$LockFilename);
 
 # ---------------------------------------------------------------------------------
-print "All finished.\n";
+print "Finished.\n";

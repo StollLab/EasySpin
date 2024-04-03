@@ -21,7 +21,7 @@ our @HTMLfiles = ("index.html","download.html","versions.txt"); # files on the w
 
 # assign major versions of easyspin to releasechannels
 # releasechannels are only used for sorting through the html files and replacing links and version numbers
-our $StableMajorVersion = 5; # major version that corresponds to the stable releasechannel
+our $StableMajorVersion = 6; # major version that corresponds to the stable releasechannel
 our $KeyForStableVersion = 'stable'; # keyword of this channel that is used for tagging in the html files
 our $MonthsToExpireStable = 24; # months the copy of easyspin will be licenced for
 
@@ -36,6 +36,3 @@ our $MonthsToExpireDeveloper = 6;
 our $ChannelForDocumentation = $KeyForStableVersion; # decides which release channel is used for the online documentation
 
 our @VersionCutoff = (5, 2, 0); # versions lower than this (major,minor,patch) version are ignored and will not be automatically built
-
-# name and location of the esbuild script
-our $esbuild = "esbuild.m";

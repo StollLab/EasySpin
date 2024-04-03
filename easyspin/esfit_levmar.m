@@ -1,75 +1,55 @@
 %esfit_levmar  Levenberg-Marquardt nonlinear least squares fitting
 %
-%   xfit = esfit_levmar(funfcn,x0)
-%   [xfit,Info] = esfit_levmar(funfcn,x0)
-%   ... = esfit_levmar(funfcn,x0,Opt)
-%   ... = esfit_levmar(funfcn,x0,Opt,p1,p2,...)
+%   xfit = esfit_levmar(fcn,x0,lb,ub)
+%   ... = esfit_levmar(fcn,x0,lb,ub,FitOpt)
+%   [xfit,info] = ...
 %
-%   Find  xm = argmin{F(x)} , where  x = [x_1, ..., x_n]  and
-%   F(x) = sum(f_i(x)^2)/2. The functions  f_i(x) (i=1,...,m)
-%   must be given by a Matlab function with declaration
-%              function  f = funfcn(x,p1,p2,...)
-%   p1,p2,... are parameters of the function and can be of any type and size.
-%
-%   The parameter search range is restricted to -1...+1 along each
-%   dimension.
+%   Tries to find x that minimizes sum(fcn(x).^2), starting at x0.
+%   fcn is a function that provides a vector of residuals.
 %
 % Input
-%   funfcn Handle to the function.
-%   x0     Starting vector in parameter space
-%   Opt    Options structure
-%            lambda    starting value of Marquardt parameter
-%            Gradient  termination threshold for gradient
-%            TolStep   termination threshold for step
-%            maxTime   termination threshold for time
-%            delta     step width for Jacobian approximation
-%   p1,p2,... are passed directly to the function funfcn.    
+%   fcn    residuals vector
+%   x0     starting vector in parameter space
+%   lb     lower bounds of parameters
+%   ub     upper bounds of parameters
+%   FitOpt structure with algorithm parameters
+%     .lambda    starting value of Marquardt parameter
+%     .Gradient  termination threshold for gradient
+%     .TolStep   termination threshold for step
+%     .maxTime   termination threshold for time
+%     .delta     step width for Jacobian approximation
+%     .Verbosity print detail level
+%     .IterFcn   function that is called after each iteration
 %
 % Output
 %   xfit    Converged vector in parameter space
-%   Info    Performance information, vector with 7 elements:
-%           info(1) = final value of F(x)
-%           info(2) = final value of ||F'||inf
-%           info(3) = final value of ||dx||2
-%           info(4) = final value of mu/max(A(i,i)) with A = Je'* Je
-%           info(5) = number of iterations
-%           info(6) = 1 :  stopped by small gradient
-%                     2 :  stopped by small x-step
-%                     3 :  max no. of iterations exceeded 
-%                    -4 :  dimension mismatch in x, f, B0
-%                    -5 :  overflow during computation
-%                    -6 :  error in approximate Jacobian
-%           info(7) = number of function evaluations
+%   info    structure with fitting information
+%            .F  function value at minimum
+%            .norm_g
+%            .norm_h
+%            .Je Jacobian  estimate
+%            .lambda
+%            .nIterations  number of interations
+%            .stop
+%            .nEvals       number of function evaluations
+%            .msg          message
 
 % Method:
 % Approximate Gauss-Newton with Levenberg-Marquardt damping and 
 % successive updating of Jacobian approximation.
 
-% Search range bounded to -1...+1.
-
-function  [x,info] = esfit_levmar(funfcn, x0, FitOpt, varargin)
+function [x,info] = esfit_levmar(fcn,x0,lb,ub,FitOpt)
 
 if nargin==0, help(mfilename); return; end
-if nargin<2, error('Need at least 2 arguments!'); end
-if nargin<3,  FitOpt = []; end
-
-% lambda = starting value of Marquardt parameter
-if ~isfield(FitOpt,'lambda'), FitOpt.lambda = 1e-3; end
-% termation tolerance for gradient (small gradient stops)
-if ~isfield(FitOpt,'Gradient'), FitOpt.Gradient = 1e-4; end
-% termation tolerance for parameter step (small step stops)
-if ~isfield(FitOpt,'TolStep'), FitOpt.TolStep = 1e-4; end
-
-% delta = relative step for difference approximation
-if ~isfield(FitOpt,'delta'), FitOpt.delta = 1e-7; end
-delta = FitOpt.delta;
-
-if ~isfield(FitOpt,'PrintLevel'), FitOpt.PrintLevel = 1; end
-if ~isfield(FitOpt,'maxTime'), FitOpt.maxTime = inf; end
-if ~isfield(FitOpt,'IterationPrintFunction') || ...
-    isempty(FitOpt.IterationPrintFunction)
-  FitOpt.IterationPrintFunction = @(str)str;
+if nargin<4
+  error('At least 4 inputs expected (function, x0, lb, ub).');
 end
+if nargin==4, FitOpt = struct; end
+
+DefOpt = esfit_algdefaults('Levenberg-Marquardt');
+FitOpt = adddefaults(FitOpt,DefOpt);
+
+delta = FitOpt.delta;
 
 startTime = cputime;
 
@@ -78,9 +58,11 @@ F = NaN;
 norm_g = NaN;
 nEvals = 0;
 
-nParams = numel(x0);
-lb = -ones(nParams,1);
-ub = +ones(nParams,1);
+lb = lb(:);
+ub = ub(:);
+if numel(lb)~=numel(ub)
+  error('Arrays for lower and upper bound must have the same number of elements.');
+end
 if any(lb>ub)
   error('Lower bounds must not be greater than upper bounds.');
 end
@@ -94,23 +76,40 @@ end
 if any(x0<lb) || any(x0>ub)
   error('Some elements in x0 are out of bounds.');
 end
-x = x0(:); 
+if FitOpt.RandomStart
+  x0 = lb + rand(nParams,1).*(ub-lb);
+end
+
+% Transform to (-1,1) interval
+transformParams = FitOpt.ScaleParams;
+if transformParams
+  transform = @(x) 2*(x-lb)./(ub-lb)-1;
+  untransform = @(x) lb + (ub-lb).*(x/2+1/2);
+  x0 = transform(x0);
+  ub = transform(ub);
+  lb = transform(lb);
+  fcn = @(x)fcn(untransform(x));
+end
+
+
+x = x0(:);
 
 stopCode = 0;
 
+
 if ~stopCode
-  [stopCode,F,f] = funeval(funfcn,x,varargin{:});
+  [stopCode,F,f] = funeval(fcn,x);
   nEvals = nEvals + 1;
   if ~stopCode
     % Jacobian
-    [stopCode,Je] = JacobianEstimate(funfcn,x,f,delta,varargin{:});
+    [Je,stopCode] = JacobianEstimate(fcn,x,f,delta);
     nEvals = nEvals + n;
     % Check gradient and J'*J
     if ~stopCode
       g = Je'*f;
-      norm_g = norm(g,inf);
+      norm_g = norm(g,Inf);
       A = Je'*Je;
-      if  isinf(norm_g) || isinf(norm(A(:),inf))
+      if  isinf(norm_g) || isinf(norm(A(:),Inf))
         stopCode = -5;
       end
     end
@@ -120,6 +119,7 @@ end
 if stopCode
   info.F = F;
   info.norm_g = norm_g;
+  info.Je = Je;
   info.stop = stopCode;
   info.nEvals = nEvals;
   return
@@ -132,12 +132,11 @@ nu = 2;
 norm_h = 0;
 j = 0;  % direction of last update
 
-global UserCommand
-if isempty(UserCommand), UserCommand = NaN; end
-
+nEvals = 0;
 iIteration = 0;
 while ~stopCode
   
+  drawnow
   iIteration = iIteration + 1;
   
   if norm_g<=FitOpt.Gradient
@@ -145,26 +144,38 @@ while ~stopCode
     break;
   end
   
-  % Levenberg-Marquardt: Compute step and new damping factor
-  [h,mu] = ComputeLMStep(A,g,mu);
+  % Compute step and new damping factor
+  [h,mu] = computeLMStep(A,g,mu);
   norm_h = norm(h);
-
-  if FitOpt.PrintLevel
-    str = sprintf(' iteration %d:\n    value %0.5f\n    gradient %0.5f\n    step %0.5f',iIteration,sqrt(F*2),norm_g,norm_h);
+  
+  if FitOpt.Verbosity
+    str = sprintf(' iteration %4d:  value %0.5e    gradient %0.5e    step %0.5e',iIteration,sqrt(F*2),norm_g,norm_h);
     FitOpt.IterationPrintFunction(str);
   end
   
   if norm_h<=FitOpt.TolStep*(FitOpt.TolStep + norm(x))
     stopCode = 2;
-    break;
+    break
   end
   
   xnew = x + h;
   xnew = min(max(xnew,lb),ub); % apply bounds
   
-  [stopCode,Fnew,fnew] = funeval(funfcn,xnew,varargin{:});
+  [stopCode,Fnew,fnew] = funeval(fcn,xnew);
   nEvals = nEvals+1;
   if stopCode, break; end
+
+  info.bestx = xnew;
+  info.minF = Fnew;
+  info.nEvals = nEvals;
+  info.iter = iIteration;
+  info.newbest = true;
+  if ~isempty(FitOpt.IterFcn)
+    UserStop = FitOpt.IterFcn(info);
+  else
+    UserStop = false;
+  end
+  if UserStop, stopCode = 4; break; end
 
   % Update Jacobian estimate Je
   j = mod(j,n) + 1;
@@ -172,7 +183,7 @@ while ~stopCode
   if abs(h(j))<gamma*norm_h  % recompute with finite differences
     xu = x;
     xu(j) = x(j) + delta;
-    [stopCode,~,fu] = funeval(funfcn,xu,varargin{:});
+    [stopCode,~,fu] = funeval(fcn,xu);
     nEvals = nEvals+1;
     if ~stopCode
       hu = xu - x;
@@ -201,14 +212,25 @@ while ~stopCode
   end
   
   g = Je'*f;
-  norm_g = norm(g,inf);
+  norm_g = norm(g,Inf);
   A = Je'*Je;
   
-  if isinf(norm_g) || isinf(norm(A(:),inf)), stopCode = -5; break; end
-  if UserCommand==1 || UserCommand==4 || UserCommand==99, stopCode = 4; break; end
+  if isinf(norm_g) || isinf(norm(A(:),Inf)), stopCode = -5; break; end
   elapsedTime = (cputime-startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 3; break; end
 
+end
+
+if stopCode && iIteration==1
+  % Update GUI
+  info.bestx = x;
+  info.minF = F;
+  info.nEvals = nEvals;
+  info.iter = iIteration;
+  info.newbest = true;
+  if ~isempty(FitOpt.IterFcn)
+    FitOpt.IterFcn(info);
+  end
 end
 
 if stopCode<0
@@ -224,26 +246,30 @@ switch stopCode
   case 4, msg = sprintf('Stopped by user');
 end
 
-if FitOpt.PrintLevel>1
-  fprintf('Terminated: %s\n',msg);
+if FitOpt.Verbosity>0
+  FitOpt.InfoPrintFunction(sprintf('Terminated: %s\n',msg));
+end
+
+if transformParams
+  x = untransform(x);
 end
 
 info.F = F;
 info.norm_g = norm_g;
 info.norm_h = norm_h;
+info.Je = Je;
 info.lambda = FitOpt.lambda;
-info.nIter = iIteration-1;
+info.nIterations = iIteration-1;
 info.stop = stopCode;
 info.nEvals = nEvals;
-info.msg = msg;
 
-return
+end
 %======================================================================
 
 
 
 %======================================================================
-function  [err, J] = JacobianEstimate(funfcn,x0,f0,delta,varargin)
+function  [J,err] = JacobianEstimate(funfcn,x0,f0,delta)
 % Compute approximate Jacobian using finite differences
 % Jacobian:
 %    dy1/dx1    dy1/dx2   ...
@@ -254,9 +280,13 @@ nVariables = numel(x0);
 J = zeros(numel(f0),nVariables);
 
 for ix = 1:nVariables
+  drawnow % allows loop to be interruptible
   x1 = x0;
   x1(ix) = x0(ix) + delta;
-  f1 = funfcn(x1,varargin{:});
+  [f1,~,userstop] = funfcn(x1);
+  if userstop % interrupt Jacobian estimation
+    err = 5; return;
+  end
   f1 = f1(:);
   J(:,ix) = (f1-f0)/delta;
 end
@@ -268,9 +298,10 @@ else
   err = 0;
 end
 
+end
 
 %======================================================================
-function [h,mu] = ComputeLMStep(A,g,mu)
+function [h,mu] = computeLMStep(A,g,mu)
 % Solve (A+mu*1)*h = -g, scaling mu if needed; using Cholesky factorization
 
 notPosDef = true;
@@ -288,23 +319,25 @@ end
 % Solve  (R'*R)*h = -g
 h = R\(R'\(-g));
 
+end
+
 %======================================================================
-function  [errCode,F,f] = funeval(funfcn,x,varargin)
-%funeval  Check Matlab function which is called by a nonlinear least squares solver.
+function  [errCode,F,f] = funeval(funfcn,x)
 
 errCode = 0;
 
-f = funfcn(x,varargin{:});
+[f,~,stopCode] = funfcn(x);
+if stopCode % stopped by user
+  errCode = 4; 
+end
 f = f(:);
 
 if any(isnan(f))
   error('f contains at least one NaN value.')
 end
-
 if any(isinf(f))
-  error('f contains at least one inf value.')
+  error('f contains at least one Inf value.')
 end
-
 if  any(~isreal(f))
   error('f is not real-valued.');
 end
@@ -313,3 +346,5 @@ end
 F = f'*f;
 
 if isinf(F), errCode = -5; end
+
+end

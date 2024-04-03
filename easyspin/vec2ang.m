@@ -80,4 +80,4 @@ switch nargout
   case 2 % phi and theta separate
 end
 
-return
+end

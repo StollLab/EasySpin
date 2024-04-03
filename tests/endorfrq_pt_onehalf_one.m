@@ -6,7 +6,7 @@ clear
 Sys.Nucs='2H';
 Sys.A = [5 9];
 Exp.Field=3500;
-Exp.CrystalOrientation = [0 pi/4 0];
+Exp.SampleFrame = [0 pi/4 0];
 Exp.mwFreq = 95;
 a = endorfrq(Sys,Exp);
 b = endorfrq_perturb(Sys,Exp);

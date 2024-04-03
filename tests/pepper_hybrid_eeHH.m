@@ -11,7 +11,7 @@ Sys.lwpp = 3;
 Exp.mwFreq = 9.5;
 Exp.Range = [180 500];
 Exp.nPoints = 10000;
-Exp.CrystalOrientation = [0 pi/4 0];
+Exp.SampleFrame = [0 pi/4 0];
 Exp.Temperature = 40;
 Exp.Harmonic = 0;
 

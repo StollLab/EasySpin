@@ -20,7 +20,7 @@ y = y/max(abs(y(:)));
 y = real(y);
 
 if (opt.Display)
-  xlabel('time [us]');
+  xlabel('time (µs)');
   if ~isempty(olddata)
     figure;
     subplot(1,2,1);

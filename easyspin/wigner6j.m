@@ -49,7 +49,7 @@ switch nargin
     else
       if size(j,2)==6
         for k=1:size(j,1)
-          value(k) = wigner6j(j(k,:));
+          value(k) = wigner6j(j(k,:));  %#ok
         end
         return;
       else
@@ -72,7 +72,7 @@ end
 %[j1 j2 j3; j4 j5 j6]
 
 % A 6j symbol must satisfy 4 triangle relations to be nonzero.
-if ~(istriangle(j1,j2,j3) & istriangle(j1,j5,j6) & istriangle(j4,j2,j6) & istriangle(j4,j5,j3))
+if ~(istriangle(j1,j2,j3) && istriangle(j1,j5,j6) && istriangle(j4,j2,j6) && istriangle(j4,j5,j3))
   value = 0;
   return;
 end
@@ -140,38 +140,38 @@ else
   value = pre*s;
 end
  
-%end
+end
 
 
 %==========================================================
 function v = bino(a,b)
 v = prod((a-b+1:a)./(1:b));
-return
+end
 
 function v = fac(a)
 v = prod(1:a);
-return
+end
 
 function ok = isint(x)
 ok = x==floor(x);
-return
+end
 
 function yes = istriangle(a,b,c)
 yes = (a+b>=c) & (b+c>=a) & (c+a>=b);
-return
+end
 
 %------------------------------------------------------------
 
+%{
 function v = tricoeff(a,b,c)
 v = sqrt(factorial(a+b-c)*factorial(a-b+c)/factorial(a+b+c+1)*factorial(-a+b+c));
-return
-
+end
 
 function v = facln(x)
 v = gammaln(x+1);
-return
-
+end
 
 function v = tricoeffln(a,b,c)
 v = (facln(a+b-c) + facln(a-b+c) + facln(-a+b+c) - facln(a+b+c+1));
-return
+end
+%}

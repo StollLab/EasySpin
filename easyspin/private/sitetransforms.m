@@ -1,17 +1,17 @@
 % sitetransforms   Rotation matrices for space groups
 %
 %   R = sitetransforms(ID)
-%   vrot = sitetransforms(ID,vec);
+%   vrot = sitetransforms(ID,vec)
 %
 % Provides sets of rotation matrices of the rotation point group belonging
-% to the space group given in ID. The rotation matrices are used to transform
-% tensors between different equivalent sites.
+% to the space group given in ID. The rotation matrices are used to
+% transform vectors and tensors between different equivalent sites.
 %
 % Input:
 %   ID    One of the following:
 %         - Schoenflies or Hermann-Mauguin symbol for crystallographic point group
-%         - Hermann-Mauguin symbol for space group
-%         - Space group number
+%         - Hermann-Mauguin symbol for space group (e.g. P121)
+%         - Space group number (between 1 and 230)
 %   vec   vector to transform (optional)
 % Output:
 %   R     cell array of active rotation matrices
@@ -29,8 +29,10 @@ if transformVector
   end
 end
 
-persistent SpaceGroupNames SpaceGroupNo SpaceGroupNotes
-if isempty(SpaceGroupNames)
+% Load space group data
+%--------------------------------------------------------------------------
+persistent SpaceGroups
+if isempty(SpaceGroups)
   EasySpinPath = fileparts(which(mfilename));
   SpaceGroupDataFile = [EasySpinPath filesep 'spacegroups.txt'];
   
@@ -39,34 +41,33 @@ if isempty(SpaceGroupNames)
   fh = fopen(SpaceGroupDataFile);
   C = textscan(fh,'%f %s %s','commentstyle','%');
   fclose(fh);
-  [SpaceGroupNo,SpaceGroupNames,SpaceGroupNotes] = C{:};
+  [SpaceGroups.No,SpaceGroups.Names,SpaceGroups.Axes] = C{:};
 end
 
 % Determine Laue class from input ID
-%--------------------------------------------------------
+%--------------------------------------------------------------------------
 
-% Process input if it is string
-PointGroupsSchoenflies = {'C1','Ci','C2','Cs','C2h','D2','C2v','D2h',...
-  'C4','S4','C4h','D4','C4v','D2d','D4h','C3','C3i','D3','C3v','D3d',...
-  'C6','C3h','C6h','D6','C6v','D3h','D6h','T','Th','O','Td','Oh'};
-PointGroupsHermannMauguin = {'1','-1','2','m','2/m','222','mm2','mmm',...
-  '4','-4','4/m','422','4mm','-42m','4/mmm','3','-3','32','3m','-3m',...
-  '6','-6','6/m','622','6mm','-6m2','6/mmm','23','m-3','432','-43m','m-3m'};
-LaueClasses = [1 1 2 2 2 3 3 3 4 4 4 5 5 5 5 6 6 7 7 7 8 8 8 9 9 9 9 10 10 11 11 11];
-LaueClass = [];
+% Process input if it is a character array or string
 if ischar(ID)
-  idx = find(strcmp(ID,PointGroupsSchoenflies));
-  if isempty(idx)
-    idx = find(strcmp(ID,PointGroupsHermannMauguin));
-  end
-  if ~isempty(idx)
-    LaueClass = LaueClasses(idx);
-    AxisConvention = 'z'; % unique axis along zC if point group is given
+  idx = find(strcmp(ID,SpaceGroups.Names));
+  if ~isempty(idx) % if it's a space group symbol
+    LaueClass = groupnumber2laueclass(SpaceGroups.No(idx));
+    AxisConvention = SpaceGroups.Axes{idx};
   else
-    idx = find(strcmp(ID,SpaceGroupNames));
-    if ~isempty(idx)
-      ID = SpaceGroupNo(idx);
-      AxisConvention = SpaceGroupNotes{idx};
+    PointGroupsSchoenflies = {'C1','Ci','C2','Cs','C2h','D2','C2v','D2h',...
+      'C4','S4','C4h','D4','C4v','D2d','D4h','C3','C3i','D3','C3v','D3d',...
+      'C6','C3h','C6h','D6','C6v','D3h','D6h','T','Th','O','Td','Oh'};
+    PointGroupsHermannMauguin = {'1','-1','2','m','2/m','222','mm2','mmm',...
+      '4','-4','4/m','422','4mm','-42m','4/mmm','3','-3','32','3m','-3m',...
+      '6','-6','6/m','622','6mm','-6m2','6/mmm','23','m-3','432','-43m','m-3m'};
+    LaueClasses = [1 1 2 2 2 3 3 3 4 4 4 5 5 5 5 6 6 7 7 7 8 8 8 9 9 9 9 10 10 11 11 11];
+    idx = find(strcmp(ID,PointGroupsSchoenflies));
+    if isempty(idx)
+      idx = find(strcmp(ID,PointGroupsHermannMauguin));
+    end
+    if ~isempty(idx) % if it's a point group symbol (Schoenflies or H-M)
+      LaueClass = LaueClasses(idx);
+      AxisConvention = 'default';
     else
       error('Point or space group symmetry symbol ''%s'' is unknown.',ID);
     end
@@ -74,26 +75,24 @@ if ischar(ID)
 end
 
 % Process input if it is a number
-if isempty(LaueClass)
+if ~ischar(ID)
   if ~isnumeric(ID)
-    error('Space group number between 1 and 230.');
+    error('Space group ID must be a number or a string/character array.');
   elseif numel(ID)~=1
-    error('Space group ID must be a number between 1 and 230.');
-  elseif mod(ID,1)~=0 || ~isreal(ID) || (ID<1) || (ID>230)
-    error('Wrong space group number %g. Must be between 1 and 230.',ID);
+    error('Space group ID must be a single number, not an array.');
+  elseif mod(ID,1)~=0 || ~isreal(ID) || ID<1 || ID>230
+    error('Invalid space group number %g. Must be between 1 and 230.',ID);
   end
-  if     ID<=  2, LaueClass =  1; % (C1, Ci=S2), triclinic
-  elseif ID<= 15, LaueClass =  2; % (C2, Cs=C1h, C2h), monoclinic
-    AxisConvention = 'b'; % b is the default unique axis for monoclinic space groups
-  elseif ID<= 74, LaueClass =  3; % (D2, C2v, D2h), orthorhombic
-  elseif ID<= 88, LaueClass =  4; % (C4, S4, C4h), tetragonal
-  elseif ID<=142, LaueClass =  5; % (D4, C4v, D2d, D4h), tetragonal
-  elseif ID<=148, LaueClass =  6; % (C3, C3i=S6), trigonal
-  elseif ID<=167, LaueClass =  7; % (D3, C3v, D3d), trigonal
-  elseif ID<=176, LaueClass =  8; % (C6, C3h, C6h), hexagonal
-  elseif ID<=194, LaueClass =  9; % (D6, C6v, D3h, D6h), hexagonal
-  elseif ID<=206, LaueClass = 10; % (T, Th), cubic
-  elseif ID<=230, LaueClass = 11; % (O, Td, Oh), cubic
+  LaueClass = groupnumber2laueclass(ID);
+  AxisConvention = 'default';
+end
+
+% Supplement default unique axis
+if strcmp(AxisConvention,'default')
+  if LaueClass==2 % monoclinic space groups
+    AxisConvention = 'b'; % b is commonly used as default -> yC is unique axis
+  else
+    AxisConvention = 'z'; % set zC as unique axis
   end
 end
 
@@ -247,10 +246,28 @@ if transformVector
   % Apply site transformations to input vector and
   % return an array of transformed vectors
   for iR = 1:numel(R)
-    vecrot(:,iR) = R{iR}*vec(:);
+    vecrot(:,iR) = R{iR}*vec(:);  %#ok
   end
   out = vecrot;
 else
   % Return the set of rotation matrices
   out = R;
+end
+
+end
+
+% Determine Laue class (1-11) from space group number (1-230)
+function LaueClass = groupnumber2laueclass(GroupNumber)
+if     GroupNumber<=  2, LaueClass =  1; % (C1, Ci=S2), triclinic
+elseif GroupNumber<= 15, LaueClass =  2; % (C2, Cs=C1h, C2h), monoclinic
+elseif GroupNumber<= 74, LaueClass =  3; % (D2, C2v, D2h), orthorhombic
+elseif GroupNumber<= 88, LaueClass =  4; % (C4, S4, C4h), tetragonal
+elseif GroupNumber<=142, LaueClass =  5; % (D4, C4v, D2d, D4h), tetragonal
+elseif GroupNumber<=148, LaueClass =  6; % (C3, C3i=S6), trigonal
+elseif GroupNumber<=167, LaueClass =  7; % (D3, C3v, D3d), trigonal
+elseif GroupNumber<=176, LaueClass =  8; % (C6, C3h, C6h), hexagonal
+elseif GroupNumber<=194, LaueClass =  9; % (D6, C6v, D3h, D6h), hexagonal
+elseif GroupNumber<=206, LaueClass = 10; % (T, Th), cubic
+elseif GroupNumber<=230, LaueClass = 11; % (O, Td, Oh), cubic
+end
 end

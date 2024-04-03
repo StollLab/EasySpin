@@ -29,7 +29,7 @@ if ~isempty(UserStruct)
   end
 end
 
-return
+end
 
 % spellcheckfields   Checks the upper/lowercase spelling of fields
 %
@@ -57,7 +57,7 @@ for iF = 1:numel(Fields)
   % If there is a field with incorrect capitalization, but none with the
   % correct one, issue an error.
   if isempty(idxCorrect) && ~isempty(idxAny)
-    error('\n   Supplied field ''%s'' is similar to ''%s''.\n   Please correct spelling or remove field.',Name,ExactFieldNames{idxAny(1)});
+    error('\n   Supplied field ''%s'' is similar to ''%s''.\n   Please correct spelling or remove field.\n',Name,ExactFieldNames{idxAny(1)});
   end
 
   % If there is a field with correct capitalization, take that
@@ -69,4 +69,4 @@ for iF = 1:numel(Fields)
   Out.(Name) = Value;
 end
 
-return
+end

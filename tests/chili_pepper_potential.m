@@ -12,14 +12,13 @@ Exp.mwRange = [9 11];
 
 Opt.LLMK = [100 0 0 0];
 Opt.Verbosity = 0;
-Opt.GridSymmetry = 'Dinfh';
 
 c200 = 3;
 
 Exp.Ordering = c200;
 [B,spc2] = pepper(Sys,Exp,Opt);
 
-Exp.CrystalOrientation = [0 0 0];
+Exp.SampleFrame = [0 0 0];
 Sys.Potential = [2 0 0 c200];
 [B,spc1] = chili(Sys,Exp,Opt);
 

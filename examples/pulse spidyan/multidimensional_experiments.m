@@ -10,15 +10,15 @@ Sys.ZeemanFreq = 9.5;
 
 % Experiment
 Pulse90.Type = 'rectangular';
-Pulse90.tp = 0.05; % us
+Pulse90.tp = 0.05; % µs
 Pulse90.Flip = pi; % rad
 
 Pulse180.Type = 'rectangular';
-Pulse180.tp = 0.05; % us
+Pulse180.tp = 0.05; % µs
 Pulse180.Flip = pi; % rad
   
 % pi - tau - pi/2 - tau
-Exp.Sequence = {Pulse90 0.5 Pulse180 0.5}; % us
+Exp.Sequence = {Pulse90 0.5 Pulse180 0.5}; % µs
 
 Exp.mwFreq = 9.5; % GHz
 
@@ -58,7 +58,7 @@ ylim([-1 1])
 %% Two Dimensional Experiment - Changing the inter pulse delay with a nonlinear increment
 % Increment the first delay by 100 and 250 ns
 Exp.nPoints = 3; 
-Exp.Dim1 = {'d1', [0 0.1 0.25]}; % us
+Exp.Dim1 = {'d1', [0 0.1 0.25]}; % µs
 
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 % Since the length of a detected event is changed, the traces of each
@@ -107,7 +107,7 @@ axis tight
 Exp.nPoints = [2 3]; % 2 steps in 1st and 3 in 2nd dimension
 Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses 
                                         % by pi/4 each step 
-Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse, us
+Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse, µs
 
 % Now, Sz and S^+ are detected
 Exp.DetOperator = {'z1','+1'};

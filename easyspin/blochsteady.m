@@ -1,7 +1,7 @@
 % blochsteady   Steady-state solutions of Bloch equations
 %
-%  blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq)
-%  blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq,Options)
+%  blochsteady(g,T1,T2,DeltaB0,B1,modAmp,modFreq)
+%  blochsteady(g,T1,T2,DeltaB0,B1,modAmp,modFreq,Options)
 %  [t,My] = blochsteady(...)
 %  [t,Mx,My,Mz] = blochsteady(...)
 %
@@ -10,13 +10,13 @@
 %
 %  Inputs:
 %    g        g value of the electron spin (S = 1/2)
-%    T1       longitudinal relaxation time constant, us
-%    T2       transverse relaxation time constant, us
+%    T1       longitudinal relaxation time constant, µs
+%    T2       transverse relaxation time constant, µs
 %
 %    DeltaB0  offset from resonance field, mT
 %    B1       microwave field amplitude, mT
-%    ModAmp   peak-to-peak modulation field amplitude, mT
-%    ModFreq  modulation frequency, kHz
+%    modAmp   peak-to-peak modulation field amplitude, mT
+%    modFreq  modulation frequency, kHz
 %
 %    Options  calculation options
 %      .Verbosity   whether to print information (0 or 1; 0 default)
@@ -27,12 +27,17 @@
 %                   'fft'  using inverse Fourier transform (default)
 %
 %  Outputs:
-%    t        time axis, us
+%    t        time axis, µs
 %    Mx       in-phase signal (dispersion)
 %    My       quadrature signal (absorption)
 %    Mz       longitudinal magnetization
 
-function varargout = blochsteady(g,T1,T2,DeltaB0,B1,ModAmp,ModFreq,Options)
+% see
+%   M. Tseitlin, G. R. Eaton, S. S. Eaton
+%   Appl. Magn. Reson. 2013, 44, 1373-1379
+%   https://doi.org/10.1007/s00723-013-0494-2
+
+function varargout = blochsteady(g,T1,T2,DeltaB0,B1,modAmp,modFreq,Options)
 
 if nargin==0, help(mfilename); return; end
 
@@ -53,13 +58,13 @@ if ~isstruct(Options)
 end
 
 if ~isfield(Options,'Verbosity'), Options.Verbosity = 0; end
-global EasySpinLogLevel
+global EasySpinLogLevel %#ok
 EasySpinLogLevel = Options.Verbosity;
 
-logmsg(1,['=begin=blochsteady======' datestr(now) '=================']);
+logmsg(1,['=begin=blochsteady======' char(datetime) '=================']);
 
 if ~isfield(Options,'nPoints')
-  Options.nPoints = 1000;
+  Options.nPoints = [];
 end
 if ~isfield(Options,'Method')
   Options.Method = 'fft';
@@ -68,65 +73,67 @@ end
 onlyAbsorption = nargout==2;
 
 % Unit conversions
-T1 = T1*1e-6; % us -> s
-T2 = T2*1e-6; % us -> s
+T1 = T1*1e-6; % µs -> s
+T2 = T2*1e-6; % µs -> s
 
 DeltaB0 = DeltaB0*1e-3; % mT -> T
 B1 = B1*1e-3; % mT -> T
-ModAmp = ModAmp*1e-3; % mT -> T
-ModFreq = ModFreq*1e3; % kHz -> Hz
-omegam = 2*pi*ModFreq; % modulation angular frequency, rad/s
+modAmp = modAmp*1e-3; % mT -> T
+modFreq = modFreq*1e3; % kHz -> Hz
+omegam = 2*pi*modFreq; % modulation angular frequency; Hz -> rad/s
 
 M0 = 1;  % equilibrium magnetization
 gamma = bmagn/hbar*g; % gyromagnetic ratio
 
-% Some range checks
+% Some input checks
+if numel(g)~=1
+  error('g (1st input) must be a single number.');
+end
 if numel(T1)~=1 || T1<=0
-  error('T2 must be a single positive number.');
+  error('T1 (2nd input) must be a single positive number.');
 end
 if numel(T2)~=1 || T2<=0
-  error('T2 must be a single positive number.');
+  error('T2 (3rd input) must be a single positive number.');
 end
 if T2>T1
   error('T2 cannot be larger than T1.');
 end
-
-if numel(B1)~=1 || B1<=0
-  error('The microwave field amplitude B1 must be a single positive number.');
-end
-if numel(ModFreq)~=1 || ModFreq<=0
-  error('The modulation frequency ModFreq must be a single positive number.');
-end
-if numel(ModAmp)~=1 || ModAmp<=0
-  error('The modulation amplitude ModAmp must be a single positive number.');
-end
 if numel(DeltaB0)~=1
-  error('The field offset must be a single number.');
+  error('The field offset (4th input_ must be a single number.');
+end
+if numel(B1)~=1 || B1<=0
+  error('The microwave field amplitude B1 (5th input) must be a single positive number.');
+end
+if numel(modAmp)~=1 || modAmp<=0
+  error('The modulation amplitude (6th input) must be a single positive number.');
+end
+if numel(modFreq)~=1 || modFreq<=0
+  error('The modulation frequency (7th input) must be a single positive number.');
 end
 
 logmsg(1,'Determination of maximum Fourier order (kmax)');
 if ~isfield(Options,'kmax') || isempty(Options.kmax)
   % Estimator for maximum relevant Fourier order
   % (1) based on maximum field offset
-  maxfieldoffset = max(ModAmp/2-DeltaB0,DeltaB0+ModAmp/2);
-  maxfieldoffset = min(maxfieldoffset,ModAmp);
+  maxfieldoffset = max(modAmp/2-DeltaB0,DeltaB0+modAmp/2);
+  maxfieldoffset = min(maxfieldoffset,modAmp);
   maxfreqoffset = (gamma/2/pi)*maxfieldoffset;
-  kmax = maxfreqoffset/ModFreq;
+  kmax = maxfreqoffset/modFreq;
   kmax = ceil(kmax*1.4);
   logmsg(1,'  based on max. field offset: %d',kmax);
   
   % (2) based on T2
   %envelope = exp(-2/gam/ModAmp/T2*abs(fourierorder));
   threshold = 1e-6;
-  thresholdorder = -log(threshold)/2*gamma*ModAmp*T2;
+  thresholdorder = -log(threshold)/2*gamma*modAmp*T2;
   thresholdorder = ceil(thresholdorder);
   logmsg(1,'  based on T2: %d',thresholdorder);
   
-  % Combine (1) and (2)
+  % Take the larger of (1) and (2), but at least some minimal k
   minkmax = 20;
-  kmax = min(kmax,thresholdorder);
-  kmax = max(kmax,minkmax); % at least 20
-  logmsg(1,'  smaller of the two, but at least %d: %d',minkmax,kmax);
+  kmax = max(kmax,thresholdorder);
+  kmax = max(kmax,minkmax);
+  logmsg(1,'  larger of the two, but at least %d: %d',minkmax,kmax);
   
 else
   kmax = Options.kmax; % largest Fourier order, |k|
@@ -138,11 +145,11 @@ end
 %--------------------------------------------------------------------------
 logmsg(1,'Frequency-domain steady-state solution');
 logmsg(1,'  Set up diagonals');
-k = (-kmax-1:kmax+1).'; % use max order kmax+1 to evaluate all terms
+k = (-(kmax+1):kmax+1).'; % use max. order kmax+1 to evaluate all terms
 a = 1i*k*omegam;
 b = gamma*DeltaB0;
 c = gamma*B1;
-d = gamma*ModAmp/4;
+d = gamma*modAmp/4;
 tau1 = 1./(a+1/T1);
 tau2 = 1./(a+1/T2);
 
@@ -169,7 +176,7 @@ Y = P\C0;
 
 % Calculate Mkx and Mkz from Mky
 logmsg(1,'  Calculate x and z Fourier coefficients');
-q = 2:2*kmax; % drop one order (max order now is kmax-1)
+q = 2:2*kmax;  % drop one order (max order now is kmax-1)
 if ~onlyAbsorption
   Xk = tau2(q+1).*(b*Y(q) + d*(Y(q-1) + Y(q+1)));
   deltak0 = zeros(2*kmax-1,1);
@@ -188,9 +195,9 @@ end
 % Compute time evolution of components
 %--------------------------------------------------------------------------
 logmsg(1,'Calculation of time-domain signal.');
-tPeriod = 1/ModFreq; % modulation period
+tPeriod = 1/modFreq;  % modulation period
 
-% number of points in time domain
+% Number of points in time domain
 nPoints = Options.nPoints;
 if isempty(nPoints)
   nPoints = 2*kmax-1;
@@ -200,7 +207,7 @@ t = linspace(0,tPeriod,nPoints+1).';
 t(end) = [];
 
 switch Options.Method
-  case 'td' % time-domain explicit construction with complex exponentials
+  case 'td'  % time-domain, explicit construction with complex exponentials
     logmsg(1,'  Method: explicit evolution with complex exponentials');
     if onlyAbsorption
       My = 0;
@@ -228,7 +235,7 @@ switch Options.Method
       Mz = real(Mz);
     end
     
-  case 'fft' % Computing time domain signals using Fourier transform
+  case 'fft'  % compute time domain signals using inverse Fourier transformation
     logmsg(1,'  Method: Inverse Fourier transform');
     logmsg(1,'    nPoints: %d, Mky: %d',nPoints,numel(Yk));
     n = numel(Yk);
@@ -265,7 +272,7 @@ end
 % Add last point if plotting
 addLastPoint = nargout==0;
 if addLastPoint
-  t(end+1) = 1/ModFreq;
+  t(end+1) = 1/modFreq;
   My(end+1) = My(1);
   if ~onlyAbsorption
     Mx(end+1) = Mx(1);
@@ -275,7 +282,7 @@ end
 
 t = t/1e-6;    % seconds -> microseconds, for output and plotting
 
-% Graphical rendering
+% Plotting
 %--------------------------------------------------------------------------
 switch nargout
   case 2
@@ -285,30 +292,43 @@ switch nargout
   case 7
     varargout = {t,Mx,My,Mz,Xk,Yk,Zk};
   case 0
-    tx1 = acos(-DeltaB0*2/ModAmp)/omegam*1e6;
-    tx2 = t(end)-tx1;
+    varargout = {};
+    plotresults;
+end
+
+logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
+
+clear global EasySpinLogLevel
+
+  function plotresults()
+
+    xlineAvailable = ~verLessThan('matlab','9.5');  % R2018b
+
+    tx1 = acos(-DeltaB0*2/modAmp)/omegam*1e6;
+    tx2 = 1/modFreq*1e6 - tx1;
     reflineColor = [1 1 1]*0.7;
-    subplot(3,1,[1 2]);
+    
+    clf
+    subplot(3,1,[1,2]);
     plot(t,My);
     axis tight
-    xlabel('time (µs)');
     ylabel('absorption signal');
-    title(sprintf('ModAmp = %g mT, ModFreq =  %g kHz, B_1 = %g mT',...
-        ModAmp*1e3,ModFreq/1e3,B1*1e3));
-    xline(tx1,'Color',reflineColor);
-    xline(tx2,'Color',reflineColor);
-    
+    title(sprintf('T_1 = %g µs, T_2 = %g µs, modAmp = %g mT, modFreq =  %g kHz, B_1 = %g mT, \\DeltaB = %g mT',...
+      T1*1e6,T2*1e6,modAmp*1e3,modFreq/1e3,B1*1e3,DeltaB0*1e3));
+    if xlineAvailable
+      xline([tx1 tx2],'Color',reflineColor);
+    end
+
     subplot(3,1,3);
-    Bmod = ModAmp/2*1e3*cos(omegam*t*1e-6);
+    Bmod = modAmp/2*1e3*cos(omegam*t*1e-6);
     plot(t,Bmod);
-    yline(-DeltaB0*1e3,'Color',reflineColor);
-    xline(tx1,'Color',reflineColor);
-    xline(tx2,'Color',reflineColor);
     axis tight
     xlabel('time (µs)');
     ylabel('modulation field (mT)');
+    if xlineAvailable
+      yline(-DeltaB0*1e3,'Color',reflineColor,'Label','-\DeltaB0');
+      xline([tx1 tx2],'Color',reflineColor);
+    end
+  end
+
 end
-
-logmsg(1,'=end=blochsteady========%s=================\n',datestr(now));
-
-clear global EasySpinLogLevel

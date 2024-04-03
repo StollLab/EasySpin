@@ -1,6 +1,6 @@
 function ok = test()
 
-% rotaxi2mat should the exact inverse of rotmat2axi
+% rotaxi2mat should the inverse of rotmat2axi
 
 rng(44);
 

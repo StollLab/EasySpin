@@ -16,7 +16,7 @@
 %   dt = 1/freq/n. Defaults: phase = 0, n = 256.
 %   t = t2 is equivalent to t = [0 t2]. H0 and
 %   H1 should be in frequency unit, t in complementary
-%   time units, e.g. GHz and ns or MHz and µs.
+%   time units, e.g. GHz and ns or MHz and ï¿½s.
 %
 %   SaveU is a cell array containing intermediate
 %   results that can be reused by supplying SaveU
@@ -39,7 +39,7 @@
 
 function varargout = propint(varargin)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 % log messages for developers...
 Display = 0;
@@ -62,27 +62,28 @@ UseUstore = iscell(varargin{1});
 if UseUstore
   [Ustore,tlim,Frequency] = deal(varargin{1:3});
   nIntervals = numel(Ustore)-1;
-  if nargin>3, Phase = varargin{4}; else Phase = 0; end
+  if nargin>3, Phase = varargin{4}; else, Phase = 0; end
 else
   [H0,H1,tlim,Frequency] = deal(varargin{1:4});
-  if nargin>4, Phase = varargin{5}; else Phase = 0; end
-  if nargin>5, nIntervals = varargin{6}; else nIntervals = 256; end
+  if nargin>4, Phase = varargin{5}; else, Phase = 0; end
+  if nargin>5, nIntervals = varargin{6}; else, nIntervals = 256; end
 end
 
 if numel(tlim)==1, tlim = [0 tlim]; end
 
-if (numel(Frequency)~=1) | ~isreal(Frequency) | (Frequency<=0)
+if (numel(Frequency)~=1) || ~isreal(Frequency) || (Frequency<=0)
   error('Frequency must be real and positive!');
 end
 
-if (numel(tlim)~=2) | ~isreal(tlim)
+if (numel(tlim)~=2) || ~isreal(tlim)
   error('tlim is not a real 1x2 array!');
 end
 
 % Short-cut if no time dependence
 %----------------------------------------------------------------
-if ~UseUstore & all(H1(:)==0)
-  U = expm(-i*2*pi*diff(tlim)*H0);
+if ~UseUstore && all(H1(:)==0)
+  U = expm(-2i*pi*diff(tlim)*H0);
+  varargout = {U};
   return
 end
 
@@ -91,7 +92,6 @@ end
 
 tPeriod = 1/Frequency; % length of one period
 dt = tPeriod/nIntervals; % length of one integration interval
-t = (0.5:nIntervals)*dt; % time points at the center of the intervals
 t = (0.5:nIntervals)*dt; % time points at the center of the intervals
 
 nSteps = diff(tlim)/dt; % #integration step theoretically neede
@@ -130,8 +130,8 @@ if ~UseUstore
   UPeriod = UZero;
 
   % Pre-compute operators incl. constants, cos function
-  cH0 = -i*2*pi*dt*H0;
-  cH1 = -i*2*pi*dt*H1;
+  cH0 = -2i*pi*dt*H0;
+  cH1 = -2i*pi*dt*H1;
   switch Method
     case 0
       ct = cos(2*pi*Frequency*t+Phase);
@@ -197,4 +197,4 @@ case 1, varargout = {U};
 case 2, varargout = {U,Ustore};
 end
 
-return
+end

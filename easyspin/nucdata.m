@@ -4,6 +4,7 @@
 %   [Spin,gn] = nucdata(Isotopes)
 %   [Spin,gn,qm] = nucdata(Isotopes)
 %   [Spin,gn,qm,abund] = nucdata(Isotopes)
+%   IsotopeList = nucdata()
 %
 %   Returns nuclear spin, gyromagnetic
 %   ratio, quadrupole moment and natural
@@ -20,16 +21,10 @@
 
 function varargout = nucdata(Isotopes)
 
-if (nargin==0), help(mfilename); return; end
+if nargout==0, help(mfilename); return; end
 
-if iscell(Isotopes)
-  if numel(Isotopes)==1
-    Isotopes = Isotopes{1};
-  end
-end
 %--------------------------------------------------------------
-global IsotopeList
-persistent Elements IsotopeMatrix
+persistent Elements IsotopeList
 % Read isotope data file only once per MATLAB session!
 if isempty(IsotopeList)
   %disp('Loading nuclear isotope database...');
@@ -52,15 +47,6 @@ if isempty(IsotopeList)
     IsotopeList.Symbols{k} = sprintf('%d%s',IsotopeList.Nucleons(k),IsotopeList.Element{k});
   end
 
-  IsotopeMatrix = zeros(max(IsotopeList.Protons),max(IsotopeList.Nucleons));
-  for k=1:numel(IsotopeList.Spins)
-    idxP = IsotopeList.Protons(k);
-    idxN = IsotopeList.Nucleons(k);
-    if (idxN>0)
-      IsotopeMatrix(idxP,idxN) = 1;
-    end
-  end
-  
   elmidx = IsotopeList.Protons(k);
   for k = 1:numel(IsotopeList.Spins)
     Elements(elmidx).Symbol = IsotopeList.Element{k};
@@ -70,10 +56,15 @@ if isempty(IsotopeList)
 end
 %--------------------------------------------------------------
 
-if isempty(Isotopes)
-  varargout = {[],[],[],[],{}};
-  varargout = varargout(1:nargout);
+if nargin==0
+  varargout = {IsotopeList};
   return
+end
+
+if iscell(Isotopes)
+  if numel(Isotopes)==1
+    Isotopes = Isotopes{1};
+  end
 end
 
 if ~ischar(Isotopes) && ~iscell(Isotopes)
@@ -86,8 +77,14 @@ else
   Nucs = Isotopes;
 end
 
+if isempty(Isotopes)
+  varargout = {[],[],[],[],[]};
+  varargout = varargout(1:nargout);
+  return
+end
+
 for k = numel(Nucs):-1:1
-  idx = find(strcmp(Nucs{k},IsotopeList.Symbols));
+  idx = find(strcmp(Nucs{k},IsotopeList.Symbols),1);
   if isempty(idx)
     % check if element without #nucleons is given
     RequestedElement = Nucs{k};
@@ -97,7 +94,7 @@ for k = numel(Nucs):-1:1
     if ~isempty(iidx)
       Message = [];
       for iIsotope = 1:numel(iidx)
-        Message = [Message sprintf(IsotopeList.Symbols{iidx(iIsotope)}) ', '];
+        Message = [Message sprintf(IsotopeList.Symbols{iidx(iIsotope)}) ', ']; %#ok
       end
       Message = [sprintf('Problem in isotopes list, entry %d (''%s''): Please specify one of ',k,Nucs{k}) Message(1:end-2) '.'];
     else
@@ -116,7 +113,7 @@ for k = numel(Nucs):-1:1
   Abund(k) = IsotopeList.Abundances(idx)/100; % percent -> fraction between 0 and 1
 end
 
-if (nargout==0)
+if nargout==0
   fprintf('Isotope  Spin  gn   qm/b   abundance\n');
   for k = numel(Nucs):-1:1
     fprintf('%-5s    %g   %g  %g  %g\n',Nucs{k},Spin(k),gn(k),qm(k),Abund(k));
@@ -126,4 +123,4 @@ end
 varargout = {Spin,gn,qm,Abund,Nucs};
 varargout = varargout(1:nargout);
 
-return
+end

@@ -3,7 +3,7 @@ function ok = test()
 % Test Options.Enhancement
 
 Sys = struct('S',1/2,'g',[2 2 2],'Nucs','1H','A',[3 7 12]);
-Par = struct('Field',350,'CrystalOrientation',[pi/5 pi/7 pi/6]);
+Par = struct('Field',350,'SampleFrame',[pi/5 pi/7 pi/6]);
 Opt = struct('unused',NaN);
 
 Opt.Enhancement = 'off';

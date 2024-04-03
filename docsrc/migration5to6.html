@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>Migration from EasySpin 5 to 6</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">Migrating from EasySpin 5 to EasySpin 6</div>
+
+<p>
+EasySpin 6 is significantly improved over EasySpin 5, but also introduces a series of breaking, backwards-incompatible changes (for a complete list, see the <a href="releases.html">release notes</a>). This means that some scripts built for EasySpin 5.x need to be adapted to run with EasySpin 6.
+</p>
+
+<p>
+This user guide focuses on how EasySpin 5 scripts need to be modified to run with EasySpin 6. It does not introduce the many new features of EasySpin 6 or discuss any of the many bug fixes.
+</p>
+
+<p>
+The major changes include the following topics:
+</p>
+
+<ul>
+<li><a href = "#crystals">Single-crystal simulations</a></li>
+<li><a href = "#powder">Powder averaging</a></li>
+<li><a href = "#subspectra">Subspectra</a></li>
+<li><a href = "#fitting">Least-squares fitting</a></li>
+<li><a href = "#ham">Hamiltonian functions</a></li>
+<li><a href = "#spinpol">Spin-polarized systems</a></li>
+<li><a href = "#pulse">Pulse EPR simulations</a></li>
+<li><a href = "#ee">Electron-electron couplings</a></li>
+<li><a href = "#grid">Spherical grids</a></li>
+<li><a href = "#mwmode">Microwave mode and polarization</a></li>
+<li><a href = "#other">Other changes</a></li>
+</ul>
+
+<p>
+EasySpin 5 runs on releases R2007b and newer. EasySpin 6 supports MATLAB releases starting from R2021b, but might run on older releases as well.
+</p>
+
+<!-- ============================================================= -->
+<a name="crystals"><div class="subtitle">Single-crystal simulations</div></a>
+
+<p>
+The field <code>Exp.CrystalOrientation</code> has been replaced by <code>Exp.SampleFrame</code>, and the Euler angle definition has been inverted.
+</p>
+
+<pre class="matlab">
+Exp.CrystalOrientation = [5 10 -48]*pi/180;  % EasySpin 5
+Exp.SampleFrame = [48 -10 -5]*pi/180;        % EasySpin 6
+</pre>
+
+<p>
+In EasySpin 6, the Euler angles in <code>Exp.SampleFrame</code> describe the transformation from the laboratory frame to the sample/crystal frame, and not vice versa as it used to be for <code>Exp.CrystalOrientation</code>.
+</p>
+
+<p>
+The crystal frame is now more generally called the sample frame, since it also applies to non-crystal samples such as oriented films. See the documentation on <a href="frames.html">frames</a> for details.
+</p>
+
+<p>
+An additional change is that in order to run a single-crystal simulation, you have to provide at least either the molecular frame orientation in <code>Exp.MolFrame</code> (i.e. the orientation of the spin center within the crystal) or the crystal space group in <code>Exp.CrystalSymmetry</code>, or both. Just providing <code>Exp.SampleFrame</code> is not sufficient.
+</p>
+
+<pre class="matlab">
+Exp.MolFrame = [0 45 0]*pi/180;   % from sample frame to molecular frame
+Exp.CrystalSymmetry = 'P4mm';     % crystal space group
+</pre>
+
+<p>
+Finally, there is the new field <code>Exp.SampleRotation</code>, which provides a simple interface for rotating a sample. All you need to do is provide the rotation axis (defined in the lab frame) and the rotation angle(s).
+</p>
+
+<pre class="matlab">
+Exp.SampleRotation = {'x',45*pi/180};  % rotation by 45 degrees around the lab x axis
+Exp.SampleRotation = {'x',(0:30:180)*pi/180};  % a series of rotations
+Exp.SampleRotation = {[1 1 0],45*pi/180};  % rotation around the lab axis [1 1 0]
+</pre>
+
+<p>
+The EasySpin 5 function <code>rotatecrystal</code>, which was provided for this, is no longer available. EasySpin 6 provides <a class="esf">rotateframe</a>.
+</p>
+
+<!-- ============================================================= -->
+<a name="powder"><div class="subtitle">Powder averaging</div></a>
+
+<p>
+In EasySpin 5, the grid size for a powder simulation was specified using <code>Opt.nKnots</code>. In EasySpin 6, this field has been renamed to <code>Opt.GridSize</code>. The content of the field is unchanged.
+</p>
+
+<pre class="matlab">
+Opt.nKnots = 10;    % EasySpin 5
+Opt.GridSize = 10;  % EasySpin 6
+
+Opt.nKnots = [10 3];    % EasySpin 5
+Opt.GridSize = [10 3];  % EasySpin 6
+</pre>
+
+<p>
+Also, the field name for the grid symmetry has changed from <code>Opt.Symmetry</code> to <code>Opt.GridSymmetry</code>:
+</p>
+
+<pre class="matlab">
+Opt.Symmetry = 'Ci';      % EasySpin 5
+Opt.GridSymmetry = 'Ci';  % EasySpin 6
+</pre>
+
+<p>
+See the documentation for <a class="esf" href="pepper.html">pepper</a> and other simulation functions for details.
+</p>
+
+<!-- ============================================================= -->
+<a name="subspectra"><div class="subtitle">Subspectra</div></a>
+
+<p>
+In EasySpin 6, you can obtain the subspectra of individual transitions or orientations using <code>Opt.separate</code>:
+</p>
+
+<pre class="matlab">
+Opt.separate = '';              % total spectrum
+Opt.separate = 'components';    % subspectra of all sample components
+Opt.separate = 'transitions';   % subspectra of all EPR transitions (powders only)
+Opt.separate = 'sites';         % subspectra for all crystal sites
+Opt.separate = 'orientations';  % subspectra for all crystal orientations
+</pre>
+
+<p>
+The field <code>Opt.Output</code> from EasySpin 5 is no longer supported.
+</p>
+
+<p>
+See the documentation for <a class="esf" href="pepper.html">pepper</a> and other simulation functions for details.
+</p>
+
+<!-- ============================================================= -->
+<a name="fitting"><div class="subtitle">Least-squares fitting</div></a>
+
+<p>
+The interface to <a class="esf" href="esfit.html">esfit</a> has changed completely, with the goal of making the function more flexible and broadly applicable. See the <a href="userguide_fitting.html">userguide for least-squares fitting</a> and the <a href="esfit.html">reference page</a> for more details.
+</p>
+
+<p>
+Two major changes are (i) the data is now provided as the first input and the model function as second, and (ii) the inputs to the EasySpin functions are grouped together in cell arrays:
+</p>
+
+<pre class="matlab">
+esfit('pepper',spc,Sys0,varySys,Exp);     % EasySpin 5
+esfit(spc,@pepper,{Sys0,Exp},{varySys});  % EasySpin 6
+</pre>
+
+<p>
+With EasySpin 6, you can also vary and fit experimental parameters (e.g. the microwave phase). This was not possible with EasySpin 5:
+</p>
+
+<pre class="matlab">
+varyExp.mwPhase = pi/4;
+esfit(spc,@pepper,{Sys0,Exp0},{varySys,varyExp});
+</pre>
+
+<p>
+You can provide lower and upper bounds for the parameters, instead of a symmetric range around the starting values.
+</p>
+
+<pre class="matlab">
+esfit(spc,@pepper,{Sys0,Exp},{varySys});           % symmetric range
+esfit(spc,@pepper,{Sys0,Exp},{loSys},{upSys});     % lower and upper bounds
+</pre>
+
+<p>
+You can use <a class="esf" href="esfit.html">esfit</a> for fitting arbitrary user-defined (non-EasySpin) models that depend on an array of parameters. Here is a partial example for a stretched exponential:
+</p>
+
+<pre class="matlab">
+model = @(p) p(1)*exp(-(t/p(2)).^p(3));  % model function
+esfit(data,model,par0,parlo,parup);
+</pre>
+
+<p>
+The output has changed as well. If called with an output, <a class="esf" href="esfit.html">esfit</a> returns a structure containing information about the fitted parameters, the goodness-of-fit, the uncertainty, the fitted model, etc.
+</p>
+
+<pre class="matlab">
+fit = esfit(data,model,par0,parlo,parhi)
+</pre>
+
+<pre class="mloutput">
+    fit = 
+    struct with fields:
+  
+                pfit: [3×1 double]
+              pnames: {3×1 cell}
+           pfit_full: [3×1 double]
+             argsfit: []
+                pstd: [3×1 double]
+                ci95: [3×2 double]
+                 cov: [3×3 double]
+                corr: [3×3 double]
+             p_start: [3×1 double]
+              fitraw: [1001×1 double]
+                 fit: [1001×1 double]
+               scale: 1
+            baseline: [1001×1 double]
+                mask: [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 … ]
+           residuals: [1001×1 double]
+                 ssr: 2.1874e-07
+                rmsd: 1.4782e-05
+      bestfithistory: [1×1 struct]
+</pre>
+
+<p>
+Some options have changed as well. Instead of <code>FitOpt.Scaling</code>, use <code>FitOpt.AutoScale</code>. For details, see the documentation for <a class="esf" href="esfit.html">esfit</a>.
+</p>
+
+<!-- ============================================================= -->
+<a name="ham"><div class="subtitle">Hamiltonian functions</div></a>
+
+<p>
+All functions that return hamiltonians have been renamed. The full hamiltonian function <code>sham</code> is now called <a class="esf" href="ham.html">ham</a>.
+</p>
+
+<pre class="matlab">
+B0 = [0;0;350];    % magnetic field, mT
+H = sham(Sys,B0);  % EasySpin 5
+H = ham(Sys,B0);   % EasySpin 6
+</pre>
+
+<p>
+Functions that return specific terms have been renamed to all start with <code>ham_</code>:
+<a class="esf" href="ham_ez.html">ham_ez</a> for electron Zeeman interaction,
+<a class="esf" href="ham_nz.html">ham_nz</a> for nuclear Zeeman interaction,
+<a class="esf" href="ham_zf.html">ham_zf</a> for zero-field interaction,
+<a class="esf" href="ham_hf.html">ham_hf</a> for hyperfine interaction,
+<a class="esf" href="ham_nq.html">ham_nq</a> for nuclear quadrupole interaction,
+<a class="esf" href="ham_ee.html">ham_ee</a> for electron-electron interaction,
+<a class="esf" href="ham_nn.html">ham_nn</a> for nucleus-nucleus interaction,
+<a class="esf" href="ham_oz.html">ham_oz</a> for orbital Zeeman interaction,
+<a class="esf" href="ham_so.html">ham_so</a> for spin-orbit coupling,
+<a class="esf" href="ham_cf.html">ham_cf</a> for crystal field terms,
+</p>
+
+<p>
+Here are a few examples:
+</p>
+
+<pre class="matlab">
+% Hyperfine
+Hhf = hfine(Sys);   % EasySpin 5
+Hhf = ham_hf(Sys);  % EasySpin 6
+
+% Zero=field interaction
+Hzf = zfield(Sys);    % EasySpin 5
+Hzf = ham_zf(Sys);    % EasySpin 6
+
+% Electron-electron interaction
+Hee = eeint(Sys);    % EasySpin 5
+Hee = ham_ee(Sys);   % EasySpin 6
+</pre>
+
+<p>
+If called without a magnetic field, the Zeeman functions <a class="esf" href="ham_ez.html">ham_ez</a> and <a class="esf" href="ham_nz.html">ham_nz</a> (as well as <a class="esf" href="ham.html">ham</a>) now return the three components of the magnetic dipole moment:
+</p>
+
+<pre class="matlab">
+[H0,mux,muy,muz] = ham(Sys);
+[mue_x,mue_y,mue_z] = ham_ez(Sys);
+</pre>
+
+<p>
+In EasySpin 5, the functions returned the negative of the magnetic dipole moment components.
+</p>
+
+<!-- ============================================================= -->
+<a name="spinpol"><div class="subtitle">Spin-polarized systems</div></a>
+
+<p>
+In EasySpin 5, spin-polarized systems (like photoexcited triplets) were partially supported. Input for the spin populations was via <code>Exp.Temperature</code>. In EasySpin 6, support for spin-polarized systems has been substantially extended, and the spin population input is now via <code>Sys.initState</code>. See the <a href="spinpolarization.html">user guide</a> for details.
+</p>
+
+<p>
+Here is an example of a spin triplet populated via inter-system crossing:
+</p>
+
+<pre class="matlab">
+Exp.Temperature = [0.2 0.3 0.5];        % EasySpin 5
+Sys.initState = {[0.2 0.3 0.5],'xyz'};  % EasySpin 6
+</pre>
+
+
+<!-- ============================================================= -->
+<a name="pulse"><div class="subtitle">Pulse EPR simulations</div></a>
+
+<p>
+The pulse EPR simulation function <a class="esf" href="saffron.html">saffron</a> has been extended significantly. It now supports general pulse sequences, including shaped pulses, detection windows, frequency sweeps, and more. Therefore, many input parameters in the <code>Exp</code> and <code>Opt</code> structures are new. EasySpin 5 inputs are still supported to some degree.
+</p>
+
+<p>
+Here is an example of the extensions. The field <code>Exp.Sequence</code> previously allowed only a few pre-defined pulse sequence. In EasySpin 6, it allows you to specify user-defined pulse sequences, including shaped pulses.
+</p>
+
+<pre class="matlab">
+Exp.Sequence = {p90, tau, p180, tau};  % user-defined pulse sequence
+</pre>
+
+<p>
+For details see the user guides (<a href="userguide_saffron.html">part 1</a> and <a href="userguide_saffron_thyme.html">part 2</a>) as well as the reference page for <a class="esf" href="saffron.html">saffron</a> and the <a href="examplesmain.html">examples</a>.
+</p>
+
+<p>
+Also, the output has changed. For two-dimensional experiments, <a class="esf" href="saffron.html">saffron</a> now returns the axes as a single output in a cell array and not as two separate outputs.
+</p>
+
+<pre class="matlab">
+[t1,t2,data] = saffron(Sys,Exp,Opt);    % EasySpin 5
+[t12,data] = saffron(Sys,Exp,Opt);      % t12 = {t1,t2}  % EasySpin 6
+</pre>
+
+
+<!-- ============================================================= -->
+<a name="ee"><div class="subtitle">Electron-electron couplings</div></a>
+
+
+<p>
+The field <code>Sys.eeD</code>, used in EasySpin 5 to specify dipolar coupling tensors between electron spins, is now renamed to <code>Sys.dip</code>.
+</p>
+
+<pre class="matlab">
+Sys.eeD = [1 1 -2]*40;    % EasySpin 5
+Sys.dip = [1 1 -2]*40;    % EasySpin 6
+</pre>
+
+<!-- ============================================================= -->
+<a name="grid"><div class="subtitle">Spherical grids</div></a>
+
+<p>
+<a class="esf" href="sphgrid.html">sphgrid</a>, the function that constructs spherical grids, now returns all grid information (angles, vectors, weights, etc.) in a single structure.
+</p>
+
+<pre class="matlab">
+grid = sphgrid('D2h',10)
+</pre>
+
+<pre class="mloutput">
+    grid = 
+    struct with fields:
+  
+       Symmetry: 'D2h'
+       GridSize: 3
+      closedPhi: 1
+       nOctants: 1
+         maxPhi: 1.5708
+            phi: [0 0 1.5708 0 0.7854 1.5708]
+          theta: [0 0.7854 0.7854 1.5708 1.5708 1.5708]
+           vecs: [3×6 double]
+        weights: [0.9566 3.4004 3.4004 1.2022 2.4045 1.2022]
+</pre>
+
+
+<p>
+<code>sphtri</code>, the function that provides a grid triangulation, has been removed. Its functionality is now integrated into <a class="esf" href="sphgrid.html">sphgrid</a>:
+</p>
+
+<pre class="matlab">
+[grid,tri] = sphgrid('Ci',5);  % returns triangulation as second output
+</pre>
+
+
+<!-- ============================================================= -->
+<a name="mwmode"><div class="subtitle">Microwave mode and polarization</div></a>
+
+<p>
+The two fields <code>Exp.Mode</code> and <code>Exp.mwPolarization</code> have been merged into a single field, <code>Exp.mwMode</code>.
+</p>
+
+<p>
+For resonator experiments, use:
+</p>
+
+<pre class="matlab">
+Exp.Mode = 'parallel';    % EasySpin 5
+Exp.mwMode = 'parallel';  % EasySpin 6
+</pre>
+
+<p>
+For beam experiments, <code>Exp.mwMode</code> takes the same two-element cell array as <code>Exp.Mode</code>, but the second element can be set to <code>'unpolarized'</code> etc, which previously required <code>Exp.mwPolarization</code>:
+</p>
+
+<pre class="matlab">
+Exp.Mode = {k,alpha};    % EasySpin 5
+Exp.mwMode = {k,alpha};  % EasySpin 6
+
+Exp.Mode = {k,0};   % EasySpin 5
+Exp.mwPolarization = 'unpolarized';  % EasySpin 5
+
+Exp.mwMode = {k,'unpolarized'};  % EasySpin 6
+</pre>
+
+<p>
+
+</p>
+
+<!-- ============================================================= -->
+<a name="other"><div class="subtitle">Other changes</div></a>
+
+
+<ul>
+<li>The function <code>rescale</code> had to be renamed to <a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
+<li>The function <code>rotplane</code> has been removed. Use <a class="esf" href="rotateframe.html">rotateframe</a> instead.
+<li>The function <code>eigfields</code> has been renamed to <a class="esf" href="resfields_eig.html">resfields_eig</a>.
+<li><code>easyspininfo</code> and <code>easyspincompile</code> are no longer supported. Use <code>easyspin info</code> and <code>easyspin compile</code> instead.  See help for the <a class="esf" href="easyspin.html">easyspin</a> command.
+<li>Use the very convenient <code>easyspin doc</code> to access the EasySpin documentation.
+<li>The field <code>Sys.orf</code> (orbital reduction factor) has been removed. Instead, use <code>Sys.gL</code> to specify the orbital g factor, and <code>Sys.soc</code> to specify the strength of the spin-orbit coupling.
+<li>The function <code>symm</code> has been renamed to <a class="esf" href="hamsymm.html">hamsymm</a>.
+<li>The input syntax for <a class="esf" href="wignerd.html">wignerd</a> has changed. Provide the three Euler angles as three separate arguments, rather than as an array.
+</ul>
+
+<hr>
+
+</section>
+
+<footer></footer>
+
+</body>
+</html>

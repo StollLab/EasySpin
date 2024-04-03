@@ -17,7 +17,7 @@ Dims = fread(h,3,'int16').';
 %nDims = sum(Dims>1);
 
 % read in data, complex
-Data = fread(h,[2,inf],'double');
+Data = fread(h,[2,Inf],'double');
 Data = complex(Data(1,:) ,Data(2,:));
 
 % and shape into correct array size
@@ -30,6 +30,6 @@ if St<0, error('Unable to close D00 file.'); end
 
 Abscissa = [];
 Parameters = [];
-return
+end
 %-------------------------------------------------------------------------------
 

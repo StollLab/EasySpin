@@ -8,7 +8,7 @@ rng(1)
 % Load pre-processed MD frame trajectory
 %-------------------------------------------------------------------------------
 
-load('.\mdfiles\MTSSL_polyAla_traj.mat')
+load(['.' filesep 'mdfiles' filesep 'MTSSL_polyAla_traj.mat'])
 MD = Traj;
 
 % Correct array sizes such that nTraj is last dimension
@@ -31,7 +31,7 @@ MD.DiffGlobal = 6e6;
 %-------------------------------------------------------------------------------
 Sys.g = [2.009, 2.006, 2.002];
 Sys.Nucs = '14N';
-Sys.A = mt2mhz([6, 36]/10);
+Sys.A = unitconvert([6, 36]/10,'mT->MHz');
 Sys.tcorr = 2e-9;
 Sys.lw = [0.1, 0.1];
 

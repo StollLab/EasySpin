@@ -7,26 +7,26 @@
 %                            release branch (stable or development)
 %   easyspinupdate('5.2.22') downloads specific EasySpin version
 
-function varargout = easyspinupdate(OnlineVersion)
+function easyspinupdate(onlineVersion)
 
 % ---------------------------------------------------------------
 % If easyspinupdate is called without argument, a version check is run.
 % If a newer version is available, easyspinupdate is called again with the
 % newer version as argument.
 if nargin == 0
-  [UpdateAvailable, OnlineVersion] = easyspinversioncheck;
+  [UpdateAvailable, onlineVersion] = easyspinversioncheck;
   if UpdateAvailable
-    easyspinupdate(OnlineVersion);
+    easyspinupdate(onlineVersion);
   end
   return
 end
 
-if all(isstrprop(OnlineVersion,'alpha'))
-  InstalledVersion = easyspininfo;
-  UpdateOpt.Branch = OnlineVersion;
+if all(isstrprop(onlineVersion,'alpha'))
+  installedVersion = easyspin('info');
+  UpdateOpt.Branch = onlineVersion;
   UpdateOpt.Silent = true;
-  [~, OnlineVersion] = easyspinversioncheck(InstalledVersion,UpdateOpt);
-  if isempty(OnlineVersion)
+  [~, onlineVersion] = easyspinversioncheck(installedVersion,UpdateOpt);
+  if isempty(onlineVersion)
     msg = [UpdateOpt.Branch ' is not a valid branch name.'];
     disp(msg)
     return
@@ -44,7 +44,7 @@ elseif isunix
 end
 
 if isOffline
-  msg = 'You have to be connect to the internet to update EasySpin.';
+  msg = 'Could not reach EasySpin server. You have to be connect to the internet to update EasySpin.';
   disp(msg)
   return
 end
@@ -58,33 +58,33 @@ end
 % ---------------------------------------------------------------
 % Download and install
 
-VersionToGet = OnlineVersion;
+versionToGet = onlineVersion;
 
 % Determine installation path of currently installed EasySpin
-InstalledVersion = easyspininfo;
-InstallationPath = InstalledVersion.Path;
+installedVersion = easyspin('info');
+installationPath = installedVersion.Root;
 
 % The installation target is two directories above the easyspin functions:
-Path = strsplit(InstallationPath,filesep);
-InstallationPath = join(Path(1:end-2),filesep);
-InstallationPath = InstallationPath{1};
+Path = strsplit(installationPath,filesep);
+installationPath = join(Path(1:end-2),filesep);
+installationPath = installationPath{1};
 
 % Before downloading, check if the previous installation is in a write
 % protected directory
-fileName = join([InstallationPath "easyspininstalltest.txt"],filesep);
+fileName = join([installationPath "easyspininstalltest.txt"],filesep);
 [fid,errmsg] = fopen(fileName, 'w');
 if ~isempty(errmsg) 
-    error(['The EasySpin installation directory (' InstallationPath ') appears to be write protected. Please move EasySpin to a different directory and retry update or manually install the new EasySpin version.']);
+  error(['The EasySpin installation directory (' installationPath ') appears to be write protected. Please move EasySpin to a different directory and retry update or manually install the new EasySpin version.']);
 else
-    fclose(fid);
-    delete(fileName);
+  fclose(fid);
+  delete(fileName);
 end
 
-OldPath = join(Path(1:end-1),filesep);
-OldPath = OldPath{1};
+oldPath = join(Path(1:end-1),filesep);
+oldPath = oldPath{1};
 
-disp(['Downloading EasySpin version (' VersionToGet ')']);
-zipName = ['easyspin-' VersionToGet '.zip'];
+disp(['Downloading EasySpin version (' versionToGet ')']);
+zipName = ['easyspin-' versionToGet '.zip'];
 
 % set time out to 60 seconds
 options = weboptions('Timeout',60);
@@ -99,7 +99,7 @@ catch
     delete([zipName '.html']); 
     errMsg = ['The file ' zipName ' was not found on easyspin.org.'];
   else
-    errMsg = ['It appears the connection has timed out. Please try again.'];
+    errMsg = 'It appears the connection has timed out. Please try again.';
   end
   error(errMsg);
 end
@@ -107,7 +107,7 @@ end
 disp('Installing...');
   
 % unzip to destination
-Destination = [InstallationPath filesep];
+Destination = [installationPath filesep];
 unzip(zipFile,Destination);
 
 % remove downloaded zip
@@ -115,13 +115,13 @@ delete(zipFile);
 
 % ---------------------------------------------------------------
 % Add to Path and clean up
-newESPath = [Destination 'easyspin-' VersionToGet filesep 'easyspin' filesep];
+newESPath = [Destination 'easyspin-' versionToGet filesep 'easyspin' filesep];
 
 if exist(newESPath,'dir')
   addpath(newESPath);
   savepath
   msg = ['EasySpin was succesfully installed to ' newline newESPath newline 'and added to the MATLAB search paths.' newline];
-  msg = [msg 'For optimal perfomance, your should remove EasySpin installation (' OldPath ') from the MATLAB search paths and delete the folder from your system.']; 
+  msg = [msg 'For optimal perfomance, your should remove EasySpin installation (' oldPath ') from the MATLAB search paths and delete the folder from your system.']; 
   disp(msg);
 else
   errMsg = ['EasySpin was succecsfully downloaded to ' newline newESPath newline];

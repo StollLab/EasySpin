@@ -100,7 +100,7 @@ testDataWrapped = permute(testDataWrapped,[2,1,3]);
 % indices, so check which ordering gives the best agreement and re-assign
 % indices accordingly
 idxPerm = perms([1,2,3]);
-bestAgreement = inf;
+bestAgreement = Inf;
 for k = 1:size(idxPerm,1)
   idx = idxPerm(k,:);
   thisAgreement = max(max(abs(mu1(:,idx)-muTrue')));

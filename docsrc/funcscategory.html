@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>Functions, by category</title>
 </head>
 
@@ -31,8 +31,7 @@
 <table>
 <tr><td colspan="2" class="grouptitle">General</td></tr>
 
-<tr><td width="100"><a href="easyspininfo.html">easyspininfo</a></td><td>Information about EasySpin installation</td></tr>
-<tr><td><a href="easyspincompile.html">easyspincompile</a></td><td>Compile EasySpin</td></tr>
+<tr><td><a href="easyspin.html">easyspin</a></td><td>Information and tasks relating to the EasySpin installation</td></tr>
 
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Data import and export</td></tr>
@@ -51,10 +50,12 @@
 <tr><td><a href="pepper.html">pepper</a></td><td>Solid-state cw EPR spectra</td></tr>
 <tr><td><a href="saffron.html">saffron</a></td><td>Pulse EPR spectra</td></tr>
 <tr><td><a href="salt.html">salt</a></td><td>ENDOR spectra</td></tr>
-<tr><td><a href="spidyan.html">spidyan</a></td><td>Spin dynamics with aribtrary waveforms</td></tr>
+<tr><td><a href="spidyan.html">spidyan</a></td><td>Spin dynamics with arbitrary waveforms</td></tr>
 <tr><td><a href="curry.html">curry</a></td><td>Magnetometry data</td></tr>
 <tr><td><a href="blochsteady.html">blochsteady</a></td><td>Steady-state solutions of Bloch equations</td></tr>
 <tr><td><a href="nucfrq2d.html">nucfrq2d</a></td><td>Sketch of HYSCORE spectra</td>
+<tr><td><a href="dipkernel.html">dipkernel</a></td><td>Dipolar EPR signal (DEER)</td></tr>
+<tr><td><a href="photoselect.html">photoselect</a></td><td>Photoselection weights</td></tr>
 
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Stochastic simulations</td></tr>
@@ -69,17 +70,18 @@
 
 <tr><td><a href="diptensor.html">diptensor</a></td><td>Dipolar tensors</td></tr>
 <tr><td><a href="eprconvert.html">eprconvert</a></td><td>Graphical frequency/field/g value conversion utility</td></tr>
+<tr><td><a href="exciteprofile.html">exciteprofile</a></td><td>Pulse excitation profile calculation</td></tr>
 <tr><td><a href="fastmotion.html">fastmotion</a></td><td>Fast-motion regime line width parameters from rotational correlation time.</td></tr>
 <tr><td><a href="isotopes.html">isotopes</a></td><td>A browsable list of isotopes</td></tr>
-<tr><td><a href="mhz2mt.html">mhz2mt</a></td><td>Unit conversion from MHz to mT</td></tr>
-<tr><td><a href="mt2mhz.html">mt2mhz</a></td><td>Unit conversion from mT to MHz</td></tr>
+<tr><td><a href="mhz2mt.html">mhz2mt</a></td><td>Conversion from MHz to mT</td></tr>
+<tr><td><a href="mt2mhz.html">mt2mhz</a></td><td>Conversion from mT to MHz</td></tr>
 <tr><td><a href="pulse.html">pulse</a></td><td>Computes pulse functions for a series of amplitude- and phase-modulated pulses</td></tr>
-<tr><td><a href="exciteprofile.html">exciteprofile</a></td><td>Pulse excitation profile calculation</td></tr>
 <tr><td><a href="rfmixer.html">rfmixer</a></td><td>Digital up- and downconversion</td></tr>
 <tr><td><a href="resonator.html">resonator</a></td><td>Simulation of/compensation for the resonator transfer function.</td></tr>
-<tr><td><a href="resonatorfunc.html">resonatorfunc</a></td><td>Resonator voltage reflection coefficient</td></tr>
+<tr><td><a href="resonatorprofile.html">resonatorprofile</a></td><td>resonator profile (transfer function or reflection coefficient)</td></tr>
 <tr><td><a href="transmitter.html">transmitter</a></td><td>Simulation of/compensation for transmitter nonlinearity.</td></tr>
 <tr><td><a href="zfsframes.html">zfsframes</a></td><td>Zero-field splitting tensor frames analysis</td></tr>
+<tr><td><a href="unitconvert.html">unitconvert</a></td><td>Unit conversion</td></tr>
 <tr><td>&nbsp;</td></tr>
 
 <tr><td colspan="2" class="grouptitle">Spin systems</td></tr>
@@ -104,7 +106,7 @@
 <tr><td><a href="lpsvd.html">lpsvd</a></td><td>Performs LPSVD on a signal</td></tr>
 <tr><td><a href="rapidscan2spc.html">rapidscan2spc</a></td><td>Convert rapid-scan signal to EPR spectrum</td></tr>
 <tr><td><a href="rcfilt.html">rcfilt</a></td><td>RC filtering of EPR spectra</td></tr>
-<tr><td><a href="rescale.html">rescale</a></td><td>Rescale spectra</td></tr>
+<tr><td><a href="rescaledata.html">rescaledata</a></td><td>Rescale data</td></tr>
 <tr><td><a href="stackplot.html">stackplot</a></td><td>Stacked plot of 1D data</td></tr>
 
 <tr><td>&nbsp;</td><td></td></tr>
@@ -117,7 +119,6 @@
 <tr><td><a href="rotateframe.html">rotateframe</a></td><td>Rotate a frame given by Euler angles</td></tr>
 <tr><td><a href="rotaxi2mat.html">rotaxi2mat</a></td><td>Convert rotation axis plus angle to rotation matrix</td></tr>
 <tr><td><a href="rotmat2axi.html">rotmat2axi</a></td><td>Convert rotation matrix to rotation axis plus angle</td></tr>
-<tr><td><a href="rotplane.html">rotplane</a></td><td>Set of vectors/orientations in a plane</td></tr>
 <tr><td><a href="rotview.html">rotview</a></td><td>Visual display of rotations (Euler angles etc)</td></tr>
 <tr><td><a href="vec2ang.html">vec2ang</a></td><td>Polar angles from cartesian unit vector</td></tr>
 
@@ -156,7 +157,7 @@
 <tr><td><a href="amu.html">amu</a></td><td>Atomic unit of mass</td></tr>
 <tr><td><a href="angstrom.html">angstrom</a></td><td>Molecular-scale length unit</td></tr>
 <tr><td><a href="avogadro.html">avogadro</a></td><td>Avogadro constant</td></tr>
-<tr><td><a href="barn.html">barn</a></td><td>Conventional unit of nuclear quadupole moments</td></tr>
+<tr><td><a href="barn.html">barn</a></td><td>Conventional unit of nuclear quadrupole moments</td></tr>
 <tr><td><a href="bmagn.html">bmagn</a></td><td>Bohr magneton</td></tr>
 <tr><td><a href="bohrrad.html">bohrrad</a></td><td>Bohr radius</td></tr>
 <tr><td><a href="boltzm.html">boltzm</a></td><td>Boltzmann constant</td></tr>
@@ -166,6 +167,7 @@
 <tr><td><a href="eps0.html">eps0</a></td><td>Electric constant, vacuum permittivity</td></tr>
 <tr><td><a href="evolt.html">evolt</a></td><td>Electron volt</td></tr>
 <tr><td><a href="faraday.html">faraday</a></td><td>Faraday constant</td></tr>
+<tr><td><a href="gammae.html">gammae</a></td><td>Electron gyromagnetic ratio</td></tr>
 <tr><td><a href="gfree.html">gfree</a></td><td>g value of the free electron</td></tr>
 <tr><td><a href="hartree.html">hartree</a></td><td>Atomic unit of energy</td></tr>
 <tr><td><a href="hbar.html">hbar</a></td><td>Reduced Planck constant</td></tr>
@@ -207,7 +209,7 @@
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Energy levels, resonances and propagations</td></tr>
 
-<tr><td><a href="eigfields.html">eigfields</a></td><td>Resonance fields using eigenfield equation</td></tr>
+<tr><td><a href="resfields_eig.html">resfields_eig</a></td><td>Resonance fields using eigenfield equation</td></tr>
 <tr><td><a href="endorfrq.html">endorfrq</a></td><td>ENDOR frequencies and amplitudes</td></tr>
 <tr><td><a href="evolve.html">evolve</a></td><td>Evolves density matrices in time-domain</td></tr>
 <tr><td><a href="levels.html">levels</a></td><td>Energy levels computation</td></tr>
@@ -225,21 +227,24 @@
 <tr><td><a href="oripotentialplot.html">oripotentialplot</a></td><td>Plot orientational potential</td></tr>
 <tr><td><a href="sphgrid.html">sphgrid</a></td><td>Triangular orientational grids</td></tr>
 <tr><td><a href="sphrand.html">sphrand</a></td><td>Random orientational grids</td></tr>
-<tr><td><a href="sphtri.html">sphtri</a></td><td>Triangulation of orientational grids</td></tr>
 
 <tr><td>&nbsp;</td></tr>
 <tr><td colspan="2" class="grouptitle">Hamiltonians and densities</td></tr>
 
-<tr><td><a href="eeint.html">eeint</a></td><td>Electron-electron interaction Hamiltonian</td></tr>
-<tr><td><a href="hfine.html">hfine</a></td><td>Hyperfine interaction Hamiltonian</td></tr>
-<tr><td><a href="nquad.html">nquad</a></td><td>Nuclear quadrupole interaction Hamiltonian</td></tr>
-<tr><td><a href="nnint.html">nnint</a></td><td>Nucleus-nucleus interaction Hamiltonian</td></tr>
-<tr><td><a href="sham.html">sham</a></td><td>Full Spin Hamiltonian</td></tr>
+<tr><td><a href="ham.html">ham</a></td><td>Full Spin Hamiltonian</td></tr>
+<tr><td><a href="ham_cf.html">ham_cf</a></td><td>Crystal field Hamiltonian</td></tr>
+<tr><td><a href="ham_ee.html">ham_ee</a></td><td>Electron-electron interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_ez.html">ham_ez</a></td><td>Electron Zeeman interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_ezho.html">ham_ezho</a></td><td>Higher-order electron Zeeman interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_hf.html">ham_hf</a></td><td>Hyperfine interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_nq.html">ham_nq</a></td><td>Nuclear quadrupole interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_nn.html">ham_nn</a></td><td>Nucleus-nucleus interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_nz.html">ham_nz</a></td><td>Nuclear Zeeman interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_oz.html">ham_oz</a></td><td>Orbital Zeeman interaction Hamiltonian</td></tr>
+<tr><td><a href="ham_so.html">ham_so</a></td><td>Spin-orbit coupling Hamiltonian</td></tr>
+<tr><td><a href="ham_zf.html">ham_zf</a></td><td>Electron zero field interaction Hamiltonian</td></tr>
+<tr><td><a href="hamsymm.html">hamsymm</a></td><td>Symmetry determination for spin Hamiltonians</td></tr>
 <tr><td><a href="sigeq.html">sigeq</a></td><td>Thermal equilibrium density matrix</td></tr>
-<tr><td><a href="symm.html">symm</a></td><td>Symmetry determination for spin Hamiltonians</td></tr>
-<tr><td><a href="zeeman.html">zeeman</a></td><td>Zeeman Hamiltonian</td></tr>
-<tr><td><a href="zfield.html">zfield</a></td><td>Electronic zero field interaction Hamiltonian</td></tr>
-
 </table>
 
 <hr>

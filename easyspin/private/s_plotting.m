@@ -1,4 +1,5 @@
 function s_plotting(TimeAxis,Signal,Exp,Opt)
+
 % This function plots the output of saffron and spidyan
 
 if ~isfield(Exp,'DetOperator')
@@ -27,10 +28,10 @@ logmsg(1,'  setting up figures...');
 if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoints') && length(Exp.nPoints) < 3 && nDataPoints > 1)
   LabelsDetectionOp = cell(1,nDetOps);
   for iDetOp = 1 : nDetOps
-    figure
+%     figure
     if ischar(Exp.DetOperator{iDetOp})
       % title for detection operators that used the sop syntax
-      title(['Signal of ' Exp.DetOperator{iDetOp}])
+%       title(['Signal of ' Exp.DetOperator{iDetOp}])
       if strcmp(Exp.DetOperator{iDetOp},'electron coherence') 
         LabelsDetectionOp{iDetOp} = 'signal (arb.u.)';
       else
@@ -38,10 +39,10 @@ if ~Opt.SinglePointDetection || (Opt.SinglePointDetection && isfield(Exp,'nPoint
       end
     else
       % title of detection operators that were provided in matrix form
-      title(['Signal detected with detection operator no.' num2str(iDetOp)])
+%       title(['Signal detected with detection operator no.' num2str(iDetOp)])
       LabelsDetectionOp{iDetOp} = 'expectation value';
     end
-    hold on
+%     hold on
   end
 end
 
@@ -61,6 +62,9 @@ if isfield(Exp,'nPoints')
       LabelsIndirectDims{iDim} = [num2str(CurrentDim) ' / Data Points ' Exp.(CurrentDim){1,1}];
     end
   end
+end
+if iscell(TimeAxis)
+  TimeAxis = TimeAxis{end};
 end
 
 TransientLabel = 'time (\mus)';
@@ -123,7 +127,7 @@ else
       % plotting a single acquisition point
       for iDetOp = 1 : nDetOps
         figure;
-        plot(TimeAxis,real(Signal(:,iDetOp)));
+        plot(TimeAxis,real(Signal(:,iDetOp)),TimeAxis,imag(Signal(:,iDetOp)));
         xlabel(TransientLabel)
         ylabel(LabelsDetectionOp{iDetOp})
       end
@@ -138,7 +142,7 @@ else
         Signal = reshape(Signal,[nDataPoints SignalSize(end-1) SignalSize(end)]);
       end
       
-      for iDetOp = 1 : nDetOps
+      for iDetOp = 1:nDetOps
         figure;
         if iscell(Signal)
           for iDataPoint = 1 : nDataPoints

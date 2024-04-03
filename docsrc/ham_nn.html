@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_nn</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_nn</div>
+
+<p>
+Nucleus-nucleus interaction Hamiltonian.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+F = ham_nn(Sys)
+F = ham_nn(Sys,nucSpins)
+F = ham_nn(Sys,nucSpins,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_nn</code> returns the nucleus-nucleus interaction part of the <a href="hamiltonian.html">spin Hamiltonian</a> of the <a href="spinsystem.html#nn">spin system</a> given in <code>Sys</code>, in units of MHz.
+</p>
+
+<p>
+In the <a href="spinsystem.html#nn">spin system structure</a>, the fields <code>nn</code> and <code>nnFrame</code> parametrize the nucleus-nucleus interaction.
+</p>
+
+<p>
+If the vector <code>nucSpins</code> is specified, only the interactions between the nuclei listed in <code>nucSpins</code> is computed. For example, if <code>nucSpins = [1 3]</code>, only the interaction between nucleus 1 and nucleus 3 is returned. Otherwise, all nuclei are included.
+</p>
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format, instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+
+<p>
+For a system with one electron and two nuclei
+</p>
+
+<pre class="matlab">
+Sys.S = 1/2;
+Sys.Nucs = '1H,1H';
+Sys.nn = [1 1 -2]*0.04;   % MHz
+Sys.A = [10 12];          % MHz
+</pre>
+
+<p>
+the nucleus-nucleus coupling Hamiltonian (in MHz) is
+</p>
+
+<pre class="matlab">
+nnHam = ham_nn(Sys)
+</pre>
+<pre class="mloutput">
+nnHam =
+   -0.0200         0         0         0         0         0         0         0
+         0    0.0200    0.0200         0         0         0         0         0
+         0    0.0200    0.0200         0         0         0         0         0
+         0         0         0   -0.0200         0         0         0         0
+         0         0         0         0   -0.0200         0         0         0
+         0         0         0         0         0    0.0200    0.0200         0
+         0         0         0         0         0    0.0200    0.0200         0
+         0         0         0         0         0         0         0   -0.0200
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nq.html">ham_nq</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

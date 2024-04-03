@@ -41,7 +41,7 @@ n = length(ri);
 % (1) Interpolate along rows of data
 % size(coefs) is [d*L,k]. d is dimension size(data(1)), k is
 % polynom order (4), L is number of polynom pieces size(data(2))-1
-[ignored,coefs,rL,k,d] = unmkpp(esspline1d(data,EndCon(2)));
+[~,coefs,rL,k,d] = unmkpp(esspline1d(data,EndCon(2)));
 % Prepend zero coefficients if order is not cubic
 if k<4, coefs = [zeros(d,4-k) coefs]; end
 % Reorder coefficients to [L*k,d]
@@ -50,7 +50,7 @@ sizeg(2) = rL*4;
 
 % Interpolate along rows of reordered coefficient array, ie
 % interpolate coefficients along dimensions.
-[ignored,coefs,cL,k,d] = unmkpp(esspline1d(values,EndCon(1)));
+[~,coefs,cL,k,d] = unmkpp(esspline1d(values,EndCon(1)));
 if k<4, coefs = [zeros(d,4-k) coefs]; end
 values = reshape(coefs,d,cL*4).';
 sizeg(1) = cL*4;
@@ -66,7 +66,7 @@ rpoint = points - ipoint;
 % Arrange coefficients
 %--------------------------------------------------------------
 ells = sizeg/4;
-idx = ells(1)*[0:3].';
+idx = ells(1)*(0:3).';
 mm = repmat(ells(2),4,1);
 idx = [idx mm*0; idx mm; idx mm*2; idx mm*3];
 idx = num2cell(1+idx,1);
@@ -86,11 +86,11 @@ end
 
 F = reshape(coefs,size(ri));
 
-return
+end
 
 %=============================================================================
 % Test against csape from the Spline Toolbox
-
+function test1
 clear, spparms('autommd',0);
 n = 10; m = 10;
 nn = 5000;
@@ -112,3 +112,4 @@ zcs = zeros(n+1,m); zcs(2:end,:) = z1; zcs(end+1,end) = 0;
 t = cputime; zz1 = fnval(csape({r,c},zcs,{'c','p'}),[rr;cc]); t1 = cputime - t;
 t = cputime; zz2 = esspline2d(z1,rr,cc,[1 2]); t2 = cputime - t;
 fprintf('(z,p): error %f, relative time %f\n',max(abs(zz1(:)-zz2(:))), t2/t1);
+end

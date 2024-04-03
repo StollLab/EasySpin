@@ -12,10 +12,10 @@
 % 
 % Input: 
 %   InstallInfo             structure, get it by running: 
-%                           InstallInfo = easyspininfo
+%                           InstallInfo = easyspin('info')
 %         .ReleaseChannel   release channel of current installation
 %         .Version          EasySpin version
-%         .Path             Installation path
+%         .Root             Installation path
 % 
 %   Opt                     options
 %         .Silent           T/F - if T supress messages
@@ -73,7 +73,7 @@ if ~testing
   
   
   if isOffline
-    msg = 'You need to be connect to the internet to check for a new EasySpin version or to update.';
+    msg = 'Could not reach EasySpin server. You need to be connect to the internet to check for a new EasySpin version or to update.';
     if messages; disp(msg); end
     varargout = {0 []};
     return
@@ -88,21 +88,21 @@ end
 % Computer is online, continue by processing info of installed version
 %--------------------------------------------------------------
 if nargin == 0
-  % get version from easyspininfo if called without input argument
-  VersionInfo = easyspininfo;
+  % get version if called without input argument
+  VersionInfo = easyspin_info;
 end
 
 if nargin == 2 && isfield(Opt,'Branch')
   ReleaseChannel = Opt.Branch;
-  InstalledVersion =  '0.0.0';
+  installedVersion =  '0.0.0';
 else
   ReleaseChannel   =  VersionInfo.ReleaseChannel;
-  InstalledVersion =  VersionInfo.Version;
+  installedVersion =  VersionInfo.Version;
 end
 
 % stop looking for an update if EasySpin is on source control
 if strcmp(ReleaseChannel,'$ReleaseChannel$')
-  msg = 'Your EasySpin installation appears to be on version control, use your source control tool to check for a newer version.';
+  msg = 'Your EasySpin installation appears to be on version control. Use your source control tool to check for a newer version.';
   if messages; disp(msg); end
   if nargout > 0
     varargout = {false []};
@@ -112,28 +112,28 @@ end
 
 matchVersioning = '(\d+).(\d+).(\d+)-?([a-z]+)?.?(\d+)?';
 
-VersionInfo = regexp(InstalledVersion,matchVersioning,'tokens');
+VersionInfo = regexp(installedVersion,matchVersioning,'tokens');
 
 if isempty(VersionInfo)
-  error('Error polling currently installed version')
+  error('Error determining currently installed EasySpin version.')
 else
   VersionInfo = VersionInfo{:};
 end
 
-InstalledVersion = convertVersionNumber(VersionInfo);
+installedVersion = convertVersionNumber(VersionInfo);
 
 % Get online versions and put them into a structure
 %--------------------------------------------------------------
 msg = 'Checking for a new version...';
-if messages; disp(msg); end
+if messages, disp(msg); end
 
 if ~testing
-  VersionsFile = websave('versions.txt','http://easyspin.org/easyspin/versions.txt');
+  versionsInfoFile = websave('versions.txt','http://easyspin.org/versions.txt');
 else
-  VersionsFile = './data/versions.txt';
+  versionsInfoFile = './data/versions.txt';
 end
 
-fileID = fopen(VersionsFile,'r');
+fileID = fopen(versionsInfoFile,'r');
 
 expression = ['([a-z]+):' matchVersioning];
 tline = fgetl(fileID);
@@ -142,7 +142,7 @@ while ischar(tline)
   V = regexp(tline,expression,'tokens');
   if ~isempty(V)
     V = V{:};
-    [OnlineVersions.(V{1}).Numeric, OnlineVersions.(V{1}).String] = convertVersionNumber(V(2:end));
+    [onlineVersions.(V{1}).Numeric, onlineVersions.(V{1}).String] = convertVersionNumber(V(2:end));
   end
   tline = fgetl(fileID);
 end
@@ -150,13 +150,13 @@ end
 fclose(fileID);
 
 if ~testing
-  delete(VersionsFile);
+  delete(versionsInfoFile);
 end
 
 % Check if the releasechannel of the currently installed version (or the
 % requested releasechannel) are tracked on easyspin.org
 %----------------------------------------------------------
-if ~isfield(OnlineVersions,ReleaseChannel)
+if ~isfield(onlineVersions,ReleaseChannel)
   msg = ['The release channel you are currently on - "' ReleaseChannel '" - does not support automatic updates.'];
   if messages; disp(msg); end
     varargout = {false []};
@@ -165,13 +165,13 @@ end
 
 % Compare versions if a new version is available
 %----------------------------------------------------------
-OnlineVersion = OnlineVersions.(ReleaseChannel).Numeric;
+onlineVersion = onlineVersions.(ReleaseChannel).Numeric;
 
 % Subtract local version from online version. Any version numbers of the
 % local installation that are larger than the online versions, are
 % negative. If online and local version are idential, Diffs is a vector of
 % zeros.
-Diffs = OnlineVersion - InstalledVersion;
+Diffs = onlineVersion - installedVersion;
 
 % if both versions arent identical, Diffs contains nonzero elements
 if any(Diffs > 0) && any(Diffs < 0)
@@ -193,7 +193,7 @@ else
 end
 
 if UpdateAvailable
-  msg = ['A new EasySpin version (' OnlineVersions.(ReleaseChannel).String ') is available online.' newline];
+  msg = ['A new EasySpin version (' onlineVersions.(ReleaseChannel).String ') is available online.' newline];
   msg = [msg 'Type and run "easyspinupdate" to update.'];
 else
   msg = 'You are using the most recent version of EasySpin.';
@@ -201,7 +201,7 @@ end
 if messages; disp(msg); end
 
 if nargout > 0
-  varargout = {UpdateAvailable OnlineVersions.(ReleaseChannel).String};
+  varargout = {UpdateAvailable onlineVersions.(ReleaseChannel).String};
 end
 
 function [VersionArray, VersionString] = convertVersionNumber(VersionInfo)

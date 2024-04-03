@@ -31,7 +31,7 @@ function varargout = orisel(Sys,Params,Options)
 
 if nargin==0, help(mfilename); return; end
 
-error(chkmlver);
+warning(chkmlver);
 
 if nargin<3, Options = struct; end
 
@@ -46,7 +46,7 @@ if numel(Sys.HStrain)==1, Sys.HStrain = [1 1 1]*Sys.HStrain; end
 %----------------------------------------------------------------------
 DefaultParams.mwFreq = NaN;
 DefaultParams.Field = NaN;
-DefaultParams.ExciteWidth = inf;
+DefaultParams.ExciteWidth = Inf;
 DefaultParams.Orientations = [];
 
 if ~isfield(Params,'Field'), error('Params.Field is missing!'); end
@@ -77,7 +77,7 @@ if ~isempty(Params.Orientations)
   theta = Orientations(2,:);
 else
   if isempty(Options.GridSymmetry)
-    [Options.GridSymmetry,GridFrame] = symm(Sys);
+    [Options.GridSymmetry,GridFrame] = hamsymm(Sys);
   else
     GridFrame = eye(3);
   end
@@ -107,8 +107,8 @@ end
 
 %-----------------------------------------------------------------------
 % Prepare Hamiltonian and get state space dimension
-[F,GxM,GyM,GzM] = sham(Sys);
-N = length(F);
+[H0,muxM,muyM,muzM] = ham(Sys);
+N = length(H0);
 
 % Transition map and level indices
 uv = find(triu(ones(N),1));
@@ -132,19 +132,19 @@ if isfinite(Params.ExciteWidth)
   % Calculate weights for all orientations and all transitions
   for iOri = 1:nOrientations
     [xLab,yLab,zLab] = erot(phi(iOri),theta(iOri),0,'rows');
-    GxL = xLab(1)*GxM + xLab(2)*GyM + xLab(3)*GzM;
-    GyL = yLab(1)*GxM + yLab(2)*GyM + yLab(3)*GzM;
-    GzL = zLab(1)*GxM + zLab(2)*GyM + zLab(3)*GzM;
+    muxL = xLab(1)*muxM + xLab(2)*muyM + xLab(3)*muzM;
+    muyL = yLab(1)*muxM + yLab(2)*muyM + yLab(3)*muzM;
+    muzL = zLab(1)*muxM + zLab(2)*muyM + zLab(3)*muzM;
     % Eigenvalues
-    [V,E] = eig(F + Params.Field*GzL);
+    [V,E] = eig(H0 - Params.Field*muzL);
     E = diag(E);
     [E,idx] = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
     V = V(idx,:);
     
-    if (Options.AveragedIntensity)
-      TransitionRate = (abs(V'*GxL*V).^2 + abs(V'*GyL*V).^2)/2;
+    if Options.AveragedIntensity
+      TransitionRate = (abs(V'*muxL*V).^2 + abs(V'*muyL*V).^2)/2;
     else
-      TransitionRate = abs(V'*kGxL*V).^2;
+      TransitionRate = abs(V'*muxL*V).^2;
     end
 
     % Orientation selectivity weights
@@ -185,4 +185,4 @@ switch nargout
   case 2, varargout = {Weights,Transitions};
 end
 
-return
+end

@@ -213,14 +213,14 @@ function [c,mv] = normAm(A,m)
 n = size(A,1);
 if n < 50 % Compute matrix power explicitly
   mv = 0;
-  c = norm(matlab.internal.math.mpower.viaMtimes(A,m),1);
+  c = norm(A^m,1);
 elseif isreal(A) && all(A(:) >= 0)
   % For positive matrices only.
   e = ones(n,1,class(A));
   for j=1:m
     e = A'*e;
   end
-  c = norm(e,inf);
+  c = norm(e,Inf);
   mv = m;
 else
   [c,~,~,it] = normest1(@afun_power);

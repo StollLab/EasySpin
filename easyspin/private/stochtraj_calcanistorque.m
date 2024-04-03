@@ -25,7 +25,7 @@
 function torque = stochtraj_calcanistorque(LMK, lambda, q)
 % Preprocessing
 % -------------------------------------------------------------------------
-shapeq = num2cell(size(q));
+%shapeq = num2cell(size(q));
 Index = cell(1, ndims(q));
 Index(:) = {':'};
 

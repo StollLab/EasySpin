@@ -20,7 +20,7 @@ function varargout = ang2vec(phi,theta)
 
 if nargin==0, help(mfilename); return; end
 
-if nargout==2 || nargout>3
+if nargout~=0 && nargout~=1 && nargout~=3
   error('One or three output arguments are required.');
 end
 
@@ -48,10 +48,10 @@ y = sintheta.*sin(phi);
 z = cos(theta);
 
 switch nargout
-  case 1
+  case {0,1}
     varargout = {[x;y;z]};
   case 3
     varargout = {x,y,z};
 end
 
-return
+end

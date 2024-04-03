@@ -83,7 +83,7 @@ if fDSC<1, error('Unable to open description file %s',DSCfilename); end
 writedsckeyval = @(key,val)fprintf(fDSC,[key '\t' val '\n']);
 writedsc = @(val)fprintf(fDSC,[val '\n']);
 
-fprintf(fDSC,'* Exported from Matlab using EasySpin, %s\n',datestr(now));
+fprintf(fDSC,'* Exported from Matlab using EasySpin, %s\n',char(datetime));
 if BES3TVersion==1.2
   VersionString = '1.2';
 elseif BES3TVersion==1.3
@@ -212,8 +212,8 @@ writedsc('************************************************************');
 writedsc('*');
 writedsckeyval('#SPL',[VersionString ' * STANDARD PARAMETER LAYER']);
 writedsckeyval('OPER','');
-writedsckeyval('DATE',datestr(now,'dd/mm/yy'));
-writedsckeyval('TIME',datestr(now,'HH:MM:SS'));
+writedsckeyval('DATE',char(datetime,'dd/MM/yy'));
+writedsckeyval('TIME',char(datetime,'HH:mm:ss'));
 writedsckeyval('CMNT','');
 writedsckeyval('SAMP','');
 writedsckeyval('SFOR','');

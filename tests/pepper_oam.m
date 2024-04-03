@@ -10,7 +10,7 @@ SysSL.S = randi(3,1,n)/2;
 SysSL.g = rand(3*n,3);
 SysSL.L = randi(2,1,n);
 SysSL.soc = rand(n,2)*1000;
-SysSL.orf = rand(n,1);
+SysSL.gL = rand(n,1);
 nSpins = length(SysSL.S);
 if n > 1
   SysSL.ee = zeros(nchoosek(nSpins,2),1);
@@ -21,7 +21,8 @@ SysS.S = [SysSL.S,SysSL.L];
 % Build array of g matrices:
 SysS.g = [SysSL.g;zeros(3*n,3)];
 for k = 1:n
-  SysS.g(3*(n+k-1)+1:3*(n+k),:) = -diag(SysSL.orf(k)*ones(1,3));
+  gL = diag(SysSL.gL(k)*ones(1,3));
+  SysS.g(3*(n+k-1)+1:3*(n+k),:) = gL;
 end
 
 % Distribute soc over ee and ee2
@@ -32,8 +33,8 @@ SysS.ee = zeros(eelen,1);
 SysS.ee2 = zeros(eelen,1);
 for m = 1:nSpins
   x = logical((k(:,1)==m).*(k(:,2)==m+nSpins));
-  SysS.ee(x) = SysSL.orf(m)*SysSL.soc(m,1);
-  SysS.ee2(x) = SysSL.orf(m)*SysSL.orf(m)*SysSL.soc(m,2);
+  SysS.ee(x) = SysSL.soc(m,1);
+  SysS.ee2(x) = SysSL.soc(m,2);
 end
 
 % Build zero-field splitting part

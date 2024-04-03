@@ -272,7 +272,7 @@ else
 end
 
 if isfield(Opt,'checkConvergence')
-  checkConvergence = Opt.chkcon;
+  checkConvergence = Opt.checkConvergence;
   if checkConvergence && Par.nTraj==1
     error(['Checking convergence of a single trajectory using the ',...
            'R statistic is not supported.\n'])
@@ -339,7 +339,7 @@ switch nargout
       set(hl,'Color',[1 1 1]*0.3);
       for iState = 1:nStates
         idx = s==iState;
-        h = plot(t(idx),iState*ones(1,sum(idx)),'o');
+        plot(t(idx),iState*ones(1,sum(idx)),'o');
       end
     
       xlabel('time (s)');

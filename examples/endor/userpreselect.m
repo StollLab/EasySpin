@@ -47,7 +47,7 @@ end
 y = y/max(y(:));  % normalize to amplitude 1
 
 % Plotting
-stackplot(x,y);
+stackplot(x,y,'int',1,compose('%s = %1.2f','\rho',rho));
 
-xlabel('frequency [MHz]');
+xlabel('frequency (MHz)');
 title('ENDOR spectra');

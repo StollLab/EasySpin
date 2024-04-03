@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>nucabund</title>
 </head>
 
@@ -45,7 +45,7 @@ Q = nucabund(Isotopes)
 <p>
 This function returns the natural abundance of the nuclei
 specified in <code>Isotopes</code>, as a number between 0 (not
-occuring naturally) and 1 (the only naturally ocurring isotope).
+occurring naturally) and 1 (the only naturally occurring isotope).
 
 <code>Isotopes</code> is a character array giving the mass number and the
 chemical symbol of the element, e.g. <code>'14N'</code> or <code>'63Cu'</code>.

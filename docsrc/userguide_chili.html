@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>User guide: chili</title>
 </head>
 
@@ -131,12 +131,12 @@ Sys.A = [10; 12]; % MHz
 </pre>
 
 <p>
-Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (milltesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="mt2mhz.html">mt2mhz</a>:
+Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (millitesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="unitconvert.html">unitconvert</a>:
 </p>
 
 <pre class="matlab">
-A_MHz = mt2mhz(A_mT);    % mT -> MHz conversion
-A_MHz = mt2mhz(A_G/10);  %  G -> MHz conversion (1 G = 0.1 mT)
+A_MHz = unitconvert(A_mT,'mT->MHz');    % mT -> MHz conversion
+A_MHz = unitconvert(A_G/10,'mT->MHz');  %  G -> MHz conversion (1 G = 0.1 mT)
 </pre>
 
 <p>
@@ -245,7 +245,7 @@ chili(Nx,Exp);
 <a name="potential"><div class="subtitle">The orientational potential</div></a>
 
 <p>
-<code>chili</code> can also include an orientational potential-energy function in the simulation. This is used to model hindered rotational diffusion, i.e. when not all orientations of the spin center relative to its immediate ennvironment (protein, membrane, etc) are equally accessible energetically.
+<code>chili</code> can also include an orientational potential-energy function in the simulation. This is used to model hindered rotational diffusion, i.e. when not all orientations of the spin center relative to its immediate environment (protein, membrane, etc) are equally accessible energetically.
 </p>
 
 <p>
@@ -374,7 +374,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 In a frozen solution of spin-labelled protein, the protein molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if a orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
 
 <p>
-The summation of slow-motion spectra over all possible orientations of an immobile protein or membrane ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder average. In <code>chili</code>, the orientational average is calculated whenever you specify an orientational potential. To get a single-orientation spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single protein orientation, use the field <code>Exp.CrystalOrientation</code> to specify the protein orientation via the Euler tilt angle (in radians) between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+The summation of slow-motion spectra over all possible orientations of an immobile protein or membrane ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder average. In <code>chili</code>, the orientational average is calculated whenever you specify an orientational potential. To get a single-orientation spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single protein orientation, use the field <code>Exp.SampleFrame</code> to specify the sample orientation via the Euler tilt angle (in radians) between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
 </p>
 
 <p>
@@ -461,7 +461,7 @@ For this, all you need to do is the following:
 <ul>
 <li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>, otherwise EasySpin does not know what to do.
 <li>Give a microwave frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. You can also omit these, in which case <code>pepper</code> will try to determine an adequate range automatically.
-<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in units of MHz. For a frequency sweep, these convolutional linewidth parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
+<li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in units of MHz. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>
 
 <p>

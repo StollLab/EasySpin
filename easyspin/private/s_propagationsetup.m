@@ -1,15 +1,10 @@
 function [Sys,Sigma0,DetOps,Events,Relaxation] = s_propagationsetup(Sys,Events,Opt)
 % Spin system setup and input checking for saffron/spidyan
-%
 
 % Check spin system structure
 % --------------------------------------------------------------------------------------
 % Check for isotope mixtures
 if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
-isoList = isotopologues(Sys.Nucs);
-if numel(isoList)>1
-  error('saffron/spidyan do not support isotope mixtures. Please specify pure isotopes in Sys.Nucs.');
-end
 
 % Validate spin system
 [Sys,err] = validatespinsys(Sys);
@@ -81,13 +76,14 @@ logmsg(1,'  setting up the initial state');
 if isfield(Sys,'initState') && ~isempty(Sys.initState)
   % if some initial state was provided, this checks if the dimensions are
   % correct
-  [a, b] = size(Sys.initState);
-  if ischar(Sys.initState)
-    error('String input for initial state not yet supported.')
-  elseif Sys.nStates ~= a || Sys.nStates ~= b
+  if ~strcmp(Sys.initState{2},'uncoupled')
+    error('spidyan only accepts a density matrix in the uncoupled basis in Sys.initState.')
+  end
+  [a, b] = size(Sys.initState{1});
+  if Sys.nStates ~= a || Sys.nStates ~= b
     error('Initial state has to be a density matrix.')
   end
-  Sigma0 = Sys.initState;
+  Sigma0 = Sys.initState{1};
 else
   % builds initial state, all electrons are -Sz, nuclei are not defined
   Sigma0 = -totSpinOps{3};

@@ -1,6 +1,6 @@
 % 2D Linear Prediction Singular Value Decomposition down a single dimension
 %
-%  predictedSpectrum = mlpsvd(Spectrum, Time, Method, Order, 2D-Method)
+%  predictedSpectrum = mlpsvd(Spectrum, Time, Method, Order, Method2D)
 % [predictedSpectrum, PredictionParameters] = mlpsvd(...)
 %
 % Performs Linear Prediction SVD using a damped exponential model:
@@ -36,7 +36,7 @@
 % however these methods are known to underestimate the number of components
 %
 %
-% 2D-Method - the method used to simultaneously handle the processing of
+% Method2D - the method used to simultaneously handle the processing of
 %             the spectra in the time domain. if not provided default 'sum'
 % Vanhamme, L.; Van Huffel, S. SPIE 3461, 237 (1998)
 %
@@ -50,7 +50,7 @@
 
 
 
-function [y,parameters] = mlpsvd(data,time,method,order,multi)
+function [y,parameters] = mlpsvd(data,time,method,order,method2d)
 
 % Check inputs+
 
@@ -78,8 +78,8 @@ else
   m = order;
 end
 
-if  nargin<5 || isempty(multi)
-  multi = 'sum';
+if  nargin<5 || isempty(method2d)
+  method2d = 'sum';
 end
 
 N = dim(2);
@@ -88,7 +88,7 @@ N = dim(2);
 L = floor(0.6*N);
 
 % switch between the multispectra methods
-switch multi
+switch method2d
   case 'sum'
     % determine the signal poles by summing
     dat = sum(data,1);
@@ -119,7 +119,7 @@ if ischar(order)
         aic(k+1) = 2*N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M)))) ...
           + 2*k*(2*M-k);
       end
-      [dummy, m] = min(aic);
+      [~, m] = min(aic);
       m = m - 1;
     case 'mdl'
       M = length(S);
@@ -128,7 +128,7 @@ if ischar(order)
         mdl(k+1) = N*( (M-k)*log((sum(S(k+1:M))/(M-k))) - sum(log(S(k+1:M))))...
           + k*(2*M-k)*log(N)/2;
       end
-      [dummy, m] = min(mdl);
+      [~, m] = min(mdl);
       m = m - 1;
   end
 end
@@ -168,7 +168,7 @@ switch method
     Umb = Um(1:end-1,:);
     
     % obtain the SVD of the augmented matrix
-    [dummy,dummy,Vu] = svd([Umb Umt],'econ');
+    [~,~,Vu] = svd([Umb Umt],'econ');
     
     % calculate Zprime
     Zp = -Vu(1:m,m+1:2*m)/Vu(m+1:2*m,m+1:2*m);
@@ -221,14 +221,5 @@ parameters.model = @(time)  (amp .*exp(1i*phase))*exp((-damp + 1i*2*pi*freq)*tim
 if idx == 1
   y = y.';
 end
-return
 
-
-
-
-
-
-
-
-
-
+end

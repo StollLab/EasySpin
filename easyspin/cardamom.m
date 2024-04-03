@@ -163,7 +163,7 @@ if nargin==0, help(mfilename); return; end
 error(eschecker);
 
 % Check Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Preprocessing
 % -------------------------------------------------------------------------
@@ -213,7 +213,7 @@ end
 %-------------------------------------------------------------------------------
 
 logmsg(1,'Experimental settings:');
-[Exp,FieldSweep,CenterField,CenterFreq,Sweep] = validate_exp('cardamom',Sys,Exp);
+[Exp,FieldSweep,CenterField,CenterFreq,~] = validate_exp('cardamom',Sys,Exp);
 
 if FieldSweep
   omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
@@ -380,7 +380,7 @@ if useMD && strcmp(LocalDynamicsModel,'MD-HBD') && ~dynamInfoGiven
   stopFitT = floor(MD.nSteps/2)*MD.dt;
   [Sys.Diff, ~, ~] = runprivate('cardamom_estimatedifftensor',...
                                 squeeze(MD.FrameTraj), MD.dt, stopFitT);
-  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/us',Sys.Diff/1e6);
+  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/µs',Sys.Diff/1e6);
 end
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
@@ -507,7 +507,7 @@ end
 logmsg(1,'Parameter settings:');
 logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
 if includeGlobalDynamics
-  logmsg(1,'  Global correlation time:  %g rad^2/us',Dynamics.DiffGlobal/1e6);
+  logmsg(1,'  Global correlation time:  %g rad^2/µs',Dynamics.DiffGlobal/1e6);
 else
   logmsg(1,'  Global correlation time:  none');
 end  
@@ -539,24 +539,8 @@ switch LocalDynamicsModel
     switch LocalDynamicsModel
       case 'MD-HBD'
         
-        % calculate orienting potential energy function
-        qTemp = squeeze(rotmat2quat(MD.FrameTraj));
-        [phi,theta,psi] = quat2euler(qTemp,'active');
-        clear qTemp
-        
-        phi = phi + 2*pi*(phi<0);
-        psi = psi + 2*pi*(psi<0);
-        
-        nBins = 90;
-        phiEdges = linspace(0, 2*pi, nBins+1);
-        thetaEdges = linspace(0, pi, nBins/2+1);
-        psiEdges = linspace(0, 2*pi, nBins+1);
-        
-        pdf = histcountsn([phi(:),theta(:),psi(:)],{phiEdges,thetaEdges,psiEdges});
-        pdf = smooth3(pdf,'gaussian');
-        pdf(pdf<1e-14) = 1e-14;  % put a finite floor on histogram
         useLocalPotential = true;
-        LocalPotential = -log(pdf);
+        LocalPotential = mdtraj2oripot(MD.FrameTraj);
         
       case 'MD-HMM'
         
@@ -771,7 +755,7 @@ while ~converged
 
   % windowing
   if FFTWindow
-    hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
+    %hamming = cellfun(@(x) 0.54 + 0.46*cos(pi*x/max(x)), tCell, 'UniformOutput', false);
     hann = cellfun(@(x) 0.5*(1 + cos(pi*x/max(x))), tCell, 'UniformOutput', false);
     Window = hann;
     TDSignal = cellfun(@times, TDSignal, Window, 'UniformOutput', false);
@@ -779,7 +763,7 @@ while ~converged
 
   % zero padding for FFT to ensure sufficient B-field resolution (at most 0.1 G)
   Bres = 0.1; % G
-  tReq = 1/(mt2mhz(Bres/10)*1e6); % mT -> s
+  tReq = 1/(unitconvert(Bres/10,'mT->MHz')*1e6); % mT -> s
 
   tMax = max(cellfun(@(x) max(x), tCell));
   if tMax<tReq
@@ -794,7 +778,7 @@ while ~converged
   if isBroadening
     if Sys.lw(1)>0
       % Gaussian broadening
-      fwhm = mt2mhz(Sys.lw(1))*1e6;  % mT -> Hz
+      fwhm = unitconvert(Sys.lw(1),'mT->MHz')*1e6;  % mT -> Hz
       alpha = pi^2*fwhm^2/(4*log(2));
       TDSignal = bsxfun(@times,exp(-alpha*tLong.^2),TDSignal);
     end
@@ -867,9 +851,9 @@ freq = 1/(Par.dtSpin*M)*(-M/2:M/2-1);  % TODO check for consistency between Fiel
 
 % center the spectrum around the isotropic component of the g-tensor
 if FieldSweep
-  fftAxis = mhz2mt(freq/1e6+Exp.mwFreq*1e3, mean(Sys.g));  % MHz -> mT, note use of g0, not ge
+  fftAxis = unitconvert(freq/1e6+Exp.mwFreq*1e3,'MHz->mT', mean(Sys.g));  % MHz -> mT, note use of g0, not ge
 else
-  fftAxis = freq/1e9+mt2mhz(Exp.Field,mean(Sys.g))/1e3;  % GHz
+  fftAxis = freq/1e9+unitconvert(Exp.Field,'mT->MHz',mean(Sys.g))/1e3;  % GHz
 end
 
 % set up horizontal sweep axis

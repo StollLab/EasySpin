@@ -225,4 +225,4 @@ end
 
 Gamma = Gamma + sparse(rowp,colp,valp,nBasis,nBasis);
 
-return
+end

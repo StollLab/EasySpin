@@ -20,7 +20,7 @@
 %      Abundances    cell array of nuclear abundances
 %      relThreshold  isotopologue abundance threshold, relative to
 %                       abundance of most abundant isotopologue
-%                       (default 0.001)
+%                       (between 0 and 1, default 0.001)
 %
 %    out                 structure array containing a list of all isotopologues
 %       out(k).Nucs      string with list of isotopes
@@ -83,7 +83,7 @@ else
   
 end
 
-if ~ischar(NucList)
+if ~ischar(NucList) && ~isstring(NucList)
   if SysInput
     error('List of nuclei in Sys.Nucs must be a string (e.g. ''Cu,Cl,H,H'').');
   else
@@ -112,11 +112,7 @@ if isempty(NucList)
   return
 end
 
-global IsotopeList % initialized by nucdata()
-if isempty(IsotopeList)
-  % if not initialized yet, call nucdata()
-  dummy = nucdata('1H');  %#ok<NASGU>
-end
+IsotopeList = nucdata;
 
 customMixtures = any(NucList=='(');
 NucList = nucstring2list(NucList,'m');
@@ -180,24 +176,24 @@ if SysInput
     if nElectrons==1
       Aisotropic = numel(Sys.A)==nNucs;
     else
-      Aisotropic = all(size(Sys.A)==[nNucs nElectrons]);
+      Aisotropic = isequal(size(Sys.A),[nNucs nElectrons]);
     end
     if Aisotropic
       Sys.A = reshape(Sys.A,nNucs,nElectrons);
     end
-    Aaxial = all(size(Sys.A)==[nNucs 2*nElectrons]);
-    Arhombic = all(size(Sys.A)==[nNucs 3*nElectrons]);
-    Afull = all(size(Sys.A)==[3*nNucs 3*nElectrons]);
+    Aaxial = isequal(size(Sys.A),[nNucs 2*nElectrons]);
+    Arhombic = isequal(size(Sys.A),[nNucs 3*nElectrons]);
+    Afull = isequal(size(Sys.A),[3*nNucs 3*nElectrons]);
     Aexchange = size(Sys.A,1)==nNucs; % for compatiblity with chem. exchange program
   end
   if isfield(Sys,'A_')
     if nElectrons==1
       A_isotropic = numel(Sys.A_)==nNucs;
     else
-      A_isotropic = all(size(Sys.A_)==[nNucs nElectrons]);
+      A_isotropic = isequal(size(Sys.A_),[nNucs nElectrons]);
     end
-    A_axial = all(size(Sys.A_)==[nNucs 2*nElectrons]);
-    A_rhombic = all(size(Sys.A_)==[nNucs 3*nElectrons]);
+    A_axial = isequal(size(Sys.A_),[nNucs 2*nElectrons]);
+    A_rhombic = isequal(size(Sys.A_),[nNucs 3*nElectrons]);
     A_exchange = size(Sys.A_,1)==nNucs; % for compatiblity with chem. exchange program
   end
   if isfield(Sys,'Q')
@@ -205,9 +201,9 @@ if SysInput
     if Qaxial
       Sys.Q = Sys.Q(:);
     end
-    Qrhombic = all(size(Sys.Q)==[nNucs 2]);
-    Qpvalues = all(size(Sys.Q)==[nNucs 3]);
-    Qfull = all(size(Sys.Q)==[3*nNucs 3]);
+    Qrhombic = isequal(size(Sys.Q),[nNucs 2]);
+    Qpvalues = isequal(size(Sys.Q),[nNucs 3]);
+    Qfull = isequal(size(Sys.Q),[3*nNucs 3]);
   end
 end
 
@@ -370,7 +366,7 @@ for iNuc = 1:nNucs
     
     % AFrame and QFrame
     if isfield(Sys,'AFrame')
-      if all(size(Sys.AFrame)==[nNucs,nElectrons*3])
+      if isequal(size(Sys.AFrame),[nNucs,nElectrons*3])
         Groups(iNuc).AFrame = Sys.AFrame(iNuc,:);
       else
         error('Sys.AFrame has the wrong size.');
@@ -598,6 +594,7 @@ else
   varargout = {isotopologue};
 end
 
+end
 
 %-------------------------------------------------------------------------------
 %{
@@ -707,7 +704,7 @@ for iSet = 1:nMultiSets
   multiplicity(iSet) = prod((1:n)./sort(k_));
 end
 
-return
+end
 
 
 %-------------------------------------------------------------------------------
@@ -758,4 +755,4 @@ while iNuc>=1
 end
 IsoListAbund = IsoListAbund.';
 
-return
+end

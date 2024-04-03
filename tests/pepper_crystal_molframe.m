@@ -11,26 +11,26 @@ Sys.lw = 0.5;
 Exp.mwFreq = 9.5;
 Exp.Range = [290 350];
 
-Exp.CrystalOrientation = rand(1,3)*pi;
+Exp.SampleFrame = rand(1,3)*pi;
 Exp.CrystalSymmetry = 130;
 
 Sys.gFrame = gFrame;
 Exp.MolFrame = [0 0 0];
-[x,y1] = pepper(Sys,Exp);
+[B,spc_gFrame] = pepper(Sys,Exp);
 
 Sys.gFrame = [0 0 0];
 Exp.MolFrame = gFrame;
-[x,y2] = pepper(Sys,Exp);
+[B,spc_MolFrame] = pepper(Sys,Exp);
 
-if (opt.Display)
+if opt.Display
   subplot(3,1,[1 2])
-  plot(x,y1,x,y2,'r');
+  plot(B,spc_gFrame,B,spc_MolFrame,'r');
   legend('gFrame','MolFrame');
   ylabel('intensity (arb.u.)');
-  title('pepper: gFrame vs MolFrame');
+  title('pepper: gFrame vs. MolFrame');
   subplot(3,1,3)
-  plot(x,y2-y1,'r');
+  plot(B,spc_MolFrame-spc_gFrame,'r');
   xlabel('magnetic field (mT)');
 end
 
-ok = areequal(y1,y2,1e-3,'rel');
+ok = areequal(spc_gFrame,spc_MolFrame,1e-3,'rel');

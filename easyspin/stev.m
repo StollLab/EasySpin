@@ -180,4 +180,4 @@ if ~useSparseMatrices
   Op = full(Op);
 end
 
-return
+end

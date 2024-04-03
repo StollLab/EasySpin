@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>easyspin</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">easyspin</div>
+
+<p>
+Information and tasks relating to the EasySpin installation.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+easyspin info
+easyspin doc
+easyspin compile
+easyspin ?
+easyspin
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>easyspin info</code> displays information about the current EasySpin installation, including release number, release date and installation folder. In addition, it checks for potential name conflicts between EasySpin functions and other functions on the MATLAB path.
+</p>
+
+<p>
+<code>easyspin doc</code> opens the documentation of your current EasySpin installation.
+</p>
+
+<p>
+<code>easyspin compile</code> compiles all the  *.c files of your current EasySpin installation using <code>mex</code>. If the <code>mex</code> system in Matlab is not set up, set it up first with <code>mex -setup</code>.
+</p>
+
+<p>
+<code>easyspin ?</code> displays al possible options for <code>easyspin</code>.
+</p>
+
+<p>
+<code>easyspin</code> is equivalent to <code>easyspin info</code>.
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

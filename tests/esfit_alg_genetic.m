@@ -14,26 +14,25 @@ Exp.mwRange = [9.5 10.5];
 Exp.nPoints = 500;
 
 [nu,spc] = pepper(Sys,Exp);
-rng(1)
-%data = addnoise(spc,50,'u');
 
 Vary.g = [0 0.02]; 
 
-FitOpt.PrintLevel = 0;
+FitOpt.Verbosity = 0;
 FitOpt.maxGenerations = 30;
 
 FitOpt.Method = [fitAlg ' ' dataMethod];
 
-[sysFit,spcFit] = esfit(@pepper,spc,Sys,Vary,Exp,[],FitOpt);
-rmsd = sqrt(mean((spc-spcFit).^2));
-ok = all(rmsd/max(spc)<=0.01);
+result = esfit(spc,@pepper,{Sys,Exp},{Vary},FitOpt);
+rmsd = result.rmsd/max(result.fit);
+
+ok = rmsd<0.01;
 
 if opt.Display
   subplot(4,1,[1 2 3]);
-  plot(nu,spc,nu,spcFit);
+  plot(nu,spc,nu,result.fit);
   xlabel('\nu (GHz)');
   legend('sim','fit');
   legend boxoff
   subplot(4,1,4);
-  plot(nu,spc-spcFit);
+  plot(nu,spc-result.fit.');
 end

@@ -15,13 +15,13 @@ clear, clc, clf
 % Ideal pulses
 % ---------------------------------------------------------------------------------------
 PulseAmplitudes = [13 60]; % MHz
-delta = 0.300; % us
+delta = 0.300; % µs
 
 % Pulse 1
 Params1.Type = 'sech/tanh';
-Params1.TimeStep = 0.00025; % us
+Params1.TimeStep = 0.00025; % µs
 Params1.Frequency = [-50 50]; % MHz
-Params1.tp = 0.200; % us
+Params1.tp = 0.200; % µs
 Params1.beta = 10;
 Params1.Amplitude = PulseAmplitudes(1); % MHz
 
@@ -30,7 +30,7 @@ Params1.Amplitude = PulseAmplitudes(1); % MHz
 
 % Pulse 2
 Params2 = Params1;
-Params2.tp = 0.100; % us
+Params2.tp = 0.100; % µs
 Params2.Amplitude = PulseAmplitudes(2); % MHz
 [t2,signal2_ideal] = pulse(Params2);
 [offset2_ideal,M2_ideal] = exciteprofile(t2,signal2_ideal);

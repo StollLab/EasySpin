@@ -128,8 +128,8 @@ end
 if Opt.Verbosity >= 1
   fprintf('    cluster  population  max(stddev)/deg  mu0/deg\n');
   for k = 1:nStates
-    pop(k) = sum(stateTraj(:)==k)/numel(stateTraj);
-    stddev(k) = sqrt(max(eig(Sigma0(:,:,k))));
+    pop(k) = sum(stateTraj(:)==k)/numel(stateTraj);  %#ok
+    stddev(k) = sqrt(max(eig(Sigma0(:,:,k))));  %#ok
   end
   for k = 1:nStates
     fprintf('     %3d       %0.4f       %6.1f',k,pop(k),stddev(k)*180/pi);
@@ -400,7 +400,7 @@ for t=2:T
     scale(t) = 1/n;
   end
 end
-[p, path(T)] = max(delta(:,T));
+[~, path(T)] = max(delta(:,T));
 for t=T-1:-1:1
   path(t) = psi(path(t+1),t+1);
 end
@@ -409,14 +409,14 @@ end
 % If scaled==1, p = Pr(replace sum with max and proceed as in the scaled forwards algo)
 % Both are different from p(data) as computed using the sum-product (forwards) algorithm
 
-if false
-  if scaled
-    loglik = -sum(log(scale));
-    %loglik = prob_path(prior, transmat, obslik, path);
-  else
-    loglik = log(p);
-  end
+%{
+if scaled
+  loglik = -sum(log(scale));
+  %loglik = prob_path(prior, transmat, obslik, path);
+else
+  loglik = log(p);
 end
+%}
 
 end
 

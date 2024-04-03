@@ -1,0 +1,5986 @@
+{
+  "addnoise": {
+    "description": "Add noise to a signal",
+    "inputs": [
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "SNR",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "positive",
+          "real"
+        ],
+        "purpose": "signal-to-noise ratio"
+      },
+      {
+        "name": "NoiseModel",
+        "kind": "required",
+        "type": [
+          "char",
+          "choices={'f', 'n', 'u'}"
+        ],
+        "purpose": "type of noise"
+      }
+    ]
+  },
+  "amu": {
+    "description": "Atomic unit of mass"
+  },
+  "ang2vec": {
+    "description": "Converts polar angles to Cartesian unit vector",
+    "inputs": [
+      {
+        "name": "phi",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "vector"
+          ]
+        ],
+        "purpose": "azimuthal angle"
+      },
+      {
+        "name": "theta",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "zenith/polar angle"
+      }
+    ]
+  },
+  "angstrom": {
+    "description": "Molecular-scale length unit"
+  },
+  "apowin": {
+    "description": "Apodization windows",
+    "inputs": [
+      {
+        "name": "Type",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "window type"
+      },
+      {
+        "name": "nPoints",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "integer"
+        ],
+        "purpose": "number of points"
+      },
+      {
+        "name": "alpha",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": "parameter required for Exponential, Gaussian and Kaiser windows"
+      }
+    ]
+  },
+  "avogadro": {
+    "description": "Avogadro constant"
+  },
+  "barn": {
+    "description": "Nuclear quadrupole moment unit"
+  },
+  "basecorr": {
+    "description": "Polynomial baseline correction",
+    "inputs": [
+      {
+        "name": "data",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "dim",
+        "kind": "required",
+        "type": [
+          [
+            "numeric"
+          ],
+          [
+            "size=0,0"
+          ]
+        ],
+        "purpose": "dimensions for successive 1D corrections; 2D fitting if empty"
+      },
+      {
+        "name": "n",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "polynomial order(s), values between 0 and 6"
+      },
+      {
+        "name": "region",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "region to fit, logical array"
+      }
+    ]
+  },
+  "blochsteady": {
+    "description": "Steady-state solutions of Bloch equations",
+    "inputs": [
+      {
+        "name": "g",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "electron g value"
+      },
+      {
+        "name": "T1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "longitudinal relaxation time, us"
+      },
+      {
+        "name": "T2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "transverse relaxation time, us"
+      },
+      {
+        "name": "deltaB0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": "resonance offset, mT"
+      },
+      {
+        "name": "B1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "microwave field amplitude, mT"
+      },
+      {
+        "name": "ModAmp",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "peak-to-peak modulation field amplitude, mT"
+      },
+      {
+        "name": "ModFreq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "modulation frequency"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "bmagn": {
+    "description": "Bohr magneton"
+  },
+  "bohrrad": {
+    "description": "Bohr radius"
+  },
+  "boltzm": {
+    "description": "Boltzmann constant"
+  },
+  "cardamom": {
+    "description": "Trajectory-based cw EPR spectra",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Par",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      },
+      {
+        "name": "MD",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "molecular dynamics parameters"
+      }
+    ]
+  },
+  "cgmatrix": {
+    "description": "Transformation between uncoupled and coupled representations",
+    "inputs": [
+      {
+        "name": "S1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "quantum number for spin 1"
+      },
+      {
+        "name": "S2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "quantum number for spin 2"
+      }
+    ]
+  },
+  "cgmatrix": {
+    "description": "Transformation between uncoupled and coupled representations",
+    "inputs": [
+      {
+        "name": "S1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "quantum number for spin 1"
+      },
+      {
+        "name": "S2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "quantum number for spin 2"
+      },
+      {
+        "name": "Stot",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "limit to coupled basis states with given total spin"
+      }
+    ]
+  },
+  "chili": {
+    "description": "Slow-motional regime cw EPR spectra",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "clebschgordan": {
+    "description": "Clebsch-Gordan coefficients",
+    "inputs": [
+      {
+        "name": "j1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "j2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "j",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "m1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "m",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      }
+    ]
+  },
+  "clebschgordan": {
+    "description": "Clebsch-Gordan coefficients",
+    "inputs": [
+      {
+        "name": "jm1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j1 m1]"
+      },
+      {
+        "name": "jm2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j2 m2]"
+      },
+      {
+        "name": "jm",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j m]"
+      }
+    ]
+  },
+  "clebschgordan": {
+    "description": "Clebsch-Gordan coefficients",
+    "inputs": [
+      {
+        "name": "j",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j1 j2 j]"
+      },
+      {
+        "name": "m",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[m1 m2 m]"
+      }
+    ]
+  },
+  "clight": {
+    "description": "Vacuum speed of light"
+  },
+  "commute": {
+    "description": "Commutator of two matrices",
+    "inputs": [
+      {
+        "name": "A",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "square matrix A"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "square matrix B"
+      }
+    ]
+  },
+  "convspec": {
+    "description": "Convolute spectrum with line shape",
+    "inputs": [
+      {
+        "name": "spec",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "df",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "positive"
+        ],
+        "purpose": "abscissa step size"
+      },
+      {
+        "name": "fwhm",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "positive"
+        ],
+        "purpose": "FWHM of line shape"
+      },
+      {
+        "name": "deriv",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer"
+        ],
+        "purpose": "derivative order, default 0 (no derivative)"
+      },
+      {
+        "name": "alpha",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real"
+        ],
+        "purpose": "line shape function, default 1 (pure Gaussian)"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real"
+        ],
+        "purpose": "phase of Lorentzian component, default 0 (pure absorption)"
+      }
+    ]
+  },
+  "curry": {
+    "description": "Magnetometry data",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "ctafft": {
+    "description": "Cross-term averaged FFT",
+    "inputs": [
+      {
+        "name": "TD",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "time-domain data"
+      },
+      {
+        "name": "Averages",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "N",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "TD zero-filled to length N before FFT, default length TD (no zero-filling)"
+      }
+    ]
+  },
+  "datasmooth": {
+    "description": "Moving averages: smoothing and differentiation",
+    "inputs": [
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "m",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "filter width (2*m+1)"
+      },
+      {
+        "name": "mode",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'binom','flat','savgol'}"
+        ],
+        "purpose": "filter type"
+      },
+      {
+        "name": "p",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "filter order (Savitzky-Golay only), default 2"
+      },
+      {
+        "name": "dif",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "derivative order (Savitzky-Golay only), default 0 (no derivative)"
+      }
+    ]
+  },
+  "degree": {
+    "description": "Conversion between radians and degrees"
+  },
+  "deriv": {
+    "description": "Numerical differentiation",
+    "inputs": [
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      }
+    ]
+  },
+  "deriv": {
+    "description": "Numerical differentiation",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "abscissa"
+      },
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      }
+    ]
+  },
+  "dipkernel": {
+    "description": "Dipolar EPR signal (DEER)",
+    "inputs": [
+      {
+        "name": "t",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "pump pulse position time axis, us"
+      },
+      {
+        "name": "r",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "distance or array of distances, nm"
+      },
+      {
+        "name": "gAB",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "vector",
+          "positive"
+        ],
+        "purpose": "g factors for the two spins, default [gfree gfree]"
+      }
+    ]
+  },
+  "diptensor": {
+    "description": "Dipolar tensors",
+    "inputs": [
+      {
+        "name": "spin1",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "type of spin"
+      },
+      {
+        "name": "spin2",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "type of spin"
+      },
+      {
+        "name": "rvec",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "inter-spin distance vector, nm"
+      }
+    ]
+  },
+  "easyspin": {
+    "description": "Information and tasks relating to the EasySpin installation",
+    "inputs": [
+      {
+        "name": "task",
+        "kind": "ordered",
+        "type": ["char", "choices={'?', 'doc', 'info', 'compile'}"],
+        "purpose": "Tasks performed, default='info'"
+      }
+    ]
+  },
+  "echarge": {
+    "description": "Elementary electric charge"
+  },
+  "emass": {
+    "description": "Mass of electron"
+  },
+  "endorfrq": {
+    "description": "ENDOR frequencies and amplitudes",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "endorfrq_perturb": {
+    "description": "ENDOR frequencies and amplitudes, using perturbation theory",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "eprconvert": {
+    "description": "GUI for frequency/field/g value conversion"
+  },
+  "eprload": {
+    "description": "Read spectrum files in common EPR data formats",
+    "inputs": [
+      {
+        "name": "FileName",
+        "kind": "required",
+        "type": "file",
+        "purpose": ""
+      },
+      {
+        "name": "Scaling",
+        "kind": "ordered",
+        "type": "char",
+        "purpose": "scale data by specified parameter(s)"
+      }
+    ]
+  },
+  "eprsave": {
+    "description": "Save data in Bruker BES3T EPR file format",
+    "inputs": [
+      {
+        "name": "FileName",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "base filename for exported data file"
+      },
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "abscissa values"
+      },
+      {
+        "name": "data",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data values"
+      },
+      {
+        "name": "Title",
+        "kind": "ordered",
+        "type": "char",
+        "purpose": "display title of dataset"
+      },
+      {
+        "name": "mwFreq",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "microwave frequency, GHz"
+      }
+    ]
+  },
+  "eps0": {
+    "description": "Electric constant, vacuum permittivity"
+  },
+  "equivcouple": {
+    "description": "Coupling of equivalent spins",
+    "inputs": [
+      {
+        "name": "I",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "spin quantum number"
+      },
+      {
+        "name": "n",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of spins"
+      }
+    ]
+  },
+  "equivsplit": {
+    "description": "Splitting pattern for equivalent spins",
+    "inputs": [
+      {
+        "name": "I",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "spin quantum number"
+      },
+      {
+        "name": "n",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of spins"
+      }
+    ]
+  },
+  "erot": {
+    "description": "Computes rotation matrix from Euler angles",
+    "inputs": [
+      {
+        "name": "Angles",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector",
+          "numel=3"
+        ],
+        "purpose": "3-element vector of Euler angles, radians"
+      },
+      {
+        "name": "output",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'cols', 'rows'}"
+        ],
+        "purpose": "returns rotation matrix as 3 vectors, default full matrix"
+      }
+    ]
+  },
+  "erot": {
+    "description": "Computes rotation matrix from Euler angles",
+    "inputs": [
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "third Euler angle, radians"
+      },
+      {
+        "name": "output",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'cols', 'rows'}"
+        ],
+        "purpose": "returns rotation matrix as 3 vectors, default full matrix"
+      }
+    ]
+  },
+  "esfit": {
+    "description": "Least-squares fitting of EPR spectra",
+    "inputs": [
+      {
+        "name": "data",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "fcn",
+        "kind": "required",
+        "type": "function_handle",
+        "purpose": "simulation/model function"
+      },
+      {
+        "name": "p0",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "cell"
+          ],
+          [
+            "vector"
+          ]
+        ],
+        "purpose": "initial parameters"
+      },
+      {
+        "name": "vary",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "cell"
+          ],
+          [
+            "vector"
+          ]
+        ],
+        "purpose": "parameter fitting range"
+      },
+      {
+        "name": "FitOpt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "fitting options"
+      }
+    ]
+  },
+  "esfit": {
+    "description": "Lsq fitting of EPR spectra",
+    "inputs": [
+      {
+        "name": "expSpec",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "SimFcn",
+        "kind": "required",
+        "type": "function_handle",
+        "purpose": "simulation function"
+      },
+      {
+        "name": "p0",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "cell"
+          ],
+          [
+            "vector"
+          ]
+        ],
+        "purpose": "initial parameters"
+      },
+      {
+        "name": "lb",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "cell"
+          ],
+          [
+            "vector"
+          ]
+        ],
+        "purpose": "lower fitting bounds"
+      },
+      {
+        "name": "ub",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "cell"
+          ],
+          [
+            "vector"
+          ]
+        ],
+        "purpose": "upper fitting bounds"
+      },
+      {
+        "name": "FitOpt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "fitting options"
+      }
+    ]
+  },
+  "eulang": {
+    "description": "Euler angles from rotation matrix",
+    "inputs": [
+      {
+        "name": "Rp",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,3"
+        ],
+        "purpose": "rotation matrix"
+      }
+    ]
+  },
+  "euler2quat": {
+    "description": "Unit quaternions from Euler angles",
+    "inputs": [
+      {
+        "name": "Angles",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=3"
+        ],
+        "purpose": "set(s) of Euler angles"
+      }
+    ]
+  },
+  "euler2quat": {
+    "description": "Unit quaternions from Euler angles",
+    "inputs": [
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "alpha angle(s)"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "beta angle(s)"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "gamma angle(s)"
+      }
+    ]
+  },
+  "evolve": {
+    "description": "Evolves density matrices in time-domain",
+    "inputs": [
+      {
+        "name": "Sig",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "initial density matrix"
+      },
+      {
+        "name": "Det",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "detection operator"
+      },
+      {
+        "name": "Ham",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "square"
+          ],
+          [
+            "cell"
+          ]
+        ],
+        "purpose": "Hamiltonian for evolution during incrementation period(s)"
+      },
+      {
+        "name": "n",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real",
+            "positive",
+            "integer"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real",
+            "positive",
+            "integer",
+            "numel=2"
+          ]
+        ],
+        "purpose": "number of points along each dimension"
+      },
+      {
+        "name": "dt",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real",
+            "positive",
+            "integer"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real",
+            "positive",
+            "integer",
+            "numel=2"
+          ]
+        ],
+        "purpose": "dwell time(s), us"
+      },
+      {
+        "name": "IncScheme",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer"
+        ],
+        "purpose": "incrementation scheme"
+      },
+      {
+        "name": "Mix",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "square"
+          ],
+          [
+            "cell"
+          ]
+        ],
+        "purpose": "propagation operator(s) for mixing sequences between evolution periods"
+      }
+    ]
+  },
+  "evolt": {
+    "description": "Electron volt"
+  },
+  "ewrls": {
+    "description": "Lsq adaptive filter averaging",
+    "inputs": [
+      {
+        "name": "data",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "2d"
+        ],
+        "purpose": "spectral data"
+      },
+      {
+        "name": "p",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "integer",
+          "positive"
+        ],
+        "purpose": "filter length"
+      },
+      {
+        "name": "lambda",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "memory factor"
+      },
+      {
+        "name": "nPreAvg",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "integer",
+          ">=0"
+        ],
+        "purpose": "number of scans used, 0 = all, default 0"
+      },
+      {
+        "name": "delta",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "regularization parameter"
+      },
+      {
+        "name": "dir",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'f', 'b', 'fb'}"
+        ],
+        "purpose": "direction filter applied, default 'fb'"
+      }
+    ]
+  },
+  "exciteprofile": {
+    "description": "Excitation profiles for arbitrary pulses",
+    "inputs": [
+      {
+        "name": "t",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time axis, us"
+      },
+      {
+        "name": "IQ",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "pulse shape data, in-phase real and quadrature imaginary"
+      },
+      {
+        "name": "offsets",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "frequency offsets axis, MHz"
+      }
+    ]
+  },
+  "exponfit": {
+    "description": "Exponential fitting",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "abscissa vector"
+      },
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "vector"
+          ],
+          [
+            "numeric",
+            "2d"
+          ]
+        ],
+        "purpose": "data, if matrix fitting applied along columns for common abscissa"
+      },
+      {
+        "name": "nExps",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "choices={1, 2}"
+        ],
+        "purpose": "number of exponents, default 1"
+      },
+      {
+        "name": "noconst",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'noconst'}"
+        ],
+        "purpose": "if given, constant offset not included in fitting"
+      }
+    ]
+  },
+  "faraday": {
+    "description": "Faraday constant"
+  },
+  "fastmotion": {
+    "description": "fast-motion line width from rotational correlation time",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "external magnetic field, mT"
+      },
+      {
+        "name": "tcorr",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "isotropic rotational correlation time, s"
+      },
+      {
+        "name": "domain",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'field', 'freq'}"
+        ],
+        "purpose": "domain for linewidths, default 'field'"
+      }
+    ]
+  },
+  "fdaxis": {
+    "description": "Frequency domain axis for FFT",
+    "inputs": [
+      {
+        "name": "dT",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "dwell time, us"
+      },
+      {
+        "name": "N",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "integer",
+          "positive"
+        ],
+        "purpose": "number of points"
+      }
+    ]
+  },
+  "fdaxis": {
+    "description": "Frequency domain axis for FFT",
+    "inputs": [
+      {
+        "name": "xt",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "full time-domain abscissa, us"
+      }
+    ]
+  },
+  "fieldmod": {
+    "description": "Field modulation of EPR absorption spectra",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "field abscissa, mT"
+      },
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "absorption spectral data"
+      },
+      {
+        "name": "ppAmpl",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "peak-to-peak field modulation amplitude, mT"
+      },
+      {
+        "name": "Harmonic",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "integer"
+        ],
+        "purpose": "detection harmonic of modulated spectrum, default 1"
+      }
+    ]
+  },
+  "gammae": {
+    "description": "Electron gyromagnetic ratio"
+  },
+  "garlic": {
+    "description": "isotropic and fast-motion cw EPR spectra",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "gaussian": {
+    "description": "Gaussian line shape",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "abscissa vector"
+      },
+      {
+        "name": "x0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "center of line shape"
+      },
+      {
+        "name": "fwhm",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "full width at half height"
+      },
+      {
+        "name": "diff",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "integer",
+          ">=-1"
+        ],
+        "purpose": "line shape derivative order, default 0"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "rotation angle for absorption and dispersion line shapes, radians"
+      }
+    ]
+  },
+  "gfree": {
+    "description": "g value of the free electron"
+  },
+  "ham": {
+    "description": "Full spin Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham": {
+    "description": "Full spin Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector",
+          "numel=3",
+          "real"
+        ],
+        "purpose": "magnetic field vector, mT"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_cf": {
+    "description": "Crystal field Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "orbital angular momenta to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_ee": {
+    "description": "Electron-electron interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include computed, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "Hamiltonian matrix is returned in sparse format"
+      }
+    ]
+  },
+  "ham_ez": {
+    "description": "Electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_ez": {
+    "description": "Electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_ezho": {
+    "description": "Higher-order electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spin to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      },
+      {
+        "name": "1B",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "terms of order 1B to return, default=0:8"
+      }
+    ]
+  },
+  "ham_ezho": {
+    "description": "Higher-order electron Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      },
+      {
+        "name": "1B",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "terms of order 1B to return, default=0:highest"
+      }
+    ]
+  },
+  "ham_hf": {
+    "description": "Hyperfine interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "eIdx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "electron spins to include, default=all"
+      },
+      {
+        "name": "nucIdx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spins to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, Hamiltonian matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nq": {
+    "description": "Nuclear quadrupole interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "nucIdx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, Hamiltonian matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nn": {
+    "description": "Nucleus-nucleus interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "nucIdx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spins to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, Hamiltonian matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nz": {
+    "description": "Nuclear Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_nz": {
+    "description": "Nuclear Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "nuclear spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_oz": {
+    "description": "Orbital Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "external magnetic field 3-vector, mT"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "orbital angular momenta to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_oz": {
+    "description": "Orbital Zeeman interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "orbital angular momenta to include, default=all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_so": {
+    "description": "Spin-orbit coupling Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "positive",
+            "integer",
+            "real",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "positive",
+            "integer",
+            "real",
+            "vector"
+          ]
+        ],
+        "purpose": "indices of electrons to consider, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "ham_zf": {
+    "description": "Electronic zero-field interaction Hamiltonian",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "idx",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "spin indices to include, default all"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "hamsymm": {
+    "description": "Symmetry determination for spin Hamiltonians",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      }
+    ]
+  },
+  "hartree": {
+    "description": "Atomic unit of energy"
+  },
+  "hbar": {
+    "description": "Reduced Planck constant"
+  },
+  "hilberttrans": {
+    "description": "Hilbert transform",
+    "inputs": [
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "data"
+      }
+    ]
+  },
+  "hsdim": {
+    "description": "State space dimension",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "numeric",
+            "real",
+            "vector",
+            ">=0"
+          ]
+        ],
+        "purpose": "spin system or vector of spin quantum numbers"
+      }
+    ]
+  },
+  "isotopes": {
+    "description": "Browsable list of nuclear isotope data"
+  },
+  "isotopologues": {
+    "description": "Generate list of isotopologues",
+    "inputs": [
+      {
+        "name": "NucList",
+        "kind": "required",
+        "type": [
+            "char"
+        ],
+        "purpose": "list of isotopes or elements"
+      },
+      {
+        "name": "nEquiv",
+        "kind": "required",
+        "type": [
+            "numeric",
+            "vector"
+        ],
+        "purpose": "number of equivalent nuclei"
+      },
+      {
+        "name": "Abundances",
+        "kind": "ordered",
+        "type": [
+            "numeric",
+            "vector"
+        ],
+        "purpose": "cell array of nuclear abundances"
+      },
+      {
+        "name": "relThreshold",
+        "kind": "ordered",
+        "type": [
+            "numeric",
+            "scalar"
+        ],
+        "purpose": "abundance threshold relative to most abundand isotopologue"
+      }
+    ]
+  },
+  "isotopologues": {
+    "description": "Generate list of isotopologues",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+            "struct"
+        ],
+        "purpose": "spin system structure"
+      },
+      {
+        "name": "relThreshold",
+        "kind": "ordered",
+        "type": [
+            "numeric",
+            "scalar"
+        ],
+        "purpose": "abundance threshold relative to most abundand isotopologue"
+      }
+    ]
+  },
+  "isto": {
+    "description": "Irreducible spherical tensor operators",
+    "inputs": [
+      {
+        "name": "S",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "real",
+            "vector"
+          ],
+          [
+            "struct"
+          ]
+        ],
+        "purpose": "spin quantum number(s)"
+      },
+      {
+        "name": "[k,q]",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "operator rank and component"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "isto": {
+    "description": "Irreducible spherical tensor operators",
+    "inputs": [
+      {
+        "name": "S",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "real",
+            "vector"
+          ],
+          [
+            "struct"
+          ]
+        ],
+        "purpose": "spin quantum number(s)"
+      },
+      {
+        "name": "[k,q,idx]",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "operator rank and component, and spin indices"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "isto2stev": {
+    "description": "Transformation from ISTOs to Stevens operators",
+    "inputs": [
+      {
+        "name": "k",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "tensor rank"
+      }
+    ]
+  },
+  "larmorfrq": {
+    "description": "Larmor frequency of nuclear spins",
+    "inputs": [
+      {
+        "name": "Nucs",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "cell"
+          ]
+        ],
+        "purpose": "nuclear isotope symbols"
+      },
+      {
+        "name": "Fields",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real"
+          ]
+        ],
+        "purpose": "magnetic field value(s), mT"
+      }
+    ]
+  },
+  "levels": {
+    "description": "Energy levels computation",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "phi",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real"
+          ]
+        ],
+        "purpose": "azimuthal angle"
+      },
+      {
+        "name": "theta",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real"
+          ]
+        ],
+        "purpose": "zenith/polar angle"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real"
+          ]
+        ],
+        "purpose": "magnetic field value(s), mT"
+      }
+    ]
+  },
+  "levels": {
+    "description": "Energy levels computation",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Ori",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "numeric",
+            "2d",
+            "real"
+          ]
+        ],
+        "purpose": "character shorthand or [phi; theta] array"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real"
+          ]
+        ],
+        "purpose": "magnetic field value(s), mT"
+      }
+    ]
+  },
+  "levelsplot": {
+    "description": "Energy levels and resonances plot",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Ori",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "numeric",
+            "vector",
+            "real"
+          ]
+        ],
+        "purpose": "character shorthand, [phi theta] or [phi theta chi] array"
+      },
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "magnetic field range/values, mT"
+      },
+      {
+        "name": "mwFreq",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "real",
+          "positive",
+          "scalar"
+        ],
+        "purpose": "microwave frequency, GHz"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "options: Units, nPoints, SlopeColor, etc"
+      }
+    ]
+  },
+  "lorentzian": {
+    "description": "Lorentzian line shape",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "abscissa vector"
+      },
+      {
+        "name": "x0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "center of line shape"
+      },
+      {
+        "name": "fwhm",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "full width at half height"
+      },
+      {
+        "name": "diff",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "choices={-1, 0, 1, 2}"
+        ],
+        "purpose": "line shape derivative order, default 0"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "rotation angle for absorption and dispersion line shapes, radians"
+      }
+    ]
+  },
+  "lpsvd": {
+    "description": "Linear prediction and single value decomposition",
+    "inputs": [
+      {
+        "name": "spectrum",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "time",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time vector"
+      },
+      {
+        "name": "method",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'kt', 'ss', 'tls'}"
+        ],
+        "purpose": "LPSVPD algorithm, default 'ss'"
+      },
+      {
+        "name": "order",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real",
+            "integer",
+            "positive"
+          ],
+          [
+            "char",
+            "choices={'mdl', 'aic'}"
+          ]
+        ],
+        "purpose": "number of sinusoids, number or estimation method, default 'mdl'"
+      }
+    ]
+  },
+  "lshape": {
+    "description": "General line shape function",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "abscissa vector"
+      },
+      {
+        "name": "x0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "center of line shape"
+      },
+      {
+        "name": "fwhm",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "numel=2"
+          ]
+        ],
+        "purpose": "full width at half height"
+      },
+      {
+        "name": "diff",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "choices={-1, 0, 1, 2}"
+        ],
+        "purpose": "line shape derivative order, default 0"
+      },
+      {
+        "name": "alpha",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          ">=0",
+          "<=1"
+        ],
+        "purpose": "line shape function, 1 pure Gaussian, 0 pure Lorentzian, between pseudo-Voigt default 1"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "rotation angle for absorption and dispersion line shapes, radians"
+      }
+    ]
+  },
+  "makespec": {
+    "description": "Spectrum from peak positions and amplitudes",
+    "inputs": [
+      {
+        "name": "Range",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "numel=2"
+        ],
+        "purpose": "range of abscissa"
+      },
+      {
+        "name": "nPoints",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "integer",
+          "positive"
+        ],
+        "purpose": "number of points"
+      },
+      {
+        "name": "Pos",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "peak positions"
+      },
+      {
+        "name": "Amp",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "peak amplitudes, default all set to 1"
+      }
+    ]
+  },
+  "mdhmm": {
+    "description": "Build hidden Markov model from MD trajectories",
+    "inputs": [
+      {
+        "name": "dihedrals",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "trajectory(ies) of dihedrals, radians"
+      },
+      {
+        "name": "dt",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "time step, s"
+      },
+      {
+        "name": "nStates",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of states for HMM"
+      },
+      {
+        "name": "nLag",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar",
+          "positive",
+          "integer"
+        ],
+        "purpose": "time lag for HMM as a multiplication factor for dt"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "mdload": {
+    "description": "Load MD trajectory for file",
+    "inputs": [
+      {
+        "name": "TrajFile",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "cell"
+          ]
+        ],
+        "purpose": "trajectory filename(s)"
+      },
+      {
+        "name": "TopFile",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "full path to topology input file"
+      },
+      {
+        "name": "Info",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "information about the structure and organization of MD data"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "function output options"
+      }
+    ]
+  },
+  "mhz2mt": {
+    "description": "Unit conversion, MHz to mT",
+    "inputs": [
+      {
+        "name": "nu",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "frequency value(s) to convert"
+      },
+      {
+        "name": "g",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "g value(s), default gfree"
+      }
+    ]
+  },
+  "mlpsvd": {
+    "description": "2D linear prediction and single value decomposition",
+    "inputs": [
+      {
+        "name": "spectrum",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "time",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time vector"
+      },
+      {
+        "name": "method",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'kt', 'ss', 'tls'}"
+        ],
+        "purpose": "LPSVPD algorithm, default 'ss'"
+      },
+      {
+        "name": "order",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "scalar",
+            "real",
+            "integer",
+            "positive"
+          ],
+          [
+            "char",
+            "choices={'mdl', 'aic'}"
+          ]
+        ],
+        "purpose": "number of sinusoids, number or estimation method, default 'mdl'"
+      },
+      {
+        "name": "method2D",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sum', 'stack'}"
+        ],
+        "purpose": "method of handling the 2D data"
+      }
+    ]
+  },
+  "molgas": {
+    "description": "Molar gas constant"
+  },
+  "mt2mhz": {
+    "description": "Unit conversion, mT to MHz",
+    "inputs": [
+      {
+        "name": "B",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "magnetic field value(s) to convert"
+      },
+      {
+        "name": "g",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "g value(s), default gfree"
+      }
+    ]
+  },
+  "mu0": {
+    "description": "Magnetic constant, vacuum permeability"
+  },
+  "nmagn": {
+    "description": "Nuclear magneton"
+  },
+  "nmass": {
+    "description": "Mass of neutron"
+  },
+  "nucabund": {
+    "description": "Natural abundance of nuclear isotopes",
+    "inputs": [
+      {
+        "name": "Isotopes",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "list of isotope labels"
+      }
+    ]
+  },
+  "nucdata": {
+    "description": "Nuclear spin data",
+    "inputs": [
+      {
+        "name": "Isotopes",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "list of isotope labels"
+      }
+    ]
+  },
+  "nucfrq2d": {
+    "description": "Sketch of HYSCORE spectrum",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "B0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "external magnetic field magnitude, mT"
+      },
+      {
+        "name": "tauVec",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "tau value(s), us, if given blind spot simulation superimposed on HYSCORE spectrum"
+      }
+    ]
+  },
+  "nucgval": {
+    "description": "Nuclear g values",
+    "inputs": [
+      {
+        "name": "Isotopes",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "list of isotope labels"
+      }
+    ]
+  },
+  "nucqmom": {
+    "description": "Nuclear electric quadrupole moments",
+    "inputs": [
+      {
+        "name": "Isotopes",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "list of isotope labels"
+      }
+    ]
+  },
+  "nucspin": {
+    "description": "Nuclear spin quantum numbers",
+    "inputs": [
+      {
+        "name": "Isotopes",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "list of isotope labels"
+      }
+    ]
+  },
+  "nucspinadd": {
+    "description": "Adds a nuclear spin to a spin system",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Nuc",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "Nuclear spin"
+      },
+      {
+        "name": "A",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "real",
+            "vector"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=3,3"
+          ]
+        ],
+        "purpose": "hyperfine interaction"
+      },
+      {
+        "name": "AFrame",
+        "kind": "ordered",
+        "type": [
+          [
+            "numeric",
+            "vector"
+          ]
+        ],
+        "purpose": "Euler angles for hyperfine tensor, default [0 0 0]"
+      },
+      {
+        "name": "Q",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "nuclear quadrupole interaction, default [0 0 0]"
+      },
+      {
+        "name": "QFrame",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "nuclear quadrupole interaction, default [0 0 0]"
+      }
+    ]
+  },
+  "nucspinkeep": {
+    "description": "Remove all other nuclear spins from a spin system structure",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "keepIdx",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "positive",
+          "integer"
+        ],
+        "purpose": "indices of nuclei to keep"
+      }
+    ]
+  },
+  "nucspinrmv": {
+    "description": "Remove specific nuclear spins from a spin system structure",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "rmvIdx",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "positive",
+          "integer"
+        ],
+        "purpose": "indices of nuclei to remove"
+      }
+    ]
+  },
+  "orca2easyspin": {
+    "description": "Import spin system from ORCA calculation",
+    "inputs": [
+      {
+        "name": "OrcaFileName",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "filename of main ORCA output file"
+      },
+      {
+        "name": "hfCutoff",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "cutoff level for hyperfine couplings, MHz"
+      }
+    ]
+  },
+  "oripotentialplot": {
+    "description": "Plot orientational potential",
+    "inputs": [
+      {
+        "name": "Potential",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=:,4"
+        ],
+        "purpose": "[L, M, K, expansion coefficient]"
+      }
+    ]
+  },
+  "orisel": {
+    "description": "Orientation selection",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "options"
+      }
+    ]
+  },
+  "pepper": {
+    "description": "Solid-state cw EPR",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "photoselect": {
+    "description": "Photoselection weights",
+    "inputs": [
+      {
+        "name": "tdm",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=3,1"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=1,2"
+          ]
+        ],
+        "purpose": "orientation of tdm in molecular frame"
+      },
+      {
+        "name": "ori",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "row"
+        ],
+        "purpose": "[phi theta chi(optional)]"
+      },
+      {
+        "name": "k",
+        "kind": "required",
+        "type": [
+          [
+            "char"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=3,1"
+          ],
+          [
+            "numeric",
+            "real",
+            "size=1,2"
+          ]
+        ],
+        "purpose": "propagation direction of light beam in the lab frame"
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "scalar"
+          ]
+        ],
+        "purpose": "polarization angle, radians"
+      }
+    ]
+  },
+  "planck": {
+    "description": "Planck constant"
+  },
+  "plegendre": {
+    "description": "Legendre polynomials and associated Legendre polynomials",
+    "inputs": [
+      {
+        "name": "L",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "integer",
+          ">=0"
+        ],
+        "purpose": "polynomial degree"
+      },
+      {
+        "name": "z",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          ">=-1",
+          "<=1"
+        ],
+        "purpose": "polynomial evaluated at"
+      }
+    ]
+  },
+  "plegendre": {
+    "description": "Legendre polynomials and associated Legendre polynomials",
+    "inputs": [
+      {
+        "name": "L",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "integer",
+          ">=0"
+        ],
+        "purpose": "polynomial degree"
+      },
+      {
+        "name": "M",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "integer"
+        ],
+        "purpose": "polynomial order"
+      },
+      {
+        "name": "z",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          ">=-1",
+          "<=1"
+        ],
+        "purpose": "polynomial evaluated at"
+      },
+      {
+        "name": "CSphase",
+        "kind": "ordered",
+        "type": [
+          "logical"
+        ],
+        "purpose": "include Condon-Shortley phase"
+      }
+    ]
+  },
+  "pmass": {
+    "description": "Mass of proton"
+  },
+  "propint": {
+    "description": "Compute pulse propagator",
+    "inputs": [
+      {
+        "name": "H0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "static Hamiltonian"
+      },
+      {
+        "name": "H1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "time-dependent Hamiltonian"
+      },
+      {
+        "name": "tp",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,2"
+        ],
+        "purpose": "start and end time of the pulse, us"
+      },
+      {
+        "name": "freq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "iradiation frequency, MHz"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "initial phase, radians, default 0"
+      },
+      {
+        "name": "n",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of intervals by which one period of the propagation is divided, default 256"
+      }
+    ]
+  },
+  "propint": {
+    "description": "Compute pulse propagator",
+    "inputs": [
+      {
+        "name": "SaveU",
+        "kind": "required",
+        "type": [
+          "cell"
+        ],
+        "purpose": "previous intermediate results for reuse"
+      },
+      {
+        "name": "tp",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,2"
+        ],
+        "purpose": "start and end time of the pulse, us"
+      },
+      {
+        "name": "freq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "iradiation frequency, MHz"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "initial phase, radians, default 0"
+      },
+      {
+        "name": "n",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of intervals by which one period of the propagation is divided, default 256"
+      }
+    ]
+  },
+  "pulse": {
+    "description": "Calculate pulse functions for defined pulse shapes",
+    "inputs": [
+      {
+        "name": "Par",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "pulse parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "options"
+      }
+    ]
+  },
+  "quat2euler": {
+    "description": "Converts unit quaternion(s) to Euler angles",
+    "inputs": [
+      {
+        "name": "q0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "first component of unit quaternion(s)"
+      },
+      {
+        "name": "q1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "second component of unit quaternion(s)"
+      },
+      {
+        "name": "q2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "third component of unit quaternion(s)"
+      },
+      {
+        "name": "q3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "fourth component of unit quaternion(s)"
+      }
+    ]
+  },
+  "quat2euler": {
+    "description": "Euler angles from unit quaternions",
+    "inputs": [
+      {
+        "name": "q",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=4"
+        ],
+        "purpose": "unit quaternion(s), [q0; q1; q2; q3]"
+      }
+    ]
+  },
+  "quat2rotmat": {
+    "description": "Converts unit quaternion(s) to rotation matix(ices)",
+    "inputs": [
+      {
+        "name": "q0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "first component of unit quaternion(s)"
+      },
+      {
+        "name": "q1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "second component of unit quaternion(s)"
+      },
+      {
+        "name": "q2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "third component of unit quaternion(s)"
+      },
+      {
+        "name": "q3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=1"
+        ],
+        "purpose": "fourth component of unit quaternion(s)"
+      }
+    ]
+  },
+  "quat2euler": {
+    "description": "Converts unit quaternion(s) to rotation matix(ices)",
+    "inputs": [
+      {
+        "name": "q",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=4"
+        ],
+        "purpose": "unit quaternion(s), [q0; q1; q2; q3]"
+      }
+    ]
+  },
+  "quatinv": {
+    "description": "Calculates the inverse of unit quaternion(s)",
+    "inputs": [
+      {
+        "name": "q",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=4"
+        ],
+        "purpose": "unit quaternion(s), [q0; q1; q2; q3]"
+      }
+    ]
+  },
+  "quatmult": {
+    "description": "Performs quaternion multiplication between two quaternions",
+    "inputs": [
+      {
+        "name": "q1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=4"
+        ],
+        "purpose": "unit quaternion(s), [q0; q1; q2; q3]"
+      },
+      {
+        "name": "q2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=4"
+        ],
+        "purpose": "unit quaternion(s), [q0; q1; q2; q3]"
+      }
+    ]
+  },
+  "quatvecmult": {
+    "description": "Rotates 3-vector(s) using unit quaternion(s)",
+    "inputs": [
+      {
+        "name": "q",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=4"
+        ],
+        "purpose": "unit quaternion(s), [q0; q1; q2; q3]"
+      },
+      {
+        "name": "vec",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "nrows=3"
+        ],
+        "purpose": "unit 3-vectors(s), [v0; v1; v2]"
+      }
+    ]
+  },
+  "rapidscan2spc": {
+    "description": "Convert rapid-scan signal to EPR spectrum",
+    "inputs": [
+      {
+        "name": "rsSignal",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "rapid-scan time-domain signal"
+      },
+      {
+        "name": "rsAmpt",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "peak-to-peak modulation amplitude, mT"
+      },
+      {
+        "name": "reFreq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "modulation frequency, kHz"
+      },
+      {
+        "name": "g",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "g-value, default gfree"
+      }
+    ]
+  },
+  "rcfilt": {
+    "description": "RC filterning of EPR spectra",
+    "inputs": [
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "initial data"
+      },
+      {
+        "name": "SampTime",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "conversion time"
+      },
+      {
+        "name": "TimeConst",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "filter time constant"
+      },
+      {
+        "name": "SweepDir",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'up','down'}"
+        ],
+        "purpose": "field sweep direction, default 'up'"
+      }
+    ]
+  },
+  "rfmixer": {
+    "description": "Digital up- and downconversion",
+    "inputs": [
+      {
+        "name": "tIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time axis, us"
+      },
+      {
+        "name": "signalIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "input signal"
+      },
+      {
+        "name": "mwFreq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "LO frequency, GHz"
+      },
+      {
+        "name": "type",
+        "kind": "required",
+        "type": [
+          "char",
+          "choices={'DSB','USB','LSB','IQmod','IQdemod','IQshift'}"
+        ],
+        "purpose": "mixer type"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "calculation options"
+      }
+    ]
+  },
+  "rescaledata": {
+    "description": "Rescale data",
+    "inputs": [
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "data"
+      },
+      {
+        "name": "yref",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "reference data for rescaling"
+      },
+      {
+        "name": "mode",
+        "kind": "required",
+        "type": [
+          "char",
+          "choices={'maxabs','lsq','int','dint','none'}"
+        ],
+        "purpose": "rescaling method"
+      }
+    ]
+  },
+  "resfields": {
+    "description": "Resonance fields and amplitudes, matrix diagonalization",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "calculation options"
+      }
+    ]
+  },
+  "resfields_eig": {
+    "description": "Resonance fields using eigenfield equation",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": "struct",
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": "struct",
+        "purpose": "calculation options"
+      }
+    ]
+  },
+  "resfields_perturb": {
+    "description": "Resonance fields and amplitudes, perturbation theory",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "calculation options"
+      }
+    ]
+  },
+  "resfreqs_matrix": {
+    "description": "Resonance frequencies and amplitudes, matrix diagonalization",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "calculation options"
+      }
+    ]
+  },
+  "resfreqs_perturb": {
+    "description": "Resonance frequencies and amplitudes, perturbation theory",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "calculation options"
+      }
+    ]
+  },
+  "resonator": {
+    "description": "Simulation of/compensation for the resonator transfer function",
+    "inputs": [
+      {
+        "name": "tIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time axis, us"
+      },
+      {
+        "name": "signalIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "signal"
+      },
+      {
+        "name": "mwFreq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "center frequency of provided signal, GHz"
+      },
+      {
+        "name": "nu",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "frequency axis of transfer function, GHz"
+      },
+      {
+        "name": "TransferFunction",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "transfer function"
+      },
+      {
+        "name": "mode",
+        "kind": "required",
+        "type": [
+          "char",
+          "choices={'simulate','compensate'}"
+        ],
+        "purpose": "function mode, simulate or compensate"
+      }
+    ]
+  },
+  "resonator": {
+    "description": "Simulation of/compensation for the resonator transfer function",
+    "inputs": [
+      {
+        "name": "tIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "time axis, us"
+      },
+      {
+        "name": "signalIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "signal"
+      },
+      {
+        "name": "mwFreq",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "center frequency of provided signal, GHz"
+      },
+      {
+        "name": "nu0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "resonator center frequency, GHz"
+      },
+      {
+        "name": "QL",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "positive",
+          "real"
+        ],
+        "purpose": "loaded Q-value"
+      },
+      {
+        "name": "mode",
+        "kind": "required",
+        "type": [
+          "char",
+          "choices={'simulate','compensate'}"
+        ],
+        "purpose": "function mode, simulate or compensate"
+      }
+    ]
+  },
+  "resonatorprofile": {
+    "description": "Resonator profile (transfer function, voltage reflection coefficient or power reflection coefficient)",
+    "inputs": [
+      {
+        "name": "nu",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "frequency axis, GHz"
+      },
+      {
+        "name": "nu0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "resonator resonance frequency, GHz"
+      },
+      {
+        "name": "Qu",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "positive"
+        ],
+        "purpose": "unloaded Q-factor"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "coupling coefficient"
+      },
+      {
+        "name": "type",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "type of output to return"
+      }    
+	  ]
+  },
+  "rotateframe": {
+    "description": "Rotate a frame given by Euler angles",
+    "inputs": [
+      {
+        "name": "ang0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=1,3",
+          "real"
+        ],
+        "purpose": "Euler angles for initial frame orientation, radians"
+      },
+      {
+        "name": "nRot",
+        "kind": "required",
+        "type": [
+          [
+          "numeric",
+          "size=3,1",
+          "real"
+          ],
+          [
+           "char"
+          ]
+        ],
+        "purpose": "rotation axis, 3-vector or letter code"
+      },
+      {
+        "name": "rho",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "scalar"
+          ],
+          [
+            "numeric",
+            "real",
+            "vector"
+          ]
+        ],
+        "purpose": "rotation angle(s), radians"
+      }
+    ]
+  },
+  "rotaxi2mat": {
+    "description": "Convert rotation axis plus angle to rotation matrix",
+    "inputs": [
+      {
+        "name": "n",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "real",
+            "size=3,1"
+          ],
+          [
+            "char"
+          ]
+        ],
+        "purpose": "rotation axis"
+      },
+      {
+        "name": "rho",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ],
+        "purpose": "rotation angle, radians"
+      }
+    ]
+  },
+  "rotmat2axi": {
+    "description": "Convert rotation matrix to rotation axis plus angle",
+    "inputs": [
+      {
+        "name": "R",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,3",
+          "real"
+        ],
+        "purpose": "rotation matrix"
+      }
+    ]
+  },
+  "rotmat2quat": {
+    "description": "Convert rotation matrix to unit quaternion",
+    "inputs": [
+      {
+        "name": "R",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,3",
+          "real"
+        ],
+        "purpose": "rotation matrix"
+      }
+    ]
+  },
+  "rotview": {
+    "description": "Visual display of rotations",
+    "inputs": [
+      {
+        "name": "angles",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector",
+          "numel=3",
+          "real"
+        ],
+        "purpose": "Euler angles"
+      }
+    ]
+  },
+  "rotview": {
+    "description": "Visual display of rotations",
+    "inputs": [
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ],
+        "purpose": "first Euler angle"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ],
+        "purpose": "second Euler angle"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ],
+        "purpose": "third Euler angle"
+      }
+    ]
+  },
+  "rotview": {
+    "description": "Visual display of rotations",
+    "inputs": [
+      {
+        "name": "R",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,3",
+          "real"
+        ],
+        "purpose": "rotation matrix"
+      }
+    ]
+  },
+  "rydberg": {
+    "description": "Rydberg constant"
+  },
+  "saffron": {
+    "description": "Pulse EPR spectra simulation",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "salt": {
+    "description": "ENDOR spectra",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "sigeq": {
+    "description": "Thermal equilibrium density matrix",
+    "inputs": [
+      {
+        "name": "Ham",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "square"
+        ],
+        "purpose": "Hamilonian matrix, MHz"
+      },
+      {
+        "name": "Temp",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "temperature, K"
+      },
+      {
+        "name": "pol",
+        "kind": "ordered",
+        "type": [
+          "char"
+        ],
+        "purpose": "if given, only the polarisation part is returned"
+      }
+    ]
+  },
+  "signalprocessing": {
+    "description": "Signal translation and cleanup for spidyan",
+    "inputs": [
+      {
+        "name": "TimeAxis",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "time axis, µs"
+      },
+      {
+        "name": "RawSignal",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "raw signal"
+      },
+      {
+        "name": "FreqTranslation",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "vector for frequencies for translation, GHz"
+      }
+    ]
+  },
+  "sop": {
+    "description": "Spin operator matrices",
+    "inputs": [
+      {
+        "name": "Spins",
+        "kind": "required",
+        "type": [
+          [
+            "struct"
+          ],
+          [
+            "numeric",
+            "real"
+          ]
+        ],
+        "purpose": "spin quantum number(s) or spin system"
+      },
+      {
+        "name": "Comps",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "operator components",
+        "repeating": true
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "spherharm": {
+    "description": "Spherical harmonics",
+    "inputs": [
+      {
+        "name": "L",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "positive",
+          "integer"
+        ]
+      },
+      {
+        "name": "M",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "integer"
+        ]
+      },
+      {
+        "name": "theta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real"
+        ],
+        "purpose": "zenith/polar angle"
+      },
+      {
+        "name": "phi",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real"
+        ],
+        "purpose": "azimuthal angle"
+      },
+      {
+        "name": "real",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'r'}"
+        ],
+        "purpose": "if given, real-valued spherical harmonics are evaluated"
+      }
+    ]
+  },
+  "sphgrid": {
+    "description": "Triangular orientational grid",
+    "inputs": [
+      {
+        "name": "Symmetry",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "grid symmetry"
+      },
+      {
+        "name": "GridSize",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of knots on the quarter meridian"
+      }
+    ]
+  },
+  "sphrand":{
+    "description": "Random orientational grid",
+    "inputs": [
+      {
+        "name": "N",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive",
+          "integer"
+        ],
+        "purpose": "number of points on unit sphere"
+      },
+      {
+        "name": "nOctants",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive",
+          "integer"
+        ]
+      }
+    ]
+  },
+  "spidyan": {
+    "description": "Spin dyanmics with arbitrary waveforms",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Exp",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "experimental parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "ordered",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "spinladder": {
+    "description": "Computes spin Hamiltonians for the manifolds of a spin-coupled pair",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Temp",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real",
+          "positive"
+        ],
+        "purpose": "temperature, K"
+      }
+    ]
+  },
+  "spinvec": {
+    "description": "Spin quantum numbers in a spin system",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      }
+    ]
+  },
+  "stackplot": {
+    "description": "Stacked plot of 1D data",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "abscissa vector"
+      },
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "2d"
+        ],
+        "purpose": "data array"
+      },
+      {
+        "name": "scale",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "cell",		  
+		  "choices={'maxabs','int','dint','none'}"
+        ],
+        "purpose": "rescale mode for slices, default 'maxabs'"
+      },
+      {
+        "name": "step",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ],
+        "purpose": "slice separation, default 1"
+      },
+      {
+        "name": "labels",
+        "kind": "ordered",
+        "type": [
+          "cell"
+        ],
+        "purpose": "slice labels"
+      },
+      {
+        "name": "colors",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+		  "real",
+		  "char"
+        ],
+        "purpose": "slice colors"
+      }
+    ]
+  },
+  "stev": {
+    "description": "Extended Stevens operator matrices",
+    "inputs": [
+      {
+        "name": "S",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real"
+        ],
+        "purpose": "spin quantum number"
+      },
+      {
+        "name": "[k,q]",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=1,2"
+        ],
+        "purpose": "operator components"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "stev": {
+    "description": "Extended Stevens operator matrices",
+    "inputs": [
+      {
+        "name": "S",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real"
+        ],
+        "purpose": "spin quantum number"
+      },
+      {
+        "name": "[k,q,idx]",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=1,3"
+        ],
+        "purpose": "operator components for spin iSpin"
+      },
+      {
+        "name": "sparse",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'sparse'}"
+        ],
+        "purpose": "if given, matrix returned in sparse format"
+      }
+    ]
+  },
+  "stochtraj_diffusion": {
+    "description": "Simulate trajectories of rotational diffusion",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Par",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "stochtraj_jump": {
+    "description": "Simulate trajectories of Markovian jumps",
+    "inputs": [
+      {
+        "name": "Sys",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "spin system"
+      },
+      {
+        "name": "Par",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation parameters"
+      },
+      {
+        "name": "Opt",
+        "kind": "required",
+        "type": [
+          "struct"
+        ],
+        "purpose": "simulation options"
+      }
+    ]
+  },
+  "tensor_cart2sph": {
+    "description": "Convert Cartesian to spherical tensors",
+    "inputs": [
+      {
+        "name": "Tc",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,3"
+        ],
+        "purpose": "rank-2 Cartesian tensor, 3x3"
+      }
+    ]
+  },
+  "tensor_sph2cart": {
+    "description": "Convert spherical to Cartesian tensors",
+    "inputs": [
+      {
+        "name": "T0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "rank-0 irreducible spherical tensor"
+      },
+      {
+        "name": "T1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=3,1"
+        ],
+        "purpose": "rank-1 irreducible spherical tensor"
+      },
+      {
+        "name": "T2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "size=5,1"
+        ],
+        "purpose": "rank-2 irreducible spherical tensor"
+      }
+    ]
+  },
+  "transmitter": {
+    "description": "Simulation of/compentation for transmitter nonlinearity",
+    "inputs": [
+      {
+        "name": "signalIn",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "input signal"
+      },
+      {
+        "name": "InputAmplitude",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "power transfer curve"
+      },
+      {
+        "name": "OutputAmplitude",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "power transfer curve"
+      },
+      {
+        "name": "mode",
+        "kind": "required",
+        "type": [
+          "char",
+          "choices={'simulate','compensate'}"
+        ],
+        "purpose": "function mode, simulate or compensate"
+      }
+    ]
+  },
+  "unitconvert": {
+    "description": "Convert between different units",
+    "inputs": [
+      {
+        "name": "value",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "value to convert"
+      },
+      {
+        "name": "units",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "from/to units, e.g. 'mT->MHz'"
+      },
+      {
+        "name": "g",
+        "kind": "ordered",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "g value, if converting from/to magnetic field units"
+      }
+    ]
+  },
+  "vec2ang": {
+    "description": "Convert Cartesian vector(s) to polar angles",
+    "inputs": [
+      {
+        "name": "v",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "size=3,:"
+          ],
+          [
+            "char"
+          ]
+        ],
+        "purpose": "Cartesian column vector(s)"
+      }
+    ]
+  },
+  "vec2ang": {
+    "description": "Convert Cartesian vector(s) to polar angles",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "vector"
+          ],
+          [
+            "numeric",
+            "scalar"
+          ]
+        ],
+        "purpose": "x component(s)"
+      },
+      {
+        "name": "y",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "vector"
+          ],
+          [
+            "numeric",
+            "scalar"
+          ]
+        ],
+        "purpose": "y component(s)"
+      },
+      {
+        "name": "z",
+        "kind": "required",
+        "type": [
+          [
+            "numeric",
+            "vector"
+          ],
+          [
+            "numeric",
+            "scalar"
+          ]
+        ],
+        "purpose": "z component(s)"
+      }
+    ]
+  },
+  "voigtian": {
+    "description": "Voigtian line shapes",
+    "inputs": [
+      {
+        "name": "x",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector"
+        ],
+        "purpose": "abscissa vector"
+      },
+      {
+        "name": "x0",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "center of line shape"
+      },
+      {
+        "name": "fwhmGL",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "vector",
+          "numel=2"
+        ],
+        "purpose": "full width at half height for Gauss and Lorentz components"
+      },
+      {
+        "name": "diff",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar",
+          "integer",
+          ">=-1"
+        ],
+        "purpose": "line shape derivative order, default 0"
+      },
+      {
+        "name": "phase",
+        "kind": "ordered",
+        "type": [
+          "numeric",
+          "scalar"
+        ],
+        "purpose": "rotation angle for absorption and dispersion line shapes, radians"
+      }
+    ]
+  },
+  "wigner3j": {
+    "description": "Wigner 3j symbols",
+    "inputs": [
+      {
+        "name": "j1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "j2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "j3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "m1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "m3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      }
+    ]
+  },
+  "wigner3j": {
+    "description": "Wigner 3j symbols",
+    "inputs": [
+      {
+        "name": "jm1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j1 m1]"
+      },
+      {
+        "name": "jm2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j2 m2]"
+      },
+      {
+        "name": "jm3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j3 m3]"
+      }
+    ]
+  },
+  "wigner3j": {
+    "description": "Wigner 3j symbols",
+    "inputs": [
+      {
+        "name": "j",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j1 j2 j3]"
+      },
+      {
+        "name": "m",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[m1 m2 m3]"
+      }
+    ]
+  },
+  "wigner3j": {
+    "description": "Wigner 3j symbols",
+    "inputs": [
+      {
+        "name": "jm",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=2,3"
+        ],
+        "purpose": "[j1 j2 j3; m1 m2 m3]"
+      }
+    ]
+  },
+  "wigner6j": {
+    "description": "Wigner 6j symbols",
+    "inputs": [
+      {
+        "name": "j1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "j2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "j3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "J1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "J2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      },
+      {
+        "name": "J3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "scalar"
+        ],
+        "purpose": ""
+      }
+    ]
+  },
+  "wigner6j": {
+    "description": "Wigner 6j symbols",
+    "inputs": [
+      {
+        "name": "jJ1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j1 J1]"
+      },
+      {
+        "name": "jJ2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j2 J2]"
+      },
+      {
+        "name": "jJ3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j3 J3]"
+      }
+    ]
+  },
+  "wigner6j": {
+    "description": "Wigner 6j symbols",
+    "inputs": [
+      {
+        "name": "j",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[j1 j2 j3]"
+      },
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "vector"
+        ],
+        "purpose": "[J1 J2 J3]"
+      }
+    ]
+  },
+  "wigner6j": {
+    "description": "Wigner 6j symbols",
+    "inputs": [
+      {
+        "name": "jJ",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,6"
+        ],
+        "purpose": "[j1 j2 j3 J1 J2 J3]"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "alpha",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "first Euler angle, radians"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "gamma",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "third Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "J",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "J = 0, 1/2, 1, 3/2, ..."
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      }
+    ]
+  },
+  "wignerd": {
+    "description": "Wigner D matrix",
+    "inputs": [
+      {
+        "name": "Jm1m2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,3"
+        ],
+        "purpose": "J = 0, 1/2, 1, ... m1 and m2 = -J, ..., +J"
+      },
+      {
+        "name": "beta",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "second Euler angle, radians"
+      },
+      {
+        "name": "phase",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "real",
+          "size=1,1"
+        ],
+        "purpose": "phase ('+' or '-')"
+      }
+    ]
+  },
+  "zfsframes": {
+    "description": "Zero-field splitting tensor frames analysis",
+    "inputs": [
+      {
+        "name": "D1",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ]
+      },
+      {
+        "name": "D2",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ]
+      },
+      {
+        "name": "D3",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ]
+      }
+    ]
+  },
+  "zfsframes": {
+    "description": "Zero-field splitting tensor frames analysis",
+    "inputs": [
+      {
+        "name": "D",
+        "kind": "required",
+        "type": [
+          "numeric",
+          "scalar",
+          "real"
+        ],
+        "purpose": "[D1,D2,D3]"
+      }
+    ]
+  }
+}

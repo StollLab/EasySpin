@@ -9,11 +9,12 @@ clear
 
 % Spin System
 Sys.ZeemanFreq = 9.500; % GHz
-Sys.T1 = 1; % us
-Sys.T2 = 0.5; % us
+Sys.T1 = 1; % µs
+Sys.T2 = 0.5; % µs
 
 % Pulse Definitions
-Rectangular.tp = 0.02; % us
+Rectangular.Type = 'rectangular';
+Rectangular.tp = 0.02; % µs
 Rectangular.Flip = pi; % rad
 
 % A default Experiment/Sequence

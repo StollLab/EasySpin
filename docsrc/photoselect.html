@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>photoselect</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+
+<div class="functitle">photoselect</div>
+
+<p>
+Calculate orientation-dependent photoexcitation probability for magnetophotoselection
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+w = photoselect(tdm,ori,k,alpha)
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">Description</div>
+
+<p>
+For photo-generated paramagnetic centers (such as photo-excited triplet states), <code>photoselect</code> calculates the photo-excitation probability <code>w</code> for a given light excitation geometry, molecular orientation, and transition dipole moment orientation. Values for <code>w</code> range between 0 and 1. <code>w=0</code> indicates no excitation at all (E-field is perpendicular to transition dipole moment), and <code>w=1</code> indicates full excitation (E-field is parallel to transition dipole moment). These probabilities co-determine spectral intensities in photo-excited systems via magnetophotoselection.
+</p>
+
+<p>
+<code>tdm</code> specifies the orientation in the molecular frame of the electric transition dipole moment (tdm) of the the optical transition that is being excited. There are three ways to specify this orientation:
+<ul>
+<li> via a letter code, such as <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, etc.;
+<li> via a 3-element unit vector, such as <code>[0;1;0]</code>; 
+<li> as an array of the two polar angles (in radians) <code>[phi_tdm, theta_tdm]</code>.
+</ul>
+For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a transition dipole moment along the molecular y axis.
+</p>
+
+<p>
+<code>ori</code> gives the three <a href="eulerangles.html">Euler angles</a> (in radians) <code>[phi theta chi]</code> that describe the orientation of the <a href="frames.html#;labframe">lab frame</a> relative to the <a href="frames.html#molframe">molecular frame</a>. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), and <code>chi</code> additionally determines the directions of the lab x and y axes (xL and yL). To get the vectors of xL, yL and zL represented in the molecular frame, use <code>[xL,yL,zL] = erot(ori,'rows')</code>. To get the molecular-frame vectors of xM, yM and zM represented in the lab frame, use <code>[xM,yM,zM] = erot(ori,'cols')</code>. See <a class="esf" href="erot.html">erot</a> and the documentation on <a href="eulerangles.html">Euler angles</a> for more details.
+</p>
+
+<p>
+If the third angle <code>chi</code> is omitted in <code>ori</code>, <code>photoselect</code> computes the integral of the photo-excitation selection weight over the third angle. This is useful when using <code>photoselect</code> within a powder averaging loop.
+</p>
+
+<p>
+<code>k</code> specifies the propagation direction of the excitation light beam in the laboratory frame, again either as a letter code, a 3-element vector, or a set of two polar angles <code>[phi_k theta_k]</code> (in radians). For example, <code>'y'</code> and <code>[0;1;0]</code> and <code>[pi/2 pi/2]</code> are equivalent ways to indicate propagation along the laboratory y axis (perpendicular to the static magnetic field), and <code>'z'</code> and <code>[0;0;1]</code> and <code>[0 0]</code> are equivalent ways to indicate propagation along the laboratory z axis (parallel to the static magnetic field). <code>k='y'</code> is the most common experimental configuration.
+</p>
+
+<p>
+<code>alpha</code> indicates the polarization angle, in radians. It determines the direction of the E-field vector in the plane perpendicular to the propagation direction. You can calculate the E-field direction in the lab frame using <code>[Edir,~,k] = erot([phi_k theta_k alpha],'rows')</code>, where <code>phi_k</code> and <code>theta_k</code> are the polar angles indicating the direction of the propagation vector <code>k</code>.
+</p>
+
+<p>
+For the common case of <code>k='y'</code>, <code>alpha=pi/2</code> or <code>-pi/2</code> put the E-field along the laboratory x axis (perpendicular to the magnetic field), and <code>alpha=0</code> or <code>pi</code> put the E-field along laboratory z axis (parallel to the magnetic field).
+</p>
+
+<p>
+To obtain the photoexcitation probability for an unpolarized beam (i.e. a beam with a uniform distribution of E-field directions in the plane perpendicular to its propagation direction), set <code>alpha=NaN</code>. An unpolarized beam is often generated from a polarized beam using a depolarizer. Note that excitation with an unpolarized beam is different from a fully isotropic excitation, where the E-field is uniformly distributed in all directions. With isotropic excitation, molecular with all orientations are equally excited, whereas with an unpolarized beam, molecules with transition dipole moment close to parallel to the propagation direction are not excited.
+</p>
+
+<p>
+This function is called by <a class="esf" href="pepper">pepper</a> and other functions that support photoselection via the experiment parameter <code>Exp.lightBeam</code>.
+</p>
+
+<!-- ============================================================= -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a simple example
+</p>
+<pre class="matlab">
+tdm = 'xy';                % tdm along bisector of molecular xy plane
+ori = [10 50 210]*pi/180;  % tilted sample
+k = 'y';                   % light propagation along lab y axis
+alpha = pi;                % gives E-field parallel to lab z axis (B0)
+w = photoselect(tdm,ori,k,alpha)
+</pre>
+<pre class="mloutput">
+w =
+    0.3938
+</pre>
+
+<p>
+To get the photoselection weight for an unpolarized beam, use
+</p>
+<pre class="matlab">
+w = photoselect(tdm,ori,k,NaN)
+</pre>
+<pre class="mloutput">
+w =
+    0.4727
+</pre>
+
+<p>
+For a powder sample, the excitation probabilities of the standard configurations <code>k='y'</code> with <code>alpha=0</code> (E-field parallel to magnetic field) and <code>alpha=pi/2</code> (E-field perpendicular to magnetic field) add up to 100 percent if combined appropriately:
+</p>
+
+<pre class="matlab">
+tdm = [30 79]*pi/180;
+ori = [235 41]*pi/180;  % integrate over chi
+k = 'y';
+w_para = photoselect(tdm,ori,k,0)
+w_perp = photoselect(tdm,ori,k,pi/2)
+w_total = w_para + 2*w_perp
+</pre>
+<pre class="mloutput">
+w_para =
+    0.1933
+w_perp =
+    0.4033
+w_total =
+    1.0000
+</pre>
+
+<!-- ============================================================= -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="pepper.html">pepper</a>,
+<a class="esf" href="resfields.html">resfields</a>,
+<a class="esf" href="resfreqs_matrix.html">resfreqs_matrix</a>,
+<a class="esf" href="resfreqs_perturb.html">resfreqs_perturb</a>,
+<a class="esf" href="spinpolarization.html">spin-polarized systems</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

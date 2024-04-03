@@ -33,10 +33,14 @@
 
 function varargout = spinladder(Sys,Temperature)
 
-switch (nargin)
-  case 0, help(mfilename); return;
-  case 1, Temperature = inf;
-  case 2 % everything ok
+switch nargin
+  case 0
+    help(mfilename);
+    return
+  case 1
+    Temperature = Inf;
+  case 2
+    % everything ok
   otherwise
     error('One or two input arguments expected.');
 end
@@ -53,12 +57,12 @@ end
 nNuclei = Sys_.nNuclei;
 error(err);
 
-if isfield(Sys_,'ee2') && (Sys_.ee2~=0)
+if isfield(Sys_,'ee2') && Sys_.ee2~=0
   error('Cannot compute spin ladder with Sys.ee2 present.');
 end
 
 % Coupling arithmetic for two spins
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 Sa = Sys.S(1);
 Sb = Sys.S(2);
 S = abs(Sa-Sb):(Sa+Sb);
@@ -84,7 +88,7 @@ d2 = (cp-cm)/2;
 d12 = (1-cp)/2;
 
 % Hamiltonian parameters etc.
-%-------------------------------------------------------------
+%--------------------------------------------------------------------------
 
 % Bencini/Gatteschi p.50 Eq.(3.5)
 full_ee = false;
@@ -120,7 +124,7 @@ else
 end
 
 if nNuclei>0
-  if (numel(Sys.A)==4)
+  if numel(Sys.A)==4
     A1 = Sys.A(:,1);
     A2 = Sys.A(:,2);
   else
@@ -130,7 +134,7 @@ if nNuclei>0
 end
 
 % Zero-field splitting tensors
-%--------------------------------------------------
+%--------------------------------------------------------------------------
 if ~isfield(Sys,'D')
   Sys.D = zeros(2,3);
 end
@@ -213,7 +217,7 @@ switch nargout
     fprintf('S1 = %g, S2 = %g (total %d electronic states)\n',Sa,Sb,sum(2*Sys.S+1));
     fprintf('%d manifolds (highest to lowest energy):\n',numel(S));
     for iS = numel(Energies):-1:1
-      if Temperature~=inf
+      if ~isinf(Temperature)
         popStr = sprintf('\n     population %0.3e/state, %0.3e total',...
           Populations(iS)/(2*CoupledSystems{iS}.S+1),Populations(iS));
       else
@@ -228,4 +232,4 @@ switch nargout
     varargout = {CoupledSystems,Energies};
 end
 
-return
+end

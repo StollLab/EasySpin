@@ -4,13 +4,13 @@ function ok = test()
 
 % 1st order sech/tanh with frequency offset
 
-Params.tp = 0.200; % us
+Params.tp = 0.200;  % ~s
 Params.Type = 'sech/tanh';
-Params.Frequency = [120 0]; % MHz
-Params.beta = 10.6;
+Params.Frequency = [120 0];  % MHz
+Params.beta = 10.6;  % 1/µs
 Params.Flip = pi;
-Params.TimeStep = 0.0005; % us
-[t,IQ,modulation] = pulse(Params);
+Params.TimeStep = 0.0005;  % µs
+[~,IQ,modulation] = pulse(Params);
 
 t0 = 0:Params.TimeStep:Params.tp;
 dFreq = Params.Frequency(2)-Params.Frequency(1);

@@ -92,14 +92,14 @@ end
 N = size(Sig,1);
 
 if nDimensions==1
-  for iDet = 1:nDetectors
+  for iDet = nDetectors:-1:1
     Signal{iDet} = zeros(n,1);
   end
   if iscell(Ham), Ham = Ham{1}; end
 else
   if numel(dt)==1, dt = [dt dt]; end
   if numel(n)==1, n = [n n]; end
-  for iDet = 1:nDetectors
+  for iDet = nDetectors:-1:1
     Signal{iDet} = zeros(n);
   end
 end
@@ -124,7 +124,7 @@ if ~iscell(Ham)
     for iMix = 1:nMixingBlocks
       Mix{iMix} = Vecs'*Mix{iMix}*Vecs;
     end
-    for iDet = 1:nDetectors
+    for iDet = nDetectors:-1:1
       Detector{iDet} = Vecs'*Det{iDet}*Vecs;
     end
   end
@@ -140,7 +140,7 @@ if ~iscell(Ham)
 else
   
   % Check if Hamiltonians are already diagonal
-  if (nnz(Ham{1})==nnz(diag(Ham{1})) && nnz(Ham{1})==nnz(diag(Ham{1})))
+  if (nnz(Ham{1})==nnz(diag(Ham{1})) && nnz(Ham{2})==nnz(diag(Ham{2})))
     Ex = Ham{1};
     Ey = Ham{2};
     Density = Sig;
@@ -157,7 +157,7 @@ else
     for iMix = 1:nMixingBlocks
       Mix{iMix} = Vecs{d(iMix+1)}'*Mix{iMix}*Vecs{d(iMix)};
     end
-    for iDet = 1:nDetectors
+    for iDet = nDetectors:-1:1
       Detector{iDet} = Vecs{d(end)}'*Det{iDet}*Vecs{d(end)};
     end
     
@@ -528,4 +528,4 @@ else
   
 end
 
-return
+end

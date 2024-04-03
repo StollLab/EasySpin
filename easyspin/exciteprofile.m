@@ -4,10 +4,10 @@
 % [offsets,Mag] = exciteprofile(t,IQ,offsets)
 %
 % Input:
-%   t           = time axis for defined waveform in µs
+%   t           = time axis for defined waveform in Âµs
 %   IQ          = in-phase and quadrature part of the pulse function
 %   offsets     = axis of frequency offsets in MHz for which to compute the
-%                 excitation profile (default: approximately ±2*BW centered
+%                 excitation profile (default: approximately 2*BW centered
 %                 at the pulse center frequency, 201 points)
 % Output:
 %   offsets     = axis of frequency offsets in MHz
@@ -16,9 +16,9 @@
 
 function varargout = exciteprofile(varargin)
 
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 % Input argument parsing
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 switch nargin
   case 0
     help(mfilename);
@@ -40,16 +40,16 @@ if numel(t)~=numel(IQ)
     numel(t),numel(IQ));
 end
 
-plotResults = (nargout==0);
+plotResults = nargout==0;
 
 % Options
 if ~isfield(Opt,'nOffsets') % undocumented
   Opt.nOffsets = 201;
 end
 
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 % Estimate pulse bandwidth and set up offset axis
-% --------------------------------------------------------------------- %
+% -----------------------------------------------------------------------
 if ~isfield(Opt,'Offsets')
   
   % Fourier transform
@@ -75,9 +75,9 @@ end
 nPoints = numel(t);
 nOffsets = numel(offsets);
  
-% --------------------------------------------------------------------- %
+% -----------------------------------------------------------------------
 % Excitation profile calculation
-% --------------------------------------------------------------------- %
+% -----------------------------------------------------------------------
  
 % Spin operators
 Sx = sop(1/2,'x');
@@ -146,16 +146,16 @@ for iOffset = 1:nOffsets
 end
 
 
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 % Plotting
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 if plotResults
   
   clf
   S.f = gcf;
   set(S.f,'WindowStyle','normal','Name','exciteprofile output',...
     'numbertitle','off','Units','Normalized',...
-    'Position',[0.25,0.30,0.50,0.40],'Color',[1 1 1]*0.8,...
+    'Position',[0.25,0.30,0.50,0.40],...
     'Toolbar','figure');
   
   % Set colors
@@ -177,13 +177,13 @@ if plotResults
   S.label(1) = uicontrol('Style','text','String','Pulse shape:',...
     'FontSize',10,'FontWeight','bold',...
     'HorizontalAlignment','left',...
-    'Background',[1 1 1]*0.8,'Units','Normalized',...
+    'Units','Normalized',...
     'Position',[sep,0.85,width,0.1]);
-  S.tick(1) = uicontrol('Style','checkbox',...
-    'String','I','Value',1,'Background',[1 1 1]*0.8,...
+  S.checkbox(1) = uicontrol('Style','checkbox',...
+    'String','I','Value',1,...
     'Units','Normalized','Position',[3*sep boxpos 0.1 0.1]);
-  S.tick(2) = uicontrol('Style','checkbox',...
-    'String','Q','Value',1,'Background',[1 1 1]*0.8,...
+  S.checkbox(2) = uicontrol('Style','checkbox',...
+    'String','Q','Value',1,...
     'Units','Normalized','Position',[3.75*sep boxpos 0.1 0.1]);
   S.ha(1) = axes('Units','Normalized','Position',[sep,btm,width,height]);
   hold on; box on;
@@ -201,16 +201,16 @@ if plotResults
   S.label(2) = uicontrol('Style','text','String','Excitation profiles:',...
     'FontSize',10,'FontWeight','bold',...
     'HorizontalAlignment','left',...
-    'Background',[1 1 1]*0.8,'Units','Normalized',...
+    'Units','Normalized',...
     'Position',[2.5*sep+width,0.85,width,0.1]);
-  S.tick(3) = uicontrol('Style','checkbox',...
-    'String','x','Value',0,'Background',[1 1 1]*0.8,...
+  S.checkbox(3) = uicontrol('Style','checkbox',...
+    'String','x','Value',0,...
     'Units','Normalized','Position',[2.5*sep+1.5*width boxpos 0.1 0.1]);
-  S.tick(4) = uicontrol('Style','checkbox',...
-    'String','y','Value',0,'Background',[1 1 1]*0.8,...
+  S.checkbox(4) = uicontrol('Style','checkbox',...
+    'String','y','Value',0,...
     'Units','Normalized','Position',[3.25*sep+1.5*width boxpos 0.1 0.1]);
-  S.tick(5) = uicontrol('Style','checkbox',...
-    'String','z','Value',1,'Background',[1 1 1]*0.8,...
+  S.checkbox(5) = uicontrol('Style','checkbox',...
+    'String','z','Value',1,...
     'Units','Normalized','Position',[4*sep+1.5*width boxpos 0.1 0.1]);
   S.ha(2) = axes('Units','Normalized','Position',[2.5*sep+width,btm,width,height]);
   hold on; box on;
@@ -227,13 +227,13 @@ if plotResults
   set(gca,'Layer','top')
   
   S.handles = [S.hI S.hQ S.h(1) S.h(2) S.h(3)];
-  set(S.tick,'Callback',{@showhide,S});
+  set(S.checkbox,'Callback',{@showhide,S});
   
 end
 
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 % Output
-% ----------------------------------------------------------------------- %
+% -------------------------------------------------------------------------
 switch nargout
   case 0
     % plotting
@@ -245,17 +245,14 @@ end
 
 end
 
-% Callback for tick boxes
-function showhide(varargin)
+% Callback for checkboxes
+function showhide(~,~,S)
 
-S = varargin{3}; % get calling handle structure
-
-for i = 1:numel(S.tick)
-  val = get(S.tick(i),'Value');
-  if val==1;
-    set(S.handles(i),'Visible','on')
+for i = 1:numel(S.checkbox)
+  if S.checkbox(i).Value==1
+    S.handles(i).Visible = 'on';
   else
-    set(S.handles(i),'Visible','off');
+    S.handles(i).Visible = 'off';
   end
 end
 

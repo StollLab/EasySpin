@@ -1,34 +1,38 @@
 % rotateframe   Rotate a frame around a given axis
 %
-%    ori_rot = rotateframe(Ori,nRot,rho)
+%    ang = rotateframe(ang0,nRot,rho)
+%    [ang,R] = rotateframe(ang0,nRot,rho)
 %
-%    Rotates a frame descibed by the three Euler angles in Ori around the axis
+%    Rotates a frame described by the three Euler angles in ang0 around the axis
 %    given in nRot by the rotation angles listed in rho.
 %
 %    Input:
-%     Ori  Euler angles for the frame orientation
-%     nRot   rotation axis
-%               e.g., nRot = [1;0;0] is the x axis
-%     rho     rotation angle, or list of rotation angles, for the rotation
-%               around nRot
+%     ang0   Euler angles describing the frame orientation, in radians
+%     nRot   letter or vector specifying the rotation axis
+%              nRot = [1;0;0]
+%              nRot = 'x' is the x axis
+%              vectors do not need to be normalized 
+%     rho    rotation angle, or array of rotation angles, for the rotation
+%               around nRot, in radians
 %
 %    Output:
-%     ori_rot  list of Euler angle sets for the rotated frames, one per row.
+%     ang    list of Euler angle sets for the rotated frames, one per row.
+%     R      list of rotation matrices for the rotated frames, one per row.
 %
 %    Example:
-%       Ori0 = [0 45 0]*pi/180;
+%       ang0 = [0 45 0]*pi/180;
 %       nRot = [1;0;0];
 %       rho = (0:30:180)*pi/180;
-%       Ori_list = rotateframe(nRot,rho);
+%       ang = rotateframe(ang0,nRot,rho);
 
-function out = rotateframe(Frame,nRot,rho)
+function [ang,R] = rotateframe(ang0,nRot,rho)
 
 if nargin==0
   help(mfilename);
 end
 
-if numel(Frame)~=3
-  error('First input (CryOri) must contain three numbers, the three Euler angles.');
+if numel(ang0)~=3
+  error('First input (initial frame) must contain three numbers, the three Euler angles.');
 end
 
 if ischar(nRot)
@@ -39,16 +43,20 @@ else
   end
 end
 
-xyzC_L = erot(Frame);
-% xyzC_L col 1,2,3: crystal axis xC,yC,zC in lab frame coordinates
-% nRot: rotation axis
+% Preallocate outputs
+nrho = numel(rho);
+ang = zeros(nrho,3);
+R = cell(nrho,1);
 
-skipFitting = true;
-
+R0 = erot(ang0);
 for irho = 1:numel(rho)
-  R = rotaxi2mat(nRot,rho(irho));
-  xyzC_L_rotated = R.'*xyzC_L;
-  angles_rotated(irho,:) = eulang(xyzC_L_rotated,skipFitting);
+  Rrot = rotaxi2mat(nRot,rho(irho));  % matrix for active rotation
+  R{irho} = R0*Rrot;
+  ang(irho,:) = eulang(R{irho},true);
 end
 
-out = angles_rotated;
+if isscalar(R)
+  R = R{1};
+end
+
+end

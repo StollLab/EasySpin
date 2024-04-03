@@ -6,7 +6,7 @@ function [ok,data] = test(opt,olddata)
 
 Spins.g = [2.0088 2.0061 2.0027];
 Spins.Nucs = '14N';
-Spins.A = mt2mhz([5.8 5.8 30.8]/10); % G -> MHz
+Spins.A = unitconvert([5.8 5.8 30.8]/10,'mT->MHz'); % G -> MHz
 
 Spins.tcorr = 2e-9;
 

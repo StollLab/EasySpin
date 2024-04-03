@@ -3,7 +3,7 @@ function ok = test(opt)
 %=================================================================
 % Test the use of multiple detection operators with evolve
 %=================================================================
-N = 100; dt = .005; %us
+N = 100; dt = .005;  % µs
 lw = 10; nlw = 1.57; cent = 0; noff = 101;
 A = 7; B = 5; nuN = 14.9; % MHz
 sys = [1/2 1/2];
@@ -44,5 +44,5 @@ if opt.Display
   subplot(1,1,1);
   plot(t,sigx,'r',t,sigy,'g',t,sigz,'b');
   axis tight
-  xlabel('tau (us)');
+  xlabel('tau (µs)');
 end

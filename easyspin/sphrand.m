@@ -5,9 +5,8 @@
 %   [phi,theta] = sphrand(...)
 %   [x,y,z] = sphrand(...)
 %
-%   Generates N randomly distributed point over k
-%   octants of the unit sphere. The underlying
-%   distribution is uniform.
+%   Generates N randomly distributed point over k octants of the unit
+%   sphere. The underlying distribution is uniform.
 %
 %   Input
 %   - N: number of points
@@ -21,15 +20,16 @@
 %    Output
 %   - vecs: 3xN array with column vectors
 %   - phi, theta: polar angles in radians
+%   - x,y,z: 1xN arrays with coordinates
 
 function varargout = sphrand(N,nOctants)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 % N: number of points
 % nOctants: number of octants
 
-if (nargin==1), nOctants = 4; end
+if nargin==1, nOctants = 4; end
 
 switch nOctants
   case {1,2,4}
@@ -64,4 +64,4 @@ switch nargout
     error('Wrong number of output arguments!');
 end
 
-return
+end

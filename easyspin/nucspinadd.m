@@ -43,7 +43,7 @@ if isfield(Sys,'S')
   end
 end
 if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:)~=0)
-  errpor('nucspinadd does not work if Sys.nn is present.');
+  error('nucspinadd does not work if Sys.nn is present.');
 end
 
 % Check Nuc
@@ -125,7 +125,7 @@ end
 
 NewSys = cleanemptyfields(NewSys);
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function NewSys = cleanemptyfields(Sys)
@@ -141,7 +141,7 @@ for f = 1:numel(fields)
   end
 end
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function Afull = fullifyA(A,AFrame)
@@ -161,7 +161,7 @@ end
 R_T2M = erot(AFrame); % tensor frame -> molecular frame
 Afull = R_T2M*diag(A)*R_T2M.';
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function Qfull = fullifyQ(Q,QFrame,I)
@@ -188,12 +188,16 @@ end
 R_T2M = erot(QFrame); % tensor frame -> molecular frame
 Qfull = R_T2M*diag(Qpv)*R_T2M.';
 
-return
+end
 
 %-------------------------------------------------------------------------------
 function Tnew = appendtensor(T0,T0Frame,T,TFrame,nNuclei,AQ,I)
 
 Atensor = AQ=='A';
+
+if ~Atensor && isempty(T)
+  T = zeros(1, 3);
+end
 
 if size(T0,1)==3*nNuclei
   nT0 = 9;
@@ -225,10 +229,23 @@ newNuc = nNuclei+1;
 % Append T
 if fullT0 || fullT
   if ~fullT0
-    if Atensor
-      Tnew = [fullifyA(T0,T0Frame); T];
+    T0temp = zeros(3*nNuclei,3);
+    iList = 1:3:3*(nNuclei-1)+1;
+    if isempty(T0Frame)
+      T0FrameTemp = zeros(nNuclei, 3);
     else
-      Tnew = [fullifyQ(T0,T0Frame,I); T];
+      T0FrameTemp = T0Frame;
+    end
+    if Atensor
+      for iNuc0 = 1:nNuclei
+        T0temp(iList(iNuc0):iList(iNuc0)+2,:) = fullifyA(T0(iNuc0,:),T0FrameTemp(iNuc0,:));
+      end
+      Tnew = [T0temp; T];
+    else
+      for iNuc0 = 1:nNuclei
+        T0temp(iList(iNuc0):iList(iNuc0)+2,:) = fullifyQ(T0(iNuc0,:),T0FrameTemp(iNuc0,:),I(iNuc0));
+      end
+      Tnew = [T0temp; T];
     end
   elseif ~fullT
     if Atensor
@@ -267,4 +284,5 @@ else
     end
   end
 end
-return
+
+end

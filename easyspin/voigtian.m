@@ -94,7 +94,7 @@ else
   end
 end
 
-doConvolution = (fwhmL>0) && (fwhmG>0);
+doConvolution = fwhmL>0 && fwhmG>0;
 if doConvolution
   
   % Convolution
@@ -123,4 +123,4 @@ else
   
 end
 
-return
+end

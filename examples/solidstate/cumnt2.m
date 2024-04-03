@@ -1,32 +1,39 @@
-% [Cu(mnt)2] at 1.4 GHz, single-crystal
-%==========================================================================
+% L-band single-crystal EPR spectrum of a Cu(II) complex
+%===============================================================================
 % Values from Kirmse et al., Inorg.Chem. 23, 3333-3338 (1984)
-clear, clf
+% https://doi.org/10.1021/ic00189a012
 
-% spin system with Cu (mixture of 63Cu and 65Cu)
-Sys.Nucs = 'Cu';
-Sys.lwpp = 0.5;
+clear, clc, clf
+
+% Spin system
+Sys.Nucs = '(63,65)Cu';
+Sys.Abund = [0.975 0.025];  % 97.5% 63Cu enrichment
+Sys.lwpp = 0.3;  % mT
 Sys.g = [2.020 2.023 2.089];
-A = [-43.1 -43.7 -171.4]*1e-4; % cm^-1
-Sys.A = A*100*clight/1e6; % conversion cm^-1 -> MHz
+A_cm = [-43.1 -43.7 -171.4]*1e-4; % cm^-1
+Sys.A = unitconvert(A_cm,'cm^-1->MHz'); % conversion cm^-1 -> MHz
 
-% experimental parameters
-Exp.mwFreq = 1.4;
-Exp.Range = [10 90];
+% Experimental parameters
+Exp.mwFreq = 1.4;     % GHz
+Exp.Range = [10 90];  % mT
+Exp.Harmonic = 0;
 
-% options
-Opt.Verbosity = 1;
+% Crystal
+Exp.CrystalSymmetry = 'P-1';  % space group no. 2 (triclinic)
+Exp.MolFrame = [0 pi/3 0];   % assumed (rad)
 
-% simulation of two single-crystal spectra
-% in one pepper call
-Exp.CrystalOrientation = [0 0 0; 0 pi/2 0];
-Opt.Output = 'separate';
-[B,spec] = pepper(Sys,Exp,Opt);
-spec1 = spec(1,:);
-spec2 = spec(2,:);
+% Options
+Opt.Verbosity = 0;
 
-% display
-plot(B,spec1,'r',B,spec2,'b'); axis tight
+% Simulation of two spectra with different crystal orientations
+Exp.SampleFrame = [0 0 0];
+[B,spec1] = pepper(Sys,Exp,Opt);
+Exp.SampleFrame = [0 pi/2 0];
+[B,spec2] = pepper(Sys,Exp,Opt);
+
+% Plotting
+plot(B,spec1,B,spec2);
+axis tight
 legend('0^o','90^o');
-xlabel('magnetic field [mT]');
-title(sprintf('%g GHz single-crystal spectra of Cu(mnt)2',Exp.mwFreq));
+xlabel('magnetic field (mT)');
+title(sprintf('%g GHz single-crystal spectra of Cu(mnt)_2',Exp.mwFreq));

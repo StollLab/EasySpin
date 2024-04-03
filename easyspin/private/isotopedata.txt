@@ -34,10 +34,10 @@
 %     (https://www-nds.iaea.org/publications/indc/indc-nds-0650.pdf)
 %  (Typo for Ac-227: Sign should be +)
 % See also
-%   P.Pyykkö
+%   P.PyykkÃ¶
 %   Year-2008 Nuclear Quadrupole Moments
 %   Mol.Phys. 106(16-18), 1965-1974 (2008)
-%     (http://dx.doi.org/10.1080/00268970802018367)
+%     (https://doi.org/10.1080/00268970802018367)
 %   N.E.Holden
 %   Table of the Isotopes
 %   CRC Handbook of Physics and Chemistry, section 11-2
@@ -65,7 +65,7 @@
  7  15 - N   nitrogen       0.5 -0.56637768  0.368     0
  8  16 - O   oxygen         0.0  0.0        99.757     0
  8  17 - O   oxygen         2.5 -0.757516    0.038    -0.0256
- 8  18 * O   oxygen         0.0  0.0         0.205     0
+ 8  18 - O   oxygen         0.0  0.0         0.205     0
  9  19 - F   fluorine       0.5 +5.257736  100.0       0
 10  20 - Ne  neon           0.0  0.0        90.48      0
 10  21 - Ne  neon           1.5 -0.441198    0.27     +0.102
@@ -267,7 +267,7 @@
 58 138 - Ce  cerium         0.0  0.0         0.251     0
 58 140 - Ce  cerium         0.0  0.0        88.450     0
 58 142 - Ce  cerium         0.0  0.0        11.114     0
-59 141 - Pr  praesodymium   2.5 +1.7102    100.0      -0.077
+59 141 - Pr  praseodymium   2.5 +1.7102    100.0      -0.077
 60 142 - Nd  neodymium      0.0  0.0        27.2       0
 60 143 - Nd  neodymium      3.5 -0.3043     12.2      -0.61
 60 144 - Nd  neodymium      0.0  0.0        23.8       0
@@ -384,7 +384,7 @@
 89 227 * Ac  actinium       1.5 +0.73        0.0      +1.7
 90 229 * Th  thorium        2.5 +0.18        0.0      +4.3
 90 232 - Th  thorium        0.0  0.0       100.0       0
-91   0 - Pa  protactinium  -1.0  0.0       100.0       0
+91 231 * Pa  protactinium   1.5  1.34      100.0      -1.7
 92 234 * U   uranium        0.0  0.0         0.0055    0
 92 235 * U   uranium        3.5 -0.109       0.7200   +4.936
 92 238 * U   uranium        0.0  0.0        99.2745    0

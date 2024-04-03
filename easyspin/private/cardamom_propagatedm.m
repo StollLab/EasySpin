@@ -31,9 +31,9 @@
 
 % Implementations based on 
 % [1] Sezer, et al., J. Chem. Phys. 128, 165106 (2008)
-%      http://dx.doi.org/10.1063/1.2908075 
+%      https://doi.org/10.1063/1.2908075 
 % [2] Oganesyan, Phys. Chem. Chem. Phys. 13, 4724 (2011)
-%      http://dx.doi.org/10.1039/c0cp01068e
+%      https://doi.org/10.1039/c0cp01068e
 
 function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 

@@ -8,7 +8,7 @@ exp.Sequence = 'MimsENDOR';
 exp.tau = 0.01;
 exp.Field = 350;
 exp.Range = [.5 18];
-exp.CrystalOrientation = [0 0 0];
+exp.SampleFrame = [0 0 0];
 exp.nPoints = 1024;
 
 opt.Verbosity = 0;

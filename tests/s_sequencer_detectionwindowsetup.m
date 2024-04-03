@@ -8,7 +8,7 @@ Exp.Field = 1240;
 
 Exp.mwFreq = 33.5;
 
-Opt.SimulationMode = 'step wise';
+Opt = struct;
 
 % First Test ---------------------------------------
 Exp1 = Exp;

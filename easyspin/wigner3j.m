@@ -44,7 +44,7 @@ switch numel(inputs)
     m1 = m(1); m2 = m(2); m3 = m(3);
   case 1
     jm = inputs{1};
-    if ~all(size(jm)==[2 3])
+    if ~isequal(size(jm),[2 3])
       error('If all J and M are supplied in an array, the array must be 2x3.');
     end
     j = jm(1,:);
@@ -220,7 +220,7 @@ else
   
 end
 
-return
+end
 
 %===============================================================================
 %===============================================================================
@@ -229,6 +229,7 @@ return
 %-------------------------------------------------------------------------------
 function v = bi(d)
 v = java.math.BigInteger(sprintf('%d',d));
+end
 
 %-------------------------------------------------------------------------------
 function v = binom_bi(n,k)
@@ -238,6 +239,7 @@ for q = n-k+1:n
 end
 for q = 1:k
   v = v.divide(bi(q));
+end
 end
 
 %-------------------------------------------------------------------------------
@@ -385,4 +387,4 @@ end
 % Apply overall phase
 val = val*phase;
 
-return
+end

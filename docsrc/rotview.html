@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>rotview</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">rotview</div>
+
+<p>
+Visual interface for Euler angles and rotations.
+</p>
+
+<!-- ================================================================ -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+rotview
+rotview(angles)
+rotview(alpha,beta,gamma)
+rotview(R)
+</pre>
+
+<!-- ================================================================ -->
+<div class="subtitle">Description</div>
+
+<p>
+This GUI provides an interactive display of Euler angles and their associated frame rotations. EasySpin's standard <a href="frames.html">frame definitions</a> are included.
+</p>
+
+<p>
+Euler angles can varied in the GUI. Provide initial values either via one 3-element input <code>angles = [alpha,beta,gamma]</code>, or three separate inputs <code>alpha</code>, <code>beta</code>, and <code>gamma</code>; alternatively, a 3x3 rotation matrix, <code>R</code>, can be supplied. The angles must be in radians.
+</p>
+
+<div style="text-align:center">
+<img src="img/snap_rotview.png">
+</div>
+
+
+<!-- ================================================================ -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="erot.html">erot</a>,
+<a class="esf" href="eulang.html">eulang</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

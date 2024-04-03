@@ -23,5 +23,5 @@ end
 
 % Graphical rendering
 %-------------------------------------------------------------------------------
-stackplot(B,spc);
+stackplot(B,spc,'maxabs',[],compose('10^{%1.2f}',log10(ExchangeFreq)));
 xlabel('magnetic field [mT]');

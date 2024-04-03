@@ -7,7 +7,7 @@ function varargout = endorfrq_perturb(Sys,Exp,Opt)
 %   Hagston and Holmes, J. Phys B: Atom. Molec. Phys. 13, 3505-3519 (1980)
 
 % Assert correct Matlab version
-error(chkmlver);
+warning(chkmlver);
 
 % Check number of input arguments.
 switch nargin
@@ -94,9 +94,10 @@ end
 
 % Experiment
 %------------------------------------------------------
-DefaultExp.CrystalOrientation = [];
-DefaultExp.CrystalSymmetry = '';
-DefaultExp.MolFrame = [];
+DefaultExp.SampleFrame = [0 0 0];
+DefaultExp.CrystalSymmetry = 1;
+DefaultExp.MolFrame = [0 0 0];
+DefaultExp.SampleRotation = [];
 
 if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end
 
@@ -105,22 +106,22 @@ Exp = adddefaults(Exp,DefaultExp);
 err = '';
 %if ~isfield(Exp,'mwFreq'), err = 'Exp.mwFreq is missing.'; end
 if isfield(Exp,'Detection')
-  error('Exp.Detection is obsolete. Use Exp.Mode instead.');
+  error('Exp.Detection is obsolete. Use Exp.mwMode instead.');
 end
 
-if isfield(Exp,'Mode')
-  if strcmp(Exp.Mode,'parallel')
+if isfield(Exp,'mwMode')
+  if strcmp(Exp.mwMode,'parallel')
     err = 'Parallel mode ENDOR not supported with perturbation theory. Use matrix diagonalization.';
   end
 end
 if isfield(Exp,'Temperature')
-  if Exp.Temperature<inf
+  if Exp.Temperature<Inf
     err = 'ENDOR temperature effects are not supported with perturbation theory. Use matrix diagonalization.';
   end
 end
 error(err);
 
-if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = inf; end
+if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = Inf; end
 OrientationSelection = ~isinf(Exp.ExciteWidth);
 lwExcite2 = Exp.ExciteWidth^2;
 
@@ -169,7 +170,7 @@ end
 %----------------------------------------------------------
 hasQuadrupole = (Sys.I>1/2);
 
-for iNuc = 1:nNuclei
+for iNuc = nNuclei:-1:1
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
   invA{iNuc} = inv(A_);
@@ -186,9 +187,9 @@ states = allcombinations(mI{:},'i');
 % Initialize parameters for orientation selectivity determination.
 % Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth
 if OrientationSelection
-  maxEPRfreq = -inf;
-  minEPRfreq = inf;
-  minExWidth = inf;
+  maxEPRfreq = -Inf;
+  minEPRfreq = Inf;
+  minExWidth = Inf;
 end
 
 % Loop over all orientations
@@ -355,7 +356,7 @@ Info.Selectivity = Selectivity;
 %-------------------------------------------------------------------
 EndorFreqs = [];
 for iNuc = Opt.Nuclei
-  EndorFreqs = [EndorFreqs; EndorFrequencies{iNuc}.'];
+  EndorFreqs = [EndorFreqs; EndorFrequencies{iNuc}.'];  %#ok
 end
 
 % Intensities
@@ -378,7 +379,7 @@ for iNuc = Opt.Nuclei
   % transitions(=rows) ordered by 1) mI of lower level, 2) mS
   % e.g. (-I,+1/2), (-I,-1/2), (-I+1,+1/2), (-I+1,-1/2), etc
   % (identical to ordering of EndorFreqs).
-  EndorIntensities = [EndorIntensities; newIntensities];
+  EndorIntensities = [EndorIntensities; newIntensities];  %#ok
   
 end
 EndorIntensities = EndorIntensities*prod(2*Sys.I+1);
@@ -389,4 +390,4 @@ Transitions = [];
 Output = {EndorFreqs,EndorIntensities,Transitions,Info};
 varargout = Output(1:max(nargout,1));
 
-return
+end

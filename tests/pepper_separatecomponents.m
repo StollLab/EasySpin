@@ -1,7 +1,7 @@
 function ok = test(opt)
 
 % For a multi-component or multi-isotopologue powder simulation, return
-% transitions for all components separately if Opt.Output='separate'
+% transitions for all components separately if Opt.separate='components'
 
 % (1) multiple isotopologues
 %----------------------------------------------------
@@ -12,10 +12,10 @@ Sys.A = 50;
 Exp.mwFreq = 9.3260;
 Exp.Range = [325 340];
 
-Opt.Output = 'separate';
+Opt.separate = 'components';
 [B,spc1] = pepper(Sys,Exp,Opt);
 
-Opt.Output = 'summed';
+Opt.separate = '';
 [B,spc2] = pepper(Sys,Exp,Opt);
 
 ok1 = size(spc1,1)==2;
@@ -35,10 +35,10 @@ Sys2.Nucs = '65Cu';
 Sys2.A = Sys1.A*1.4;
 Sys2.weight = 2;
 
-Opt.Output = 'separate';
+Opt.separate = 'components';
 [B,spc1] = pepper({Sys1,Sys2},Exp,Opt);
 
-Opt.Output = 'summed';
+Opt.separate = '';
 [B,spc2] = pepper({Sys1,Sys2},Exp,Opt);
 
 ok2 = size(spc1,1)==2;

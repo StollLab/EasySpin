@@ -5,14 +5,14 @@ function ok = test()
 
 % Fourier series pulses
 % I-BURP 1
-Params.tp = 0.500; % us
+Params.tp = 0.500; % µs
 Params.Type = 'I-BURP 1';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
-% J. Magn. Reson. 93, 93�141 (1991). 
+% J. Magn. Reson. 93, 93-141 (1991). 
 % DOI: 10.1016/0022-2364(91)90034-Q
 % Table 5 on p. 117, Np = 256        
 A0 = 0.5;
@@ -25,19 +25,20 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
-ok(1) = areequal(IQ0,IQ,1e-12,'abs');
+ipulse = 1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
 
 % I-BURP 2
-Params.tp = 0.700; % us
+Params.tp = 0.700; % µs
 Params.Type = 'I-BURP 2';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
-% J. Magn. Reson. 93, 93�141 (1991). 
+% J. Magn. Reson. 93, 93-141 (1991). 
 % DOI: 10.1016/0022-2364(91)90034-Q
 % Table 6 on p. 119, Np = 256
 A0 = 0.5;
@@ -50,19 +51,124 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
-ok(2) = areequal(IQ0,IQ,1e-12,'abs');
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
+
+% E-BURP 1
+Params.tp = 0.500; % µs
+Params.Type = 'E-BURP 1';
+Params.TimeStep = 0.001; % µs
+Params.Amplitude = 1;
+
+t0 = 0:Params.TimeStep:Params.tp;
+% Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
+% J. Magn. Reson. 93, 93-141 (1991). 
+% DOI: 10.1016/0022-2364(91)90034-Q
+% Table 3 on p. 112, Np = 256
+A0 = 0.23;
+An = [0.88 -1.04 -0.24 0.14 0.03 0.04 -0.03 0.00];
+Bn = [-0.40 -1.42 0.77 0.06 0.03 -0.04 -0.02 0.01];
+A = zeros(1,numel(t0)) + A0;
+for j = 1:numel(An)
+  A = A + An(j)*cos(j*2*pi*t0/Params.tp) + Bn(j)*sin(j*2*pi*t0/Params.tp);
+end
+A = A/max([-min(A) max(A)]);
+IQ0 = A/max(A);
+
+[~,IQ] = pulse(Params);
+
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
+
+% E-BURP 2
+Params.tp = 1.000; % µs
+Params.Type = 'E-BURP 2';
+Params.TimeStep = 0.001; % µs
+Params.Amplitude = 1;
+
+t0 = 0:Params.TimeStep:Params.tp;
+% Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
+% J. Magn. Reson. 93, 93-141 (1991). 
+% DOI: 10.1016/0022-2364(91)90034-Q
+% Table 4 on p. 115, Np = 256
+A0 = 0.26;
+An = [0.91 0.29 -1.28 -0.05 0.04 0.02 0.06 0.00 -0.02 0.00];
+Bn = [-0.16 -1.82 0.18 0.42 0.07 0.07 -0.01 -0.04 0.00 0.00];
+A = zeros(1,numel(t0)) + A0;
+for j = 1:numel(An)
+  A = A + An(j)*cos(j*2*pi*t0/Params.tp) + Bn(j)*sin(j*2*pi*t0/Params.tp);
+end
+A = A/max([-min(A) max(A)]);
+IQ0 = A/max(A);
+
+[~,IQ] = pulse(Params);
+
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
+
+% U-BURP
+Params.tp = 1.000; % µs
+Params.Type = 'U-BURP';
+Params.TimeStep = 0.001; % µs
+Params.Amplitude = 1;
+
+t0 = 0:Params.TimeStep:Params.tp;
+% Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
+% J. Magn. Reson. 93, 93-141 (1991). 
+% DOI: 10.1016/0022-2364(91)90034-Q
+% Table 7 on p. 122, Np = 256
+A0 = 0.27;
+An = [-1.42 -0.37 -1.84 4.40 -1.19 0 -0.37 0.50 -0.31 0.18 -0.21 0.23 -0.12 0.07 -0.06 0.06 -0.04 0.03 -0.02 0.02];
+Bn = zeros(size(An));
+A = zeros(1,numel(t0)) + A0;
+for j = 1:numel(An)
+  A = A + An(j)*cos(j*2*pi*t0/Params.tp) + Bn(j)*sin(j*2*pi*t0/Params.tp);
+end
+A = A/max([-min(A) max(A)]);
+IQ0 = A/max(A);
+
+[~,IQ] = pulse(Params);
+
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
+
+% RE-BURP
+Params.tp = 1.000; % µs
+Params.Type = 'RE-BURP';
+Params.TimeStep = 0.001; % µs
+Params.Amplitude = 1;
+
+t0 = 0:Params.TimeStep:Params.tp;
+% Geen, H., Freeman, R. Band-selective radiofrequency pulses. 
+% J. Magn. Reson. 93, 93-141 (1991). 
+% DOI: 10.1016/0022-2364(91)90034-Q
+% Table 8 on p. 124, Np = 256
+A0 = 0.49;
+An = [-1.02 1.11 -1.57 0.83 -0.42 0.26 -0.16 0.10 -0.07 0.04 -0.03 0.01 -0.02 0.00 -0.01];
+Bn = zeros(size(An));
+A = zeros(1,numel(t0)) + A0;
+for j = 1:numel(An)
+  A = A + An(j)*cos(j*2*pi*t0/Params.tp) + Bn(j)*sin(j*2*pi*t0/Params.tp);
+end
+A = A/max([-min(A) max(A)]);
+IQ0 = A/max(A);
+
+[~,IQ] = pulse(Params);
+
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
 
 % SNOB i2
-Params.tp = 0.200; % us
+Params.tp = 0.200; % µs
 Params.Type = 'SNOB i2';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Kupce, E., Boyd, J., Campbell, I. D. Short Selective Pulses for
-% Biochemical Applications. J. Magn. Reson. B 106, 300�303 (1995).
+% Biochemical Applications. J. Magn. Reson. B 106, 300-303 (1995).
 % DOI: 10.1006/jmrb.1995.1049
 % Table 1 on p. 300
 A0 = 0.5;
@@ -75,19 +181,20 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
-ok(3) = areequal(IQ0,IQ,1e-12,'abs');
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
 
 % SNOB i3
-Params.tp = 0.200; % us
+Params.tp = 0.200; % µs
 Params.Type = 'SNOB i3';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Kupce, E., Boyd, J., Campbell, I. D. Short Selective Pulses for
-% Biochemical Applications. J. Magn. Reson. B 106, 300�303 (1995).
+% Biochemical Applications. J. Magn. Reson. B 106, 300-303 (1995).
 % DOI: 10.1006/jmrb.1995.1049
 % Table 1 on p. 300
 A0 = 0.5;
@@ -100,14 +207,15 @@ end
 A = A/max([-min(A) max(A)]);
 IQ0 = A/max(A);
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
-ok(4) = areequal(IQ0,IQ,1e-12,'abs');
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');
 
 % User-defined (SLURP-1, T2/T = 2)
-Params.tp = 2.000; % us
+Params.tp = 2.000; % µs
 Params.Type = 'FourierSeries';
-Params.TimeStep = 0.001; % us
+Params.TimeStep = 0.001; % µs
 Params.Amplitude = 1;
 
 t0 = 0:Params.TimeStep:Params.tp;
@@ -129,6 +237,7 @@ Params.A0 = A0;
 Params.An = An;
 Params.Bn = Bn;
 
-[t,IQ] = pulse(Params);
+[~,IQ] = pulse(Params);
 
-ok(5) = areequal(IQ0,IQ,1e-12,'abs');
+ipulse = ipulse+1;
+ok(ipulse) = areequal(IQ0,IQ,1e-12,'abs');

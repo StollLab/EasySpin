@@ -88,6 +88,11 @@ if explicitClosedPhi
   closedPhi = true;
 end
 
+% Check GridSize
+if ~isnumeric(GridSize) || numel(GridSize)~=1 || GridSize<1 || mod(GridSize,1)
+  error('GridSize (2nd input argument) must be positive integer.');
+end
+
 % Now we have maxPhi, closedPhi, nOctants and GridSize.
 % These parameters fully specify the requested grid.
 
@@ -187,6 +192,9 @@ if calculateTriangulation
   Areas(rmv) = [];
   Tri = sort(Tri,2);
   Tri = uint32(Tri);
+  
+  [Tri,idx] = sortrows(Tri);
+  Areas = Areas(idx);
   
 else
   

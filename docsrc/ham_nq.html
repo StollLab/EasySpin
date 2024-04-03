@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>ham_nq</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">ham_nq</div>
+
+<p>
+Nuclear quadrupole interaction Hamiltonian.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Hnq = ham_nq(Sys)
+Hnq = ham_nq(Sys,nucSpins)
+Hnq = ham_nq(Sys,nucSpins,'sparse')
+</pre>
+
+<!-- ====================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+<code>ham_nq</code> calculates the Hamiltonian of
+<a href="hamiltonian.html#nqi">nuclear quadrupole interactions</a>
+(NQI) in the spin system <code>SpinSystem</code> and returns it in <code>Hnq</code>.
+If only one argument is given, the NQI of all nuclei of the system are added. If the vector <code>Nuclei</code> is given, only nuclei specified in the vector are included in the calculation. In <code>Nuclei</code>, 1 determines the first nucleus, 2 the second and so on.
+</p>
+
+<p>
+See the section about <a href="spinsystem.html#Q">spin system structures</a> on how to specify NQI parameters. See the section on and <a href="hamiltonian.html#nqi">nuclear quadrupole interaction</a> for more details about the Hamiltonian.
+
+<p>
+If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+For a system <code>AB</code> with one electron and three nuclei,
+<code>ham_nq(AB,2)</code> returns the NQI Hamiltonian of the second nucleus
+only, whereas <code>ham_nq(AB)</code> gives the sum of the NQI of all three
+nuclei.
+</p>
+
+<!-- ====================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="ham.html">ham</a>,
+<a class="esf" href="ham_cf.html">ham_cf</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
+<a class="esf" href="ham_ez.html">ham_ez</a>,
+<a class="esf" href="ham_ezho.html">ham_ezho</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
+<a class="esf" href="ham_nn.html">ham_nn</a>,
+<a class="esf" href="ham_nz.html">ham_nz</a>,
+<a class="esf" href="ham_oz.html">ham_oz</a>,
+<a class="esf" href="ham_so.html">ham_so</a>,
+<a class="esf" href="ham_zf.html">ham_zf</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>

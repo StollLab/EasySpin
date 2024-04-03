@@ -2,7 +2,7 @@
 
 % Implementation based on 
 %  [1] Sezer, et al., J.Chem.Phys. 128, 165106 (2008)
-%       http://dx.doi.org/10.1063/1.2908075
+%       https://doi.org/10.1063/1.2908075
 %  [2] Leimkuhler, Appl.Math.Res.Express 2013, 34 (2013)
 %       https://doi.org/10.1093/amrx/abs010
 %    newer method for SDE integration that starts with weak convergence of 

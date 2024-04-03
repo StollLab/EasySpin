@@ -1,19 +1,19 @@
 function ok = test()
 
 Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.015; % us
+Pulse.trise = 0.015; % µs
 Pulse.tp = 0.1;
 Pulse.Flip = pi;
 Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5 Pulse Pulse};
 Exp.Field = 1240; 
-Exp.TimeStep = 0.0001; % us
+Exp.TimeStep = 0.0001; % µs
 
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 0 0 0]; 
 
-Opt.SimulationMode = 'step wise';
+Opt = struct;
 
 % First Test ---------------------------------------
 

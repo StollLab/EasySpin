@@ -30,7 +30,7 @@
 %   Example:
 %
 %     System = struct('g',[2.0088 2.0064 2.0027],'Nucs','14N');
-%     System.A = mt2mhz([7.59 5.95 31.76]/10);
+%     System.A = unitconvert([7.59 5.95 31.76]/10,'mT->MHz');
 %     [lw,mI] = fastmotion(System,350,1e-10)
 
 % The undocumented syntax
@@ -45,7 +45,7 @@ if nargin==0
   % Di-t-butyl nitroxide
   System.Nucs = '14N';
   System.g = [2.0088 2.0064 2.0027];
-  System.A = mt2mhz([7.59 5.95 31.76; 10 15 20]/10); % MHz
+  System.A = unitconvert([7.59 5.95 31.76; 10 15 20]/10,'mT->MHz'); % MHz
   Field = 350; % mT
   tau20 = 1e-10; % s
 end
@@ -116,7 +116,7 @@ if ~isfield(System,'AFrame'); System.AFrame = zeros(nNucs,3); end
 if ~isfield(System,'Q'); System.Q = zeros(nNucs,3); end
 if ~isfield(System,'QFrame'); System.QFrame = zeros(nNucs,3); end
 
-for iNuc = 1:nNucs
+for iNuc = nNucs:-1:1
   R_A2M = erot(System.AFrame(iNuc,:)).'; % A frame -> molecular frame
   diagA = System.A(iNuc,:);
   if numel(diagA)==2, diagA = diagA([1 1 2]); end
@@ -167,10 +167,10 @@ C = convertcoeffs(C);
 D = convertcoeffs(D);
 
 if fieldUnits
-  A = mhz2mt(A,g0);
-  B = mhz2mt(B,g0);
-  C = mhz2mt(C,g0);
-  D = mhz2mt(D,g0);
+  A = unitconvert(A,'MHz->mT',g0);
+  B = unitconvert(B,'MHz->mT',g0);
+  C = unitconvert(C,'MHz->mT',g0);
+  D = unitconvert(D,'MHz->mT',g0);
 end
 
 coeffs.A = A;
@@ -195,9 +195,9 @@ if nNucs>0
   qC = convertcoeffs(qC);
   qE = convertcoeffs(qE);
   if fieldUnits
-    qA = mhz2mt(qA,g0);
-    qC = mhz2mt(qC,g0);
-    qE = mhz2mt(qE,g0);
+    qA = unitconvert(qA,'MHz->mT',g0);
+    qC = unitconvert(qC,'MHz->mT',g0);
+    qE = unitconvert(qE,'MHz->mT',g0);
   end
 else
   qA = 0;
@@ -223,7 +223,7 @@ else
   lw = A;
 end
 
-return
+end
 %============================================================
 %============================================================
 %============================================================
@@ -233,7 +233,7 @@ function c_MHz = convertcoeffs(c_angfrq)
 c = c_angfrq/1e6/(1);
 c = c/pi; % FWHM of Lorentzian is 1/pi/T2
 c_MHz = c;
-return
+end
 
 
 function mIall = all_mI(I)
@@ -248,4 +248,4 @@ for iNuc = nNucs:-1:1
   n = n*nI(iNuc);
   mIall = [mI(:),repmat(mIall,nI(iNuc),1)];
 end
-return
+end

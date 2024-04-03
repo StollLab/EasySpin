@@ -13,4 +13,4 @@ function [me,sigma] = emass
 me =    9.1093837015e-31;
 sigma = 0.0000000028e-31;
 
-return
+end

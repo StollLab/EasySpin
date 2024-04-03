@@ -106,8 +106,8 @@ hAx = axes;
 axes('Position',[0 0 1 1],'HitTest','off');
 axis off
 str = sprintf('Potential coefficients (L,M,K):\n');
-for p = 1:numel(lam)
-  str = sprintf('%s (%d,%d,%d):  %+0.4f  %+0.4f\n',str,Lp(p),Mp(p),Kp(p),real(lam(p)),imag(lam(p)));
+for p_ = 1:numel(lam)
+  str = sprintf('%s (%d,%d,%d):  %+0.4f  %+0.4f\n',str,Lp(p_),Mp(p_),Kp(p_),real(lam(p_)),imag(lam(p_)));
 end
 text(0.02,0.98,str,'VerticalAlignment','top','FontSize',9);
 axes(hAx);
@@ -248,12 +248,12 @@ end
 
 end
 
-function abbc_toggle(hObject,event)
+function abbc_toggle(hObject,event)  %#ok
 plotAlphaBeta = ~plotAlphaBeta;
 updatedisplay();
 end
 
-function potpop_toggle(hObject,event)
+function potpop_toggle(hObject,event)  %#ok
 plotPopulation = ~plotPopulation;
 updatedisplay();
 end

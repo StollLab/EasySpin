@@ -7,7 +7,7 @@ clear, clf
 % Spin system
 Sys.Nucs = '14N';
 Sys.g = [2.009, 2.006, 2.002];
-Sys.A = mt2mhz([6, 36]/10); % MHz
+Sys.A = unitconvert([6, 36]/10,'mT->MHz'); % MHz
 Sys.tcorr = 5e-9;                   % rotational correlation time, s
 Sys.lw = [0.0, 0.1]; % mT
 Sys.Potential = [2 0 0 0.5];      % orientational potential with 
@@ -17,13 +17,13 @@ Sys.Potential = [2 0 0 0.5];      % orientational potential with
 Exp.mwFreq = 9.4;
 
 % cardamom parameters
-dt = Sys.tcorr/10;      % use a smaller time step to ensure that each 
+dt = Sys.tcorr/5;      % use a smaller time step to ensure that each 
                         % trajectory "feels" the orientational 
                         % restriction
 Par.dtSpatial = dt;
 Par.dtSpin = 2e-9;
 
-Par.nSteps = ceil(200e-9/Par.dtSpin);
+Par.nSteps = ceil(100e-9/Par.dtSpin);
 
 Par.Model = 'diffusion';
 Par.nTraj = 200;

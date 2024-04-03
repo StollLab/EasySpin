@@ -10,4 +10,4 @@ function R = molgas
 
 R = avogadro*boltzm; % exact, as of SI redefinition 2019
 
-return
+end

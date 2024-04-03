@@ -4,6 +4,7 @@
 % spectrum with a single line in reality is the result of overlap of many
 % modulation sidebands.
 % See Kaelin et al, J.Magn.Reson. 160, 166-182 (2003)
+% https://doi.org/10.1016/S1090-7807(02)00186-6
 
 clear, clf
 
@@ -17,13 +18,13 @@ Amod = 1;  % peak-to-peak modulation amplitude (mT)
 lwpp = 0.1; % peak-to-peak line width (mT)
 
 wrf = 2*pi*fmod; % angular modulation frequency (2*pi*MHz)
-w2 = 2*pi*mt2mhz(Amod)/2; % Amplitude of the modulation field (2*pi*MHz)
-T2 = 1/mt2mhz(lwpp); % Relaxation time (us)
+w2 = 2*pi*unitconvert(Amod,'mT->MHz')/2; % Amplitude of the modulation field (2*pi*MHz)
+T2 = 1/unitconvert(lwpp,'mT->MHz'); % Relaxation time (µs)
 
 nPoints = 10000;
 fieldmax = max(Amod*2,lwpp*8);
 field = fieldmax*linspace(-1,1,nPoints);
-w = 2*pi*mt2mhz(field);
+w = 2*pi*unitconvert(field,'mT->MHz');
 
 % The following implements Eqs.(59) and (60) from the Kaelin paper,
 % disregaring the saturation term in the denominators.

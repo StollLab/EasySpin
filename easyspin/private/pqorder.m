@@ -42,6 +42,6 @@ for iSpin = 1:nSpins
   idx = idx + 2;
 end
 
-[dummy,idx] = sortrows(pq);
+[~,idx] = sortrows(pq);
 
-return
+end

@@ -36,5 +36,5 @@ if St<0, error('Unable to close ECO file.'); end
 Abscissa = [];
 Parameters = [];
 
-return
+end
 %-------------------------------------------------------------------------------

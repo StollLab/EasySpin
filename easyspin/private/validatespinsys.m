@@ -35,7 +35,7 @@ end
 %-------------------------------------------------------------------------------
 fileName = 'cubicsolve';
 if exist(fileName,'file')~=3
- easyspincompile;
+ easyspin_compile;
   if exist(fileName,'file')~=3
     error('EasySpin: Generation of mex files failed.');
   end
@@ -45,12 +45,14 @@ end
 %-------------------------------------------------------------------------------
 correctFields = {'S','Nucs','Abund','n',...
   'g','g_','gFrame','gStrain',...
-  'D','DFrame','DStrain',...
+  'D','D_','DFrame','DStrain',...
   'ee','J','dip','dvec','ee2','eeFrame',...
   'A','A_','AFrame','AStrain',...
   'Q','QFrame',...
   'HStrain',...
-  'L', 'soc', 'orf',...
+  'L', 'soc', 'gL',...
+  'initState',...
+  'tdm',...
   'lw','lwpp','lwEndor',...
   'tcorr','logtcorr','Diff','logDiff'};
 fieldlist = @(str,irange)arrayfun(@(x)sprintf('%s%d',str,x),irange,'UniformOutput',false);
@@ -191,14 +193,15 @@ err = sizecheck(Sys,'gFrame',[nElectrons 3]);
 if ~isempty(err); return; end
 
 
-% Zero-field splittings (Sys.D, Sys.DFrame)
+% Zero-field splittings (Sys.D, Sys.D_, Sys.DFrame)
 %-------------------------------------------------------------------------------
+if isfield(Sys,'D') && isfield(Sys,'D_')
+	err = sprintf('Zero-field splitting given in both Sys.D and Sys.D_. Please remove one of them.');
+	if ~isempty(err), return; end
+end
 
-% Supplement partial or missing D
-if ~isfield(Sys,'D')
-  Sys.D = zeros(nElectrons,3);
-  Sys.fullD = false;
-else
+
+if isfield(Sys,'D')
   Sys.fullD = issize(Sys.D,[3*nElectrons 3]);
   if Sys.fullD
     % full D tensors
@@ -214,6 +217,21 @@ else
     err = ('Sys.D has wrong size.');
     return
   end
+elseif isfield(Sys,'D_')
+  Sys.fullD = false;
+  if issize(Sys.D_,[nElectrons 2])
+    % convert to D and E
+    D = Sys.D_(:,1);
+    E = D.*Sys.D_(:,2);
+    Sys.D = D*[-1/3,-1/3,+2/3] + E*[+1,-1,0];
+  else
+    err = ('Sys.D_ has wrong size.');
+    return
+  end  
+else
+  % Supplement partial or missing D
+  Sys.D = zeros(nElectrons,3);
+  Sys.fullD = false;
 end
 
 % Euler angles for D tensor(s)
@@ -318,10 +336,7 @@ if nElectrons>1 && ~reprocessing
       err = sizecheck(Sys,'ee',[nElPairs 3]);
       if ~isempty(err), return; end
     end
-    
-    err = pa_obsolete_message(Sys,'eepa','eeFrame');
-    if ~isempty(err), return; end
-    
+        
   else
     % Bilinear coupling defined via J, dip, and dvec
     % J:    isotropic exchange +J*S1*S2
@@ -394,16 +409,12 @@ if nElectrons>1 && ~reprocessing
   end
   
   % Check for eeFrame, and supplement or error if necessary
-  if fullee
-    if isfield(Sys,'eeFrame')
-      err = sprintf('Full matrices are specified in ee, so eeFrame is not allowed.');
-      if ~isempty(err), return; end
-    end
-  else
-    if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nElPairs,3); end
-    err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
-    if ~isempty(err), return; end
-  end
+  err = pa_obsolete_message(Sys,'eepa','eeFrame');
+  if ~isempty(err), return; end
+  if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nElPairs,3); end
+  err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
+  if ~isempty(err), return; end
+
 end
 
 
@@ -433,7 +444,7 @@ end
 if isempty(Sys.Nucs)
   if isfield(Sys,'A')   && ~isempty(Sys.A) || ...
      isfield(Sys,'AFrame') && ~isempty(Sys.AFrame) || ...
-     isfield(Sys,'Q')   && ~isempty(Sys.q) || ...
+     isfield(Sys,'Q')   && ~isempty(Sys.Q) || ...
      isfield(Sys,'QFrame') && ~isempty(Sys.QFrame)
     err = 'The system contains A and/or Q fields, but no nucleus is specified!';
     if ~isempty(err), return; end
@@ -595,7 +606,7 @@ if nNuclei>0
       % Expand axial A into 3 principal values
       idx = [1 1 2];
       for k = 2:nElectrons
-        idx = [idx, 2*k-[1 1 0]];
+        idx = [idx, 2*k-[1 1 0]];  %#ok
       end
       Sys.A = Sys.A(:,idx);
     elseif issize(Sys.A,[nNuclei,3*nElectrons])
@@ -717,16 +728,9 @@ else
   end
   
   % Check for nnFrame, supplement or error if necessary
-  if Sys.fullnn
-    if isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame)
-      err = sprintf('Full matrices are specified in Sys.nn, so nnFrame is not allowed.');
-      if ~isempty(err), return; end
-    end
-  else
-    if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
-    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
-    if ~isempty(err), return; end
-  end
+  if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
+  err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
+  if ~isempty(err), return; end
   
 end
 
@@ -769,7 +773,7 @@ end
 % Check Sys.lw
 if ~isfield(Sys,'lw'), Sys.lw = [0 0]; end
 if numel(Sys.lw)==1, Sys.lw(2) = 0; end
-if numel(Sys.lw)~=2, err = ('System.lw has wrong size.'); end
+if ~isequal(size(Sys.lw),[1 2]), err = ('System.lw has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lw<0), err = ('System.lw cannot be negative.'); end
 if ~isempty(err), return; end
@@ -785,7 +789,7 @@ if ~isempty(err), return; end
 % Check Sys.lwpp
 if ~isfield(Sys,'lwpp'), Sys.lwpp = [0 0]; end
 if numel(Sys.lwpp)==1, Sys.lwpp(2) = 0; end
-if numel(Sys.lwpp)~=2, err = ('System.lwpp has wrong size.'); end
+if ~isequal(size(Sys.lwpp),[1 2]), err = ('System.lwpp has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lwpp<0), err = ('Linewidths cannot be negative.'); end
 if ~isempty(err), return; end
@@ -895,15 +899,158 @@ for k = 1:numel(BroadeningType)
 end
 
 
-% Population vector (Sys.Pop)
+% Non-equilibrium state (Sys.initState)
 %===============================================================================
-if ~isfield(Sys,'Pop')
-  Sys.Pop = [];
+if isfield(Sys,'Pop')
+  error('Sys.Pop is obsolete. Use Sys.initState to specify a non-equilibrium state for the spin system.');
 end
-if ~isempty(Sys.Pop)
-  if ~isvector(Sys.Pop)
-    err = 'Sys.Pop must be a row or column vector.';
-    return
+if ~isfield(Sys,'initState')
+  Sys.initState = [];
+end
+if ~isempty(Sys.initState)
+
+  if iscell(Sys.initState)
+    % Cell input with format Sys.initState = {densitymatrix,'basis'} or {popvector,'basis'}
+    if numel(Sys.initState)~=2
+      error('Sys.initState must be a cell array with two elements, {popvector,basis}.');
+    end
+
+    % Density matrix or population vector and basis input
+    initState = Sys.initState{1};
+    initStateBasis = Sys.initState{2};
+
+    % Check validity of basis keyword
+    if ~ischar(initStateBasis) || ...
+        ~any(strcmp(initStateBasis,{'uncoupled','coupled','eigen','zerofield','xyz'}))
+      err = 'The basis specified in Sys.initState must be either ''zerofield'',  ''xyz'', ''eigen'', ''coupled'' or ''uncoupled''.';
+    end
+
+    % Check if input is density matrix or population vector
+    [sz1,sz2] = size(initState);
+    if sz1~=sz2 && ~isvector(initState)
+      err = 'A density matrix or a population vector must be specified within Sys.initState.';
+    end
+
+    % Conversion between bases
+    switch initStateBasis
+      case 'coupled'
+
+        % Conversion from coupled to uncoupled basis
+        if Sys.nElectrons~=2
+          err = 'Sys.initState in the coupled basis is only available for systems with two electron spins.';
+        else
+          C2U = cgmatrix(Sys.S(1),Sys.S(2))';
+          nElectronStates = size(C2U,1);
+          if max([sz1 sz2])~=nElectronStates
+            nStates = hsdim([Sys.S(:); Sys.I(:)].');
+            C2U = kron(C2U,eye(nStates/nElectronStates));
+          end
+          if sz1==sz2
+            % Transform density matrix from coupled to the uncoupled basis
+            initState = C2U*initState*C2U';
+          else
+            % Get density matrix in uncoupled basis for population vector given in the coupled basis
+            initState = C2U*diag(initState)*C2U';
+          end
+          initStateBasis = 'uncoupled';
+        end
+
+      case 'xyz'
+
+        % Conversion from xyz to uncoupled basis
+        if Sys.S~=1
+          err = 'Sys.initState population input with ''xyz'' basis only allowed for triplet states (Sys.S = 1).';
+        end
+        if numel(initState)~=3
+          err = 'Sys.initState population input with ''xyz'' basis requires three population values [px py pz].';
+        end
+        if ~isempty(err), return; end
+
+        % Tx, Ty and Tz in uncoupled basis
+        Tx = (1/sqrt(2))*[1;0;-1];
+        Ty = (1/sqrt(2))*[1;0;1];
+        Tz = [0;1;0];
+        ZFStates = [Tx Ty Tz];
+
+        if any(Sys.DFrame)
+          D = wignerd(1,Sys.DFrame(1),Sys.DFrame(2),Sys.DFrame(3));
+          ZFStates = D*ZFStates;
+        end
+
+        initState = ZFStates*diag(initState)*ZFStates';
+        initStateBasis = 'uncoupled';
+
+      case 'eigen'
+
+        % Convert population vector to density matrix for populations provided in eigenbasis
+        if isvector(initState)
+          initState = diag(initState);
+        end
+
+    end
+
+  elseif isnumeric(Sys.initState)
+    % Full density matrix input (in default EasySpin basis)
+
+    % Density matrix input in default EasySpin basis
+    initState = Sys.initState;
+    [sz1,sz2] = size(initState);
+    if sz1~=sz2
+      err = 'Sys.initState called with a population vector requires a basis specification in the format Sys.initState = {popvec,''basis''}.';
+    end
+    initStateBasis = 'uncoupled'; % default
+
+  elseif ischar(Sys.initState)
+    % Shorthand notation for common situations
+
+    % Shortcut for singlet-born radical pair
+    if strcmp(Sys.initState,'singlet')
+      if Sys.nElectrons~=2 || Sys.S(1)~=Sys.S(2)
+        err = 'Sys.initState = ''singlet'' is only available for systems of two identical electron spins.';
+      else
+        % Population of singlet state (e.g. singlet-born spin-correlated radical pair)
+        S = cgmatrix(Sys.S(1),Sys.S(2),0).';
+        initState = S*S';
+        initStateBasis = 'uncoupled';
+      end
+    elseif strcmp(Sys.initState,'T0')
+      if Sys.S~=1
+        err = 'Sys.initState = ''T0'' is only available for triplet states (Sys.S = 1).';
+      else
+        % T0 populated triplet state
+        initState = diag([0 1 0]);
+        initStateBasis = 'eigen';
+      end
+    else
+      err = 'String input for initial state not yet supported for selected spin system and initial state.';
+    end
+
+  else
+
+    err = 'Invalid input for Sys.initState. Check documentation for details.';
+
+  end
+
+  if ~isempty(err), return; end
+  Sys.initState = {initState,initStateBasis};
+
+end
+
+
+% Optical transition dipole moment (Sys.tdm)
+%===============================================================================
+if ~isfield(Sys,'tdm')
+  Sys.tdm = [];
+end
+if ~isempty(Sys.tdm)
+  if ischar(Sys.tdm)
+    Sys.tdm = letter2vec(Sys.tdm);
+  elseif numel(Sys.tdm)==3
+    Sys.tdm = Sys.tdm(:)/norm(Sys.tdm(:));
+  elseif numel(Sys.tdm)==2
+    Sys.tdm = ang2vec(Sys.tdm(1),Sys.tdm(2));
+  else
+    error('tdm (first input) must be a letter designating a direction, a 3-vector, or an array with two angles.');
   end
 end
 
@@ -984,7 +1131,7 @@ if any(strncmp('Ham',fieldnames(Sys),3))
 end
 
 
-% Orbital angular momentum (Sys.L, Sys.soc, Sys.orf, Sys.CF*)
+% Orbital angular momentum (Sys.L, Sys.soc, Sys.gL, Sys.CF*)
 %===============================================================================
 if isfield(Sys,'L') && ~isempty(Sys.L)
   % Guard against invalid type
@@ -1012,15 +1159,15 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
       return
     end
   end
-  if ~isfield(Sys,'orf')
-    Sys.orf = ones(nElectrons,1);
+  if ~isfield(Sys,'gL')
+    Sys.gL = ones(nElectrons,1);
   else
-    if length(Sys.orf)~=nElectrons
-      err ='Number of orbital reduction factors must match number of orbital angular momenta!';
+    if length(Sys.gL)~=nElectrons
+      err ='Number of orbital g factors must match number of orbital angular momenta!';
       return
     end
-    if isempty(Sys.orf) || any(~isreal(Sys.orf))
-      err = 'Orbital reduction factors in Sys.orf must be real numbers.';
+    if isempty(Sys.gL) || any(~isreal(Sys.gL))
+      err = 'Orbital g factors in Sys.gL must be real numbers.';
       return
     end
   end
@@ -1046,8 +1193,8 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
     Sys.(fieldname) = CFk;
   end
 else
-  if isfield(Sys,'orf') && ~isempty(Sys.orf)
-    err = 'Sys.orf is given, but Sys.L is missing. Specify Sys.L.';
+  if isfield(Sys,'gL') && ~isempty(Sys.gL)
+    err = 'Sys.gL is given, but Sys.L is missing. Specify Sys.L.';
     return
   end
   if isfield(Sys,'soc') && ~isempty(Sys.soc)
@@ -1062,7 +1209,7 @@ else
     end
   end
   Sys.L = [];
-  Sys.orf = [];
+  Sys.gL = [];
 end
 Sys.nL = numel(Sys.L);
 
@@ -1075,24 +1222,24 @@ Sys.nStates = hsdim(Sys.Spins);
 FullSys = Sys;
 FullSys.processed = true;
 
-return
+end
 %@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 
 %-------------------------------------------------------------------------------
 function ok = issize(A,siz)
-ok = all(size(A)==siz);
-return
+ok = isequal(size(A),siz);
+end
 
 %-------------------------------------------------------------------------------
 function msg = sizecheck(Sys,FieldName,siz)
-ok = all(size(Sys.(FieldName))==siz);
+ok = isequal(size(Sys.(FieldName)),siz);
 if ok
   msg = '';
 else
   msg = sprintf('Spin system field %s has wrong size for the given spins.',FieldName);
 end
-return
+end
 
 %-------------------------------------------------------------------------------
 function err = pa_obsolete_message(Sys,pa,Frame)
@@ -1101,4 +1248,4 @@ if isfield(Sys,pa)
 else
   err = '';
 end
-return
+end

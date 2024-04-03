@@ -5,20 +5,20 @@ function ok = test()
 
 % Linear chirp and bandwidth-compensated variable rate chirp
 %--------------------------------------------------------------------------
-Params.tp = 0.128; % us
-Params.TimeStep = 0.00001; % us
+Params.tp = 0.128;  % µs
+Params.TimeStep = 0.00001;  % µs
 Params.Type = 'quartersin/linear';
-Params.trise = 0.030; % us
+Params.trise = 0.030;  % µs
 Params.Frequency = [-150 150]; % MHz
-Params.Amplitude = 1; % MHz
+Params.Amplitude = 1;  % MHz
 
-Params.mwFreq = 9.5; % GHz
+Params.mwFreq = 9.5;  % GHz
 
 % Ideal spectrometer magnitude response function
 
-[t,IQ1] = pulse(Params);
+[~,IQ1] = pulse(Params);
 Params.ResonatorFrequency = Params.mwFreq;
-Params.ResonatorQL = 50; % Q-factor
+Params.ResonatorQL = 50;  % Q-factor
 [t,IQ2] = pulse(Params);
 
 % Consistency check in the frequency domain
@@ -75,21 +75,20 @@ ok(3) = areequal(IQ0_adapted,IQ2,1e-3,'abs');
 % Sech/tanh and bandwidth-compensated sech/tanh
 %--------------------------------------------------------------------------
 clear Params
-Params.tp = 0.200; % us
-Params.TimeStep = 0.00001; % us
+Params.tp = 0.200;  % µs
+Params.TimeStep = 0.00001;  % µs
 Params.Type = 'sech/tanh';
-Params.beta = 10; % us
-Params.Frequency = [-100 100]; % MHz
-Params.Amplitude = 1; % MHz
+Params.beta = 10;  % µs
+Params.Frequency = [-100 100];  % MHz
+Params.Amplitude = 1;  % MHz
 
 % Ideal spectrometer magnitude response function
-QL = 60; % Q-factor
-f0 = 9.2:0.010:9.5; % GHz
+QL = 60;  % Q-factor
+f0 = 9.2:0.010:9.5;  % GHz
 dipfreq = 9.35;
 v1 = abs(1./(1+1i*QL*(f0/dipfreq-dipfreq./f0)));
 
-
-[t,IQ1] = pulse(Params);
+[~,IQ1] = pulse(Params);
 Params.mwFreq = 9.34; % GHz
 Params.FrequencyResponse = [f0; v1];
 [t,IQ2] = pulse(Params);

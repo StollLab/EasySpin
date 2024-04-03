@@ -12,9 +12,10 @@ ResonatorQL = 500;
 
 % Pulse at baseband
 %--------------------------------------------------------------------------
-Par.tp = 0.100; % us
+Par.tp = 0.100; % µs
+Par.Flip = pi;
 Par.Type = 'gaussian';
-Par.tFWHM = 0.050; % us
+Par.tFWHM = 0.050; % µs
 Par.Frequency = 0;
 [tpulse,IQ] = pulse(Par);
 
@@ -69,7 +70,7 @@ ResonatorQL = 500;
 
 % Pulse at baseband
 %--------------------------------------------------------------------------
-Par.tp = 0.100; % us
+Par.tp = 0.100; % µs
 Par.Type = 'sech/tanh';
 Par.beta = 10;
 Par.Frequency = [-50 50];
@@ -126,7 +127,7 @@ ResonatorQL = 500;
 
 % Pulse at baseband
 %--------------------------------------------------------------------------
-Par.tp = 0.100; % us
+Par.tp = 0.100; % µs
 Par.Type = 'quartersin';
 Par.trise = 0.010;
 Par.Frequency = 0;

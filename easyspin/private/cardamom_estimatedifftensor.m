@@ -23,7 +23,7 @@
 
 % Implemented from
 %    [1] G. Chevrot, et al., J. Chem. Phys. 139, 154110 (2013)
-%        http://dx.doi.org/10.1063/1.4823996
+%        https://doi.org/10.1063/1.4823996
 %    [2] V. Calandrini, et al., Collection SFN 12, 201 (2011)
 %        	https://doi.org/10.1051/sfn/201112010
 

@@ -15,7 +15,7 @@
 %   Either the command syntax as above or the function syntax, e.g.
 %   estest('asdf','t'), can be used.
 %
-%   Run all tests including timings:   estest('*','t')
+%   Run all tests including timings:   estest('*_','t')
 %
 %   All test files must have an underscore _ in their filename.
 
@@ -63,7 +63,7 @@ end
 TestFileNames = sort({FileList.name});
 
 fprintf(fid,'=======================================================================\n');
-fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',datestr(now),version);
+fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',char(datetime),version);
 fprintf(fid,'EasySpin location: %s\n',EasySpinPath);
 fprintf(fid,'=======================================================================\n');
 fprintf(fid,'Display: %d, Regenerate: %d, Verbosity: %d\n',...
@@ -198,8 +198,8 @@ for iTest = 1:numel(TestFileNames)
   
   outcomeStr = OutcomeStrings{testResults(iTest).outcome+1};
   
-  if ~all(ok) && ~displayTimings
-    outcomeStr = [outcomeStr '  ' num2str(find(~ok))];
+  if ~all(ok(:)) && ~displayTimings
+    outcomeStr = [outcomeStr '  ' num2str(find(~ok(:).'))];
   end
   
   if ~isempty(data)
@@ -215,11 +215,11 @@ for iTest = 1:numel(TestFileNames)
   end
 
   nameStr = testResults(iTest).name;
-  str = sprintf('%-45s  %-12s%-8s%s\n%s',...
+  str = sprintf('%-47s  %-12s%-8s%s\n%s',...
        nameStr,typeStr,outcomeStr,timeStr,errorStr);
   str(str=='\') = '/';
   
-  nBlanks = max(45-length(nameStr),0);
+  nBlanks = max(47-length(nameStr),0);
   nameStrLink = sprintf('<a href="matlab: edit %s">%s</a>%s',nameStr,nameStr,repmat(' ',1,nBlanks));
   strLink = sprintf('%s  %-12s%-8s%s\n%s',...
        nameStrLink,typeStr,outcomeStr,timeStr,errorStr);
@@ -228,7 +228,7 @@ for iTest = 1:numel(TestFileNames)
   testResults(iTest).msg = str;
   testResults(iTest).msgLink = strLink;
   
-  fprintf(fid,str);
+  fprintf(fid,strLink);
 end
 
 % Display results of code coverage analysis
@@ -320,4 +320,4 @@ if nargout==1
   out.outcomes = allOutcomes;
 end
 
-return
+end

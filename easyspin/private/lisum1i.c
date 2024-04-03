@@ -85,7 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   NegEncountered = false;
   for (k=0; k<nPdat; k++) {
 
-    /* Skip if NaN or inf. */
+    /* Skip if NaN or Inf. */
     if (mxIsNaN(Pos[k])||mxIsNaN(Amp[k])||mxIsNaN(Wid[k])) {NaNEncountered=true; continue;}
     if (mxIsInf(Pos[k])||mxIsInf(Amp[k])||mxIsInf(Wid[k])) {InfEncountered=true; continue;}
     

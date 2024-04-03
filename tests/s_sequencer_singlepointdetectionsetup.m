@@ -11,7 +11,7 @@ Exp.mwFreq = 33.5;
 % First Test - Single Point at end of free evolution -------------------
 Exp1 = Exp;
 Exp1.DetWindow = 0;
-Opt.SimulationMode = 'step wise';
+Opt = struct;
 [Events1] = runprivate('s_sequencer',Exp1,Opt);
 
 Exp2 = Exp;

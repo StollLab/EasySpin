@@ -14,7 +14,7 @@ Opt.Verbosity = 0;
 y = y/max(abs(y));
 
 if (opt.Display)
-  xlabel('time [us]');
+  xlabel('time (µs)');
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
     plot(x,y,'r',x,olddata.y,'b');

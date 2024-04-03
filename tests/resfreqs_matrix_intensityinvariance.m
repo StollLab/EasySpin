@@ -11,12 +11,12 @@ alpha = 13*pi/37;
 
 Sys.S = 1;
 Sys.D = 30e3*2*[1 0.1];
-Exp.CrystalOrientation = [0.71 0.475 0.11]*pi;
+Exp.SampleFrame = [0.71 0.475 0.11]*pi;
 Opt.Transitions = [1 2; 1 3; 2 3];
 beta = linspace(0,pi/2,31);
 
 for a = numel(beta):-1:1
-  Exp.Mode = [beta(a) alpha];
+  Exp.mwMode = {beta(a) alpha};
   [~,Intensity(:,a)] = resfreqs_matrix(Sys,Exp,Opt);
 end
 

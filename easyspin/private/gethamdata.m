@@ -1,63 +1,64 @@
-% Hamiltonian diagonalization (sparse and full)
-% used by resfreqs_matrix and resfields
+% Hamiltonian diagonalization (sparse and dense) used by resfreqs_matrix and resfields
+%
+% Inputs:
+%   B       static field magnitude
+%   H0      field-independent part of Hamiltonian
+%   muzL    magnetic dipole operator along lab z axis
+%   idxT    transition index (single number per transition)
+%   nLevels number of lowest levels to return
+%
+% Outputs:
+%   V     eigenvectors of Hamiltonian
+%   E     eigenvalues of Hamiltonian (energies)
+%   dEdB  derivatives of energy with respect to B
+%   dE    energy differences for the transitions listed in idxT
+%
+% The Hamiltonian is H = H0 - B*muzL
 
-% B       static field magnitude
-% F       field-independent part of Hamiltonian
-% G       field-dependent part of Hamiltonian
-% idxT    transition index (single number per transition)
-% nLevels number of lowest levels to return
-
-
-% The Hamiltonian is H = F + B*G
-
-% V     eigenvectors of Hamiltonian
-% E     eigenvalues of Hamiltonian (energies)
-% dEdB  derivatives of energy with respect to B
-% dE    energy differences for the transitions listed in idxT
-
-function [V,E,dEdB,dE] = gethamdata(B,F,G,idxT,nLevels)
+function [V,E,dEdB,dE] = gethamdata(B,H0,muzL,idxT,nLevels)
 
 % Compute eigenvalues and eigenvectors of Hamiltonian
-if issparse(F)
-  [V,E] = eigs(F+B*G,nLevels);
+H = H0 - B*muzL;
+if issparse(H)
+  [V,E] = eigs(H,nLevels);
 else
-  [V,E] = eig(F+B*G);
+  [V,E] = eig(H);
 end
 E = diag(E).';
 if ~issorted(E)
   [E,idx_] = sort(E);
   V = V(:,idx_);
 end
-if (nLevels<numel(E))
+if nLevels<numel(E)
   E = E(1:nLevels);
   V = V(:,1:nLevels);
 end
+
 % Compute correct eigenvectors for zero-field degeneracies
-if (B==0)
+if B==0
   dE = abs(diff(E)).';
   tol = 1e3*eps*max(dE);
   blk = cumsum([1; dE>tol]);
-  GG = V'*G*V;
-  GG = (GG+GG')/2; % important: symmetrise
+  GG = V'*(-muzL)*V;
+  GG = (GG+GG')/2; % important: symmetrize
   VV_ = [];
-  for k=1:max(blk)
+  for k = 1:max(blk)
     ix = find(blk==k);
-    [v,e] = eig(GG(ix,ix));
+    [v,~] = eig(GG(ix,ix));
     VV_ = blkdiag(VV_,v);
   end
   V = V*VV_;
 end
 
-if (nargout>2)
-  % Compute first derivative of energies with respect to field, dE/dB
-  dEdB = real(diag(V'*G*V)).';
+% Compute first derivative of energies with respect to field, dE/dB
+if nargout>2
+  dEdB = real(diag(V'*(-muzL)*V)).';
 end
 
-if (nargout>3)
-  % Compute transition frequencies Ev-Eu
-  M = repmat(E(:),1,numel(E));
-  dE = M.' - M;
+% Compute transition energies Ev-Eu
+if nargout>3
+  dE = -(E.' - E);  % such that upper triangle is positive
   dE = dE(idxT);
 end
 
-return
+end

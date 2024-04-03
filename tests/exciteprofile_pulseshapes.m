@@ -4,11 +4,13 @@ function ok = test()
 %--------------------------------------------------------------------------
 
 % Rectangular pulses
+Params(1).Type = 'rectangular';
 Params(1).Flip = pi/2;
-Params(1).tp = 0.016; % us
+Params(1).tp = 0.016; % µs
 Params(1).Phase = pi/2;
+Params(2).Type = 'rectangular';
 Params(2).Flip = pi;
-Params(2).tp = 0.032; % us
+Params(2).tp = 0.032; % µs
 Params(2).Phase = pi/2;
 
 [t1,IQ1] = pulse(Params(1));
@@ -59,7 +61,7 @@ ok(1) = all(subok);
 
 % Sinc pulse
 clear Params Mx My Mz
-Params.tp = 0.200; % us
+Params.tp = 0.200; % µs
 Params.Flip = pi;
 Params.Type = 'sinc';
 Params.zerocross = 0.050;
@@ -102,12 +104,12 @@ ok(2) = areequal(Mz,Mag(3,:),5e-2,'rel');
 
 % 1st order sech/tanh with frequency offset
 clear Params Mx My Mz
-Params.tp = 0.200; % us
+Params.tp = 0.200; % µs
 Params.Type = 'sech/tanh';
 Params.Frequency = [50 -50] + 60; % MHz
 Params.beta = 15;
 Params.Flip = pi;
-Params.TimeStep = 0.0005; % us
+Params.TimeStep = 0.0005; % µs
 
 t0 = 0:Params.TimeStep:Params.tp;
 % Calculate pulse amplitude from flip angle

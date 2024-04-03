@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>User guide: Pulse shaping</title>
 </head>
 
@@ -34,6 +34,7 @@ This user guide explains EasySpin's capabilities regarding shaped pulses, i.e. p
  
 <p>
 In the following, we go over the following topics:
+</p>
 
 <ul>
 <li><a href = "#shapes">Pulse shapes</a></li>
@@ -48,24 +49,29 @@ In the following, we go over the following topics:
 
 <p>
 EasySpin provides a range of shaped pulses through the function <a class="esf" href="pulse.html">pulse</a>. The parameters that define the pulse shape are supplied in a structure. Here is the most basic example
+</p>
 
 <pre class="matlab">
-Par.tp = 0.100;  % us
+Par.tp = 0.100;  % µs
 Par.Type = 'rectangular/none';
 [t,IQ] = pulse(Par);
 </pre>
 
 <p>
-This will calculate the shape of a simple monochromatic rectangular pulse. <code>Par.tp</code> contains the pulse length, in microseconds. <code>Par.Type</code> is a character array specifying the type of pulse shape, with the amplitude modulation (AM) function given before the slash (<code>/</code>), and the frequency modulation (FM) function after it. Here, <code>'rectangular'</code> for the AM specifies a simple rectangular shape, and <code>'none'</code> for the FM specifies that there is no frequency moduation, i.e. the pulse is monochromatic.
+This will calculate the shape of a simple monochromatic rectangular pulse. <code>Par.tp</code> contains the pulse length, in microseconds. <code>Par.Type</code> is a character array specifying the type of pulse shape, with the amplitude modulation (AM) function given before the slash (<code>/</code>), and the frequency modulation (FM) function after it. Here, <code>'rectangular'</code> for the AM specifies a simple rectangular shape, and <code>'none'</code> for the FM specifies that there is no frequency modulation, i.e. the pulse is monochromatic.
+</p>
 
 <p>
 <a class="esf" href="pulse.html">pulse</a> returns two things, the time axis and the IQ modulation data. The time axis is in microseconds and goes from 0 to <Code>Par.tp</code>. The number of points is chosen automatically to accommodate the AM and FM without aliasing, but you can override this and specify the time step in <code>Par.TimeStep</code>. <code>IQ</code> is a complex vector that contains the in-phase (I) and quadrature (Q) signals needed to drive an IQ mixer to generate the final pulse shape at microwave frequencies. I is the real part of <code>IQ</code>, and Q is the imaginary part.
+</p>
 
 <p>
 The overall pulse amplitude (in MHz) can be given in <code>Par.Amplitude</code>. Alternatively, you can give the nominal flip angle in <code>Par.Flip</code>, in radians. This value is converted to an amplitude as described in the documentation for <a class="esf" href="pulse.html">pulse</a>. If neither an amplitude nor a flip angle is given, the function assumes a flip angle of pi by default.
+</p>
 
 <p>
 If <a class="esf" href="pulse.html">pulse</a> is called without requesting outputs, then the pulse shape is plotted, including the AM and FM functions and the excitation profile:
+</p>
 
 <pre class="matlab">
 pulse(Par);    % plots the pulse shape and excitation profile
@@ -73,9 +79,10 @@ pulse(Par);    % plots the pulse shape and excitation profile
 
 <p>
 Many different AM and FM functions are implemented and can be combined arbitrarily. For example, a standard hyperbolic secant pulse can be obtained with
+</p>
 
 <pre class="matlab">
-Par.tp = 0.100;  % us
+Par.tp = 0.100;  % µs
 Par.Type = 'sech/tanh';
 Par.Frequency = [-50 50];  % MHz
 Par.beta = 5;
@@ -84,12 +91,14 @@ pulse(Par);
 
 <p>
 Here, the AM function is <code>sech</code>, and the FM function is <code>tanh</code>. <code>Par.Frequency</code> contains the start and end frequency of the frequency sweep, -50 and +50 MHz in this case. To fully define the AM and FM functions, the truncation parameter <code>beta</code> is necessary. Different AM and FM functions require different additional parameters, which can be found in the documentation of the <a class="esf" href="pulse.html">pulse</a> function.
+</p>
 
 <p>
 To generate a chirp pulse with a linear frequency downsweep and a WURST amplitude profile, use the following:
+</p>
 
 <pre class="matlab">
-Par.tp = 0.200;  % us
+Par.tp = 0.200;  % µs
 Par.Type = 'WURST/linear';
 Par.Frequency = [80 20]; % MHz
 Par.nwurst = 10;
@@ -98,12 +107,14 @@ Par.nwurst = 10;
 
 <p>
 In <code>Par.Frequency</code>, the start frequency is higher than the end frequency. Therefore, a down-sweep will be generated. The WURST amplitude envelope also needs an additional parameter, <code>nwurst</code>.
+</p>
 
 <p>
 It is possible to combine two AM functions. For example,
+</p>
 
 <pre class="matlab">
-Par.tp = 0.200;  % us
+Par.tp = 0.200;  % µs
 Par.Type = 'WURST*sech/linear';
 Par.Frequency = [0 60];
 Par.nwurst = 10;
@@ -113,20 +124,25 @@ pulse(Par);
 
 <p>
 generates a pulse shape with an AM that is the product of a WURST and a sech amplitude profile.
+</p>
 
 <p>
 The pulse phase can be set in <code>Par.Phase</code>, in radians.
+</p>
 
 <p>
 The function can also incorporate bandwidth compensation for resonators. For this, you need to provide the resonator transfer function and the corresponding frequency axis in <code>Par.FrequencyResponse</code>, as well as the microwave frequency in <code>Par.mwFreq</code> (see below for details).
+</p>
 
 <!-- ============================================================= -->
 <a name="mixer"><div class="subtitle">Up- and downconversion</div></a>
 
+<p>
 The pulse shape IQ data generated by <a class="esf" href="pulse.html">pulse</a> do not constitute the pulse shape as it is applied to the spins in a sample. For this purpose, the IQ data have to be used to modulate a microwave source, using IQ modulation. EasySpin provides the function <a class="esf" href="rfmixer.html">rfmixer</a> for this purpose. Say you have IQ data for a shaped pulse
+</p>
 
 <pre class="matlab">
-Par.tp = 0.200;  % us
+Par.tp = 0.200;  % µs
 Par.Type = 'WURST/linear';
 Par.Frequency = [-50 50];
 Par.nwurst = 10;
@@ -135,6 +151,7 @@ Par.nwurst = 10;
 
 <p>
 Now you can feed these IQ data into <a class="esf" href="rfmixer.html">rfmixer</a>, together with a microwave LO (local oscillator) frequency, to get the actual microwave pulse.
+</p>
 
 <pre class="matlab">
 mwFreq = 3; % GHz
@@ -143,26 +160,30 @@ mwFreq = 3; % GHz
 
 <p>
 The last input <code>'IQmod'</code> tells the function to perform IQ modulation, that's what is needed to convert IQ data to a microwave signal. <a class="esf" href="rfmixer.html">rfmixer</a> supports many other modes, including IQ demodulation (<code>'IQdemod'</code>; modelling a quadrature mixture as typically used in a pulse EPR detector), single-sideband up- and down-conversion (<code>'USB'</code>, <code>'LSB'</code>), etc.
+</p>
 
 <p>
 <a class="esf" href="rfmixer.html">rfmixer</a> can take a series of options in a optional structure. The most important one is the time step, in <code>Opt.dt</code>:
+</p>
 
 <pre class="matlab">
-Opt.dt = 0.0001; % us
+Opt.dt = 0.0001; % µs
 [t,V] = rfmixer(tIQ,IQ,mwFreq,'IQmod',Opt);
 </pre>
 
 <p>
 If it is not given, a time step appropriate for the microwave frequency and the input data is determined automatically.
+</p>
 
 <!-- ============================================================= -->
 <a name="profile"><div class="subtitle">Excitation profiles</div></a>
 
 <p>
 You can calculate the excitation profile of a pulse of arbitrary shape using EasySpin's function <a class="esf" href="exciteprofile.html">exciteprofile</a>. At minimum, it requires the time axis <code>t</code> and the IQ data <code>IQ</code> as inputs. Let's take a WURST pulse with a linear frequency sweep:
+</p>
 
 <pre class="matlab">
-Par.tp = 0.100;  % us
+Par.tp = 0.100;  % µs
 Par.Type = 'WURST/linear';
 Par.Frequency = [0 100];
 Par.nwurst = 20;
@@ -171,6 +192,7 @@ Par.nwurst = 20;
 
 <p>
 The output from <a class="esf" href="pulse.html">pulse</a> can be fed directly into <a class="esf" href="exciteprofile.html">exciteprofile</a>:
+</p>
 
 <pre class="matlab">
 exciteprofile(t,IQ);
@@ -178,9 +200,11 @@ exciteprofile(t,IQ);
 
 <p>
 This will plot the excitation profile, showing the x, y and z components of the magnetic moment after the pulse, as a function of frequency offset. This is the actual excitation profile of the pulse, calculated using quantum dynamics, and not just the Fourier transform of the pulse shape (which is a decent approximation only for small flip angles).
+</p>
 
 <p>
 To obtain the excitation profile, ask <a class="esf" href="exciteprofile.html">exciteprofile</a> for outputs:
+</p>
 
 <pre class="matlab">
 [offsets,M] = exciteprofile(t,IQ);
@@ -188,6 +212,7 @@ To obtain the excitation profile, ask <a class="esf" href="exciteprofile.html">e
 
 <p>
 <code>M</code> contains the x, y, and z components of the magnetic moments, one per row. <code>offsets</code> is a vector of frequency offsets, in MHz. You can use this to plot the excitation profile:
+</p>
 
 <pre class="matlab">
 Mz = M(3,:);  % z component
@@ -199,9 +224,11 @@ plot(offsets,Mz);
 
 <p>
 The ideal pulse shapes provided by <a class="esf" href="pulse.html">pulse</a> generally differ from the pulses experienced by the spins in the sample due to phase and amplitude distortions caused by the resonator transfer function (limited bandwidth of the resonator). The functions <a class="esf" href="resonator.html">resonator</a> and <a class="esf" href="pulse.html">pulse</a> can be used to simulate these effects or to adapt the pulses to compensate for them.
+</p>
 
 <p>
 The effect of the resonator transfer function on a pulse can be modelled using the <a class="esf" href="resonator.html">resonator</a> function with the <code>'simulate'</code> option. First, the ideal pulse shape is calculated using <a class="esf" href="pulse.html">pulse</a> and then fed into <a class="esf" href="resonator.html">resonator</a> with additional information on the resonator properties:
+</p>
 
 <pre class="matlab">
 ResFreq = 9.50; % resonator center frequency, GHz
@@ -213,6 +240,7 @@ mwFreq = 9.49; % GHz
 
 <p>
 To adapt the pulse shape to compensate for this distortion, use the option <code>'compensate'</code>:
+</p>
 
 <pre class="matlab">
 [t_compensated,signal_compensated] = resonator(t_ideal,signal_ideal,mwFreq,ResFreq,ResQL,'compensate');
@@ -220,15 +248,17 @@ To adapt the pulse shape to compensate for this distortion, use the option <code
 
 <p>
 If an experimental resonator transfer function has been determined, this can be used in <a class="esf" href="resonator.html">resonator</a> by supplying the corresponding frequency axis and the transfer function instead of the resonator center frequency and loaded Q-value.
+</p>
 
 <p>
 In the case of frequency-swept pulses, the sweep rate can be adapted to account for the resonator bandwidth limitations and achieve offset-independent adiabaticity. This sweep rate adaptation is implemented within <a class="esf" href="pulse.html">pulse</a>.
 In addition to defining the pulse properties, the microwave center frequency of the pulse needs to be defined in <code>Par.mwFreq</code> and the resonator profile and corresponding frequency axis need to be supplied in <code>Par.FrequencyResponse</code>:
+</p>
 
 <pre class="matlab">
 Par.Type = 'sech/tanh';
-Par.tp = 0.200; % µs
-Par.Frequency = [-80 80]; % MHz
+Par.tp = 0.200;  % µs
+Par.Frequency = [-80 80];  % MHz
 Par.beta = 8; 
 
 Par.mwFreq = 33.85;  % GHz
@@ -242,9 +272,11 @@ pulse(Par);
 
 <p>
 In addition to the resonator, another source of non-linear distortions is the transmitter, mostly the high-power amplifier. Often, the amplifier is driven in partial saturation. In this case, its output power is not a linear function of the input power.
+</p>
 
 <p>
 The <a class="esf" href="transmitter.html">transmitter</a> function allows to simulate the effect of this distortion on a pulse shape, and also to compensate a pulse shape to account for this. In either case, you need to provide the power transfer curve that maps the input amplitude (<code>Ain</code>) to the output amplitude (<code>Aout</code>). To simulate the effect, provide the pulse shape input signal and use the <code>'simulate'</code> option. Be careful to properly scale the input signal so it is within the range of <code>Ain</code>.
+</p>
 
 <pre class="matlab">
 [t,signal_ideal] = pulse(Par); % generate an ideal pulse shape
@@ -254,6 +286,7 @@ signal_distorted = transmitter(signal_ideal,Ain,Aout,'simulate');
 
 <p>
 To compensate for the distortion, provide the desired output signal (ideal pulse) on the scale of the output signal amplitudes (<code>Aout</code> in the example below) and use the <code>'compensate'</code> option:
+</p>
 
 <pre class="matlab">
 [t,signal_ideal] = pulse(Par); % generate an ideal pulse shape
@@ -263,9 +296,11 @@ signal_compensated = transmitter(signal_ideal*max(Aout)/Par.Amplitude,Ain,Aout,'
 
 <p>
 This will return an amplitude-compensated signal.
+</p>
 
 <p>
-Additional details can be found in the reference page of <a class="esf" href="transmitter.html">transmitter</a> and in the <a class="esf" href="examplesmain.html">Examples</a>.
+Additional details can be found in the reference page of <a class="esf" href="transmitter.html">transmitter</a> and in the <a class="esf" href="examplesmain.html#pulse shaping">Examples</a>.
+</p>
 
 <hr>
 </section>

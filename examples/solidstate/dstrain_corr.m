@@ -2,6 +2,7 @@
 %----------------------------------------------------
 
 clear, clf
+
 Sys.S = 1;
 Sys.D = [800 80];
 Sys.DStrain = [100 33];
@@ -12,12 +13,13 @@ Exp.CenterSweep = [340 100];
 
 % Varying the correlation coefficient
 Sys.DStrainCorr = 0; % no correlation
-[x,y0] = pepper(Sys,Exp);
+[B,spc0] = pepper(Sys,Exp);
 Sys.DStrainCorr = +1; % perfect correlation
-[x,yp] = pepper(Sys,Exp);
+[B,spcp] = pepper(Sys,Exp);
 Sys.DStrainCorr = -1; % anticorrelation
-[x,ym] = pepper(Sys,Exp);
+[B,spcm] = pepper(Sys,Exp);
 
-plot(x,y0,x,yp,x,ym);
-legend('correlation = 0','correlation = +1','correlation = -1');
+% Plotting
+plot(B,spc0,B,spcp,B,spcm);
+legend('D/E correlation = 0','D/E correlation = +1','D/E correlation = -1');
 legend boxoff

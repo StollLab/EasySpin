@@ -88,4 +88,4 @@ if RowVec
   y_filtered = y_filtered.';
 end
 
-return
+end

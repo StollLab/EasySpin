@@ -9,7 +9,7 @@ clear, clf, clc
 Exp.Sequence = '2pESEEM';
 Exp.mwFreq = 9.5; % GHz
 Exp.dt = 0.015; % mus
-Exp.nPoints = 128;
+Exp.nPoints = 1024;
 Exp.ExciteWidth = 200; % MHz
 Exp.tau = 0.001; % mus
 
@@ -23,10 +23,11 @@ Fields = 300:2:350;
 
 for k = 1:numel(Fields)
   Exp.Field = Fields(k);
-  [t,td,out] = saffron(Sys,Exp,Opt);
-  spc(k,:) = real(out.fd);
+  [t,td,info] = saffron(Sys,Exp,Opt);
+  spc(k,:) = real(info.fd);
 end
 
 spc = spc/max(abs(spc(:)));
-stackplot(out.f,spc,0,0.025);
-xlim([0 max(out.f)]);
+stackplot(info.f,spc,{'maxabs',4},Fields,compose('%1.0f mT',Fields));
+xlim([0 max(info.f)]);
+xlabel('\nu (MHz)')

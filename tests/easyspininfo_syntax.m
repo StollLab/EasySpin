@@ -1,4 +1,4 @@
 function ok = test()
 
-a = easyspininfo;
-ok = true;
+info = easyspin('info');
+ok = isstruct(info);

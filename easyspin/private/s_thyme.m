@@ -1,17 +1,15 @@
 % thyme  Time domain evolution of density matrix
-function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events] = s_thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
+function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events] = ...
+  s_thyme(Sigma,Ham0,Det,Events,Relaxation,Vary)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
-if (nargout>5), error('Too many output arguments.'); end
-if (nargin<4) || (nargin>6), error('Wrong number of input arguments!'); end
-
+if nargout>5, error('Too many output arguments.'); end
+if nargin<4 || nargin>6, error('Wrong number of input arguments!'); end
 
 nEvents = length(Events);
 
-
 nDet = numel(Det);
-normsDet = zeros(1,nDet);
 Ham0 = Ham0*2*pi;
 
 % Create some variables for bookkeeping
@@ -19,7 +17,7 @@ if ~isempty(Vary)
   nDimensions = numel(Vary.Points);
   DimensionIndices = ones(1,nDimensions);
   nPoints = prod(Vary.Points);
-  IndirectDimensions = num2cell(Vary.Points); % This is used to store the out put in structures that correspond to the dimensions
+  IndirectDimensions = num2cell(Vary.Points); % This is used to store the output in structures that correspond to the dimensions
 else
   nDimensions = 0;
   nPoints = 1;
@@ -480,11 +478,15 @@ for iPoints = 1 : nPoints
       
       n = size(Sigma,1);
       
-      for iDet = 1:length(Det)
+      % Normalize detection operators and arrange for efficient
+      % trace calculation.
+      DetArray = zeros(nDet,n^2);
+      for iDet = 1:nDet
         Det{iDet} = reshape(Det{iDet}.',1,n^2);
-        normsDet(iDet) = Det{iDet}*Det{iDet}';
+        normDet_ = Det{iDet}*Det{iDet}';
+        DetArray(iDet,:) = Det{iDet}/normDet_;
       end
-      currentSignal(:,1) = Detect(Sigma,Det,normsDet);
+      currentSignal(:,1) = DetArray*Sigma(:);
       
     else
       switch currentEvent.type
@@ -566,7 +568,7 @@ for iPoints = 1 : nPoints
             % Store expectation values and density matrix if requested
             %----------------------------------------------------------
             if currentEvent.Detection
-              currentSignal(:,iWavePoint+1) = Detect(Sigma,Det,normsDet);
+              currentSignal(:,iWavePoint+1) = DetArray*Sigma(:);
             end
             
             if currentEvent.StateTrajectories
@@ -651,7 +653,7 @@ for iPoints = 1 : nPoints
           % Stores expectation values and denisty matrices if requested
           %------------------------------------------------------------
           if currentEvent.Detection
-            currentSignal(:,itvector) = Detect(Sigma,Det,normsDet);
+            currentSignal(:,itvector) = DetArray*Sigma(:);
           end
           
           if currentEvent.StateTrajectories
@@ -766,11 +768,11 @@ for iPoints = 1 : nPoints
         % an event is changed along one of the indirect dimensions, this
         % change might not scale with the time step (think of it as the
         % least common denominator). An extreme example would be:
-        % 1st Acquisition: tau1 = 0.5 us, tau2 = 0.5 us, dt = 0.2 us
-        %                  total detection time = 0.5 + 0.5 = 1 us
+        % 1st Acquisition: tau1 = 0.5 µs, tau2 = 0.5 µs, dt = 0.2 µs
+        %                  total detection time = 0.5 + 0.5 = 1 µs
         %                  total number of data points = 2 + 2 = 4
-        % 2nd Acquisition: tau1 = 0.4 us, tau2 = 0.6 us, dt = 0.2 us
-        %                  total detection time = 0.4 + 0.6 = 1 us
+        % 2nd Acquisition: tau1 = 0.4 µs, tau2 = 0.6 µs, dt = 0.2 µs
+        %                  total detection time = 0.4 + 0.6 = 1 µs
         %                  total number of data points = 2 + 3 = 5
         % These are usually very minor numerical differences (not
         % necessesarily errors) that come from the time discretization step
@@ -801,7 +803,7 @@ for iPoints = 1 : nPoints
           
           % If only one detection operator is used, the squeeze above also
           % rotates the signal vector and we have to reverse the rotation.
-          if length(Det) == 1
+          if nDet==1
             NewSignalArray{indexID{:}} = NewSignalArray{indexID{:}}.';
           end
           
@@ -886,61 +888,55 @@ for iRes = 0:vertRes
   UTable{iRes+1} = U;
 end
 
-  function U = Propagator(Ham,dt)
-    U = expm(-1i*Ham*dt);
-    
-    function [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
-      
-      SigmassTable = cell(1,vertRes+1);
-      LTable = cell(1,vertRes+1);
-      
-      for ivertRes = 0:vertRes
-        Ham1 = scale*(ivertRes-vertRes/2)*real(xOp);
-        Ham = Ham0 + Ham1;
-        [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
-        LTable{ivertRes+1} = L;
-        SigmassTable{ivertRes+1} = SigmaSS;
-      end
-      
-      function [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt)
-        
-        n = size(Ham,1);
-        
-        HamSuOp = kron(eye(n,n),Ham)-kron(Ham.',eye(n,n));
-        L = -1i*HamSuOp-Gamma;
-        SigmaSS = Gamma*equilibriumState; % steady state solutions for the density matrices
-        SigmaSS = -L\SigmaSS;
-        L = expm(L*dt); %calculations of the Liouvillians
-        
-        function detectedSignal = Detect(Sigma,Det,normsDet)
-          
-          nDet = numel(Det);
-          Density = Sigma(:);
-          detectedSignal = zeros(nDet,1);
-          
-          for iDet = 1:nDet
-            detectedSignal(iDet) = Det{iDet}*Density/normsDet(iDet);
-          end
-          
-          function LoadedElement = LoadfromArray(Array, ArrayIndex)
-            % This function loads an element from an Array (numeric or cell) for a
-            % given ArrayIndex (vector)
-            nPerDimension = size(Array);
-            IndexToLoad = ones(1,length(ArrayIndex));
-            if length(ArrayIndex) == 1
-              if ArrayIndex <= nPerDimension(2)
-                IndexToLoad = ArrayIndex;
-              end
-            else
-              for i = 1 : length(nPerDimension)
-                if ArrayIndex(i) <= nPerDimension(i)
-                  IndexToLoad(i) = ArrayIndex(i);
-                end
-              end
-            end
-            IndexToLoad = num2cell(IndexToLoad);
-            if iscell(Array)
-              LoadedElement = Array{IndexToLoad{:}};
-            else
-              LoadedElement = Array(IndexToLoad{:});
-            end
+
+function U = Propagator(Ham,dt)
+U = expm(-1i*Ham*dt);
+
+
+function [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
+
+SigmassTable = cell(1,vertRes+1);
+LTable = cell(1,vertRes+1);
+
+for ivertRes = 0:vertRes
+  Ham1 = scale*(ivertRes-vertRes/2)*real(xOp);
+  Ham = Ham0 + Ham1;
+  [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
+  LTable{ivertRes+1} = L;
+  SigmassTable{ivertRes+1} = SigmaSS;
+end
+
+
+function [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt)
+
+n = size(Ham,1);
+
+HamSuOp = kron(eye(n,n),Ham)-kron(Ham.',eye(n,n));
+L = -1i*HamSuOp-Gamma;
+SigmaSS = Gamma*equilibriumState; % steady state solutions for the density matrices
+SigmaSS = -L\SigmaSS;
+L = expm(L*dt); %calculations of the Liouvillians
+
+
+function LoadedElement = LoadfromArray(Array, ArrayIndex)
+% This function loads an element from an Array (numeric or cell) for a
+% given ArrayIndex (vector)
+nPerDimension = size(Array);
+IndexToLoad = ones(1,length(ArrayIndex));
+if length(ArrayIndex) == 1
+  if ArrayIndex <= nPerDimension(2)
+    IndexToLoad = ArrayIndex;
+  end
+else
+  for i = 1 : length(nPerDimension)
+    if ArrayIndex(i) <= nPerDimension(i)
+      IndexToLoad(i) = ArrayIndex(i);
+    end
+  end
+end
+IndexToLoad = num2cell(IndexToLoad);
+if iscell(Array)
+  LoadedElement = Array{IndexToLoad{:}};
+else
+  LoadedElement = Array(IndexToLoad{:});
+end

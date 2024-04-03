@@ -1,10 +1,12 @@
 % resonator      Simulation of/compensation for the effect of the resonator
 %                on a pulse
 %
-%  [tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu,TransferFunction,'simulate')
-%  [tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu,TransferFunction,'compensate')
-%  [tOut,signalOut] = resonator(tIn,signalIn,mwFreq,nu0,QL,'simulate')
-%  [tIn,signalIn] = resonator(tOut,signalOut,mwFreq,nu0,QL,'compensate')
+%  [t,signal] = resonator(t0,signal0,mwFreq,nu,TransferFunction,'simulate')
+%  [t,signal] = resonator(t0,signal0,mwFreq,nu0,QL,'simulate')
+%
+%  [t,signal] = resonator(t0,signal0,mwFreq,nu,TransferFunction,'compensate')
+%  [t,signal] = resonator(t0,signal0,mwFreq,nu0,QL,'compensate')
+%
 %  ... = resonator(...,Opt)
 %
 %  If the option 'simulate' is selected, resonator() simulates the effect
@@ -23,7 +25,8 @@
 %  Alternatively, the resonator center frequency and the loaded Q-value
 %  can be provided as the second and third input argument and the transfer
 %  function is calculated based on the ideal transfer function of an RLC
-%  series circuit (for details see reference 1).
+%  series circuit (for details see reference 1 and the documentation for
+%  resonatorprofile.m).
 %
 % References:
 % 1. Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G., Adiabatic and
@@ -31,14 +34,14 @@
 %    J. Magn. Reson. 230, 27-39 (2013). (DOI: 10.1016/j.jmr.2013.01.002)
 %
 %  Input:
-%   - t0                   = time axis for the input signal (in µs)
+%   - t0                   = time axis for the input signal (in microseconds)
 %   - signal0              = input signal vector
 %   - mwFreq               = microwave frequency for the input signal
 %                            in GHz
 %   - nu/nu0               = frequency axis for the resonator transfer 
 %                            function (in GHz) or resonator center 
 %                            frequency (in GHz)
-%   - TransferFunction/QL = resonator transfer function or magnitude
+%   - TransferFunction/QL  = resonator transfer function or magnitude
 %                            response or loaded Q-value
 %   - 'simulate'/'compensate'
 %   - Options structure with the following fields:
@@ -46,7 +49,7 @@
 %                               convolution/deconvolution with the resonator
 %                               transfer function
 %                               (default:1/1000)
-%        Opt.TimeStep         = time step in µs (if it is not provided the
+%        Opt.TimeStep         = time step in microseconds (if it is not provided the
 %                               ideal time step is estimated based on the 
 %                               Nyquist condition with an oversampling factor)
 %        Opt.OverSampleFactor = oversampling factor for the determination of the 
@@ -64,7 +67,7 @@
 %                               Opt.Window (see apowin() for details) (default: 0.6)
 %
 %  Output:
-%   - t         = time axis for the output signal (in µs)
+%   - t         = time axis for the output signal (in microseconds)
 %   - signal    = signal modified by the resonator transfer function or
 %                 compensated for the resonator transfer function
 %
@@ -243,15 +246,15 @@ function [f,H] = transferfunction(type,varargin)
 % See:
 % 1. Doll, A., Pribitzer, S., Tschaggelar, R., Jeschke, G.,
 %    Adiabatic and fast passage ultra-wideband inversion in
-%    pulsed EPR. J. Magn. Reson. 230, 27–39 (2013).
-%    http://dx.doi.org/10.1016/j.jmr.2013.01.002
+%    pulsed EPR. J. Magn. Reson. 230, 27-39 (2013).
+%    https://doi.org/10.1016/j.jmr.2013.01.002
 % 2. Pribitzer, S., Doll, A. & Jeschke, G. SPIDYAN, a MATLAB library
 %    for simulating pulse EPR experiments with arbitrary waveform
-%    excitation. J. Magn. Reson. 263, 45–54 (2016). 
-%    http://dx.doi.org/10.1016/j.jmr.2015.12.014
+%    excitation. J. Magn. Reson. 263, 45-54 (2016). 
+%    https://doi.org/10.1016/j.jmr.2015.12.014
 
 % Ideal transfer function (RLC series circuit)
-Hideal = @(f,f0,Q,nu_max) nu_max./(1+1i*Q*(f/f0-f0./f));
+Hideal = @(f,f0,Q,nu_max) nu_max*resonatorprofile(f,f0,Q,'transferfunction');
 
 switch type
   case 'ideal'

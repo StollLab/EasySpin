@@ -19,12 +19,12 @@ switch program
     DefaultExp.nPoints = 1024;
     DefaultExp.Temperature = NaN;
     DefaultExp.Harmonic = NaN;
-    DefaultExp.Mode = '';
+    DefaultExp.mwMode = '';
     DefaultExp.Ordering = [];
     DefaultExp.ModAmp = 0;
     DefaultExp.mwPhase = 0;
 
-    DefaultExp.CrystalOrientation = [];
+    DefaultExp.SampleFrame = [];
     DefaultExp.CrystalSymmetry = '';
     DefaultExp.MolFrame = [];
 
@@ -74,7 +74,7 @@ switch program
           hf = sum(I.*Amax)*1e6; % MHz -> Hz
           if Sys.fullg
             for k = 1:Sys.nElectrons
-              g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));
+              g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));  %#ok
             end
             g = g(:);
           else
@@ -191,32 +191,31 @@ switch program
     end
 
     % Resonator mode
-    if ischar(Exp.Mode) && ~isempty(Exp.Mode)
-      if strcmp(Exp.Mode,'perpendicular')
-      elseif strcmp(Exp.Mode,'parallel')
+    if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
+      if strcmp(Exp.mwMode,'perpendicular')
+      elseif strcmp(Exp.mwMode,'parallel')
       else
-        error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+        error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
       end
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Powder vs. crystal simulation
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
-      error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.CrystalOrientation instead.');
+      error('Exp.Orientation and Exp.Orientations are obsolete (as of EasySpin 5), use Exp.SampleFrame instead.');
     end
-    PowderSimulation = isempty(Exp.CrystalOrientation);
-    Exp.PowderSimulation = PowderSimulation; % for communication with resf*
+
+    info.partiallyOrderedSample = ~isempty(Exp.Ordering);
+    info.crystalSample = ~info.partiallyOrderedSample && (~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry));
+    info.disorderedSample = ~info.partiallyOrderedSample && ~info.crystalSample;
 
     % Partial ordering
-    if ~isempty(Exp.Ordering)
-      if ~PowderSimulation
-        error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
-      end
+    if info.partiallyOrderedSample
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-        UserSuppliedOrderingFcn = 0;
+        userSuppliedOrderingFcn = false;
         logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
-        UserSuppliedOrderingFcn = 1;
+        userSuppliedOrderingFcn = true;
         logmsg(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');
@@ -242,7 +241,7 @@ switch program
       msg = '  no temperature';
     end
     
-    varargout = {UserSuppliedOrderingFcn, NonEquiPops, msg};
+    varargout = {userSuppliedOrderingFcn, NonEquiPops, msg};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'chili'
     if isfield(Exp,'MOMD')
@@ -254,9 +253,9 @@ switch program
     if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
     if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
     if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-    if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+    if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-    if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+    if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
     % Number of points
     if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -409,17 +408,14 @@ switch program
     end
 
     % Resonator mode
-    switch Exp.Mode
+    switch Exp.mwMode
       case 'perpendicular', ParallelMode = false;
       case 'parallel', ParallelMode = true;
-      otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+      otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Complain if fields only valid in pepper() are given
-    if isfield(Exp,'Orientations')
-      warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-    end
     if isfield(Exp,'CrystalSymmetry')
       warning('Exp.CrystalSymmetry is not used by chili.');
     end
@@ -430,10 +426,10 @@ switch program
       %  error('Partial ordering (Exp.Ordering) can only be used in a powder simulation.');
       %end
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
-        UserSuppliedOrderingFcn = false;
+        userSuppliedOrderingFcn = false;
         logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
-        UserSuppliedOrderingFcn = true;
+        userSuppliedOrderingFcn = true;
         logmsg(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');
@@ -450,7 +446,7 @@ switch program
         PowderSimulation = true;
       end    
     else
-      if ~isempty(Exp.CrystalOrientation)
+      if ~isempty(Exp.SampleFrame)
         logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
         PowderSimulation = false;
       else
@@ -459,7 +455,7 @@ switch program
       end
     end
     
-    varargout = {Exp, CenterField, ParallelMode, UserSuppliedOrderingFcn, PowderSimulation};
+    varargout = {Exp, CenterField, ParallelMode, userSuppliedOrderingFcn, PowderSimulation};
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'cardamom'
@@ -469,9 +465,9 @@ switch program
     if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
     if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
     if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-    if ~isfield(Exp,'Mode'), Exp.Mode = 'perpendicular'; end
+    if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-    if ~isfield(Exp,'CrystalOrientation'), Exp.CrystalOrientation = []; end
+    if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
     % Number of points
     if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
@@ -625,17 +621,14 @@ switch program
 %     end
 
 %     % Resonator mode  TODO implement in cardamom
-%     switch Exp.Mode
+%     switch Exp.mwMode
 %       case 'perpendicular', ParallelMode = false;
 %       case 'parallel', ParallelMode = true;
-%       otherwise, error('Exp.Mode must be either ''perpendicular'' or ''parallel''.');
+%       otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 %     end
-%     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.Mode);
+%     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 % 
 %     % Complain if fields only valid in pepper() are given
-%     if isfield(Exp,'Orientations')
-%       warning('Exp.Orientations is obsolete. Use Exp.CrystalOrientations instead.');
-%     end
 %     if isfield(Exp,'CrystalSymmetry')
 %       warning('Exp.CrystalSymmetry is not used by chili.');
 %     end
@@ -666,7 +659,7 @@ switch program
 %         PowderSimulation = true;
 %       end    
 %     else
-%       if ~isempty(Exp.CrystalOrientation)
+%       if ~isempty(Exp.SampleFrame)
 %         logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
 %         PowderSimulation = false;
 %       else

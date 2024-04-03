@@ -1,41 +1,46 @@
-% Two-pulse echo using chirp pulses (saffron)
+% Two-pulse echo transient using chirp pulses (saffron)
 %==========================================================================
-% simulates a chirp echo of a nitroxide using saffron
+% Simulates a chirp echo of a nitroxide using saffron
 
 clear
 
+Exp.Field = 324.9;  % mT
+
 % Spin system
 Sys.g = [2.009 2.006 2.002];
-Sys.A = [11 11 95]; % MHz
 Sys.Nucs = '14N';
-Sys.lwpp = 5;
+Sys.A = [11 11 95];  % MHz
+Sys.lwpp = 5;  % MHz
 
-Exp.Field = 324.9; % mT
-
-pepper(Sys,Exp); % use pepper to obtain field-sweep spectrum to set pulses
+% Simulate frequency-sweep spectrum to set pulse excitation bands
+pepper(Sys,Exp);
 
 %%
 
-% Pulse definitions
-Chirp90.Type = 'quartersin/linear';
-Chirp90.tp = 0.200; % mus
-Chirp90.Flip = pi/2; % rad
-Chirp90.Frequency = [-120 120]; % excitation band, MHz
-Chirp90.trise = 0.030; % rise time, us
+% Define basic experiment parameters
+Exp.mwFreq = 9.1;   % GHz
 
-Chirp180.Type = 'quartersin/linear';
-Chirp180.tp = 0.100; % mus
-Chirp180.Flip = pi; % rad
-Chirp180.Frequency = [-120 120]; % excitation band, MHz
-Chirp180.trise = 0.030; % rise time, us
+% Define pulses
+p90.Type = 'quartersin/linear';
+p90.tp = 0.200;              % pulse length, µs
+p90.Flip = pi/2;             % flip angle, radians
+p90.Frequency = [-120 120];  % excitation band, MHz
+p90.trise = 0.030;           % rise time, µs
 
-tau = 0.5; % mus
-Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp};
-Exp.mwFreq = 9.1; % GHz
-Exp.Field = 324.9; % mT
-Exp.DetWindow = [-0.02 0.02]; % us
-Exp.DetPhase = pi; % rad, for proper phasing of the signal
+p180 = p90;
+p180.tp = 0.100;   % µs
+p180.Flip = pi;    % rad
 
-Opt.GridSize = 20;
+% Define pulse sequence
+tau = 0.2;  % µs
+Exp.Sequence = {p90 tau p180 tau+p180.tp};
+
+% Define detection
+Exp.DetWindow = [-0.15 0.15];  % µs
+Exp.DetPhase = pi;             % rad, for proper phasing of the signal
+
+% Use grid resolution sufficient to get converged echo tails
+Opt.GridSize = 30;
+Opt.Verbosity = true;
 
 saffron(Sys,Exp,Opt);

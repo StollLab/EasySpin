@@ -27,8 +27,8 @@ end
 % (ordering q = k, k-1, ..., -k)
 J = k/2; % use smallest possible J (result C is independent of J)
 for q = -k:k
-  T{k+1-q} = isto(J,[k q]);
-  O{k+1-q} = stev(J,[k,q]);
+  T{k+1-q} = isto(J,[k q]);  %#ok
+  O{k+1-q} = stev(J,[k,q]);  %#ok
 end
 
 % Calculate elements of tranformation matrix via scalar products <O|T>
@@ -39,4 +39,6 @@ for t = 1:2*k+1
   for o = [t 2*k+2-t]
     C(o,t) = trace(O{o}.'*T{t})/traceTT;
   end
+end
+
 end

@@ -70,7 +70,7 @@
 /* #include "mex.h" */  /* now, mex.h included in lbfgsb.h */
 
 #include "mdhmm_lbfgsb.inc"
-// #include "include.c"
+/* #include "include.c"  */
 
 #include <string.h>
 #include <limits.h> /* for CHAR_BIT */
@@ -310,7 +310,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray*prhs[] )   
             for (i=0;i<n;i++)
                 g[i] = tempG[i];
             /* Or, be a bit bolder: */
-            /*g = tempG; // Hmm, crashed */
+            /*g = tempG; /* Hmm, crashed */
 
             continue;
         }
@@ -1422,8 +1422,8 @@ L1000:
 ***************************************************************************
 **************************************************************************/
 
-// #include "lbfgsb.h"
-// static integer c__1 = 1;
+/* #include "lbfgsb.h"  */
+/* static integer c__1 = 1; */
 
 
  int lnsrlb(integer *n, double *l, double *u, 
@@ -2192,7 +2192,7 @@ L1000:
 ***************************************************************************
 **************************************************************************/
     
-// static integer c__1 = 1;
+/* static integer c__1 = 1; */
 
 /* Table of constant values */
 static integer c__11 = 11;
@@ -4775,7 +4775,7 @@ int errclb(integer *n, integer *m, double *factr,
  * See http://people.sc.fsu.edu/~jburkardt/f_src/linpack/linpack.html
  * */
 
-// static integer c__1 = 1;
+/* static integer c__1 = 1; */
 
 int dpofa(double *a, integer *lda, integer *n, integer *
 	info)

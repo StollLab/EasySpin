@@ -13,9 +13,14 @@ else {
     die("publish.pl must be called with an argument that specifies the version to upload. \n");
 }
 
+print "Publishing\n";
+print "------------------------------------------------------\n";
+print "Build: $Build.\n";
+
 # variables imported from config.pl
 our ($SourceDir, $BuildsDir, $UploadDir, $ServerDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, $ChannelForDocumentation, $username, $hostname, @HTMLfiles, $KeyWebserver);
 
+print "Loading config file.\n";
 require './config.pl'; # load configuration file
 
 # settings ------------------------------------------------------------------
@@ -25,8 +30,9 @@ my $WaitTime = 90; # time to wait between Attempts in seconds
 
 my $WebServerLogin = $username."@".$hostname;
 
+# Creating a lock file 
 # ---------------------------------------------------------------------------------
-# creating a lock file 
+print "Creating lock file.\n";
 my $LockFilename = "upload.lock";
 open (my $LockFile,'>'.$SourceDir.'/'.$LockFilename) or die $!;
 
@@ -47,37 +53,26 @@ if ($LockObtained) {
     print "Created lock file. \n";
 }
 else {
-    print "Can not obtain lock, exiting. \n";
+    print "Cannot obtain lock, exiting. \n";
     exit;
 }
 
+# Add key to hostmonster to keychain
 # ---------------------------------------------------------------------------------
-# add key to hostmojster to keychain
 system("ssh-add $KeyWebserver"); # private key to log into hostmonster.com
 
 
+# Set up environment
 # ---------------------------------------------------------------------------------
-# set up environment
 if (-e "$UploadDir") {
     system("rm -r $UploadDir");
 }
 
 system("mkdir $UploadDir");
 
+# Determine the release channel
 # ---------------------------------------------------------------------------------
-# look for zip file with the provided tag
-my $zipFileName = 'easyspin-'.$Build.'.zip';
-
-if (-e "$BuildsDir$zipFileName") {
-    print("Copying $zipFileName to upload directory. \n");
-    system('cp '.$BuildsDir.$zipFileName.' '.$UploadDir.$zipFileName);
-}
-else {
-    die("$zipFileName does not exist in $BuildsDir \n");
-}
-
-# ---------------------------------------------------------------------------------
-# determin the releasechannel
+print "Determining release channel from build ID.\n";
 my $ReleaseChannel;
 my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
 
@@ -98,9 +93,40 @@ else {
     # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
     $ReleaseChannel = $KeyForExperimentalVersion;
 }
+print "  Release channel: $ReleaseChannel.\n";
 
+my $ZipBuild;
+
+if ($BuildID[0]) {
+    my $vMatchPattern = 'v(.*)';
+    my @ShortTag = ($Build =~ m/$vMatchPattern/);
+    if (@ShortTag[0]) {
+        $ZipBuild = $Build;
+        $Build = @ShortTag[0];
+    }
+    else {
+        $ZipBuild = $Build;
+    }
+}
+else {
+    $ZipBuild = $Build;
+}
+
+# Look for zip file with the provided tag
 # ---------------------------------------------------------------------------------
-# regexp to find versions and links to zip files in the html files
+my $zipFileName = 'easyspin-'.$ZipBuild.'.zip';
+my $NewzipFileName = 'easyspin-'.$Build.'.zip';
+
+if (-e "$BuildsDir$zipFileName") {
+    print("Copying $zipFileName to upload directory. \n");
+    system('cp '.$BuildsDir.$zipFileName.' '.$UploadDir.$NewzipFileName);
+}
+else {
+    die("$zipFileName does not exist in $BuildsDir \n");
+}
+
+# Regexp to find versions and links to zip files in the html files
+# ---------------------------------------------------------------------------------
 my $findLinkTozipFile = '<!--'.$ReleaseChannel.'zip-->';
 my $matchzipFile = "easyspin-(.*?).zip";
 my $replacezipFile = "easyspin-$Build.zip";my $replaceLinkTozipFile = '<!--'.$ReleaseChannel.'--><a href="easyspin-'.$Build.'.zip"><!--zip-->';
@@ -111,8 +137,9 @@ my $replaceOldVersion = '<!--'.$ReleaseChannel.'-->'.$Build.'<!--version-->';
 my $matchInVersionsFile = "$ReleaseChannel:.*";
 my $replaceInVersionsFile = "$ReleaseChannel:$Build";
 
+# Get html files from easyspin.org and update them with the new version tags and zipfile names
 # ---------------------------------------------------------------------------------
-# get html files from easyspin.org and update them with the new version tags and zipfile names
+print "Update HTML files.\n";
 foreach (@HTMLfiles) {
     my $CurrentFile = $_;
     print("Getting $CurrentFile \n");
@@ -141,8 +168,8 @@ foreach (@HTMLfiles) {
 print("Deleting backup versions of html files \n");
 system('rm '.$UploadDir.'*.bak');
 
+# Upload entire upload directory to easyspin org and then clean it
 # ---------------------------------------------------------------------------------
-# upload entire upload directory to easyspin org and then clean it
 print("Uploading all new files to easyspin.org \n");
 
 system('scp '.$UploadDir.'* '.$WebServerLogin.':'.$ServerDir);
@@ -151,9 +178,10 @@ system('scp '.$UploadDir.'* '.$WebServerLogin.':'.$ServerDir);
 print("Clear upload directory \n");
 system("rm -R $UploadDir");
 
-# ---------------------------------------------------------------------------------
 # SSH into the server, unzip the build and extract documentation
+# ---------------------------------------------------------------------------------
 # only happens for the release channel that is specified with $ChannelForDocumentation in the config file
+
 if ($ReleaseChannel eq $ChannelForDocumentation) {
     print("Logging into easyspin.org via SSH \n");
     my $SSHSession = Net::SSH::Perl->new($hostname);
@@ -161,8 +189,8 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
 
     my $changeDir = "cd ".$ServerDir." \n";
     my $rmFolders = "rm -rf ./documentation ./examples \n";
-    my $unzipDoc = qq(unzip -qq $zipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
-    my $unzipExamples = qq(unzip -qq $zipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
+    my $unzipDoc = qq(unzip -qq $NewzipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
+    my $unzipExamples = qq(unzip -qq $NewzipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
     my $moveFiles = qq(cp -r ./tmp/easyspin-$Build/* ./ \n);
     my $rmTempDir = qq(rm -r ./tmp \n);
 
@@ -174,9 +202,9 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
 
 }
 
+# Clean up lock file and exit
 # ---------------------------------------------------------------------------------
-# Clean up LockFile and exit
-print "removing LockFile \n";
+print "removing lock file \n";
 close $LockFile;
 system('rm '.$SourceDir.'/'.$LockFilename);
 

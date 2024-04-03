@@ -1,9 +1,9 @@
 function ok = test()
 
 Isotopes = '112Sn';
-[s] = nucdata(Isotopes);
-[s,gn] = nucdata(Isotopes);
-[s,gn,qm] = nucdata(Isotopes);
-[s,gn,qm,ab] = nucdata(Isotopes);
+[I] = nucdata(Isotopes);
+[I,gn] = nucdata(Isotopes);
+[I,gn,qm] = nucdata(Isotopes);
+[I,gn,qm,ab] = nucdata(Isotopes);
 
 ok = true;

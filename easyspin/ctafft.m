@@ -16,16 +16,16 @@
 
 function FD = ctafft(TD,Averages,N)
 
-if (nargin==0), help(mfilename); return; end
+if nargin==0, help(mfilename); return; end
 
 % Set default for third (optional) argument N.
 if nargin<3, N = size(TD,1); end
 
-if any(Averages<0) || any(mod(Averages,1)),
+if any(Averages<0) || any(mod(Averages,1))
   error('Averages must contain positive integers!');
 end
 
-if numel(Averages)==1,
+if numel(Averages)==1
   Averages = 1:Averages;
 end
 
@@ -48,38 +48,4 @@ FD = sqrt(FD/numel(Averages));
 % Convert column vector back to row.
 if RowVec, FD = FD.'; end
 
-return
-
-% Testing area
-%============================================================
-clear, close all
-
-dt=0.01; tmax=3;
-t=0:dt:tmax;
-fs=[22 35 40 50 56 76];
-a=[.1 1 1 1 1 1];
-tau=[4 1 .7 .8 1 .5]*.05;
-td=zeros(1,length(t));
-for i=1:length(fs);
-  td=td+a(i)*exp(2*pi*j*fs(i)*t).*exp(-t/tau(i));
-end;
-plot(real(td));
-
-fd=fft(td,1024);
-subplot(221); 
-plot(real(fd)); axis tight;
-title('absorption spectrum');
-
-subplot(222);
-plot(abs(fd)); axis tight;
-title('magnitude spectrum');
-
-td1=td(2:length(td));
-fd1=fft(td1,1024);
-subplot(223);
-plot(abs(fd1)); axis tight;
-title('magnitude spectrum with dead time');
-
-subplot(224);
-plot(ctafft(td1,40,1024)); axis tight;
-title('cross term averaged spectrum');
+end

@@ -32,3 +32,4 @@ legend('exact','Curie law');
 legend boxoff
 xlabel('temperature (K)');
 ylabel('molar magnetic susceptibility (m^3 mol^{-1})');
+grid on

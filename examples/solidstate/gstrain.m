@@ -16,23 +16,23 @@ nFreqs = numel(Freqs);
 
 % Simulating all spectra with and without g strain
 %------------------------------------------------------------
-for k=1:nFreqs
+for k = 1:nFreqs
   Exp.mwFreq = Freqs(k);
   Exp.Range = Ranges(k,:);
   
   Sys.gStrain = [0 0 0];
-  [x{k},y1{k}] = pepper(Sys,Exp);
+  [B{k},spc1{k}] = pepper(Sys,Exp);
   Sys.gStrain = gStrain;
-  [x{k},y2{k}] = pepper(Sys,Exp);
+  [B{k},spc2{k}] = pepper(Sys,Exp);
 end
 
 % Graphical rendering of the results
 %------------------------------------------------------------
 for k = 1:nFreqs
   subplot(nFreqs,1,k);
-  h = plot(x{k},y1{k}/max(y1{k}),'r',x{k},y2{k}/max(y2{k}),'k');
+  h = plot(B{k},spc1{k}/max(spc1{k}),'r',B{k},spc2{k}/max(spc2{k}),'k');
   axis tight
   xx = xlim;
-  text(xx(1),mean(ylim),sprintf('  %g GHz',Freqs(k)),'FontSize',8);
+  text(xx(1),0.8,sprintf('  %g GHz',Freqs(k)),'FontSize',8);
 end
-xlabel('magnetic field [mT]');
+xlabel('magnetic field (mT)');

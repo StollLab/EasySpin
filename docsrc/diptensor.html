@@ -5,8 +5,8 @@
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>diptensor</title>
 </head>
 
@@ -36,78 +36,103 @@ Calculate dipolar tensors.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-T = diptensor(spin1,spin2,rvec)
+T = diptensor(g1,g2,rvec)
+T = diptensor(g,nuc,rvec)
+T = diptensor(nuc,g,rvec)
+T = diptensor(nuc1,nuc2,rvec)
 </pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>diptensor</code> calculates the dipolar coupling tensor <code>T</code> between <code>spin1</code> and <code>spin2</code>, using the inter-spin distance vector <code>rvec</code>. It works for dipolar couplings between two electrons, for dipolar couplings between two nuclei, and for dipolar hyperfine couplings between an electron and a nucleus. See the corresponding interactions in the <a href="hamiltonian.html">spin Hamiltonian</a>.
+<code>diptensor</code> calculates the dipolar coupling tensor <code>T</code> (in MHz) between two spins, using the inter-spin distance vector <code>rvec</code> (in nm). It works for dipolar couplings between two electrons, for dipolar couplings between two magnetic nuclei, and for dipolar hyperfine couplings between an electron and a magnetic nucleus. See the corresponding interactions in the <a href="hamiltonian.html">spin Hamiltonian</a>.
 </p>
 
 <p>
-<code>spin1</code> and <code>spin2</code> specify the type of spin. For an electron, use <code>'e'</code>. For a nucleus, give the isotope, for example <code>'1H'</code>, <code>'2H'</code>, <code>'13C'</code>, <code>'15N'</code>, etc.
+<code>g1</code>, <code>g2</code> and <code>g</code> specify the g tensor for an electron. For an isotropic g value, provide a single number. For an anisotropic g tensor, provide either the full 3x3 matrix or the principal values and the Euler angles
+</p>
+
+<pre class="matlab">
+g = 2.005;  % isotropic g
+g = diag([2.0085 2.0065 2.0023]);      % full g matrix (here diagonal)
+g = {[2 2.05 2.13],[30 68 0]*pi/180};  % principal values and Euler angles
+</pre>
+
+<p>
+The Euler angles define the transformation between the molecular frame (in which <code>rvec</code> is assumed to be defined) and the g tensor eigenframe. This is identical to the <code>gFrame</code> field in the <a href="spinsystem.html">spin system structure</a>.
 </p>
 
 <p>
-<code>rvec</code> is the 3-element vector pointing from the first spin to the second spin, in units of nm.
+<code>nuc1</code>, <code>nuc2</code> and <code>nuc</code> specify the nuclear isotope, for example <code>'1H'</code>, <code>'2H'</code>, <code>'13C'</code>, <code>'15N'</code>, etc.
 </p>
-    
+
 <p>
-The tensor <code>T</code> is a 3x3 matrix, in units of MHz. It is for the Hamiltonian H = J1*T*J2, where J1 is the spin vector operator of <code>spin1</code>, and J2 is the spin vector operator for <code>spin2</code>.
+<code>rvec</code> is the 3-element vector originating from the first spin and pointing to the second spin, in units of nm.
+</p>
+
+<p>
+The tensor <code>T</code> is a 3x3 matrix, in units of MHz. It is for the Hamiltonian H = S1*T*S2, where S1 and S2 are the spin vector operators for the first and second spin, respectively.
 </p>
 
 <!-- ========================================================== -->
 <div class="subtitle">Examples</div>
 
 <p>
-The dipolar coupling tensor between two electrons spaced 1 nm apart along the z direction is
+The dipolar coupling tensor between two electrons spaced 1 nm apart along the molecular z direction is
 </p>
+
 <pre class="matlab">
-rvec = [0; 0; 1]; % nm
-T = diptensor('e','e',rvec)
+rvec = [0; 0; 1];  % nm
+T = diptensor(gfree,gfree,rvec)
 </pre>
+
 <pre class="mloutput">
-    T =
+T =
     52.0410         0         0
           0   52.0410         0
           0         0 -104.0820
 </pre>
 
 <p>
-The hyperfine coupling tensor between an electron and a proton located 0.3 nm away along the x axis is
+The hyperfine coupling tensor between an electron and a proton located 0.3 nm away along the molecular x axis is
 </p>
+
 <pre class="matlab">
-A = diptensor('e','1H',[0.3;0;0])
+rvec = [0.3; 0; 0];  % nm
+A = diptensor(gfree,'1H',rvec)
 </pre>
+
 <pre class="mloutput">
 A =
-    19.7661         0         0
-          0   -9.8830         0
-          0         0   -9.8830
+    5.8566         0         0
+         0   -2.9283         0
+         0         0   -2.92830
 </pre>
 
 <p>
 The dipolar coupling tensor between two electrons 1.5 nm apart in the direction given by polar angles theta = pi/4 and phi = pi/3 is
 </p>
+
 <pre class="matlab">
 phi = pi/3;    % rad
 theta = pi/4;  % rad
 r = 1.5;       % nm
 rvec = ang2vec(phi,theta)*r;
-T = diptensor('e','e',rvec)
+T = diptensor(gfree,gfree,rvec)
 </pre>
+
 <pre class="mloutput">
 T =
-    9.6372      -10.015      -11.565
-   -10.015      -1.9274      -20.031
-   -11.565      -20.031      -7.7098
+    9.6372  -10.0153  -11.5647
+  -10.0153   -1.9274  -20.0306
+  -11.5647  -20.0306   -7.7098
 </pre>
 
 <p>
 The eigenvalues of this matrix give the principal values of the tensor
 </p>
+
 <pre class="matlab">
 eig(T)
 </pre>
@@ -117,29 +142,124 @@ ans =
      15.4196
      15.4196
 </pre>
+
 <p>
 The associated principal directions are the columns of the eigenvector matrix
 </p>
+
 <pre class="matlab">
 [Tpd,Tpv] = eig(T);
 Tpd              % eigenvector matrix
 </pre>
+
 <pre class="mloutput">
 Tpd =
     0.3536    0.8660    0.3536
     0.6124   -0.5000    0.6124
     0.7071         0   -0.7071
 </pre>
-    
+
+<p>
+To calculate the dipolar coupling tensor between two spin centers with anisotropic g, there are two input options. Either provide the full g tensors
+</p>
+
+<pre class="matlab">
+g1 = [2.0723   -0.0439    0.0378
+     -0.0439    2.0428    0.0238
+      0.0378    0.0238    2.1549];
+g2 = [1.9052         0    0.0244
+           0    1.9500         0
+      0.0244         0    2.0148];
+rvec = [0;0.3;1];
+T = diptensor(g1,g2,rvec)
+</pre>
+
+<pre class="mloutput">
+T =
+   45.0248   -1.4288   -0.1124
+   -1.4350   33.7441  -39.7333
+   -0.2349  -39.1764  -87.2182
+</pre>
+
+<p>
+Or provide the principal values of the tensor and the Euler angles describing the transformation from the molecular frame to the tensor frame
+</p>
+
+<pre class="matlab">
+g1pv = [2 2.1 2.17];
+g1Frame = [10 20 40]*pi/180;
+
+g2pv = [1.9 1.95 2.02];
+g2Frame = [0 12 0]*pi/180;
+
+rvec = [0;0.3;1];
+T = diptensor({g1pv,g1Frame},{g2pv,g2Frame},rvec)
+</pre>
+
+<pre class="mloutput">
+T =
+   45.0238   -1.4284   -0.1130
+   -1.4346   33.7445  -39.7319
+   -0.2350  -39.1778  -87.2200
+</pre>
+
+<p>
+Note that in either case, as a result of the anisotropic g tensors involved, the output tensor is not symmetric. To decompose it into its isotropic, symmetric and antisymmetric parts, use
+</p>
+
+<pre class="matlab">
+T0 = trace(T)*eye(3)   % isotropic component
+Ts = (T+T.')/2 - T0    % traceless symmetric component
+Ta = (T-T.')/2         % antisymmetric component
+</pre>
+
+<pre class="mloutput">
+T0 =
+   -8.4518         0         0
+         0   -8.4518         0
+         0         0   -8.4518
+Ts =
+   53.4755   -1.4315   -0.1740
+   -1.4315   42.1963  -39.4549
+   -0.1740  -39.4549  -78.7683
+Ta =
+         0    0.0031    0.0610
+   -0.0031         0   -0.2771
+   -0.0610    0.2771         0
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+The function implements the expression
+</p>
+
+<div class="eqn">
+<img src="eqn/diptensor1.png" alt="[eqn]"><!--MATH
+$$
+T =
+-\frac{\mu_0}{4\pi}
+m_1^\trp
+\frac{3\vc{n}\vc{n}^\trp - 1}{r^3}
+m_2
+$$
+-->
+</div>
+
+<p>
+where <img src="eqn/diptensor2.png" alt="[eqn]"><!--MATH$m_1$--> and <img src="eqn/diptensor3.png" alt="[eqn]"><!--MATH$m_2$--> are <img src="eqn/diptensor4.png" alt="[eqn]"><!--MATH$-\mu_\mr{B} g$--> for an electron and <img src="eqn/diptensor5.png" alt="[eqn]"><!--MATH$+\mu_\mr{N}g_\mr{n}$--> for a nuclear spin. <img src="eqn/diptensor6.png" alt="[eqn]"><!--MATH$g$--> is the g tensor. <img src="eqn/diptensor7.png" alt="[eqn]"><!--MATH$\vc{n} = \vc{r}/\|\vc{r}\|$--> is the unit vector pointing from spin 1 to spin 2 (or vice versa) and <img src="eqn/diptensor8.png" alt="[eqn]"><!--MATH$r = \|\vc{r}\|$--> is the inter-spin distance.
+</p>
+
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>
 <p>
 <a class="esf" href="ang2vec.html">ang2vec</a>,
 <a class="esf" href="angstrom.html">angstrom</a>,
 <a class="esf" href="bmagn.html">bmagn</a>,
-<a class="esf" href="eeint.html">eeint</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>,
 <a class="esf" href="gfree.html">gfree</a>,
-<a class="esf" href="hfine.html">hfine</a>,
+<a class="esf" href="ham_hf.html">ham_hf</a>,
 <a class="esf" href="isotopes.html">isotopes</a>,
 <a class="esf" href="mu0.html">mu0</a>,
 <a class="esf" href="nmagn.html">nmagn</a>,

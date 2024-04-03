@@ -13,4 +13,4 @@ function [E,sigma] = hartree
 E =     4.3597447222071e-18;
 sigma = 0.0000000000085e-18;
 
-return
+end

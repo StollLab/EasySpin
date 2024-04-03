@@ -19,10 +19,10 @@ clear
 ZFreqs = [9.4 9.5 9.6]; % GHz
 
 Pulse.Type = 'quartersin/linear';
-Pulse.trise = 0.1; % us
+Pulse.trise = 0.1; % µs
 Pulse.Qcrit = 5; % If a critical adiabaticity is provided for the Pulse,
 % Pulse.Flip does not need to be defined or will be ignored
-Pulse.tp = 0.5; % us
+Pulse.tp = 0.5; % µs
 Pulse.Frequency = [-200 200]; % MHz
 
 Exp.Sequence = {Pulse};
