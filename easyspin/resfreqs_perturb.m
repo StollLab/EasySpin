@@ -159,6 +159,9 @@ Exp = adddefaults(Exp,DefaultExp);
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
 end
+if isfield(Exp,'Mode')
+  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
+end
 
 err = '';
 if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end

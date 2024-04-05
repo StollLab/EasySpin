@@ -228,6 +228,9 @@ end
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
 end
+if isfield(Exp,'Mode')
+  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
+end
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)

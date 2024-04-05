@@ -124,6 +124,9 @@ Exp = adddefaults(Exp,DefaultExp);
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
 end
+if isfield(Exp,'Mode')
+  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
+end
 
 if isnan(Exp.mwFreq), error('Exp.mwFreq is missing!'); end
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
