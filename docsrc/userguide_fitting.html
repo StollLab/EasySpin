@@ -420,12 +420,12 @@ Alternatively, you can write code that does two- or multistage fitting. Let's lo
 <pre class="matlab">
 % first stage: genetic algorithm
 FitOpt.Method = 'genetic fcn';
-fit = esfit(y,@pepper,{Sys0,Exp},Vary,FitOpt);
+fit = esfit(y,@pepper,{Sys0,Exp},{varySys},FitOpt);
 
 % second stage: Levenberg-Marquardt
-Sys0 = fit.afit{1};  % use fit result as starting point
+Sys0 = fit.argsfit{1};  % use fit result as starting point
 FitOpt.Method = 'levmar int';
-fit = esfit(y,@pepper,{Sys0,Exp},Vary,FitOpt);
+fit = esfit(y,@pepper,{Sys0,Exp},{varySys},FitOpt);
 </pre>
 
 <p>
