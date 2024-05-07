@@ -98,6 +98,12 @@ if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
   if gFull
     error('gStrain and AStrain are not supported when full g matrices are given!');
   end
+  if any(Sys.gFrame(:))
+    error('g strain cannot be used with tilted g tensors.')
+  end
+  if Sys.nNuclei>0 && any(Sys.AFrame(1,:))
+    error('A strain cannot be used with a tilted A tensor.')
+  end
   if any(Sys.DStrain)
     error('D strain and g/A strain cannot be used at the same time.');
   end

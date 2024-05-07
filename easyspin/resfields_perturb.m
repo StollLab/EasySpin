@@ -495,6 +495,12 @@ else
   end
   
   if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
+    if any(Sys.gFrame(:))
+      error('g strain cannot be used with tilted g tensors.')
+    end
+    if Sys.nNuclei>0 && any(Sys.AFrame(1,:))
+      error('A strain cannot be used with a tilted A tensor.')
+    end
     
     if any(Sys.gStrain(:))
       gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3;  % -> MHz
