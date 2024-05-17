@@ -252,7 +252,7 @@ end
 
 StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
 computeStrains = StrainsPresent && (nargout>2);
-computeIntensities = ((nargout>1) & Opt.Intensity);
+computeIntensities = nargout>1 && Opt.Intensity;
 
 
 % Preparing kernel and perturbing system Hamiltonians.
@@ -534,7 +534,8 @@ if computeStrains
   
   % D strain
   %-----------------------------------------------
-  [useDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
+  sigmadHdDE = strains_de(CoreSys);
+  useDStrain = ~isempty(sigmadHdDE);
   
   % g-A strain
   %-------------------------------------------------
@@ -547,7 +548,8 @@ if computeStrains
       gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:));
       if any(CoreSys.gFrame(iEl,:))
         R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
-        gStrainMatrix{iEl} = R_g2M*gStrainMatrix{iEl}*R_g2M.';
+      else
+        R_g2M = eye(3);
       end
     end
     if ~simplegStrain
@@ -560,7 +562,7 @@ if computeStrains
     end
   else
     for iEl = CoreSys.nElectrons:-1:1
-      gStrainMatrix{iEl} = 0;
+      gStrainMatrix{iEl} = zeros(3);
     end
   end
   
@@ -644,9 +646,9 @@ for iOri = 1:nOrientations
   
   % Set up Hamiltonians for 3 lab principal directions
   %-----------------------------------------------------
-  [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
+  [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
   if higherOrder
-    [Vs,E] = gethamdata_hO(Exp.Field,zLab, CoreSys,Opt.Sparse, [], nLevels);
+    [Vs,E] = gethamdata_hO(Exp.Field,zLab_M, CoreSys,Opt.Sparse, [], nLevels);
     if Opt.Sparse, sp = 'sparse'; else, sp = ''; end
     [g0e{1},g0e{2},g0e{3}] = ham_ez(CoreSys,[],sp);
     [g0n{1},g0n{2},g0n{3}] = ham_nz(CoreSys,[],sp);
@@ -659,18 +661,18 @@ for iOri = 1:nOrientations
       kGM{n} = g0{n}-g1{1}{n};
     end
     % z laboratoy axis: external static field
-    kmuzL = zLab(1)*kGM{1} + zLab(2)*kGM{2} + zLab(3)*kGM{3};
+    kmuzL = zLab_M(1)*kGM{1} + zLab_M(2)*kGM{2} + zLab_M(3)*kGM{3};
     % x laboratory axis: B1 excitation field
-    kmuxL = xLab(1)*kGM{1} + xLab(2)*kGM{2} + xLab(3)*kGM{3};
+    kmuxL = xLab_M(1)*kGM{1} + xLab_M(2)*kGM{2} + xLab_M(3)*kGM{3};
     % y laboratory vector: needed for integration over all B1 field orientations.
-    kmuyL = yLab(1)*kGM{1} + yLab(2)*kGM{2} + yLab(3)*kGM{3};
+    kmuyL = yLab_M(1)*kGM{1} + yLab_M(2)*kGM{2} + yLab_M(3)*kGM{3};
   else
     % z laboratoy axis: external static field
-    kmuzL = zLab(1)*kmuxM + zLab(2)*kmuyM + zLab(3)*kmuzM;
+    kmuzL = zLab_M(1)*kmuxM + zLab_M(2)*kmuyM + zLab_M(3)*kmuzM;
     % x laboratory axis: B1 excitation field
-    kmuxL = xLab(1)*kmuxM + xLab(2)*kmuyM + xLab(3)*kmuzM;
+    kmuxL = xLab_M(1)*kmuxM + xLab_M(2)*kmuyM + xLab_M(3)*kmuzM;
     % y laboratory vector: needed for integration over all B1 field orientations.
-    kmuyL = yLab(1)*kmuxM + yLab(2)*kmuyM + yLab(3)*kmuzM;
+    kmuyL = yLab_M(1)*kmuxM + yLab_M(2)*kmuyM + yLab_M(3)*kmuzM;
     
     [Vs,E] = gethamdata(Exp.Field, kH0, kmuzL, [], nLevels);
   end
@@ -777,32 +779,34 @@ for iOri = 1:nOrientations
   % Calculate width if requested.
   %--------------------------------------------------
   if computeStrains
-    LineWidthSquared = CoreSys.HStrain.^2*zLab.^2;
+    LineWidthSquared = CoreSys.HStrain.^2*zLab_M.^2;
     for iTrans = 1:nTransitions
-      m = @(Op)Vs(:,v(iTrans))'*Op*Vs(:,v(iTrans)) - Vs(:,u(iTrans))'*Op*Vs(:,u(iTrans));
-            
+      V = Vs(:,v(iTrans));
+      U = Vs(:,u(iTrans));
+      deltaVU = @(Op) real(V'*Op*V - U'*Op*U);
+      
       % H strain: Frequency-domain residual width tensor
       LineWidth2 = LineWidthSquared;
       
-      % D strain
+      % D/E strain
       if useDStrain
-        for iEl = 1:CoreSys.nElectrons
-          LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
-          LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
+        for i = 1:numel(sigmadHdDE)
+          LineWidth2 = LineWidth2 + deltaVU(sigmadHdDE{i})^2;
         end
       end
       
       % A strain
       if useAStrain
-        LineWidth2 = LineWidth2 + abs(m(dHdAx))^2;
-        LineWidth2 = LineWidth2 + abs(m(dHdAy))^2;
-        LineWidth2 = LineWidth2 + abs(m(dHdAz))^2;
+        LineWidth2 = LineWidth2 + abs(deltaVU(dHdAx))^2;
+        LineWidth2 = LineWidth2 + abs(deltaVU(dHdAy))^2;
+        LineWidth2 = LineWidth2 + abs(deltaVU(dHdAz))^2;
       end
       
       % g strain
       if usegStrain
-        dg2 = (m(kmuzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
-        LineWidth2 = LineWidth2 + abs(dg2);
+        dg2 = R_g2M*gStrainMatrix{1}.^2*R_g2M.';
+        dg2 = abs(deltaVU(kmuzL))*Exp.Field*1e3*dg2;
+        LineWidth2 = LineWidth2 + zLab_M.'*dg2*zLab_M;
       end
       Wdat(iTrans,iOri) = sqrt(LineWidth2);
     end
@@ -831,7 +835,7 @@ for iOri = 1:nOrientations
         % Nuclear Zeeman and quadrupole (independent of S)
         if ~Opt.HybridOnlyHFI
           Hc = Hquad{iiNuc} + Exp.Field*...
-            (zLab(1)*Hzeem(iiNuc).x + zLab(2)*Hzeem(iiNuc).y + zLab(3)*Hzeem(iiNuc).z);
+            (zLab_M(1)*Hzeem(iiNuc).x + zLab_M(2)*Hzeem(iiNuc).y + zLab_M(3)*Hzeem(iiNuc).z);
           Hu = Hu + Hc;
           Hv = Hv + Hc;
         end
