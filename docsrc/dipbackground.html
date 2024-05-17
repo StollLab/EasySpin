@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>dipkernel</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">dipbackground</div>
+
+<p>
+Calculate dipolar EPR (DEER) background signal.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Vinter = dipbackground(t,conc,lambda)
+dipbackground(...)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>W
+
+<p>
+<code>dipbackground</code> calculates the inter-molecular DEER signal for a homogeneous three-dimensional distribution of spins.
+</p>
+
+<p>
+<code>t</code> is the time vector, in microseconds. <code>conc</code> is the spin concentration, in micromolar (µM). <code>lambda</code> is the modulation depth, between 0 and 1.
+</p>
+
+<p>
+The output <code>Vinter</code> is the inter-molecular dipolar background decay function, scaled such that it is equal to 1 at time zero.
+</p>
+
+<!-- ========================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Here is a typical application, for a 50 µM spin concentration and a modulation depth of 0.3:
+</p>
+
+<pre class="matlab">
+t = -0.2:0.020:5;  % µs
+Vinter = dipbackground(t,100,0.3);
+plot(t,Vinter)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+<a class="esf" href="dipkernel.html">dipkernel</a>,
+<a class="esf" href="diptensor.html">diptensor</a>,
+<a class="esf" href="ham_ee.html">ham_ee</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
