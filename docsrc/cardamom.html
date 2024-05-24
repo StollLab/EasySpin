@@ -54,6 +54,7 @@ to simulate the orientational trajectories required to calculate a cw EPR spectr
 
 <p>
 <code>cardamom</code> accepts up to five input arguments
+</p>
 
 <ul>
 <li><code>Sys</code>: static and dynamic properties of the spin system
@@ -69,6 +70,8 @@ If no input argument is given, a short help summary is shown (same as when typin
 
 <p>
 Up to four output arguments are returned:
+</p>
+
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
 <li><code>spc</code>: derivative of the CW-EPR absorption spectrum, arbitrary units
@@ -91,6 +94,7 @@ The first two output arguments <code>B</code> and <code>spc</code> are mandatory
 <!-- ============================================================= -->
 <p>
 <span style="font-weight:bold;">Diffusion model</span>
+</p>
 <!-- ============================================================= -->
 
 <p>
@@ -116,6 +120,7 @@ Sys.tcorr = [5 4 1]*1e-9; % rhombic anisotropic diffusion
   
 <p>
 Instead of <code>tcorr</code>, <code>Diff</code> can be used, see below. If <code>tcorr</code> is given, <code>Diff</code> is ignored. The correlation time <code>tcorr</code> and the diffusion rate <code>Diff</code> are related by <code>tcorr = 1/(6*Diff)</code>.
+</p>
 <br>
 </div>
 
@@ -131,7 +136,7 @@ Rotational diffusion rates (principal values of the rotational diffusion tensor)
   <ul>
   <li>one number: isotopic diffusion tensor
   <li>two numbers: input <code>[Dxy Dzz]</code> gives axial tensor <code>[Dxy Dxy Dzz]</code>
-  <li>three numbers: rhombic tensor <code>[Dxy Dxy Dzz]</code>
+  <li>three numbers: rhombic tensor <code>[Dxx Dyy Dzz]</code>
   </ul>
   <code>Diff</code> is ignored if <code>logtcorr</code>, <code>tcorr</code> or <code>logDiff</code> is given.
 </div>
@@ -163,7 +168,9 @@ The full form of the orientational potential is expressed as
 <p>
 U(&Omega;) = - k<sub>B</sub> T &Sigma;<sub>L,M,K</sub>&lambda;<sup>L</sup><sub>M,K</sub> D<sup>L</sup><sub>M,K</sub> (&Omega;), 
 </p>
+<p>
 where D<sup>L</sup><sub>M,K</sub> are the Wigner D-functions, &lambda;<sup>L</sup><sub>M,K</sub> are the potential coefficients. The temperature is not needed, as it is divided out in the Langevin equation (which uses only U(&Omega;)/k<sub>B</sub>T).
+</p>
 
 <p>
 For example, to specify an orientational potential using <code>lambda200</code> to represent the coefficient &lambda;<sup>2</sup><sub>0,0</sub> of the commonly used second-order Legendre polynomial, use
@@ -175,10 +182,12 @@ Sys.Potential = [2, 0, 0, 1.2];  % L=2, M=K=0, lambda = 1.2
 
 <p>
 For details about this type of orientational potential, see K.A. Earle & D.E. Budil, Calculating Slow-Motion ESR Spectra of Spin-Labeled Polymers, in: S. Schlick: Advanced ESR Methods in Polymer Research, Wiley, 2006.
+</p>
 
 <li>
 <p>
 <em>3D array</em> (numerical representation). A 3D array of size (N,M,N) representing the orienting potential energy function U(&alpha;,&beta;,&gamma;). Dimensions 1, 2, and 3 of this array correspond to the Euler angles &alpha;, &beta;, and &gamma;, respectively.
+</p>
 
 <pre class="matlab">
 alpha = linspace(0,2*pi);    % grid over alpha
@@ -192,6 +201,7 @@ Sys.Potential = Uarray;
 <p>
 <em>Function handle</em> (functional representation). 
 A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must by vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
+</p>
 
 <pre class="matlab">
 lambda200 = 0.86;
@@ -206,6 +216,7 @@ Sys.Potential = U;
 <!-- ============================================================= -->
 <p>
 <span style="font-weight:bold;">Jump model</span>
+</p>
 <!-- ============================================================= -->
 
 <p>
@@ -240,6 +251,7 @@ An array of Euler angles representing the orientation of each state, size (nStat
 <!-- ============================================================= -->
 <p>
 <span style="font-weight:bold;">MD model</span>
+</p>
 <!-- ============================================================= -->
 
 <p>
