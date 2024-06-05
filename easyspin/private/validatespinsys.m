@@ -294,7 +294,7 @@ for k = 1:12
   if isfield(Sys,fieldname) && any(Sys.(fieldname)(:)~=0)
     Sys.BFrame{k} = Sys.(fieldname);
   else
-    Sys.BFrame{k} = [0 0 0];
+    Sys.BFrame{k} = zeros(nElectrons,3);
   end
     
 end

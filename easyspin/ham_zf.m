@@ -105,7 +105,7 @@ for k = 1:numel(Sys.B)
   for iSpin = idxElectrons
 
     % If D is used, skip rank-2 Stevens operator terms
-    D_present = isfield(Sys,'D') && ~isempty(D);
+    D_present = isfield(Sys,'D') && ~isempty(D) && any(D(:)~=0);
     if D_present && k==2, continue; end
 
     % Skip if all rank-k coefficients are zero
