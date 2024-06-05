@@ -94,24 +94,26 @@ end
 %-----------------------------------------------------------------------------
 % Spin system fields:
 %   B1, B2, B3, ... (k = 1...12) -> processed to Sys.B
-%   B1Frame, B2Frame, B3Frame, ...
-%   BFrame
-  
-for iSpin = idxElectrons
+%   B1Frame, B2Frame, B3Frame, ... -> processed to Sys.BFrame
 
-  % If D is used, skip corresponding Stevens operator terms
-  D_present = any(Sys.D(iSpin,:));
-  
-  % Run over all ranks k
-  for k = 1:numel(Sys.B)
-    Bk = Sys.B{k};
-    if isempty(Bk), continue; end
+% Run over all ranks k
+for k = 1:numel(Sys.B)
+  Bk = Sys.B{k};
+  if isempty(Bk), continue; end
+
+  % Run over all desired electron spins
+  for iSpin = idxElectrons
+
+    % If D is used, skip rank-2 Stevens operator terms
+    D_present = isfield(Sys,'D') && ~isempty(D) && any(D(:)~=0);
     if D_present && k==2, continue; end
-    if all(Bk==0), continue; end
+
+    % Skip if all rank-k coefficients are zero
+    if all(Bk(iSpin,:)==0), continue; end
     
     % Apply transformation if non-zero tilt angles are given
     % (Sys.BFrame is processed from Sys.B?Frame by validatespinsys)
-    tiltang = Sys.BFrame{k};
+    tiltang = Sys.BFrame{k}(iSpin,:);
     if any(tiltang)
       % Calculate transformation matrix for ISTOs
       Dk = wignerd(k,tiltang(1),tiltang(2),tiltang(3));
@@ -120,27 +122,27 @@ for iSpin = idxElectrons
       DB = Ck*Dk.'/Ck;
       DB = removenumericalnoise(DB);
       % Transform Bk
-      Bk_M = Bk*DB; % eigenframe of Bk -> molecular frame
+      Bk_M = Bk(iSpin,:)*DB;  % eigenframe of Bk -> molecular frame
     else
-      Bk_M = Bk;
+      Bk_M = Bk(iSpin,:);
     end
     
     % Build Hamiltonian
     q = k:-1:-k;
-    for iq = find(Bk_M(iSpin,:)~=0)
-      H = H + Bk_M(iSpin,iq)*stev(Spins,[k,q(iq),iSpin],'sparse');
+    for iq = find(Bk_M~=0)
+      H = H + Bk_M(iq)*stev(Spins,[k,q(iq),iSpin],'sparse');
     end
     
-  end % for all tensor ranks
+  end % for all electron spins specified
 
-end % for all electron spins specified
+end % for all tensor ranks
 
-H = (H+H')/2; % Hermitianize
+H = (H+H')/2;  % Hermitianize
 if ~sparseResult
   H = full(H);
 end
 
-return
+end
 %===============================================================================
 
 function A_ = removenumericalnoise(A)
@@ -150,3 +152,4 @@ thr = 1e-14;
 reA(abs(reA)<thr&reA~=0) = 0;
 imA(abs(imA)<thr&imA~=0) = 0;
 A_ = complex(reA,imA);
+end
