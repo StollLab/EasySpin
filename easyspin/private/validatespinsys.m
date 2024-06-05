@@ -291,7 +291,7 @@ for k = 1:12
   Sys.B{k} = Bk;
   
   fieldname = sprintf('B%dFrame',k);
-  if isfield(Sys,fieldname) && any(Sys.(fieldname)~=0)
+  if isfield(Sys,fieldname) && any(Sys.(fieldname)(:)~=0)
     Sys.BFrame{k} = Sys.(fieldname);
   else
     Sys.BFrame{k} = [0 0 0];
