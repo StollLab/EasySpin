@@ -3,11 +3,11 @@
 %   eV = evolt
 %
 %   Returns the electron volt, a conventional unit of energy,
-%   in SI units (joule).
+%   in SI units, J.
 
 function eV = evolt
 
-% 2018 CODATA value
+% 2022 CODATA value
  
 eV = echarge; % exact, as of SI redefinition 2019
 

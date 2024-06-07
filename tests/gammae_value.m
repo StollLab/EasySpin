@@ -2,8 +2,8 @@ function ok = test()
 
 
 val = gammae;
-ref = -1.76085963023e11;
+ref = -1.76085962784e11;
 
-ok = val==ref;
+ok = areequal(val,ref,1e-12,'abs');
 
 end

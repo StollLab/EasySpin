@@ -3,14 +3,14 @@
 %   a0 = bohrrad
 %   [a0,sigma] = bohrrad
 %
-%   Returns the Bohr radius in units of meters.
+%   Returns the Bohr radius in SI units, m.
 %   sigma is the standard uncertainty.
 
 function [a0,sigma] = bohrrad
 
-% 2018 CODATA value
+% 2022 CODATA value
 
-a0 =    0.529177210903e-10;
-sigma = 0.000000000080e-10;
+a0 =    5.29177210544e-11;
+sigma = 0.00000000082e-11;
 
 end

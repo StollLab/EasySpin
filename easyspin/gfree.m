@@ -8,9 +8,9 @@
 
 function [g,sigma] = gfree
 
-% 2018 CODATA
+% 2022 CODATA value, with negated negative sign
 
-g =     2.00231930436256;
-sigma = 0.00000000000035;
+g =     2.00231930436092;
+sigma = 0.00000000000036;
 
 end

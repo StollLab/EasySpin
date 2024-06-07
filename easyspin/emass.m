@@ -8,9 +8,9 @@
 
 function [me,sigma] = emass
 
-% 2018 CODATA value
+% 2022 CODATA value
 
-me =    9.1093837015e-31;
+me =    9.1093837139e-31;
 sigma = 0.0000000028e-31;
 
 end
