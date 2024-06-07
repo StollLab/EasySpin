@@ -734,6 +734,35 @@
       }
     ]
   },
+  "dipbackground":{
+    "description": "Dipolar EPR background signal (DEER)",
+    "inputs": [
+      {
+        "name": "t",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "time vector, us"
+      },
+      {
+        "name": "conc",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "spin concentration, uM"
+      },
+      {
+        "name": "lambda",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "modulation depth"
+      }
+    ]
+  },
   "dipkernel": {
     "description": "Dipolar EPR signal (DEER)",
     "inputs": [
@@ -4408,7 +4437,7 @@
           "char"
         ],
         "purpose": "type of output to return"
-      }    
+      }
 	  ]
   },
   "rotateframe": {
@@ -4941,7 +4970,7 @@
         "type": [
           "numeric",
           "scalar",
-          "cell",		  
+          "cell",
 		  "choices={'maxabs','int','dint','none'}"
         ],
         "purpose": "rescale mode for slices, default 'maxabs'"
