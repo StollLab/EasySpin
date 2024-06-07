@@ -2,11 +2,12 @@
 %
 %   value = hbar
 %
-%   Returns the Planck constant over 2 pi, h/(2*pi), in J s rad^-1.
+%   Returns the Planck constant over 2 pi, h/(2*pi), 
+%   in SI units, J s rad^-1.
 
 function value = hbar
 
-% 2018 CODATA recommended value
+% 2022 CODATA value
  
 value = planck/2/pi; % exact, as of SI redefinition 2019
 

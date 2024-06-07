@@ -2,11 +2,11 @@
 %
 %   R = molgas
 %
-%   Returns the molar gas constant in SI units, joule per mole per kelvin.
+%   Returns the molar gas constant in SI units, J mol^-1 K^-1
 
 function R = molgas
 
-% 2018 CODATA value
+% 2022 CODATA value
 
 R = avogadro*boltzm; % exact, as of SI redefinition 2019
 
