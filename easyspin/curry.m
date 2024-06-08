@@ -138,15 +138,16 @@ zeroTemp = any(T==0);
 % Detect sample type (disordered, partially ordered, crystal)
 [Exp,Opt] = p_sampletype(Exp,Opt);
 disorderedSample = Opt.disorderedSample;
+crystalSample = Opt.crystalSample;
 
 if Opt.partiallyOrderedSample
   error('Partially ordered samples are not supported in curry().');
 end
 
 if disorderedSample
-  logmsg(1,'Powder calculation');
+  logmsg(1,'  powder calculation');
 else
-  logmsg(1,'Crystal calculation');
+  logmsg(1,'  crystal calculation');
 end
 
 
@@ -230,6 +231,7 @@ switch upper(Opt.Units)
     error('Unknown units ''%s'' in Opt.Units. Use either ''SI'' or ''CGS''.',...
       Opt.Units);
 end
+logmsg(1,' units: %s',upper(Opt.Units));
 
 % Parse calculation method in Opt.Method
 if ~isfield(Opt,'Method')
@@ -263,6 +265,7 @@ end
 % zero-field Hamiltonian H0 (MHz)
 % magnetic dipole moment operators muOpxM, muOpyM, muOpzM (MHz/mT)
 %   all are in the molecular frame
+logmsg(1,'-Hamiltonian-------------------------------------------')
 [H0,muOpxM,muOpyM,muOpzM] = ham(Sys);
 if ~isempty(Opt.Spins)
   [muOpxM,muOpyM,muOpzM] = ham_ez(Sys,Opt.Spins);
@@ -280,10 +283,10 @@ muOpzM = muOpzM*c;  % MHz/mT -> J/T
 % Set up sample orientations
 %-------------------------------------------------
 
-[Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
+[Exp,Opt,~] = p_gridsetup(Sys,Exp,Opt);
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,~,~] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,~] = p_crystalorientations(Exp,Opt);
 Exp.OriWeights = Exp.OriWeights/4/pi;
 
 beta = 1./T/boltzm;
@@ -307,6 +310,12 @@ calcmu = @(Vecs,muOp,pop) (real(diag(Vecs'*muOp*Vecs)).'*pop)./sum(pop,1);
 getmuproj = @(nM) nM(1)*muOpxM + nM(2)*muOpyM + nM(3)*muOpzM;
 
 % Orientation loop
+logmsg(1,'-orientation loop--------------------------------------')
+if crystalSample
+  logmsg(1,'  looping over %d orientations and %d sites',nOrientations/nSites,nSites);
+else
+  logmsg(1,'  looping over %d orientations',nOrientations)
+end
 for iOri = 1:nOrientations
   [xL_M,yL_M,zL_M] = erot(Orientations(iOri,:),'rows');
   
@@ -388,15 +397,20 @@ for iOri = 1:nOrientations
     end
     
     % Accumulate
+    if crystalSample
+      w = 1/nSites;
+    else
+      w = Exp.OriWeights(iOri);
+    end
     if calculateMu
-      muz(iB,:) = muz(iB,:) + Exp.OriWeights(iOri)*muz_;
+      muz(iB,:) = muz(iB,:) + w*muz_;
     end
     if calculateMuVec
-      mux(iB,:) = mux(iB,:) + Exp.OriWeights(iOri)*mux_;
-      muy(iB,:) = muy(iB,:) + Exp.OriWeights(iOri)*muy_;
+      mux(iB,:) = mux(iB,:) + w*mux_;
+      muy(iB,:) = muy(iB,:) + w*muy_;
     end
     if calculateChi
-      chizz(iB,:) = chizz(iB,:) + Exp.OriWeights(iOri)*chizz_;
+      chizz(iB,:) = chizz(iB,:) + w*chizz_;
     end
     
   end % loop over field values
@@ -406,6 +420,7 @@ end % loop over orientations
 
 % Unit conversions
 %-------------------------------------------------------------------------------
+logmsg(1,'  performing unit conversions')
 if calculateMu
   muz_SI = muz;  % single-center magnetic moment, SI units
   if useCGSunits
