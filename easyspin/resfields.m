@@ -81,10 +81,9 @@ DefaultSys.gAStrainCorr = +1;
 Sys = adddefaults(Sys,DefaultSys);
 
 if numel(Sys.gAStrainCorr)~=1 || ~isnumeric(Sys.gAStrainCorr) || ...
-    Sys.gAStrainCorr==0 || ~isfinite(Sys.gAStrainCorr)
-  error('Sys.gAStrainCorr must be a single number, either +1 or -1.');
+    Sys.gAStrainCorr<-1 || Sys.gAStrainCorr>1
+  error('Sys.gAStrainCorr must be a single number between -1 and +1.');
 end
-Sys.gAStrainCorr = sign(Sys.gAStrainCorr);
 
 if Sys.nElectrons>1
   if any(Sys.AStrain(:))
@@ -93,9 +92,7 @@ if Sys.nElectrons>1
 end
 
 if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
-  gFull = size(Sys.g,1)==3*numel(Sys.S);
-  %aFull = size(System.A,1)==3*(1+sum(System.Nucs==','));
-  if gFull
+  if Sys.fullg
     error('gStrain and AStrain are not supported when full g matrices are given!');
   end
   if any(Sys.DStrain)
@@ -267,8 +264,8 @@ if Opt.Freq2Field~=1 && Opt.Freq2Field~=0
 end
 computeFreq2Field = Opt.Freq2Field;
 
-StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
-computeStrains = StrainsPresent && (nargout>2);
+strainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
+computeStrains = strainsPresent && nargout>2;
 
 computeGradient = (computeStrains || (nargout>4)) && GradientSwitch;
 computeIntensities = (nargout>1 && IntensitySwitch) || computeGradient;
@@ -381,10 +378,10 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   end
   
   % Components of S vectors for computing <u|S|u>
-  for iEl = Sys.nElectrons:-1:1
-    S(iEl).x = sop(CoreSys,[iEl,1]);
-    S(iEl).y = sop(CoreSys,[iEl,2]);
-    S(iEl).z = sop(CoreSys,[iEl,3]);
+  for e = Sys.nElectrons:-1:1
+    S(e).x = sop(CoreSys,[e,1]);
+    S(e).y = sop(CoreSys,[e,2]);
+    S(e).z = sop(CoreSys,[e,3]);
   end
 
 else
@@ -723,90 +720,30 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 % Line width preparations
 %=======================================================================
 logmsg(1,'- Broadenings');
-simplegStrain = true;
-usegStrain = false;
-useAStrain = false;
+
 if computeStrains
   logmsg(1,'  using strains');
   
   % Frequency-domain residual width tensor
-  %-----------------------------------------------
   HStrain2 = CoreSys.HStrain.^2;
   
-  % D strain
-  %-----------------------------------------------
-  [useDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
+  % D/E strain
+  sigmadHdDE = strains_de(CoreSys);
+  useDStrain = ~isempty(sigmadHdDE);
   
-  % g-A strain
-  %-------------------------------------------------
-  % g strain tensor is taken to be aligned with the g tensor
-  % A strain tensor is taken to be aligned with the A tensor
-  % g strain can be specified for each electron spin
-  % A strain is limited to the first electron and first nuclear spin
-  usegStrain = any(CoreSys.gStrain(:));
-  if usegStrain
-    logmsg(1,'  g strain present');
-    simplegStrain = CoreSys.nElectrons==1;
-    for iEl = CoreSys.nElectrons:-1:1
-      gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:))*mwFreq; % MHz
-      if any(CoreSys.gFrame(iEl,:))
-        R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
-        gStrainMatrix{iEl} = R_g2M*gStrainMatrix{iEl}*R_g2M.';
-      end
-    end
-    if ~simplegStrain
-      logmsg(1,'  multiple g strains present');
-      for iEl = CoreSys.nElectrons:-1:1
-        kSxM{iEl} = sop(CoreSys,[iEl,1]);
-        kSyM{iEl} = sop(CoreSys,[iEl,2]);
-        kSzM{iEl} = sop(CoreSys,[iEl,3]);
-      end
-    end
-  else
-    for e = CoreSys.nElectrons:-1:1
-      gStrainMatrix{e} = zeros(3);
-    end
-  end
-  
-  useAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
-  if useAStrain
-    % Transform A strain matrix to molecular frame.
-    AStrainMatrix = diag(CoreSys.AStrain);
-    if isfield(CoreSys,'AFrame')
-      R_A2M = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
-      AStrainMatrix = R_A2M*AStrainMatrix*R_A2M.';
-    end
-    % Diagonalize Hamiltonian at center field.
-    centerB = mean(Exp.Range);
-    [Vecs,E] = eig(kH0 - centerB*kmuzM);
-    [~,idx] = sort(real(diag(E)));
-    Vecs = Vecs(:,idx);
-    % Calculate effective mI of nucleus 1 for all eigenstates.
-    mI = real(diag(Vecs'*sop(CoreSys,[2,3])*Vecs));
-    mITr = mean(mI(Transitions),2);
-    % compute A strain array
-    AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
-      repmat(AStrainMatrix,[1,1,nTransitions]);
-    corr = Sys.gAStrainCorr;
-    for e = Sys.nElectrons:-1:1
-      gAslw2{e} = (repmat(gStrainMatrix{e},[1,1,nTransitions])+corr*AStrainMatrix).^2;
-    end
-    clear AStrainMatrix Vecs E idx mI mITr
-  else
-    for e = Sys.nElectrons:-1:1
-      gAslw2{e} = repmat(gStrainMatrix{e}.^2,[1,1,nTransitions]);
-    end
-  end
-  clear gslw
-  % gAslw2 = a (cell array of) 3D array with 3x3 strain line-width matrices
-  % for each transition piled up along the third dimension.
-  
+  % g/A strain
+  [usegStrain,useAStrain,simplegStrain,lw2_gA,ops] = strains_ga(CoreSys,Exp,mwFreq,Transitions,nTransitions,kH0,kmuzM);
+
   if any(HStrain2), logmsg(2,'  ## using H strain'); end
   if usegStrain || useAStrain, logmsg(2,'  ## using g/A strain'); end
   if useDStrain, logmsg(2,'  ## using D strain'); end
   
 else
-  logmsg(1,'  no strains specified',nTransitions);
+  logmsg(1,'  no strains specified');
+
+  usegStrain = false;
+  useAStrain = false;
+  useDStrain = false;
 end
 
 
@@ -929,7 +866,7 @@ for iOri = 1:nOrientations
     kmuyL = yLab_M(1)*kmuxM + yLab_M(2)*kmuyM + yLab_M(3)*kmuzM;
     if usegStrain && ~simplegStrain
       for e = Sys.nElectrons:-1:1
-        kSzL{e} = zLab_M(1)*kSxM{e} + zLab_M(2)*kSyM{e} + zLab_M(3)*kSzM{e};
+        kSzL{e} = zLab_M(1)*ops.kSxM{e} + zLab_M(2)*ops.kSyM{e} + zLab_M(3)*ops.kSzM{e};
       end
     end
   end
@@ -1287,31 +1224,30 @@ for iOri = 1:nOrientations
         % Calculate width if requested
         %--------------------------------------------------
         if computeStrains
-          %m = @(Op) real(V'*Op*V) - real(U'*Op*U);
-          m = @(Op) real((V'-U')*Op*(V+U)); % equivalent to prev. line
+          deltaVU = @(Op) real(V'*Op*V - U'*Op*U);
 
           % H strain
           LineWidth2 = LineWidthSquared;
           
-          % D strain
+          % D/E strain
           if useDStrain
-            for iEl = 1:CoreSys.nElectrons
-              LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
-              LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
+            for i = 1:numel(sigmadHdDE)
+              LineWidth2 = LineWidth2 + deltaVU(sigmadHdDE{i})^2;
             end
           end
           
           % g and A strain
           if usegStrain || useAStrain
             if simplegStrain
-              gA2 = gAslw2{1}(:,:,iTrans);
+              LineWidth2_gA = lw2_gA{1}(:,:,iTrans);
             else
-              gA2 = 0;
-              for iEl = 1:Sys.nElectrons
-                gA2 = gA2 + abs(m(kSzL{iEl}))*gAslw2{iEl}(:,:,iTrans);
+              LineWidth2_gA = 0;
+              for e = 1:Sys.nElectrons
+                delta_mS = deltaVU(kSzL{e});
+                LineWidth2_gA = LineWidth2_gA + abs(delta_mS)*lw2_gA{e}(:,:,iTrans);
               end
             end
-            LineWidth2 = LineWidth2 + zLab_M.'*gA2*zLab_M;
+            LineWidth2 = LineWidth2 + zLab_M.'*LineWidth2_gA*zLab_M;
           end
           
           % Convert to field value and save
@@ -1325,18 +1261,18 @@ for iOri = 1:nOrientations
         %-------------------------------------------------------
         if nPerturbNuclei>0
           % Compute S vector expectation values for all electron spins
-          for iEl = Sys.nElectrons:-1:1
-            Su(:,iEl) = [U'*S(iEl).x*U; U'*S(iEl).y*U; U'*S(iEl).z*U];
-            Sv(:,iEl) = [V'*S(iEl).x*V; V'*S(iEl).y*V; V'*S(iEl).z*V];
+          for e = Sys.nElectrons:-1:1
+            Su(:,e) = [U'*S(e).x*U; U'*S(e).y*U; U'*S(e).z*U];
+            Sv(:,e) = [V'*S(e).x*V; V'*S(e).y*V; V'*S(e).z*V];
           end
           % Build and diagonalize nuclear sub-Hamiltonians
           for iiNuc = 1:nPerturbNuclei
             Hu = 0;
             Hv = 0;
             % Hyperfine (dependent on S)
-            for iEl = 1:Sys.nElectrons
-              Hu = Hu + Su(1,iEl)*Hhfi(iEl,iiNuc).x + Su(2,iEl)*Hhfi(iEl,iiNuc).y + Su(3,iEl)*Hhfi(iEl,iiNuc).z;
-              Hv = Hv + Sv(1,iEl)*Hhfi(iEl,iiNuc).x + Sv(2,iEl)*Hhfi(iEl,iiNuc).y + Sv(3,iEl)*Hhfi(iEl,iiNuc).z;
+            for e = 1:Sys.nElectrons
+              Hu = Hu + Su(1,e)*Hhfi(e,iiNuc).x + Su(2,e)*Hhfi(e,iiNuc).y + Su(3,e)*Hhfi(e,iiNuc).z;
+              Hv = Hv + Sv(1,e)*Hhfi(e,iiNuc).x + Sv(2,e)*Hhfi(e,iiNuc).y + Sv(3,e)*Hhfi(e,iiNuc).z;
             end
             % Nuclear Zeeman and quadrupole (independent of S)
             if ~Opt.HybridOnlyHFI
