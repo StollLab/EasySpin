@@ -2,6 +2,11 @@
 % (S = 1/2 and zero, one, or two nuclei).
 function Basis = chili_basisbuild(Basis,Sys)
 
+I = Sys.I;
+nNuclei = numel(I);
+if nNuclei>=1, I1 = I(1); end
+if nNuclei>=2, I2 = I(2); end
+
 DirTilt = Basis.DirTilt;
 
 evenLmax = Basis.evenLmax;
@@ -15,14 +20,14 @@ Mmax = Basis.Mmax;
 
 pSmin = Basis.pSmin;
 pImax = Basis.pImax;
-pI1max = pImax; pI2max = pImax;
+if nNuclei==1
+  pI1max = pImax;
+elseif nNuclei==2
+  pI1max = pImax(1);
+  pI2max = pImax(2);
+end
 
 MpSymm = Basis.MpSymm;
-
-I = Sys.I;
-nNuclei = numel(I);
-if nNuclei>=1, I1 = I(1); end
-if nNuclei>=2, I2 = I(2); end
 
 iRow = 0;
 iSpatial = 0;
