@@ -2,8 +2,8 @@ use strict;
 use warnings;
 
 # other dependencies
-use Fcntl ':flock'; # for locking on system level
-use Net::SSH::Perl; # to use SSH protocol
+use Fcntl ':flock';  # for locking on system level
+use Net::SSH::Perl;  # to use SSH protocol
 
 my $Build;
 if ($ARGV[0]){
@@ -20,7 +20,7 @@ print "Build: $Build.\n";
 # variables imported from config.pl
 our ($SourceDir, $BuildsDir, $UploadDir, $ServerDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, $ChannelForDocumentation, $username, $hostname, @HTMLfiles, $KeyWebserver);
 
-print "Loading config file.\n";
+print "Loading config file...\n";
 require './config.pl'; # load configuration file
 
 # settings ------------------------------------------------------------------
@@ -32,7 +32,7 @@ my $WebServerLogin = $username."@".$hostname;
 
 # Creating a lock file 
 # ---------------------------------------------------------------------------------
-print "Creating lock file.\n";
+print "Creating lock file...\n";
 my $LockFilename = "upload.lock";
 open (my $LockFile,'>'.$SourceDir.'/'.$LockFilename) or die $!;
 
@@ -45,21 +45,22 @@ while ($Attempts < $NumberOfAttempts) {
         last;
     }
     ++$Attempts;
-    print("Another instance of publish.pl appears to be running, trying again in $WaitTime seconds.\n");
+    print("  Another instance of publish.pl appears to be running, trying again in $WaitTime seconds.\n");
     sleep($WaitTime);
 }
 
 if ($LockObtained) {
-    print "Created lock file. \n";
+    print "  Lock file created. \n";
 }
 else {
-    print "Cannot obtain lock, exiting. \n";
+    print "  Cannot obtain lock, exiting. \n";
     exit;
 }
 
-# Add key to hostmonster to keychain
+# Add key to easyspin.org to keychain
 # ---------------------------------------------------------------------------------
-system("ssh-add $KeyWebserver"); # private key to log into hostmonster.com
+print "Adding SSH key to keychain..."
+system("ssh-add $KeyWebserver"); # private key to log into easyspin.org
 
 
 # Set up environment
@@ -170,12 +171,12 @@ system('rm '.$UploadDir.'*.bak');
 
 # Upload entire upload directory to easyspin org and then clean it
 # ---------------------------------------------------------------------------------
-print("Uploading all new files to easyspin.org \n");
+print("Uploading all new files to easyspin.org via SCP \n");
 
 system('scp '.$UploadDir.'* '.$WebServerLogin.':'.$ServerDir);
 
-# clear upload directory
-print("Clear upload directory \n");
+# Remove upload directory
+print("Removing upload directory \n");
 system("rm -R $UploadDir");
 
 # SSH into the server, unzip the build and extract documentation
@@ -204,9 +205,9 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
 
 # Clean up lock file and exit
 # ---------------------------------------------------------------------------------
-print "removing lock file \n";
+print "Removing lock file \n";
 close $LockFile;
 system('rm '.$SourceDir.'/'.$LockFilename);
 
 # ---------------------------------------------------------------------------------
-print "All finished.\n";
+print "Finished.\n";
