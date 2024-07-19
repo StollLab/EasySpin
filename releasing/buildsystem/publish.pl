@@ -59,7 +59,7 @@ else {
 
 # Add key to easyspin.org to keychain
 # ---------------------------------------------------------------------------------
-print "Adding SSH key to keychain..."
+print "Adding SSH key to keychain...\n";
 system("ssh-add $KeyWebserver"); # private key to log into easyspin.org
 
 
@@ -140,16 +140,16 @@ my $replaceInVersionsFile = "$ReleaseChannel:$Build";
 
 # Get html files from easyspin.org and update them with the new version tags and zipfile names
 # ---------------------------------------------------------------------------------
-print "Update HTML files.\n";
+print "Downloading and updating HTML files...\n";
 foreach (@HTMLfiles) {
     my $CurrentFile = $_;
-    print("Getting $CurrentFile \n");
+    print("Getting $CurrentFile...\n");
 
-    # download the current zipfile from easyspin.org
+    # download the current html file from easyspin.org
     system('scp '.$WebServerLogin.':'.$ServerDir.$CurrentFile.' '.$UploadDir.$CurrentFile.'.bak');
     
     # scan through the html file and replace strings
-    print("Updating $CurrentFile \n");
+    print("Updating $CurrentFile...\n");
     open(my $InputHTML,'<'.$UploadDir.$CurrentFile.'.bak') or die("Cannot open $CurrentFile.bak!");
     open(my $OutputHTML,'>'.$UploadDir.$CurrentFile) or die("Cannot open $CurrentFile!");
     while (<$InputHTML>) {
@@ -166,17 +166,17 @@ foreach (@HTMLfiles) {
     close($OutputHTML) or die("Cannot close $OutputHTML!");  
 }
 
-print("Deleting backup versions of html files \n");
+print("Deleting backup versions of html files...\n");
 system('rm '.$UploadDir.'*.bak');
 
 # Upload entire upload directory to easyspin org and then clean it
 # ---------------------------------------------------------------------------------
-print("Uploading all new files to easyspin.org via SCP \n");
+print("Uploading all new files to easyspin.org via SCP...\n");
 
 system('scp '.$UploadDir.'* '.$WebServerLogin.':'.$ServerDir);
 
 # Remove upload directory
-print("Removing upload directory \n");
+print("Removing upload directory...\n");
 system("rm -R $UploadDir");
 
 # SSH into the server, unzip the build and extract documentation
@@ -184,7 +184,7 @@ system("rm -R $UploadDir");
 # only happens for the release channel that is specified with $ChannelForDocumentation in the config file
 
 if ($ReleaseChannel eq $ChannelForDocumentation) {
-    print("Logging into easyspin.org via SSH \n");
+    print("Logging into easyspin.org via SSH...\n");
     my $SSHSession = Net::SSH::Perl->new($hostname);
     $SSHSession -> login("$username");
 
@@ -195,7 +195,7 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
     my $moveFiles = qq(cp -r ./tmp/easyspin-$Build/* ./ \n);
     my $rmTempDir = qq(rm -r ./tmp \n);
 
-    print("Unzipping new stable version and updating documentation and examples \n");
+    print("Unzipping new stable version and updating documentation and examples...\n");
     my $IssueCmd = $changeDir.$rmFolders.$unzipExamples.$unzipDoc.$moveFiles.$rmTempDir;
 
     # send command
@@ -205,7 +205,7 @@ if ($ReleaseChannel eq $ChannelForDocumentation) {
 
 # Clean up lock file and exit
 # ---------------------------------------------------------------------------------
-print "Removing lock file \n";
+print "Removing lock file...\n";
 close $LockFile;
 system('rm '.$SourceDir.'/'.$LockFilename);
 
