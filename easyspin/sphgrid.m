@@ -216,25 +216,18 @@ if calculateTriangulation
   [Tri,idx] = sortrows(Tri);
   Areas = Areas(idx);
 
-else
-  
-  Tri = [];
-  Areas = [];
-  
-end
-
-% Normalize areas
-if ~isempty(Areas)
+  % Normalize areas
   if ~isreal(Areas)
     error('Complex triangle areas encountered! (GridSymm %s, GridSize %d, option %s)!',Symmetry,GridSize,Options);
   end
   % Normalize to sum 4*pi
   Areas = Areas/sum(Areas) * 4*pi;
+  
+  % Store in output structure
+  tri.idx = Tri;
+  tri.areas = Areas;
+  
 end
-
-% Store in output structure
-tri.idx = Tri;
-tri.areas = Areas;
 
 
 % Output
@@ -349,6 +342,8 @@ else
 end
 end
 
+
+% Calculate areas (solid angles) of spherical triangles
 function A = triangleareas(Tri,vecs)
 
 % Vertex vectors
@@ -366,5 +361,5 @@ s = (a1+a2+a3)/2; % triangle perimeter half
 x = sqrt(tan(s/2).*tan((s-a1)/2).*tan((s-a2)/2).*tan((s-a3)/2)).';
 x = real(x);
 A = 4*atan(x);
-end
 
+end
