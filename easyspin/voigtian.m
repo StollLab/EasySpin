@@ -78,19 +78,19 @@ end
 % Compute Gaussian and Lorentzian
 if calculateQuadrature
   if fwhmG>0
-    [yG1,yG2] = gaussian(x,x0G,fwhmG,diffG,phaseG);
+    [yG,yGquad] = gaussian(x,x0G,fwhmG,diffG,phaseG);
   end
   if fwhmL>0
-    [yL1,yL2] = lorentzian(x,x0L,fwhmL,diffL,phaseL);
+    [yL,yLquad] = lorentzian(x,x0L,fwhmL,diffL,phaseL);
   end
 else
   if fwhmG>0
-    yG1 = gaussian(x,x0G,fwhmG,diffG,phaseG);
-    yG2 = [];
+    yG = gaussian(x,x0G,fwhmG,diffG,phaseG);
+    yGquad = [];
   end
   if fwhmL>0
-    yL1 = lorentzian(x,x0L,fwhmL,diffL,phaseL);
-    yL2 = [];
+    yL = lorentzian(x,x0L,fwhmL,diffL,phaseL);
+    yLquad = [];
   end
 end
 
@@ -98,9 +98,13 @@ doConvolution = fwhmL>0 && fwhmG>0;
 if doConvolution
   
   % Convolution
-  y1 = conv(yG1,yL1,'same');
+  y1 = conv(yG,yL,'same');
   if calculateQuadrature
-    y2 = conv(yG2,yL2,'same');
+    if fwhmL>fwhmG
+      y2 = conv(yG,yLquad,'same');
+    else
+      y2 = conv(yGquad,yL,'same');
+    end
   end
     
   % Re-normalize
@@ -114,11 +118,11 @@ else
   
   % Skip convolution in the case of a pure Gaussian or pure Lorentzian
   if fwhmL>0
-    y1 = yL1;
-    y2 = yL2;
+    y1 = yL;
+    y2 = yLquad;
   else
-    y1 = yG1;
-    y2 = yG2;
+    y1 = yG;
+    y2 = yGquad;
   end
   
 end
