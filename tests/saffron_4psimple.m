@@ -13,15 +13,15 @@ Opt.Verbosity = 0;
 [x,y] = saffron(Sys,Exp,Opt);
 y = y/max(abs(y));
 
-if (opt.Display)
+if opt.Display
   xlabel('time (µs)');
   if ~isempty(olddata)
     subplot(3,1,[1 2]);
-    plot(x,y,'r',x,olddata.y,'b');
+    plot(x,real(y),'r',x,real(olddata.y),'b');
     legend('new','old');
     title(mfilename);
     subplot(3,1,3);
-    plot(x,y-olddata.y,'r');
+    plot(x,real(y-olddata.y),'r');
     title('residuals');
   end
 end
