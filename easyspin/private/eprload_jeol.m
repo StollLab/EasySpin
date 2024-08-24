@@ -464,10 +464,12 @@ Parameters.Data = jeol_data;
 
 fclose(h);
 
+end
 
 %-----------------------------------------------------------------
 function ch = readcstring(ID,numchars)
 % Read C string characters from file ID and convert to Matlab string
 ch = fread(ID,numchars,'*char').';
-ch = ch(1:find(ch==char(0))-1);
+ch = ch(1:find(ch==char(0),1)-1);
 if isempty(ch), ch = ''; end
+end
