@@ -484,7 +484,7 @@ else
       
       if ~isfield(Par,'beta') || isempty(Par.beta)
         error(['Frequency modulation function ''tanh'' not sufficiently defined. ',...
-          'Specify dimensionless Par.beta parameter (in 1/µs).']);
+          'Specify dimensionless Par.beta parameter.']);
       end
             
     otherwise
