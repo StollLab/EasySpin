@@ -742,7 +742,7 @@ for iPoints = 1 : nPoints
         
       else
         % Create cell arrays for output
-        if length(IndirectDimensions) == 1
+        if isscalar(IndirectDimensions)
           % if no or only one Indirect Dimensions are requesteted, the
           % output structure is created here, to avoid creating square
           % cell arrays
@@ -782,7 +782,7 @@ for iPoints = 1 : nPoints
         StoreInCellArray = true;
         
         % Create cell arrays for output
-        if length(IndirectDimensions) == 1
+        if isscalar(IndirectDimensions)
           % if no or only one Indirect Dimensions are requesteted, the
           % output structure is created here, to avoid creating square
           % cell arrays
@@ -795,8 +795,12 @@ for iPoints = 1 : nPoints
         
         for jSignal = 1 : iPoints-1
           % get index for position of jSignal in the output cell array
-          indexID = cell(length(IndirectDimensions),1); 
-          [indexID{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
+          indexID = cell(length(IndirectDimensions),1);
+          if isscalar(IndirectDimensions)
+            indexID{1} = jSignal;
+          else
+            [indexID{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
+          end
 
           % assign jSignal to cell array, remove singleton dimensions
           NewSignalArray{indexID{:}} = squeeze(SignalArray(indexID{:},:,:));
@@ -810,7 +814,7 @@ for iPoints = 1 : nPoints
           % For the time axis, two cases need to be considered as well. If
           % there is only one indirect dimension, the time vector can be
           % taken as is
-          if length(IndirectDimensions) == 1
+          if isscalar(IndirectDimensions)
             NewTimeArray{indexID{:}} = TimeArray(indexID{:},:);
           else
             % if there are more than one indirect dimensions, a squeeze has
@@ -923,7 +927,7 @@ function LoadedElement = LoadfromArray(Array, ArrayIndex)
 % given ArrayIndex (vector)
 nPerDimension = size(Array);
 IndexToLoad = ones(1,length(ArrayIndex));
-if length(ArrayIndex) == 1
+if isscalar(ArrayIndex)
   if ArrayIndex <= nPerDimension(2)
     IndexToLoad = ArrayIndex;
   end
