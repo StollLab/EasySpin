@@ -76,8 +76,6 @@ else
   binaryPropFile = strcat(fullfile(output_path,output_name), output_ext,'.prop');
   textPropFile = strcat(fullfile(output_path,output_name),'_property.txt');
 end
-isStringScalar(mainOutputFile)
-disp(mainOutputFile)
 existMain = exist(mainOutputFile,'file');
 existPropBin = exist(binaryPropFile,'file');
 existPropTxt = exist(textPropFile,'file');
