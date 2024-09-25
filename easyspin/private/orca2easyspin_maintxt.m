@@ -157,7 +157,6 @@ for iStructure = 1:nStructures
   if ~isempty(k)
     if (~isempty(OrcaVersion)) && (OrcaVersion(1) == '6')
       k = k+10;
-      disp('kf')
     else
       k = k+3;
     end
