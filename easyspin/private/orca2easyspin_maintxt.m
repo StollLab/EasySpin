@@ -355,7 +355,6 @@ end
 
 end
 
-
 function M = readmatrix(L,startidx)
 if nargin<2, startidx = 1; end
 M(1,:) = sscanf(L{1}(startidx:end),'%f %f %f').';
