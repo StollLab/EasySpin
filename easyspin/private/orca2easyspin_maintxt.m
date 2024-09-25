@@ -155,7 +155,12 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   k = findheader('ELECTRONIC G-MATRIX',L,krange);
   if ~isempty(k)
-    k = k+3;
+    if (~isempty(OrcaVersion)) && (OrcaVersion(1) == '6')
+      k = k+10;
+      disp('kf')
+    else
+      k = k+3;
+    end
     % read raw asymmetric g matrix
     g_raw = readmatrix(L(k:k+2));
     g_sym = (g_raw.'*g_raw)^(1/2);

@@ -72,10 +72,12 @@ elseif output_ext==".txt" && numel(output_name)>9 && output_name(end-8:end)=="_p
 else
   % main ORCA output file
   readmode = 'mainout';
-  mainOutputFile = fullfile(output_path,[output_name output_ext]);
-  binaryPropFile = fullfile(output_path,[output_name output_ext '.prop']);
-  textPropFile = fullfile(output_path,[output_name '_property.txt']);
+  mainOutputFile = strcat(fullfile(output_path,output_name), output_ext);
+  binaryPropFile = strcat(fullfile(output_path,output_name), output_ext,'.prop');
+  textPropFile = strcat(fullfile(output_path,output_name),'_property.txt');
 end
+isStringScalar(mainOutputFile)
+disp(mainOutputFile)
 existMain = exist(mainOutputFile,'file');
 existPropBin = exist(binaryPropFile,'file');
 existPropTxt = exist(textPropFile,'file');
