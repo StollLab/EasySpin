@@ -155,7 +155,11 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   k = findheader('ELECTRONIC G-MATRIX',L,krange);
   if ~isempty(k)
-    k = k+3;
+    if (~isempty(OrcaVersion)) && (OrcaVersion(1) == '6')
+      k = k+10;
+    else
+      k = k+3;
+    end
     % read raw asymmetric g matrix
     g_raw = readmatrix(L(k:k+2));
     g_sym = (g_raw.'*g_raw)^(1/2);
@@ -225,7 +229,7 @@ for iStructure = 1:nStructures
       if regexp(L{k},'^\s*Nucleus\s*')
         iAtom = sscanf(L{k}(9:end),'%d',1)+1;
         [~,qrefEl] = referenceisotope(Element{iAtom});
-      elseif regexp(L{k},'^\s*Raw HFC matrix')
+      elseif regexp(L{k},'^\s*(Raw HFC matrix|Total HFC matrix)')
         if strncmp(L{k+1}(2:4),'---',3)
           idx = k+2;
         else
@@ -351,7 +355,6 @@ end
 
 end
 
-
 function M = readmatrix(L,startidx)
 if nargin<2, startidx = 1; end
 M(1,:) = sscanf(L{1}(startidx:end),'%f %f %f').';
@@ -362,7 +365,7 @@ end
 function k = findheader(header,L,krange)
 header_found = false;
 for k = krange
-  if strcmp(L{k},header)
+  if strncmp(L{k},header,length(header))
     header_found = true;
     break
   end
