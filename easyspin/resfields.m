@@ -535,12 +535,12 @@ logmsg(1,msg);
 %===============================================================================
 % Transition pre-selection
 %===============================================================================
-% Compose a list of transitions, ie level pairs, for which peak data are
-% to be computed. The list is either taken from a user specified list
-% in Opt.Transitions, or is determined by an automatic procedure which
+% Compose a list of transitions, i.e. level pairs, for which peak data are
+% to be computed. The list is either taken from a user-specified list
+% in Opt.Transitions, or it is determined by an automatic procedure which
 % selects the most intense transitions, their number being determined
-% by a threshold for the relative transitions rate. The relative transition
-% rate for the most intense transition is 1.
+% by a threshold for the relative transitions rate via Opt.Threshold.
+% The relative transition rate for the most intense transition is 1.
 %
 % The transition rates are determined at center field. As a consequence, this
 % pre-selection fails when states vary significantly over the field range, e.g.
@@ -549,8 +549,8 @@ logmsg(1,msg);
 
 logmsg(1,'- Transition pre-selection');
 
-UserTransitions = ~isempty(Opt.Transitions);
-if UserTransitions
+userTransitions = ~isempty(Opt.Transitions);
+if userTransitions
 
   if ischar(Opt.Transitions)
     if strcmp(Opt.Transitions,'all')
@@ -581,18 +581,16 @@ if UserTransitions
     Transitions(rmv,:) = [];
   end
 
-else % Automatic transition pre-selection
+else  % Automatic transition pre-selection
   
-  nElStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
   if preSelectionThreshold==0
     logmsg(1,'  selection threshold is zero -> using all transitions');
-    TransitionRates = ones(nCore);
-  elseif CoreSys.nElectrons==1 && CoreSys.nNuclei==0 ...
-      && (~any(CoreSys.L))
+    maxTransitionRates = ones(nCore);
+  elseif CoreSys.nElectrons==1 && CoreSys.nNuclei==0 && ~any(CoreSys.L)
     logmsg(1,'  one electron spin and no nuclei -> using all transitions');
-    TransitionRates = ones(nCore);
+    maxTransitionRates = ones(nCore);
   else
-    if nOrientations>1 % if powder or multiple orientations
+    if nOrientations>1  % if powder or multiple orientations
       % Set a coarse grid, independent of the Hamiltonian symmetry
       logmsg(1,'  selection threshold %g',preSelectionThreshold);
       logmsg(2,'  ## (selection threshold %g, grid size %d, grid symmetry %s)',...
@@ -600,11 +598,9 @@ else % Automatic transition pre-selection
       TPSgrid = sphgrid(Opt.TPSGridSymm,Opt.TPSGridSize);
       phi = TPSgrid.phi;
       theta = TPSgrid.theta;
-      TPSweights = TPSgrid.weights;
-    else % single orientation
+    else  % single orientation
       phi = angles_M2L(1);
       theta = angles_M2L(2);
-      TPSweights = 1;
     end
     
     % Prepare detection operators
@@ -640,14 +636,13 @@ else % Automatic transition pre-selection
     centerB = mean(Exp.Range); % take field at center of scan range
 
     % Calculate transition rates over all orientations (at fixed field)
-    TransitionRates = zeros(nCore);  % preallocate
+    maxTransitionRates = zeros(nCore);
     for iOri = 1:numel(theta)
       % Determine eigenvectors
       if higherOrder
         [Vecs,~] = gethamdata_hO(centerB,[st(iOri)/sqrt(2)*[1,1],ct(iOri)],CoreSys,Opt.Sparse,[],nLevels);
       else
         kmuzL = st(iOri)*(cp(iOri)*kmuxM + sp(iOri)*kmuyM) + ct(iOri)*kmuzM;
-        % Solve eigenproblem
         if Opt.Sparse
           [Vecs,E] = eigs(kH0 - centerB*kmuzL,nCore);
           [~,idx_] = sort(diag(E));
@@ -656,43 +651,44 @@ else % Automatic transition pre-selection
           [Vecs,~] = eig(kH0 - centerB*kmuzL);
         end
       end
-      % Calculate transition rate matrix and take the maximum
+      % Calculate transition rate matrix and keep track of the maximum
       ExyM = cp(iOri)*ExM + sp(iOri)*EyM;
       if mwmode.parallelMode
         EzL = st(iOri)*ExyM + ct(iOri)*EzM;
-        TransitionRates = max(TransitionRates,TPSweights(iOri) * abs(Vecs'*EzL*Vecs).^2);
-      else % perpendicular
+        TransRate_ = abs(Vecs'*EzL*Vecs).^2;
+      else  % perpendicular
         EyL = -sp(iOri)*ExM  + cp(iOri)*EyM;
         ExL =  ct(iOri)*ExyM - st(iOri)*EzM;
-        TransitionRates = max(TransitionRates,TPSweights(iOri) * (abs(Vecs'*ExL*Vecs).^2 + abs(Vecs'*EyL*Vecs).^2)/2);
+        TransRate_ = (abs(Vecs'*ExL*Vecs).^2 + abs(Vecs'*EyL*Vecs).^2)/2;
       end
+      maxTransitionRates = max(maxTransitionRates,TransRate_);
     end
-    % Free unused memory
-    clear Vecs E idx kmuzL ExM EyM EzM ExyM ExL EyL EzL
   end
   
-  % Remove lower triangular part
-  idxLowerTriangle = logical(tril(ones(nCore)));
+  % Keep only upper triangular part
+  keepidx = logical(triu(ones(nCore),1));
   % Remove nuclear transitions
   if max(HFIStrength)<0.5 && preSelectionThreshold>0
+    nElStates_ = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
     idxNuclearTransitions = logical(kron(eye(nElStates_),ones(nCore/nElStates_)));
-    keepidx = ~idxLowerTriangle & ~idxNuclearTransitions;
-  else
-    keepidx = ~idxLowerTriangle;
+    keepidx = keepidx & ~idxNuclearTransitions;
   end
-  TransitionRates(~keepidx) = [];
-  [u,v] = find(keepidx); % get level indices for transition pairs
-  Transitions = [u,v];
-  clear keepidx u v idxLowerTriangle idxNuclearTransitions
+  maxTransitionRates(~keepidx) = [];
 
-  % Use threshold for number determination
-  nTransitions = sum(TransitionRates>preSelectionThreshold*max(TransitionRates));
+  % Get indices of level pairs for all remaining transitions
+  [u,v] = find(keepidx);
+  Transitions = [u,v];
   
-  % Sort transition rates in descending order
-  [~,idx] = sort(TransitionRates,'descend');
-  % Select most intense transitions
+  % Sort transition rates in descending order and select most intense ones
+  [~,idx] = sort(maxTransitionRates,'descend');
+  thr = preSelectionThreshold*max(maxTransitionRates);
+  nTransitions = sum(maxTransitionRates>thr);
   Transitions = Transitions(idx(1:nTransitions),:);
-  clear TransitionRates idx
+
+  % Clear unused variables
+  clear Vecs E idx kmuzL ExM EyM EzM ExyM ExL EyL EzL
+  clear keepidx u v idxUpperTriangle idxNuclearTransitions
+  clear maxTransitionRates minTransitionRates idx
   
 end
 
@@ -706,16 +702,16 @@ end
 
 % Compute indices and variables used later in the algorithm
 u = Transitions(:,1);
-v = Transitions(:,2); % v > u
+v = Transitions(:,2);  % v > u
 nTransitions = length(u);
-upTRidx = u + (v-1)*nCore; % Indices into UPPER triangle
-Trans = upTRidx; % One-number transition indices
+upTRidx = u + (v-1)*nCore;  % indices into UPPER triangle
+Trans = upTRidx;  % single-number transition indices
 
 % Diagnostic display
 logmsg(1,'  %d transitions pre-selected',nTransitions);
 
 % Now, if the transitions were selected automatically, they are in order of
-% descending expeced intensity. If user-specified, their order is unchanged.
+% descending expected intensity. If user-specified, their order is unchanged.
 %===============================================================================
 
 
