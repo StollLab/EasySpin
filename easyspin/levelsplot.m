@@ -363,7 +363,7 @@ hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
 hParent = hObj.Parent;  % this is either the axes or the figure
 
 % Remove any previous thick lines
-if ~isempty(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
+if ~isempty(hPrevLine) && isvalid(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
   set(hPrevLine,'LineWidth',defaultLineWidth);
   hPrevLine = [];
 end
