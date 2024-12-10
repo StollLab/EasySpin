@@ -28,7 +28,7 @@ sudo cpan install -f Net::SSH::Perl
 	```bash
 	sudo apt install ssh 
 	```
-2. Copy key files `hostmonster_rsa` and `github_rsa` (need to create one for user) to: `~/.ssh/`.
+2. Copy key files `easyspin-org_rsa` and `github_rsa` (need to create one for user) to: `~/.ssh/`.
 
 3. Set the ssh agent up to run automatically when somebody logs in. 
 Add the following to `~/.bash_profile`, if `.bash_profile` does not exist, just create a new one:
@@ -59,13 +59,13 @@ Add the following to `~/.bash_profile`, if `.bash_profile` does not exist, just 
    Now every time you login you should get a message that the SSH agent is being initialised (additionally the Github action builder also loads the `bash_profile` to make sure everything worked)
 4. To verify that the keyfiles work, load them with 
 	```bash
-	ssh-add ~/.ssh/hostmonster_rsa
-	ssh-add ~/.ssh/github_rsa
+	ssh-add ~/.ssh/easyspin-org_rsa
+	ssh-add ~/.ssh/github-easyspin_rsa
 	```
 	If you get an error message, it might be necessary to change read write permissions:
 	```bash
-	chmod 600 ~/.ssh/hostmonster_rsa
-	chmod 600 ~/.ssh/github_rsa
+	chmod 600 ~/.ssh/easyspin-org_rsa
+	chmod 600 ~/.ssh/github-easyspin_rsa
 	```
 		
 	

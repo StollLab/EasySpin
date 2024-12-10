@@ -259,8 +259,8 @@ if isempty(pos)
     tk=istr;
     rstr='';
 else
-    tk=strtrim(istr(1:pos-1));
-    rstr=strtrim(istr(pos+length(tok):end));
+    tk=strtrim(istr(1:pos(1)-1));
+    rstr=strtrim(istr(pos(1)+length(tok):end));
 end
 end
 

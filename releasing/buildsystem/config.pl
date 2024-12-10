@@ -14,8 +14,8 @@ our $TempRepoDir = $SourceDir.'/easyspin-temp/'; # where easyspin is cloned into
 our $hostname = "easyspin.org"; # URL of easyspin server
 our $username = "easyspin"; # username for SSH
  
-our $KeyWebserver = '~/.ssh/hostmonster_rsa'; # private key to log into hostmonster.com
-our $KeyGitHub = '~/.ssh/github-easyspin_rsa'; # private key for bitbucket
+our $KeyWebserver = '~/.ssh/easyspin-org_rsa'; # private key to log into easyspin.org
+our $KeyGitHub = '~/.ssh/github-easyspin_rsa'; # private key to log into GitHub
 
 our @HTMLfiles = ("index.html","download.html","versions.txt"); # files on the webserver that will be updated
 

@@ -65,6 +65,9 @@ for k = 1:length(eSpins)
   iL = iS+shift;
   soc_ = System.soc(iS,:);
   if ~any(soc_), continue; end
+
+  % Skip if orbital angular momentum is zero
+  if System.L(iS)==0, continue; end
   
   % Build S*L operator matrix
   SL = sparse(System.nStates,System.nStates);

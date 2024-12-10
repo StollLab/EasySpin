@@ -91,6 +91,9 @@ pre = pre/1e9;  % Hz/T -> GHz/T = MHz/mT
 % Loop over all orbital angular momenta
 for i = oam
 
+  % Skip if orbital angular momenutm is zero
+  if Sys.L(i)==0; continue; end
+
   % Orbital angular momenta, isotropic
   % Build orbital Zeeman Hamiltonian in MHz/mT
   iSpin = nElectrons + nNuclei + i;

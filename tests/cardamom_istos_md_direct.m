@@ -61,8 +61,11 @@ end
 % Plotting
 if opt.Display
   if ~isempty(olddata)
+    subplot(3,1,[1 2]);
     plot(B,spc,B,olddata.spc);
     legend('new','old');
     axis tight
+    subplot(3,1,3);
+    plot(B,spc-olddata.spc);
   end
 end
