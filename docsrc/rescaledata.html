@@ -39,7 +39,7 @@ Rescale data using various criteria.
 y_ = rescaledata(y,mode)
 y_ = rescaledata(y,yref,mode)
 y_ = rescaledata(...,region)
-[y_,scalefactors] = rescaledata(...)
+[y_,scalefactor] = rescaledata(...)
 </pre>
 
 <!-- ====================================================== -->
@@ -57,6 +57,10 @@ If a second data array is given in <code>yref</code>, the data in <code>y</code>
 <li><code>'maxabs'</code>: scales <code>y</code> such that its maximum absolute will match that of <code>yref</code> </li>
 <li><code>'lsq'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y</code> (scale only)</li>
 </ul>
+
+<p>
+For <code>'lsq'</code>, if the number of elements in <code>yref</code> doesn't match the number of elements in <code>y</code>, <code>yref</code> is interpolated to match the length as <code>y</code>.
+</p>
 
 <p>
 In all cases, positive rescaling is enforced, i.e. the rescaled data is not inverted.
@@ -79,7 +83,7 @@ scales <code>y</code> such that the double integral (calculated as the sum of th
 </ul>
 
 <p>
-<code>scalefactors</code> is an optional output that provides the calculated scale factor.
+<code>scalefactor</code> is an optional output that provides the calculated scale factor.
 </p>
 
 <!-- ====================================================== -->
