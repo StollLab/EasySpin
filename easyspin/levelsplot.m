@@ -22,6 +22,9 @@
 %                      value).
 %      StickSpectrum   true/false (default false). Plot stick spectrum underneath
 %                      Zeeman diagram. Default is false.
+%      ColorMap        Name of colormap for slope colors. E.g.: jet
+%      LineWidth       Line width for the Zeeman lines
+%      TransLineWidth  Line width for the transition lines
 %
 %  If mwFreq is given, resonances are drawn. Red lines indicate allowed
 %  transitions, gray lines forbidden ones. Hovering with the cursor over
@@ -192,11 +195,11 @@ linecolor = [0 0.4470 0.7410];
 if Opt.SlopeColor
   for iLevel = nLevels:-1:1
     col = abs(deriv(E(:,iLevel)));
-    hLevels(iLevel) = patch([Bvec(:)*Bscale; NaN],[E(:,iLevel); NaN],[col; NaN],'EdgeColor','interp');
+    hLevels(iLevel) = patch([Bvec(:)*Bscale; NaN],[E(:,iLevel); NaN],[col; NaN],'EdgeColor','interp','LineWidth',Opt.LineWidth);
   end
-  colormap(flipud(parula));
+  colormap(flipud(Opt.ColorMap));
 else
-  hLevels = plot(Bvec*Bscale,E*Escale,'b');
+  hLevels = plot(Bvec*Bscale,E*Escale,'b','LineWidth',Opt.LineWidth);
   set(hLevels,'Color',linecolor);
 end
 for iLevel = 1:nLevels
@@ -252,7 +255,7 @@ if computeResonances
       E_MHz = sort(eig(H));
       E = unit_convert(E_MHz,Opt.Units);
 
-      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition','LineWidth',1);
+      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition','LineWidth',Opt.TransLineWidth);
       h.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
       transitionColor = absintensity(iF)*Opt.AllowedColor + (1-absintensity(iF))*Opt.ForbiddenColor;
       h.Color = transitionColor;
@@ -266,7 +269,7 @@ if computeResonances
       cla
       yline(0);
       for iF = 1:numel(resonFields)
-        hLine = line([1 1]*resonFields(iF)*Bscale,[0 intensity(iF)],'Color',linecolor,'LineWidth',2,'Tag','line');
+        hLine = line([1 1]*resonFields(iF)*Bscale,[0 intensity(iF)],'Color',linecolor,'LineWidth',Opt.TransLineWidth,'Tag','line');
         hLine.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
       end
       if any(intensity<0)
@@ -351,19 +354,22 @@ end
 end
 
 %-------------------------------------------------------------------------------
-function windowButtonMotionFcn(~,~,~)
+function windowButtonMotionFcn(Opt,~,~,~)
 
 persistent hPrevLine
 
-hoverLineWidth = 2;
-defaultLineWidth = 0.5;
+hoverLineWidth = 3;
+defaultLineWidth = 2;
+
+%hoverLineWidth = Opt.HoverLineWidth;
+%defaultLineWidth = 0.5;
 
 % Obtain handle of object under mouse pointer
 hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
 hParent = hObj.Parent;  % this is either the axes or the figure
 
 % Remove any previous thick lines
-if ~isempty(hPrevLine) && isvalid(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
+if ~isempty(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
   set(hPrevLine,'LineWidth',defaultLineWidth);
   hPrevLine = [];
 end
