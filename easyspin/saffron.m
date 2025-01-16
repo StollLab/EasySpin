@@ -1384,7 +1384,9 @@ if fastSimulationMode
                     % Loop over all nuclear transition and apply
                     % bandwidth-limited rf pulse operator. The excitation
                     % bandwidth is Gaussian.
-                    [i,j] = find(triu(ones(nNucStates),1));
+                    ij = nchoosek(1:nNucStates,2);
+                    i = ij(:,1);
+                    j = ij(:,2);
                     for iNucTrans = 1:numel(i)
                       % Calculate propagators for narrow-band Gaussian
                       % pulses at the nuclear transition frequency i->j

@@ -563,8 +563,7 @@ if userTransitions
         nStates_ = Opt.nLevels;
       end
       logmsg(1,'  using all %d transitions',nStates_*(nStates_-1)/2);
-      [u,v] = find(triu(ones(nStates_),1));
-      Transitions = sortrows([u,v]);
+      Transitions = nchoosek(1:nStates_,2);
       postSelectionThreshold = 0;
     else
       error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
