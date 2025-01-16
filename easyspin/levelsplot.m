@@ -22,7 +22,7 @@
 %                      value).
 %      StickSpectrum   true/false (default false). Plot stick spectrum underneath
 %                      Zeeman diagram. Default is false.
-%      ColorMap        Name of colormap for slope colors. E.g.: jet
+%      ColorMap        Name of colormap for slope colors. E.g.: jet (Default = jet)
 %      LineWidth       Line width for the Zeeman lines
 %      TransLineWidth  Line width for the transition lines
 %
@@ -197,6 +197,9 @@ if Opt.SlopeColor
     col = abs(deriv(E(:,iLevel)));
     hLevels(iLevel) = patch([Bvec(:)*Bscale; NaN],[E(:,iLevel); NaN],[col; NaN],'EdgeColor','interp','LineWidth',Opt.LineWidth);
   end
+    if ~isfield(Opt,'ColorMap')
+      Opt.ColorMap = parula;
+    end
   colormap(flipud(Opt.ColorMap));
 else
   hLevels = plot(Bvec*Bscale,E*Escale,'b','LineWidth',Opt.LineWidth);
@@ -358,18 +361,15 @@ function windowButtonMotionFcn(Opt,~,~,~)
 
 persistent hPrevLine
 
-hoverLineWidth = 3;
-defaultLineWidth = 2;
-
-%hoverLineWidth = Opt.HoverLineWidth;
-%defaultLineWidth = 0.5;
+hoverLineWidth = 2;
+defaultLineWidth = 0.5;
 
 % Obtain handle of object under mouse pointer
 hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
 hParent = hObj.Parent;  % this is either the axes or the figure
 
 % Remove any previous thick lines
-if ~isempty(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
+if ~isempty(hPrevLine) && isvalid(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
   set(hPrevLine,'LineWidth',defaultLineWidth);
   hPrevLine = [];
 end
