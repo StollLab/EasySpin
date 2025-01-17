@@ -65,8 +65,8 @@ end
 
 nonzeroPhase = mod(phase,2*pi)~=0;
 
-if diff<0 && nonzeroPhase
-  error('Integrated Gaussian lineshape with non-zero phase is not implemented.');
+if diff==-1 && nonzeroPhase
+  %error('Integrated Gaussian lineshape with non-zero phase is not implemented.');
 end
 
 returnDispersion = nargout>1;
@@ -76,27 +76,28 @@ calcDispersion = nonzeroPhase || returnDispersion;
 %-------------------------------------------------------------------------------
 % sig = distance from center to inflexion point (== standard deviation)
 sig = fwhm/sqrt(2*log(2))/2;
+k = (x-x0)/sig/sqrt(2);
 
 if diff==-1
   
   % absorption
-  yabs = 1/2*(1+erf((x-x0)/sig/sqrt(2)));
+  yabs = 1/2*(1+erf(k));
 
   % dispersion not implemented
-  ydisp = NaN(size(yabs));
+  if calcDispersion
+    ydisp = 1/2*k.^2.*hypergeom([1,1],[3/2,2],-k.^2);
+  end
   
 else
   
   % absorption
-  z = (x-x0)/sig;
-  yabs = sqrt(2/pi)/2/sig*(-1/sig)^diff*2^(-diff/2)*...
-    hermitepoly(z/sqrt(2),diff).*exp(-z.^2/2);
+  yabs = sqrt(2/pi)/2/sig*(-1/sig)^diff*2^(-diff/2) * ...
+    hermitepoly(k,diff).*exp(-k.^2);
   
   % dispersion
   if calcDispersion
-    k = z/sqrt(2);
-    n = diff;
-    ydisp = sqrt(2/pi)*2/sqrt(pi)/sig/2*(1/sqrt(2)/sig)^n * dawsonFderiv(k,n);
+    ydisp = sqrt(2/pi)*2/sqrt(pi)/sig/2*(1/sqrt(2)/sig)^diff * ...
+      dawsonFderiv(k,diff);
   end
   
 end
@@ -123,7 +124,7 @@ y = real(y);
 end
 
 function y = dawsonFderiv(x,n)
-% Calculates the n-the derivative of the Dawson function, d^F(x)/dx^n
+% Calculates the n-th derivative of the Dawson function, d^F(x)/dx^n
 y = (-1)^n * (hermitepoly(x,n).*dawsonF(x) - Gpoly(x,n-1));
 end
 
