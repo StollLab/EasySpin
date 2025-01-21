@@ -2,7 +2,7 @@
 %
 %   ya = gaussian(x,x0,fwhm)
 %   ya = gaussian(x,x0,fwhm,diff)
-%   ya = gaussian(x,x0,fwhm,diff,phase)
+%   y = gaussian(x,x0,fwhm,diff,phase)
 %   [ya,yd] = gaussian(...)
 %
 %   Computes area-normalized Gaussian absorption and dispersion
@@ -13,7 +13,7 @@
 %   - x0:    center of the lineshape function (same units as x)
 %   - fwhm:  full width at half height (same units as x)
 %   - diff:  derivative. 0 is no derivative, 1 first,
-%            2 second and so on, -1 the integral with -infinity
+%            2 second derivative, etc; -1 the integral with -infinity
 %            as lower limit. 0 is the default.
 %   - phase: phase rotation (radians), mixes absorption and dispersion.
 %            phase=pi/2 puts dispersion signal into ya
@@ -40,34 +40,31 @@ if nargin==0, help(mfilename); return; end
 % Check number of input arguments
 %-------------------------------------------------------------------------------
 if nargin<3
-  error('gaussian needs three inputs: x, x0, and fwhm.');
+  error('gaussian() needs at least three inputs: x, x0, and fwhm.');
 end
+
 if nargin<4, diff = 0; end
 if nargin<5, phase = 0; end
 
 % Check input arguments
 %-------------------------------------------------------------------------------
-if numel(x0)~=1 || ~isreal(x0)
-  error('2nd input (x0) must be a real number.');
+if ~isscalar(x0) || ~isreal(x0)
+  error('2nd input (x0, center) must be a real number.');
 end
 
-if numel(fwhm)~=1 || ~isreal(fwhm) || fwhm<=0
-  error('3rd input (fwhm) must be a positive real number.');
+if ~isscalar(fwhm) || ~isreal(fwhm) || fwhm<=0
+  error('3rd input (fwhm, full width at half maximum) must be a real and positive number.');
 end
 
-if numel(diff)~=1 || ~isreal(diff) || mod(diff,1)~=0 || diff<-1
-  error('4th input (diff) must be -1, 0, 1, 2, ...');
+if ~isscalar(diff) || diff<-1 || mod(diff,1)
+  error('4th input (diff, lineshape derivative) must be -1, 0, 1, 2, etc.');
 end
 
-if numel(phase)~=1 || ~isreal(phase)
-  error('5th input (phase) must be a real value.');
+if ~isscalar(phase) || ~isreal(phase)
+  error('5th input (phase) must be a real number.');
 end
 
 nonzeroPhase = mod(phase,2*pi)~=0;
-
-if diff==-1 && nonzeroPhase
-  %error('Integrated Gaussian lineshape with non-zero phase is not implemented.');
-end
 
 returnDispersion = nargout>1;
 calcDispersion = nonzeroPhase || returnDispersion;
@@ -83,9 +80,16 @@ if diff==-1
   % absorption
   yabs = 1/2*(1+erf(k));
 
-  % dispersion not implemented
+  % dispersion
   if calcDispersion
-    ydisp = 1/2*k.^2.*hypergeom([1,1],[3/2,2],-k.^2);
+    if license('test','symbolic_toolbox')
+      % hypergeom() is from the Symbolic Math Toolbox
+      ydisp = sqrt(2/pi)*2/sqrt(pi)/sig/2 * ...  % prefactor
+        sig*sqrt(2) *...  % dx/dk
+        1/2*k.^2.*hypergeom([1,1],[3/2,2],-k.^2);  % integral of Dawson function
+    else
+      error('Gaussian dispersion integral requires the Symbolic Math Toolbox.')
+    end
   end
   
 else
@@ -103,6 +107,7 @@ else
 end
 
 % Phase rotation
+%-------------------------------------------------------------------------------
 if nonzeroPhase
   y1 =  yabs*cos(phase) + ydisp*sin(phase);
   y2 = -yabs*sin(phase) + ydisp*cos(phase);

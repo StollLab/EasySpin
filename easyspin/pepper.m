@@ -816,16 +816,16 @@ elseif ~BruteForceSum
     if useGaussianTemplate
       % Gaussian template
       x0T = 5e4;  % center
-      wT = x0T/2.5;  % width; results in <2e-9 at borders
+      wT = x0T/2.5;  % width; results in <2e-9 at borders for mwPhase==0
       xT = 0:2*x0T-1;  % needs to be zero-based and with increment 1 (for lisum1i)
-      if Exp.mwPhase~=0
-        disp('Exp.mwPhase is disregarded for Gaussian template')
+      if Exp.mwPhase~=0 && Sys.lw(2)==0
+        disp('Exp.mwPhase is disregarded for Gaussian-only spectrum. Add a Lorentzian component.')
       end
       Template = gaussian(xT,x0T,wT,-1);
     else
       % Lorentzian template
       x0T = 1e5;
-      wT = x0T/20;  % 0.0025 at borders for Harmonic = -1
+      wT = x0T/20;  % 0.0025 at borders for Harmonic==-1 and mwPhase==0
       xT = 0:2*x0T-1;
       Template = lorentzian(xT,x0T,wT,-1,Exp.mwPhase);
     end
