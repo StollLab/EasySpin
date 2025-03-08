@@ -76,6 +76,7 @@ end
 if any(x0<lb) || any(x0>ub)
   error('Some elements in x0 are out of bounds.');
 end
+nParams = numel(x0);
 if FitOpt.RandomStart
   x0 = lb + rand(nParams,1).*(ub-lb);
 end

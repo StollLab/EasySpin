@@ -49,7 +49,7 @@ c2 = FitOpt.SwarmParams(4); % social coefficient
 if FitOpt.Verbosity
   msg{1} = sprintf('Particle swarm optimization parameters:');
   msg{2} = sprintf('   n = %d (number of particles)',nParticles);
-  msg{3} = sprintf('   k = %g (velocity clampling)',k);
+  msg{3} = sprintf('   k = %g (velocity clamping)',k);
   msg{4} = sprintf('   k = %g (inertial coefficient)',w);
   msg{5} = sprintf('   c1 = %g (cognitive coefficient)',c1);
   msg{6} = sprintf('   c2 = %g (social coefficient)',c2);

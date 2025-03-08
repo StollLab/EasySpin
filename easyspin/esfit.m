@@ -152,6 +152,9 @@ for i = 1:numel(data)
   if ~isnumeric(data{i}) || ~isvector(data{i}) || isempty(data{i})
     error('First input must be numeric experimental data in the form of a vector or a cell array of vectors.');
   end
+  if any(isnan(data{i}))
+    error('The experimental data must not contain NaN.');
+  end
   data_vec = [data_vec; data{i}(:)];
   datasize(i) = numel(data{i});
 end
@@ -1794,6 +1797,27 @@ for i = 1:(numel(esfitdata.AlgorithmNames)-1)
   gui.AlgorithmTabs.UserData{i} = hsetting;
 end
 updateAlgorithmDefaults()
+
+% Set start algorithm settings based on provided FitOpt structure
+hsettingscurrent = gui.AlgorithmTabs.UserData{Opt.AlgorithmID};
+for i = 1:numel(hsettingscurrent)
+  parname = hsettingscurrent(i).UserData{1};
+  if isfield(Opt,parname) && ~isempty(Opt.(parname))
+    startvalue = Opt.(parname);
+    if strcmp(hsettingscurrent(i).UserData{2},'num')
+      hsettingscurrent(i).Value = num2str(startvalue,'%g');      
+    elseif strcmp(hsettingscurrent(i).UserData{2},'eval')
+      if numel(startvalue)>1
+        str = strcat('[',num2str(startvalue),']');
+      else
+        str = num2str(startvalue);
+      end
+      hsettingscurrent(i).Value = str;
+    end
+  end
+end
+% Update current FitOpt structure
+selectAlgorithm();
 
 % Set callback for settings button to open popup menu
 settingsbutton = gui.AlgorithmSettingsButton;
