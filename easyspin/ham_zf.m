@@ -1,4 +1,4 @@
-% ham_zf  Electronic zero field interaction Hamiltonian 
+% ham_zf  Electronic zero field interaction Hamiltonian
 %
 %   F = ham_zf(SpinSystem)
 %   F = ham_zf(SpinSystem,Electrons)
@@ -7,13 +7,15 @@
 %   Returns the electronic zero-field interaction (ZFI)
 %   Hamiltonian of the system SpinSystem, in units of MHz.
 %
+%   Can retrun the derivative of the ZFI if Sys.Dstrain has been given
+%
 %   If the vector Electrons is given, the ZFI of only the
 %   specified electrons is returned (1 is the first, 2 the
 %   second, etc). Otherwise, all electrons are included.
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
-function H = ham_zf(SpinSystem,idxElectrons,opt)
+function [H,dH] = ham_zf(SpinSystem,idxElectrons,opt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -35,13 +37,15 @@ if any(idxElectrons>Sys.nElectrons) || any(idxElectrons<1)
   error('Electron spin index/indices (2nd argument) out of range!');
 end
 
-H = sparse(Sys.nStates,Sys.nStates);
+nStates=Sys.nStates;
+H = sparse(nStates,nStates);
+
 Spins = Sys.Spins;
 
 % Quadratic term S*D*S
 %-------------------------------------------------------------------------------
 for iSpin = idxElectrons
-    
+
   % Prepare full 3x3 D matrix
   if Sys.fullD
     D = Sys.D(3*(iSpin-1)+(1:3),:);
@@ -53,13 +57,25 @@ for iSpin = idxElectrons
     continue
   end
 
-  % Transform D tensor to molecular frame
+  % Transform D tensor to molecular frame and obtain derivatives
   ang = Sys.DFrame(iSpin,:);
   if any(ang)
     R_M2D = erot(ang);  % mol frame -> D frame
-    R_D2M = R_M2D.';    % D frame -> mol frame
+    R_D2M = R_M2D.';  % D frame -> mol frame
     D = R_D2M*D*R_D2M.';
+  else
+    R_D2M = eye(3);
   end
+
+  % preparing the derivatives (specific for each electron)
+  dHdDx = sparse(nStates,nStates);
+  dHdDy = sparse(nStates,nStates);
+  dHdDz = sparse(nStates,nStates);
+
+  % preparing the derivatives coefficient
+  dDxM = R_D2M(:,1)*R_D2M(:,1).';  % rotate derivative wrt Dx to molecular frame
+  dDyM = R_D2M(:,2)*R_D2M(:,2).';  % rotate derivative wrt Dy to molecular frame
+  dDzM = R_D2M(:,3)*R_D2M(:,3).';  % rotate derivative wrt Dz to molecular frame
 
   % Construct spin operator matrices
   for c = 3:-1:1
@@ -69,10 +85,15 @@ for iSpin = idxElectrons
   % Construct SDS term
   for c1 = 1:3
     for c2 = 1:3
-      H = H + D(c1,c2)*(Sxyz{c1}*Sxyz{c2});
+      tempProduct=Sxyz{c1}*Sxyz{c2};  % storing the matrix product temporarily
+      H = H + D(c1,c2)*tempProduct;
+      dHdDx = dHdDx + dDxM(c1,c2)*tempProduct;
+      dHdDy = dHdDy + dDyM(c1,c2)*tempProduct;
+      dHdDz = dHdDz + dDzM(c1,c2)*tempProduct;
     end
   end
 
+  dH{iSpin} = {dHdDx,dHdDy,dHdDz};
 end
 
 % Fourth-order terms a and F
@@ -110,7 +131,7 @@ for k = 1:numel(Sys.B)
 
     % Skip if all rank-k coefficients are zero
     if all(Bk(iSpin,:)==0), continue; end
-    
+
     % Apply transformation if non-zero tilt angles are given
     % (Sys.BFrame is processed from Sys.B?Frame by validatespinsys)
     tiltang = Sys.BFrame{k}(iSpin,:);
@@ -126,13 +147,13 @@ for k = 1:numel(Sys.B)
     else
       Bk_M = Bk(iSpin,:);
     end
-    
+
     % Build Hamiltonian
     q = k:-1:-k;
     for iq = find(Bk_M~=0)
       H = H + Bk_M(iq)*stev(Spins,[k,q(iq),iSpin],'sparse');
     end
-    
+
   end % for all electron spins specified
 
 end % for all tensor ranks

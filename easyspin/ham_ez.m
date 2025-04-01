@@ -31,7 +31,7 @@ function varargout = ham_ez(SpinSystem,varargin)
 
 if nargin==0, help(mfilename); return; end
 
-if nargout~=1 && nargout~=3, error('Wrong number of output arguments!'); end
+if nargout~=1 && nargout~=6, error('Wrong number of output arguments!'); end
 singleOutput = nargout==1;
 
 if singleOutput
@@ -105,7 +105,27 @@ for i = eSpins
     R_M2g = erot(ang);  % mol frame -> g frame
     R_g2M = R_M2g.';  % g frame -> mol frame
     g = R_g2M*g*R_g2M.';
+  else
+    R_g2M=eye(3);
   end
+
+  % preparing the derivatives (specific for each electron)
+  dMuxxM = sparse(nStates,nStates);
+  dMuxyM = sparse(nStates,nStates);
+  dMuxzM = sparse(nStates,nStates);
+
+  dMuyxM = sparse(nStates,nStates);
+  dMuyyM = sparse(nStates,nStates);
+  dMuyzM = sparse(nStates,nStates);
+
+  dMuzxM = sparse(nStates,nStates);
+  dMuzyM = sparse(nStates,nStates);
+  dMuzzM = sparse(nStates,nStates);
+
+  % preparing the derivatives coefficient
+  dgxM = R_g2M(:,1)*R_g2M(:,1).';  % rotate derivative wrt gx to molecular frame
+  dgyM = R_g2M(:,2)*R_g2M(:,2).';  % rotate derivative wrt gy to molecular frame
+  dgzM = R_g2M(:,3)*R_g2M(:,3).';  % rotate derivative wrt gz to molecular frame
 
   % Build magnetic dipole moment components in MHz/mT
   for k = 1:3
@@ -113,6 +133,18 @@ for i = eSpins
     muxM = muxM + g(1,k)*Sk;
     muyM = muyM + g(2,k)*Sk;
     muzM = muzM + g(3,k)*Sk;
+
+    dMuxxM = dMuxxM + dgxM(1,k)*Sk;
+    dMuyxM = dMuyxM + dgxM(2,k)*Sk;
+    dMuzxM = dMuzxM + dgxM(3,k)*Sk;
+
+    dMuxyM = dMuxyM + dgyM(1,k)*Sk;
+    dMuyyM = dMuyyM + dgyM(2,k)*Sk;
+    dMuzyM = dMuzyM + dgyM(3,k)*Sk;
+
+    dMuxzM = dMuxzM + dgzM(1,k)*Sk;
+    dMuyzM = dMuyzM + dgzM(2,k)*Sk;
+    dMuzzM = dMuzzM + dgzM(3,k)*Sk;
   end
 
 end
@@ -123,8 +155,12 @@ if isempty(B0)
     muxM = full(muxM);
     muyM = full(muyM);
     muzM = full(muzM);
+
+    dMuxM = {dMuxxM, dMuyxM, dMuzxM};
+    dMuyM = {dMuxyM, dMuyyM, dMuzyM};
+    dMuzM = {dMuxzM, dMuyzM, dMuzzM};
   end
-  varargout = {muxM, muyM, muzM};
+  varargout = {muxM, muyM, muzM, dMuxM, dMuyM, dMuzM};
 else
   % Return Zeeman Hamiltonian
   H = -(muxM*B0(1) + muyM*B0(2) + muzM*B0(3));
