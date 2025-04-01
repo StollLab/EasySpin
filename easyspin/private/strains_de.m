@@ -32,7 +32,7 @@ for iEl = 1:nElectrons
   Delta = Sys.DStrain(iEl,:);  % FWHMs for D and E
   rDE = Sys.DStrainCorr(iEl);  % correlation coefficient between D and E
   if rDE<-1 || rDE>1
-    error('Electron spin %d: D/E correlation coefficient must be between -1 and 1',iEl);
+    error('Electron spin %d: D/E correlation coefficient must be between -1 and 1, verify your input',iEl);
   end
 
   % Construct spin operators in molecular frame
@@ -42,7 +42,7 @@ for iEl = 1:nElectrons
   
   % Transform spin operators to D frame
   if any(Sys.DFrame(iEl,:))
-    R_M2D = erot(Sys.DFrame(iEl,:));  % molecular frame -> D frame
+    R_M2D = erot(Sys.DFrame(iEl,:));  % molecular frame -> D frame  -----------------------M2D pr D2M? confused due to g2M in strains_ga
     SxD = R_M2D(1,1)*SxM + R_M2D(1,2)*SyM + R_M2D(1,3)*SzM;
     SyD = R_M2D(2,1)*SxM + R_M2D(2,2)*SyM + R_M2D(2,3)*SzM;
     SzD = R_M2D(3,1)*SxM + R_M2D(3,2)*SyM + R_M2D(3,3)*SzM;

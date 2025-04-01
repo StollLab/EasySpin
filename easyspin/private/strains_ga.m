@@ -18,19 +18,19 @@ simplegStrain = CoreSys.nElectrons==1;
 if usegStrain
   logmsg(1,'  g strain present');
   lw_g = mwFreq*CoreSys.gStrain./CoreSys.g;  % MHz
-  for e = CoreSys.nElectrons:-1:1
-    if any(CoreSys.gFrame(e,:))
-      R_g2M{e} = erot(CoreSys.gFrame(e,:)).';  % g frame -> molecular frame
+  for Ne = CoreSys.nElectrons:-1:1
+    if any(CoreSys.gFrame(Ne,:))
+      R_g2M{Ne} = erot(CoreSys.gFrame(Ne,:)).';  % g frame -> molecular frame [question about why .' not consistent with strains_de]
     else
-      R_g2M{e} = eye(3);
+      R_g2M{Ne} = eye(3);
     end
   end
   if ~simplegStrain
     logmsg(1,'  multiple g strains present');
-    for e = CoreSys.nElectrons:-1:1
-      kSxM{e} = sop(CoreSys,[e,1]);
-      kSyM{e} = sop(CoreSys,[e,2]);
-      kSzM{e} = sop(CoreSys,[e,3]);
+    for Ne = CoreSys.nElectrons:-1:1
+      kSxM{Ne} = sop(CoreSys,[Ne,1]);
+      kSyM{Ne} = sop(CoreSys,[Ne,2]);
+      kSzM{Ne} = sop(CoreSys,[Ne,3]);
     end
     ops.kSxM = kSxM;
     ops.kSyM = kSyM;
@@ -41,6 +41,7 @@ else
 end
 
 if useAStrain
+    %%I ignore it for now
   if usegStrain
     if any(CoreSys.gFrame(1,:)~=CoreSys.AFrame(1,1:3))
       error('For g/A strain, Sys.gFrame and Sys.AFrame must be collinear.');
@@ -65,17 +66,18 @@ if useAStrain
 
   % Combine g and A strain
   rho = CoreSys.gAStrainCorr;  % correlation coefficient
-  for e = CoreSys.nElectrons:-1:1
-    lw2_gA{e} = repmat(diag(lw_g(e,:).^2),[1,1,nTransitions]) + lw_A.^2 + ...
-      2*rho*repmat(diag(lw_g(e,:)),[1,1,nTransitions]).*lw_A;
+  for Ne = CoreSys.nElectrons:-1:1
+    lw2_gA{Ne} = repmat(diag(lw_g(Ne,:).^2),[1,1,nTransitions]) + lw_A.^2 + ...
+      2*rho*repmat(diag(lw_g(Ne,:)),[1,1,nTransitions]).*lw_A;
     for tr = 1:nTransitions
-      lw2_gA{e}(:,:,tr) = R_strain2M{e}*lw2_gA{e}(:,:,tr)*R_strain2M{e}.';
+      lw2_gA{Ne}(:,:,tr) = R_strain2M{Ne}*lw2_gA{Ne}(:,:,tr)*R_strain2M{Ne}.';
     end
   end
+
 else
   if usegStrain
-    for e = CoreSys.nElectrons:-1:1
-      lw2_gA{e} = repmat(R_g2M{e}*diag(lw_g(e,:).^2)*R_g2M{e}.',[1,1,nTransitions]);
+    for Ne = CoreSys.nElectrons:-1:1
+      lw2_gA{Ne} = repmat(R_g2M{Ne}*diag(lw_g(Ne,:).^2)*R_g2M{Ne}.',[1,1,nTransitions]);
     end
   end
 end
