@@ -103,7 +103,7 @@ for eSp = elSpins
       R_A2M = R_M2A.';    % A frame -> mol frame
       A = R_A2M*A*R_A2M.';
     else
-      R_A2M=eye(3);
+      R_A2M = eye(3);
     end
 
     % preparing the derivatives (specific for each electron)
@@ -119,7 +119,7 @@ for eSp = elSpins
     % Construct hyperfine Hamiltonian
     for c1 = 1:3
       for c2 = 1:3
-        tempProduct=sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
+        tempProduct = sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
         Hhf = Hhf + A(c1,c2)*tempProduct;
         dHhfx = dHhfx + dAxM(c1,c2)*tempProduct;
         dHhfy = dHhfy + dAyM(c1,c2)*tempProduct;
@@ -127,13 +127,20 @@ for eSp = elSpins
       end
     end
 
+    dHhf{eSp,nSp} = {dHhfx,dHhfy,dHhfz};
   end % for all specified nuclei
-  dHhf{eSp,nSp}={dHhfx,dHhfy,dHhfz}; % --> the indices in the derivative may not be needed?
 end % for all specified electrons
 
 Hhf = (Hhf+Hhf')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
 if ~useSparseMatrices
   Hhf = full(Hhf); % convert sparse to full
+  for eSp = elSpins
+    for nSp = nucSpins
+      for k = 1:3
+        dHhf{eSp,nSp}{k} = full(dHhf{eSp,nSp}{k});
+      end
+    end
+  end
 end
 
 end
