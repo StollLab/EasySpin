@@ -1,11 +1,11 @@
-% ham_hf  Hyperfine interaction Hamiltonian
+% ham_hf  Hyperfine interaction Hamiltonian and derivative
 %
-%   Hhf = ham_hf(System)
-%   Hhf = ham_hf(System,eSpins)
-%   Hhf = ham_hf(System,eSpins,nSpins)
-%   Hhf = ham_hf(System,eSpins,nSpins,'sparse')
+%   [Hhf,dHhf] = ham_hf(System)
+%   [Hhf,dHhf] = ham_hf(System,eSpins)
+%   [Hhf,dHhf] = ham_hf(System,eSpins,nSpins)
+%   [Hhf,dHhf] = ham_hf(System,eSpins,nSpins,'sparse')
 %
-%   Returns the hyperfine interaction Hamiltonian (in units of MHz) between
+%   Returns the hyperfine interaction Hamiltonian (in units of MHz) and its derivative between
 %   electron spins 'eSpins' and nuclear spins 'nSpins' of the system
 %   'System'. eSpins=1 is the first electron spins, nSpins=1 is the first
 %   nuclear spin.
@@ -119,28 +119,32 @@ for eSp = elSpins
     % Construct hyperfine Hamiltonian
     for c1 = 1:3
       for c2 = 1:3
-        tempProduct = sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
+        if ~useSparseMatrices
+          tempProduct = sop(SpinVec,[eSp c1; nElectrons+nSp c2]);
+        else
+          tempProduct = sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
+        end
         Hhf = Hhf + A(c1,c2)*tempProduct;
         dHhfx = dHhfx + dAxM(c1,c2)*tempProduct;
         dHhfy = dHhfy + dAyM(c1,c2)*tempProduct;
         dHhfz = dHhfz + dAzM(c1,c2)*tempProduct;
       end
     end
-
+    % Return the derivative of the hyperfine coupling for each electron-nuclear spin pair
     dHhf{eSp,nSp} = {dHhfx,dHhfy,dHhfz};
   end % for all specified nuclei
 end % for all specified electrons
 
 Hhf = (Hhf+Hhf')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
-if ~useSparseMatrices
-  Hhf = full(Hhf); % convert sparse to full
-  for eSp = elSpins
-    for nSp = nucSpins
-      for k = 1:3
-        dHhf{eSp,nSp}{k} = full(dHhf{eSp,nSp}{k});
-      end
-    end
-  end
-end
+% if ~useSparseMatrices
+%   Hhf = full(Hhf); % convert sparse to full
+%   for eSp = elSpins
+%     for nSp = nucSpins
+%       for k = 1:3
+%         dHhf{eSp,nSp}{k} = full(dHhf{eSp,nSp}{k});
+%       end
+%     end
+%   end
+% end
 
 end

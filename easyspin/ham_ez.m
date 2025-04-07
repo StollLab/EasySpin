@@ -6,9 +6,14 @@
 %   [mux, muy, muz] = ham_ez(SpinSystem)
 %   [mux, muy, muz] = ham_ez(SpinSystem, eSpins)
 %   [mux, muy, muz] = ham_ez(SpinSystem, eSpins, 'sparse')
+%   [mux, muy, muz, dmudgx, dmudgy, dmudgz] = ham_ez(SpinSystem)
+%   [mux, muy, muz, dmudgx, dmudgy, dmudgz] = ham_ez(SpinSystem, eSpins)
+%   [mux, muy, muz, dmudgx, dmudgy, dmudgz] = ham_ez(SpinSystem, eSpins, 'sparse')
 %
 %   Returns the electron Zeeman interaction Hamiltonian matrix for
-%   the electron spins 'eSpins' of the spin system 'SpinSystem'.
+%   the electron spins 'eSpins' of the spin system 'SpinSystem'. It can
+%   return also the magnetic moment and its derivatives with respect to gx,
+%   gy, gz in the molecular frame.
 %
 %   Input:
 %   - SpinSystem: Spin system structure.
@@ -25,13 +30,17 @@
 %     To get the full electron Zeeman Hamiltonian, use
 %     H = -(mux*B(1)+muy*B(2)+muz*B(3)), where B is the magnetic field vector
 %     in mT.
+%   - dmudgx, dmudgy, dmudgz, derivatives of the magnetic dipole moment
+%     with respect to dmudgi= dmu/dgi where i=x,y,z stored as a cell index as {spin,i}
 %   - H: Electron Zeeman Hamiltonian matrix.
 
 function varargout = ham_ez(SpinSystem,varargin)
 
 if nargin==0, help(mfilename); return; end
 
-if nargout~=1 && nargout~=6, error('Wrong number of output arguments!'); end
+if nargout~=1 && nargout~=3 && nargout~=6
+  error('Wrong number of output arguments!');
+end
 singleOutput = nargout==1;
 
 if singleOutput
@@ -88,19 +97,20 @@ muzM = sparse(nStates,nStates);
 % Calculate prefactors
 pre = -bmagn/planck*Sys.g; % Hz/T
 pre = pre/1e9;  % Hz/T -> GHz/T = MHz/mT
+preDer = -bmagn/planck/1e9; 
 
 % Loop over all electron spins
-for i = eSpins
+for eSp = eSpins
 
   % Get full g matrix
   if Sys.fullg
-    g = pre((i-1)*3+(1:3),:);
+    g = pre((eSp-1)*3+(1:3),:);
   else
-    g = diag(pre(i,:));
+    g = diag(pre(eSp,:));
   end
 
   % Transform g matrix to molecular frame
-  ang = Sys.gFrame(i,:);
+  ang = Sys.gFrame(eSp,:);
   if any(ang)
     R_M2g = erot(ang);  % mol frame -> g frame
     R_g2M = R_M2g.';  % g frame -> mol frame
@@ -109,64 +119,47 @@ for i = eSpins
     R_g2M=eye(3);
   end
 
-  % preparing the derivatives (specific for each electron)
-  dMuxxM = sparse(nStates,nStates);
-  dMuxyM = sparse(nStates,nStates);
-  dMuxzM = sparse(nStates,nStates);
-
-  dMuyxM = sparse(nStates,nStates);
-  dMuyyM = sparse(nStates,nStates);
-  dMuyzM = sparse(nStates,nStates);
-
-  dMuzxM = sparse(nStates,nStates);
-  dMuzyM = sparse(nStates,nStates);
-  dMuzzM = sparse(nStates,nStates);
+  % preparing the derivatives of the magnetic moment
+  for index=1:3
+    dmuMgx{index} = sparse(nStates,nStates);
+    dmuMgy{index} = sparse(nStates,nStates);
+    dmuMgz{index} = sparse(nStates,nStates);
+  end
 
   % preparing the derivatives coefficient
-  dgxM = R_g2M(:,1)*R_g2M(:,1).';  % rotate derivative wrt gx to molecular frame
-  dgyM = R_g2M(:,2)*R_g2M(:,2).';  % rotate derivative wrt gy to molecular frame
-  dgzM = R_g2M(:,3)*R_g2M(:,3).';  % rotate derivative wrt gz to molecular frame
+  dgxM = preDer*R_g2M(:,1)*R_g2M(:,1).';  % rotate derivative wrt gx to molecular frame (and scale with preDer)
+  dgyM = preDer*R_g2M(:,2)*R_g2M(:,2).';  % rotate derivative wrt gy to molecular frame (and scale with preDer)
+  dgzM = preDer*R_g2M(:,3)*R_g2M(:,3).';  % rotate derivative wrt gz to molecular frame (and scale with preDer)
 
   % Build magnetic dipole moment components in MHz/mT
   for k = 1:3
-    Sk = sop(spins,[i,k],'sparse');
+    if ~useSparseMatrices
+      Sk = sop(spins,[eSp,k]);
+    else
+      Sk = sop(spins,[eSp,k],'sparse');
+    end
     muxM = muxM + g(1,k)*Sk;
     muyM = muyM + g(2,k)*Sk;
     muzM = muzM + g(3,k)*Sk;
 
-    dMuxxM = dMuxxM + dgxM(1,k)*Sk;
-    dMuyxM = dMuyxM + dgxM(2,k)*Sk;
-    dMuzxM = dMuzxM + dgxM(3,k)*Sk;
-
-    dMuxyM = dMuxyM + dgyM(1,k)*Sk;
-    dMuyyM = dMuyyM + dgyM(2,k)*Sk;
-    dMuzyM = dMuzyM + dgyM(3,k)*Sk;
-
-    dMuxzM = dMuxzM + dgzM(1,k)*Sk;
-    dMuyzM = dMuyzM + dgzM(2,k)*Sk;
-    dMuzzM = dMuzzM + dgzM(3,k)*Sk;
+    for index=1:3
+      dmuMgx{index} = dmuMgx{index} + dgxM(index,k)*Sk;
+      dmuMgy{index} = dmuMgy{index} + dgyM(index,k)*Sk;
+      dmuMgz{index} = dmuMgz{index} + dgzM(index,k)*Sk;
+    end
   end
 
+    dmuMdgx{eSp} = {dmuMgx{1}, dmuMgx{2}, dmuMgx{3}};
+    dmuMdgy{eSp} = {dmuMgy{1}, dmuMgy{2}, dmuMgy{3}};
+    dmuMdgz{eSp} = {dmuMgz{1}, dmuMgz{2}, dmuMgz{3}};
 end
 
 if isempty(B0)
-  % Return magnetic dipole moment components
-  if ~useSparseMatrices
-    muxM = full(muxM);
-    muyM = full(muyM);
-    muzM = full(muzM);
-
-    dMuxM = {dMuxxM, dMuyxM, dMuzxM};
-    dMuyM = {dMuxyM, dMuyyM, dMuzyM};
-    dMuzM = {dMuxzM, dMuyzM, dMuzzM};
-  end
-  varargout = {muxM, muyM, muzM, dMuxM, dMuyM, dMuzM};
+  % Return magnetic dipole moment components and derivatives
+  varargout = {muxM, muyM, muzM, dmuMdgx, dmuMdgy, dmuMdgz};
 else
   % Return Zeeman Hamiltonian
   H = -(muxM*B0(1) + muyM*B0(2) + muzM*B0(3));
-  if ~useSparseMatrices
-    H = full(H);
-  end
   varargout = {H};
 end
 

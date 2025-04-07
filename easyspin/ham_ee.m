@@ -1,11 +1,11 @@
 % ham_ee  Electron-electron spin interaction Hamiltonian
 %
-%   F = ham_ee(SpinSystem)
-%   F = ham_ee(SpinSystem,eSpins)
-%   F = ham_ee(SpinSystem,eSpins,'sparse')
+%   [F, dF] = ham_ee(SpinSystem)
+%   [F, dF] = ham_ee(SpinSystem,eSpins)
+%   [F, dF] = ham_ee(SpinSystem,eSpins,'sparse')
 %
 %   Returns the electron-electron spin interaction (EEI)
-%   Hamiltonian, in MHz.
+%   Hamiltonian, in MHz and its derivatives.
 %
 %   Input:
 %   - SpinSystem: Spin system structure. EEI
@@ -17,6 +17,8 @@
 
 %   Output:
 %   - F: Hamiltonian matrix containing the EEI for
+%       electron spins specified in eSpins.
+%   - dF: Derivative of the Hamiltonian matrix containing the EEI for
 %       electron spins specified in eSpins.
 
 function [F,dF] = ham_ee(System,Spins,opt)
@@ -113,9 +115,17 @@ for iPair = 1:nPairs
 
   % Sum up Hamiltonian terms
   for c1 = 1:3
-    so1 = sop(sys,[Pairs(iPair,1),c1],'sparse');
+    if ~useSparseMatrices  % sparse -> full
+      so1 = sop(sys,[Pairs(iPair,1),c1]);
+    else
+      so1 = sop(sys,[Pairs(iPair,1),c1],'sparse');
+    end
     for c2 = 1:3
-      so2 = sop(sys,[Pairs(iPair,2),c2],'sparse');
+      if ~useSparseMatrices  % sparse -> full
+        so2 = sop(sys,[Pairs(iPair,2),c2]);
+      else
+        so2 = sop(sys,[Pairs(iPair,2),c2],'sparse');
+      end
       tempProduct=so1*so2;
       F = F + J(c1,c2)*tempProduct;
       dFdeex = dFdeex + deexM(c1,c2)*tempProduct;
@@ -133,14 +143,13 @@ for iPair = 1:nPairs
   for c = 1:3
     F2 = F2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
   end
+  if ~useSparseMatrices  % sparse -> full
+    F2=full(F2);
+  end
   dFdJ=F2^2;
   F = F + System.ee2(iCoupling)*dFdJ;
   dF{iPair} = {dFdeex,dFdeey,dFdeez,dFdJ};  % derivatives
 end
 
 F = (F+F')/2; % Hermitianise
-if ~useSparseMatrices
-  F = full(F); % sparse -> full
-end
-
 end

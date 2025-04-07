@@ -15,7 +15,7 @@
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
-function [H,dH] = ham_zf(SpinSystem,idxElectrons,opt)
+function [Hzf,dHzf] = ham_zf(SpinSystem,idxElectrons,opt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -27,7 +27,7 @@ if nargin<3, opt = ''; end
 if ~ischar(opt)
   error('Third input must be a string, ''sparse''.');
 end
-sparseResult = strcmp(opt,'sparse');
+useSparseMatrices = strcmp(opt,'sparse');
 
 if isempty(idxElectrons)
   idxElectrons = 1:Sys.nElectrons;
@@ -38,7 +38,7 @@ if any(idxElectrons>Sys.nElectrons) || any(idxElectrons<1)
 end
 
 nStates=Sys.nStates;
-H = sparse(nStates,nStates);
+Hzf = sparse(nStates,nStates);
 
 Spins = Sys.Spins;
 
@@ -68,9 +68,9 @@ for iSpin = idxElectrons
   end
 
   % preparing the derivatives (specific for each electron)
-  dHdDx = sparse(nStates,nStates);
-  dHdDy = sparse(nStates,nStates);
-  dHdDz = sparse(nStates,nStates);
+  dHzfdDx = sparse(nStates,nStates);
+  dHzfdDy = sparse(nStates,nStates);
+  dHzfdDz = sparse(nStates,nStates);
 
   % preparing the derivatives coefficient
   dDxM = R_D2M(:,1)*R_D2M(:,1).';  % rotate derivative wrt Dx to molecular frame
@@ -79,21 +79,25 @@ for iSpin = idxElectrons
 
   % Construct spin operator matrices
   for c = 3:-1:1
-    Sxyz{c} = sop(Spins,[iSpin,c],'sparse');
+    if ~useSparseMatrices
+      Sxyz{c} = sop(Spins,[iSpin,c]);
+    else
+      Sxyz{c} = sop(Spins,[iSpin,c],'sparse');
+    end
   end
 
   % Construct SDS term
   for c1 = 1:3
     for c2 = 1:3
       tempProduct=Sxyz{c1}*Sxyz{c2};  % storing the matrix product temporarily
-      H = H + D(c1,c2)*tempProduct;
-      dHdDx = dHdDx + dDxM(c1,c2)*tempProduct;
-      dHdDy = dHdDy + dDyM(c1,c2)*tempProduct;
-      dHdDz = dHdDz + dDzM(c1,c2)*tempProduct;
+      Hzf = Hzf + D(c1,c2)*tempProduct;
+      dHzfdDx = dHzfdDx + dDxM(c1,c2)*tempProduct;
+      dHzfdDy = dHzfdDy + dDyM(c1,c2)*tempProduct;
+      dHzfdDz = dHzfdDz + dDzM(c1,c2)*tempProduct;
     end
   end
 
-  dH{iSpin} = {dHdDx,dHdDy,dHdDz};
+  dHzf{iSpin} = {dHzfdDx,dHzfdDy,dHzfdDz};
 end
 
 % Fourth-order terms a and F
@@ -151,18 +155,14 @@ for k = 1:numel(Sys.B)
     % Build Hamiltonian
     q = k:-1:-k;
     for iq = find(Bk_M~=0)
-      H = H + Bk_M(iq)*stev(Spins,[k,q(iq),iSpin],'sparse');
+      Hzf = Hzf + Bk_M(iq)*stev(Spins,[k,q(iq),iSpin],'sparse');
     end
 
   end % for all electron spins specified
 
 end % for all tensor ranks
 
-H = (H+H')/2;  % Hermitianize
-if ~sparseResult
-  H = full(H);
-end
-
+Hzf = (Hzf+Hzf')/2;  % Hermitianize
 end
 %===============================================================================
 
