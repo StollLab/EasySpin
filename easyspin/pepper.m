@@ -358,17 +358,16 @@ if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
 if Exp.ModAmp>0
-  if FieldSweep
-    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-    if Exp.Harmonic<1
-      error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-    end
-    Exp.ModHarmonic = Exp.Harmonic;
-    Exp.ConvHarmonic = 0;
-    Exp.DerivHarmonic = 0;
-  else
+  if ~FieldSweep
     error('Exp.ModAmp cannot be used with frequency sweeps.');
   end
+  if Exp.Harmonic<1
+    error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
+  end
+  logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+  Exp.ModHarmonic = Exp.Harmonic;
+  Exp.ConvHarmonic = 0;
+  Exp.DerivHarmonic = 0;
 else
   Exp.ModHarmonic = 0;
   if ConvolutionBroadening
@@ -741,7 +740,7 @@ logmsg(1,'-absorption spectrum construction----------------------');
 BruteForceSum = useEigenFields | Opt.BruteForce;
 
 axialGrid = Opt.nOctants==0;
-usingGrid = Opt.nOctants>=0;
+anisotropicSpectrum = Opt.nOctants>=0;
 
 if Opt.ImmediateBinning
 
@@ -751,7 +750,7 @@ elseif ~BruteForceSum
   
   % Preparations for interpolation
   %-----------------------------------------------------------------------
-  doInterpolation = usingGrid && Opt.GridSize(2)>1;
+  doInterpolation = anisotropicSpectrum && Opt.GridSize(2)>1;
   if doInterpolation
     % Set an option for the sparse tridiagonal matrix \ solver in global cubic
     % spline interpolation. This function needs some time, so it was taken
@@ -781,35 +780,30 @@ elseif ~BruteForceSum
   
   % Preparations for summation/projection
   %-----------------------------------------------------------------------
-  doProjection = usingGrid && ~anisotropicWidths;
-  if ~doProjection
-    msg = 'summation';
-    % Construct Gaussian template lineshape
-    x0T = 5e4;  % center
-    wT = x0T/2.5;  % width; results in <2e-9 at borders
-    xT = 0:2*x0T-1;  % needs to be zero-based and with increment 1 (for lisum1i)
-    Template = gaussian(xT,x0T,wT,-1);
+  doProjection = anisotropicSpectrum && ~anisotropicWidths;
+  doSummation = ~doProjection;
+  % Use summation of individual lines if the spectrum is isotropic (no
+  % orientational grid) or the linewidth is anisotropic
+  if doSummation
+    useGaussianTemplate = true;
     if ~anisotropicWidths
       if Sys.lw(1)>0
-        % If present, use convolutional Gaussian for spectrum construction
+        % Gaussian broadening: use Gaussian template
         thisWid = Sys.lw(1);
         Sys.lw(1) = 0;
+        % In the absence of additional Lorentzian convolutional broadening,
+        % use derivative to calculate harmonic
         ConvolutionBroadening = Sys.lw(2)>0;
-        % In the absence of additional convolutional broadening, use derivative
-        % to calculate harmonic
-        if ~ConvolutionBroadening
-          Exp.DerivHarmonic = Exp.DerivHarmonic+Exp.ConvHarmonic;
-          Exp.ConvHarmonic = 0;
-        end
       else
-        % Summation & Lorentzian only: use Lorentzian template
-        x0T = 1e5;
-        wT = x0T/20; % 0.0025 at borders for Harmonic = -1
-        xT = 0:2*x0T-1;
-        Template = lorentzian(xT,x0T,wT,Exp.ConvHarmonic-1,Exp.mwPhase);
+        % Lorentzian broadening only: use Lorentzian template
+        useGaussianTemplate = false;
         thisWid = Sys.lw(2);
         Sys.lw(2) = 0;
-        ConvolutionBroadening = false;
+        ConvolutionBroadening = false;  % use derivative to calculate harmonic
+      end
+      if ~ConvolutionBroadening
+        Exp.DerivHarmonic = Exp.DerivHarmonic+Exp.ConvHarmonic;
+        Exp.ConvHarmonic = 0;
       end
       if crystalSample
         thisWid = repmat(thisWid,nTransitions,1);
@@ -817,8 +811,34 @@ elseif ~BruteForceSum
     else
       % thisWid is assigned inside the transition/orientation/site loop
     end
-  else
+
+    % Construct lineshape template
+    if useGaussianTemplate
+      % Gaussian template
+      x0T = 5e4;  % center
+      wT = x0T/2.5;  % width; results in <2e-9 at borders for mwPhase==0
+      xT = 0:2*x0T-1;  % needs to be zero-based and with increment 1 (for lisum1i)
+      if Exp.mwPhase~=0 && Sys.lw(2)==0
+        disp('Exp.mwPhase is disregarded for Gaussian-only spectrum. Add a Lorentzian component.')
+      end
+      Template = gaussian(xT,x0T,wT,-1);
+    else
+      % Lorentzian template
+      x0T = 1e5;
+      wT = x0T/20;  % 0.0025 at borders for Harmonic==-1 and mwPhase==0
+      xT = 0:2*x0T-1;
+      Template = lorentzian(xT,x0T,wT,-1,Exp.mwPhase);
+    end
+  end
+
+  if doProjection
     msg = 'triangle/segment projection';
+  else
+    if useGaussianTemplate
+      msg = 'summation using Gaussian template';
+    else
+      msg = 'summation using Lorentzian template';
+    end
   end
   logmsg(1,'  %s',msg);
 
@@ -887,7 +907,7 @@ elseif ~BruteForceSum
       end
     end
     
-  elseif ~usingGrid
+  elseif ~anisotropicSpectrum
     
     %=======================================================================
     % Isotropic disordered spectra
@@ -1054,7 +1074,7 @@ elseif ~BruteForceSum
       
     end % for iTrans
     
-    if ~doProjection
+    if doSummation
       logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
     end
     
@@ -1218,7 +1238,7 @@ else
       spec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
     end
   else
-    logmsg(1,'  harmonic 0: absorption spectrum');
+    logmsg(1,'  harmonic 0: no differentiation');
   end
 
 end

@@ -62,18 +62,16 @@ end
 
 F = sparse(n,n);
 
-% Compile list of wanted interactions
+% Compile list of wanted pairs
+idx = nchoosek(1:numel(Spins),2);
 Spins = sort(Spins);
-[idx1,idx2] = find(tril(ones(numel(Spins)),-1));
-idx = [idx2,idx1];
-
 Pairs = Spins(idx);
 nPairs = size(Pairs,1);
 Coupl = Pairs(:,1) + (Pairs(:,2)-1)*System.nElectrons;
 
 % Compile list of all spin pairs
-[e2,e1] = find(tril(ones(System.nElectrons),-1));
-allPairsIdx = e1 + (e2-1)*System.nElectrons;
+idx_all = nchoosek(1:System.nElectrons,2);
+allPairsIdx = idx_all(:,1) + (idx_all(:,2)-1)*System.nElectrons;
 
 ee = System.ee;
 if isfield(System,'eeFrame')

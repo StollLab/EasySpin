@@ -111,9 +111,10 @@ end
 N = length(H0);
 
 % Transition map and level indices
-uv = find(triu(ones(N),1));
-[u,v] = ind2sub([N N],uv); % u < v
-Transitions = [u,v];
+Transitions = nchoosek(1:N,2);
+u = Transitions(:,1);
+v = Transitions(:,2);
+uv = u+(v-1)*N;
 nTransitions = numel(u);
 
 % Pre-calculate

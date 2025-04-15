@@ -15,7 +15,8 @@
 %   mode:
 %     'maxabs'  scales y such that maximum magnitude of yscaled is 1 (if
 %               yref is not given) or max(abs(yref)) (if yref is given)
-%     'lsq'     least-squares fit of a*y to yref; yref is needed
+%     'lsq'     least-squares fit of a*y to yref; yref is needed;
+%               if number of elements doesn't match, yref is interpolated
 %     'int'     normalize integral (sum of datapoints) to 1
 %     'dint'    normalize double integral (sum of cumsum of datapoints) to 1
 %     'none'    no scaling
@@ -98,6 +99,7 @@ if isempty(ModeID)
     error('Unknown scaling mode ''%s''.',Mode);
   end
 end
+
 if refNeeded(ModeID)
   if isempty(yref)
     error('For ''%s'' mode, a reference is needed.',Mode);
@@ -105,7 +107,7 @@ if refNeeded(ModeID)
   if equalLengthNeeded(ModeID)
     equalLength = numel(y)==numel(yref);
     if equalLengthNeeded(ModeID) && ~equalLength
-      error('For least-squares rescaling, y and yref must have same number of elements.');
+      yref = interp1(linspace(0,1,numel(yref)),yref,linspace(0,1,numel(y)),"makima");
     end
   end
 end

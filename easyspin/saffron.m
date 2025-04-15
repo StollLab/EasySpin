@@ -125,12 +125,16 @@ logmsg(1,'-general-----------------------------------------------');
 % Spin system structure
 %===============================================================================
 [Sys,err] = validatespinsys(Sys);
+
 error(err);
 if Sys.MO_present
   error('saffron does not support Sys.Ham* parameters.');
 end
 if any(Sys.L(:))
   error('saffron does not support Sys.L.');
+end
+if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain)
+  error('saffron does not support Sys.gStrain, Sys.AStrain, or Sys.DStrain.');
 end
 
 % Error on spidyan-specific fields
@@ -445,7 +449,7 @@ if fastSimulationMode
     if ~isfield(Exp,'dt')
       error('Exp.dt is missing.');
     end
-    if numel(Exp.dt)==1
+    if isscalar(Exp.dt)
       Exp.dt = Exp.dt*ones(1,nDimensions);
     elseif numel(Exp.dt)~=nDimensions
       error('Exp.dt needs either 1 or %d elements, one per dimension. You gave %d.',nDimensions,numel(Exp.dt));
@@ -464,7 +468,7 @@ if fastSimulationMode
       end
     end
   end
-  if numel(Exp.nPoints)==1
+  if isscalar(Exp.nPoints)
     Exp.nPoints = Exp.nPoints*ones(1,nDimensions);
   elseif numel(Exp.nPoints)~=nDimensions
     error('Exp.nPoints needs either 1 or %d elements, one per dimension. You gave %d.',nDimensions,numel(Exp.nPoints));
@@ -726,7 +730,7 @@ if fastSimulationMode
       % 0 = sum-over-transitions, adjacent level population swap (wrong for >1 nucleus)
       % 1 = sum-over-transitions, bandwidth-filtered Iy pi pulse on all nuclei
       % 2 = frequency sweep, bandwidth-filtered Iy pi pulse on all nuclei
-      if numel(shfNuclei)==1 || Opt.ProductRule
+      if isscalar(shfNuclei) || Opt.ProductRule
         Opt.EndorMethod = 0;
       else
         Opt.EndorMethod = 1;
@@ -1234,16 +1238,16 @@ if fastSimulationMode
                 if increments(iInt)~=0
                   if iBlock==0
                     G = Left*Right;
-                    if numel(G)==1
+                    if isscalar(G)
                       G = G*eyeN;
                     end
                   else
-                    if numel(Left)==1
+                    if isscalar(Left)
                       BlockL{iBlock} = eyeN;
                     else
                       BlockL{iBlock} = Left;
                     end
-                    if numel(Right)==1
+                    if isscalar(Right)
                       BlockR{iBlock} = eyeN;
                     else
                       BlockR{iBlock} = Right;
@@ -1384,7 +1388,9 @@ if fastSimulationMode
                     % Loop over all nuclear transition and apply
                     % bandwidth-limited rf pulse operator. The excitation
                     % bandwidth is Gaussian.
-                    [i,j] = find(triu(ones(nNucStates),1));
+                    ij = nchoosek(1:nNucStates,2);
+                    i = ij(:,1);
+                    j = ij(:,2);
                     for iNucTrans = 1:numel(i)
                       % Calculate propagators for narrow-band Gaussian
                       % pulses at the nuclear transition frequency i->j
@@ -1986,7 +1992,7 @@ else  % if fastSimulationMode
         nParameters = size(Exp.(Dimension_),1);
         axes_ = zeros(nParameters,Exp.nPoints(iDim));
         for iParameter = 1: nParameters
-          if length(Exp.(Dimension_){iParameter,2}) == 1
+          if isscalar(Exp.(Dimension_){iParameter,2})
             axes_(iParameter,:) = Exp.(Dimension_){iParameter,2}*(0:Exp.nPoints(iDim)-1);
           else
             axes_(iParameter,:) = 1:Exp.nPoints(iDim);
@@ -2003,7 +2009,7 @@ else  % if fastSimulationMode
     x{nIndirectDimensions+1} = timeAxis;
   end
 
-  if iscell(x) && numel(x)==1
+  if iscell(x) && isscalar(x)
     x = x{1};
   end
 
@@ -2070,7 +2076,7 @@ Detector = reshape(D.',1,NN);
 E = {Ea,Eb};
 
 % Pre-allocate signal array
-if numel(nPoints)==1
+if isscalar(nPoints)
   Signal = zeros(1,nPoints);
 else
   Signal = zeros(nPoints);

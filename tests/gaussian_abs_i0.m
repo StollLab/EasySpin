@@ -1,6 +1,6 @@
 function ok = test(opt)
 
-% Check integrated Gaussian against explicit expression
+% Check Gaussian against derivative of its integral
 
 x0 = 3; fwhm = 2;
 x = linspace(-3,6,1001);
