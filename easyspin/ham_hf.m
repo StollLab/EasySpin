@@ -1,18 +1,18 @@
-% ham_hf  Hyperfine interaction Hamiltonian 
+% ham_hf  Hyperfine interaction Hamiltonian and derivative
 %
-%   Hhf = ham_hf(System)
-%   Hhf = ham_hf(System,eSpins)
-%   Hhf = ham_hf(System,eSpins,nSpins)
-%   Hhf = ham_hf(System,eSpins,nSpins,'sparse')
+%   [Hhf,dHhf] = ham_hf(System)
+%   [Hhf,dHhf] = ham_hf(System,eSpins)
+%   [Hhf,dHhf] = ham_hf(System,eSpins,nSpins)
+%   [Hhf,dHhf] = ham_hf(System,eSpins,nSpins,'sparse')
 %
-%   Returns the hyperfine interaction Hamiltonian (in units of MHz) between
+%   Returns the hyperfine interaction Hamiltonian (in units of MHz) and its derivative between
 %   electron spins 'eSpins' and nuclear spins 'nSpins' of the system
 %   'System'. eSpins=1 is the first electron spins, nSpins=1 is the first
 %   nuclear spin.
 %
 %   If 'sparse' is given, the matrix is returned in sparse format.
 
-function Hhf = ham_hf(System,elSpins,nucSpins,opt)
+function [Hhf,dHhf] = ham_hf(System,elSpins,nucSpins,opt)
 
 if nargin==0
   help(mfilename);
@@ -102,21 +102,49 @@ for eSp = elSpins
       R_M2A = erot(ang);  % mol frame -> A frame
       R_A2M = R_M2A.';    % A frame -> mol frame
       A = R_A2M*A*R_A2M.';
+    else
+      R_A2M = eye(3);
     end
+
+    % preparing the derivatives (specific for each electron)
+    dHhfx = sparse(nStates,nStates);
+    dHhfy = sparse(nStates,nStates);
+    dHhfz = sparse(nStates,nStates);
+
+    % preparing the derivatives coefficient
+    dAxM = R_A2M(:,1)*R_A2M(:,1).';  % rotate derivative wrt Ax to molecular frame
+    dAyM = R_A2M(:,2)*R_A2M(:,2).';  % rotate derivative wrt Ay to molecular frame
+    dAzM = R_A2M(:,3)*R_A2M(:,3).';  % rotate derivative wrt Az to molecular frame
 
     % Construct hyperfine Hamiltonian
     for c1 = 1:3
       for c2 = 1:3
-        Hhf = Hhf + A(c1,c2)*sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
+        if ~useSparseMatrices
+          tempProduct = sop(SpinVec,[eSp c1; nElectrons+nSp c2]);
+        else
+          tempProduct = sop(SpinVec,[eSp c1; nElectrons+nSp c2],'sparse');
+        end
+        Hhf = Hhf + A(c1,c2)*tempProduct;
+        dHhfx = dHhfx + dAxM(c1,c2)*tempProduct;
+        dHhfy = dHhfy + dAyM(c1,c2)*tempProduct;
+        dHhfz = dHhfz + dAzM(c1,c2)*tempProduct;
       end
     end
-
+    % Return the derivative of the hyperfine coupling for each electron-nuclear spin pair
+    dHhf{eSp,nSp} = {dHhfx,dHhfy,dHhfz};
   end % for all specified nuclei
 end % for all specified electrons
 
 Hhf = (Hhf+Hhf')/2; % hermitianise, e.g. guards against small imaginary remainders on the diagonal
-if ~useSparseMatrices
-  Hhf = full(Hhf); % convert sparse to full
-end
+% if ~useSparseMatrices
+%   Hhf = full(Hhf); % convert sparse to full
+%   for eSp = elSpins
+%     for nSp = nucSpins
+%       for k = 1:3
+%         dHhf{eSp,nSp}{k} = full(dHhf{eSp,nSp}{k});
+%       end
+%     end
+%   end
+% end
 
 end
