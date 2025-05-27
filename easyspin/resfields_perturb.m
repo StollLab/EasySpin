@@ -575,6 +575,9 @@ else
     lwE = bsxfun(@times,lwE,MHz2mT);
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
+
+  else
+   Wid = [];
   end
   
   % Transitions
