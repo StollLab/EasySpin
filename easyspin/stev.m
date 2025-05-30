@@ -174,8 +174,6 @@ end
 
 % Clean small numerical errors
 Op(Op(find(Op))<1e-14)=0;
-%Alternatively:
-%Op = spfun(@(x)round(x,14),Op); % but this will round all values
 
 if ~useSparseMatrices
   Op = full(Op);
