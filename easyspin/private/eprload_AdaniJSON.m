@@ -3,8 +3,7 @@ function [Data,Abscissa,Parameters] = eprload_AdaniJSON(FileName)
 % JSON format of Adani spectrometers SPINSCAN etc. (e-Spinoza software)
 %--------------------------------------------------------------------------
 % (implementation based on official documentation from Adani)
-% Uses Matlab-internal JSON parser  matlab.internal.webservices.fromJSON
-% This does not work prior to R2016b.
+% This does not work prior to R2016b because of jsondecode().
 
 % Matlab version check
 if verLessThan('matlab','9.1.0')

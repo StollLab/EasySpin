@@ -3,8 +3,7 @@ function [Data,Abscissa,Parameters] = eprload_CIQTEK(fileName)
 % JSON format of CIQTEK spectrometers
 %--------------------------------------------------------------------------
 % (implementation based on example files from the EasySpin user forum)
-% Uses Matlab-internal JSON parser  matlab.internal.webservices.fromJSON
-% This does not work prior to R2016b.
+% This does not work prior to R2016b because of jsondecode().
 
 % Matlab version check
 if verLessThan('matlab','9.1.0')
