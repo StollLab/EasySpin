@@ -14,18 +14,16 @@ end
 % Read JSON string from file
 fid = fopen(FileName);
 if fid<0
-  error('Could not open %s.',FileName);
+  error('Could not open Adani file %s.',FileName);
 end
-jsonstring = textscan(fid,'%s');
-jsonstring = jsonstring{1};
+jsonstring = fread(fid,'*char').';
 fclose(fid);
 
 % Parse JSON string
 try
-  data = matlab.internal.webservices.fromJSON(jsonstring);
-  data = data{1};
+  data = jsondecode(jsonstring);
 catch
-  error('Could not parse JSON-format data from %s.',FileName);
+  error('Could not parse Adani file %s.',FileName);
 end
 
 % Get basic information about data
