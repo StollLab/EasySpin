@@ -9,7 +9,6 @@
 
 function b = barn
 
-% 1 barn = 10^-28 m^2 (exact)
 b = 1e-28;
 
 end

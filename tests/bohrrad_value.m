@@ -1,6 +1,6 @@
 function ok = test()
 
 a = bohrrad;
-b = 0.529177210903e-10;
-ok = areequal(a,b,1e-10,'rel');
+b = 5.29177210544e-11;
+ok = areequal(a,b,1e-12,'rel');
 

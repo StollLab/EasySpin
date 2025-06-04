@@ -1,8 +1,8 @@
 % ham_zf  Electronic zero field interaction Hamiltonian 
 %
-%   F = ham_zf(SpinSystem)
-%   F = ham_zf(SpinSystem,Electrons)
-%   F = ham_zf(SpinSystem,Electrons,'sparse')
+%   Hzf = ham_zf(SpinSystem)
+%   Hzf = ham_zf(SpinSystem,Electrons)
+%   Hzf = ham_zf(SpinSystem,Electrons,'sparse')
 %
 %   Returns the electronic zero-field interaction (ZFI)
 %   Hamiltonian of the system SpinSystem, in units of MHz.

@@ -159,6 +159,9 @@ Exp = adddefaults(Exp,DefaultExp);
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
 end
+if isfield(Exp,'Mode')
+  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
+end
 
 if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
 
@@ -578,6 +581,9 @@ else
     lwE = bsxfun(@times,lwE,MHz2mT);
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
+
+  else
+   Wid = [];
   end
   
   % Transitions

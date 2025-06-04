@@ -3,10 +3,13 @@
 %   e = eps0
 %
 %   Returns the electric constant (also known as vacuum
-%   permittivity) in SI units, farads per meter.
+%   permittivity) in SI units, F m^-1 = C^2 N^-1 m^-2.
 
-function e = eps0
+function [e, sigma] = eps0
 
-e = 1/mu0/clight^2;
+% 2022 CODATA value
+
+e =     8.8541878188e-12;
+sigma = 0.0000000014e-12;
 
 end

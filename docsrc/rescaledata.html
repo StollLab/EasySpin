@@ -39,7 +39,7 @@ Rescale data using various criteria.
 y_ = rescaledata(y,mode)
 y_ = rescaledata(y,yref,mode)
 y_ = rescaledata(...,region)
-[y_,scalefactors] = rescaledata(...)
+[y_,scalefactor] = rescaledata(...)
 </pre>
 
 <!-- ====================================================== -->
@@ -59,6 +59,10 @@ If a second data array is given in <code>yref</code>, the data in <code>y</code>
 </ul>
 
 <p>
+For <code>'lsq'</code>, if the number of elements in <code>yref</code> doesn't match the number of elements in <code>y</code>, <code>yref</code> is interpolated to match the length as <code>y</code>.
+</p>
+
+<p>
 In all cases, positive rescaling is enforced, i.e. the rescaled data is not inverted.
 </p>
 
@@ -74,12 +78,12 @@ scales <code>y</code> such that its maximum absolute value equals 1.
 scales <code>y</code> such that the integral (calculated as the sum of the datapoints) equals 1.
 </li>
 <li><code>'dint'</code>:
-scales <code>y</code> such that the double integral (calculated as the sum of the cumulative sum o the datapoints) equals 1.
+scales <code>y</code> such that the double integral (calculated as the sum of the cumulative sum of the datapoints) equals 1.
 </li>
 </ul>
 
 <p>
-<code>scalefactors</code> is an optional output that provides the calculated scale factor.
+<code>scalefactor</code> is an optional output that provides the calculated scale factor.
 </p>
 
 <!-- ====================================================== -->

@@ -53,7 +53,7 @@ else {
 
 # Set up build environment
 # ---------------------------------------------------------------------------------
-system(qq(ssh-add $KeyGitHub)); # private key to log into bitbucket, needs to be adapted to specific user
+system(qq(ssh-add $KeyGitHub)); # private key to log into GitHub, needs to be adapted to specific user
 
 # delete and reinitialize temporary directory of EasySpin if a previous build crashed
 if (-e "$TempRepoDir") {

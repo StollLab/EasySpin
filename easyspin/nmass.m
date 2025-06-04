@@ -3,14 +3,14 @@
 %   mn = nmass
 %   [mn,sigma] = nmass
 %
-%   Returns the mass of the neutron, in kg.
+%   Returns the mass of the neutron in SI units, kg.
 %   sigma is the standard uncertainty.
 
 function [mn,sigma] = nmass
 
-% 2018 CODATA value
+% 2022 CODATA value
 
-mn =    1.67492749804e-27;
-sigma = 0.00000000095e-27;
+mn =    1.67492750056e-27;
+sigma = 0.00000000085e-27;
 
 end

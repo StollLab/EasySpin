@@ -772,7 +772,7 @@ end
 
 % Check Sys.lw
 if ~isfield(Sys,'lw'), Sys.lw = [0 0]; end
-if numel(Sys.lw)==1, Sys.lw(2) = 0; end
+if isscalar(Sys.lw), Sys.lw(2) = 0; end
 if ~isequal(size(Sys.lw),[1 2]), err = ('System.lw has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lw<0), err = ('System.lw cannot be negative.'); end
@@ -780,7 +780,7 @@ if ~isempty(err), return; end
 
 % Check Sys.lwEndor
 if ~isfield(Sys,'lwEndor'), Sys.lwEndor = [0 0]; end
-if numel(Sys.lwEndor)==1, Sys.lwEndor(2) = 0; end
+if isscalar(Sys.lwEndor), Sys.lwEndor(2) = 0; end
 if numel(Sys.lwEndor)~=2, err = ('System.lwEndor has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lwEndor<0), err = ('System.lwEndor cannot be negative.'); end
@@ -788,7 +788,7 @@ if ~isempty(err), return; end
 
 % Check Sys.lwpp
 if ~isfield(Sys,'lwpp'), Sys.lwpp = [0 0]; end
-if numel(Sys.lwpp)==1, Sys.lwpp(2) = 0; end
+if isscalar(Sys.lwpp), Sys.lwpp(2) = 0; end
 if ~isequal(size(Sys.lwpp),[1 2]), err = ('System.lwpp has wrong size.'); end
 if ~isempty(err), return; end
 if any(Sys.lwpp<0), err = ('Linewidths cannot be negative.'); end
@@ -884,7 +884,7 @@ for k = 1:numel(BroadeningType)
   end
   p = Sys.(fld);
   if Elements(k)==3
-    if numel(p)==1, p = p([1 1 1]); end
+    if isscalar(p), p = p([1 1 1]); end
     if numel(p)==2, p = p([1 1 2]); end
   end
   if numel(p)~=Elements(k)

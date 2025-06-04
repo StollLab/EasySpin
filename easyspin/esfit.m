@@ -152,6 +152,9 @@ for i = 1:numel(data)
   if ~isnumeric(data{i}) || ~isvector(data{i}) || isempty(data{i})
     error('First input must be numeric experimental data in the form of a vector or a cell array of vectors.');
   end
+  if any(isnan(data{i}))
+    error('The experimental data must not contain NaN.');
+  end
   data_vec = [data_vec; data{i}(:)];
   datasize(i) = numel(data{i});
 end
@@ -196,11 +199,16 @@ EasySpinFunction = any(strcmp(esfitdata.fcnName,{'pepper','garlic','chili','salt
 
 % Parameters
 %-------------------------------------------------------------------------------
-structureInputs = isstruct(p0) || iscell(p0);
-esfitdata.structureInputs = structureInputs;
+cellInputs = iscell(p0);
+esfitdata.cellInputs = cellInputs;
+
+if isstruct(p0)
+  error(['The third input must be a cell array such as {Sys0,Exp} (when using an '...
+    'EasySpin function) or an array of initial parameter values (when using a custom function).']);
+end
 
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
-if structureInputs
+if cellInputs
   argspar.validargs(p0);
   esfitdata.nSystems = numel(p0{1});
   if varyProvided
@@ -339,7 +347,7 @@ if EasySpinFunction
 
 end
 
-if structureInputs
+if cellInputs
   esfitdata.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
 end
 
@@ -702,7 +710,7 @@ if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
   return;
 end
 
-if esfitdata.structureInputs
+if esfitdata.cellInputs
   argsfit = esfitdata.p2args(pfit);
 else
   argsfit = [];
@@ -906,7 +914,7 @@ result.scale = scale;
 
 result.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
 result.bestfithistory.pfit = esfitdata.besthistory.par;
-if esfitdata.structureInputs
+if esfitdata.cellInputs
   result.bestfithistory.pfit2structs = esfitdata.p2args;
 end
 
@@ -968,7 +976,7 @@ par(active) = x;
 %-------------------------------------------------------------------------------
 out = cell(1,esfitdata.nOutArguments);
 try
-  if esfitdata.structureInputs
+  if esfitdata.cellInputs
     args = esfitdata.p2args(par);
     [out{:}] = esfitdata.fcn(args{:});
   else
@@ -1795,6 +1803,27 @@ for i = 1:(numel(esfitdata.AlgorithmNames)-1)
 end
 updateAlgorithmDefaults()
 
+% Set start algorithm settings based on provided FitOpt structure
+hsettingscurrent = gui.AlgorithmTabs.UserData{Opt.AlgorithmID};
+for i = 1:numel(hsettingscurrent)
+  parname = hsettingscurrent(i).UserData{1};
+  if isfield(Opt,parname) && ~isempty(Opt.(parname))
+    startvalue = Opt.(parname);
+    if strcmp(hsettingscurrent(i).UserData{2},'num')
+      hsettingscurrent(i).Value = num2str(startvalue,'%g');      
+    elseif strcmp(hsettingscurrent(i).UserData{2},'eval')
+      if numel(startvalue)>1
+        str = strcat('[',num2str(startvalue),']');
+      else
+        str = num2str(startvalue);
+      end
+      hsettingscurrent(i).Value = str;
+    end
+  end
+end
+% Update current FitOpt structure
+selectAlgorithm();
+
 % Set callback for settings button to open popup menu
 settingsbutton = gui.AlgorithmSettingsButton;
 set(settingsbutton,'ButtonPushedFcn',@openAlgorithmSettings);
@@ -2512,7 +2541,7 @@ if info.newbest
 
     fitresult.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
     fitresult.bestfithistory.pfit = esfitdata.besthistory.par;
-    if esfitdata.structureInputs
+    if esfitdata.cellInputs
       fitresult.bestfithistory.pfit2structs = esfitdata.p2args;
     end
 
@@ -2523,7 +2552,7 @@ if info.newbest
     fitresult.pfit = esfitdata.best.par(~esfitdata.fixedParams);
     fitresult.pfit_full = esfitdata.best.par;
 
-    if esfitdata.structureInputs
+    if esfitdata.cellInputs
       argsfit = esfitdata.p2args(fitresult.pfit_full);
     else
       argsfit = [];

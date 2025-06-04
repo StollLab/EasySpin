@@ -20,8 +20,8 @@ if (opt.Display)
   if ~isempty(olddata)
     subplot(4,1,[1 2 3]);
     y0 = olddata.y/max(olddata.y);
-    y1 = rescaledata(y,y0,'lsq0');
-    h = plot(x,y0,'k',x,y1,'r');
+    y1 = rescaledata(y,y0,'lsq');
+    plot(x,y0,'k',x,y1,'r');
     legend('old','new');
     subplot(4,1,4);
     plot(x,y1-y0);

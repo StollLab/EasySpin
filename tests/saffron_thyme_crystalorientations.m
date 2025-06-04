@@ -32,7 +32,15 @@ data.x2 = x2;
 data.y2 = y2;
 
 if ~isempty(olddata)
-  ok = areequal(y1,olddata.y1,1e-3,'abs') && areequal(y2,olddata.y2,1e-3,'abs');
+  ok(1) = areequal(y1,olddata.y1,1e-3,'abs');
+  ok(2) = areequal(y2,olddata.y2,1e-3,'abs');
 else
   ok = [];
+end
+
+if opt.Display
+  subplot(2,1,1);
+  plot(x1{2},real(y1),x1{2},real(olddata.y1),'.')';
+  subplot(2,1,2);
+  plot(x2{2},real(y2),x2{2},real(olddata.y2),'.')';
 end

@@ -24,6 +24,15 @@
 %      .areas        triangle areas (solid angles), sum is 4*pi
 %
 
+% Hpw point groups translate to grid types:
+%  O3: a single point at the north pole
+%  Dinfh: quarter meridian with phi=0
+%  D6h, D4h, Oh, D3d, Th, D2h: one octant, closed phi
+%  C4h, C6h: one octant, open phi
+%  C2h, S6: two octants, open phi
+%  Ci: four octants, open phi
+%  C1: eight octants, open phi
+
 % The grid implemented in this function is often called SOPHE grid, after
 %   D. Wang, G. R. Hanson
 %   J.Magn.Reson. A, 117, 1-8 (1995)
@@ -35,8 +44,8 @@
 
 %--------------------------------------------------------------------------
 % Undocumented:
+% - nOctants as first input (instead of Symmetry) (default open phi)
 % - 'c' option for closed phi interval
-% - nOctants as first input (instead of Symmetry)
 %--------------------------------------------------------------------------
 
 % grid.weights are approximate, tri.areas are accurate
@@ -79,18 +88,19 @@ else
   closedPhi = false;
 end
 
-% Force closed phi interval if requested.
+% Force closed phi interval if requested
 if explicitClosedPhi
-  % Disallow closed phi interval for Ci and C1
-  if nOctants==4 || nOctants==8
-    %error('Cannot use closed phi interval for this symmetry (%d octants).',nOctants);
-  end
   closedPhi = true;
 end
 
+% Disallow closed phi interval for more than 1 octant
+if nOctants>1 && closedPhi
+  error('Cannot provide closed-phi grid for this symmetry (%d octants).',nOctants);
+end
+
 % Check GridSize
-if ~isnumeric(GridSize) || numel(GridSize)~=1 || GridSize<1 || mod(GridSize,1)
-  error('GridSize (2nd input argument) must be positive integer.');
+if ~isnumeric(GridSize) || numel(GridSize)~=1 || GridSize<2 || mod(GridSize,1)
+  error('GridSize (2nd input argument) must be an integer >= 2.');
 end
 
 % Now we have maxPhi, closedPhi, nOctants and GridSize.
@@ -115,6 +125,7 @@ grid.theta = theta;
 grid.vecs = vecs;
 grid.weights = Weights;
 
+grid.n = numel(grid.weights);
 
 % Triangulation
 %--------------------------------------------------------------------------
@@ -122,12 +133,12 @@ if calculateTriangulation
   
   switch nOctants
     
-    case {0,-1} % 'Dinfh','O3'
+    case {0,-1}   % no triangles for Dinfh, O3
       Tri = [];
       Areas = [];
       
-    case 1 % 'D6h','D4h','Oh','D3d','Th','D2h'; 'C4h','C6h'; 1 octant
-      if closedPhi % 'D6h','D4h','Oh','D3d','Th','D2h'; closed phi
+    case 1  % 1 octant (D6h, D4h, Oh, D3d, Th, D2h; C4h, C6h)
+      if closedPhi  % 1 octant, closed phi (D6h, D4h, Oh, D3d, Th, D2h)
         % coding idea of David Goodmanson, comp.soft-sys.matlab
         a = 1:GridSize*(GridSize+1)/2;
         a((2:GridSize+1).*(1:GridSize)/2) = [];
@@ -135,14 +146,18 @@ if calculateTriangulation
         b = a(k);
         Tri = [[1:GridSize*(GridSize-1)/2; a; a+1],[b; 2*(b+1)-k; b+1]].';
         Areas = triangleareas(Tri,vecs);
-      else % 'C4h','C6h'; open phi
+      else  % 1 octant, open phi (C4h, C6h)
+        % Supplement theta/phi to get one-octant closed-phi grid
         phx = [phi maxPhi*ones(1,GridSize-1)];
         thx = [theta pi/2*(1:GridSize-1)/(GridSize-1)];
+        % Calculate triangulation
         x = thx.*cos(phx);
         y = thx.*sin(phx);
         Tri = delaunay(x,y);
+        % Calculate triangle areas
         vecsx = ang2vec(phx,thx);
         Areas = triangleareas(Tri,vecsx);
+        % Replace phi=maxPhi indices in triangle list with phi=0 indices
         rmv = numel(phi)+1:numel(phx);
         rpl = (0:GridSize-2).*(1:GridSize-1)/2+2;
         for k = 1:numel(rmv)
@@ -150,7 +165,7 @@ if calculateTriangulation
         end
       end
       
-    case 2 % 'C2h','S6'; 2 octants, open phi
+    case 2  % 2 octants, open phi (C2h, S6)
       phx = [phi maxPhi*ones(1,GridSize-1)];
       thx = [theta pi/2*(1:GridSize-1)/(GridSize-1)];
       x = thx.*cos(phx);
@@ -164,13 +179,13 @@ if calculateTriangulation
         Tri(Tri==rmv(k))=rpl(k);
       end
       
-    case 4  % 'Ci'; 4 octants, open phi
+    case 4  % 4 octants, open phi (Ci)
       phx = grid.phi;
       thx = grid.theta;
       Tri = delaunay(thx.*cos(phx),thx.*sin(phx));
       Areas = triangleareas(Tri,vecs);
       
-    case 8 % 'C1'; 8 octants, open phi
+    case 8  % 8 octants, open phi (C1)
       [phx,thx] = sphgrid_(4,2*pi,GridSize,false);
       phx = phx(:);
       thx = thx(:);
@@ -187,34 +202,32 @@ if calculateTriangulation
       error('Triangulation for this symmetry not supported!');
   end
   
-  rmv = Areas==0;
-  Tri(rmv,:) = [];
-  Areas(rmv) = [];
+  % Remove tiny triangles that are due to numerical errors during Delaunay
+  % triangulation with delaunay()
+  if nOctants>=1 && ~closedPhi
+    rmv = Areas<mean(Areas)*1e-3;
+    Tri(rmv,:) = [];
+    Areas(rmv) = [];
+  end
+  
+  % Sort indices for each triangle, and sort triangles
   Tri = sort(Tri,2);
   Tri = uint32(Tri);
-  
   [Tri,idx] = sortrows(Tri);
   Areas = Areas(idx);
-  
-else
-  
-  Tri = [];
-  Areas = [];
-  
-end
 
-% Normalize areas
-if ~isempty(Areas)
+  % Normalize areas
   if ~isreal(Areas)
     error('Complex triangle areas encountered! (GridSymm %s, GridSize %d, option %s)!',Symmetry,GridSize,Options);
   end
   % Normalize to sum 4*pi
   Areas = Areas/sum(Areas) * 4*pi;
+  
+  % Store in output structure
+  tri.idx = Tri;
+  tri.areas = Areas;
+  
 end
-
-% Store in output structure
-tri.idx = Tri;
-tri.areas = Areas;
 
 
 % Output
@@ -243,7 +256,9 @@ end
 % - GridSize: number of orientations between theta=0 and theta=pi/2
 % - closedPhi: set to true if grid point at maxPhi should be included
 function [phi,theta,Weights] = sphgrid_(nOctants,maxPhi,GridSize,closedPhi)
+
 dtheta = (pi/2)/(GridSize-1); % angular increment along theta
+
 if nOctants > 0 % if not Dinfh or O3 symmetry
   
   % Initializations
@@ -259,8 +274,9 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
   Weights = zeros(1,nOrientations);
   
   sindth2 = sin(dtheta/2);
-  w1 = 0.5;
-  if ~closedPhi, w1 = w1 + 1/2; end
+
+  % Weight for phi=0 points
+  if closedPhi, w0 = 0.5; else, w0 = 1; end
   
   % North pole (z orientation)
   phi(1) = 0;
@@ -274,7 +290,7 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
     dPhi = maxPhi/(nPhi-1);
     idx = Start+(0:nPhi-1);
     Weights(idx) = 2*sin((iSlice-1)*dtheta)*sindth2*dPhi*...
-      [w1 ones(1,nPhi-2) .5];
+      [w0 ones(1,nPhi-2) 0.5];
     phi(idx) = linspace(0,maxPhi,nPhi);
     theta(idx) = (iSlice-1)*dtheta;
     Start = Start + nPhi;
@@ -286,7 +302,7 @@ if nOctants > 0 % if not Dinfh or O3 symmetry
   idx = Start + (0:nPhi-1);
   phi(idx) = linspace(0,maxPhi,nPhi);
   theta(idx) = pi/2;
-  Weights(idx) = sindth2*dPhi*[w1 ones(1,nPhi-2) 0.5];
+  Weights(idx) = sindth2*dPhi*[w0 ones(1,nPhi-2) 0.5];
   
   % Border removal
   if ~closedPhi
@@ -326,6 +342,8 @@ else
 end
 end
 
+
+% Calculate areas (solid angles) of spherical triangles
 function A = triangleareas(Tri,vecs)
 
 % Vertex vectors
@@ -343,5 +361,5 @@ s = (a1+a2+a3)/2; % triangle perimeter half
 x = sqrt(tan(s/2).*tan((s-a1)/2).*tan((s-a2)/2).*tan((s-a3)/2)).';
 x = real(x);
 A = 4*atan(x);
-end
 
+end

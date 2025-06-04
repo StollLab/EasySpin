@@ -85,6 +85,7 @@ works along the columns and returns vectors for <code>k</code> and
 <p>
 For noisy data
 </p>
+
 <pre class="matlab">
 x = linspace(0,1,301);
 y = 7*exp(-7*x) + 0.5*rand(size(x));
@@ -110,7 +111,7 @@ c =
 <p>
 <code>exponfit</code> implements an efficient hybrid algorithm:
 For the rate constants, a nonlinear least-squares algorithm is used,
-whereas the linear combination coefficients are obtained by a simple
+whereas the linear-combination coefficients are obtained by a simple
 linear least-squares fit.
 </p>
 

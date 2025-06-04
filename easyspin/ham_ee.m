@@ -1,8 +1,8 @@
 % ham_ee  Electron-electron spin interaction Hamiltonian 
 %
-%   F = ham_ee(SpinSystem)
-%   F = ham_ee(SpinSystem,eSpins)
-%   F = ham_ee(SpinSystem,eSpins,'sparse')
+%   Hee = ham_ee(SpinSystem)
+%   Hee = ham_ee(SpinSystem,eSpins)
+%   Hee = ham_ee(SpinSystem,eSpins,'sparse')
 %
 %   Returns the electron-electron spin interaction (EEI)
 %   Hamiltonian, in MHz.
@@ -16,10 +16,10 @@
 %   - 'sparse': If given, the matrix is returned in sparse format.
 
 %   Output:
-%   - F: Hamiltonian matrix containing the EEI for
+%   - Hee: Hamiltonian matrix containing the EEI for
 %       electron spins specified in eSpins.
 
-function F = ham_ee(System,Spins,opt)
+function Hee = ham_ee(System,Spins,opt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -40,8 +40,9 @@ error(err);
 sys = spinvec(System);
 n = prod(2*sys+1);
 
+Hee = sparse(n,n);
+
 % Special cases: only one spins, ee not given or all zero
-F = sparse(n,n);
 if (System.nElectrons==1), return; end
 if ~any(System.ee(:)) && ~any(System.ee2(:)), return; end
 
@@ -58,20 +59,16 @@ if numel(unique(Spins))~=numel(Spins)
   error('Spins (2nd argument) contains double entries!');
 end
 
-F = sparse(n,n);
-
-% Compile list of wanted interactions
+% Compile list of wanted pairs
+idx = nchoosek(1:numel(Spins),2);
 Spins = sort(Spins);
-[idx1,idx2] = find(tril(ones(numel(Spins)),-1));
-idx = [idx2,idx1];
-
 Pairs = Spins(idx);
 nPairs = size(Pairs,1);
 Coupl = Pairs(:,1) + (Pairs(:,2)-1)*System.nElectrons;
 
 % Compile list of all spin pairs
-[e2,e1] = find(tril(ones(System.nElectrons),-1));
-allPairsIdx = e1 + (e2-1)*System.nElectrons;
+idx_all = nchoosek(1:System.nElectrons,2);
+allPairsIdx = idx_all(:,1) + (idx_all(:,2)-1)*System.nElectrons;
 
 ee = System.ee;
 if isfield(System,'eeFrame')
@@ -102,23 +99,23 @@ for iPair = 1:nPairs
     so1 = sop(sys,[Pairs(iPair,1),c1],'sparse');
     for c2 = 1:3
       so2 = sop(sys,[Pairs(iPair,2),c2],'sparse');
-      F = F + so1*J(c1,c2)*so2;
+      Hee = Hee + so1*J(c1,c2)*so2;
     end
   end
   
   % Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
   %-----------------------------------------------------------------  
   if System.ee2(iCoupling)==0, continue; end
-  F2 = 0;
+  Hee2 = 0;
   for c = 1:3
-    F2 = F2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
+    Hee2 = Hee2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
   end
-  F = F + System.ee2(iCoupling)*F2^2;
+  Hee = Hee + System.ee2(iCoupling)*Hee2^2;
 end
 
-F = (F+F')/2; % Hermitianise
+Hee = (Hee+Hee')/2; % Hermitianise
 if ~useSparseMatrices
-  F = full(F); % sparse -> full
+  Hee = full(Hee); % sparse -> full
 end
 
 end

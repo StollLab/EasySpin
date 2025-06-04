@@ -228,6 +228,9 @@ end
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
 end
+if isfield(Exp,'Mode')
+  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
+end
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
@@ -475,9 +478,9 @@ if FastMotionRegime
     FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr,'freq')/1e3; % MHz -> GHz
   end
   if all(FastMotionLw==0)
-    error('Linewidths resulting from fast-motion lindwidth parameters must be positive! Did you supply isotropic values only?');
+    error('All calculated fast-motion linewidths for rotational diffusion are zero. Please provide full tensors, and not just isotropic averages.');
   elseif any(FastMotionLw<=0)
-    error('Linewidths resulting from fast-motion lindwidth parameters must be positive!');
+    error('Some calculated fast-motion linewidths are negative. They must be positive.');
   end
 end
 

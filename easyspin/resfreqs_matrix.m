@@ -150,6 +150,9 @@ Exp = adddefaults(Exp,DefaultExp);
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
 end
+if isfield(Exp,'Mode')
+  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
+end
 
 if isnan(Exp.Field)
   Exp.Field = 0.0;
@@ -247,7 +250,7 @@ if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
   error('Options.Threshold must be a number >=0 and <1.');
 end
 preSelectionThreshold = Opt.Threshold(1);
-if numel(Opt.Threshold)==1
+if isscalar(Opt.Threshold)
   postSelectionThreshold = preSelectionThreshold;
 else
   postSelectionThreshold = Opt.Threshold(2);
@@ -490,8 +493,7 @@ if UserTransitions
     if strcmp(Opt.Transitions,'all')
       nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
       logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
-      [u,v] = find(triu(ones(nSStates),1));
-      Transitions = sortrows([u,v]);
+      Transitions = nchoosek(1:nSStates,2);
     else
       error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
     end
@@ -507,8 +509,7 @@ if UserTransitions
   
 else
   % Automatic compilation: include all level pairs
-  [v,u] = find(tril(ones(nCore),-1));
-  Transitions = [u v];
+  Transitions = nchoosek(1:nCore,2);
 end
 
 % Terminate if the transition list is empty.
@@ -1017,23 +1018,30 @@ if computeStrains && numel(Wdat)>0
   logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
 end
 
-% Reshape arrays in the case of crystals with site splitting
+% Reshape arrays in the case of crystals with multiple sites
 d = dbstack;
-pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
-if (nSites>1) && ~pepperCall
-  siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
-  Pdat = reshape(Pdat,siz);
-  if ~isempty(Idat), Idat = reshape(Idat,siz); end
-  if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
+pepperCall = strcmp(d(2).name,'pepper');
+if ~pepperCall
+  if nSites>1
+    % Pdat, Idat, Wdat have size [nTransitions, nSites*nOrientations]
+    % Resize to [nTransitions*nSites, nOrientations]
+    siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
+    Pdat = reshape(Pdat,siz);
+    if ~isempty(Idat), Idat = reshape(Idat,siz); end
+    if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
+  end
 end
 
-% Sort Output
-[Transitions, I] = sortrows(Transitions);
-Pdat = Pdat(I,:);
-if ~isempty(Idat), Idat = Idat(I,:); end
-if ~isempty(Wdat), Wdat = Wdat(I,:); end
+% Sort transitions lexicograpically (for each crystal site)
+[Transitions, idx] = sortrows(Transitions);
+if nSites>1
+  idx = idx(:) + (0:nSites-1)*nTransitions;
+end
+Pdat = Pdat(idx,:);
+if ~isempty(Idat), Idat = Idat(idx,:); end
+if ~isempty(Wdat), Wdat = Wdat(idx,:); end
 
-% Arrange the output.
+% Arrange the output
 Output = {Pdat,Idat,Wdat,Transitions};
 varargout = Output(1:max(nargout,1));
 

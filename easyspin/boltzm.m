@@ -1,13 +1,13 @@
 % boltzm  Boltzmann constant 
 %
-%   k = boltzm
+%   kB = boltzm
 %
-%   Returns the Boltzmann constant in SI units, joule per kelvin.
+%   Returns the Boltzmann constant in SI units, J K^-1.
 
-function k_B = boltzm
+function kB = boltzm
 
-% 2018 CODATA value
+% 2022 CODATA value
 
-k_B = 1.380649e-23; % exact (as of SI redefinition 2019)
+kB = 1.380649e-23; % exact (as of SI redefinition 2019)
 
 end

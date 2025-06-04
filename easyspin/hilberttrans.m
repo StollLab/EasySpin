@@ -58,7 +58,7 @@ end
 % Apply via Fourier Transform
 y_h = ifft(fft(y(:)).*h(:));
 
-% shift back to original dimensions
+% Shift back to original dimensions
 y_h = reshape(y_h,dim);
 
 end
