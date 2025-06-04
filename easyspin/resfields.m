@@ -1569,8 +1569,10 @@ end
 
 % Sort transitions lexicograpically (for each crystal site)
 [Transitions, idx] = sortrows(Transitions);
-if nSites>1
-  idx = idx(:) + (0:nSites-1)*nTransitions;
+if ~pepperCall
+  if nSites>1
+    idx = idx(:) + (0:nSites-1)*nTransitions;
+  end
 end
 Pdat = Pdat(idx,:);
 if ~isempty(Idat), Idat = Idat(idx,:); end
