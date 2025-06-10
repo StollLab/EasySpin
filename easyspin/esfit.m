@@ -199,11 +199,16 @@ EasySpinFunction = any(strcmp(esfitdata.fcnName,{'pepper','garlic','chili','salt
 
 % Parameters
 %-------------------------------------------------------------------------------
-structureInputs = isstruct(p0) || iscell(p0);
-esfitdata.structureInputs = structureInputs;
+cellInputs = iscell(p0);
+esfitdata.cellInputs = cellInputs;
+
+if isstruct(p0)
+  error(['The third input must be a cell array such as {Sys0,Exp} (when using an '...
+    'EasySpin function) or an array of initial parameter values (when using a custom function).']);
+end
 
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
-if structureInputs
+if cellInputs
   argspar.validargs(p0);
   esfitdata.nSystems = numel(p0{1});
   if varyProvided
@@ -342,7 +347,7 @@ if EasySpinFunction
 
 end
 
-if structureInputs
+if cellInputs
   esfitdata.p2args = @(pars) argspar.setparamvalues(p0,pinfo,pars);
 end
 
@@ -705,7 +710,7 @@ if isfield(esfitdata,'modelEvalError') && esfitdata.modelEvalError
   return;
 end
 
-if esfitdata.structureInputs
+if esfitdata.cellInputs
   argsfit = esfitdata.p2args(pfit);
 else
   argsfit = [];
@@ -909,7 +914,7 @@ result.scale = scale;
 
 result.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
 result.bestfithistory.pfit = esfitdata.besthistory.par;
-if esfitdata.structureInputs
+if esfitdata.cellInputs
   result.bestfithistory.pfit2structs = esfitdata.p2args;
 end
 
@@ -971,7 +976,7 @@ par(active) = x;
 %-------------------------------------------------------------------------------
 out = cell(1,esfitdata.nOutArguments);
 try
-  if esfitdata.structureInputs
+  if esfitdata.cellInputs
     args = esfitdata.p2args(par);
     [out{:}] = esfitdata.fcn(args{:});
   else
@@ -2536,7 +2541,7 @@ if info.newbest
 
     fitresult.bestfithistory.rmsd = esfitdata.besthistory.rmsd;
     fitresult.bestfithistory.pfit = esfitdata.besthistory.par;
-    if esfitdata.structureInputs
+    if esfitdata.cellInputs
       fitresult.bestfithistory.pfit2structs = esfitdata.p2args;
     end
 
@@ -2547,7 +2552,7 @@ if info.newbest
     fitresult.pfit = esfitdata.best.par(~esfitdata.fixedParams);
     fitresult.pfit_full = esfitdata.best.par;
 
-    if esfitdata.structureInputs
+    if esfitdata.cellInputs
       argsfit = esfitdata.p2args(fitresult.pfit_full);
     else
       argsfit = [];
