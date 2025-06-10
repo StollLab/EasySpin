@@ -1,4 +1,4 @@
-function [Data,Abscissa,Parameters] = eprload_CIQTEK(fileName)
+function [data,abscissa,parameters] = eprload_CIQTEK(fileName)
 %--------------------------------------------------------------------------
 % JSON format of CIQTEK spectrometers
 %--------------------------------------------------------------------------
@@ -20,23 +20,46 @@ fclose(fid);
 
 % Parse JSON string into MATLAB structure
 try
-  data = jsondecode(jsonstring);
+  filecontents = jsondecode(jsonstring);
 catch
   error('Could not parse CIQTEK file %s.',fileName);
 end
 
-% Extract field axis and spectrum
-lineData = data.dataStore.lineDataList;
-nSpectra = numel(lineData);
-for iSpectrum = 1:nSpectra
-  B(:,iSpectrum) = lineData(iSpectrum).ReData(:,1);
-  spcRe(:,iSpectrum) = lineData(iSpectrum).ReData(:,2);
-  spcIm(:,iSpectrum) = lineData(iSpectrum).ImData(:,2);
+% Extract abscissa and in-phase/quadrature data
+lineDataList = filecontents.dataStore.lineDataList;
+nTraces = numel(lineDataList);
+x(:) = lineDataList(1).ReData(:,1);
+for iTrace = nTraces:-1:1
+  dataRe(:,iTrace) = lineDataList(iTrace).ReData(:,2);
+  dataIm(:,iTrace) = lineDataList(iTrace).ImData(:,2);
+end
+
+% Set up 2D abscissae
+% For 2D data, lineDataList().params contains a field
+%   delay:  2D field/delay sweep
+%   power:  2D field/power sweep
+%   time2:  pulse experiments
+% If no specific field is present, then the second axis is simply indexed
+if nTraces>1
+  lineParams = lineDataList(1).params;
+  y = 1:nTraces;
+  fieldNames = {'delay','power','time2'};
+  for f = 1:numel(fieldNames)
+    if ~isfield(lineParams,fieldNames{f}), continue; end
+    for iTrace = 1:nTraces
+      y(iTrace) = sscanf(lineDataList(iTrace).params.(fieldNames{f}),'%f');
+    end
+    break
+  end
 end
 
 % Output
-Data = spcRe;
-Abscissa = B;
-Parameters = data;
+if nTraces>1
+  abscissa = {x,y};
+else
+  abscissa = x;
+end
+data = complex(dataRe,dataIm);
+parameters = filecontents;
 
 end

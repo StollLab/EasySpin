@@ -21,12 +21,17 @@ for iFile = 1:nFiles
   [x,data] = eprload(thisFileName);   %#ok
   [x,data,pars] = eprload(thisFileName);
 
-  if size(data,1)~=size(x,1)
+  % x must be a 1D array
+  if ~isvector(x)
     readerr(iFile) = true;
   end
-  if size(data,2)~=size(x,2)
+
+  % data must be a 1D array
+  if ~isvector(data)
     readerr(iFile) = true;
   end
+  
+  % pars must be a structure
   if ~isstruct(pars)
     readerr(iFile) = true;
   end

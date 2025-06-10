@@ -15,24 +15,27 @@ for iFile = 1:nFiles
   end
   thisFileName = [baseDir thisFile];
 
-  clear x data pars
+  clear xy data pars
   data = eprload(thisFileName);  %#ok
-  [x,data] = eprload(thisFileName);   %#ok
-  [x,data,pars] = eprload(thisFileName);
+  [xy,data] = eprload(thisFileName);   %#ok
+  [xy,data,pars] = eprload(thisFileName);
 
-  if size(data,1)~=size(x,1)
+  % x axis must match first axis of 2D data array
+  if size(data,1)~=numel(xy{1})
     readerr(iFile) = true;
   end
-  if size(data,2)~=size(x,2)
+  % y axis must match second axis of 2D data array
+  if size(data,2)~=numel(xy{2})
     readerr(iFile) = true;
   end
+  % pars must be a structure
   if ~isstruct(pars)
     readerr(iFile) = true;
   end
 
   if opt.Display
-    fprintf('data size: %d x %d\n',size(x,1),size(x,2));
-    plot(x,data);
+    fprintf('data size: %d x %d\n',size(xy,1),size(xy,2));
+    plot(xy,data);
     pause
   end
 
