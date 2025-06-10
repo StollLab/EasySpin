@@ -33,6 +33,7 @@
 %     Active Spectrum:     .ESR
 %     Adani:               .dat, .json
 %     JEOL:                (no extension)
+%     CIQTEK:              .epr
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
