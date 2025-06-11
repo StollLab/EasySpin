@@ -173,8 +173,7 @@ else
 end
 
 % Clean small numerical errors
-idx = abs(Op)<1e-14 & Op~=0;
-Op(idx) = 0;
+Op(abs(Op(find(Op)))<1e-14) = 0;  %#ok
 
 if ~useSparseMatrices
   Op = full(Op);

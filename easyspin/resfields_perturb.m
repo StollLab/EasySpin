@@ -578,9 +578,14 @@ else
     lwD = bsxfun(@times,lwD,MHz2mT);
     lwE = bsxfun(@times,lwE,MHz2mT);
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
-    lw = sqrt(Wid2_DE + lw.^2);
+    Wid = sqrt(Wid2_DE + Wid.^2);
+
+  elseif Wid>0  % HStrain
+
+  else
+    Wid = [];
   end
-  
+
   % Transitions
   %-------------------------------------------------------------------
   Transitions = [];

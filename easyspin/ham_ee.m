@@ -16,7 +16,7 @@
 %   - 'sparse': If given, the matrix is returned in sparse format.
 
 %   Output:
-%   - F: Hamiltonian matrix containing the EEI for
+%   - Hee: Hamiltonian matrix containing the EEI for
 %       electron spins specified in eSpins.
 %   - dF: Derivative of the Hamiltonian matrix containing the EEI for
 %       electron spins specified in eSpins.
@@ -42,8 +42,9 @@ error(err);
 sys = spinvec(System);
 n = prod(2*sys+1);
 
+Hee = sparse(n,n);
+
 % Special cases: only one spins, ee not given or all zero
-F = sparse(n,n);
 if (System.nElectrons==1), return; end
 if ~any(System.ee(:)) && ~any(System.ee2(:)), return; end
 
@@ -59,8 +60,6 @@ end
 if numel(unique(Spins))~=numel(Spins)
   error('Spins (2nd argument) contains double entries!');
 end
-
-F = sparse(n,n);
 
 % Compile list of wanted pairs
 idx = nchoosek(1:numel(Spins),2);
@@ -137,9 +136,9 @@ for iPair = 1:nPairs
   % Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
   %-----------------------------------------------------------------
   if System.ee2(iCoupling)==0, continue; end
-  F2 = 0;
+  Hee2 = 0;
   for c = 1:3
-    F2 = F2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
+    Hee2 = Hee2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
   end
   if ~useSparseMatrices  % sparse -> full
     F2=full(F2);

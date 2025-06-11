@@ -1482,27 +1482,31 @@ if numel(Gdat)>0
   logmsg(2,'  ## gradients min %g, max %g',min(Gdat(:)),max(Gdat(:)));
 end
 
-% Reshape arrays in the case of crystals with site splitting
+% Reshape arrays in the case of crystals with multiple sites
 d = dbstack;
-pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
-if nSites>1 && ~pepperCall
-  % Pdat, Idat, Wdat have size [nTransitions, nOrientations*nSites]
-  % Resize to [nTransitions*nSites, nOrientations]
-  siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
-  Pdat = reshape(Pdat,siz);
-  if ~isempty(Idat), Idat = reshape(Idat,siz); end
-  if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
-  if ~isempty(Gdat), Gdat = reshape(Gdat,siz); end
+pepperCall = strcmp(d(2).name,'pepper');
+if ~pepperCall
+  if nSites>1
+    % Pdat, Idat, Wdat have size [nTransitions, nSites*nOrientations]
+    % Resize to [nTransitions*nSites, nOrientations]
+    siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
+    Pdat = reshape(Pdat,siz);
+    if ~isempty(Idat), Idat = reshape(Idat,siz); end
+    if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
+    if ~isempty(Gdat), Gdat = reshape(Gdat,siz); end
+  end
 end
 
-% Sort transitions lexicograpically (unless there is more than one site)
-if nSites==1
-  [Transitions, I] = sortrows(Transitions);
-  Pdat = Pdat(I,:);
-  if ~isempty(Idat), Idat = Idat(I,:); end
-  if ~isempty(Wdat), Wdat = Wdat(I,:); end
-  if ~isempty(Gdat), Gdat = Gdat(I,:); end
+% Sort transitions lexicograpically (for each crystal site)
+[Transitions, idx] = sortrows(Transitions);
+if ~pepperCall
+  if nSites>1
+    idx = idx(:) + (0:nSites-1)*nTransitions;
+  end
 end
+Pdat = Pdat(idx,:);
+if ~isempty(Idat), Idat = Idat(idx,:); end
+if ~isempty(Wdat), Wdat = Wdat(idx,:); end
 
 % Arrange the output
 Output = {Pdat,Idat,Wdat,Transitions,Gdat};

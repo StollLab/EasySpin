@@ -58,6 +58,10 @@ The usage of <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <
 <code>resfreqs_matrix</code> and <code>resfreqs_perturb</code> compute resonance frequencies, line intensities and line widths for frequency-swept cw EPR spectra. <code>resfreqs_matrix</code> using matrix diagonalization, and <code>resfreqs_perturb</code> uses perturbation theory.
 </p>
 
+<p>
+<code>resfields_perturb</code> and <code>resfreqs_perturb</code> assume that the electron Zeeman interaction dominates. If this assumption is not fulfilled, perturbation theory is not valid, and the functions should not be used.
+</p>
+
 <div class="subtitle2">Input: Spin system</div>
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing all parameters of the spin system.

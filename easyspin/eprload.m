@@ -33,6 +33,7 @@
 %     Active Spectrum:     .ESR
 %     Adani:               .dat, .json
 %     JEOL:                (no extension)
+%     CIQTEK:              .epr
 %
 %     MAGRES:              .PLT
 %     qese, tryscore:      .eco
@@ -73,6 +74,7 @@ if LocationType==7 % a directory
     '*','All files, incl. JEOL (*.*)';...
     '*.spe;*.xml','Magnettech (*.spe,*.xml)';...
     '*.esr','Active Spectrum (*.esr)';...
+    '*.epr','CIQTEK (*.epr)';...
     '*.spk;*.ref','Varian (*.spk,*.ref)';...
     '*.eco','qese/tryscore (*.eco)';...
     '*.d00','ETH/WIS (*.d00)';...
@@ -110,6 +112,7 @@ switch upper(strtrim(FileExtension))
   case '.SPE', FileFormat = 'MagnettechBinary';
   case '.XML', FileFormat = 'MagnettechXML';
   case '.ESR', FileFormat = 'ActiveSpectrum';
+  case '.EPR', FileFormat = 'CIQTEK';
   case '.DAT', FileFormat = 'AdaniDAT';
   case '.JSON', FileFormat = 'AdaniJSON';
   case '.ECO', FileFormat = 'qese/tryscore';
@@ -155,9 +158,11 @@ switch FileFormat
     [Data,Abscissa,Parameters] = eprload_MagnettechXML(FileName);
   case 'ActiveSpectrum'
     [Data,Abscissa,Parameters] = eprload_ActiveSpectrum(FileName);
+  case 'CIQTEK'
+    [Data,Abscissa,Parameters] = eprload_CIQTEK(FileName);
   case 'AdaniDAT'
     [Data,Abscissa,Parameters] = eprload_AdaniDAT(FileName);
-  case 'AdaniJSON'    
+  case 'AdaniJSON'
     [Data,Abscissa,Parameters] = eprload_AdaniJSON(FileName);
   case 'JEOL'
     [Data,Abscissa,Parameters] = eprload_jeol(FileName);

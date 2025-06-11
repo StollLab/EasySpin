@@ -38,8 +38,7 @@ Here, we look at how you can get your data in and out of EasySpin/Matlab.
 <div class="subtitle">Importing data</div>
 
 <p>
-To import experimental EPR spectral data acquired on commercial spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code>
-supports a variety of file formats, including those used by Bruker, Active Spectrum, magnettech, Adani and JEOL spectrometers. (Thanks to all these vendors for sharing their file format specification with EasySpin!).
+To import experimental EPR spectral data acquired on commercial spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code> supports a variety of file formats, including those used by Bruker, Active Spectrum, magnettech, Adani, JEOL and CIQTEK spectrometers. (Thanks to these vendors for sharing their file format specification with EasySpin!).
 
 <ul>
 <li>
@@ -70,6 +69,7 @@ Files from Active Spectrum, magnettech, Adani and JEOL spectrometers can be impo
 [B,spc] = eprload('myspectrum.spe');   % magnettech, old binary format
 [B,spc] = eprload('myspectrum.xml');   % magnettech, new XML format
 [B,spc] = eprload('myspectrum');       % JEOL
+[B,spc] = eprload('myspectrum.epr');   % CIQTEK
 </pre>
 
 <li>
