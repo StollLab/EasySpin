@@ -1745,7 +1745,7 @@ gui.AlgorithmMenuPopup = uidropdown('Parent',dropdownbox,...
     'ValueChangedFcn',@(src,evt) selectAlgorithm(src),...
     'Tooltip','Fitting algorithm');
 gui.setAlgorithmDefaults = uibutton('Parent',dropdownbox,...
-         'Text','Set to defaults','Enable','on','ButtonPushedFcn',@(src,evt) updateAlgorithmDefaults,...
+         'Text','Set to defaults','Enable','on','ButtonPushedFcn',@(src,evt) updateAlgorithmSettings('default'),...
          'Tooltip','Reset all parameters to the default');
 gui.setAlgorithmDefaults.Layout.Column = 4;
 
@@ -1801,7 +1801,7 @@ for i = 1:(numel(esfitdata.AlgorithmNames)-1)
   end
   gui.AlgorithmTabs.UserData{i} = hsetting;
 end
-updateAlgorithmDefaults()
+updateAlgorithmSettings('default')
 
 % Set start algorithm settings based on provided FitOpt structure
 hsettingscurrent = gui.AlgorithmTabs.UserData{Opt.AlgorithmID};
@@ -1822,7 +1822,7 @@ for i = 1:numel(hsettingscurrent)
   end
 end
 % Update current FitOpt structure
-selectAlgorithm();
+updateFitOpt(Opt.AlgorithmID);
 
 % Set callback for settings button to open popup menu
 settingsbutton = gui.AlgorithmSettingsButton;
@@ -2400,7 +2400,7 @@ end
 set(gui.ParameterTable,'Data',Data);
 
 % Reset algorithm defaults
-updateAlgorithmDefaults();
+updateAlgorithmSettings('default');
 
 % Reset plot
 gui.BaselineCheckbox.Value = 0;
@@ -3065,6 +3065,9 @@ if cidx==2
   activeParameters = sum(cell2mat(hTable.Data(:,2)));
   gui.nParamsField.Value = activeParameters;
   gui.nParamsFieldPopup.Value = activeParameters;
+  if contains(esfitdata.Opts.Method,'simplex')
+    updateAlgorithmSettings(gui.AlgorithmTabs.Children==gui.AlgorithmTabs.SelectedTab);
+  end
   if allParamsFixed
     set(gui.StartButton,'Enable','off');
   else
@@ -3341,6 +3344,7 @@ set(gui.StartButton,'Tooltip','Start fitting');
 % Re-enable other buttons
 set(gui.EvaluateButton,'Enable','on');
 set(gui.ResetButton,'Enable','on');
+set(gui.AlgorithmSettingsButton,'Enable','on');
 
 % Re-enable listboxes
 set(gui.AlgorithmMenu,'Enable','on');
@@ -3366,6 +3370,17 @@ set(gui.ParameterTable,'CellEditCallback',@paramsTableCellEditCallback);
 % Re-enable mask tools
 set(gui.clearMaskButton,'Enable','on');
 set(gui.MaskCheckbox,'Enable','on');
+
+% Re-enable algorithm settings window
+set(gui.AlgorithmMenuPopup,'Enable','on');
+set(gui.setAlgorithmDefaults,'Enable','on');
+nTabs = numel(gui.AlgorithmTabs.UserData);
+for i = 1:nTabs
+  hsetting = gui.AlgorithmTabs.UserData{i};
+  for j = 1:numel(hsetting)
+    set(hsetting(j),'Enable','on');
+  end
+end
 
 if contains(ME.stack(1).name,'esfit')
   updateLogBox({ME.stack(1).name,' error:',ME.message})
@@ -3417,9 +3432,155 @@ else
   AlgorithmID = gui.AlgorithmMenu.Value;
 end
 esfitdata.Opts.AlgorithmID = AlgorithmID;
+esfitdata.Opts.Method = [esfitdata.AlgorithmAbbrev{AlgorithmID},' ',esfitdata.TargetAbbrev{esfitdata.Opts.TargetID}];
 
+updateFitOpt(AlgorithmID);
+updateAlgorithmSettings(AlgorithmID);
+
+end
+%===============================================================================
+
+%===============================================================================
+function updateAlgorithmSettings(opt)
+% Update fit options settings popup with current options for selected algorithm
+% or with default options for all algorithms
+
+if nargin==0
+  opt = 'default';
+end
+
+global esfitdata gui
+nTabs = numel(gui.AlgorithmTabs.UserData);
+
+nParams = gui.nParamsFieldPopup.Value;
+
+AlgorithmID = get(gui.AlgorithmMenu,'Value');
+if ischar(opt) && strcmp(opt,'default')
+  TabIdx = 1:nTabs;
+else
+  TabIdx = opt;
+  IDselected = find(gui.AlgorithmTabs.Children==gui.AlgorithmTabs.SelectedTab);
+  if AlgorithmID == IDselected
+    FitOpt = esfitdata.Opts;
+  else
+    FitOpt = esfitdata.AlgorithmDefaults{IDselected};
+  end
+end
+
+for i = TabIdx
+  hsetting = gui.AlgorithmTabs.UserData{i};
+  if ischar(opt) && strcmp(opt,'default')
+    FitOpt = esfitdata.AlgorithmDefaults{i};
+  end
+  for j = 1:numel(hsetting)
+    setting = hsetting(j).UserData{1};
+    if ischar(opt) && strcmp(opt,'default')
+      hsetting(j).UserData{3} = [];
+    end
+    switch hsetting(j).UserData{2}
+      case 'num'
+        hsetting(j).Value = num2str(FitOpt.(setting),'%g');
+      case 'logical'
+        hsetting(j).Value = FitOpt.(setting);
+      case 'eval'
+        switch setting
+          case 'SimplexPars'
+            if ~isempty(FitOpt.(setting)) && numel(FitOpt.(setting))~=4
+              updateLogBox(['SimplexPars expects four values as input. Please provide ',hsetting(j).Tooltip]);
+            end
+            if numel(hsetting(j).UserData)~=3 || isempty(hsetting(j).UserData{3}) || ~strcmp(hsetting(j).UserData{3},'userinput') || ...
+                numel(FitOpt.(setting))~=4
+              if nParams>2
+                hsetting(j).Value = '[1, 1+2/N, 0.75-1/(2*N), 1-1/N]';
+              else
+                hsetting(j).Value = '[1, 2, 0.5, 0.5]';
+              end
+            end
+          case 'EliteCount'
+            if numel(hsetting(j).UserData)==3 && ~isempty(hsetting(j).UserData{3}) && strcmp(hsetting(j).UserData{3},'userinput')
+              hsetting(j).UserData{3} = [];
+            else
+              hsetting(j).Value = num2str(max(2,ceil(0.1*FitOpt.PopulationSize)),'%i');
+            end
+          case 'nParticles'
+            if numel(hsetting(j).UserData)~=3 || isempty(hsetting(j).UserData{3}) || ~strcmp(hsetting(j).UserData{3},'userinput')
+              hsetting(j).Value = '20 + N*10';
+            end
+          case 'SwarmParams'
+            if numel(FitOpt.(setting))~=4
+              updateLogBox(['SwarmParams expects four values as input. Please provide ',hsetting(j).Tooltip]);
+              FitOpt.(setting) = esfitdata.AlgorithmDefaults{i}.(setting);
+              esfitdata.Opts = FitOpt;
+            end
+            hsetting(j).Value = sprintf('[%g, %g, %g, %g]',FitOpt.(setting));
+        end
+    end
+  end
+
+end
+
+% Update current FitOpt structure
+updateFitOpt(AlgorithmID);
+
+end
+%===============================================================================
+
+%===============================================================================
+function changeAlgorithmSetting(src,evt)
+% Callback for changed fit options setting
+
+global gui
+
+N = gui.nParamsFieldPopup.Value; %#ok<NASGU>
+
+setting = src.UserData{1};
+
+AlgorithmID = get(gui.AlgorithmMenu,'Value');
+IDselected = find(gui.AlgorithmTabs.Children==gui.AlgorithmTabs.SelectedTab);
+if AlgorithmID~=IDselected
+
+  updateLogBox('Warning: algorithm settings can only be changed for currently selected algorithm.');
+  src.Value = evt.PreviousValue;
+
+else
+
+  % Check that entered expression evaluates without errors
+  newvalue = evt.Value;
+  oldvalue = evt.PreviousValue;
+  if strcmp(src.UserData{2},'eval') || strcmp(src.UserData{2},'num')
+    try
+      tmp = eval(newvalue);
+      if strcmp(src.UserData{2},'num')
+        newvalue = tmp;
+        src.Value = num2str(newvalue,'%g');
+      else
+        src.Value = newvalue;
+      end
+      src.UserData{3} = 'userinput';
+    catch ME
+      % reset to old value in case of errors
+      updateLogBox({strrep(ME.message,'Error:',sprintf('Error setting algorithm option %s:',setting))});
+      src.Value = oldvalue;
+    end
+  end
+
+  % Update current FitOpt structure
+  updateFitOpt(AlgorithmID);
+  updateAlgorithmSettings(IDselected);
+
+end
+
+end
+%===============================================================================
+
+
+%===============================================================================
+function updateFitOpt(AlgorithmID)
 % Update the FitOpt structure
-N = gui.nParamsFieldPopup.Value; %#ok<NASGU> 
+
+global esfitdata gui
+
+N = gui.nParamsFieldPopup.Value; %#ok<NASGU>
 
 if AlgorithmID<=numel(gui.AlgorithmTabs.Children)
   hsetting = gui.AlgorithmTabs.UserData{AlgorithmID};
@@ -3439,97 +3600,7 @@ end
 end
 %===============================================================================
 
-%===============================================================================
-function updateAlgorithmDefaults()
-% Populate fit options settings popup with default options for all algorithms
 
-global esfitdata gui
-nTabs = numel(gui.AlgorithmTabs.UserData);
-
-nParams = gui.nParamsFieldPopup.Value;
-
-for i = 1:nTabs
-  hsetting = gui.AlgorithmTabs.UserData{i};
-  FitOpt = esfitdata.AlgorithmDefaults{i};
-  for j = 1:numel(hsetting)
-    setting = hsetting(j).UserData{1};
-    switch hsetting(j).UserData{2}
-      case 'num'
-        hsetting(j).Value = num2str(FitOpt.(setting),'%g');
-      case 'logical'
-        hsetting(j).Value = FitOpt.(setting);
-      case 'eval'
-        switch setting
-          case 'SimplexPars'
-            if nParams>2
-              hsetting(j).Value = '[1, 1+2/N, 0.75-1/(2*N), 1-1/N]';
-            else
-              hsetting(j).Value = '[1, 2, 0.5, 0.5]';
-            end
-          case 'EliteCount'
-            hsetting(j).Value = num2str(max(2,ceil(0.1*FitOpt.PopulationSize)),'%i');
-          case 'nParticles'
-            hsetting(j).Value = '20 + N*10';
-          case 'SwarmParams'
-            hsetting(j).Value = sprintf('[%g, %g, %g, %g]',FitOpt.(setting));
-        end
-    end
-  end
-
-end
-
-% Update current FitOpt structure
-selectAlgorithm();
-
-end
-%===============================================================================
-
-%===============================================================================
-function changeAlgorithmSetting(src,evt)
-% Callback for changed fit options setting
-
-global esfitdata gui
-N = gui.nParamsFieldPopup.Value; %#ok<NASGU> % needed to eval() expressions
-
-setting = src.UserData{1};
-
-% Check that entered expression evaluates without errors
-newvalue = evt.Value;
-oldvalue = evt.PreviousValue;
-if strcmp(src.UserData{2},'eval') || strcmp(src.UserData{2},'num')
-  try
-    tmp = eval(newvalue); 
-    if strcmp(src.UserData{2},'num')
-      newvalue = tmp;
-      src.Value = num2str(newvalue,'%g');
-    else
-      src.Value = newvalue;
-    end
-  catch ME
-    % reset to old value in case of errors
-    updateLogBox({strrep(ME.message,'Error:',sprintf('Error setting algorithm option %s:',setting))});
-    src.Value = oldvalue;
-  end
-end
-
-% Update FitOpt structure for selected algorithm
-AlgorithmID = get(gui.AlgorithmMenu,'Value');
-
-IDselected = find(gui.AlgorithmTabs.Children==gui.AlgorithmTabs.SelectedTab);
-
-if IDselected==AlgorithmID
-  switch src.UserData{2}
-    case 'num'
-      esfitdata.Opts.(setting) = str2double(src.Value);
-    case 'logical'
-      esfitdata.Opts.(setting) = src.Value;
-    case 'eval'
-      esfitdata.Opts.(setting) = eval(src.Value);
-  end
-end
-
-end
-%===============================================================================
 
 %===============================================================================
 function resizeGUI(type)
