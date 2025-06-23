@@ -97,7 +97,7 @@ if computeNonEquiPops
   computeBoltzmann = false;
 else
   if isinf(Exp.Temperature)
-    error('If given, Params.Temperature must be a finite value.');
+    error('If given, Exp.Temperature must be a finite value.');
   end
   computeBoltzmann = ~isnan(Exp.Temperature);
 end

@@ -11,7 +11,7 @@
 %
 %   Input:
 %    Sys: spin system structure
-%    Exp: experimental parameter settings
+%    Exp: experimental parameters
 %      Field               static field, in mT
 %      Range               frequency sweep range, [numin numax], in GHz
 %      CenterField         frequency sweep range, [center sweep], in GHz

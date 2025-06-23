@@ -35,8 +35,8 @@ Compute cw EPR resonance line positions (fields or frequencies), line amplitudes
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Pos = resfields(Sys,Param)
-Pos = resfields(Sys,Param,Opt)
+Pos = resfields(Sys,Exp)
+Pos = resfields(Sys,Exp,Opt)
 [Pos,Amp] = resfields(...)
 [Pos,Amp,Wid] = resfields(...)
 [Pos,Amp,Wid,Trans] = resfields(...)
@@ -69,7 +69,7 @@ The usage of <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <
 
 <div class="subtitle2">Input: Parameters</div>
 <p>
-<code>Params</code> is a structure containing the following experimental parameters.
+<code>Exp</code> is a structure containing the following experimental parameters.
 </p>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -125,10 +125,10 @@ Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
 Specifies the symmetry of the crystal. You can give either the number of the space group (between 1 and 230), the symbol of the space group, or the symbol for the point group of the space group (in either Sch&ouml;nflies or Hermann-Mauguin notation).
 
 <pre class="matlab">
-Param.CrystalSymmetry = 'P21/c'; % space group symbol
-Param.CrystalSymmetry = 11;      % space group number (between 1 and 230)
-Param.CrystalSymmetry = 'C2h';   % point group, Sch&ouml;nflies notation
-Param.CrystalSymmetry = '2/m';   % point group, Hermann-Mauguin notation
+Exp.CrystalSymmetry = 'P21/c'; % space group symbol
+Exp.CrystalSymmetry = 11;      % space group number (between 1 and 230)
+Exp.CrystalSymmetry = 'C2h';   % point group, Sch&ouml;nflies notation
+Exp.CrystalSymmetry = '2/m';   % point group, Hermann-Mauguin notation
 </pre>
 
 <p>
@@ -139,7 +139,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">
 <p>
-The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Param.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the sample frame (xS,yS,zS).
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Exp.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame (xM, zM), relative to the sample frame (xS,yS,zS).
 </p>
 </div>
 

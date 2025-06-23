@@ -15,7 +15,7 @@
 %      lw, lwpp
 %      HStrain, gStrain, AStrain, DStrain
 %      B2, B4, B6 etc.
-%    Exp: experimental parameter settings
+%    Exp: experimental parameters
 %      mwFreq              microwave frequency, in GHz (for field sweeps)
 %      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
 %      CenterSweep         sweep range, [center sweep], in mT (for field sweeps

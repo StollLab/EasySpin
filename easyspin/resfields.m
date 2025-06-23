@@ -11,7 +11,7 @@
 %
 %   Input:
 %    Sys: spin system structure
-%    Exp: experimental parameter settings
+%    Exp: experimental parameters
 %      mwFreq              microwave frequency, in GHz
 %      Range               field sweep range, [Bmin Bmax], in mT
 %      CenterField         field sweep range, [center sweep], in mT
@@ -57,7 +57,7 @@ if nargout>5, error('Too many output arguments.'); end
 if isempty(Opt), Opt = struct; end
 
 if ~isstruct(Sys) || ~isstruct(Exp) || ~isstruct(Opt)
-  error('SpinSystem, Parameters and Options must be structures!');
+  error('The three inputs must be structures!');
 end
 
 % A global variable sets the level of log display. The global variable

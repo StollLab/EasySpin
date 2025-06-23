@@ -11,7 +11,7 @@
 %
 %   Input:
 %    Sys: spin system structure
-%    Exp: experimental parameter settings
+%    Exp: experimental parameters
 %      mwFreq              microwave frequency, in GHz
 %      Range               field sweep range, [Bmin Bmax], in mT
 %      CenterField         field sweep range, [center sweep], in mT
