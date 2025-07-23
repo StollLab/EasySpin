@@ -1554,7 +1554,7 @@ end
 
 % Reshape arrays in the case of crystals with multiple sites
 d = dbstack;
-pepperCall = strcmp(d(2).name,'pepper');
+pepperCall = numel(d)>1 && strcmp(d(2).name,'pepper');
 if ~pepperCall
   if nSites>1
     % Pdat, Idat, Wdat have size [nTransitions, nSites*nOrientations]

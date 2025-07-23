@@ -581,7 +581,7 @@ Info.Selectivity = Selectivity;
 
 % Reshape arrays in the case of crystals with site splitting
 d = dbstack;
-saltCall = numel(d)>2 && strcmp(d(2).name,'salt');
+saltCall = numel(d)>1 && strcmp(d(2).name,'salt');
 if nSites>1 && ~saltCall
   siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
   Pdat = reshape(Pdat,siz);

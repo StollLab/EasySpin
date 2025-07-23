@@ -580,7 +580,7 @@ end
 
 % Reshape arrays in the case of crystals with site splitting
 db = dbstack;
-pepperCall = numel(db)>2 && strcmp(db(2).name,'pepper');
+pepperCall = numel(db)>1 && strcmp(db(2).name,'pepper');
 if nSites>1 && ~pepperCall
   siz = [nTransitions*nSites, numel(nu)/nTransitions/nSites];
   nu = reshape(nu,siz);
