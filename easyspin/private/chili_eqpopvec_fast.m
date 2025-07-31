@@ -7,14 +7,14 @@
 %   Potential  orientational potential parameters (structure with fields
 %                L, M, K, and lambda; or n x 4 array)
 %   Opt        structure with options
-%     .useSelectionRules
 %     .PeqTolerances
 %
 % Outputs:
 %   sqrtPeq    vector representation of sqrt(Peq)
-%   nIntegrals number of evaluated 1D/2D/3D integrals
 
-function [sqrtPeq,nIntegrals] = chili_eqpopvec(basis,Potential,Opt)
+function [sqrtPeq,nIntegrals] = chili_eqpopvec_fast(basis,Potential,Opt)
+
+nIntegrals = [];
 
 % Parse options
 if nargin<3
@@ -26,7 +26,6 @@ end
 if ~isfield(Opt,'PeqTolerances') || isempty(Opt.PeqTolerances)
   Opt.PeqTolerances = [1e-6 1e-4 1e-4];
 end
-useSelectionRules = Opt.useSelectionRules;
 PeqTolerances = Opt.PeqTolerances;
 PeqIntThreshold = PeqTolerances(1);
 PeqIntAbsTol = PeqTolerances(2);
@@ -74,9 +73,6 @@ if any(rmv)
   Kp(rmv) = [];
 end
 
-% Counter for the number of numerical 1D, 2D, and 3D integrals evaluated.
-nIntegrals = [0 0 0];
-
 jKbasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
 
 % Parse basis
@@ -98,13 +94,6 @@ if ~any(lambda)
   return
 end
 
-% Detect old-style potential (contains only terms with even L, M=0, and even K)
-zeroMp = all(Mp==0);
-zeroKp = all(Kp==0);
-evenLp = all(mod(Lp,2)==0);
-evenMp = all(mod(Mp,2)==0);
-evenKp = all(mod(Kp,2)==0);
-
 % Abbreviations for 1D, 2D, and 3D integrals
 int_b = @(f) integral(f,0,pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
 int_ab = @(f) integral2(f,0,2*pi,0,pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
@@ -112,85 +101,39 @@ int_bc = @(f) integral2(f,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTo
 int_abc = @(f) integral3(f,0,2*pi,0,pi,0,2*pi,'AbsTol',PeqIntAbsTol,'RelTol',PeqIntRelTol);
 
 % Calculate partition sum Z for Peq = exp(-U)/Z
+zeroMp = all(Mp==0);
+zeroKp = all(Kp==0);
 if zeroMp && zeroKp
   Z = (2*pi)^2 * int_b(@(b) exp(-U(0,b,0)).*sin(b));
-  nIntegrals = nIntegrals + [1 0 0];
 elseif zeroMp && ~zeroKp
   Z = (2*pi) * int_bc(@(b,c) exp(-U(0,b,c)).*sin(b));
-  nIntegrals = nIntegrals + [0 1 0];
 elseif ~zeroMp && zeroKp
   Z = (2*pi) * int_ab(@(a,b) exp(-U(a,b,0)).*sin(b));
-  nIntegrals = nIntegrals + [0 1 0];
 else
   Z = int_abc(@(a,b,c) exp(-U(a,b,c)).*sin(b));
-  nIntegrals = nIntegrals + [0 0 1];
 end
 sqrtZ = sqrt(Z);
 
-% Calculate elements of sqrt(Peq) vector in orientational basis
-sqrtPeq = zeros(nOriBasis,1);
-for b = 1:numel(sqrtPeq)
-  
-  L_  = L(b);
-  M_  = M(b);
-  K_  = K(b);
-  if jKbasis
-    jK_ = jK(b);
-  end
-  
-  if useSelectionRules
-    if zeroMp
-      if M_~=0, continue; end
-      if evenLp && mod(L_,2)~=0, continue; end
-      if evenKp && mod(K_,2)~=0, continue; end
-      if jKbasis && jK_~=1, continue; end
-      if zeroKp
-        if K_~=0, continue; end
-        f = @(b) wignerd([L_ 0 0],b) .* exp(-U(0,b,0)/2)/sqrtZ .* sin(b);
-        Int = (2*pi)^2 * int_b(f);
-        nIntegrals = nIntegrals + [1 0 0];
-      else
-        f = @(b,c) cos(K_*c) .* wignerd([L_ 0 K_],b) .* exp(-U(0,b,c)/2)/sqrtZ .* sin(b);
-        Int = (2*pi) * int_bc(f);
-        nIntegrals = nIntegrals + [0 1 0];
-      end
-    elseif zeroKp
-      if K_~=0, continue; end
-      if evenLp && mod(L_,2)~=0, continue; end
-      if evenMp && mod(M_,2)~=0, continue; end
-      f = @(a,b) cos(M_*a) .* wignerd([L_ M_ 0],b) .* exp(-U(a,b,0)/2)/sqrtZ .* sin(b);
-      Int = (2*pi) * int_ab(f);
-      nIntegrals = nIntegrals + [0 1 0];
-    else
-      f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2)/sqrtZ .* sin(b);
-      Int = int_abc(f);
-      nIntegrals = nIntegrals + [0 0 1];
-    end
-  else
-    f = @(a,b,c) conj(wignerd([L_ M_ K_],a,b,c)) .* exp(-U(a,b,c)/2)/sqrtZ .* sin(b);
-    Int = int_abc(f);
-    nIntegrals = nIntegrals + [0 0 1];
-  end
-  
-  % Remove numerical noise in imaginary part
-  if abs(imag(Int)/real(Int))<1e-5
-    Int = real(Int);
-  end
-  
-  % Combine with prefactor
-  Int = sqrt((2*L_+1)/(8*pi^2)) * Int;
-  if jKbasis
-    Int = sqrt(2/(1 + (K_==0))) * Int;
-  end
-  
-  % Store element if above threshold
-  if abs(Int) >= PeqIntThreshold
-    sqrtPeq(b) = Int;
-  end
-  
-  
+% Calculate all Wigner coefficients up to Lmax
+c = fftso3(@(a,b,c)exp(-U(a,b,c)/2)/sqrtZ,max(L),'DH');
+
+% Rescale
+for iL = 1:numel(c)
+  c{iL} = c{iL}/sqrt((2*(iL-1)+1)/(8*pi^2));
 end
 
+% Copy coefficients into vector
+sqrtPeq = zeros(nOriBasis,1);
+idxM = M+L+1;
+idxL = K+L+1;
+for b = 1:nOriBasis
+  L_ = L(b);
+  sqrtPeq(b) = c{L_+1}(idxM(b),idxL(b));
+end
+
+% Remove imaginary part and convert to sparse form
+sqrtPeq = real(sqrtPeq);
+sqrtPeq(abs(sqrtPeq)<PeqIntThreshold) = 0;
 sqrtPeq = sparse(sqrtPeq);
 
   % General orientational potential function (real-valued)
@@ -201,7 +144,7 @@ sqrtPeq = sparse(sqrtPeq);
     for p = 1:numel(lambda)
       if lambda(p)==0, continue; end
       if Kp(p)==0 && Mp(p)==0
-        u = u - wignerd([Lp(p) Mp(p) Kp(p)],b) * real(lambda(p));
+        u = u - wignerd([Lp(p) Mp(p) Kp(p)],b) * real(lambda(p)) - 0*a;
       else
         u = u - 2*real(wignerd([Lp(p) Mp(p) Kp(p)],a,b,c) * lambda(p));
       end

@@ -11,7 +11,9 @@ function T = ksymmetrizer(basis)
 
 DebugMode = true;
 
-if isfield(basis,'jK')
+jKbasis = isfield(basis,'jK') && ~isempty(basis.jK) && any(basis.jK);
+
+if jKbasis
   error('This function expects an LMK basis, without jK.');
 end
 

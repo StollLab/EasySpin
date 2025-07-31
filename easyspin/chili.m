@@ -1013,7 +1013,11 @@ if generalLiouvillian
     % Calculate sqrt(Peq) vector
     Opt_.useSelectionRules = Opt.useStartvecSelectionRules;
     Opt_.PeqTolerances = Opt.PeqTol;
-    [sqrtPeq,nInt] = chili_eqpopvec(Basis,Potential,Opt_);
+    if Opt.useLMKbasis
+      [sqrtPeq,nInt] = chili_eqpopvec_fast(Basis,Potential,Opt_);
+    else
+      [sqrtPeq,nInt] = chili_eqpopvec(Basis,Potential,Opt_);
+    end
     % Set up in full product basis, then prune
     StartVector = kron(sqrtPeq,SdetOp(:)/norm(SdetOp(:)));
     StartVector = StartVector(keep);

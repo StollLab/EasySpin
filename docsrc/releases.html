@@ -80,6 +80,7 @@ $ReleaseID$
 <li>The syntax for obtaining subspectra from simulation function has changed, the field name in the <code>Opt</code> structure has changed from <code>Opt.Output</code> to <code>Opt.separate</code> and has more options: <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code> and <code>'orientations'</code>. There is extended support for returning subspectra across all EasySpin simulation functions.</li>
 <li>For baseline correction with <a class="esf" href="basecorr.html">basecorr</a>, a fitting region can now be provided.</li>
 <li><a class="esf" href="eulang.html">eulang</a> now calculates Euler angles for a near-orthogonal matrix by first orthogonalizing it using singular-value decomposition.</li>
+<li><a class="esf" href="fftso3.html">fftso3</a> performs a Fast Fourier Transform over the space of rotations, SO(3).</li>
 </ul>
 
 <p>Major bug fixes</p>
