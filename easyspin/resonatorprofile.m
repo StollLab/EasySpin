@@ -1,10 +1,10 @@
 function varargout = resonatorprofile(nu,nu0,Qu,beta,type)
 % resonatorprofile  Resonator profile
 %
-%  out = resonatorprofile(nu,nu0,Q,beta,type)
-%  [nu,out] = resonatorprofile([],nu0,Q,beta,type)
+%  resonatorprofile(nu,nu0,Qu,beta,type)
+%  out = resonatorprofile(nu,nu0,Qu,beta,type)
+%  [nu,out] = resonatorprofile([],nu0,Qu,beta,type)
 %
-%  H = resonatorprofile(nu,nu0,Q,'transferfunction')
 %  H = resonatorprofile(nu,nu0,Qu,beta,'transferfunction')
 %  Gamma = resonatorprofile(nu,nu0,Qu,beta,'voltagereflection')
 %  P = resonatorprofile(nu,nu0,Qu,beta,'powerreflection')
