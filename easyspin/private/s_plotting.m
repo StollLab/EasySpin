@@ -52,7 +52,7 @@ if isfield(Exp,'nPoints')
   AxesIndirectDims = cell(1,length(Exp.nPoints));
   for iDim = 1 : length(Exp.nPoints)
     CurrentDim = ['Dim' num2str(iDim)];
-    if length(Exp.(CurrentDim){1,2}) == 1
+    if isscalar(Exp.(CurrentDim){1,2})
       % axis and its label in case of linear increments
       AxesIndirectDims{iDim} = Exp.(CurrentDim){1,2}*(0:Exp.nPoints(iDim)-1);
       LabelsIndirectDims{iDim} = [num2str(CurrentDim) ' / \Delta' Exp.(CurrentDim){1,1}];
@@ -89,7 +89,7 @@ if Opt.SinglePointDetection
       % way
       logmsg(1,'  more than two indirect dimensions - stopping');
       disp('Unable to display more than two indirect dimensions.')
-    elseif length(Exp.nPoints) == 1
+    elseif isscalar(Exp.nPoints)
       % one dimensional case
       logmsg(1,'  creating plot(s) for one indirect dimension');
       for iDetOp = 1 : nDetOps
@@ -135,7 +135,7 @@ else
       if ~iscell(Signal)
         % plotting if signals are organized in a numeric array
         SignalSize = size(Signal);
-        if length(Exp.DetOperator) == 1
+        if isscalar(Exp.DetOperator)
           SignalSize(end+1) = 1;
         end
         % reshape such to three dimensions

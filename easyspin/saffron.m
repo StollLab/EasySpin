@@ -1726,7 +1726,6 @@ if fastSimulationMode
 
   end
 
-
   %===============================================================
   % TD data processing
   %===============================================================
@@ -1734,9 +1733,9 @@ if fastSimulationMode
   logmsg(1,'Data processing...');
   info = struct;
   if ~isENDOR
-    switch nDimensions
-      case 1
-        if processData
+    if processData
+      switch nDimensions
+        case 1
 
           % Decay correction
           if decayAdded
@@ -1759,24 +1758,27 @@ if fastSimulationMode
           fd = fft(tdx,Opt.ZeroFillFactor*numel(tdx));
           fd = fftshift(fd);
           f1 = fdaxis(Exp.dt,length(fd));
-        end
 
-      case 2
-        if processData
+        case 2
+
+          % Baseline correction
           if decayAdded
-            tdx = basecorr(td,[],[2 2]);
+            order = 2;
           else
-            tdx = basecorr(td,[],[0 0]);
+            order = 0;
           end
+          tdx = basecorr(td,1,order);
+          tdx = basecorr(tdx,2,order);
 
+          % Apodization
           w1 = apowin(Opt.Window,Exp.nPoints(1));
           w2 = apowin(Opt.Window,Exp.nPoints(2));
 
+          % Fourier transformation
           fd = fftshift(fftn(tdx.*(w1*w2.'),Opt.ZeroFillFactor*Exp.nPoints));
           f1 = fdaxis(Exp.dt(1),size(fd,1));
           f2 = fdaxis(Exp.dt(2),size(fd,2));
-        end
-
+      end
     end
 
     if max(abs(fd))<1e-300
@@ -2321,22 +2323,24 @@ else
       xf = info.f(idx);
       if plotQuadratureSignal
         h = plot(xf,abs(info.fd(idx)),xf,real(info.fd(idx)),xf,imag(info.fd(idx)));
-        legend('abs','in-phase','quadrature');
-        legend boxoff
+        Leg = legend('abs','in-phase','quadrature');
       else
         h = plot(xf,abs(info.fd(idx)),xf,real(info.fd(idx)));
-        legend('abs','in-phase');
+        Leg = legend('abs','in-phase');
         legend boxoff
       end
+      Leg.AutoUpdate = 'off';
+      legend boxoff
       axis tight
       xlim([0 max(info.f)]);
       xlabel('\nu (MHz)');
       ylabel('intensity (arb.u.)');
       title('Spectrum');
+
       if isfield(Sys,'Nucs')
         nuI = larmorfrq(Sys.Nucs,Exp.Field);
         for k = 1:numel(nuI)
-          line([1 1]*abs(nuI(k)),ylim,'Color',[1 1 1]*0.8);
+          xline(abs(nuI(k)),'Color',[1 1 1]*0.8);
         end
         h = get(gca,'Children');
       end
