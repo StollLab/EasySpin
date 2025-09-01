@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.min.js"></script>
    <script src="highlight/do_highlight.js"></script>
-   <title>bohrrad</title>
+   <title>gamman</title>
 </head>
 
 <body>
@@ -26,35 +26,63 @@
 
 <section>
 
-<div class="functitle">bohrrad</div>
+<div class="functitle">gamman</div>
 
 <p>
-Bohr radius.
+Nuclear gyromagnetic ratios.
 </p>
 
 <!-- =================================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-value = bohrrad
-[value,sigma] = bohrrad
+value = gamman(Iso)
 </pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>bohrrad</code> returns the value of 1 Bohr radius in SI units
-(meters) in <code>value</code> and the standard
-deviation in <code>sigma</code> (if two output arguments are specified).
+<code>gamman</code> returns the value of the gyromagnetic ratio for the nuclear isotope, or list of nuclear isotopes, given in <code>Iso</code> in SI units (radians per second per tesla) in <code>value</code>.
 </p>
 
 <!-- =================================================================== -->
-<div class="subtitle">Reference</div>
+<div class="subtitle">Examples</div>
 
 <p>
-The value and the standard deviation are taken from the 2022 CODATA collection of recommended values.
+The proton gyromagnetic ratio in rad/s/T is
 </p>
+
+<pre class="matlab">
+g1H = gamman('1H')
+</pre>
+<pre class="mloutput">
+g1H =
+   2.6752e+08
+</pre>
+
+<p>
+To convert to MHz/T, use
+</p>
+<pre class="matlab">
+g1H/2/pi/1e6
+</pre>
+<pre class="mloutput">
+ans =
+   42.5775
+</pre>
+
+<p>
+The ratio of the electron gyromagnetic ratio to the proton gyromagnetic ratio is
+</p>
+
+<pre class="matlab">
+gammae/gamman('1H')
+</pre>
+<pre class="mloutput">
+ans =
+ -658.2107
+</pre>
 
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>
@@ -64,9 +92,7 @@ The value and the standard deviation are taken from the 2022 CODATA collection o
 <a class="esf" href="avogadro.html">avogadro</a>,
 <a class="esf" href="barn.html">barn</a>,
 <a class="esf" href="bmagn.html">bmagn</a>,
-<!--
 <a class="esf" href="bohrrad.html">bohrrad</a>,
--->
 <a class="esf" href="boltzm.html">boltzm</a>,
 <a class="esf" href="clight.html">clight</a>,
 <a class="esf" href="echarge.html">echarge</a>,
@@ -75,7 +101,9 @@ The value and the standard deviation are taken from the 2022 CODATA collection o
 <a class="esf" href="evolt.html">evolt</a>,
 <a class="esf" href="faraday.html">faraday</a>,
 <a class="esf" href="gammae.html">gammae</a>,
+<!--
 <a class="esf" href="gamman.html">gamman</a>,
+-->
 <a class="esf" href="gfree.html">gfree</a>,
 <a class="esf" href="hartree.html">hartree</a>,
 <a class="esf" href="hbar.html">hbar</a>,
