@@ -487,8 +487,7 @@ if UserTransitions
     if strcmp(Opt.Transitions,'all')
       nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
       logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
-      [u,v] = find(triu(ones(nSStates),1));
-      Transitions = sortrows([u,v]);
+      Transitions = nchoosek(1:nSStates,2);
     else
       error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
     end
@@ -504,8 +503,7 @@ if UserTransitions
   
 else
   % Automatic compilation: include all level pairs
-  [v,u] = find(tril(ones(nCore),-1));
-  Transitions = [u v];
+  Transitions = nchoosek(1:nCore,2);
 end
 
 % Terminate if the transition list is empty.

@@ -66,17 +66,16 @@ end
 Hnn = sparse(n,n);
 
 % Compile list of wanted interactions
-nucSpins = sort(nucSpins);
-[idx1,idx2] = find(tril(ones(numel(nucSpins)),-1));  %#ok
-idx = [idx2,idx1];
+idx = nchoosek(1:numel(nucSpins),2);
 
+nucSpins = sort(nucSpins);
 nucPairs = nucSpins(idx);
 nNucPairs = size(nucPairs,1);
 Coupl = nucPairs(:,1) + (nucPairs(:,2)-1)*System.nNuclei;
 
 % Compile list of all nuclear spin pairs
-[n2,n1] = find(tril(ones(System.nNuclei),-1));
-allPairsIdx = n1 + (n2-1)*System.nNuclei;
+idx_all = nchoosek(1:System.nNuclei,2);
+allPairsIdx = idx_all(:,1) + (idx_all(:,2)-1)*System.nNuclei;
 
 nn = System.nn;
 
