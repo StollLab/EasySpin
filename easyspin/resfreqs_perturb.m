@@ -11,7 +11,7 @@
 %
 %   Input:
 %    Sys: spin system structure
-%    Exp: experimental parameter settings
+%    Exp: experimental parameters
 %      Field               static field, in mT
 %      Range               frequency sweep range, [numin numax], in GHz
 %      CenterField         frequency sweep range, [center sweep], in GHz
@@ -574,7 +574,7 @@ end
 
 % Reshape arrays in the case of crystals with site splitting
 db = dbstack;
-pepperCall = numel(db)>2 && strcmp(db(2).name,'pepper');
+pepperCall = numel(db)>1 && strcmp(db(2).name,'pepper');
 if nSites>1 && ~pepperCall
   siz = [nTransitions*nSites, numel(nu)/nTransitions/nSites];
   nu = reshape(nu,siz);

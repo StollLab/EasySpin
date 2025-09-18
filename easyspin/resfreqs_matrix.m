@@ -11,7 +11,7 @@
 %
 %   Input:
 %    Sys: spin system structure
-%    Exp: experimental parameter settings
+%    Exp: experimental parameters
 %      Field               static field, in mT
 %      Range               frequency sweep range, [numin numax], in GHz
 %      CenterField         frequency sweep range, [center sweep], in GHz
@@ -244,7 +244,7 @@ if any(~isreal(t_)) || numel(t_)>2 || any(t_<0) || any(t_>=1)
   error('Options.Threshold must be a number >=0 and <1.');
 end
 preSelectionThreshold = Opt.Threshold(1);
-if numel(Opt.Threshold)==1
+if isscalar(Opt.Threshold)
   postSelectionThreshold = preSelectionThreshold;
 else
   postSelectionThreshold = Opt.Threshold(2);
@@ -1012,23 +1012,32 @@ if computeStrains && numel(Wdat)>0
   logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
 end
 
-% Reshape arrays in the case of crystals with site splitting
+% Reshape arrays in the case of crystals with multiple sites
 d = dbstack;
-pepperCall = numel(d)>2 && strcmp(d(2).name,'pepper');
-if (nSites>1) && ~pepperCall
-  siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
-  Pdat = reshape(Pdat,siz);
-  if ~isempty(Idat), Idat = reshape(Idat,siz); end
-  if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
+pepperCall = numel(d)>1 && strcmp(d(2).name,'pepper');
+if ~pepperCall
+  if nSites>1
+    % Pdat, Idat, Wdat have size [nTransitions, nSites*nOrientations]
+    % Resize to [nTransitions*nSites, nOrientations]
+    siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
+    Pdat = reshape(Pdat,siz);
+    if ~isempty(Idat), Idat = reshape(Idat,siz); end
+    if ~isempty(Wdat), Wdat = reshape(Wdat,siz); end
+  end
 end
 
-% Sort Output
-[Transitions, I] = sortrows(Transitions);
-Pdat = Pdat(I,:);
-if ~isempty(Idat), Idat = Idat(I,:); end
-if ~isempty(Wdat), Wdat = Wdat(I,:); end
+% Sort transitions lexicograpically (for each crystal site)
+[Transitions, idx] = sortrows(Transitions);
+if ~pepperCall
+  if nSites>1
+    idx = idx(:) + (0:nSites-1)*nTransitions;
+  end
+end
+Pdat = Pdat(idx,:);
+if ~isempty(Idat), Idat = Idat(idx,:); end
+if ~isempty(Wdat), Wdat = Wdat(idx,:); end
 
-% Arrange the output.
+% Arrange the output
 Output = {Pdat,Idat,Wdat,Transitions};
 varargout = Output(1:max(nargout,1));
 

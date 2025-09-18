@@ -103,7 +103,7 @@ for a = 3:-1:1
   if strcmp(AxisType,'IGD')
     % Nonlinear axis -> Try to read companion file (.XGF, .YGF, .ZGF)
     companionFileName = [FullBaseName '.' AxisNames{a} 'GF'];
-    % Determine data format form XFMT/YMFT/ZFMT
+    % Determine data format form XFMT/YFMT/ZFMT
     DataFormat = Parameters.([AxisNames{a} 'FMT']);
     switch DataFormat
       case 'D', sourceFormat = 'float64';
@@ -118,6 +118,9 @@ for a = 3:-1:1
     if fg>0
       Abscissa{a} = fread(fg,Dimensions(a),sourceFormat,ByteOrder);
       fclose(fg);
+      if numel(Abscissa{a})~=Dimensions(a)
+        error('Could not read the expected %d values from companion file %s.',Dimensions(a),companionFileName);
+      end
     else
       warning('Could not read companion file %s for nonlinear axis. Assuming linear axis.',companionFileName);
       AxisType = 'IDX';
@@ -126,7 +129,7 @@ for a = 3:-1:1
   if strcmp(AxisType,'IDX')
     Minimum(a) = sscanf(Parameters.([AxisNames{a} 'MIN']),'%f');
     Width(a) = sscanf(Parameters.([AxisNames{a} 'WID']),'%f');
-    if (Width(a)==0)
+    if Width(a)==0
       fprintf('Warning: %s range has zero width.\n',AxisNames{a});
       Minimum(a) = 1;
       Width(a) = Dimensions(a)-1;
@@ -137,7 +140,7 @@ for a = 3:-1:1
     error('Cannot read data with NTUP axes.');
   end
 end
-if (numel(Abscissa)==1)
+if isscalar(Abscissa)
   Abscissa = Abscissa{1}(:);
 end
 

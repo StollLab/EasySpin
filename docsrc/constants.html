@@ -41,12 +41,15 @@ This section summarizes natural constants available in EasySpin. These include
 
 <p>
 EasySpin provides a set of fundamental physical constants that are commonly used in EPR and other areas of spectroscopy and physical chemistry.</p>
+</p>
 
 <p>
 Their values are drawn from the <a href="http://physics.nist.gov/cuu/Constants/">CODATA recommended list of fundamental physical constants</a>, which is regularly updated. Every release of EasySpin contains the most up-to-date values available from CODATA at the time of the release.
+</p>
 
 <p>
 For each constant, also its uncertainty is available. For example, the value of the Bohr magneton (in J T<sup>-1</sup>) and its uncertainty can be obtained using <code>bmagn</code>
+</p>
 
 <pre class="matlab">
 muB = bmagn;          % just the value
@@ -55,10 +58,13 @@ muB = bmagn;          % just the value
 
 <p>
 The following constants provided by EasySpin are directly relevant to EPR:
+</p>
 
 <p>
+</p>
 
-<p><table class="brieflist">
+<p>
+<table class="brieflist">
 <tr><th><a class="esf" href="gfree.html">gfree</a></th>
 <td>
 g value of the free electron
@@ -89,9 +95,11 @@ reduced Planck constant, in J s
 magnetic constant (vacuum permeability), in N A<sup>-2</sup>
 </td></tr>
 </table>
+</p>
 
 <p>
 Here is a complete list of available physical constants in EasySpin:
+</p>
 
 <p>
 <table class="brieflist">
@@ -157,6 +165,16 @@ electron volt, in J
 <td>
 Faraday constant, in C mol<sup>-1</sup>
 </td></tr>
+<tr><th><a class="esf" href="gammae.html">gammae</a>
+</th>
+<td>
+gyromagnetic ratio of the electron
+</td></tr>
+<tr><th><a class="esf" href="gamman.html">gamman</a>
+</th>
+<td>
+gyromagnetic ratios of nuclear isotopes
+</td></tr>
 <tr><th><a class="esf" href="gfree.html">gfree</a>
 </th>
 <td>
@@ -208,14 +226,15 @@ Mass of the proton, in kg
 Rydberg constant, in m<sup>-1</sup>
 </td></tr>
 </table>
-
-
+</p>
 
 <div class="subtitle"><a name="isotopedata">Nuclear isotope data</a></div>
 <p>
 Data about nuclear isotopes are also available via a set of EasySpin functions and via a graphical interface. If you call <a class="esf" href="isotopes.html">isotopes</a>, a user interface will pop up. Alternatively, you can use one of the following functions to access isotope data:
+</p>
 
-<p><table class="brieflist">
+<p>
+<table class="brieflist">
 <tr><th><a class="esf" href="nucabund.html">nucabund</a></th>
 <td>
 Natural abundance of nuclear isotopes
@@ -237,9 +256,11 @@ Nuclear quadrupole moments, in barn
 Nuclear spin quantum numbers
 </td></tr>
 </table>
+</p>
 
 <p>
 Data for all isotopes is included, not just for the magnetic ones. All data are taken directly from the latest primary reference sources (N.J. Stone, Table of Nuclear Magnetic Dipole and Electric Quadrupole Moments; N. E. Holden, Table of the Isotopes, in CRC Handbook of Physics and Chemistry).
+</p>
 
 <hr>
 </section>

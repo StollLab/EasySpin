@@ -94,8 +94,12 @@ if explicitClosedPhi
 end
 
 % Disallow closed phi interval for more than 1 octant
-if nOctants>1 && closedPhi
-  error('Cannot provide closed-phi grid for this symmetry (%d octants).',nOctants);
+if closedPhi
+  if nOctants==2
+    error('Cannot provide closed-phi grid for this symmetry (%d octants).',nOctants);
+  else
+    % ok for nOctants=1, 4 and 8
+  end
 end
 
 % Check GridSize

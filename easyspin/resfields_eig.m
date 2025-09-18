@@ -55,7 +55,7 @@ if isempty(Opt)
 end
 
 if ~isstruct(Sys) || ~isstruct(Exp) || ~isstruct(Opt)
-  error('SpinSystem, Parameters and Options must be structures!');
+  error('The three inputs must be structures!');
 end
 
 % A global variable sets the level of log display. The global variable
@@ -90,11 +90,11 @@ DefaultExp.SampleRotation = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
-if isnan(Exp.mwFreq), error('Parameters.mwFreq missing!'); end
+if isnan(Exp.mwFreq), error('Exp.mwFreq missing!'); end
 
 if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
    ~isreal(Exp.Range) || any(Exp.Range<0) || (numel(Exp.Range)~=2)
-  error('Parameters.Range is not valid!');
+  error('Exp.Range is not valid!');
 end
 
 if isempty(Exp.mwMode), Exp.mwMode = 'perpendicular'; end
