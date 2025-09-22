@@ -302,7 +302,7 @@ if computeResonances
     % no resonance fields
     xl = xlim;
     yl = ylim;
-    h = text(xl(1),yl(1),' no resonances in field range');
+    h = text(xl(1),yl(1),' no EPR resonances in field range');
     set(h,'Color','r','VerticalAl','bottom');
   end
 end

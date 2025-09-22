@@ -27,7 +27,7 @@
 
 % Syntax with 2 output arguments is undocumented since 2.2.0
 
-function varargout = orisel(Sys,Params,Options)
+function varargout = orisel(Sys,Exp,Options)
 
 if nargin==0, help(mfilename); return; end
 
@@ -40,26 +40,26 @@ if nargin<3, Options = struct; end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 if ~isfield(Sys,'HStrain'), Sys.HStrain = [0 0 0]; end
-if numel(Sys.HStrain)==1, Sys.HStrain = [1 1 1]*Sys.HStrain; end
+if isscalar(Sys.HStrain), Sys.HStrain = [1 1 1]*Sys.HStrain; end
 
 % Process Parameters.
 %----------------------------------------------------------------------
-DefaultParams.mwFreq = NaN;
-DefaultParams.Field = NaN;
-DefaultParams.ExciteWidth = Inf;
-DefaultParams.Orientations = [];
+DefaultExp.mwFreq = NaN;
+DefaultExp.Field = NaN;
+DefaultExp.ExciteWidth = Inf;
+DefaultExp.Orientations = [];
 
-if ~isfield(Params,'Field'), error('Params.Field is missing!'); end
-if ~isfield(Params,'mwFreq'), error('Params.mwFreq is missing!'); end
-if ~isfield(Params,'ExciteWidth'), error('Params.ExciteWidth is missing!'); end
+if ~isfield(Exp,'Field'), error('Exp.Field is missing!'); end
+if ~isfield(Exp,'mwFreq'), error('Exp.mwFreq is missing!'); end
+if ~isfield(Exp,'ExciteWidth'), error('Exp.ExciteWidth is missing!'); end
 
-Params = adddefaults(Params,DefaultParams);
+Exp = adddefaults(Exp,DefaultExp);
 
-if any(Sys.HStrain+Params.ExciteWidth<=0)
+if any(Sys.HStrain+Exp.ExciteWidth<=0)
   error('Sys.HStrain or Exp.ExciteWidth must be positive!');
 end
 
-mwFreq = Params.mwFreq*1e3; % GHz -> MHz
+mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
 % Process Options
 %-----------------------------------------------------------------------
@@ -71,8 +71,8 @@ DefaultOptions.AveragedIntensity = true;
 
 Options = adddefaults(Options,DefaultOptions);
 
-if ~isempty(Params.Orientations)
-  Orientations = Params.Orientations;
+if ~isempty(Exp.Orientations)
+  Orientations = Exp.Orientations;
   phi = Orientations(1,:);
   theta = Orientations(2,:);
 else
@@ -120,11 +120,11 @@ nTransitions = numel(u);
 % Pre-calculate
 fac = 1/sqrt(2*log(2));
 
-if isfinite(Params.ExciteWidth)
+if isfinite(Exp.ExciteWidth)
 
   Weights = zeros(nOrientations,nTransitions);
   % Pre-calculate width info
-  exc2 = Params.ExciteWidth^2;
+  exc2 = Exp.ExciteWidth^2;
   HStrain2 = Sys.HStrain.^2;
   one = ones(1,nOrientations);
   vec = ang2vec(Orientations(1,:),Orientations(2,:)).';
@@ -137,7 +137,7 @@ if isfinite(Params.ExciteWidth)
     muyL = yLab(1)*muxM + yLab(2)*muyM + yLab(3)*muzM;
     muzL = zLab(1)*muxM + zLab(2)*muyM + zLab(3)*muzM;
     % Eigenvalues
-    [V,E] = eig(H0 - Params.Field*muzL);
+    [V,E] = eig(H0 - Exp.Field*muzL);
     E = diag(E);
     [E,idx] = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
     V = V(idx,:);
@@ -160,7 +160,7 @@ else
 end
 
 if Options.Display
-  if isempty(Params.Orientations)
+  if isempty(Exp.Orientations)
     if strcmp(SymmGroup,'Dinfh')
       plot(theta*180/pi,sum(Weights,2));
       xlabel('theta [deg]');
@@ -168,7 +168,7 @@ if Options.Display
     else
       trisurf(tri.idx,vec(:,1),vec(:,2),vec(:,3),sum(Weights,2));
       view([130 40]);
-      c = caxis; c(1) = 0; caxis(c);
+      c = caxis; c(1) = 0; caxis(c); %#ok (caxis was renamed clim in R2022a)
       shading flat
       axis equal
       colorbar;

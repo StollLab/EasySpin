@@ -4,7 +4,7 @@
 %     [t,Signal,info] = spidyan(Sys,Exp,Opt)
 %
 %     Inputs:
-%       Sys   ... spin system with electron spin and ESEEM nuclei
+%       Sys   ... spin system with electron spin and nuclei
 %       Exp   ... experimental parameters (time unit µs)
 %       Opt   ... simulation options
 %

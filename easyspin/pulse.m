@@ -786,15 +786,22 @@ else
       profile = abs(resonatorprofile(newaxis,f0,QL,'transferfunction'));
     end
     
-    if strcmp(FrequencyModulation,'uniformQ') || strcmp(Par.Type,'sech/tanh')
+    if strcmp(FrequencyModulation,'uniformq') || strcmp(Par.Type,'sech/tanh')
       % Amplitude modulation function taken into account in nu1 for pulses
       % with uniform adiabaticity
       profile = A0.*profile;
     end
     
     % Frequency dependence of t and time-to-frequency mapping
+    profile(profile==0) = 1e-3;
     int = cumtrapz(nu0,profile.^-2);
     t_f = t(end)*int/int(end);
+    if numel(t_f)~=numel(unique(t_f))
+      [~,ind] = unique(t_f);
+      t_f = t_f(ind);
+      nu0 = nu0(ind);
+      A0 = A0(ind);
+    end
     nu_adapted = interp1(t_f,nu0,t,'pchip');
     
     % New frequency, phase and amplitude modulation functions
@@ -802,7 +809,7 @@ else
     modulation.phase = 2*pi*cumtrapz(t,modulation.freq);
     modulation.phase = modulation.phase + abs(min(modulation.phase));  % zero phase offset at pulse center
     
-    if strcmp(FrequencyModulation,'uniformQ') || strcmp(Par.Type,'sech/tanh')
+    if strcmp(FrequencyModulation,'uniformq') || strcmp(Par.Type,'sech/tanh')
       modulation.A = interp1(nu0,A0,nu_adapted,'pchip');
     end
     

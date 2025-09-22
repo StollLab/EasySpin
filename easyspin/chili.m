@@ -568,8 +568,14 @@ if generalLiouvillian
     error('Opt.LiouvMethod=''general'' does not support spin exchange (Sys.Exchange).');
   end
 else
-  if Sys.nElectrons>1 || Sys.S~=1/2 || Sys.nNuclei>2
-    error('Opt.LiouvMethod=''fast'' does not work with this spin system.');
+  if Sys.nElectrons>1
+    error('Opt.LiouvMethod=''fast'' does not work with more than one electron spin.');
+  end
+  if Sys.S~=1/2
+    error('Opt.LiouvMethod=''fast'' does not work for S>1/2.');
+  end
+  if Sys.nNuclei>2
+    error('Opt.LiouvMethod=''fast'' does not work more than 2 nuclei in the spin system.');
   end
   if usePotential
     if ~oldStylePotential

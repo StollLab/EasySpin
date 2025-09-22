@@ -141,7 +141,7 @@ end
 onSearchPath = contains(upper([path pathsep]),upper([esFunctionsFolder pathsep]));
 if ~onSearchPath
   if Display
-    fprintf('\n  The EasySpin folder %s is not in MATLAB''s search path. Please add it.\n',esFunctionFolder);
+    fprintf('\n  The EasySpin folder %s is not in MATLAB''s search path. Please add it.\n',esFunctionsFolder);
   end
 end
 

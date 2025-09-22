@@ -259,7 +259,7 @@ chimol_CGS = chimol_SI/(4*pi*1e-6);  % conversion from SI to CGS-emu units
 <a name="crystals"><div class="subtitle">Single crystals</div></a>
 
 <p>
-<code>curry</code> can also calculate magnetic moment and molar magnetic susceptibility of single crystals. For this, provide three things: (a) the orientation of the crystal in the spectrometer in <code>Exp.SampleFrame</code>, (b) the space group of the crystal in <code>Exp.CrystalSymmetry</code>, and (c) the orientation of the molecular frame relative to the crystal frame in <code>Exp.MolFrame</code>. You can omit the latter two, in which case the space group is assumed to be P1, and the molecular frame is assumed to be aligned with the crystal frame. You can't omit <code>Exp.SampleFrame</code>.
+<code>curry</code> can also calculate magnetic moment and molar magnetic susceptibility of single crystals. For this, provide three things: (a) the space group of the crystal in <code>Exp.CrystalSymmetry</code>, (b) the orientation of the molecular frame relative to the crystal frame in <code>Exp.MolFrame</code>, and (c) the orientation of the crystal in the spectrometer in <code>Exp.SampleFrame</code>. To get a crystal spectrum, minimally either <code>Exp.CrystalSymmetry</code> or <code>Exp.MolFrame</code> must be provided.
 </p>
 
 <p>
