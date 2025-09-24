@@ -103,8 +103,9 @@ if ~isempty(region)
   if ~islogical(region)
     error('region (4th input) must be a logical array.');
   end
-  if twoDimFit
-    warning('basecorr: Baseline correction with mask is only available for 1D fits.')
+  if twoDimFit & size(region) ~= size(data)
+    warning(['basecorr: for 2D fit, region (4th input) must be ' ...
+        'logical with the same size as data.'])
   end
 end
 
@@ -128,7 +129,11 @@ if twoDimFit
   end
 
   % Fit polynomial and evaluate baseline
-  p = D\data(:);
+  if isempty(region)
+      p = D\data(:);
+  else
+      p = D(region(:), :)\data(region(:));
+  end
   baseline = D*p;
   baseline = reshape(baseline,r,c);
 
