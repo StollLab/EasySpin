@@ -155,16 +155,15 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   k = findheader('ELECTRONIC G-MATRIX',L,krange);
   if ~isempty(k)
-    if (~isempty(OrcaVersion)) && (OrcaVersion(1) == '6')
-      k = k+10;
-    else
-      k = k+3;
+    % Locate g matrix (number of lines down from header depends on ORCA version)
+    while ~contains(L{k},'The g-matrix')
+      k = k+1;
     end
-    % read raw asymmetric g matrix
-    g_raw = readmatrix(L(k:k+2));
+    % Read raw asymmetric g matrix and symmetrize
+    g_raw = readmatrix(L(k+(1:3)));
     g_sym = (g_raw.'*g_raw)^(1/2);
-    g_sym = (g_sym+g_sym.')/2; % symmetrize numerically
-
+    g_sym = (g_sym+g_sym.')/2;  % eliminate numerical errors
+    % Diagonalize to get eigenvalues and eigenvectors
     [V,g] = eig(g_sym);
     gvals = diag(g).';
     if det(V)<0
