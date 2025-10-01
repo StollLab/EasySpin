@@ -68,11 +68,11 @@ For a 2D fit (<code>dim=[]</code>), provide 2 numbers in <code>n</code>, one for
 </p>
 
 <p>
-The optional input <code>region</code> provides a mask to select the region to include in the fit. Provide a logical array of the same size as <code>data</code>. Data points for which the corresponding element in <code>region</code> is <code>true</code> (<code>false</code>) are included (excluded) in the fit. This works only for 1D fits.
+The optional input <code>region</code> provides a mask to select the region to include in the fit. Provide a logical array or matrix of the same size as <code>data</code>. Data points for which the corresponding element in <code>region</code> is <code>true</code> (<code>false</code>) are included (excluded) in the fit.
 </p>
 
 <p>
-The two outputs are the corrected data in <code>datacorr</code> and the fitted baseline(s) in <code>baseline</code>. If not outputs are requested, the results are plotted.
+The two outputs are the corrected data in <code>datacorr</code> and the fitted baseline(s) in <code>baseline</code>. If no outputs are requested, the results are plotted.
 </p>
 
 <!-- =========================================================== -->
