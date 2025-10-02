@@ -353,7 +353,7 @@ if noBroadening && (Exp.Harmonic~=0)
   error('\n  No broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n',Exp.Harmonic);
 end
 
-% Modulation amplitude
+% Field modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
@@ -364,10 +364,10 @@ if Exp.ModAmp>0
   if Exp.Harmonic<1
     error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
   end
-  logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
   Exp.ModHarmonic = Exp.Harmonic;
   Exp.ConvHarmonic = 0;
   Exp.DerivHarmonic = 0;
+  logmsg(1,'  explicit field modulation, amplitude %g mT, harmonic %d',Exp.ModAmp,Exp.Harmonic);
 else
   Exp.ModHarmonic = 0;
   if ConvolutionBroadening
@@ -377,6 +377,7 @@ else
     Exp.ConvHarmonic = 0;
     Exp.DerivHarmonic = Exp.Harmonic;
   end
+  logmsg(1,'  no explicit field modulation, derivative %d',Exp.Harmonic);
 end
 
 % Microwave phase
@@ -385,7 +386,6 @@ if ~FieldSweep
   Exp.mwPhase = -Exp.mwPhase;
 end
 
-
 % Resonator mode
 if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
   if strcmp(Exp.mwMode,'perpendicular')
@@ -393,8 +393,10 @@ if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
   else
     error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
   end
+  logmsg(1,'  resonator mode: %s',Exp.mwMode);
+else
+  logmsg(1,'  resonator mode: custom');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Temperature and non-equilibrium populations
 nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
