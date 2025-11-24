@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.min.js"></script>
    <script src="highlight/do_highlight.js"></script>
-   <title>basecorr</title>
+   <title>phasecorr</title>
 </head>
 
 <body>
@@ -26,53 +26,43 @@
 
 <section>
 
-<div class="functitle">basecorr</div>
+<div class="functitle">phasecorr</div>
 
 <p>
-Polynomial baseline correction.
+Phase correction.
 </p>
 
 <!-- =========================================================== -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-datacorr = basecorr(data,dim,n)
-datacorr = basecorr(data,dim,n,region)
-[coddata,baseline] = basecorr(...)
-basecorr(...)
+Vph = phasecorr(V)
+Vph = phasecorr(V,ignoreOffset)
+[Vph,ph] = phasecorr(...)
+phasecorr(...)
 </pre>
 
 <!-- =========================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-This function computes and applies polynomial baseline corrections to the input data array <code>data</code>.
-It returns the baseline-corrected data in <code>datacorr</code> and the
-polynomial baseline(s) in <code>baseline</code>.
-The baseline is
-computed by least-squares fitting polynomials of required order to the
-data along specified dimensions.
+This function phase corrects the input data <code>V</code> by minimizing the imaginary part by applying a phase angle <code>ph</code> (in radians) via <code>Vph = V.*exp(1i*ph)</code>. There are two types of minimizations: if <code>ignoreOffset</code> is set to <code>false</code>, the second moment of the imaginary part is minimized, and if <code>ignoreOffset</code> is set to <code>true</code>, then the second central moment is minimized.
 </p>
 
 <p>
-<code>dim</code> specifies the dimension(s) along which baselines should be fitted.
-For <code>dim=1</code>, baselines are fitted to each column in the data array.
-For <code>dim=2</code>, baselines are fitted to each row.
-For <code>dim=[]</code>, a single two-dimensional baseline is fit.
+<code>V</code> can be a one- or two-dimensional array. For a two-dimensional array, all data are used in the minimization. Write a loop to individually phase correct rows or columns of a 2D array.
 </p>
 
 <p>
-<code>n</code> gives the polynomials order.
-For 1D fits (<code>dim=1</code> or <code>2</code>), provide a single number between 0 (constant offset) and 6 (sixth-order polynomial).
-For a 2D fit (<code>dim=[]</code>), provide 2 numbers in <code>n</code>, one for each dimension.
+<code>Vph</code> has the same size as <code>V</code> and contains the phase-corrected data.
 </p>
 
 <p>
-The optional input <code>region</code> provides a mask to select the region to include in the fit. Provide a logical array or matrix of the same size as <code>data</code>. Data points for which the corresponding element in <code>region</code> is <code>true</code> (<code>false</code>) are included (excluded) in the fit.
+<code>ph</code> is applied phase, in radians.
 </p>
 
 <p>
-The two outputs are the corrected data in <code>datacorr</code> and the fitted baseline(s) in <code>baseline</code>. If no outputs are requested, the results are plotted.
+If no output is requested, the function plots the original and the phase-corrected data.
 </p>
 
 <!-- =========================================================== -->
@@ -116,7 +106,11 @@ datac = basecorr(data,[],[3 3]);
 <div class="subtitle">Algorithm</div>
 
 <p>
-1D and 2D polynomial least-square fits are computed by constructing the Vandermonde matrix associated with the problem and using MATLAB's <code>\</code> operator to solve the resulting system of linear equations.
+If the offset is taken into account, then an analytical solution is used to determine the phase angle that minimizes the second moment of the imaginary part. If the imaginary offset should be ignored, a numerical optimization is performed.
+</p>
+
+<p>
+There are always two solutions, differing by 180 degrees. <code>phasecorr</code> returns the solution that is smaller in magnitude.
 </p>
 
 <!-- =========================================================== -->
@@ -124,9 +118,9 @@ datac = basecorr(data,[],[3 3]);
 
 <p>
 <a class="esf" href="apowin.html">apowin</a>,
+<a class="esf" href="basecorr.html">basecorr</a>,
 <a class="esf" href="exponfit.html">exponfit</a>,
-<a class="esf" href="datasmooth.html">datasmooth</a>,
-<a class="esf" href="phasecorr.html">phasecorr</a>
+<a class="esf" href="datasmooth.html">datasmooth</a>
 </p>
 
 <hr>
