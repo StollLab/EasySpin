@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>phasecorr</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">phasecorr</div>
+
+<p>
+Phase correction.
+</p>
+
+<!-- =========================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+Vph = phasecorr(V)
+Vph = phasecorr(V,ignoreOffset)
+[Vph,ph] = phasecorr(...)
+phasecorr(...)
+</pre>
+
+<!-- =========================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function phase corrects the input data <code>V</code> by minimizing the imaginary part by applying a phase angle <code>ph</code> (in radians) via <code>Vph = V.*exp(1i*ph)</code>. There are two types of minimizations: if <code>ignoreOffset</code> is set to <code>false</code>, the second moment of the imaginary part is minimized, and if <code>ignoreOffset</code> is set to <code>true</code>, then the second central moment is minimized.
+</p>
+
+<p>
+<code>V</code> can be a one- or two-dimensional array. For a two-dimensional array, all data are used in the minimization. Write a loop to individually phase correct rows or columns of a 2D array.
+</p>
+
+<p>
+<code>Vph</code> has the same size as <code>V</code> and contains the phase-corrected data.
+</p>
+
+<p>
+<code>ph</code> is applied phase, in radians.
+</p>
+
+<p>
+If no output is requested, the function plots the original and the phase-corrected data.
+</p>
+
+<!-- =========================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+To phase-correct a one-dimensional dataset, use
+</p>
+
+<pre class="matlab">
+datac = phasecorr(data);
+</pre>
+
+<p>
+To globally phase-correct a two-dimensional data array, simply provide the full dataset
+</p>
+
+<pre class="matlab">
+datac = phasecorr(data);
+</pre>
+
+<p>
+To apply a phase-correction separately along each row, and return both phase-corrected data and phase angles, use
+</p>
+
+<pre class="matlab">
+for k = 1:size(data,1)
+  [datac(k,:),ph(k)] = phasecorr(data(k,:));
+end
+</pre>
+
+
+<!-- =========================================================== -->
+<div class="subtitle">Algorithm</div>
+
+<p>
+If the offset is taken into account, then an analytical solution is used to determine the phase angle that minimizes the second moment of the imaginary part. If the imaginary offset should be ignored, a numerical optimization is performed.
+</p>
+
+<p>
+There are always two solutions, differing by 180 degrees. <code>phasecorr</code> returns the solution that is smaller in magnitude.
+</p>
+
+<!-- =========================================================== -->
+<div class="subtitle">See also</div>
+
+<p>
+<a class="esf" href="apowin.html">apowin</a>,
+<a class="esf" href="basecorr.html">basecorr</a>,
+<a class="esf" href="exponfit.html">exponfit</a>,
+<a class="esf" href="datasmooth.html">datasmooth</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>
