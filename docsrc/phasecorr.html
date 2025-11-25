@@ -69,36 +69,29 @@ If no output is requested, the function plots the original and the phase-correct
 <div class="subtitle">Examples</div>
 
 <p>
-To fit cubic baselines separately along each column, use
+To phase-correct a one-dimensional dataset, use
 </p>
 
 <pre class="matlab">
-datac = basecorr(data,1,3);
+datac = phasecorr(data);
 </pre>
 
 <p>
-To fit linear baselines separately along each row, use
+To globally phase-correct a two-dimensional data array, simply provide the full dataset
 </p>
 
 <pre class="matlab">
-datac = basecorr(data,2,1);
+datac = phasecorr(data);
 </pre>
 
 <p>
-To fit linear baselines separately along each row, but limit the fit region, use
+To apply a phase-correction separately along each row, and return both phase-corrected data and phase angles, use
 </p>
 
 <pre class="matlab">
-region = x<3 | x>6;  % include region with x<3 and x>6 in the fit
-datac = basecorr(data,2,1,region);
-</pre>
-
-<p>
-To fit a single third-order surface to 2D data, use
-</p>
-
-<pre class="matlab">
-datac = basecorr(data,[],[3 3]);
+for k = 1:size(data,1)
+  [datac(k,:),ph(k)] = phasecorr(data(k,:));
+end
 </pre>
 
 

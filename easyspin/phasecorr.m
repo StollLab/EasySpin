@@ -4,7 +4,7 @@
 %  Vph = phasecorr(V,ignoreOffset)
 %  [Vph,ph] = phasecorr(___)
 %
-%  V  ... data vector, must be one-dimensional
+%  V  ... one- or two-dimensional array of data
 %  ignoreOffset... whether to ignore the offset of the imaginary
 %      part (default false)
 %  ph ... phase correction angle, in radians
@@ -25,8 +25,8 @@
 
 function varargout = phasecorr(V,ignoreOffset)
 
-% The follwing determines the phase that minimizes the objective
-% function = sum of squares of imaginary part of V*exp(1j*phi)
+% The following determines the phase that minimizes the objective
+% function = sum of squares of imaginary part of V*exp(1i*phi)
 % This objective function has the analytical form
 %
 %   (a+b) + (b-a)*cos(2*phi) + c*sin(2*phi)
@@ -51,7 +51,7 @@ if nargin==0
 end
 
 if nargin<2
-  ignoreOffset = true;
+  ignoreOffset = false;
 end
 
 % Determine phase that minimizes imaginary part (with or without offset)
