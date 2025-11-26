@@ -3654,7 +3654,7 @@
     "description": "Mass of proton"
   },
   "propint": {
-    "description": "Compute pulse propagator",
+    "description": "Compute quantum propagator",
     "inputs": [
       {
         "name": "H0",
@@ -3663,7 +3663,7 @@
           "numeric",
           "square"
         ],
-        "purpose": "static Hamiltonian"
+        "purpose": "static Hamiltonian, MHz"
       },
       {
         "name": "H1",
@@ -3672,17 +3672,17 @@
           "numeric",
           "square"
         ],
-        "purpose": "time-dependent Hamiltonian"
+        "purpose": "time-dependent Hamiltonian, MHz"
       },
       {
-        "name": "tp",
+        "name": "tlim",
         "kind": "required",
         "type": [
           "numeric",
           "real",
           "size=1,2"
         ],
-        "purpose": "start and end time of the pulse, us"
+        "purpose": "start and end time of integration, µs"
       },
       {
         "name": "freq",
@@ -3693,7 +3693,7 @@
           "real",
           "positive"
         ],
-        "purpose": "iradiation frequency, MHz"
+        "purpose": "irradiation frequency, MHz"
       },
       {
         "name": "phase",
@@ -3705,24 +3705,20 @@
         "purpose": "initial phase, radians, default 0"
       },
       {
-        "name": "n",
+        "name": "Opt",
         "kind": "ordered",
         "type": [
-          "numeric",
-          "scalar",
-          "real",
-          "positive",
-          "integer"
+          "struct"
         ],
-        "purpose": "number of intervals by which one period of the propagation is divided, default 256"
+        "purpose": "integration options"
       }
     ]
   },
   "propint": {
-    "description": "Compute pulse propagator",
+    "description": "Compute quantum propagator",
     "inputs": [
       {
-        "name": "SaveU",
+        "name": "Ustore",
         "kind": "required",
         "type": [
           "cell"
@@ -3730,14 +3726,14 @@
         "purpose": "previous intermediate results for reuse"
       },
       {
-        "name": "tp",
+        "name": "tlim",
         "kind": "required",
         "type": [
           "numeric",
           "real",
           "size=1,2"
         ],
-        "purpose": "start and end time of the pulse, us"
+        "purpose": "start and end time of the integration, µs"
       },
       {
         "name": "freq",
@@ -3760,16 +3756,12 @@
         "purpose": "initial phase, radians, default 0"
       },
       {
-        "name": "n",
+        "name": "Opt",
         "kind": "ordered",
         "type": [
-          "numeric",
-          "scalar",
-          "real",
-          "positive",
-          "integer"
+          "struct"
         ],
-        "purpose": "number of intervals by which one period of the propagation is divided, default 256"
+        "purpose": "integration options"
       }
     ]
   },

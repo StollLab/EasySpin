@@ -29,27 +29,28 @@
 <div class="functitle">propint</div>
 
 <p>
-Compute pulse propagators.
+Compute propagator matrix for quantum dyanmics.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-U = propint(H0,H1,tp,freq)
-U = propint(H0,H1,tp,freq,phase)
-U = propint(H0,H1,tp,freq,phase,n)
-[U,SaveU] = propint(...)
+U = propint(H0,H1,tlim,freq)
+U = propint(H0,H1,tlim,freq,phase)
+U = propint(H0,H1,tlim,freq,phase,Opt)
+[U,Ustore] = propint(...)
 
-U = propint(SaveU,tp,freq)
-U = propint(SaveU,tp,freq,phase)
+U = propint(Ustore,tlim,freq)
+U = propint(Ustore,tlim,freq,phase)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>propint</code> computes a pulse propagator by numerically integrating
+<code>propint</code> computes a propagator matrix by numerically integrating
+</p>
 
 <div class="eqn">
 <img src="eqn/propint1.png" alt="[eqn]"><!--MATH
@@ -59,95 +60,65 @@ U = propint(SaveU,tp,freq,phase)
 -->
 </div>
 
-over the interval <code>t=tp(1)</code> to <code>t=tp(2)</code>
-using steps of <code>dt = 1/freq/n</code>.</p>
+<p>
+over the interval <code>t=tlim(1)</code> to <code>t=tlim(2)</code>.
+</p>
 
 <p>
 <code>H0</code> is the static Hamiltonian, <code>H1</code> the time-dependent one.
 They should both be in units of MHz.
-<code>tp</code> is a 2-element vector with the start and end time of the pulse in &mu;s, <code>freq</code> is the irradiation frequency &nu; in MHz.
+<code>tlim</code> is a 2-element vector with the start and end time in &mu;s, <code>freq</code> is the irradiation frequency &nu; in MHz.
 <code>phase</code> gives the initial phase &phi; in radians (default is 0).
-<code>n</code> gives the number of intervals in which one period of the propagation is
-divided, its default is 256.
 </p>
 
 <p>
-The resulting propagator is returned in <code>U</code>. If propagators of more than one pulse,
-but the same <code>H0</code> and <code>H1</code>
-are wanted, then one should retrieve <code>SaveU</code> from the first call to <code>propint</code>.
+<code>Opt</code> is a structure that contains settings for the integration algorithm. <code>Opt.Method</code> specifies the method, possible values are <code>"simple"</code> (which is the default) and <code>"RK4"</code>. <code>"simple"</code> uses the trapezoidal rule, and <code>"RK4"</code> uses the 4th-order Runge-Kutta method.</p> For both methods, <code>Opt.n</code> specifies the number of time steps over one period of the oscillation. The default is 360.
 </p>
 
-<pre class="matlab">
-[Ua,SaveU] = propint(myH0,myH1,tpa,freq);
-</pre>
-
 <p>
-It contains intermediate integration results which can be reused in the next call.
-In that case use the calling form where <code>SaveU</code> is passed as argument instead
-of <code>H0</code> and <code>H1</code>.
+The resulting propagator is returned in <code>U</code>. If multiple propagators with different time bounds but identical <code>H0</code> and <code>H1</code>
+are wanted, then one should retrieve <code>Ustore</code> from the first call to <code>propint</code>.
 </p>
 
 <pre class="matlab">
-Ub = propint(SaveU,tpb,freq);
+[Ua,Ustore] = propint(myH0,myH1,tlima,freq);
 </pre>
 
 <p>
-The savings in computation time are enormous. While the first call might take some
-time, the second call finishes in an instant.
+<code>Ustore</code> contains intermediate integration results which can be reused in the next call. In that case, use the calling form where <code>Ustore</code> is passed as argument instead of <code>H0</code> and <code>H1</code>.
+</p>
+
+<pre class="matlab">
+Ub = propint(Ustore,tlimb,freq);
+</pre>
+
+<p>
+The savings in computation time for this second call are enormous.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
 <p>
-A resonant &pi;/2 pulse for a spin-1 would be represented by the propagator
+A resonant &pi;/2 pulse for a spin-1/2 would be represented by the propagator
 </p>
 
 <pre class="matlab">
-Sz = sop(1,'z'); Sy = sop(1,'y'); % S=1 system
-mwFreq = 10e3; tp = 0.010; % 10 GHz, 10 ns
-U = propint(mwFreq*Sz,1/2/tp*Sy,tp,mwFreq)
+[Sz,Sy] = sop(1/2,'z','y');  % spin operator matrices
+nu0 = 10e3;           % resonance frequency, MHz
+tp = 0.010;           % pulse duration, µs
+theta = pi/2;         % pulse flip angle, rad
+nu1 = theta/pi/tp;    % pulse amplitude, MHz
+nu_mw = 10e3;         % microwave frequency, MHz
+H0 = nu0*Sz;          % static Hamiltonian, MHz
+H1 = nu1*Sy;          % microwave Hamiltonian MHz
+U = propint(H0,H1,tp,nu_mw)
 </pre>
 
 <pre class="mloutput">
 U =
-   0.5000 + 0.0006i  -0.7071 - 0.0004i   0.5000 + 0.0000i
-   0.7071 + 0.0004i   0.0000 - 0.0000i  -0.7071 + 0.0004i
-   0.5000 + 0.0000i   0.7071 - 0.0004i   0.5000 - 0.0006i
-</pre>
-
-<p>
-A resonant &pi; pulse on an two-spin system gives a propagator
-</p>
-
-<pre class="matlab">
-spins = [1/2 1/2];
-Sz = sop(spins,'ze'); Sy = sop(spins,'ye');
-mwFreq = 10e3; tp = 0.010; % 10 GHz, 10 ns
-U = propint(mwFreq*Sz,1/tp*Sy,tp,mwFreq)
-</pre>
-<pre class="mloutput">
-U =
- 0.0000 + 0.0012i       0           -1.0000 + 0.0000i       0          
-      0            0.0000 + 0.0012i       0           -1.0000 + 0.0000i
- 1.0000 - 0.0000i       0            0.0000 - 0.0012i       0          
-      0            1.0000 - 0.0000i       0            0.0000 - 0.0012i
-</pre>
-
-<p>
-This propagator inverts populations in the density matrix.
-</p>
-
-<pre class="matlab">
-Density0 = -Sz;
-NewDensity = U*Density0*U'
-</pre>
-<pre class="mloutput">
-NewDensity =
- 0.5000 + 0.0000i       0           -0.0000 - 0.0012i       0          
-      0            0.5000 + 0.0000i       0           -0.0000 - 0.0012i
--0.0000 + 0.0012i       0           -0.5000                 0          
-      0           -0.0000 + 0.0012i       0           -0.5000          
+   0.7071 + 0.0004i  -0.7071 - 0.0000i
+   0.7071 + 0.0000i   0.7071 - 0.0004i
 </pre>
 
 <!-- ============================================================= -->
