@@ -687,7 +687,9 @@ if nActiveParams>0
       [pfit_active,~,~,~,output] = lsqnonlin(residualfun,p0_active,lb_active,ub_active);
       info.bestx = pfit_active;
       info.newbest = true;
-      iterupdateGUI(info);
+      if useGUI && iterupdate
+        iterupdateGUI(info);
+      end
       if Verbosity>=1 && useGUI && isfield(info,'msg')
         updateLogBox(output.message);
       end
@@ -1763,7 +1765,7 @@ gui.nParamsFieldPopup = uieditfield('numeric','Parent',nparamsbox,...
         'Editable','off');
 
 gui.AlgorithmTabs = uitabgroup(lgrid.main,'TabLocation','left');
-for i = 1:(numel(esfitdata.AlgorithmNames)-1)
+for i = 1:numel(esfitdata.AlgorithmNames)
   t(i) = uitab(gui.AlgorithmTabs,'Title',esfitdata.AlgorithmAbbrev{i},'ToolTip',esfitdata.AlgorithmNames{i});
   [FitOpt,info] = esfit_algdefaults(esfitdata.AlgorithmNames{i});
   esfitdata.AlgorithmDefaults{i} = FitOpt;
