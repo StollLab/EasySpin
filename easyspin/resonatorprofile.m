@@ -70,7 +70,7 @@ if nargin~=5
 end
 
 if ~isempty(nu)
-  if ~isnumeric(nu) || ~isreal(nu) || any(nu<=0)
+  if ~isnumeric(nu) || ~isreal(nu) || any(nu<0)
     error('The frequency axis (1st input) must be a 1D array of positive numbers.');
   end
 end
