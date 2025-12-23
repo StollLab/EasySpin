@@ -254,7 +254,7 @@ function [f,H] = transferfunction(type,varargin)
 %    https://doi.org/10.1016/j.jmr.2015.12.014
 
 % Ideal transfer function (RLC series circuit)
-Hideal = @(f,f0,Q,nu_max) nu_max*resonatorprofile(f,f0,Q,'transferfunction');
+Hideal = @(f,f0,QL,nu_max) nu_max*resonatorprofile(f,f0,2*QL,1,'transferfunction');
 
 switch type
   case 'ideal'
