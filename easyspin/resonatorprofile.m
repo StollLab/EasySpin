@@ -2,8 +2,8 @@ function varargout = resonatorprofile(nu,nu0,Qu,beta,type)
 % resonatorprofile  Various quantities characterizing a microwave resonator
 %
 %  resonatorprofile(nu,nu0,Qu,beta,type)
-%  out = resonatorprofile(nu,nu0,Qu,beta,type)
-%  [nu,out] = resonatorprofile([],nu0,Qu,beta,type)
+%  result = resonatorprofile(nu,nu0,Qu,beta,type)
+%  [nu,result] = resonatorprofile([],nu0,Qu,beta,type)
 %
 %  H = resonatorprofile(nu,nu0,Qu,beta,'transferfunction')
 %  Gamma = resonatorprofile(nu,nu0,Qu,beta,'voltagereflection')
@@ -70,7 +70,7 @@ if nargin~=5
 end
 
 if ~isempty(nu)
-  if ~isnumeric(nu) || ~isreal(nu) || any(nu<0)
+  if ~isnumeric(nu) || ~isreal(nu) || any(nu<=0)
     error('The frequency axis (1st input) must be a 1D array of positive numbers.');
   end
 end
@@ -87,6 +87,9 @@ if ~isnumeric(beta) || ~isscalar(beta) || ~isreal(beta) || beta<=0
   error(sprintf(['The coupling coefficient beta (4th input) must be a positive number.\n'...
     '(1 for critical coupling, 0<beta<1 for undercoupling, >1 for overcoupling.']));
 end
+
+validStrings = {'powerreflection','voltagereflection','transferfunction','powertransmission','S11','returnloss','VSWR'};
+type = validatestring(type,validStrings,mfilename,'type (5th input)');
 
 % Calculations
 %-------------------------------------------------------------------------------
@@ -195,7 +198,7 @@ switch nargout
     end
     xlabel('frequency (GHz)');
     xline(nu0,'--','');
-    title(sprintf('{\\nu}_0 = %g GHz, {\\it{Q}}_u = %d, \\beta = %g, {\\it{Q}}_L = %g',nu0,Qu,beta,Qu/(1+beta)));
+    title(sprintf('{\\nu}_0 = %g GHz, {\\it{Q}}_u = %g, \\beta = %g, {\\it{Q}}_L = %g',nu0,Qu,beta,Qu/(1+beta)));
 
   case 1
     varargout = {result};
