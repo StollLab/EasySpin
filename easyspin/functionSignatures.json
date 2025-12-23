@@ -4383,7 +4383,7 @@
     ]
   },
   "resonatorprofile": {
-    "description": "Resonator profile (transfer function, voltage reflection coefficient or power reflection coefficient)",
+    "description": "Resonator characteristics (transfer function, voltage reflection coefficient, power reflection coefficient, etc)",
     "inputs": [
       {
         "name": "nu",
@@ -4399,7 +4399,8 @@
         "kind": "required",
         "type": [
           "numeric",
-          "scalar"
+          "scalar",
+          "positive"
         ],
         "purpose": "resonator resonance frequency, GHz"
       },
@@ -4418,7 +4419,8 @@
         "kind": "required",
         "type": [
           "numeric",
-          "scalar"
+          "scalar",
+          "positive"
         ],
         "purpose": "coupling coefficient"
       },
@@ -4426,7 +4428,8 @@
         "name": "type",
         "kind": "required",
         "type": [
-          "char"
+          "char",
+          "choices={'powerreflection','powertransmission','transferfunction','voltagereflection','S11','VSWR','returnloss'}"
         ],
         "purpose": "type of output to return"
       }
@@ -4963,7 +4966,7 @@
           "numeric",
           "scalar",
           "cell",
-		  "choices={'maxabs','int','dint','none'}"
+          "choices={'maxabs','int','dint','none'}"
         ],
         "purpose": "rescale mode for slices, default 'maxabs'"
       },
