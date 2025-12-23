@@ -39,7 +39,7 @@ function varargout = resonatorprofile(nu,nu0,Qu,beta,type)
 %    type=='transferfunction':  transfer function H (= admittance)
 %    type=='voltagereflection': the voltage reflection coefficient Gamma 
 %                (ratio of E-field amplitudes of reflected and incoming wave)
-%    type=='powerreflecton': the power reflection coefficient abs(Gamma)^2
+%    type=='powerreflection': the power reflection coefficient abs(Gamma)^2
 %    type=='S11': the S11 scattering parameter
 %    type=='VSWR': the voltage standing wave ratio
 %    type=='returnloss': the return loss, in dB
