@@ -783,7 +783,7 @@ else
       % Calculate ideal resonator transfer function
       f0 = Par.ResonatorFrequency*1e3; % center frequency
       QL = Par.ResonatorQL; % loaded Q-value
-      profile = abs(resonatorprofile(newaxis,f0,QL,'transferfunction'));
+      profile = abs(resonatorprofile(newaxis,f0,2*QL,1,'transferfunction'));
     end
     
     if strcmp(FrequencyModulation,'uniformq') || strcmp(Par.Type,'sech/tanh')

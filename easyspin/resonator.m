@@ -296,58 +296,66 @@ switch type
       FrequencyResponse_ = abs(FrequencyResponse_);
     end
     
-    % Estimate center frequency and loaded Q
-    [v1max,maxind] = max(FrequencyResponse_);
-    f0 = f(ind(1)+maxind); % GHz
-    
-    v1_3dB = (3/4)*v1max;
-    ind_3dB = [find(FrequencyResponse_>v1_3dB,1,'first') find(FrequencyResponse_>v1_3dB,1,'last')];
-    f_3dB = f(ind(1)-1+ind_3dB);
-    BW_3dB = diff(f_3dB);
-    QL = f0/BW_3dB;
-    
-    % Fit f0 and QL for best overlap
-    fitfunc = @(x) sqrt(sum((abs(Hideal(f(ind),x(1),x(2),v1max))-FrequencyResponse_).^2)/numel(FrequencyResponse_));
-    x0 = [f0 QL];
-    x = fminsearch(fitfunc,x0);
-    f0 = x(1);
-    QL = x(2);
-    
-    Hid = Hideal(f,f0,QL,v1max);
-    Hid(1) = Hid(2);
-    
-    % Extrapolate the experimental transfer function by exponentially approaching |H0(f)|
-    while FrequencyResponse_(1)-abs(Hid(ind(1)))<-0.05*v1max
-      FrequencyResponse_ = FrequencyResponse_(2:end);
-      ind = ind(2:end);
-    end
-    while FrequencyResponse_(end)-abs(Hid(ind(end)))<-0.05*v1max
-      FrequencyResponse_ = FrequencyResponse_(1:end-1);
-      ind = ind(1:end-1);
-    end
-    H0(1:ind(1)) = (FrequencyResponse_(1)-abs(Hid(ind(1))))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + abs(Hid(1:ind(1)));
-    H0(ind) = FrequencyResponse_;
-    H0(ind(end):numel(f)) = (FrequencyResponse_(end)-abs(Hid(ind(end))))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + abs(Hid(ind(end):end));
-    
-    % Phase response
-    betaid = atan(imag(Hid)./real(Hid));
-    if exist('FrequencyResponse_i','var')
-      betaexp(ind) = atan(FrequencyResponse_i./FrequencyResponse_r);
+    if all(FrequencyResponse_==1)
+
+      H = ones(size(f));
+
     else
-      % Estimate phase response
-      betaexp = -imag(hilberttrans(log(abs(H0))));
+      % Estimate center frequency and loaded Q
+      [v1max,maxind] = max(FrequencyResponse_);
+      f0 = f(ind(1)+maxind); % GHz
+
+      v1_3dB = (3/4)*v1max;
+      ind_3dB = [find(FrequencyResponse_>v1_3dB,1,'first') find(FrequencyResponse_>v1_3dB,1,'last')];
+      f_3dB = f(ind(1)-1+ind_3dB);
+      BW_3dB = diff(f_3dB);
+      QL = f0/BW_3dB;
+
+      % Fit f0 and QL for best overlap
+      fitfunc = @(x) abs(Hideal(f(ind),x(1),x(2),v1max));
+      x0 = [f0 QL];
+      result = esfit(FrequencyResponse_,fitfunc,x0,[0.01 0.01],[1e6 1e6]);
+      x = result.pfit;
+      f0 = x(1);
+      QL = x(2);
+
+      Hid = Hideal(f,f0,QL,v1max);
+      Hid(1) = Hid(2);
+
+      % Extrapolate the experimental transfer function by exponentially approaching |H0(f)|
+      while FrequencyResponse_(1)-abs(Hid(ind(1)))<-0.05*v1max
+        FrequencyResponse_ = FrequencyResponse_(2:end);
+        ind = ind(2:end);
+      end
+      while FrequencyResponse_(end)-abs(Hid(ind(end)))<-0.05*v1max
+        FrequencyResponse_ = FrequencyResponse_(1:end-1);
+        ind = ind(1:end-1);
+      end
+      H0(1:ind(1)) = (FrequencyResponse_(1)-abs(Hid(ind(1))))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + abs(Hid(1:ind(1)));
+      H0(ind) = FrequencyResponse_;
+      H0(ind(end):numel(f)) = (FrequencyResponse_(end)-abs(Hid(ind(end))))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + abs(Hid(ind(end):end));
+
+      % Phase response
+      betaid = atan(imag(Hid)./real(Hid));
+      if exist('FrequencyResponse_i','var')
+        betaexp(ind) = atan(FrequencyResponse_i./FrequencyResponse_r);
+      else
+        % Estimate phase response
+        betaexp = -imag(hilberttrans(log(abs(H0))));
+      end
+      % Combine phase response of the ideal function and the provided measured data
+      fitfunc = @(x) sqrt(sum(((betaexp(ind)-x)-betaid(ind)).^2)/(ind(end)-ind(1)));
+      x = fminsearch(fitfunc,0);
+      beta(ind) = betaexp(ind)-x;
+      beta(1:ind(1)) = ((betaexp(ind(1))-x)-betaid(ind(1)))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + betaid(1:ind(1));
+      beta(ind(end):numel(f)) = ((betaexp(ind(end))-x)-betaid(ind(end)))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + betaid(ind(end):end);
+
+      % Transfer function
+      H = abs(H0).*exp(1i*beta);
+      H = real(H) - 1i*imag(hilberttrans(real(H)));
+
     end
-    % Combine phase response of the ideal function and the provided measured data
-    fitfunc = @(x) sqrt(sum(((betaexp(ind)-x)-betaid(ind)).^2)/(ind(end)-ind(1)));
-    x = fminsearch(fitfunc,0);
-    beta(ind) = betaexp(ind)-x;
-    beta(1:ind(1)) = ((betaexp(ind(1))-x)-betaid(ind(1)))*exp(1/log(2)*(f(1:ind(1))-f(ind(1)))) + betaid(1:ind(1));
-    beta(ind(end):numel(f)) = ((betaexp(ind(end))-x)-betaid(ind(end)))*exp(-1/log(2)*(f(ind(end):end)-f(ind(end)))) + betaid(ind(end):end);
-    
-    % Transfer function
-    H = abs(H0).*exp(1i*beta);    
-    H = real(H) - 1i*imag(hilberttrans(real(H)));
-    
+
 end
 
 H = H/max(real(H));
