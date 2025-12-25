@@ -37,24 +37,28 @@ Resonator profile
 
 <pre class="matlab">
 resonatorprofile(nu,nu0,Qu,beta,type)
-out = resonatorprofile(nu,nu0,Qu,beta,type)
-[nu,out] = resonatorprofile([],nu0,Qu,beta,type)
+result = resonatorprofile(nu,nu0,Qu,beta,type)
+[nu,result] = resonatorprofile([],nu0,Qu,beta,type)
 
 % Different output options
 H = resonatorprofile(nu,nu0,Qu,beta,'transferfunction')
 Gamma = resonatorprofile(nu,nu0,Qu,beta,'voltagereflection')
 Prefl = resonatorprofile(nu,nu0,Qu,beta,'powerreflection')
+Ptrans = resonatorprofile(nu,nu0,Qu,beta,'powertrasmission')
+S11 = resonatorprofile(nu,nu0,Qu,beta,'S11')
+RL = resonatorprofile(nu,nu0,Qu,beta,'returnloss')
+VSWR = resonatorprofile(nu,nu0,Qu,beta,'VSWR')
 </pre>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
 
 <p>
-This function computes the resonator profile and can return the transfer function, the voltage reflection coefficient or the power reflection coefficient. <code>nu</code> is the frequency range vector, in GHz, over which it is computed. If it is empty, an appropriate range is chose automatically. <code>nu0</code> is the resonator resonance frequency in GHz. <code>Qu</code> is the unloaded Q-factor of the resonator. <code>beta</code> is the coupling coefficient: 1 for critical coupling (matched), less than 1 for undercoupling, and greater than 1 for overcoupling.
+This function computes the resonator profile and can return the transfer function, the voltage reflection coefficient, the power reflection coefficient, the power transmission coefficient, the S11 parameter, the return loss, or the voltage standing wave ration (VSWR). <code>nu</code> is the frequency range vector, in GHz, over which it is computed. If it is empty, an appropriate range is chose automatically. <code>nu0</code> is the resonator resonance frequency, in GHz. <code>Qu</code> is the unloaded Q-factor of the resonator (i.e. the theoretical Q factor of the resonator by itself, without connection to a transmission line). <code>beta</code> is the coupling coefficient: 1 for critical coupling (matched), less than 1 for undercoupling, and greater than 1 for overcoupling.
 </p>
 
 <p>
-The loaded Q-factor is related to the unloaded Q-factor <code>Qu</code> and the coupling coefficient <code>beta</code> through:
+The loaded Q-factor (which takes the coupling to the transmission line into account) is related to the unloaded Q-factor <code>Qu</code> and the coupling coefficient <code>beta</code> through:
   <div class="eqn">
 	<img src="eqn/resonatorprofile1.png" alt="[eqn]"><!--MATH
 	\begin{equation*}
@@ -65,34 +69,21 @@ The loaded Q-factor is related to the unloaded Q-factor <code>Qu</code> and the 
 </p>
 
 <p>
-The option <code>type</code> can be used to request either of the following:
+The option <code>type</code> can be used to request one of the following quantities
 <ul>
-  <li><code>transferfunction</code> - the resonator transfer function 
-  <div class="eqn">
-	<img src="eqn/resonatorprofile2.png" alt="[eqn]"><!--MATH
-	\begin{equation*}
-	H(\nu) = \frac{1}{1+ i Q_U \left(\frac{\nu}{\nu_0} - \frac{\nu_0}{\nu}\right)}
-	\end{equation*}
-	-->
-	</div>  
+  <li><code>transferfunction</code> - the resonator transfer function (using the loaded Q factor)
   </li>
   <li><code>voltagereflection</code> - the voltage reflection coefficient, i.e. the ratio of the E-fields of the reflected wave and the incoming wave
-  <div class="eqn">
-	<img src="eqn/resonatorprofile3.png" alt="[eqn]"><!--MATH
-	\begin{equation*}
-	\Gamma = \frac{1 - \beta + i Q_U \left(\frac{\nu}{\nu_0} - \frac{\nu_0}{\nu}\right)}{1 + \beta + i Q_U \left(\frac{\nu}{\nu_0} - \frac{\nu_0}{\nu}\right)} = \frac{1-\beta H(\nu)}{1 +\beta H(\nu)}
-	\end{equation*}
-	-->
-	</div>  
   </li>
-  <li><code>powerreflection</code> - the power reflection coefficient
-  <div class="eqn">
-	<img src="eqn/resonatorprofile4.png" alt="[eqn]"><!--MATH
-	\begin{equation*}
-	P_\text{reflected} = |\Gamma|^2
-	\end{equation*}
-	-->
-	</div>  
+  <li><code>powerreflection</code> - the power reflection coefficient, i.e. the fraction of power reflected off the resonator
+  </li>
+  <li><code>powertransmission</code> - the power transmission coefficient, i.e. the fraction of power transmitted into the resonator
+  </li>
+  <li><code>S11</code> - the S11 scattering parameter, equal to the voltage reflection coefficient
+  </li>
+  <li><code>returnloss</code> - the return loss, equal to the power reflection coefficient, expressed in dB
+  </li>
+  <li><code>VSWR</code> - the voltage standing wave ratio
   </li>
 </ul> 
 </p>
@@ -105,26 +96,28 @@ If no output is requested, <code>resonatorprofile</code> plots the results.
 <div class="subtitle">Examples</div>
 
 <p>
-Here is a simple example
+Here is a simple example for a power reflection curve, as used in EPR for tuning and matching:
 </p>
 
 <pre class="matlab">
 nu = linspace(9.2,9.8,1001);   % GHz
 nu0 = 9.5;                     % GHz
-Qu = 1000;
+Qu = 3000;
 beta = 1;
-resonatorprofile(nu,nu0,Qu,beta,'voltagereflection');
+resonatorprofile(nu,nu0,Qu,beta,'powerreflection');
 </pre>
 
 <p>
-To plot the power reflection coefficient on a logarithmic dB scale, use
+For determining the microwave B1 acting on the spins in the EPR sample inside the resonator, the magnitude of the transfer function is relevant:
 </p>
 
 <pre class="matlab">
-P_refl = resonatorprofile(nu,nu0,Qu,beta,'powerreflection');
-plot(nu,10*log10(P_refl));
-xlabel('frequency (GHz)');
-ylabel('reflected power (dB)');
+Qu = 200;
+P_trans = resonatorprofile(nu,nu0,Qu,beta,'powertransmission');
+H = resonatorprofile(nu,nu0,Qu,beta,'transferfunction');
+plot(nu,P_trans,nu,abs(H));
+legend('transmitted power','|transfer function|')
+legend boxoff
 </pre>
 
 <!-- ====================================================== -->
