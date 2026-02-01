@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>Resonators</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<h1>Resonators</h1>
+
+<p>
+Most EPR experiments are performed with samples places in microwave resonators. These resonators serve a dual purpose: (a) they minimize the microwave electric field E<sub>1</sub> at the sample, thereby mininizing the impact of electric-dipole transitions and heating, and (b) they maxmimize the microwave magnetic field B<sub>1</sub> at the sample, thereby maximizing sensitivity for the weak magnetic-dipole transitions observed in EPR.
+</p>
+
+<p>
+There are many types of microwave resonators that differ in their construction, but all of them are characterized by a set of basic parameters:
+</p>
+
+<ul>
+<li>
+The resonantor frequency, <img src="eqn/resonators_ref1.png" alt="[eqn]"><!--MATH $\nu_0$ -->, is the frequency at which the resonators admits most power.
+</li>
+<li>
+The intrinsic (unloaded) Q (quality) factor, <img src="eqn/resonators_ref2.png" alt="[eqn]"><!--MATH $Q_\mr{u}$ -->, characterizes the microwave power losses in the resonator - the lower the losses the higher the Q. The unloaded Q factors for resonators used in CW EPR can be up to 10,000 or more. For pulse EPR, lower unloaded Q values of several hundred are used.
+</li>
+<li>
+The coupling coefficient between the resonator and the transmission line, <img src="resonators_ref3.png" alt="[eqn]"><!--MATH $\beta$ -->. This positive number characterizes how well the impedance of the resonator is matched to the impedance of the transmission line (waveguide, coaxial cable, etc.) it is connected to. A value of 1 corresponds to perfect match, the resonator is said to be critically coupled, and at the resonator frequency 100% of the incident microwave power is admitted into the resonator. If <img src="resonators_ref3.png" alt="[eqn]"><!--MATH $\beta$ --> is less than 1, the resonator is undercoupled, and if it is larger than 1, the resonator is overcoupled. In either case, microwave power is partially reflected even at the resonator frequency, either in-phase (when undercoupled) or in anti-phase (when overcoupled).
+</li>
+</ul>
+
+<p>
+Resonators admit power only around their resonance frequency, in a frequency band determined by the unloaded Q factor and the coupling coefficient. 
+</p>
+
+<p>
+An important quantity is the loaded Q factor <img src="eqn/resonators_ref2.png" alt="[eqn]"><!--MATH $Q_\mr{L}$ -->, given by
+</p>
+
+<div class="eqn">
+<img src="eqn/resonators_ref5.png" alt="[eqn]"><!--MATH
+$$
+Q_\mr{L}
+=
+\frac{Q_\mr{u}}{1+\beta}
+$$
+-->
+</div>
+
+<p>
+For notational efficiency in the following expressions, we define a frequency offset <!--MATH $\xi$ --> as
+</p>
+
+<div class="eqn">
+<img src="eqn/resonators_ref5.png" alt="[eqn]"><!--MATH
+$$
+\xi
+=
+\frac{\nu}{nu_0}
+-
+\frac{\nu_0}{nu}
+\approx
+2 \frac{\nu-nu_0}{\nu_0}
+$$
+-->
+</div>
+
+<p>
+where the last approximation is good only if <!--MATH $\nu$ --> and <!--MATH $\nu_0$ --> are similar.
+</p>
+
+<div class="subtitle">Reflected power</div>
+
+<p>
+There are many quantities in use that characterize how much power is reflected at a given frequency from a resonator with given resonator frequency, unloaded Q and coupling coefficient.
+</p>
+
+<p>
+The complex voltage reflection coefficient (also called the S11 parameter) is
+</p>
+
+<div class="eqn">
+<img src="eqn/lineshapes1.png" alt="[eqn]"><!--MATH
+$$
+\varGamma(\nu) = S_{11}(\nu)
+=
+\frac{1-\beta+\ii Q_\mr{u}\xi}{1+\beta+\ii Q_\mr{u}\xi}
+$$
+-->
+</div>
+
+<p>
+The fracion of reflected power (the power reflection coefficient) is
+</p>
+
+<div class="eqn">
+<img src="eqn/lineshapes1.png" alt="[eqn]"><!--MATH
+$$
+P_\mr{refl}(\nu) = |\varGamma|^2
+=
+1 - 
+\frac{4\beta}{(1+\beta)^2+Q_\mr{u}^2\xi^2}
+$$
+-->
+</div>
+
+<p>
+The return loss is the power reflection coefficient expressed in dB:
+</p>
+
+<div class="eqn">
+<img src="eqn/lineshapes1.png" alt="[eqn]"><!--MATH
+$$
+RL(\nu})
+=
+-10\log_{10}P_\mr{refl}
+=
+-20\log_{10}|\varGamma|
+$$
+-->
+</div>
+
+<p>
+The voltage standing wave ratio (VSWR) is
+</p>
+
+<div class="eqn">
+<img src="eqn/lineshapes1.png" alt="[eqn]"><!--MATH
+$$
+VSWR(\nu})
+=
+\frac{1+|\varGamma|}{1-|\varGamma|}
+$$
+-->
+</div>
+
+<div class="subtitle">Transmitted/admitted power</div>
+
+<p>
+The fraction of power transmitted, or admitted, to the resonator (power transmission coefficient) is
+</p>
+
+<div class="eqn">
+<img src="eqn/lineshapes1.png" alt="[eqn]"><!--MATH
+$$
+P_\mr{trans}(\nu) = |\varGamma|^2
+=
+\frac{4\beta}{(1+\beta)^2+Q_\mr{u}^2\xi^2}
+$$
+-->
+</div>
+
+<p>
+The B<sub>1</sub> microwave field in the resonator is proportional to the transfer function
+</p>
+
+<div class="eqn">
+<img src="eqn/lineshapes1.png" alt="[eqn]"><!--MATH
+$$
+H(\nu)
+=
+\frac{2\sqrt{\beta}}{1+\beta+\ii Q_\mr{u}\xi}
+$$
+-->
+</div>
+
+
+<div class="subtitle">References</div>
+
+<ul>
+<li> 
+D. M. Pozar, Microwve Engineering, 4th edition, 2012, Wiley
+</li>
+<li>
+V. Krymov, G. J. Gerfen, J.Magn.Reson. 162, 466-478, 2003, <a href = "https://doi.org/10.1016/S1090-7807(03)00109-5">doi:10.1016/S1090-7807(03)00109-5</a>
+</li>
+<li>
+A. Doll, S. Pribitzer, R. Tschaggelar, G. Jeschke, J.Magn.Reson. 230, 27-39, 2013<a href = "https://doi.org/10.1016/S1090-7807(03)00109-5">doi:10.1016/S1090-7807(03)00109-5</a>
+</li>
+</ul>
+
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+
+</html>
