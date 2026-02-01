@@ -111,6 +111,7 @@ Gamma = (1-beta+1i*Qu*xi)./(1+beta+1i*Qu*xi);  % Krymov Eqs.(6) and (7)
 switch type
   case 'transferfunction'
     H = 1./(1+1i*QL*xi);  % Doll 2013 Eq.(5)
+    %H = 2*sqrt(beta)./(1+beta+1i*Qu*xi);
     result = H;
 
   case 'voltagereflection'
