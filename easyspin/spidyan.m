@@ -31,7 +31,7 @@ warning(chkmlver);
 StartTime = clock;
 
 % Input argument scanning, get display level and prompt
-%=======================================================================
+%-------------------------------------------------------------------------------
 
 % Guard against wrong number of input or output arguments.
 if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
@@ -61,9 +61,8 @@ EasySpinLogLevel = Opt.Verbosity;
 logmsg(1,['=begin=spidyan====' char(datetime) '=================']);
 logmsg(2,'  log level %d',EasySpinLogLevel);
 
-%----------------------------------------------------------------------
 % Preprocess Input
-%----------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 
 % Check for magnetic field
 if ~isfield(Exp,'Field')
@@ -128,13 +127,12 @@ if isfield(Sys,'g')
     nElectrons = 1;
   end
   
-  if Opt.FrameShift ~= 0
+  if Opt.FrameShift~=0
     logmsg(1,'  adapting Sys.g to the simulation frame');
   end
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
-  issize = @(A,siz) isequal(size(A),siz);
-  fullg = issize(Sys.g,[3*nElectrons 3]);
+  fullg = isequal(size(Sys.g),[3*nElectrons 3]);
   if fullg
     gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
     Sys.g = Sys.g - gshiftmat;
@@ -161,7 +159,7 @@ if isfield(Sys,'ZeemanFreq')
   end
 end
 
-% Remove field ZeemanFreq if given, which is spidyan specific
+% Remove spidyan-specific field ZeemanFreq if given
 if isfield(Sys,'ZeemanFreq')
   logmsg(1,'  removing Sys.ZeemanFreq from Sys structure');
   Sys = rmfield(Sys,'ZeemanFreq');
@@ -193,14 +191,13 @@ logmsg(1,'  parsing the Sys structure...');
 
 % Get Hamiltonian
 logmsg(1,'  computing lab frame Hamiltonian');
-Ham = ham(Sys,Exp.Field*[0 0 1]);
+H = ham(Sys,Exp.Field*[0 0 1]);
 
-%----------------------------------------------------------------------
 % Propagation
-%----------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 if ~isempty(Relaxation)
   logmsg(1,'  adapting relaxation superoperator to system frame');
-  [U,~] = eig(Ham);
+  [U,~] = eig(H);
   R = kron(transpose(U),(U'));
   Relaxation.Gamma = R'*Relaxation.Gamma*R;
 end
@@ -209,12 +206,11 @@ end
 logmsg(1,'-starting propagation----------------------------------');
 logmsg(1,'  depending on the Exp setup this may take a while...');
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
-  s_thyme(Sigma, Ham, DetOps, Events, Relaxation, Vary);
+  s_thyme(Sigma, H, DetOps, Events, Relaxation, Vary);
 logmsg(1,'  propagation finished!');
 
-%----------------------------------------------------------------------
 % Signal Processing
-%----------------------------------------------------------------------
+%-------------------------------------------------------------------------------
 logmsg(1,'-validating and processing outout----------------------');
 % Signal postprocessing, such as down conversion and filtering and
 % checking output of the timeaxis 
@@ -329,43 +325,46 @@ switch nargout
     error('Incorrect number of output arguments. 1,2, or 3 expected.');
 end
 
-%===============================================================
 % Report performance
-%===============================================================
+%-------------------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
 logmsg(1,['spidyan took ' hmsString]);
 
 logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
 
-function PhasedSignal = applyPhaseShift(RawSignal, Phase)
+end
 
-nPhases = length(Phase);
+%===============================================================================
+function phasedSignal = applyPhaseShift(rawSignal, phase)
 
-if iscell(RawSignal)
-  nPoints = numel(RawSignal);
+nPhases = length(phase);
+
+if iscell(rawSignal)
+  nPoints = numel(rawSignal);
   
-  PhasedSignal = cell(size(RawSignal));
+  phasedSignal = cell(size(rawSignal));
   
-  for iPoint = 1 : nPoints
-    PhasedSignal{iPoint} = bsxfun(@times,RawSignal{iPoint},Phase');
+  for iPoint = 1:nPoints
+    phasedSignal{iPoint} = bsxfun(@times,rawSignal{iPoint},phase');
   end
   
 else
-  SignalSize = size(RawSignal);
+  signalSize = size(rawSignal);
   
-  nPoints = prod(SignalSize(1:end-2));
+  nPoints = prod(signalSize(1:end-2));
   % reshape the n-dimensional array into a 3-dimensional array, that
   % can be looped over linearly along the first dimension (which
   % corresponds to all the acquistion points)
-  RawSignal = reshape(RawSignal,[nPoints SignalSize(end-1) SignalSize(end)]);
+  rawSignal = reshape(rawSignal,[nPoints signalSize(end-1) signalSize(end)]);
   
-  PhasedSignal = zeros(size(RawSignal));
+  phasedSignal = zeros(size(rawSignal));
   
   for iPhase = 1 : nPhases
-    PhasedSignal(:,iPhase,:) = RawSignal(:,iPhase,:)*Phase(iPhase);
+    phasedSignal(:,iPhase,:) = rawSignal(:,iPhase,:)*phase(iPhase);
   end
   
-  PhasedSignal = reshape(PhasedSignal,SignalSize);
+  phasedSignal = reshape(phasedSignal,signalSize);
   
 end
 
+end

@@ -97,8 +97,8 @@ if nDimensions==1
   end
   if iscell(Ham), Ham = Ham{1}; end
 else
-  if numel(dt)==1, dt = [dt dt]; end
-  if numel(n)==1, n = [n n]; end
+  if isscalar(dt), dt = [dt dt]; end
+  if isscalar(n), n = [n n]; end
   for iDet = nDetectors:-1:1
     Signal{iDet} = zeros(n);
   end

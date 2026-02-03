@@ -283,7 +283,7 @@ for iPoints = 1 : nPoints
       switch currentEvent.type
         case 'pulse'
           
-          nPhaseCycle = size(currentEvent.PhaseCycle,1);
+          nPhaseSteps = size(currentEvent.PhaseCycle,1);
           %------------------------------------------------------------
           % convert the IQ wave form into a binary form, so that it
           % is possible to use a propagator look up table
@@ -360,17 +360,17 @@ for iPoints = 1 : nPoints
             
             % Set up structures for the actual propagators
             if currentEvent.Detection && ~currentEvent.Relaxation
-              Utotal = cell(nPhaseCycle,length(realBinary));
+              Utotal = cell(nPhaseSteps,length(realBinary));
             else
               if ~currentEvent.Relaxation
-                Utotal = cell(nPhaseCycle,1);
+                Utotal = cell(nPhaseSteps,1);
               else
-                Ltotal = cell(nPhaseCycle,length(realBinary));
+                Ltotal = cell(nPhaseSteps,length(realBinary));
                 SigmaSStotal = Ltotal;
               end
             end
             
-            for iPhaseCycle = 1 : nPhaseCycle
+            for iPhaseStep = 1 : nPhaseSteps
               for iWavePoint = 1 : length(realBinary)
                 if currentEvent.ComplexExcitation == 0
                   %----------------------------------------------------
@@ -378,17 +378,17 @@ for iPoints = 1 : nPoints
                   % excitation
                   %----------------------------------------------------
                   if ~currentEvent.Relaxation
-                    U = UTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                    U = UTable{realBinary(iPhaseStep,iWavePoint)+1};
                   else
-                    L=LTable{realBinary(iPhaseCycle,iWavePoint)+1};
-                    SigmaSS=SigmassTable{realBinary(iPhaseCycle,iWavePoint)+1};
+                    L=LTable{realBinary(iPhaseStep,iWavePoint)+1};
+                    SigmaSS=SigmassTable{realBinary(iPhaseStep,iWavePoint)+1};
                   end
                 else
                   %----------------------------------------------------
                   % For complex excitation it is not possible to use a
                   % lookup table
                   %----------------------------------------------------
-                  Ham1 = scale/2*(realBinary(iPhaseCycle,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseCycle,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
+                  Ham1 = scale/2*(realBinary(iPhaseStep,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseStep,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
                   Ham =  Ham0+Ham1;
                   if ~currentEvent.Relaxation
                     U = Propagator(Ham,currentEvent.TimeStep);
@@ -403,17 +403,17 @@ for iPoints = 1 : nPoints
                   % (additional speed bost if no detection) or stepwise
                   %------------------------------------------------------
                   if currentEvent.Detection
-                    Utotal{iPhaseCycle,iWavePoint} = U;
+                    Utotal{iPhaseStep,iWavePoint} = U;
                   else
                     if iWavePoint == 1
-                      Utotal{iPhaseCycle,1} = U;
+                      Utotal{iPhaseStep,1} = U;
                     else
-                      Utotal{iPhaseCycle,1} = U*Utotal{iPhaseCycle,1};
+                      Utotal{iPhaseStep,1} = U*Utotal{iPhaseStep,1};
                     end
                   end
                 else
-                  Ltotal{iPhaseCycle,iWavePoint} = L;
-                  SigmaSStotal{iPhaseCycle,iWavePoint} = SigmaSS;
+                  Ltotal{iPhaseStep,iWavePoint} = L;
+                  SigmaSStotal{iPhaseStep,iWavePoint} = SigmaSS;
                   
                 end
               end
@@ -456,7 +456,8 @@ for iPoints = 1 : nPoints
   AcquisitionIndex = num2cell(DimensionIndices);
   
   %--------------------------------------------------------------------
-  % Loop over event structure
+  % Loop over events
+  %--------------------------------------------------------------------
   for iEvent = Sequence
     
     currentEvent = Events{iEvent};
@@ -497,16 +498,16 @@ for iPoints = 1 : nPoints
           currentEvent.TimeStep = currentEvent.t;
       end
       
-      currentSignal=[];
+      currentSignal = [];
     end
     
     if currentEvent.StateTrajectories
       if currentEvent.Detection
-        DensityMatrices=cell(1,length(currentEvent.t));
+        DensityMatrices  =cell(1,length(currentEvent.t));
       else
-        DensityMatrices=cell(1,2);
+        DensityMatrices = cell(1,2);
       end
-      DensityMatrices{1}=Sigma;
+      DensityMatrices{1} = Sigma;
     else
       DensityMatrices = [];
     end
@@ -523,23 +524,24 @@ for iPoints = 1 : nPoints
         tvector(1) = 0;
         tvector(2:length(currentEvent.t)+1) = currentEvent.t+currentEvent.TimeStep;
         
-        nPhaseCycle = size(currentEvent.PhaseCycle,1);
+        nPhaseSteps = size(currentEvent.PhaseCycle,1);
         
         %--------------------------------------------------------------
         % If phasecycling is requested for this event, a few variables
         % need to be defined
         %--------------------------------------------------------------
-        if nPhaseCycle>1
-          StateBeforePC = Sigma;
-          loopState = zeros(size(Sigma));
+        if nPhaseSteps>1
+          stateBeforePC = Sigma;
+          SigmaPC = zeros(size(Sigma));
           PCnorm = sum(abs(currentEvent.PhaseCycle(:,2)));
+          PCSignal = 0;
         end
         
         %--------------------------------------------------------------
         % Propagation Starts Here, and loops over all steps of the
         % phase cycle
         %--------------------------------------------------------------
-        for iPhaseCycle = 1 : nPhaseCycle
+        for iPhaseStep = 1 : nPhaseSteps
           
           if ~currentEvent.Relaxation
             nSteps = size(currentEvent.Propagation.Utotal,2);
@@ -554,11 +556,11 @@ for iPoints = 1 : nPoints
           %------------------------------------------------------------
           for iWavePoint = 1 : nSteps
             if ~currentEvent.Relaxation
-              U = currentEvent.Propagation.Utotal{iPhaseCycle,iWavePoint};
+              U = currentEvent.Propagation.Utotal{iPhaseStep,iWavePoint};
               Sigma = U*Sigma*U';
             elseif currentEvent.Relaxation
-              L = currentEvent.Propagation.Ltotal{iPhaseCycle,iWavePoint};
-              SigmaSS = currentEvent.Propagation.SigmaSStotal{iPhaseCycle,iWavePoint};
+              L = currentEvent.Propagation.Ltotal{iPhaseStep,iWavePoint};
+              SigmaSS = currentEvent.Propagation.SigmaSStotal{iPhaseStep,iWavePoint};
               SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
               
               Sigma = reshape(SigmaVector,n,n);
@@ -578,20 +580,16 @@ for iPoints = 1 : nPoints
           end
           
           %------------------------------------------------------------
-          % Combine Results from current phase cycle with previous ones
+          % Combine results from current phase cycle step with previous ones
           %------------------------------------------------------------
-          if nPhaseCycle > 1
-            PCweight = currentEvent.PhaseCycle(iPhaseCycle,2)/PCnorm;
-            loopState = loopState+PCweight*Sigma;
+          if nPhaseSteps > 1
+            PCweight = currentEvent.PhaseCycle(iPhaseStep,2)/PCnorm;
+            SigmaPC = SigmaPC + PCweight*Sigma;
             if currentEvent.Detection
-              if iPhaseCycle ~= 1
-                PCSignal = PCSignal+PCweight*currentSignal;
-              else
-                PCSignal = PCweight*currentSignal;
-              end
+              PCSignal = PCSignal + PCweight*currentSignal;
             end
-            if iPhaseCycle ~= nPhaseCycle
-              Sigma = StateBeforePC;
+            if iPhaseStep ~= nPhaseSteps
+              Sigma = stateBeforePC;
             end
           end
           %------------------------------------------------------------
@@ -603,8 +601,8 @@ for iPoints = 1 : nPoints
         % the individual signals and density matrices are used to
         % overwrite Sigma and currentSignal
         %--------------------------------------------------------------
-        if nPhaseCycle > 1
-          Sigma = loopState;
+        if nPhaseSteps > 1
+          Sigma = SigmaPC;
           if currentEvent.Detection
             currentSignal = PCSignal;
           end
