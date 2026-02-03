@@ -1279,14 +1279,14 @@ Sys.gL = [0.97 0.93];  % gL for two orbital angular momenta
 Spin-orbit coupling constants, in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contain the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
 <pre class="matlab">
 % three electron spins, with linear soc parameter of 170, 250 cm^-1 and 0:
-Sys.soc = [170; 250; 0]*clight*1e-4;
+Sys.soc = unitconvert([170; 250; 0],'cm^-1->MHz);
 % as above, plus the first spin has a cubic soc parameter of 10 cm-^1:
-Sys.soc = [170 0, 10; 250, 0, 0; 0, 0, 0]*clight*1e-4; 
+Sys.soc = unitconvert([170 0, 10; 250, 0, 0; 0, 0, 0],'cm^-1->MHz'); 
 
 % two electron spin with S =1/2 and 1 and L = 2 and 1
 Sys.S = [1/2 1];
 Sys.L = [2 1];
-Sys.soc = [200; 100]*clight*1e-4; 
+Sys.soc = unitconvert([200; 100],'cm^-1->MHz');
 % linear soc of 200 cm-1 between S = 1/2 and L = 2 
 % linear soc of 100 cm-1 parameter between S = 1 and L = 1
 </pre>  

@@ -1,36 +1,17 @@
 function ok = test()
 
-%                'cm^-1->eV'  'cm^-1->K'  'cm^-1->mT'  'cm^-1->MHz'       
-%   'eV->cm^-1'               'eV->K'     'eV->mT'     'eV->MHz'
-%   'K->cm^-1'   'K->eV'                  'K->mT'      'K->MHz'
-%   'mT->cm^-1'  'mT->eV'     'mT->K'                  'mT->MHz'
-%   'MHz->cm^-1' 'MHz->eV'    'MHz->K'    'MHz->mT'
+% Test whether unitconvert accepts all documented unit pairs
 
-v = unitconvert(rand,'cm^-1->eV');
-v = unitconvert(rand,'cm^-1->K');
-v = unitconvert(rand,'cm^-1->mT');
-v = unitconvert(rand,'cm^-1->MHz' );
+units = {'cm^-1', 'eV', 'J', 'K', 'MHz', 'GHz', 'THz', 'G', 'mT', 'T'};
 
-v = unitconvert(rand,'eV->cm^-1' );
-v = unitconvert(rand,'eV->K');
-v = unitconvert(rand,'eV->mT');
-v = unitconvert(rand,'eV->MHz');
+nUnits = numel(units);
 
-v = unitconvert(rand,'K->cm^-1');
-v = unitconvert(rand,'K->eV');
-v = unitconvert(rand,'K->mT');
-v = unitconvert(rand,'K->MHz');
-
-v = unitconvert(rand,'mT->cm^-1');
-v = unitconvert(rand,'mT->eV');
-v = unitconvert(rand,'mT->K');
-v = unitconvert(rand,'mT->MHz');
-
-v = unitconvert(rand,'MHz->cm^-1');
-v = unitconvert(rand,'MHz->eV');
-v = unitconvert(rand,'MHz->K');
-v = unitconvert(rand,'MHz->mT');
-
-
+for u1 = 1:nUnits
+  for u2 = 1:nUnits
+    if u1==u2, continue; end
+    unitpair = [units{u1} '->' units{u2}];
+    [~] = unitconvert(rand,unitpair);
+  end
+end
 
 ok = true;

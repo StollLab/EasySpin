@@ -29,98 +29,69 @@
 <div class="functitle">unitconvert</div>
 
 <p>
-Unit conversion function.
+Convert values between various energy and field units.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-output = unitconvert(input, units)
-output = unitconvert(input, units, g)
+vals_out = unitconvert(vals, fromto)
+vals_out = unitconvert(vals, fromto, g)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-<code>unitconvert</code> takes the <code>input</code> value and uses to conversion
-specified as a string in <code>units</code> to provide the <code>output</code> value.
+<code>unitconvert</code> takes <code>vals</code> and converts its value(s) to a different unit based on the unit conversion given in the string/character array <code>fromto</code>. It returns the conversion result in <code>vals_out</code>.
 </p>
 
 <p>
-In the unit conversions including magnetic field units, 
-<code>g</code> gives the g factor for the conversion. 
-If it is omitted, the g factor of the free electron 2.0023... is used
-(see <a class="esf" href="gfree.html">gfree</a>).
+<code>vals</code> can be a scalar or an array of values.
 </p>
 
 <p>
-<code>input</code> can be a vector of values. In this case, <code>g</code>
-can be a scalar or a vector of the same size as <code>input</code>.
+<code>fromto</code> is a string or character array that specifes the source and the target unit, connected by <code>'->'</code>, for example <code>'MHz->mT'</code> for the conversion from MHz to mT, or <code>'cm^-1->GHz'</code> for converting from cm<sup>-1</sup> to GHz.
 </p>
-
-<!-- ============================================================= -->
-<div class="subtitle">Conversion Units</div>
 
 <p>
-The following strings are supported for unit conversions:
+The following units are supported: <code>'cm^-1'</code> (inverse centimeters), <code>'eV'</code> (electron-volt), <code>'J'</code> (joule), <code>'K'</code> (kelvin), <code>'MHz'</code> (megahertz), <code>'GHz'</code> (gigahertz), <code>'THz'</code> (terahertz), <code>'G'</code> (gauss), <code>'mT'</code> (millitesla), <code>'T'</code> (tesla). Conversions are implemented between any pair of these units.
 </p>
 
-<table style="width:100%"> 
-<tr>
-	<td bgcolor=""></td>
-	<td bgcolor="f3f3f3"><code>'cm^-1->eV'</code></td> 
-	<td bgcolor="f3f3f3"><code>'cm^-1->K'</code></td>  
-	<td bgcolor="f3f3f3"><code>'cm^-1->mT'</code></td>  
-	<td bgcolor="f3f3f3"><code>'cm^-1->MHz'</code></td>
-</tr>
-<tr>
-	<td bgcolor="f3f3f3"><code>'eV->cm^-1'</code></td>
-	<td bgcolor=""></td> 
-	<td bgcolor="f3f3f3"><code>'eV->K'</code></td>  
-	<td bgcolor="f3f3f3"><code>'eV->mT'</code></td>  
-	<td bgcolor="f3f3f3"><code>'eV->MHz'</code></td>
-</tr>
-<tr>
-	<td bgcolor="f3f3f3"><code>'K->cm^-1'</code></td> 
-	<td bgcolor="f3f3f3"><code>'K->eV'</code></td>
-	<td bgcolor=""></td>  
-	<td bgcolor="f3f3f3"><code>'K->mT'</code></td>  
-	<td bgcolor="f3f3f3"><code>'K->MHz'</code></td>
-</tr>
-<tr>
-	<td bgcolor="f3f3f3"><code>'mT->cm^-1'</code></td> 
-	<td bgcolor="f3f3f3"><code>'mT->eV'</code></td>  
-	<td bgcolor="f3f3f3"><code>'mT->K' </code></td>
-	<td bgcolor=""></td>  
-	<td bgcolor="f3f3f3"><code>'mT->MHz'</code></td>
-</tr>
-<tr>
-	<td bgcolor="f3f3f3"><code>'MHz->cm^-1'</code></td> 
-	<td bgcolor="f3f3f3"><code>'MHz->eV'</code></td>  
-	<td bgcolor="f3f3f3"><code>'MHz->K' </code></td>  
-	<td bgcolor="f3f3f3"><code>'MHz->mT'</code></td>
-	<td bgcolor=""></td>
-</tr>
+<p>
+In unit conversions from energy to magnetic field units, or vice versa, the third input <code>g</code> gives the g factor for the conversion.  If it is omitted, the g factor of the free electron 2.0023... is used (see <a class="esf" href="gfree.html">gfree</a>).  If <code>vals</code> is an array, <code>g</code> can be either a scalar or an array of the same size as <code>vals</code>.
+</p>
 
-</table>
+
+
 
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
-<p>
-An electron spin with a g factor of 2.1 with a resonance frequency of
-8.7 GHz is in magnetic field of about 296 mT.
-</p>
 
+<p>
+To convert a zero-field splitting constant of 10 cm<sup>-1</sup> to GHz, use
+</p>
 <pre class="matlab">
-B = unitconvert(8.7e3,'MHz->mT',2.1)
+D = unitconvert(10,'cm^-1->GHz')
 </pre>
 <pre class="mloutput">
+D =
+  299.7925
+</pre>
+
+<p>
+To calculate the resonance field of an spin-1/2 system with a g factor of 1.93 at 9.66 GHz, use
+</p>
+
+<pre class="mloutput">
+B = unitconvert(9.66,'GHz->mT',1.93)
+</pre>
+<pre>
 B =
-  295.9977
+  357.6089
 </pre>
 
 

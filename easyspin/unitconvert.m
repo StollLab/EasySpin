@@ -1,88 +1,121 @@
-% unitconvert   Unit conversion tool
+% unitconvert   Energy and field unit conversion
 %
-%   output = unitconvert(input, units)
-%   output = unitconvert(input, units, g)
+%   vals_out = unitconvert(vals, fromto)
+%   vals_out = unitconvert(vals, fromto, g)
 %
-%   Converts the value in input, through the conversion specified in 
-%   units returning the result in output.
+%   Converts values between energy and field units.
 %
-%   units take the form of: 'unit_a->unit_b' where unit_a and unit_b are:
-%   cm^-1, eV, K, mT or MHz
+%   Input:
+%     vals      values to convert, scalar or array
+%     fromto    source and target unit, in the form 'unit1->units2', for
+%               example 'cm^-1->GHz'. Supported units are:
+%                  cm^-1, eV, K
+%                  MHz, GHz, THz
+%                  G, mT, T
+%     g         g factor for conversion from and to magnetic-field units;
+%               set to gfree if not provided. If vals is an array, g can
+%               be a scalar or an array of the same size as vals
 %
-%   e.g. 'cm^-1->MHz' for conversion of wavenumbers to megahertz 
+%  Output:
+%     vals_out  values converted from source to target unit
 %
-%                'cm^-1->eV'  'cm^-1->K'  'cm^-1->mT'  'cm^-1->MHz'       
-%   'eV->cm^-1'               'eV->K'     'eV->mT'     'eV->MHz'
-%   'K->cm^-1'   'K->eV'                  'K->mT'      'K->MHz'
-%   'mT->cm^-1'  'mT->eV'     'mT->K'                  'mT->MHz'
-%   'MHz->cm^-1' 'MHz->eV'    'MHz->K'    'MHz->mT'
-%
-%   When converting into or from magnetic field units, a g factor given 
-%   as the third parameter is used. If it is not given, the g factor
-%   of the free electron (gfree) is used.
-%
-%   input can be a vector of values. In this case, g
-%   can be a scalar or a vector of the same size as input.
-%
-%   Example:
-%     value_MHz = unitconvert(value_wn,'cm^-1->MHz')
-%     value_mT = unitconvert(value_wn,'cm^-1->mT',2.005)
+%  Example:
+%    value_GHz = unitconvert(value_wn,'cm^-1->GHz')
+%    value_mT = unitconvert(value_wn,'cm^-1->mT',2.005)
 
-function out = unitconvert(value,units,g)
-if nargin==0 && nargout==0, help(mfilename); return; end
-if nargin<=1 && nargout==1
-    error('Wrong number of input arguments');
+function value_out = unitconvert(value,units,g)
+
+if nargin==0
+  help(mfilename);
+  return;
 end
 
-if nargin<3, g = gfree; end
+if nargin<2
+  error('At least two input arguments (values and units) are required.');
+end
 
-% Cell array with unit conversion as string and function handles to compute
-% the conversion
-% From Matlab 2022b, dictionaries would be better suited
-
-unitconv = {
-  "cm^-1->eV",    @(value) value.*100*clight*planck/evolt;
-  "cm^-1->K",     @(value) value.*100*clight*planck/boltzm;
-  "cm^-1->mT",    @(value) value./g*(planck/bmagn/1e-3)*100*clight;
-  "cm^-1->MHz",   @(value) value.*100*clight/1e6;
-
-  "eV->cm^-1",    @(value) value.*evolt/100/clight/planck;
-  "eV->K",        @(value) value.*evolt/boltzm;
-  "eV->mT",       @(value) value./g/bmagn/1e-3*evolt;
-  "eV->MHz",      @(value) value.*evolt/planck/1e6;
-
-  "K->cm^-1",     @(value) value.*boltzm/100/clight/planck;
-  "K->eV",        @(value) value.*boltzm/evolt;
-  "K->mT",        @(value) value./g/bmagn/1e-3*boltzm;
-  "K->MHz",       @(value) value.*boltzm/planck/1e6;
-
-  "mT->cm^-1",    @(value) value.*g/(planck/bmagn/1e-3)/100/clight;
-  "mT->eV",       @(value) value.*g*bmagn*1e-3/evolt;
-  "mT->K",        @(value) value.*g*bmagn*1e-3/boltzm;
-  "mT->MHz",      @(value) value.*g*(1e-3*bmagn/planck/1e6);
-
-  "MHz->cm^-1",   @(value) value.*1e6/100/clight;
-  "MHz->eV",      @(value) value.*1e6*planck/evolt;
-  "MHz->K",       @(value) value.*1e6*planck/boltzm;
-  "MHz->mT",      @(value) value./g*(planck/bmagn/1e-3)*1e6
-  };
-
-% List of possible unit conversion as string array
-unames = string(unitconv(:,1));
-
-% Test if input unit conversion exists (case-sensitive)
-unitMatch = strcmp(unames,units);
-
-if any(unitMatch)
-  % Return unit conversion
-  out = unitconv{unitMatch,2}(value);
+if nargin<3
+  g = gfree;
 else
-  % Throw errors depending on unit input
-  % Test if input unit conversion exists (case-insensitive)
-  unitMatchI = strcmpi(unames,units);
-  if any(unitMatchI)
-    error('You provided: %s. Did you mean %s?',units,unitconv{unitMatchI,1})
-  else
-    error('Unknown unit conversion specified.')
+  if ~isnumeric(g)
+    error('g value (third input) must be numeric.')
   end
+  if numel(g)>1
+    if ~isequal(size(value),size(g))
+      error('If g (third input) is an array, it must be the same size as values (first input).');
+    end
+  end
+end
+
+if ~contains(units,'->')
+   error('Unit conversion string must be of the form "unit1->units". "->" is missing.');
+end
+
+sourceUnit = extractBefore(units,'->');
+targetUnit = extractAfter(units,'->');
+
+supportedUnits = {'cm^-1', 'eV', 'K', 'MHz', 'GHz', 'THz', 'G', 'mT', 'T'};
+
+% Convert values from source unit to canonical intermediate unit (J)
+switch sourceUnit
+  case 'cm^-1'
+    value_J = planck*clight*value*100; 
+  case 'eV'
+    value_J = evolt*value;
+  case 'J'
+    value_J = value;
+  case 'K'
+    value_J = boltzm*value;
+  case 'MHz'
+    value_J = planck*value*1e6;
+  case 'GHz'
+    value_J = planck*value*1e9;
+  case 'THz'
+    value_J = planck*value*1e12;
+  case 'G'
+    value_J = bmagn*g.*value*1e-4;
+  case 'mT'
+    value_J = bmagn*g.*value*1e-3;
+  case 'T'
+    value_J = bmagn*g.*value;
+  otherwise
+    idx = find(strcmpi(sourceUnit,supportedUnits),1);
+    if ~isempty(idx)
+      error('Supplied source unit is "%s". Did you mean "%s"?',sourceUnit,supportedUnits{idx});
+    else
+      error('Unknown source unit "%s".',sourceUnit);
+    end
+end
+
+% Convert values from canonical intermediate unit (J) to target unit
+switch targetUnit
+  case 'cm^-1'
+    value_out = value_J/planck/clight/100;
+  case 'eV'
+    value_out = value_J/evolt;
+  case 'J'
+    value_out = value_J;
+  case 'K'
+    value_out = value_J/boltzm;
+  case 'G'
+    value_out = value_J/bmagn./g/1e-4;
+  case 'mT'
+    value_out = value_J/bmagn./g/1e-3;
+  case 'T'
+    value_out = value_J/bmagn./g;
+  case 'MHz'
+    value_out = value_J/planck/1e6;
+  case 'GHz'
+    value_out = value_J/planck/1e9;
+  case 'THz'
+    value_out = value_J/planck/1e12;
+  otherwise
+    idx = find(strcmpi(targetUnit,supportedUnits),1);
+    if ~isempty(idx)
+      error('Supplied target unit is "%s". Did you mean "%s"?',targetUnit,supportedUnits{idx});
+    else
+      error('Unknown target unit "%s".',targetUnit);
+    end
+end
+
 end

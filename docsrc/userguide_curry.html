@@ -320,7 +320,7 @@ clear, clc
 
 Sys1.S = 2;
 Sys1.g = [2.1 1.9];  % axial g
-Sys1.D = 1*clight*1e-4;  % cm^-1 -> MHz
+Sys1.D = unitconvert(1,'cm^-1->MHz');  % cm^-1 -> MHz
 Sys2 = Sys1;
 Sys2.g = 1.9;  % isotropic g
 
