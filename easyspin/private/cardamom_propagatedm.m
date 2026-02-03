@@ -42,9 +42,7 @@ persistent cacheTensors cacheD2Traj gTensorState ATensorState
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0;
 end
-
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 % Preprocessing
 %-------------------------------------------------------------------------------

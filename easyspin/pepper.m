@@ -87,8 +87,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 
 %==================================================================
@@ -146,8 +145,8 @@ end
 %==================================================================
 
 % Now we can start simulating the spectrum
-logmsg(1,['=begin=pepper=====' char(datetime) '=================']);
-logmsg(2,'  log level %d',EasySpinLogLevel);
+logmsg(1,'=begin=pepper=====%s=================',char(datetime));
+logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
 %=======================================================================
@@ -1282,10 +1281,8 @@ end
 % Report performance
 %-----------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
-logmsg(1,['pepper took ' hmsString]);
+logmsg(1,'pepper took %s',hmsString);
 
 logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
-
-clear global EasySpinLogLevel
 
 end

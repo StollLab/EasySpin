@@ -55,8 +55,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 % Process Opt.separate
 if ~isfield(Opt,'separate'), Opt.separate = ''; end
@@ -116,8 +115,8 @@ end
 % Single-isotopologue simulation
 %===============================================================================
 
-logmsg(1,['=begin=saffron====' char(datetime) '=================']);
-logmsg(2,'  log level %d',EasySpinLogLevel);
+logmsg(1,'=begin=saffron====%s=================',char(datetime));
+logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
 
@@ -609,7 +608,7 @@ if fastSimulationMode
     idxIncL = idxFreeL(:,Exp.Inc~=0);
     idxIncR = idxFreeR(:,Exp.Inc~=0);
 
-    if EasySpinLogLevel>0
+    if logmsg>0
       logmsg(1,'  Pathways and prefactors:');
       Str = 'ab+-';
       for iPathway = 1:nPathways
@@ -2035,8 +2034,6 @@ elapsedtime = endTime-startTime;
 logmsg(1,'saffron took %s',elapsedtime);
 
 logmsg(1,'=end=saffron======%s=================\n',datetime);
-
-clear global EasySpinLogLevel
 
 end
 %===============================================================================

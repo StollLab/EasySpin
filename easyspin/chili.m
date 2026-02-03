@@ -81,9 +81,7 @@ if nargin<3, Opt = struct; end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % print level
 end
-
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 %===============================================================================
 % Loop over components and isotopologues
@@ -1399,8 +1397,6 @@ if doPostConvolution
   spec_pc = garlic(pcSys,pcExp);
   spec_pc = spec_pc/sum(spec_pc);
   
-  EasySpinLogLevel = Opt.Verbosity; % re-set it, since garlic clears it
-  
   % Convolute SLE spectrum with isotropic spectrum
   spec = conv(spec,spec_pc,'same');
 end
@@ -1532,8 +1528,6 @@ end
 
 
 logmsg(1,'-------------------------------------------------------------------');
-
-clear global EasySpinLogLevel
 
 end
 %===============================================================================

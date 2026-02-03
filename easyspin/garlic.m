@@ -84,8 +84,7 @@ if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
 
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 
 %==================================================================
@@ -152,9 +151,7 @@ if ~singleIsotopologue
 end
 %==================================================================
 
-if EasySpinLogLevel>=1
-  logmsg(1,['=begin=garlic=====' char(datetime) '=================']);
-end
+logmsg(1,'=begin=garlic=====%s=================',char(datetime));
 
 %-------------------------------------------------------------------------
 % System structure check
@@ -949,10 +946,7 @@ switch nargout
     info.resfields = Positions;
     varargout = {xAxis,spec,info};
 end
-if EasySpinLogLevel>=1
-  logmsg(1,'=end=garlic=======%s=================\n',char(datetime));
-end
-clear global EasySpinLogLevel
+logmsg(1,'=end=garlic=======%s=================\n',char(datetime));
 
 end
 

@@ -54,7 +54,7 @@ end
 % Options to pass along to test functions
 Opt.Display = any(params=='d');
 Opt.Regenerate = any(params=='r');
-Opt.Verbosity = Opt.Display;
+Opt.Verbosity = double(Opt.Display);
 
 displayTimings = any(params=='t');
 runCodeCoverageAnalysis = any(params=='c');

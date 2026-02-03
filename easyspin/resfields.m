@@ -63,8 +63,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 % Process Spin system.
 %---------------------------------------------------------------------
@@ -317,7 +316,7 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   nPerturbNuclei = numel(idx);
   str1 = sprintf('%d ',idx);
   if isempty(str1), str1 = 'none'; end
-  logmsg(1,['  nuclei with first-order treatment: ' str1]);
+  logmsg(1,'  nuclei with first-order treatment: %s',str1);
 
   % Remove perturbational nuclei from core system
   CoreSys = nucspinrmv(CoreSys,idx);
@@ -890,7 +889,7 @@ startTime = cputime;
 logstr = '';
 for iOri = 1:nOrientations
 
-  if EasySpinLogLevel>=1
+  if logmsg>=1
     if iOri>1
       remainingTime = (cputime-startTime)/(iOri-1)*(nOrientations-iOri+1);
       backspace = repmat(sprintf('\b'),1,numel(logstr));
@@ -899,7 +898,7 @@ for iOri = 1:nOrientations
       seconds = remainingTime - 3600*hours - 60*minutes;
       logstr = sprintf('  %d/%d orientations, remaining time %02d:%02d:%0.1f\n', ...
         iOri, nOrientations, hours, minutes, seconds);
-      if EasySpinLogLevel==1, fprintf(backspace); end
+      if logmsg==1, fprintf(backspace); end
       fprintf(logstr);
     else
       if nOrientations>1
@@ -1423,7 +1422,7 @@ Transitions = Transitions(idxTr,:);
 nTransitions = size(Pdat,1);
 logmsg(2,'  ## %2d resonances left',nTransitions);
 
-if EasySpinLogLevel>=2
+if logmsg>=2
   partlyNaN = any(isnan(Pdat),2);
   x = full(sparse(Transitions(:,1),Transitions(:,2),double(partlyNaN)));
   nLoopPairs = sum(sum(fix(x/2)));

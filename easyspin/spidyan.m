@@ -55,11 +55,10 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
-logmsg(1,['=begin=spidyan====' char(datetime) '=================']);
-logmsg(2,'  log level %d',EasySpinLogLevel);
+logmsg(1,'=begin=spidyan====%s=================',char(datetime));
+logmsg(2,'  log level %d',logmsg);
 
 % Preprocess Input
 %-------------------------------------------------------------------------------
@@ -328,7 +327,7 @@ end
 % Report performance
 %-------------------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
-logmsg(1,['spidyan took ' hmsString]);
+logmsg(1,'spidyan took %s',hmsString);
 
 logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
 

@@ -130,9 +130,7 @@ end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
-
-global EasySpinLogLevel;
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 
 % Check dynamics and orientational potential
@@ -414,8 +412,9 @@ while ~converged
   iter = iter + 1;
 
   if iter>15 && ~converged
-    logmsg(1,['Warning: restarting trajectory set due to lack of convergence.\n',...
-              'Consider increasing length or number of trajectories.\n'])
+    msg = ['Warning: restarting trajectory set due to lack of convergence.\n',...
+              'Consider increasing length or number of trajectories.\n'];
+    logmsg(1,msg);
     iter = 1;
     % re-initialize trajectories
     Sim.nSteps = nSteps;
@@ -448,8 +447,6 @@ switch nargout
   case 3  % Output rotation matrix and quaternion trajectories
     varargout = {t, RTraj, qTraj};
 end
-
-clear global EasySpinLogLevel
 
 end
 

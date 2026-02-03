@@ -117,13 +117,11 @@ end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
+logmsg(Opt.Verbosity);
 
 if ~isfield(Opt,'statesOnly')
   Opt.statesOnly = false || nargout==0;
 end
-
-global EasySpinLogLevel;
-EasySpinLogLevel = Opt.Verbosity;
 
 
 % Check dynamics
@@ -390,9 +388,6 @@ switch nargout
     varargout = {t, RTraj, qTraj, stateTraj};
 
 end
-
-clear global EasySpinLogLevel
-
 
 end
 

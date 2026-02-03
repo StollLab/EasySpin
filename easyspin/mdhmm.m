@@ -59,8 +59,7 @@ end
 % Reshape from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
 dihedrals = permute(dihedrals,[1,3,2]);
 
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;

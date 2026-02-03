@@ -70,8 +70,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel;
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 %==================================================================
 % Loop over species and isotopologues
@@ -120,7 +119,7 @@ end
 %==================================================================
 
 logmsg(1,'=begin=salt=======%s=================',char(datetime));
-logmsg(2,'  log level %d',EasySpinLogLevel);
+logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
 
@@ -247,7 +246,7 @@ if Opt.partiallyOrderedSample
   error('Partially ordered samples are not implemented in salt.')
 end
 
-if EasySpinLogLevel>=1
+if logmsg>=1
   if ~AutoRange
     msg = sprintf('field %g mT, rf range [%g %g] MHz, %d points',...
       Exp.Field,Exp.Range(1),Exp.Range(2),Exp.nPoints);
@@ -260,7 +259,7 @@ if EasySpinLogLevel>=1
   else
     msg = sprintf('mw not given, %s',msg);
   end
-  logmsg(1,['  ' msg]);
+  logmsg(1,'  %s',msg);
 end
 
 nonEquiPops = false;
@@ -960,11 +959,9 @@ end
 % Report performance.
 %-----------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
-logmsg(1,['salt took ' hmsString]);
+logmsg(1,'salt took %s',hmsString);
 
 logmsg(1,'=end=salt=========%s=================\n',char(datetime));
-
-clear global EasySpinLogLevel
 
 end
 

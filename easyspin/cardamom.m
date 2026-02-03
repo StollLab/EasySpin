@@ -189,10 +189,7 @@ end
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % Log level
 end
-
-
-global EasySpinLogLevel
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 % Check Sys
 % -------------------------------------------------------------------------
@@ -914,8 +911,6 @@ case 4
   varargout = {xAxis,outspc,TDSignal,t};
 end
 
-clear global EasySpinLogLevel
-    
 end
 %===============================================================================
 

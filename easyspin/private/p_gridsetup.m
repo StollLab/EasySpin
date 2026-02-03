@@ -109,7 +109,7 @@ if useGrid
     otherwise
       error('Unsupported number %d of grid octants.',Opt.nOctants);
   end
-  logmsg(1,['  integration region: ' str]);
+  logmsg(1,'  integration region: %s',str);
   if nOrientations==1
     logmsg(1,'  1 orientation (GridSize = %d)',Opt.GridSize(1));
   else

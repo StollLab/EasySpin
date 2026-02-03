@@ -121,8 +121,7 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
 if ~isfield(Opt,'keepProtCA'), Opt.keepProtCA = false; end
 
-global EasySpinLogLevel;
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 % Supplement residue name, assuming default name for R1 label
 if ~isfield(Info,'ResName')

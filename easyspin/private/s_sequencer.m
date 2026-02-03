@@ -388,8 +388,8 @@ includeResonator = false;
 if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp,'FrequencyResponse')])
   logmsg(1,'  resonator present');
   if isfield(Exp,'ResonatorFrequency') && isfield(Exp,'ResonatorQL')
-    logmsg(1,['  resonator frequency: ' num2str(Exp.ResonatorFrequency)]);
-    logmsg(1,['  resonator QL: ' num2str(Exp.ResonatorQL)]);
+    logmsg(1,'  resonator frequency: %s',num2str(Exp.ResonatorFrequency));
+    logmsg(1,'  resonator QL: %s',num2str(Exp.ResonatorQL));
     Resonator.Arg1 = Exp.ResonatorFrequency;
     Resonator.Arg2 = Exp.ResonatorQL;
     includeResonator = true;
@@ -411,7 +411,7 @@ if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp
   
   if isfield(Exp,'ResonatorMode')
     if any(strcmp(Exp.ResonatorMode,{'simulate' 'compensate'}))
-      logmsg(1,['  resonator mode: ' Exp.ResonatorMode]);
+      logmsg(1,'  resonator mode: %s',Exp.ResonatorMode);
       Resonator.Arg3 = Exp.ResonatorMode;
     else
       error('Resonator.Mode must be ''simulate'' or ''compensate''.')

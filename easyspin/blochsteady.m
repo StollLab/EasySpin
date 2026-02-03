@@ -37,7 +37,7 @@
 %   Appl. Magn. Reson. 2013, 44, 1373-1379
 %   https://doi.org/10.1007/s00723-013-0494-2
 
-function varargout = blochsteady(g,T1,T2,DeltaB0,B1,modAmp,modFreq,Options)
+function varargout = blochsteady(g,T1,T2,DeltaB0,B1,modAmp,modFreq,Opt)
 
 if nargin==0, help(mfilename); return; end
 
@@ -48,26 +48,25 @@ switch nargin
   case 4, error('Fifth input (B1) is missing.');
   case 5, error('Sixth input (ModAmp) is missing.');
   case 6, error('Seventh input (ModFreq) is missing.');
-  case 7, Options = struct;
+  case 7, Opt = struct;
   case 8 % ok
   otherwise, error('Too many input arguments.');
 end
 
-if ~isstruct(Options)
+if ~isstruct(Opt)
   error('Eighth input (Options) must be a structure.');
 end
 
-if ~isfield(Options,'Verbosity'), Options.Verbosity = 0; end
-global EasySpinLogLevel %#ok
-EasySpinLogLevel = Options.Verbosity;
+if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
+logmsg(Opt.Verbosity);
 
-logmsg(1,['=begin=blochsteady======' char(datetime) '=================']);
+logmsg(1,'=begin=blochsteady======%s=================',char(datetime));
 
-if ~isfield(Options,'nPoints')
-  Options.nPoints = [];
+if ~isfield(Opt,'nPoints')
+  Opt.nPoints = [];
 end
-if ~isfield(Options,'Method')
-  Options.Method = 'fft';
+if ~isfield(Opt,'Method')
+  Opt.Method = 'fft';
 end
 
 onlyAbsorption = nargout==2;
@@ -112,7 +111,7 @@ if numel(modFreq)~=1 || modFreq<=0
 end
 
 logmsg(1,'Determination of maximum Fourier order (kmax)');
-if ~isfield(Options,'kmax') || isempty(Options.kmax)
+if ~isfield(Opt,'kmax') || isempty(Opt.kmax)
   % Estimator for maximum relevant Fourier order
   % (1) based on maximum field offset
   maxfieldoffset = max(modAmp/2-DeltaB0,DeltaB0+modAmp/2);
@@ -136,7 +135,7 @@ if ~isfield(Options,'kmax') || isempty(Options.kmax)
   logmsg(1,'  larger of the two, but at least %d: %d',minkmax,kmax);
   
 else
-  kmax = Options.kmax; % largest Fourier order, |k|
+  kmax = Opt.kmax; % largest Fourier order, |k|
   logmsg(1,'  user-supplied: %d',kmax);
 end
 
@@ -198,7 +197,7 @@ logmsg(1,'Calculation of time-domain signal.');
 tPeriod = 1/modFreq;  % modulation period
 
 % Number of points in time domain
-nPoints = Options.nPoints;
+nPoints = Opt.nPoints;
 if isempty(nPoints)
   nPoints = 2*kmax-1;
 end
@@ -206,7 +205,7 @@ end
 t = linspace(0,tPeriod,nPoints+1).';
 t(end) = [];
 
-switch Options.Method
+switch Opt.Method
   case 'td'  % time-domain, explicit construction with complex exponentials
     logmsg(1,'  Method: explicit evolution with complex exponentials');
     if onlyAbsorption
@@ -297,8 +296,6 @@ switch nargout
 end
 
 logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
-
-clear global EasySpinLogLevel
 
   function plotresults()
 

@@ -1,42 +1,65 @@
-% logmsg    EasySpin logging 
+% logmsg    EasySpin logging function
 %
-%   logmsg(MsgLevel,varargin)
+%   logmsg(logLevel)             % set log level
+%   logLevel = logmsg            % get log level
 %
-%   Prints log messages to the screen, if the global EasySpinLogLevel
-%   allows. varargin is passed on to fprintf.
+%   logmsg(msgLevel,varargin)    % log message
+%
+%   Prints log messages to the command window if the log level of the message
+%   is lower or equal to the set log level. varargin is passed on to fprintf.
 %
 %   Log levels:
-%     0  no messages
-%     1  normal messages
-%     2  detailed messages
-%     3  loop counters
-%     4  messages from inside loops (debug level)
-%
-%   A message is only displayed if MsgLevel is smaller or equal to 
-%   EasySpinLogLevel.
+%     0  (off) no messages
+%     1  (info) normal messages
+%     2  (detail) detailed messages
+%     3  (debug) debug messages
+%     4  (trace) very detailed debug messages
 
-function logmsg(varargin)
+function varargout = logmsg(varargin)
 
-% Connect to global variable
-global EasySpinLogLevel
+% Store log level in persistent variable
+persistent logLevel
+if isempty(logLevel)
+  logLevel = 0;  % default
+end
 
-if isempty(EasySpinLogLevel), return; end
+% Get log level
+if nargin==0
+  varargout = {logLevel};
+  return
+end
 
-MsgLevel = varargin{1};
+% Set log level
+if nargin==1
+  newLogLevel = varargin{1};
+  if isValidLogLevel(newLogLevel)
+    logLevel = newLogLevel;
+    return
+  else
+    error('The log level must be 0, 1, 2, 3 or 4.');
+  end
+end
 
-if numel(MsgLevel)~=1 || ~isnumeric(MsgLevel) || mod(MsgLevel,1)~=0 || MsgLevel<0
-  error('The first input to logmsg must be a non-negative integer.');
+msgLevel = varargin{1};
+args = varargin(2:end);
+
+if ~isValidLogLevel(msgLevel)
+  error('The message log level must be 0, 1, 2, 3 or 4.');
 end
 
 % Don't display if message level is above loglevel
-if MsgLevel>EasySpinLogLevel
+if msgLevel>logLevel
   return
 end
 
 % Display message
-if nargin>1
-  fprintf(varargin{2:end});
+if numel(args)>=1
+  fprintf(args{:});
   fprintf('\n');
-else
-  error('At least two input arguments expected.');
+end
+
+end
+
+function tf = isValidLogLevel(lev)
+tf = isnumeric(lev) && isscalar(lev) && ismember(lev,0:4);
 end

@@ -75,8 +75,7 @@ end
 % A global variable sets the level of log display. The global variable
 % is used in logmsg(), which does the log display.
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-global EasySpinLogLevel;
-EasySpinLogLevel = Opt.Verbosity;
+logmsg(Opt.Verbosity);
 
 % Process Spin system.
 %---------------------------------------------------------------------
@@ -285,7 +284,7 @@ if Sys.nNuclei>=1 && Opt.Hybrid
   else
     str_ = sprintf('%d ',idxPerturbNuclei);
   end
-  logmsg(1,['  nuclei with first-order perturbation treatment: ' str_]);
+  logmsg(1,'  nuclei with first-order perturbation treatment: %s',str_);
   
   % Remove perturbational nuclei from core system
   CoreSys = nucspinrmv(Sys,idxPerturbNuclei);
@@ -621,7 +620,7 @@ else
 end
 
 for iOri = 1:nOrientations
-  if EasySpinLogLevel>=1
+  if logmsg>=1
     if iOri>1
       remainingTime = (cputime-startTime)/(iOri-1)*(nOrientations-iOri+1);
       backspace = repmat(sprintf('\b'),1,numel(logstr));
@@ -630,7 +629,7 @@ for iOri = 1:nOrientations
       seconds = remainingTime - 3600*hours - 60*minutes;
       logstr = sprintf('  %d/%d orientations, remaining time %02d:%02d:%0.1f\n', ...
         iOri, nOrientations, hours, minutes, seconds);
-      if EasySpinLogLevel==1, fprintf(backspace); end
+      if logmsg==1, fprintf(backspace); end
       fprintf(logstr);
     else
       if nOrientations>1
@@ -874,7 +873,7 @@ else
   logmsg(2,'  ## no intensities computed, no intensity post-selection');
 end
 
-if EasySpinLogLevel>=2
+if logmsg>=2
   partlyNaN = any(isnan(Pdat),2);
   nChopped = sum(partlyNaN);
   if nChopped>0
