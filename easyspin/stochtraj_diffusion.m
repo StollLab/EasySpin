@@ -127,10 +127,8 @@ end
 % Check Opt
 %-------------------------------------------------------------------------------
 
-if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 0; % Log level
-end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 
 % Check dynamics and orientational potential
@@ -261,12 +259,12 @@ elseif isfield(Par,'tMax') && isfield(Par,'dt')
   
 else
   dt = min(tcorr)/10;
-  logmsg(0,'-- No time parameters given. Using time step of %0.5g s.', dt);
+  eslogger(0,'-- No time parameters given. Using time step of %0.5g s.', dt);
   if isfield(Par,'nSteps')
     nSteps = Par.nSteps;
   else
     nSteps = ceil(200*max(tcorr)/dt);
-    logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
+    eslogger(0,'-- Number of time steps not given. Using %d steps.', nSteps);
   end
 end
 
@@ -387,15 +385,15 @@ converged = false;
 % have been completed (i.e. the number of instances of propagation in time by nSteps)
 iter = 1;
 
-logmsg(2,'-- Calculating stochastic trajectories -----------------------');
+eslogger(2,'-- Calculating stochastic trajectories -----------------------');
 
 while ~converged
   if iter==1
     %  Perform stochastic simulations (Eqs. 48 and 61 in reference)
     qTraj = stochtraj_proprottraj(qTraj, Sim, iter);
   else
-    logmsg(3,'-- Convergence not obtained -------------------------------------');
-    logmsg(3,'-- Propagation extended to %dth iteration -----------------------', iter);
+    eslogger(3,'-- Convergence not obtained -------------------------------------');
+    eslogger(3,'-- Propagation extended to %dth iteration -----------------------', iter);
     % Propagation is being extended, so reset nSteps
     % Continue propagation by 20% more steps or by tcorr/dt, whichever is greater
     Sim.nSteps = max([ceil(tcorr/Sim.dt), ceil(1.2*Sim.nSteps)]);
@@ -414,7 +412,7 @@ while ~converged
   if iter>15 && ~converged
     msg = ['Warning: restarting trajectory set due to lack of convergence.\n',...
               'Consider increasing length or number of trajectories.\n'];
-    logmsg(1,msg);
+    eslogger(1,msg);
     iter = 1;
     % re-initialize trajectories
     Sim.nSteps = nSteps;
@@ -432,8 +430,8 @@ t = linspace(0, totSteps*Sim.dt, totSteps).';
 RTraj = quat2rotmat(qTraj);
 
 
-logmsg(2,'-- Propagation finished --------------------------------------');
-logmsg(2,'--------------------------------------------------------------');
+eslogger(2,'-- Propagation finished --------------------------------------');
+eslogger(2,'--------------------------------------------------------------');
 
 
 % Final processing

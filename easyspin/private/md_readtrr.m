@@ -125,7 +125,7 @@ logLevel = 0;
 
 % check if input exists
 if exist(trajFile, 'file')
-  logmsg(1,'Reading trajectory file %s... \n', trajFile);
+  eslogger(1,'Reading trajectory file %s... \n', trajFile);
 else
   error('Trajectory file %s not found.',trajFile);
 end

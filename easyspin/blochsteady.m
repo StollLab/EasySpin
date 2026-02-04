@@ -57,10 +57,9 @@ if ~isstruct(Opt)
   error('Eighth input (Options) must be a structure.');
 end
 
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
-logmsg(1,'=begin=blochsteady======%s=================',char(datetime));
+eslogger(1,'=begin=blochsteady======%s=================',char(datetime));
 
 if ~isfield(Opt,'nPoints')
   Opt.nPoints = [];
@@ -110,7 +109,7 @@ if numel(modFreq)~=1 || modFreq<=0
   error('The modulation frequency (7th input) must be a single positive number.');
 end
 
-logmsg(1,'Determination of maximum Fourier order (kmax)');
+eslogger(1,'Determination of maximum Fourier order (kmax)');
 if ~isfield(Opt,'kmax') || isempty(Opt.kmax)
   % Estimator for maximum relevant Fourier order
   % (1) based on maximum field offset
@@ -119,31 +118,31 @@ if ~isfield(Opt,'kmax') || isempty(Opt.kmax)
   maxfreqoffset = (gamma/2/pi)*maxfieldoffset;
   kmax = maxfreqoffset/modFreq;
   kmax = ceil(kmax*1.4);
-  logmsg(1,'  based on max. field offset: %d',kmax);
+  eslogger(1,'  based on max. field offset: %d',kmax);
   
   % (2) based on T2
   %envelope = exp(-2/gam/ModAmp/T2*abs(fourierorder));
   threshold = 1e-6;
   thresholdorder = -log(threshold)/2*gamma*modAmp*T2;
   thresholdorder = ceil(thresholdorder);
-  logmsg(1,'  based on T2: %d',thresholdorder);
+  eslogger(1,'  based on T2: %d',thresholdorder);
   
   % Take the larger of (1) and (2), but at least some minimal k
   minkmax = 20;
   kmax = max(kmax,thresholdorder);
   kmax = max(kmax,minkmax);
-  logmsg(1,'  larger of the two, but at least %d: %d',minkmax,kmax);
+  eslogger(1,'  larger of the two, but at least %d: %d',minkmax,kmax);
   
 else
   kmax = Opt.kmax; % largest Fourier order, |k|
-  logmsg(1,'  user-supplied: %d',kmax);
+  eslogger(1,'  user-supplied: %d',kmax);
 end
 
 
 % Solve Bloch equation for steady-state in frequency domain
 %--------------------------------------------------------------------------
-logmsg(1,'Frequency-domain steady-state solution');
-logmsg(1,'  Set up diagonals');
+eslogger(1,'Frequency-domain steady-state solution');
+eslogger(1,'  Set up diagonals');
 k = (-(kmax+1):kmax+1).'; % use max. order kmax+1 to evaluate all terms
 a = 1i*k*omegam;
 b = gamma*DeltaB0;
@@ -162,19 +161,19 @@ cL = c*M0*tau1(kmax+2)/T1;
 
 % Assemble pentadiagonal coefficient matrix and RHS vector and solve sparse
 % linear system of equations P*Y = C0 to get the Fourier coefficients Y = Mky
-logmsg(1,'  Assemble sparse pentadiagonal matrix');
+eslogger(1,'  Assemble sparse pentadiagonal matrix');
 nRows = 2*kmax+1;
 C0 = sparse(nRows,1);
 C0(kmax+1) = cL;
 P = spdiags([c2m c1m c0 c1p c2p],[0 1 2 3 4],nRows,nRows+4);
 P = P(:,3:end-2);
 
-logmsg(1,'  Solve sparse linear system for y Fourier coefficients');
-logmsg(1,'    matrix size: %d x %d',size(P,1),size(P,2));
+eslogger(1,'  Solve sparse linear system for y Fourier coefficients');
+eslogger(1,'    matrix size: %d x %d',size(P,1),size(P,2));
 Y = P\C0;
 
 % Calculate Mkx and Mkz from Mky
-logmsg(1,'  Calculate x and z Fourier coefficients');
+eslogger(1,'  Calculate x and z Fourier coefficients');
 q = 2:2*kmax;  % drop one order (max order now is kmax-1)
 if ~onlyAbsorption
   Xk = tau2(q+1).*(b*Y(q) + d*(Y(q-1) + Y(q+1)));
@@ -193,7 +192,7 @@ end
 
 % Compute time evolution of components
 %--------------------------------------------------------------------------
-logmsg(1,'Calculation of time-domain signal.');
+eslogger(1,'Calculation of time-domain signal.');
 tPeriod = 1/modFreq;  % modulation period
 
 % Number of points in time domain
@@ -207,7 +206,7 @@ t(end) = [];
 
 switch Opt.Method
   case 'td'  % time-domain, explicit construction with complex exponentials
-    logmsg(1,'  Method: explicit evolution with complex exponentials');
+    eslogger(1,'  Method: explicit evolution with complex exponentials');
     if onlyAbsorption
       My = 0;
       for k = -(kmax-1):kmax-1
@@ -235,8 +234,8 @@ switch Opt.Method
     end
     
   case 'fft'  % compute time domain signals using inverse Fourier transformation
-    logmsg(1,'  Method: Inverse Fourier transform');
-    logmsg(1,'    nPoints: %d, Mky: %d',nPoints,numel(Yk));
+    eslogger(1,'  Method: Inverse Fourier transform');
+    eslogger(1,'    nPoints: %d, Mky: %d',nPoints,numel(Yk));
     n = numel(Yk);
     if nPoints<=n
       % Fourier transform
@@ -295,7 +294,7 @@ switch nargout
     plotresults;
 end
 
-logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
+eslogger(1,'=end=blochsteady========%s=================\n',char(datetime));
 
   function plotresults()
 

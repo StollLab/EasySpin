@@ -25,13 +25,13 @@
 
 function [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt)
 
-logmsg(1,'-grid/orientations-------------------------------------');
+eslogger(1,'-grid/orientations-------------------------------------');
 
 useGrid = Opt.disorderedSample || Opt.partiallyOrderedSample;
 if useGrid
   % disordered sample (powder or frozen solution)
   
-  logmsg(1,'  disordered sample (randomly oriented centers)');
+  eslogger(1,'  disordered sample (randomly oriented centers)');
   
   % Set grid symmetry group
   if isempty(Opt.GridSymmetry)    
@@ -40,7 +40,7 @@ if useGrid
       [Opt.GridSymmetry,Opt.GridFrame] = hamsymm(Sys);
       nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
       if nonEquiPops && strcmp(Opt.GridSymmetry,'Dinfh')
-        logmsg(1,'  Hamiltonian symmetry is axial (Dinfh), non-equilibrium state given in Sys.initState\n   -> reducing symmetry to rhombic (D2h).');
+        eslogger(1,'  Hamiltonian symmetry is axial (Dinfh), non-equilibrium state given in Sys.initState\n   -> reducing symmetry to rhombic (D2h).');
         Opt.GridSymmetry = 'D2h';
       end
     else
@@ -54,7 +54,7 @@ if useGrid
   else
     msg = '  grid: user-specified grid symmetry';
   end
-  logmsg(1,msg);
+  eslogger(1,msg);
 
   if Opt.partiallyOrderedSample && ~strcmp(Opt.GridSymmetry,'Ci')
     error('For partially ordered samples, Ci grid symmetry is required.');
@@ -67,7 +67,7 @@ if useGrid
   else
     msg = '  grid: user-specified grid frame orientation';
   end
-  logmsg(1,msg);
+  eslogger(1,msg);
   
   % Display grid symmetry group and grid frame orientation
   tiltedFrame = sum(diag(Opt.GridFrame))~=3; % test for eye(3)
@@ -76,10 +76,10 @@ if useGrid
   else
     msg = 'non-tilted';
   end
-  logmsg(1,'  grid: symmetry %s, %s frame',Opt.GridSymmetry,msg);
+  eslogger(1,'  grid: symmetry %s, %s frame',Opt.GridSymmetry,msg);
   if tiltedFrame
     msg = '  grid: frame orientation in molecular frame (Euler angles, deg):\n    [%s]';
-    logmsg(1,msg,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
+    eslogger(1,msg,sprintf('%0.3f ',eulang(Opt.GridFrame,1)*180/pi));
   end
   
   % Get spherical grid
@@ -109,11 +109,11 @@ if useGrid
     otherwise
       error('Unsupported number %d of grid octants.',Opt.nOctants);
   end
-  logmsg(1,'  integration region: %s',str);
+  eslogger(1,'  integration region: %s',str);
   if nOrientations==1
-    logmsg(1,'  1 orientation (GridSize = %d)',Opt.GridSize(1));
+    eslogger(1,'  1 orientation (GridSize = %d)',Opt.GridSize(1));
   else
-    logmsg(1,'  %d orientations (GridSize = %d)',nOrientations,Opt.GridSize(1));
+    eslogger(1,'  %d orientations (GridSize = %d)',nOrientations,Opt.GridSize(1));
   end
   
 else  % Crystal sample 
@@ -134,9 +134,9 @@ else  % Crystal sample
   % for consistency with powder sims (factor from integral over phi and theta)
   
   if nOrientations==1
-    logmsg(1,'  crystal sample, single orientation');
+    eslogger(1,'  crystal sample, single orientation');
   else
-    logmsg(1,'  crystal sample, %d orientations',nOrientations);
+    eslogger(1,'  crystal sample, %d orientations',nOrientations);
   end
   
 end

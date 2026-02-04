@@ -80,11 +80,7 @@ case {0,1,2,3}
 otherwise, error('Wrong number of output parameters!');
 end
 
-if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 0; % Log level
-end
-
-logmsg(Opt.Verbosity);
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 
 %==================================================================
@@ -151,7 +147,7 @@ if ~singleIsotopologue
 end
 %==================================================================
 
-logmsg(1,'=begin=garlic=====%s=================',char(datetime));
+eslogger(1,'=begin=garlic=====%s=================',char(datetime));
 
 %-------------------------------------------------------------------------
 % System structure check
@@ -258,12 +254,12 @@ if FieldSweep
   if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
   end
-  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+  eslogger(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
 else
   if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
     error('Uninterpretable magnetic field in Exp.Field.');
   end
-  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+  eslogger(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
 % Microwave phase
@@ -277,7 +273,7 @@ SweepAutoRange = false;
 if FieldSweep
   if isfield(Exp,'CenterSweep')
     if isfield(Exp,'Range')
-      logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+      eslogger(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
     end
   else
     if isfield(Exp,'Range')
@@ -286,7 +282,7 @@ if FieldSweep
       end
       Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
     else
-      logmsg(1,'  automatic determination of sweep range');
+      eslogger(1,'  automatic determination of sweep range');
       SweepAutoRange = true;
     end
   end
@@ -296,7 +292,7 @@ if FieldSweep
 else
   if isfield(Exp,'mwCenterSweep')
     if isfield(Exp,'mwRange')
-      logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+      eslogger(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
     end
   else
     if isfield(Exp,'mwRange')
@@ -305,7 +301,7 @@ else
       end
       Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
     else
-      logmsg(1,'  automatic determination of sweep range');
+      eslogger(1,'  automatic determination of sweep range');
       SweepAutoRange = true;
     end
   end
@@ -348,7 +344,7 @@ elseif strcmp(Exp.mwMode,'parallel')
 else
   error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+eslogger(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Temperature
 if ~isnan(Exp.Temperature)
@@ -366,7 +362,7 @@ if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
 end
 if Exp.ModAmp>0
   if FieldSweep
-    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+    eslogger(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
     if Exp.Harmonic<1
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
@@ -511,7 +507,7 @@ if Sys.nNuclei>0
   a_all = a_all*planck;   % Hz -> Joule
 end
 
-logmsg(1,'Computing resonance shifts...');
+eslogger(1,'Computing resonance shifts...');
 
 Shifts = cell(1,Sys.nNuclei);
 Amplitudes = cell(1,Sys.nNuclei);
@@ -538,7 +534,7 @@ for iNucGrp = 1:Sys.nNuclei
     % Field sweep
     %-------------------------------------------------------------------
     if PerturbOrder==0
-      logmsg(1,'  Breit-Rabi solver, accuracy %g',Opt.Accuracy);
+      eslogger(1,'  Breit-Rabi solver, accuracy %g',Opt.Accuracy);
       maxIterationsDone = -1;
       
       % Fixed-point iteration, based on the Breit-Rabi formula
@@ -572,10 +568,10 @@ for iNucGrp = 1:Sys.nNuclei
         Positions = [Positions B_];  %#ok
         Intensities = [Intensities nn(iF)/nLines*ones(size(B_))];  %#ok
       end
-      logmsg(1,'  maximum %d iterations done',maxIterationsDone);
+      eslogger(1,'  maximum %d iterations done',maxIterationsDone);
       
     else
-      logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Opt.Accuracy);
+      eslogger(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Opt.Accuracy);
       
       % Based on \Delta E - h nu = 0 with a 5th-order Taylor expansion in aiso of
       % the Breit-Rabi expression for \Delta E. The resulting polynomial in aiso with terms
@@ -613,7 +609,7 @@ for iNucGrp = 1:Sys.nNuclei
           Intensities(end+1) = nn(iF)/nLines;  %#ok
         end
       end
-      logmsg(1,'  maximum %d iterations done',maxIterationsDone);
+      eslogger(1,'  maximum %d iterations done',maxIterationsDone);
       
     end
     Positions = Positions*1e3; % T -> mT
@@ -623,7 +619,7 @@ for iNucGrp = 1:Sys.nNuclei
     % Frequency sweep
     %-------------------------------------------------------------------
     if PerturbOrder==0
-      logmsg(1,'  Breit-Rabi formula');
+      eslogger(1,'  Breit-Rabi formula');
       
       % Breit-Rabi formula, J. A. Weil, J. Magn. Reson. 4, 394-399 (1971), [1]
       B_ = Exp.Field*1e-3; % T
@@ -642,7 +638,7 @@ for iNucGrp = 1:Sys.nNuclei
       end
       
     else
-      logmsg(1,'  perturbation theory, order %d',PerturbOrder);
+      eslogger(1,'  perturbation theory, order %d',PerturbOrder);
       
       % Taylor expansion in aiso around 0 of the Breit-Rabi expression for \Delta E.
       B_ = Exp.Field*1e-3;
@@ -670,7 +666,7 @@ for iNucGrp = 1:Sys.nNuclei
   Shifts{iNucGrp} = Positions - CentralResonance; % field sweep: mT; freq sweep: Hz
   Amplitudes{iNucGrp} = Intensities;
   
-  logmsg(1,'  spin group %d: %d F spins, %d lines',iNucGrp,nFSpins,numel(Shifts{iNucGrp}));
+  eslogger(1,'  spin group %d: %d F spins, %d lines',iNucGrp,nFSpins,numel(Shifts{iNucGrp}));
 end
 
 % Statistics: minimum, maximum, number of lines
@@ -683,7 +679,7 @@ for iShift = 1:numel(Shifts)
   posmax = posmax + max(Shifts{iShift});
   posmin = posmin + min(Shifts{iShift});
 end
-logmsg(1,'  total %d lines',nPeaks);
+eslogger(1,'  total %d lines',nPeaks);
 
 
 if FastMotionRegime
@@ -704,26 +700,26 @@ if SweepAutoRange
     minrange = 1; % mT
     Exp.Range = [posmin,posmax] + [-1 1]*max([5*maxLw,posrange,minrange]);
     Exp.Range(1) = max(Exp.Range(1),0);
-    logmsg(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
+    eslogger(1,'  automatic field range from %g mT to %g mT',Exp.Range(1),Exp.Range(2));
   else
     posrange = (posmax-posmin)*Opt.Stretch; % Hz
     minrange = 1e6; % Hz
     Exp.mwRange = [posmin,posmax] + [-1 1]*max([5*maxLw/1e3,posrange,minrange]);
     Exp.mwRange(1) = max(Exp.mwRange(1),0);
     Exp.mwRange = Exp.mwRange/1e9; % Hz -> GHz
-    logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.mwRange(1),Exp.mwRange(2));
+    eslogger(1,'  automatic frequency range from %g GHz to %g GHz',Exp.mwRange(1),Exp.mwRange(2));
   end
 end
 
 if FieldSweep
-  logmsg(1,'  spectral spread %g mT\n  g=%g resonance at %g mT',(posmax-posmin),giso,CentralResonance);
+  eslogger(1,'  spectral spread %g mT\n  g=%g resonance at %g mT',(posmax-posmin),giso,CentralResonance);
 else
-  logmsg(1,'  spectral spread %g MHz\n  g=%g resonance at %g GHz',(posmax-posmin)/1e6,giso,CentralResonance/1e9);
+  eslogger(1,'  spectral spread %g MHz\n  g=%g resonance at %g GHz',(posmax-posmin)/1e6,giso,CentralResonance/1e9);
 end
 
 % Combining shifts and intensities
 %--------------------------------------------------------------
-logmsg(1,'Combining line shifts and line multiplicities...');
+eslogger(1,'Combining line shifts and line multiplicities...');
 if nPeaks>1
   Positions = allcombinations(Shifts{:},'+') + CentralResonance;
   Intensities = allcombinations(Amplitudes{:},'*');
@@ -737,7 +733,7 @@ end
 
 % Line intensities
 %--------------------------------------------------------------
-logmsg(1,'Computing overall line intensities...');
+eslogger(1,'Computing overall line intensities...');
 if ParallelMode
   % Parallel mode: no intensities
   Intensities = zeros(size(Intensities));
@@ -787,7 +783,7 @@ switch Opt.AccumMethod
   case 'template'
     % Accumulate spectrum by interpolating from a pre-computed template lineshape
     
-    logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
+    eslogger(1,'Constructing spectrum using Lorentzian lineshape template...');
   
     if LorentzianLw==0
       error('Cannot use templated linshape accumulation with zero Lorentzian linewidth.');
@@ -815,7 +811,7 @@ switch Opt.AccumMethod
   case 'explicit'
     % Accumulate spectrum by explicit evaluation of lineshape function
     
-    logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
+    eslogger(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
     if LorentzianLw==0
       error('Cannot use axplicit accumulation with zero Lorentzian linewidth.');
     end
@@ -842,7 +838,7 @@ switch Opt.AccumMethod
   case 'binning'
     % Accumulate spectrum by binning of delta peaks
     
-    logmsg(1,'Constructing stick spectrum using binning...');
+    eslogger(1,'Constructing stick spectrum using binning...');
     
     if FastMotionRegime
       error('Cannot use delta binning (Options.AccumMethod=''binning'' in the fast-motion regime.');
@@ -890,7 +886,7 @@ if ConvolutionBroadening
   % Convolution with Lorentzian
   if fwhmL~=0
     if fwhmL>2*dxFine
-      logmsg(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
+      eslogger(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
       spec = convspec(spec,dxFine,fwhmL,HarmonicL,0,mwPhaseL);
     else
       if HarmonicL==0
@@ -904,7 +900,7 @@ if ConvolutionBroadening
   % Convolution with Gaussian
   if fwhmG~=0
     if fwhmG>2*dxFine
-      logmsg(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
+      eslogger(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
       spec = convspec(spec,dxFine,fwhmG,HarmonicG,1,mwPhaseG);
     else
       if HarmonicG==0
@@ -918,7 +914,7 @@ if ConvolutionBroadening
 end
 
 if numel(xAxisFine)~=numel(xAxis)
-  logmsg(1,'Re-interpolation (%d -> %d points)...',numel(xAxisFine),numel(xAxis));
+  eslogger(1,'Re-interpolation (%d -> %d points)...',numel(xAxisFine),numel(xAxis));
   spec = interp1(xAxisFine,spec,xAxis);
 end
 
@@ -926,7 +922,7 @@ end
 %-------------------------------------------------------------------
 if FieldSweep
   if Exp.ModAmp>0
-    logmsg(1,'Applying field modulation (%g mT amplitude)...',Exp.ModAmp);
+    eslogger(1,'Applying field modulation (%g mT amplitude)...',Exp.ModAmp);
     spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
   else
     % derivatives already included in the convolution
@@ -946,7 +942,7 @@ switch nargout
     info.resfields = Positions;
     varargout = {xAxis,spec,info};
 end
-logmsg(1,'=end=garlic=======%s=================\n',char(datetime));
+eslogger(1,'=end=garlic=======%s=================\n',char(datetime));
 
 end
 
@@ -963,10 +959,10 @@ idxPositions = 1 + round(idxPositions);
 % Identify in-range lines
 inRange = (idxPositions>=1) & (idxPositions<=nPoints);
 if any(idxPositions<1)  
-  logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
+  eslogger(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
 end
 if any(idxPositions>nPoints)
-  logmsg(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
+  eslogger(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
 end
 
 % Bin in-range lines into spectrum

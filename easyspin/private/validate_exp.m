@@ -47,19 +47,19 @@ switch program
       if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
         error('Uninterpretable microwave frequency in Exp.mwFreq.');
       end
-      logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+      eslogger(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
     else
       if (numel(Exp.Field)~=1) || any(Exp.Field<0) || ~isreal(Exp.Field)
         error('Uninterpretable magnetic field in Exp.Field.');
       end
-      logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+      eslogger(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
     end
 
     % Automatic field range determination
     if FieldSweep
       if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
         if numel(Sys.S)==1 && (Sys.S==1/2) && ~any(Sys.L(:))
-          logmsg(1,'  automatic determination of sweep range');
+          eslogger(1,'  automatic determination of sweep range');
           I = nucspin(Sys.Nucs).';
           if ~isempty(I)
             if Sys.fullA
@@ -130,14 +130,14 @@ switch program
     end
 
     if FieldSweep
-      logmsg(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
+      eslogger(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
         Exp.mwFreq,Exp.Range(1),Exp.Range(2),Exp.nPoints);
     else
       if ~SweepAutoRange
-        logmsg(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
+        eslogger(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
           Exp.Field,Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);
       else
-        logmsg(1,'  field %g mT, automatic frequency range, %d points',...
+        eslogger(1,'  field %g mT, automatic frequency range, %d points',...
           Exp.Field,Exp.nPoints);
       end
     end
@@ -169,7 +169,7 @@ switch program
     end
     if (Exp.ModAmp>0)
       if FieldSweep
-        logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+        eslogger(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
         if (Exp.Harmonic<1)
           error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
         end
@@ -198,7 +198,7 @@ switch program
         error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
       end
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+    eslogger(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Powder vs. crystal simulation
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
@@ -213,10 +213,10 @@ switch program
     if info.partiallyOrderedSample
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
         userSuppliedOrderingFcn = false;
-        logmsg(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
+        eslogger(1,'  partial order (built-in function, lambda = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
         userSuppliedOrderingFcn = true;
-        logmsg(1,'  partial order (user-supplied function)');
+        eslogger(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');
       end
@@ -285,26 +285,26 @@ switch program
       if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
         error('Uninterpretable microwave frequency in Exp.mwFreq.');
       end
-      logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+      eslogger(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
     else
       if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
         error('Uninterpretable magnetic field in Exp.Field.');
       end
-      logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+      eslogger(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
     end
 
     % Sweep range (magnetic field, or frequency)
     if FieldSweep
       if isfield(Exp,'CenterSweep')
         if isfield(Exp,'Range')
-          logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+          eslogger(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
         end
       else
         if isfield(Exp,'Range')
           Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
         else
           if (Sys.nElectrons==1) && (Sys.S==1/2)
-            logmsg(1,'  automatic determination of sweep range');
+            eslogger(1,'  automatic determination of sweep range');
             Stretch = 1.25;
             I = nucspin(Sys.Nucs).';
             if numel(I)>0
@@ -332,7 +332,7 @@ switch program
     else
       if isfield(Exp,'mwCenterSweep')
         if isfield(Exp,'mwRange')
-          logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+          eslogger(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
         end
       else
         if isfield(Exp,'mwRange')
@@ -361,10 +361,10 @@ switch program
     end
 
     if FieldSweep
-      logmsg(1,'  field range (mT): min %g, max %g, center %g, width %g',...
+      eslogger(1,'  field range (mT): min %g, max %g, center %g, width %g',...
         Exp.Range(1),Exp.Range(2),CenterField,Sweep);
     else
-      logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
+      eslogger(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
         Exp.mwRange(1),Exp.mwRange(2),CenterFreq,Sweep);
     end
 
@@ -386,7 +386,7 @@ switch program
     end
     if (Exp.ModAmp>0)
       if FieldSweep
-        logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+        eslogger(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
         if (Exp.Harmonic<1)
           error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
         end
@@ -413,7 +413,7 @@ switch program
       case 'parallel', ParallelMode = true;
       otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+    eslogger(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
     % Complain if fields only valid in pepper() are given
     if isfield(Exp,'CrystalSymmetry')
@@ -427,10 +427,10 @@ switch program
       %end
       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
         userSuppliedOrderingFcn = false;
-        logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
+        eslogger(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
       elseif isa(Exp.Ordering,'function_handle')
         userSuppliedOrderingFcn = true;
-        logmsg(1,'  partial order (user-supplied function)');
+        eslogger(1,'  partial order (user-supplied function)');
       else
         error('Exp.Ordering must be a single number or a function handle.');
       end
@@ -439,18 +439,18 @@ switch program
     % Determine whether to do a powder simulation
     if ~usePotential
       if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-        logmsg(1,'  No orientational potential given, skipping powder simulation.');
+        eslogger(1,'  No orientational potential given, skipping powder simulation.');
         PowderSimulation = false;
       else
-      logmsg(1,'  Orientational potential given, doing powder simulation.');
+      eslogger(1,'  Orientational potential given, doing powder simulation.');
         PowderSimulation = true;
       end    
     else
       if ~isempty(Exp.SampleFrame)
-        logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
+        eslogger(1,'  Orientational potential given, doing single-crystal simulation.');
         PowderSimulation = false;
       else
-        logmsg(1,'  Orientational potential given, doing powder simulation.');
+        eslogger(1,'  Orientational potential given, doing powder simulation.');
         PowderSimulation = true;
       end
     end
@@ -497,26 +497,26 @@ switch program
       if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
         error('Uninterpretable microwave frequency in Exp.mwFreq.');
       end
-      logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+      eslogger(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
     else
       if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
         error('Uninterpretable magnetic field in Exp.Field.');
       end
-      logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+      eslogger(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
     end
 
     % Sweep range (magnetic field, or frequency)
     if FieldSweep
       if isfield(Exp,'CenterSweep')
         if isfield(Exp,'Range')
-          logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+          eslogger(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
         end
       else
         if isfield(Exp,'Range')
           Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
         else
           if (Sys.nElectrons==1) && (Sys.S==1/2)
-            logmsg(1,'  automatic determination of sweep range');
+            eslogger(1,'  automatic determination of sweep range');
             Stretch = 1.25;
             I = nucspin(Sys.Nucs).';
             if numel(I)>0
@@ -544,7 +544,7 @@ switch program
     else
       if isfield(Exp,'mwCenterSweep')   %TODO implement in cardamom
         if isfield(Exp,'mwRange')
-          logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+          eslogger(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
         end
       else
         if isfield(Exp,'mwRange')
@@ -574,10 +574,10 @@ switch program
     end
 
     if FieldSweep
-      logmsg(1,'  field range (mT): min %g, max %g, center %g, width %g',...
+      eslogger(1,'  field range (mT): min %g, max %g, center %g, width %g',...
         Exp.Range(1),Exp.Range(2),CenterField,Sweep);
     else
-      logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
+      eslogger(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
         Exp.mwRange(1),Exp.mwRange(2),CenterFreq,Sweep);
     end
 
@@ -599,7 +599,7 @@ switch program
 %     end
 %     if (Exp.ModAmp>0)
 %       if FieldSweep
-%         logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+%         eslogger(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
 %         if (Exp.Harmonic<1)
 %           error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
 %         end
@@ -626,7 +626,7 @@ switch program
 %       case 'parallel', ParallelMode = true;
 %       otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 %     end
-%     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+%     eslogger(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 % 
 %     % Complain if fields only valid in pepper() are given
 %     if isfield(Exp,'CrystalSymmetry')
@@ -640,10 +640,10 @@ switch program
 %       %end
 %       if isnumeric(Exp.Ordering) && (numel(Exp.Ordering)==1) && isreal(Exp.Ordering)
 %         UserSuppliedOrderingFcn = false;
-%         logmsg(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
+%         eslogger(1,'  partial order (built-in function, coefficient = %g)',Exp.Ordering);
 %       elseif isa(Exp.Ordering,'function_handle')
 %         UserSuppliedOrderingFcn = true;
-%         logmsg(1,'  partial order (user-supplied function)');
+%         eslogger(1,'  partial order (user-supplied function)');
 %       else
 %         error('Exp.Ordering must be a single number or a function handle.');
 %       end
@@ -652,18 +652,18 @@ switch program
 %     % Determine whether to do a powder simulation  TODO implement in cardamom
 %     if ~usePotential
 %       if isempty(Exp.Ordering) || all(Exp.Ordering==0)
-%         logmsg(1,'  No orientational potential given, skipping powder simulation.');
+%         eslogger(1,'  No orientational potential given, skipping powder simulation.');
 %         PowderSimulation = false;
 %       else
-%       logmsg(1,'  Orientational potential given, doing powder simulation.');
+%       eslogger(1,'  Orientational potential given, doing powder simulation.');
 %         PowderSimulation = true;
 %       end    
 %     else
 %       if ~isempty(Exp.SampleFrame)
-%         logmsg(1,'  Orientational potential given, doing single-crystal simulation.');
+%         eslogger(1,'  Orientational potential given, doing single-crystal simulation.');
 %         PowderSimulation = false;
 %       else
-%         logmsg(1,'  Orientational potential given, doing powder simulation.');
+%         eslogger(1,'  Orientational potential given, doing powder simulation.');
 %         PowderSimulation = true;
 %       end
 %     end

@@ -52,10 +52,8 @@ if ~isstruct(Opt)
   error('The third input argument (Opt) must be a structure.');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Process Opt.separate
 if ~isfield(Opt,'separate'), Opt.separate = ''; end
@@ -115,9 +113,9 @@ end
 % Single-isotopologue simulation
 %===============================================================================
 
-logmsg(1,'=begin=saffron====%s=================',char(datetime));
-logmsg(2,'  log level %d',logmsg);
-logmsg(1,'-general-----------------------------------------------');
+eslogger(1,'=begin=saffron====%s=================',char(datetime));
+eslogger(2,'  log level %d',eslogger);
+eslogger(1,'-general-----------------------------------------------');
 
 
 %===============================================================================
@@ -343,7 +341,7 @@ if fastSimulationMode
       error('Exp.Sequence ''%s'' not recognized.',Exp.Sequence);
     end
     if numel(Exp.ExperimentID)>1, error('Ambiguous sequence name.'); end
-    logmsg(1,'Sequence: %s',ExperimentNames{Exp.ExperimentID});
+    eslogger(1,'Sequence: %s',ExperimentNames{Exp.ExperimentID});
 
     if isfield(Exp,'tp')
       if any(Exp.tp~=0)
@@ -395,7 +393,7 @@ if fastSimulationMode
   else
 
     % User-specified pulse sequence -----------------------------------------
-    logmsg(1,'User-specified pulse experiment.');
+    eslogger(1,'User-specified pulse experiment.');
     Exp.ExperimentID = -1;
     isENDOR = false;
 
@@ -438,7 +436,7 @@ if fastSimulationMode
       error('Exp.t must contain the same number of elements as Exp.Flip');
     end
     if all(Exp.t==0) && (numel(IncScheme)<nIntervals)
-      logmsg(0,'Some delays are zero, but are not incremented!');
+      eslogger(0,'Some delays are zero, but are not incremented!');
     end
 
   end
@@ -512,7 +510,7 @@ if fastSimulationMode
     end
 
     % Determine pathways contributing to the echo
-    logmsg(1,'  determining pathways contributing to the echo');
+    eslogger(1,'  determining pathways contributing to the echo');
     if isfield(Exp,'Pathways')
       code0('ab+-') = [1 2 3 4];
       pathwayList = code0(Exp.Pathways);
@@ -532,7 +530,7 @@ if fastSimulationMode
       Exp.Filter = [];
     end
     if ~isempty(Exp.Filter)
-      logmsg(1,'  applying user-supplied coherence filters');
+      eslogger(1,'  applying user-supplied coherence filters');
       if ~ischar(Exp.Filter)
         error('Exp.Filter must be a string containing ''0'', ''1'', ''a'', ''b'', ''+'', ''-'' and/or ''.''.');
       end
@@ -559,7 +557,7 @@ if fastSimulationMode
         error('Exp.Filter is too restrictive: no echo at detection point left after applying the filter.');
       end
     else
-      logmsg(1,'  no user-supplied coherence filters');
+      eslogger(1,'  no user-supplied coherence filters');
     end
 
     [idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(pathwayList);
@@ -608,11 +606,11 @@ if fastSimulationMode
     idxIncL = idxFreeL(:,Exp.Inc~=0);
     idxIncR = idxFreeR(:,Exp.Inc~=0);
 
-    if logmsg>0
-      logmsg(1,'  Pathways and prefactors:');
+    if eslogger>0
+      eslogger(1,'  Pathways and prefactors:');
       Str = 'ab+-';
       for iPathway = 1:nPathways
-        logmsg(1,'    %d. (%s)   %+4.3f%+4.3fi',iPathway,...
+        eslogger(1,'    %d. (%s)   %+4.3f%+4.3fi',iPathway,...
           Str(pathwayList(iPathway,:)),real(pathwayprefactor(iPathway)),imag(pathwayprefactor(iPathway)));
       end
     end
@@ -665,12 +663,12 @@ if fastSimulationMode
 
   OrientationSelection = isfield(Exp,'mwFreq');
   if OrientationSelection
-    logmsg(1,'Microwave frequency given: orientation selection is on.');
+    eslogger(1,'Microwave frequency given: orientation selection is on.');
     if ~isfield(Exp,'ExciteWidth')
       error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
     end
   else
-    logmsg(1,'no orientation selection (infinite bandwidth).');
+    eslogger(1,'no orientation selection (infinite bandwidth).');
   end
 
   if isfield(Exp,'ExciteWidth')
@@ -736,9 +734,9 @@ if fastSimulationMode
       end
     end
     switch Opt.EndorMethod
-      case 0, logmsg(1,'using population swaps of adjacent nuclear sublevels');
-      case 1, logmsg(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
-      case 2, logmsg(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
+      case 0, eslogger(1,'using population swaps of adjacent nuclear sublevels');
+      case 1, eslogger(1,'using bandwidth-filtered Iy pi pulse, sum over transitions');
+      case 2, eslogger(1,'using bandwidth-filtered Iy pi pulse, full RF sweep');
       otherwise, error('Unknown setting for Opt.EndorMethod. Must be 0, 1, or 2.');
     end
     if Opt.EndorMethod==0 && numel(shfNuclei)>1 && ~Opt.ProductRule
@@ -777,13 +775,13 @@ if fastSimulationMode
   if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
 
 
-  logmsg(1,'-Hamiltonians------------------------------------------');
+  eslogger(1,'-Hamiltonians------------------------------------------');
 
   %=====================================================================
   % Compute electronic Hamiltonian
   %=====================================================================
 
-  logmsg(1,'setting up electronic Hamiltonian...');
+  eslogger(1,'setting up electronic Hamiltonian...');
   if twoElectronManifolds
     % not needed, S=1/2 electronic Hamiltonian can be solved analytically
   else
@@ -806,12 +804,12 @@ if fastSimulationMode
   %=====================================================================
   % Compute nuclear spin Hamiltonians
   %=====================================================================
-  logmsg(1,'computing nuclear spin sub-Hamiltonians...');
+  eslogger(1,'computing nuclear spin sub-Hamiltonians...');
   if ~isempty(shfNuclei)
     if Opt.ProductRule
-      logmsg(1,'  separate subspace for each of the %d superhyperfine nuclei',numel(shfNuclei));
+      eslogger(1,'  separate subspace for each of the %d superhyperfine nuclei',numel(shfNuclei));
     else
-      logmsg(1,'  complete nuclear state space of all %d superhyperfine nuclei',numel(shfNuclei));
+      eslogger(1,'  complete nuclear state space of all %d superhyperfine nuclei',numel(shfNuclei));
       NucHams.Hnzx = 0;
       NucHams.Hnzy = 0;
       NucHams.Hnzz = 0;
@@ -912,9 +910,9 @@ if fastSimulationMode
 
     end
     nSubSpaces = numel(NucHams);
-    logmsg(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
+    eslogger(1,'  %d nuclei, %d subspaces',numel(shfNuclei),nSubSpaces);
   else
-    logmsg(1,'  no subspace factorization');
+    eslogger(1,'  no subspace factorization');
     nSubSpaces = 0;
   end
   %=====================================================================
@@ -924,10 +922,10 @@ if fastSimulationMode
   %=====================================================================
   orientationPreSelection = OrientationSelection && twoElectronManifolds;
   if orientationPreSelection
-    logmsg(1,'pre-computing orientation selecton from g tensor alone...');
-    logmsg(1,'  S=1/2: using simple g tensor/HStrain model');
-    logmsg(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
-    logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
+    eslogger(1,'pre-computing orientation selecton from g tensor alone...');
+    eslogger(1,'  S=1/2: using simple g tensor/HStrain model');
+    eslogger(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
+    eslogger(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
     % g values for all orientations
     zLab = ang2vec(Orientations(:,1),Orientations(:,2));
     if Sys.fullg
@@ -947,11 +945,11 @@ if fastSimulationMode
   %=====================================================================
   % Preparation
   %=====================================================================
-  logmsg(1,'Preparation...');
+  eslogger(1,'Preparation...');
 
   if isENDOR
 
-    logmsg(1,'  ENDOR simulation');
+    eslogger(1,'  ENDOR simulation');
 
     rf = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
     endorspc = zeros(1,Exp.nPoints);
@@ -959,17 +957,17 @@ if fastSimulationMode
   else
 
     if Opt.TimeDomain
-      logmsg(1,'  time domain simulation');
+      eslogger(1,'  time domain simulation');
     else
-      logmsg(1,'  frequency domain simulation');
+      eslogger(1,'  frequency domain simulation');
       % Prepare for binning method
       ExpansionFactor = 2.^Opt.Expand;
       nPointsF = ExpansionFactor*Exp.nPoints;
       if numel(nPointsF)==2
-        logmsg(1,'  %dx%d points, expand x%d -> %dx%d points',...
+        eslogger(1,'  %dx%d points, expand x%d -> %dx%d points',...
           Exp.nPoints(1),Exp.nPoints(2),ExpansionFactor,nPointsF(1),nPointsF(2));
       else
-        logmsg(1,'  %d points, expand x%d -> %d points',Exp.nPoints,ExpansionFactor,nPointsF);
+        eslogger(1,'  %d points, expand x%d -> %d points',Exp.nPoints,ExpansionFactor,nPointsF);
       end
       % allocate array(s)
       if nDimensions==1, siz = [1, nPointsF]; else, siz = nPointsF; end
@@ -1002,7 +1000,7 @@ if fastSimulationMode
   %=====================================================================
   % Orientation loop
   %=====================================================================
-  logmsg(1,'Looping over %d orientations...',nOrientations);
+  eslogger(1,'Looping over %d orientations...',nOrientations);
 
   % Prepare offsets
   if any(realPulse)
@@ -1116,7 +1114,7 @@ if fastSimulationMode
       end
     end
 
-    logmsg(2,'orientation %d of %d: %d transitions',iOri,nOrientations,nTransitions);
+    eslogger(2,'orientation %d of %d: %d transitions',iOri,nOrientations,nTransitions);
 
     % Compute and diagonalize nuclear Hamiltonians
     %----------------------------------------------------------------------
@@ -1614,8 +1612,8 @@ if fastSimulationMode
 
   end % orientation loop
 
-  logmsg(1,'end of orientation/transition loop');
-  logmsg(1,'%d of %d orientations skipped',nSkippedOrientations,nOrientations);
+  eslogger(1,'end of orientation/transition loop');
+  eslogger(1,'%d of %d orientations skipped',nSkippedOrientations,nOrientations);
   %=================================================================
 
 
@@ -1646,7 +1644,7 @@ if fastSimulationMode
       if Opt.TimeDomain
         td = totaltd;
       else
-        logmsg(1,'Postprocessing...');
+        eslogger(1,'Postprocessing...');
         buff = complex(buffRe,buffIm);
         if nDimensions==1
           td = ifft(buff)*numel(buff);
@@ -1698,7 +1696,7 @@ if fastSimulationMode
 
     decayAdded = false;
     if any(~isinf(Sys.T1T2))
-      logmsg(1,'Adding relaxation decays...');
+      eslogger(1,'Adding relaxation decays...');
       T1 = Sys.T1T2(1);
       T2 = Sys.T1T2(2);
       tdecay = [];
@@ -1728,8 +1726,8 @@ if fastSimulationMode
   %===============================================================
   % TD data processing
   %===============================================================
-  logmsg(1,'-final-------------------------------------------------');
-  logmsg(1,'Data processing...');
+  eslogger(1,'-final-------------------------------------------------');
+  eslogger(1,'Data processing...');
   info = struct;
   if ~isENDOR
     if processData
@@ -1827,7 +1825,7 @@ if fastSimulationMode
   %=============================================================================
 else  % if fastSimulationMode
 
-  logmsg(1,'-processing Sys structure------------------------------');
+  eslogger(1,'-processing Sys structure------------------------------');
 
   [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
@@ -1835,7 +1833,7 @@ else  % if fastSimulationMode
   nElectrons = length(Sys.S);
 
   if Opt.FrameShift ~= 0
-    logmsg(1,'  adapting Sys.g to the simulation frame');
+    eslogger(1,'  adapting Sys.g to the simulation frame');
   end
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
 
@@ -1852,13 +1850,13 @@ else  % if fastSimulationMode
   rawSignals = cell(1,nOrientations);
   timeAxis = cell(1,nOrientations);
 
-  logmsg(1,'-starting orientation loop-----------------------------');
+  eslogger(1,'-starting orientation loop-----------------------------');
   if Opt.Relaxation
-    logmsg(1,'  relaxation is active during simulation');
+    eslogger(1,'  relaxation is active during simulation');
   else
-    logmsg(1,'  no relaxation during propagation');
+    eslogger(1,'  no relaxation during propagation');
   end
-  logmsg(1,'  propagating %d orientations',nOrientations);
+  eslogger(1,'  propagating %d orientations',nOrientations);
   Field = Exp.Field;
 
   parfor iOrientation = 1 : nOrientations
@@ -1869,7 +1867,7 @@ else  % if fastSimulationMode
 
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)
-      logmsg(1,'  adapting relaxation superoperator to system frame');
+      eslogger(1,'  adapting relaxation superoperator to system frame');
       [U,~] = eig(Ham);
       R = kron(transpose(U),U');
       Relaxation_.Gamma = R'*Relaxation_.Gamma*R;
@@ -1887,17 +1885,17 @@ else  % if fastSimulationMode
   end
 
   if isfield(Exp,'DetPhase')
-    logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
+    eslogger(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
     phase = exp(-1i*Exp.DetPhase);
   else
-    logmsg(1,'  applying default detection phase: 0');
+    eslogger(1,'  applying default detection phase: 0');
     phase = exp(-1i*0);
   end
 
   Signal = Signal*phase;
 
   if ~Opt.SinglePointDetection && isfield(Exp,'DetIntegrate') && Exp.DetIntegrate
-    logmsg(1,'-integrating echos-------------------------------------');
+    eslogger(1,'-integrating echos-------------------------------------');
 
     sizeSig = size(Signal);
 
@@ -1909,15 +1907,15 @@ else  % if fastSimulationMode
 
     Opt.SinglePointDetection = true;
 
-    logmsg(1,'  integrated %d transients',numel(Signal));
+    eslogger(1,'  integrated %d transients',numel(Signal));
   end
 
   % Signal processing
   if ~Opt.SinglePointDetection
-    logmsg(1,'-processing transients---------------------------------');
+    eslogger(1,'-processing transients---------------------------------');
 
     if ~isfield(Exp,'DetFrequency') && isfield(Exp,'mwFreq')
-      logmsg(1,'  using Exp.mwFreq as detection frequency');
+      eslogger(1,'  using Exp.mwFreq as detection frequency');
       Exp.DetFrequency = Exp.mwFreq;
     end
 
@@ -1936,15 +1934,15 @@ else  % if fastSimulationMode
     timeAxis = Exp.DetWindow(1):dt:Exp.DetWindow(2);
   end
 
-  logmsg(1,'-setting up axes for output----------------------------');
+  eslogger(1,'-setting up axes for output----------------------------');
 
   if ~isfield(Exp,'nPoints')
-    logmsg(1,'  no indirect dimensions');
+    eslogger(1,'  no indirect dimensions');
     nIndirectDimensions = 0;
     x = [];  % one datapoint
   else
     nIndirectDimensions = length(Exp.nPoints);
-    logmsg(1,'  setting up %d axes for indirect dimensions',nIndirectDimensions);
+    eslogger(1,'  setting up %d axes for indirect dimensions',nIndirectDimensions);
     x = cell(1,nIndirectDimensions);
     predefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence) && ischar(Exp.Sequence);
     if predefinedExperiment
@@ -2006,7 +2004,7 @@ else  % if fastSimulationMode
 
   % add the transient time axis to the output
   if ~Opt.SinglePointDetection
-    logmsg(1,'  adding axis of direct dimension');
+    eslogger(1,'  adding axis of direct dimension');
     x{nIndirectDimensions+1} = timeAxis;
   end
 
@@ -2031,9 +2029,9 @@ end
 %===============================================================
 endTime = datetime;
 elapsedtime = endTime-startTime;
-logmsg(1,'saffron took %s',elapsedtime);
+eslogger(1,'saffron took %s',elapsedtime);
 
-logmsg(1,'=end=saffron======%s=================\n',datetime);
+eslogger(1,'=end=saffron======%s=================\n',datetime);
 
 end
 %===============================================================================
@@ -2250,7 +2248,7 @@ end
 %===============================================================================
 function saffron_plot(x,info,isENDOR,Sys,Exp,Opt)
 
-logmsg(1,'Plotting...');
+eslogger(1,'Plotting...');
 
 twoDim = iscell(x);
 if twoDim

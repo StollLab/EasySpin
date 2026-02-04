@@ -59,16 +59,16 @@ if partiallyOrderedSample
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
-    logmsg(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
+    eslogger(1,'  partial ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial ordering (user-supplied function)');
+    eslogger(1,'  partial ordering (user-supplied function)');
   else
     error('Exp.Ordering must be either a single number or a function handle.');
   end
   if nargin(Exp.Ordering)==1
     Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
   elseif nargin(Exp.Ordering)~=3
-    logmsg(1,'  Ordering function in Exp.Ordering must take 1 input argument (beta) or 3 input arguments (alpha,beta,gamma).');
+    eslogger(1,'  Ordering function in Exp.Ordering must take 1 input argument (beta) or 3 input arguments (alpha,beta,gamma).');
   end
 end
 

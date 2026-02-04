@@ -13,7 +13,7 @@ function [R_L2S,rotatedSample] = p_samplerotation(Exp)
 % - R_L2S row 1,2,3: crystal axis 1,2,3 represented in lab frame
 if ~isempty(Exp.SampleFrame)
   nSamples = size(Exp.SampleFrame,1);
-  logmsg(1,'  %d sample orientation(s) given in Exp.SampleFrame',nSamples);
+  eslogger(1,'  %d sample orientation(s) given in Exp.SampleFrame',nSamples);
 
   % Construct transformation matrices (lab frame to sample/crystal frame)
   R_L2S = cell(1,nSamples);

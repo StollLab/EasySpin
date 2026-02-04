@@ -114,10 +114,8 @@ end
 % Check Opt
 % -------------------------------------------------------------------------
 
-if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 0; % Log level
-end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 if ~isfield(Opt,'statesOnly')
   Opt.statesOnly = false || nargout==0;
@@ -230,7 +228,7 @@ else
   elseif isfield(Sys,'TransProb')
     nSteps = 500;
   end
-  logmsg(0,'-- Number of time steps not given. Using %d steps.', nSteps);
+  eslogger(0,'-- Number of time steps not given. Using %d steps.', nSteps);
   
 end
 
@@ -291,7 +289,7 @@ end
 
 % Simulation
 % -------------------------------------------------------------------------
-logmsg(2,'-- Calculating stochastic trajectories -----------------------');
+eslogger(2,'-- Calculating stochastic trajectories -----------------------');
 
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
@@ -314,8 +312,8 @@ end
 
 t = linspace(0, nSteps*Par.dt, nSteps).';
 
-logmsg(2,'-- Propagation finished --------------------------------------');
-logmsg(2,'--------------------------------------------------------------');
+eslogger(2,'-- Propagation finished --------------------------------------');
+eslogger(2,'--------------------------------------------------------------');
 
 
 % Final processing

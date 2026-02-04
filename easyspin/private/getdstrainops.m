@@ -56,7 +56,7 @@ for iEl = 1:Sys.nElectrons
   rDE = Sys.DStrainCorr(iEl); % correlation coefficient between D and E
   if (rDE~=0)
     % Transform correlated D-E strain to uncorrelated coordinates
-    logmsg(1,'  correlated D strain for electron spin %d (r = %f)',iEl,rDE);
+    eslogger(1,'  correlated D strain for electron spin %d (r = %f)',iEl,rDE);
     % Construct and diagonalize covariance matrix
     R12 = rDE*DeltaD*DeltaE;
     CovMatrix = [DeltaD^2 R12; R12 DeltaE^2];

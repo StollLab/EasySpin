@@ -84,11 +84,8 @@ if ~isstruct(Opt)
   error('The third input (Opt) must be a structure.');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
-
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 %==================================================================
 % Loop over species and isotopologues
@@ -145,9 +142,9 @@ end
 %==================================================================
 
 % Now we can start simulating the spectrum
-logmsg(1,'=begin=pepper=====%s=================',char(datetime));
-logmsg(2,'  log level %d',logmsg);
-logmsg(1,'-general-----------------------------------------------');
+eslogger(1,'=begin=pepper=====%s=================',char(datetime));
+eslogger(2,'  log level %d',eslogger);
+eslogger(1,'-general-----------------------------------------------');
 
 %=======================================================================
 % Spin system structure
@@ -163,8 +160,8 @@ end
 StrainWidths = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]>0);
 ConvolutionBroadening = any(Sys.lw>0);
 
-logmsg(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));
-if StrainWidths, logmsg(1,'  strain widths given'); end
+eslogger(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));
+if StrainWidths, eslogger(1,'  strain widths given'); end
 %=======================================================================
 
 
@@ -228,19 +225,19 @@ if FieldSweep
   if numel(Exp.mwFreq)~=1 || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
   end
-  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+  eslogger(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
 else
   if numel(Exp.Field)~=1 || ~isreal(Exp.Field)
     error('Uninterpretable magnetic field in Exp.Field.');
   end
-  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
+  eslogger(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
 % Automatic field range determination
 if FieldSweep
   if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
     if numel(Sys.S)==1 && (Sys.S==1/2) && ~any(Sys.L(:))
-      logmsg(1,'  automatic determination of sweep range');
+      eslogger(1,'  automatic determination of sweep range');
       I = nucspin(Sys.Nucs).';
       if ~isempty(I)
         if Sys.fullA
@@ -319,14 +316,14 @@ if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
 end
 
 if FieldSweep
-  logmsg(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
+  eslogger(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
     Exp.mwFreq,Exp.Range(1),Exp.Range(2),Exp.nPoints);
 else
   if ~SweepAutoRange
-    logmsg(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
+    eslogger(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
       Exp.Field,Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);
   else
-    logmsg(1,'  field %g mT, automatic frequency range, %d points',...
+    eslogger(1,'  field %g mT, automatic frequency range, %d points',...
       Exp.Field,Exp.nPoints);
   end
 end
@@ -366,7 +363,7 @@ if Exp.ModAmp>0
   Exp.ModHarmonic = Exp.Harmonic;
   Exp.ConvHarmonic = 0;
   Exp.DerivHarmonic = 0;
-  logmsg(1,'  explicit field modulation, amplitude %g mT, harmonic %d',Exp.ModAmp,Exp.Harmonic);
+  eslogger(1,'  explicit field modulation, amplitude %g mT, harmonic %d',Exp.ModAmp,Exp.Harmonic);
 else
   Exp.ModHarmonic = 0;
   if ConvolutionBroadening
@@ -376,7 +373,7 @@ else
     Exp.ConvHarmonic = 0;
     Exp.DerivHarmonic = Exp.Harmonic;
   end
-  logmsg(1,'  no explicit field modulation, derivative %d',Exp.Harmonic);
+  eslogger(1,'  no explicit field modulation, derivative %d',Exp.Harmonic);
 end
 
 % Microwave phase
@@ -392,9 +389,9 @@ if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
   else
     error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
   end
-  logmsg(1,'  resonator mode: %s',Exp.mwMode);
+  eslogger(1,'  resonator mode: %s',Exp.mwMode);
 else
-  logmsg(1,'  resonator mode: custom');
+  eslogger(1,'  resonator mode: custom');
 end
 
 % Temperature and non-equilibrium populations
@@ -411,7 +408,7 @@ else
     msg = '  no temperature';
   end
 end
-logmsg(1,msg);
+eslogger(1,msg);
 
 % Detect sample type (disordered, partially ordered, crystal)
 [Exp,Opt] = p_sampletype(Exp,Opt);
@@ -457,7 +454,6 @@ if isfield(Opt,'Output')
 end
 
 % Documented fields, pepper
-DefaultOpt.Verbosity = 0;
 DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
 DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
@@ -538,7 +534,7 @@ Opt.Intensity = anisotropicIntensities;
 %=======================================================================
 %=======================================================================
 
-logmsg(1,'-resonances--------------------------------------------');
+eslogger(1,'-resonances--------------------------------------------');
 MethodMsg{1} = 'field sweep, eigenfields (Liouville space)';
 MethodMsg{2} = 'field sweep, adaptive segmentation (state space)';
 MethodMsg{3} = 'field sweep, second-order perturbation theory';
@@ -550,7 +546,7 @@ MethodMsg{12} = 'frequency sweep, second-order perturbation theory';
 MethodMsg{13} = 'frequency sweep, first-order perturbation theory';
 MethodMsg{14} = 'frequency sweep, second-order perturbation theory';
 MethodMsg{15} = 'frequency sweep, hybrid (matrix diagonalization for electron spin, perturbation for nuclei)';
-logmsg(1,'  method: %s',MethodMsg{Method});
+eslogger(1,'  method: %s',MethodMsg{Method});
 
 if FieldSweep
   % Field sweeps
@@ -561,15 +557,15 @@ if FieldSweep
     %------------------------------------------------------------------------
     anisotropicWidths = false;
     if StrainWidths
-      logmsg(-Inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
+      eslogger(-Inf,'WARNING: Options.Method: eigenfields method -> strains are ignored!');
     end
     
     Exp1 = Exp;
     Exp1.Range = [0 1e8];
     
-    logmsg(2,'  -entering resfields_eig----------------------------------');
+    eslogger(2,'  -entering resfields_eig----------------------------------');
     [Pdat,Idat] = resfields_eig(Sys,Exp1,Opt);
-    logmsg(2,'  -exiting resfields_eig-----------------------------------');
+    eslogger(2,'  -exiting resfields_eig-----------------------------------');
     Wdat = [];
     %Gdat = [];
     Transitions = [];
@@ -582,7 +578,7 @@ if FieldSweep
     for k = 1:nOrientations
       nReson = nReson + numel(Pdat{k});
     end
-    logmsg(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
+    eslogger(1,'  %d resonance in total (%g per orientation)',nReson,nReson/nOrientations);
     
   else
     
@@ -600,7 +596,7 @@ if FieldSweep
     
     Exp1.AccumWeights = Exp.OriWeights;
     
-    logmsg(2,'  -entering resfields*----------------------------------');
+    eslogger(2,'  -entering resfields*----------------------------------');
     switch Method
       case {2,6} % matrix diagonalization, hybrid
         [Pdat,Idat,Wdat,Transitions] = resfields(Sys,Exp1,Opt);
@@ -611,7 +607,7 @@ if FieldSweep
         Opt.PerturbOrder = 1;
         [Pdat,Idat,Wdat,Transitions,spec] = resfields_perturb(Sys,Exp1,Opt);
     end
-    logmsg(2,'  -exiting resfields*-----------------------------------');
+    eslogger(2,'  -exiting resfields*-----------------------------------');
     
     if isempty(Wdat)
       anisotropicWidths = false;
@@ -635,7 +631,7 @@ else
   Exp1 = Exp;  
   Exp1.AccumWeights = Exp.OriWeights;
   
-  logmsg(2,'  -entering resfreqs*----------------------------------');
+  eslogger(2,'  -entering resfreqs*----------------------------------');
   switch Method
     case {11,15} % matrix diagonalization, hybrid
       [Pdat,Idat,Wdat,Transitions] = resfreqs_matrix(Sys,Exp1,Opt);
@@ -646,7 +642,7 @@ else
       Opt.PerturbOrder = 1;
       [Pdat,Idat,Wdat,Transitions,spec] = resfreqs_perturb(Sys,Exp1,Opt);
   end
-  logmsg(2,'  -exiting resfreqs*-----------------------------------');
+  eslogger(2,'  -exiting resfreqs*-----------------------------------');
   Pdat = Pdat/1e3; % MHz -> GHz
   Wdat = Wdat/1e3; % MHz -> GHz
   
@@ -659,7 +655,7 @@ else
 end
 
 if ~anisotropicIntensities
-  logmsg(1,'  neglecting amplitude anisotropy, taking amplitude average');
+  eslogger(1,'  neglecting amplitude anisotropy, taking amplitude average');
   if ~useEigenFields, Idat = mean(Idat(:))*ones(size(Idat)); end
 end
 
@@ -684,7 +680,7 @@ if ~FieldSweep && SweepAutoRange
   minRange = max(0,minFreq-padding);
   maxRange = maxFreq + padding;
   Exp.mwRange = [minRange maxRange]; % GHz
-  logmsg(1,'  automatic frequency range [%g %g] GHz',...
+  eslogger(1,'  automatic frequency range [%g %g] GHz',...
     Exp.mwRange(1),Exp.mwRange(2));
 end
 
@@ -706,7 +702,7 @@ if FieldSweep
   if Method~=6
     loopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
     if loopingTransitionsPresent && ~crystalSample
-      logmsg(0,'** Looping transitions found. Artifacts at coalescence points possible.');
+      eslogger(0,'** Looping transitions found. Artifacts at coalescence points possible.');
     end
   else
     % hybrid method: Transitions contains replicas of core sys transitions
@@ -736,7 +732,7 @@ Exp.deltaX = xAxis(2)-xAxis(1);
 % The interpolation and projection algorithms depend
 % on the symmetry of the grid.
 
-logmsg(1,'-absorption spectrum construction----------------------');
+eslogger(1,'-absorption spectrum construction----------------------');
 
 BruteForceSum = useEigenFields | Opt.BruteForce;
 
@@ -777,7 +773,7 @@ elseif ~BruteForceSum
     msg = '  interpolation off';
   end
   nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
-  logmsg(1,msg);
+  eslogger(1,msg);
   
   % Preparations for summation/projection
   %-----------------------------------------------------------------------
@@ -841,7 +837,7 @@ elseif ~BruteForceSum
       msg = 'summation using Lorentzian template';
     end
   end
-  logmsg(1,'  %s',msg);
+  eslogger(1,'  %s',msg);
 
   % Pre-allocation of spectral array
   %-----------------------------------------------------------------------
@@ -859,7 +855,7 @@ elseif ~BruteForceSum
     msg = '';
   end
   spec = zeros(nSpectra,Exp.nPoints);
-  logmsg(1,'  spectrum array size: %dx%d %s',size(spec,1),size(spec,2),msg);  
+  eslogger(1,'  spectrum array size: %dx%d %s',size(spec,1),size(spec,2),msg);  
   
   % Spectrum construction
   %-----------------------------------------------------------------------
@@ -886,7 +882,7 @@ elseif ~BruteForceSum
           if separateSiteSpectra
             spcidx = spcidx + 1;
           end
-          %logmsg(3,'  orientation %d of %d, site %d of %d',iOri,nOrientations,iSite,nSites);
+          %eslogger(3,'  orientation %d of %d, site %d of %d',iOri,nOrientations,iSite,nSites);
 
           thisPos = Pdat(:,iOriSite);
           if anisotropicIntensities, thisInt = Idat(:,iOriSite); end
@@ -919,7 +915,7 @@ elseif ~BruteForceSum
     
     spcidx = 0;
     for iTrans = 1:nTransitions
-      %logmsg(3,'  transition %d of %d',iTrans,nTransitions);
+      %eslogger(3,'  transition %d of %d',iTrans,nTransitions);
 
       thisPos = Pdat(iTrans,:);
       if anisotropicIntensities, thisInt = Idat(iTrans,:); end
@@ -959,7 +955,7 @@ elseif ~BruteForceSum
         error('Cannot use axial grid for partially ordered samples.');
       end
 
-      logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
+      eslogger(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
       
     else % nonaxial grid symmetry
       if doInterpolation
@@ -986,7 +982,7 @@ elseif ~BruteForceSum
      end
      fWeights = 4*pi*fWeights/sum(fWeights);
 
-      logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
+      eslogger(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end
     
     if ~anisotropicIntensities, fInt = ones(size(fthe)); end
@@ -1076,7 +1072,7 @@ elseif ~BruteForceSum
     end % for iTrans
     
     if doSummation
-      logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
+      eslogger(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
     end
     
   end
@@ -1084,8 +1080,8 @@ elseif ~BruteForceSum
   
 else % if Opt.ImmediateBinning elseif ~BruteForceSum ...
   
-  logmsg(1,'  constructing stick spectrum (no interpolation)');
-  logmsg(1,'  summation over %d orientations',nOrientations);
+  eslogger(1,'  constructing stick spectrum (no interpolation)');
+  eslogger(1,'  summation over %d orientations',nOrientations);
 
   if ~isempty(Opt.separate)
     error('Cannot return separate subspectra when constructing stick spectrum.');
@@ -1126,7 +1122,7 @@ end
 %=======================================================================
 %                         Final activities
 %=======================================================================
-logmsg(1,'-final-------------------------------------------------');
+eslogger(1,'-final-------------------------------------------------');
 
 % Combine branches of looping transitions if separate output
 %-----------------------------------------------------------------------
@@ -1147,7 +1143,7 @@ end
 % Convolution with line shape
 %-----------------------------------------------------------------------
 if ConvolutionBroadening
-  logmsg(1,'  harmonic %d: using convolution',Exp.ConvHarmonic);
+  eslogger(1,'  harmonic %d: using convolution',Exp.ConvHarmonic);
   fwhmG = Sys.lw(1);
   fwhmL = Sys.lw(2);
   if fwhmL>0
@@ -1174,13 +1170,13 @@ if ConvolutionBroadening
     exceedsHigherLimit = any(spec(:,end)~=0);
     if exceedsLowerLimit
       if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower and upper limits possible.');
+        eslogger(0,'** Spectrum exceeds sweep range. Artifacts at lower and upper limits possible.');
       else
-        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
+        eslogger(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
       end
     else
       if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
+        eslogger(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
       end
     end
     if  exceedsLowerLimit || exceedsHigherLimit
@@ -1195,7 +1191,7 @@ if ConvolutionBroadening
   % Convolution with Lorentzian
   if fwhmL~=0
     if fwhmL>2*Exp.deltaX
-      logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
+      eslogger(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
       if size(spec,1)>1, fwhm = [0 fwhmL]; else, fwhm = fwhmL; end
       spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
     else
@@ -1210,7 +1206,7 @@ if ConvolutionBroadening
   % Convolution with Gaussian
   if fwhmG~=0
     if fwhmG>2*Exp.deltaX
-      logmsg(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
+      eslogger(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
       if size(spec,1)>1, fwhm = [0 fwhmG]; else, fwhm = fwhmG; end
       spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1,mwPhaseG);
     else
@@ -1233,13 +1229,13 @@ if ConvolutionBroadening
 else
   
   if Exp.DerivHarmonic>0
-    logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
+    eslogger(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
     for h = 1:Exp.DerivHarmonic
       dspec = diff(spec,[],2)/Exp.deltaX;
       spec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
     end
   else
-    logmsg(1,'  harmonic 0: no differentiation');
+    eslogger(1,'  harmonic 0: no differentiation');
   end
 
 end
@@ -1249,7 +1245,7 @@ end
 %-----------------------------------------------------------------------
 if FieldSweep
   if Exp.ModAmp>0
-    logmsg(1,'  applying field modulation');
+    eslogger(1,'  applying field modulation');
     if summedOutput
       spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
     else
@@ -1281,8 +1277,8 @@ end
 % Report performance
 %-----------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
-logmsg(1,'pepper took %s',hmsString);
+eslogger(1,'pepper took %s',hmsString);
 
-logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
+eslogger(1,'=end=pepper=======%s=================\n',char(datetime));
 
 end
