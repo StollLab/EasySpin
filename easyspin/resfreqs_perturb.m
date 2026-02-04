@@ -47,10 +47,8 @@ switch nargin
     error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Spin system
 %------------------------------------------------------
@@ -233,9 +231,9 @@ switch Opt.PerturbOrder
 end
 
 if secondOrder
-  logmsg(1,'2nd order perturbation theory');
+  eslogger(1,'2nd order perturbation theory');
 else
-  logmsg(1,'1st order perturbation theory');
+  eslogger(1,'1st order perturbation theory');
 end
 
 if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end

@@ -43,11 +43,11 @@ if Opt.crystalSample
   % (matrices for active rotations; defined in sample/crystal frame)
   if isempty(Exp.CrystalSymmetry)
     Exp.CrystalSymmetry = 'P1';
-    logmsg(1,'  no crystal symmetry given: assuming space group P1 (#1)');
+    eslogger(1,'  no crystal symmetry given: assuming space group P1 (#1)');
   end
   Rsite_C = sitetransforms(Exp.CrystalSymmetry);
   nSites  = numel(Rsite_C);
-  logmsg(1,'  crystal symmetry: %d magnetically distinct sites in unit cell',nSites);
+  eslogger(1,'  crystal symmetry: %d magnetically distinct sites in unit cell',nSites);
   
   % Select sites if user wants it
   if isfield(Opt,'Sites') && ~isempty(Opt.Sites)
@@ -60,7 +60,7 @@ if Opt.crystalSample
   
   % Sample/crystal-to-molecular frame transformation, R_S2M
   if ~isempty(Exp.MolFrame)
-    logmsg(1,'  molecular frame given in Exp.MolFrame');
+    eslogger(1,'  molecular frame given in Exp.MolFrame');
     if ~numel(Exp.MolFrame)==3
       error('Exp.MolFrame has wrong size.');
     end
@@ -119,10 +119,10 @@ else
   % no effect on the powder spectrum.
   nSites = 1;
   if ~isempty(Exp.CrystalSymmetry)
-    logmsg(1,'  powder simulation; disregarding Exp.CrystalSymmetry');
+    eslogger(1,'  powder simulation; disregarding Exp.CrystalSymmetry');
   end
   if ~isempty(Exp.MolFrame)
-    logmsg(1,'  powder simulation; disregarding Exp.MolFrame');
+    eslogger(1,'  powder simulation; disregarding Exp.MolFrame');
   end
 
 end

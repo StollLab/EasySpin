@@ -17,10 +17,8 @@ switch nargin
     error('Incorrect number of inputs!');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Spin system
 %------------------------------------------------------
@@ -143,9 +141,9 @@ end
 if ~isfield(Opt,'PerturbOrder'), Opt.PerturbOrder = 2; end
 secondOrder = (Opt.PerturbOrder==2);
 if secondOrder
-  logmsg(1,'  2nd order perturbation theory');
+  eslogger(1,'  2nd order perturbation theory');
 else
-  logmsg(1,'  1st order perturbation theory');
+  eslogger(1,'  1st order perturbation theory');
 end
 if Opt.PerturbOrder~=1 && Opt.PerturbOrder~=2
   error('Opt.PerturbOrder must be either 1 or 2.');
@@ -153,9 +151,9 @@ end
 
 if ~isfield(Opt,'Enhancement'), Opt.Enhancement = 0; end
 if Opt.Enhancement
-  logmsg(1,'  skipping hyperfine enhancement.');
+  eslogger(1,'  skipping hyperfine enhancement.');
 end
-logmsg(1,'  hyperfine enhancement: off.');
+eslogger(1,'  hyperfine enhancement: off.');
 
 if ~isfield(Opt,'Nuclei'), Opt.Nuclei = []; end
 if isempty(Opt.Nuclei), Opt.Nuclei = 1:nNuclei; end
@@ -344,10 +342,10 @@ end % for iOri = ...
 % Compute selectivity.
 if OrientationSelection
   Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth;
-  logmsg(2,'  limited excitation width, selectivity %g',Selectivity);
+  eslogger(2,'  limited excitation width, selectivity %g',Selectivity);
 else
   Selectivity = 0;
-  logmsg(2,'  infinite excitation width');
+  eslogger(2,'  infinite excitation width');
 end
 Info.Selectivity = Selectivity;
 

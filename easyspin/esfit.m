@@ -354,9 +354,7 @@ end
 
 % Options
 %===============================================================================
-if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 1;
-end
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 if isfield(Opt,'Scaling')
   error('Fitting option Opt.Scaling has been replaced by Opt.AutoScale.');

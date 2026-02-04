@@ -72,10 +72,8 @@ if ~isstruct(Opt)
 end
 
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Process Spin system.
 %---------------------------------------------------------------------
@@ -149,12 +147,12 @@ end
 
 if isnan(Exp.Field)
   Exp.Field = 0.0;
-  logmsg(1,'Exp.Field is missing, assuming 0.0 mT');
+  eslogger(1,'Exp.Field is missing, assuming 0.0 mT');
 end
 
 if ~isnan(Exp.CenterSweep)
   if ~isnan(Exp.Range)
-    logmsg(1,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
+    eslogger(1,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
   end
   Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
   Exp.Range = max(Exp.Range,0);
@@ -256,13 +254,13 @@ computeIntensities = ((nargout>1) & Opt.Intensity);
 
 % Preparing kernel and perturbing system Hamiltonians.
 %-----------------------------------------------------------------------
-logmsg(1,'- Preparations');
+eslogger(1,'- Preparations');
 
 if Opt.Sparse
   warning('off','MATLAB:eigs:TooManyRequestedEigsForRealSym');
-  logmsg(1,'  using sparse matrices');
+  eslogger(1,'  using sparse matrices');
 else
-  logmsg(1,'  using full matrices');
+  eslogger(1,'  using full matrices');
 end
 
 % Perturbational treatment of SHF nuclei
@@ -284,7 +282,7 @@ if Sys.nNuclei>=1 && Opt.Hybrid
   else
     str_ = sprintf('%d ',idxPerturbNuclei);
   end
-  logmsg(1,'  nuclei with first-order perturbation treatment: %s',str_);
+  eslogger(1,'  nuclei with first-order perturbation treatment: %s',str_);
   
   % Remove perturbational nuclei from core system
   CoreSys = nucspinrmv(Sys,idxPerturbNuclei);
@@ -432,11 +430,11 @@ if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1
 end
 
 if nPerturbNuclei>0
-  logmsg(1,'  core system with %d spins and %d states',numel(spinvec(CoreSys)),nCore);
-  logmsg(1,'  first-order perturbational nuclei with %d states',nSHFNucStates');
+  eslogger(1,'  core system with %d spins and %d states',numel(spinvec(CoreSys)),nCore);
+  eslogger(1,'  first-order perturbational nuclei with %d states',nSHFNucStates');
 else
   if CoreSys.nNuclei>0
-    logmsg(1,'  full treatment of all nuclei');
+    eslogger(1,'  full treatment of all nuclei');
   end
 end
 
@@ -485,14 +483,14 @@ if UserTransitions
   if ischar(Opt.Transitions)
     if strcmp(Opt.Transitions,'all')
       nSStates = prod(2*CoreSys.S+1)*prod(2*CoreSys.L+1);
-      logmsg(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
+      eslogger(1,'  using all %d transitions',nSStates*(nSStates-1)/2);
       Transitions = nchoosek(1:nSStates,2);
     else
       error('Options.Transitions must be ''all'' or a nx2 array of enery level indices.');
     end
   else
     % User-specified list of transitions.
-    logmsg(1,'  using %d user-specified transitions',size(Opt.Transitions,1));
+    eslogger(1,'  using %d user-specified transitions',size(Opt.Transitions,1));
     % Guarantee that lower index comes first (gives later u < v).
     if size(Opt.Transitions,2)~=2
       error('Options.Transitions must be a nx2 array of energy level indices.');
@@ -520,14 +518,14 @@ v = Transitions(:,2); % u < v
 nTransitions = length(u);
 
 % Diagnostic display.
-logmsg(1,'  %d transitions pre-selected',nTransitions);
+eslogger(1,'  %d transitions pre-selected',nTransitions);
 
 %=======================================================================
 % Line width preparations
 %=======================================================================
-logmsg(1,'- Broadenings');
+eslogger(1,'- Broadenings');
 if computeStrains
-  logmsg(1,'  using strains');
+  eslogger(1,'  using strains');
   
   % D strain
   %-----------------------------------------------
@@ -539,7 +537,7 @@ if computeStrains
   usegStrain = any(CoreSys.gStrain(:));
   simplegStrain = CoreSys.nElectrons==1;
   if usegStrain
-    logmsg(1,'  g strain present');
+    eslogger(1,'  g strain present');
     for iEl = CoreSys.nElectrons:-1:1
       gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:));
       if any(CoreSys.gFrame(iEl,:))
@@ -548,7 +546,7 @@ if computeStrains
       end
     end
     if ~simplegStrain
-      logmsg(1,'  multiple g strains present');
+      eslogger(1,'  multiple g strains present');
       for iEl = CoreSys.nElectrons:-1:1
         kSxM{iEl} = sop(CoreSys,[iEl,1]);
         kSyM{iEl} = sop(CoreSys,[iEl,2]);
@@ -583,13 +581,13 @@ if computeStrains
     
     clear Ix_ Iy_ Iz_ Sx_ Sy_ Sz_
   end
-  if any(CoreSys.HStrain), logmsg(2,'  ## using H strain'); end
-  if usegStrain, logmsg(2, ' ## using g strain'); end
-  if useAStrain, logmsg(2,'  ## using A strain'); end
-  if useDStrain, logmsg(2,'  ## using D strain'); end
+  if any(CoreSys.HStrain), eslogger(2,'  ## using H strain'); end
+  if usegStrain, eslogger(2, ' ## using g strain'); end
+  if useAStrain, eslogger(2,'  ## using A strain'); end
+  if useDStrain, eslogger(2,'  ## using D strain'); end
   
 else
-  logmsg(1,'  no strains specified',nTransitions);
+  eslogger(1,'  no strains specified',nTransitions);
 end
 
 
@@ -620,7 +618,7 @@ else
 end
 
 for iOri = 1:nOrientations
-  if logmsg>=1
+  if eslogger>=1
     if iOri>1
       remainingTime = (cputime-startTime)/(iOri-1)*(nOrientations-iOri+1);
       backspace = repmat(sprintf('\b'),1,numel(logstr));
@@ -629,7 +627,7 @@ for iOri = 1:nOrientations
       seconds = remainingTime - 3600*hours - 60*minutes;
       logstr = sprintf('  %d/%d orientations, remaining time %02d:%02d:%0.1f\n', ...
         iOri, nOrientations, hours, minutes, seconds);
-      if logmsg==1, fprintf(backspace); end
+      if eslogger==1, fprintf(backspace); end
       fprintf(logstr);
     else
       if nOrientations>1
@@ -851,7 +849,7 @@ for iOri = 1:nOrientations
 end
 
 
-logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitions);
+eslogger(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitions);
 
 % Transitions post-selection
 %=======================================================================
@@ -865,21 +863,21 @@ if computeIntensities && ~UserTransitions
   absoluteMaxIntensity = max(maxIntensity);
   idxWeakResonances = find(maxIntensity<absoluteMaxIntensity*postSelectionThreshold);
   if ~isempty(idxWeakResonances)
-    logmsg(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),postSelectionThreshold);
+    eslogger(2,'  ## %2d resonances below relative intensity threshold %f',numel(idxWeakResonances),postSelectionThreshold);
   else
-    logmsg(2,'  ## all resonances above relative intensity threshold %f',postSelectionThreshold);
+    eslogger(2,'  ## all resonances above relative intensity threshold %f',postSelectionThreshold);
   end
 else
-  logmsg(2,'  ## no intensities computed, no intensity post-selection');
+  eslogger(2,'  ## no intensities computed, no intensity post-selection');
 end
 
-if logmsg>=2
+if eslogger>=2
   partlyNaN = any(isnan(Pdat),2);
   nChopped = sum(partlyNaN);
   if nChopped>0
-    logmsg(2,'  ## %2d transitions partly out of range',nChopped);
+    eslogger(2,'  ## %2d transitions partly out of range',nChopped);
   end
-  logmsg(2,'  ## %2d transitions fully in range',nTransitions-sum(partlyNaN));
+  eslogger(2,'  ## %2d transitions fully in range',nTransitions-sum(partlyNaN));
 end
 
 % Detect and label out-of-range resonances
@@ -890,7 +888,7 @@ end
 
 idxOutOfRangeResonances = find(all(isnan(Pdat),2));
 if ~isempty(idxOutOfRangeResonances)
-  logmsg(2,'  ## %2d resonances completely out of range',numel(idxOutOfRangeResonances));
+  eslogger(2,'  ## %2d resonances completely out of range',numel(idxOutOfRangeResonances));
 end
 
 
@@ -898,7 +896,7 @@ end
 %----------------------------------------------
 idxRmv = [idxOutOfRangeResonances; idxWeakResonances];
 if numel(idxRmv)>0
-  logmsg(2,'  ## removing %2d resonances (below threshold, out of range)',numel(idxRmv));
+  eslogger(2,'  ## removing %2d resonances (below threshold, out of range)',numel(idxRmv));
   Pdat(idxRmv,:) = [];
   Transitions(idxRmv,:)=[];
   if computeIntensities, Idat(idxRmv,:) = []; end
@@ -911,10 +909,10 @@ if numel(idxRmv)>0
   end
 end
 nTransitions = size(Pdat,1);
-logmsg(2,'  ## %2d resonances left',nTransitions);
+eslogger(2,'  ## %2d resonances left',nTransitions);
 
 
-logmsg(1,'  %d significant transitions with resonances in range',nTransitions);
+eslogger(1,'  %d significant transitions with resonances in range',nTransitions);
 
 if nTransitions==0
   if ~isempty(Exp.Range)
@@ -932,18 +930,18 @@ end
 % Assert positive intensities, but only for thermal equilibrium populations
 if computeIntensities && (~computeNonEquiPops)
   if any(TransitionRates<0)
-    logmsg(-Inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
+    eslogger(-Inf,'*********** Negative intensity encountered in resfields!! Please report! **********');
   end
 end
 if any(Wdat(:)<0)
-  logmsg(-Inf,'*********** Negative width encountered in resfields!! Please report! **************');
+  eslogger(-Inf,'*********** Negative width encountered in resfields!! Please report! **************');
 end
 
 
 % Transition post-selection for perturbational nuclei
 %---------------------------------------------------------------------
 if nPerturbNuclei>0
-  logmsg(1,'  transition post-selection on perturbation nuclei');
+  eslogger(1,'  transition post-selection on perturbation nuclei');
   
   % Remove low-intensity lines from splittings
   for iiNuc = 1:nPerturbNuclei
@@ -959,7 +957,7 @@ end
 % Compute combined total shifts and amplitudes
 %---------------------------------------------------------------------
 if nPerturbNuclei>0
-  logmsg(1,'  combining shifts from perturbational nuclei');
+  eslogger(1,'  combining shifts from perturbational nuclei');
   
   % Prepare index matrices for line combinations
   for iiNuc = 2:nPerturbNuclei
@@ -1003,12 +1001,12 @@ end
 
 % Resonance data summary
 %-------------------------------------------------------------------------------
-logmsg(2,'  ## resonances min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
+eslogger(2,'  ## resonances min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
 if computeIntensities
-  logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
+  eslogger(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
 end
 if computeStrains && numel(Wdat)>0
-  logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
+  eslogger(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
 end
 
 % Reshape arrays in the case of crystals with multiple sites

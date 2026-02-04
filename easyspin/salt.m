@@ -67,10 +67,8 @@ if ~isstruct(Opt)
   error('The third input (Opt) must be a structure.');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 %==================================================================
 % Loop over species and isotopologues
@@ -118,9 +116,9 @@ end
 % Single-isotopologue spectrum
 %==================================================================
 
-logmsg(1,'=begin=salt=======%s=================',char(datetime));
-logmsg(2,'  log level %d',logmsg);
-logmsg(1,'-general-----------------------------------------------');
+eslogger(1,'=begin=salt=======%s=================',char(datetime));
+eslogger(2,'  log level %d',eslogger);
+eslogger(1,'-general-----------------------------------------------');
 
 
 % Processing spin system structure
@@ -137,7 +135,7 @@ end
 
 ConvolutionBroadening = any(Sys.lwEndor>0);
 
-logmsg(1,'  system with %d electron spin(s), %d nuclear spin(s), total %d states',...
+eslogger(1,'  system with %d electron spin(s), %d nuclear spin(s), total %d states',...
   Sys.nElectrons,Sys.nNuclei,Sys.nStates);
 
 if isfield(Sys,'ExciteWidth')
@@ -211,7 +209,7 @@ end
 % Check both CenterSweep and Range, prefer CenterSweep
 if ~isnan(Exp.CenterSweep)
   if ~isnan(Exp.Range)
-    logmsg(0,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
+    eslogger(0,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
   end
   if Exp.CenterSweep(2)<=0
     error('Sweep range in Exp.CenterSweep must be positive.');
@@ -246,7 +244,7 @@ if Opt.partiallyOrderedSample
   error('Partially ordered samples are not implemented in salt.')
 end
 
-if logmsg>=1
+if eslogger>=1
   if ~AutoRange
     msg = sprintf('field %g mT, rf range [%g %g] MHz, %d points',...
       Exp.Field,Exp.Range(1),Exp.Range(2),Exp.nPoints);
@@ -259,7 +257,7 @@ if logmsg>=1
   else
     msg = sprintf('mw not given, %s',msg);
   end
-  logmsg(1,'  %s',msg);
+  eslogger(1,'  %s',msg);
 end
 
 nonEquiPops = false;
@@ -268,11 +266,11 @@ if isfinite(Exp.Temperature)
 else
   msg = '  no temperature';
 end
-logmsg(1,msg);
+eslogger(1,msg);
 
 if Exp.Harmonic>0 && all(Sys.lwEndor==0)
-  logmsg(-Inf,'WARNING: Cannot compute derivative of a stick spectrum! Returning absorption spectrum.');
-  logmsg(-Inf,'WARNING:   Add a line width (strain or convolution) or set Harmonic=0.');
+  eslogger(-Inf,'WARNING: Cannot compute derivative of a stick spectrum! Returning absorption spectrum.');
+  eslogger(-Inf,'WARNING:   Add a line width (strain or convolution) or set Harmonic=0.');
   Exp.Harmonic = 0;
 end
 
@@ -427,14 +425,14 @@ Opt.DoPreSelection = ~crystalSample & Opt.OriPreSelect & ...
   Opt.OriThreshold>0 & isempty(Opt.OriWeights);
 
 if Opt.DoPreSelection
-  logmsg(1,'  computing orientations which fall into excitation window');
+  eslogger(1,'  computing orientations which fall into excitation window');
   OriSys = anisosubsys(Sys);
   OriExp = Exp;
   OriExp.Orientations = [Exp.phi;Exp.theta];
   Opt.OriWeights = orisel(OriSys,OriExp);
   Opt.OriWeights = Opt.OriWeights/max(Opt.OriWeights);
   str = '  %g percent of all orientations above relative threshold %g';
-  logmsg(1,sprintf(str,100*sum(Opt.OriWeights>Opt.OriThreshold)/nOrientations,Opt.OriThreshold));
+  eslogger(1,sprintf(str,100*sum(Opt.OriWeights>Opt.OriThreshold)/nOrientations,Opt.OriThreshold));
   %plot(Exp.theta*180/pi,Opt.OriWeights)
 end
 %==========================================================================
@@ -447,15 +445,15 @@ end
 %=======================================================================
 %=======================================================================
 
-logmsg(1,'-resonances--------------------------------------------');
+eslogger(1,'-resonances--------------------------------------------');
 MethodName = {'  method: matrix diagonalization','  method: perturbation theory'};
-logmsg(1,MethodName{Method});
-logmsg(2,'  -endorfrq start-----------------------------------');
+eslogger(1,MethodName{Method});
+eslogger(2,'  -endorfrq start-----------------------------------');
 switch Method
   case 1, [Pdat,Idat,Transitions,Info] = endorfrq(Sys,Exp,Opt);
   case 2, [Pdat,Idat,Transitions,Info] = endorfrq_perturb(Sys,Exp,Opt);
 end
-logmsg(2,'  -endorfrq end-------------------------------------');
+eslogger(2,'  -endorfrq end-------------------------------------');
 nTransitions = size(Pdat,1);
 anisotropicWidths = false;
 
@@ -464,16 +462,16 @@ if nTransitions==0
       'Check frequency range, magnetic field and transition selection.'],...
     Exp.Range(1),Exp.Range(2),Exp.Field);
 end
-logmsg(1,'  %d transitions with resonances in range',nTransitions);
-logmsg(2,'  positions min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
+eslogger(1,'  %d transitions with resonances in range',nTransitions);
+eslogger(2,'  positions min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
 
 anisotropicIntensities = numel(Idat)>1;
 if anisotropicIntensities
-  logmsg(2,'  amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
+  eslogger(2,'  amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
 end
 
 if suppliedOriWeights
-  logmsg(1,'  user supplied OriWeights: including them in intensity');
+  eslogger(1,'  user supplied OriWeights: including them in intensity');
   if Opt.IncludeOriWeights
     for iT = 1:nTransitions
       Idat(iT,:) = Idat(iT,:).*Opt.OriWeights;
@@ -507,7 +505,7 @@ xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
 % interpolation and projection is not advisable.
 
 if Info.Selectivity>0
-  logmsg(1,'  orientation selection: %g (<1 very weak, 1 weak, 10 strong, >10 very strong)',Info.Selectivity);
+  eslogger(1,'  orientation selection: %g (<1 very weak, 1 weak, 10 strong, >10 very strong)',Info.Selectivity);
   GridTooCoarse = (Opt.GridSize(1)/Opt.minEffKnots<Info.Selectivity);
   if GridTooCoarse && ~crystalSample
     fprintf('  ** Warning: Strong orientation selection ********************************\n');
@@ -519,7 +517,7 @@ if Info.Selectivity>0
     fprintf('  *************************************************************************\n');
   end
 else
-  logmsg(1,'  orientation selection: none');
+  eslogger(1,'  orientation selection: none');
 end
 
 %=======================================================================
@@ -533,7 +531,7 @@ end
 % The interpolation and projection algorithms depend
 % on the symmetry of the data.
 
-logmsg(1,'-absorption spectrum construction----------------------');
+eslogger(1,'-absorption spectrum construction----------------------');
 
 NaN_in_Pdat = any(isnan(Pdat),2);
 if any(NaN_in_Pdat)
@@ -557,7 +555,7 @@ if ~BruteForceSum
     Template.lw = Template.x/2.5; %<1e-8 at borders for Harmonic = -1
     Template.y = gaussian(0:2*Template.x-1,Template.x,Template.lw,-1);
   end
-  logmsg(1,'  %s',msg);
+  eslogger(1,'  %s',msg);
 
   % Preparations for interpolation
   %-----------------------------------------------------------------------
@@ -587,7 +585,7 @@ if ~BruteForceSum
     msg = '  interpolation off';
   end
   nfKnots = (Opt.GridSize(1)-1)*Opt.GridSize(2) + 1;
-  logmsg(1,msg);
+  eslogger(1,msg);
 
   % Pre-allocation of spectral array
   %-----------------------------------------------------------------------
@@ -604,7 +602,7 @@ if ~BruteForceSum
     nSpectra = 1;
   end
   spec = zeros(nSpectra,Exp.nPoints);
-  logmsg(1,'  spectrum array size: %dx%d %s',size(spec,1),size(spec,2),msg);  
+  eslogger(1,'  spectrum array size: %dx%d %s',size(spec,1),size(spec,2),msg);  
 
 
   % Spectrum construction
@@ -626,7 +624,7 @@ if ~BruteForceSum
       end
       for iSite = 1:nSites
         if separateSiteSpectra, spcidx = spcidx + 1; end
-        %logmsg(3,'  orientation %d of %d',iOri,nOrientations);
+        %eslogger(3,'  orientation %d of %d',iOri,nOrientations);
 
         thisPos = Pdat(:,iOriSite);
         if anisotropicIntensities, thisInt = Idat(:,iOriSite); end
@@ -658,7 +656,7 @@ if ~BruteForceSum
 
     spcidx = 0;
     for iTrans = 1:nTransitions
-      %logmsg(3,'  transition %d of %d',iTrans,nTransitions);
+      %eslogger(3,'  transition %d of %d',iTrans,nTransitions);
 
       thisPos = Pdat(iTrans,:);
       if anisotropicIntensities, thisInt = Idat(iTrans,:); end
@@ -692,7 +690,7 @@ if ~BruteForceSum
       end
       fSegWeights = -diff(cos(fthe))*4*pi; % sum is 4*pi
 
-      logmsg(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
+      eslogger(1,'  total %d segments, %d transitions',numel(fthe)-1,nTransitions);
 
     else % nonaxial symmetry
       if doInterpolation
@@ -707,7 +705,7 @@ if ~BruteForceSum
       idxTri = tri.idx.';
       Areas = tri.areas;
 
-      logmsg(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
+      eslogger(1,'  total %d triangles (%d orientations), %d transitions',size(idxTri,2),numel(fthe),nTransitions);
     end
 
     if ~anisotropicIntensities, fInt = ones(size(fthe)); end
@@ -799,7 +797,7 @@ if ~BruteForceSum
     end % for iTrans
 
     if ~doProjection
-      logmsg(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
+      eslogger(1,'  Smoothness: overall %0.4g, worst %0.4g\n   (<0.5: probably bad, 0.5-3: ok, >3: overdone)',sumBroadenings/nBroadenings,minBroadening);
     end
 
   end
@@ -807,9 +805,9 @@ if ~BruteForceSum
 
 else % if ~BruteForceSum else ...
 
-  logmsg(1,'  no interpolation',nOrientations);
-  logmsg(1,'  constructing stick spectrum');
-  logmsg(1,'  summation over %d orientations',nOrientations);
+  eslogger(1,'  no interpolation',nOrientations);
+  eslogger(1,'  constructing stick spectrum');
+  eslogger(1,'  summation over %d orientations',nOrientations);
   spec = zeros(1,Exp.nPoints);
   prefactor = (Exp.nPoints-1)/(Exp.Range(2)-Exp.Range(1));
   for k = 1:nOrientations
@@ -838,11 +836,11 @@ end
 %=======================================================================
 %                         Final activities
 %=======================================================================
-logmsg(1,'-final-------------------------------------------------');
+eslogger(1,'-final-------------------------------------------------');
 
 % Convolution with line shape.
 %-----------------------------------------------------------------------
-logmsg(1,'  harmonic %d',Exp.Harmonic);
+eslogger(1,'  harmonic %d',Exp.Harmonic);
 if ConvolutionBroadening
   fwhmG = Sys.lwEndor(1);
   fwhmL = Sys.lwEndor(2);
@@ -862,13 +860,13 @@ if ConvolutionBroadening
     exceedsHigherLimit = any(spec(:,end)~=0);
     if exceedsLowerLimit
       if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower and upper frequency limits possible.');
+        eslogger(0,'** Spectrum exceeds frequency range. Artifacts at lower and upper frequency limits possible.');
       else
-        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower frequency limit possible.');
+        eslogger(0,'** Spectrum exceeds frequency range. Artifacts at lower frequency limit possible.');
       end
     else
       if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at upper frequency limit possible.');
+        eslogger(0,'** Spectrum exceeds frequency range. Artifacts at upper frequency limit possible.');
       end
     end
     if  exceedsLowerLimit || exceedsHigherLimit
@@ -883,7 +881,7 @@ if ConvolutionBroadening
   % Lorentzian broadening
   if fwhmL~=0
     if fwhmL>2*Exp.deltaX
-      logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
+      eslogger(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
       if min(size(spec))==1, fwhm = [fwhmL 0]; else, fwhm = [0 fwhmL]; end
       spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
     else
@@ -898,7 +896,7 @@ if ConvolutionBroadening
   % Gaussian broadening
   if fwhmG~=0
     if fwhmG>2*Exp.deltaX
-      logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
+      eslogger(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
       if min(size(spec))==1, fwhm = [fwhmG 0]; else, fwhm = [0 fwhmG]; end
       spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
     else
@@ -919,16 +917,16 @@ if ConvolutionBroadening
   end
 
 else
-  logmsg(1,'  no linewidth given: returning stick spectrum');
+  eslogger(1,'  no linewidth given: returning stick spectrum');
   
   if Exp.Harmonic>0
-    logmsg(1,'  harmonic %d: using differentiation',Exp.Harmonic);
+    eslogger(1,'  harmonic %d: using differentiation',Exp.Harmonic);
     for h = 1:Exp.Harmonic
       dspec = diff(spec,[],2)/Exp.deltaX;
       spec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
     end
   else
-    logmsg(1,'  harmonic 0: returning absorption spectrum');
+    eslogger(1,'  harmonic 0: returning absorption spectrum');
   end
 
 end
@@ -959,9 +957,9 @@ end
 % Report performance.
 %-----------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
-logmsg(1,'salt took %s',hmsString);
+eslogger(1,'salt took %s',hmsString);
 
-logmsg(1,'=end=salt=========%s=================\n',char(datetime));
+eslogger(1,'=end=salt=========%s=================\n',char(datetime));
 
 end
 

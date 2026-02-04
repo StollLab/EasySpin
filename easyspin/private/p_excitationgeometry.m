@@ -63,7 +63,7 @@ else
   error('Exp.mwMode must be ''perpendicular'' or ''parallel'' or a 2-element cell array.');
 end
 
-logmsg(1,'  microwave excitation mode: %s',logstr);
+eslogger(1,'  microwave excitation mode: %s',logstr);
 
 % Parse k
 %-------------------------------------------------------------------------------

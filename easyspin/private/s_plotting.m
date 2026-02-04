@@ -21,7 +21,7 @@ else
 end
 
 % Set up figures
-logmsg(1,'  setting up figures...');
+eslogger(1,'  setting up figures...');
 % only make figures if a) transients were detected or b) single point
 % detection with indirect dimension (but not more than 2) and more
 % than one acquisition point
@@ -71,7 +71,7 @@ TransientLabel = 'time (\mus)';
 
 % plotting single point detection
 if Opt.SinglePointDetection
-  logmsg(1,'  single point detection:');
+  eslogger(1,'  single point detection:');
   if nDataPoints == 1
     % if only a single datapoint was acquired, there is no point in
     % plotting it, instead the output is displayed in the console
@@ -87,11 +87,11 @@ if Opt.SinglePointDetection
     if length(Exp.nPoints) > 2
       % more than two dimensions can not be displayed in a general
       % way
-      logmsg(1,'  more than two indirect dimensions - stopping');
+      eslogger(1,'  more than two indirect dimensions - stopping');
       disp('Unable to display more than two indirect dimensions.')
     elseif isscalar(Exp.nPoints)
       % one dimensional case
-      logmsg(1,'  creating plot(s) for one indirect dimension');
+      eslogger(1,'  creating plot(s) for one indirect dimension');
       for iDetOp = 1 : nDetOps
         figure
         plot(AxesIndirectDims{1},real(squeeze(Signal(:,1,iDetOp))));
@@ -100,7 +100,7 @@ if Opt.SinglePointDetection
       end
     elseif length(Exp.nPoints) == 2
       % two dimensional case
-      logmsg(1,'  creating plot(s) for two indirect dimensions');
+      eslogger(1,'  creating plot(s) for two indirect dimensions');
       for iDetOp = 1 : nDetOps
         figure(iDetOp)
         surf(AxesIndirectDims{1},AxesIndirectDims{2},real(squeeze(Signal(:,:,1,iDetOp)')));
@@ -118,11 +118,11 @@ else
   if isfield(Exp,'nPoints') && length(Exp.nPoints) > 1
     % more than 1 indirect dimension in combination with transient
     % detection can not be displayed
-    logmsg(1,'  more than one indirect dimension in combination with transient - can not plot this - stopping');
+    eslogger(1,'  more than one indirect dimension in combination with transient - can not plot this - stopping');
     disp('Unable to display more than two indirect dimensions in combination with transient detection.')
   else
     % plotting transients
-    logmsg(1,'  plotting transient(s)');
+    eslogger(1,'  plotting transient(s)');
     if nDataPoints == 1
       % plotting a single acquisition point
       for iDetOp = 1 : nDetOps

@@ -24,13 +24,13 @@ info = struct;
 if ~iscell(Sys), Sys = {Sys}; end
 
 nComponents = numel(Sys);
-logmsg(1,'  number of component spin systems: %d',nComponents);
+eslogger(1,'  number of component spin systems: %d',nComponents);
 
 % Determine isotopologues for each component
 for c = 1:nComponents
   SysList{c} = isotopologues(Sys{c},Opt.IsoCutoff);  %#ok
   nIsotopologues(c) = numel(SysList{c});  %#ok
-  logmsg(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
+  eslogger(1,'    component %d: %d isotopologues',c,nIsotopologues(c));
 end
 nTotalComponents = sum(nIsotopologues);
 

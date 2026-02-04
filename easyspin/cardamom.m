@@ -186,10 +186,8 @@ switch nargout
     error('Incorrect number of output arguments.');
 end
 
-if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 0; % Log level
-end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Check Sys
 % -------------------------------------------------------------------------
@@ -209,7 +207,7 @@ end
 % Check Exp
 %-------------------------------------------------------------------------------
 
-logmsg(1,'Experimental settings:');
+eslogger(1,'Experimental settings:');
 [Exp,FieldSweep,CenterField,CenterFreq,~] = validate_exp('cardamom',Sys,Exp);
 
 if FieldSweep
@@ -248,7 +246,7 @@ useMD = ~isempty(MD);
 % Check MD
 %-------------------------------------------------------------------------------
 if useMD
-  logmsg(1,'  using MD trajectory data');
+  eslogger(1,'  using MD trajectory data');
   
   if ~isfield(MD,'dt')
     error('The MD trajectory time step MD.dt must be given.')
@@ -308,17 +306,17 @@ if useMD
   end
   clear RTrajInv
   
-  logmsg(1,'    label: %s',MD.LabelName);
-  logmsg(1,'    number of trajectories: %d',MD.nTraj);
-  logmsg(1,'    number of time steps: %d',MD.nSteps);
-  logmsg(1,'    size of time step: %g ps',MD.dt/1e-12);
-  logmsg(1,'    remove global diffusion: %d',MD.removeGlobal);
+  eslogger(1,'    label: %s',MD.LabelName);
+  eslogger(1,'    number of trajectories: %d',MD.nTraj);
+  eslogger(1,'    number of time steps: %d',MD.nSteps);
+  eslogger(1,'    size of time step: %g ps',MD.dt/1e-12);
+  eslogger(1,'    remove global diffusion: %d',MD.removeGlobal);
   
   % Build Markov state model
   if strcmp(LocalDynamicsModel,'MD-HMM')
-    logmsg(1,'Building HMM model');
+    eslogger(1,'Building HMM model');
     if isfield(MD,'HMM')
-      logmsg(1,'  using provided HMM parameters');
+      eslogger(1,'  using provided HMM parameters');
       
       HMM = MD.HMM;
       if ~isfield(HMM,'TransProb')
@@ -335,7 +333,7 @@ if useMD
       end
       
     else
-      logmsg(1,'  constructing HMM from MD');
+      eslogger(1,'  constructing HMM from MD');
 
       nLag = round(MD.tLag/MD.dt);
       HMM = mdhmm(MD.dihedrals,MD.dt,MD.nStates,nLag,Opt);
@@ -373,11 +371,11 @@ if useMD && strcmp(LocalDynamicsModel,'MD-HBD') && ~dynamInfoGiven
   % estimate rotational diffusion tensor
   % currently only supports a single MD trajectory
   % TODO: make this work for multiple MD trajectories
-  logmsg(1,'Sys.Diff not specified, estimating from MD trajectory data')
+  eslogger(1,'Sys.Diff not specified, estimating from MD trajectory data')
   stopFitT = floor(MD.nSteps/2)*MD.dt;
   [Sys.Diff, ~, ~] = runprivate('cardamom_estimatedifftensor',...
                                 squeeze(MD.FrameTraj), MD.dt, stopFitT);
-  logmsg(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/µs',Sys.Diff/1e6);
+  eslogger(1,'Estimated Sys.Diff eigenvalues:  (%g, %g, %g) rad^2/µs',Sys.Diff/1e6);
 end
 
 Dynamics = validate_dynord('cardamom',Sys,FieldSweep,isDiffSim);
@@ -501,18 +499,18 @@ if ~isfield(Par,'nOrients')
   Par.nOrients = 100;
 end
 
-logmsg(1,'Parameter settings:');
-logmsg(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
+eslogger(1,'Parameter settings:');
+eslogger(1,'  Local dynamics model:   ''%s''',LocalDynamicsModel);
 if includeGlobalDynamics
-  logmsg(1,'  Global correlation time:  %g rad^2/µs',Dynamics.DiffGlobal/1e6);
+  eslogger(1,'  Global correlation time:  %g rad^2/µs',Dynamics.DiffGlobal/1e6);
 else
-  logmsg(1,'  Global correlation time:  none');
+  eslogger(1,'  Global correlation time:  none');
 end  
-logmsg(1,'  Number of orientations: %d',Par.nOrients);
-logmsg(1,'  Number of trajectories: %d',Par.nTraj);
-logmsg(1,'  Spin propagation:       %d steps of %g ns (%g ns total)',nStepsSpin,dtSpin/1e-9,nStepsSpin*dtSpin/1e-9);
-logmsg(1,'  Spatial propagation:    %d steps of %g ns (%g ns total)',nStepsSpatial,dtSpatial/1e-9,nStepsSpatial*dtSpatial/1e-9);
-logmsg(1,'  Lag time:               %g MD steps',Par.lag);
+eslogger(1,'  Number of orientations: %d',Par.nOrients);
+eslogger(1,'  Number of trajectories: %d',Par.nTraj);
+eslogger(1,'  Spin propagation:       %d steps of %g ns (%g ns total)',nStepsSpin,dtSpin/1e-9,nStepsSpin*dtSpin/1e-9);
+eslogger(1,'  Spatial propagation:    %d steps of %g ns (%g ns total)',nStepsSpatial,dtSpatial/1e-9,nStepsSpatial*dtSpatial/1e-9);
+eslogger(1,'  Lag time:               %g MD steps',Par.lag);
 
 
 % Check local dynamics model
@@ -605,8 +603,8 @@ end
 
 % Run simulation
 %-------------------------------------------------------------------------------
-logmsg(1,'Quantum propagation method: ''%s''',Opt.Method);
-logmsg(1,'Running simulation');
+eslogger(1,'Quantum propagation method: ''%s''',Opt.Method);
+eslogger(1,'Running simulation');
 
 clear cardamom_propagatedm % to clear persistent variables in function
 

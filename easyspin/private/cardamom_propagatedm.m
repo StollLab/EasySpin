@@ -42,7 +42,7 @@ persistent cacheTensors cacheD2Traj gTensorState ATensorState
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0;
 end
-logmsg(Opt.Verbosity);
+eslogger(Opt.Verbosity);
 
 % Preprocessing
 %-------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ switch PropagationMethod
     %---------------------------------------------------------------------------
     RTrajInv = permute(Par.RTraj,[2,1,3,4]);
     if ~isHMMfromMD
-      logmsg(2,'  calculating tensor trajectories from orientational trajectories');
+      eslogger(2,'  calculating tensor trajectories from orientational trajectories');
       % Calculate time-dependent tensors from orientational trajectories
       gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
       if includeHF
@@ -123,7 +123,7 @@ switch PropagationMethod
       % Calculate the average interaction tensors for each state using
       % MD-derived frame trajectories and Viterbi state trajectories
       if isempty(gTensorState)
-        logmsg(2,'  calculating tensor trajectories from orientational trajectories');
+        eslogger(2,'  calculating tensor trajectories from orientational trajectories');
         % Perform MD-derived rotations on g- and A-tensors
         gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
         if includeHF
@@ -131,7 +131,7 @@ switch PropagationMethod
         end
         
         % Average over time axis
-        logmsg(1,'  calculating state averages of tensors');
+        eslogger(1,'  calculating state averages of tensors');
         nVitTraj = size(MD.viterbiTraj,1);
         gTensorState = zeros(3,3,MD.nStates,nVitTraj);
         if includeHF
@@ -156,7 +156,7 @@ switch PropagationMethod
       
       % Calculate new time-dependent tensors from state trajectories
       % generated using optimized HMM parameters
-      logmsg(2,'  calculating tensor trajectories from state trajectories');
+      eslogger(2,'  calculating tensor trajectories from state trajectories');
       gTensor = zeros(3,3,nSteps,nTraj);
       if includeHF
         ATensor = zeros(3,3,nSteps,nTraj);
@@ -176,7 +176,7 @@ switch PropagationMethod
     % Coarse-grain tensor trajectories by block averaging
     %---------------------------------------------------------------------------
     if doBlockAveraging
-      logmsg(2,'  coarse-graining with tensor averaging, block length %d frames',Par.BlockLength);
+      eslogger(2,'  coarse-graining with tensor averaging, block length %d frames',Par.BlockLength);
       nBlocks = floor(size(gTensor,3)/Par.BlockLength);
       gTensorBlock = zeros(3,3,nBlocks,size(gTensor,4));
       if includeHF
@@ -191,7 +191,7 @@ switch PropagationMethod
         idxBlock = idxBlock + Par.BlockLength;
       end
     else
-      logmsg(2,'  no coarse-graining tensor averaging');
+      eslogger(2,'  no coarse-graining tensor averaging');
       gTensorBlock = gTensor;
       if includeHF
         ATensorBlock = ATensor;
@@ -201,7 +201,7 @@ switch PropagationMethod
     % Sliding window processing: generate multiple trajectories from single one
     %---------------------------------------------------------------------------
     if doSlidingWindowProcessing
-      logmsg(2,'  sliding window processing, increment %d',Par.lag);
+      eslogger(2,'  sliding window processing, increment %d',Par.lag);
       gTensor = zeros(3,3,nSteps,nTraj);
       if includeHF
         ATensor = zeros(3,3,nSteps,nTraj);
@@ -218,7 +218,7 @@ switch PropagationMethod
         end
       end
     else
-      logmsg(2,'  no sliding window processing');
+      eslogger(2,'  no sliding window processing');
       gTensor = gTensorBlock;
       if includeHF
         ATensor = ATensorBlock;
@@ -227,7 +227,7 @@ switch PropagationMethod
     
     % Combine local and global dynamics
     %---------------------------------------------------------------------------
-    logmsg(2,'  combine local with global dynamics');
+    eslogger(2,'  combine local with global dynamics');
     if ~isempty(Par.RLab)
       RLabInv = permute(Par.RLab,[2,1,3,4]);
       gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
@@ -298,7 +298,7 @@ switch PropagationMethod
     
     % Propagate density matrix
     %---------------------------------------------------------------------------
-    logmsg(2,'  propagate density matrix');
+    eslogger(2,'  propagate density matrix');
     Sprho = propagate(rho,U,nSteps,PropagationMethod);
     
     % Average over trajectories (4th dimension)

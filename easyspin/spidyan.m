@@ -52,21 +52,19 @@ if ~isstruct(Opt)
   error('Third input argument (Opt) must be a structure!');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
-logmsg(1,'=begin=spidyan====%s=================',char(datetime));
-logmsg(2,'  log level %d',logmsg);
+eslogger(1,'=begin=spidyan====%s=================',char(datetime));
+eslogger(2,'  log level %d',eslogger);
 
 % Preprocess Input
 %-------------------------------------------------------------------------------
 
 % Check for magnetic field
 if ~isfield(Exp,'Field')
-  logmsg(1,'  no Exp.Field given');
-  logmsg(1,'  checking if Sys allows for running without a field...');
+  eslogger(1,'  no Exp.Field given');
+  eslogger(1,'  checking if Sys allows for running without a field...');
   if isfield(Sys,'g')
     error('Exp.Field is required for Sys.g.')
   elseif Sys.ZeemanFreq % && (~isfield(Sys,'S') || all(Sys.S==1/2))
@@ -75,8 +73,8 @@ if ~isfield(Exp,'Field')
     % to calculate nuclear Larmor frequencies (if nuclei are given). The
     % program does so, by "guessing" a field from Sys.ZeemanFreq and gfree
     Exp.Field = (Sys.ZeemanFreq(1)*1e6)*planck/bmagn/(gfree*1e-6);
-    logmsg(1,'  Exp.Field is needed for calculating simulation frame frequencies');
-    logmsg(1,'  setting Exp.Field to %.1f mT',Exp.Field);
+    eslogger(1,'  Exp.Field is needed for calculating simulation frame frequencies');
+    eslogger(1,'  setting Exp.Field to %.1f mT',Exp.Field);
   else
     error('Exp.Field is required for given spin system.')
   end  
@@ -105,7 +103,7 @@ if nargout == 0 && isfield(Exp,'nPoints')
 end
 
 % Adapt Zeeman frequencies for the selected simulation frame
-logmsg(1,'-validating spin system--------------------------------');
+eslogger(1,'-validating spin system--------------------------------');
 
 if ~isfield(Sys,'S')
  if isfield(Sys,'ZeemanFreq') && ~isscalar(Sys.ZeemanFreq)
@@ -114,7 +112,7 @@ if ~isfield(Sys,'S')
 end
 
 if isfield(Sys,'ZeemanFreq') && Opt.FrameShift ~= 0
-  logmsg(1,'adapting Sys.ZeemanFreq to the simulation frame');
+  eslogger(1,'adapting Sys.ZeemanFreq to the simulation frame');
   Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
 end
 
@@ -127,7 +125,7 @@ if isfield(Sys,'g')
   end
   
   if Opt.FrameShift~=0
-    logmsg(1,'  adapting Sys.g to the simulation frame');
+    eslogger(1,'  adapting Sys.g to the simulation frame');
   end
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
@@ -142,7 +140,7 @@ end
 
 % Translate Frequency to g values
 if isfield(Sys,'ZeemanFreq')
-  logmsg(1,'  translating Sys.ZeemanFreq into g values');
+  eslogger(1,'  translating Sys.ZeemanFreq into g values');
   Sys.ZeemanFreq = Sys.ZeemanFreq*1000; % GHz -> MHz
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
@@ -160,7 +158,7 @@ end
 
 % Remove spidyan-specific field ZeemanFreq if given
 if isfield(Sys,'ZeemanFreq')
-  logmsg(1,'  removing Sys.ZeemanFreq from Sys structure');
+  eslogger(1,'  removing Sys.ZeemanFreq from Sys structure');
   Sys = rmfield(Sys,'ZeemanFreq');
 end
 
@@ -184,33 +182,33 @@ end
   
 
 % Validate and build spin system as well as excitation operators
-logmsg(1,'  parsing the Sys structure...');
+eslogger(1,'  parsing the Sys structure...');
 
 [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
 % Get Hamiltonian
-logmsg(1,'  computing lab frame Hamiltonian');
+eslogger(1,'  computing lab frame Hamiltonian');
 H = ham(Sys,Exp.Field*[0 0 1]);
 
 % Propagation
 %-------------------------------------------------------------------------------
 if ~isempty(Relaxation)
-  logmsg(1,'  adapting relaxation superoperator to system frame');
+  eslogger(1,'  adapting relaxation superoperator to system frame');
   [U,~] = eig(H);
   R = kron(transpose(U),(U'));
   Relaxation.Gamma = R'*Relaxation.Gamma*R;
 end
 
 % Calls the actual propagation engine
-logmsg(1,'-starting propagation----------------------------------');
-logmsg(1,'  depending on the Exp setup this may take a while...');
+eslogger(1,'-starting propagation----------------------------------');
+eslogger(1,'  depending on the Exp setup this may take a while...');
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
   s_thyme(Sigma, H, DetOps, Events, Relaxation, Vary);
-logmsg(1,'  propagation finished!');
+eslogger(1,'  propagation finished!');
 
 % Signal Processing
 %-------------------------------------------------------------------------------
-logmsg(1,'-validating and processing outout----------------------');
+eslogger(1,'-validating and processing outout----------------------');
 % Signal postprocessing, such as down conversion and filtering and
 % checking output of the timeaxis 
 
@@ -218,14 +216,14 @@ nDetOps = numel(DetOps); % number of detection operators
 
 % Applying detection phase
 if ~isempty(RawSignal) && isfield(Exp,'DetPhase')
-  logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
+  eslogger(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
   DetPhase = exp(-1i*Exp.DetPhase);
   
   RawSignal = applyPhaseShift(RawSignal,DetPhase);
 end
 
 if Opt.SinglePointDetection
-  logmsg(1,'  single point detection...');
+  eslogger(1,'  single point detection...');
   if isfield(Exp,'nPoints') && nDetOps ~= 1
     DimSignal =  ndims(RawSignal);
     Signal = permute(RawSignal,[1:(DimSignal-1) DimSignal+1 DimSignal]);
@@ -236,7 +234,7 @@ else
   if ~isempty(RawSignal)
     % Check if Exp.DetFreq and Exp.DetOperator have the same length
     if isfield(Exp,'DetFreq')
-      logmsg(1,'  veryfing Exp.DetFreq...');
+      eslogger(1,'  veryfing Exp.DetFreq...');
       if isfield(Exp,'DetOperator')
         if length(Exp.DetFreq) ~= length(Exp.DetOperator)
           error('Exp.DetOperator and Exp.DetFreq must contain the same number of elements.')
@@ -246,12 +244,12 @@ else
       end
     else
       if ~isfield(Exp,'DetOperator') && isfield(Exp,'mwFreq')
-        logmsg(1,'  using Exp.mwFreq as detection frequency');
+        eslogger(1,'  using Exp.mwFreq as detection frequency');
         Exp.DetFreq = Exp.mwFreq;
       end
     end
     
-    logmsg(1,'  processing transients...');
+    eslogger(1,'  processing transients...');
     
     % Adapt FreqTranslation if needed
     FreqTranslation = zeros(1,nDetOps);
@@ -280,7 +278,7 @@ else
       end
     end
   else
-    logmsg(1,'  nothing was detected...');
+    eslogger(1,'  nothing was detected...');
     Signal = [];
   end
 end
@@ -304,8 +302,8 @@ end
 switch nargout
   case 0
     % no output argument - graphical output
-    logmsg(1,'-no output requested------------------------------------');
-    logmsg(1,'  switching to graphical output');
+    eslogger(1,'-no output requested------------------------------------');
+    eslogger(1,'  switching to graphical output');
     if isempty(Signal)
       disp('Detection was switched off, nothing to display.')
     else
@@ -327,9 +325,9 @@ end
 % Report performance
 %-------------------------------------------------------------------------------
 hmsString = elapsedtime(StartTime,clock);
-logmsg(1,'spidyan took %s',hmsString);
+eslogger(1,'spidyan took %s',hmsString);
 
-logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
+eslogger(1,'=end=spidyan======%s=================\n',char(datetime));
 
 end
 

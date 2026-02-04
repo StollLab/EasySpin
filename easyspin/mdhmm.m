@@ -42,7 +42,7 @@ end
 
 if nargin<5, Opt = struct; end
 
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 if numel(nStates)~=1 || mod(nStates,1)~=0 || nStates<1
   error('nStates must be a positive integer.');
@@ -59,8 +59,6 @@ end
 % Reshape from (nDihedrals,nTraj,nSteps) to (nDihedrals,nSteps,nTraj)
 dihedrals = permute(dihedrals,[1,3,2]);
 
-logmsg(Opt.Verbosity);
-
 if ~isfield(Opt,'isSeeded')
   Opt.isSeeded = false;
 end
@@ -73,20 +71,20 @@ if ~isfield(Opt,'nTrials')
   end
 end
 
-logmsg(1,'-- HMM model building ----------------------------------');
+eslogger(1,'-- HMM model building ----------------------------------');
 
 nDihedrals = size(dihedrals,1);
 nSteps = size(dihedrals,2);
 nTraj = size(dihedrals,3);
-logmsg(1,'  %d dihedrals; %d time steps; %d trajectories',nDihedrals,nSteps,nTraj);
+eslogger(1,'  %d dihedrals; %d time steps; %d trajectories',nDihedrals,nSteps,nTraj);
 
 % Use k-means clustering etc to get initial estimates of HMM parameters
 %-------------------------------------------------------------------------------
-logmsg(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
+eslogger(1,'  clustering into %d clusters using k-means (%d repeats)',nStates,Opt.nTrials);
 
 % Set up initial cluster centroids if wanted
 if Opt.isSeeded
-  logmsg(1,'    using rotamer seeds');
+  eslogger(1,'    using rotamer seeds');
   
   if nDihedrals==5
     % Theoretical dihedral values for rotamers (in degrees)
@@ -115,7 +113,7 @@ if Opt.isSeeded
     error('No systematic seed available for spin labels other than R1.');
   end
 else
-  logmsg(1,'    using random seeds');
+  eslogger(1,'    using random seeds');
   chiStart = [];
 end
 
@@ -146,19 +144,19 @@ offset = 1;
 idx = offset:nLag:nSteps;
 dihedrals = dihedrals(:,idx,:);
 stateTraj = stateTraj(idx,:);
-logmsg(1,'  downsampling: offset %d, nLag %d -> %d time steps',...
+eslogger(1,'  downsampling: offset %d, nLag %d -> %d time steps',...
   offset,nLag,size(stateTraj,1));
 
 % Estimate transition probability matrix and initial distribution
 %-------------------------------------------------------------------------------
-logmsg(1,'  estimation of transition probability matrix and initial distribution');
+eslogger(1,'  estimation of transition probability matrix and initial distribution');
 [TransProb0,eqDistr0] = estimatemarkovparameters(stateTraj);
 initDistr0 = eqDistr0;
 
 % Optimize HMM parameters
 %-------------------------------------------------------------------------------
 % Determine/estimate HMM model parameters using expectation maximization
-logmsg(1,'  HMM optimization using EM algorithm');
+eslogger(1,'  HMM optimization using EM algorithm');
 [logLik, HMM.eqDistr,HMM.TransProb,HMM.mu,HMM.Sigma] = ...
   mdhmm_em(dihedrals,initDistr0,TransProb0,mu0,Sigma0,Opt.Verbosity);
 HMM.logLik = logLik(end);
@@ -166,7 +164,7 @@ HMM.logLik = logLik(end);
 % Calculate Viterbi state trajectory
 %-------------------------------------------------------------------------------
 % Determine most probable hidden-state trajectory
-logmsg(1,'  Viterbi state trajectories calculation');
+eslogger(1,'  Viterbi state trajectories calculation');
 HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,HMM.Sigma);
 
 % Identify and eliminate states not visited in Viterbi trajectory
@@ -174,7 +172,7 @@ HMM.viterbiTraj = viterbitrajectory(dihedrals,HMM.TransProb,HMM.eqDistr,HMM.mu,H
 visited = false(1,nStates);
 visited(unique(HMM.viterbiTraj)) = true;
 if any(~visited)
-  logmsg(1,'  Eliminating %d unvisited states from model',sum(~visited));
+  eslogger(1,'  Eliminating %d unvisited states from model',sum(~visited));
   newStateNumbers = cumsum(visited);
   HMM.viterbiTraj = newStateNumbers(HMM.viterbiTraj);
   HMM.mu = HMM.mu(:,visited);
@@ -190,14 +188,14 @@ HMM.tLag = nLag*dt;
 
 % Calculate relaxation times for the TPM and time lag
 %-------------------------------------------------------------------------------
-logmsg(1,'  Calculate relaxation times');
+eslogger(1,'  Calculate relaxation times');
 lambda = eig(HMM.TransProb);
 lambda = sort(real(lambda),1,'descend');
 lambda = lambda(lambda>0);
 HMM.tauRelax = -nLag*dt./log(lambda(2:end).'); % exclude constant eq. component
-logmsg(1,'    max: %0.3g s, min: %0.3g s',max(HMM.tauRelax),min(HMM.tauRelax));
+eslogger(1,'    max: %0.3g s, min: %0.3g s',max(HMM.tauRelax),min(HMM.tauRelax));
 
-logmsg(1,'-- done ------------------------------------------------');
+eslogger(1,'-- done ------------------------------------------------');
 
 end
 %===============================================================================

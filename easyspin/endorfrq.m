@@ -50,10 +50,8 @@ if isempty(Opt), Opt = struct; end
     error('Third input argument (Opt) must be a structure!');
   end
   
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Initialize optional output structure
 Info = struct;
@@ -248,7 +246,7 @@ ComputeVectors = ComputeIntensities;
 OrientationSelection = isfinite(Exp.ExciteWidth) & (Exp.ExciteWidth>0);
 
 if OrientationSelection
-  logmsg(2,'  including excitation width %g MHz',Exp.ExciteWidth);
+  eslogger(2,'  including excitation width %g MHz',Exp.ExciteWidth);
 end
 
 nStates = Sys.nStates; % state space dimension
@@ -265,8 +263,8 @@ nStates = Sys.nStates; % state space dimension
 % transition is equal to 1.
 
 if isempty(Opt.Transitions)
-  logmsg(1,'  automatic transition selection');
-  logmsg(2,'    (threshold %g, grid size %d, grid symmetry %s)',Opt.Threshold,Opt.TPSGridSize,Opt.TPSGridSymm);
+  eslogger(1,'  automatic transition selection');
+  eslogger(2,'    (threshold %g, grid size %d, grid symmetry %s)',Opt.Threshold,Opt.TPSGridSize,Opt.TPSGridSymm);
   
   % Set a coarse grid, independent of the effective symmetry of
   % the Hamiltonian.
@@ -341,7 +339,7 @@ if isempty(Opt.Transitions)
   clear idx unused TransitionRates;
   
 else % User-specified transitions present.
-  logmsg(1,'  using %d user-specified transitions',size(Opt.Transitions,1));
+  eslogger(1,'  using %d user-specified transitions',size(Opt.Transitions,1));
   % Guarantee that lower index comes first (gives later u < v).
   Transitions = sort(Opt.Transitions,2);
 end
@@ -352,8 +350,8 @@ nTransitions = length(u);
 TRidx = u + (v-1)*nStates; % Indices into UPPER triangle.
 
 % Diagnostic display.
-logmsg(1,'  %d transitions selected',nTransitions);
-if logmsg>=3, disp(Transitions); end
+eslogger(1,'  %d transitions selected',nTransitions);
+if eslogger>=3, disp(Transitions); end
 
 % Issue a warning if the resulting transition list is empty.
 if isempty(Transitions)
@@ -371,7 +369,7 @@ end
 % Display information on what is going to be computed.
 msg = '  computing peak positions';
 if (ComputeIntensities), msg = [msg ', intensities']; end
-logmsg(1,msg);
+eslogger(1,msg);
 
 % Preallocations.
 Pdat = NaN(nTransitions,nOrientations);
@@ -415,7 +413,7 @@ end
 
 % Keep only orientations with weights above weight threshold.
 if UseOriWeights
-  logmsg(1,'  user-supplied orientation pre-selection: skipping %d of %d orientations',...
+  eslogger(1,'  user-supplied orientation pre-selection: skipping %d of %d orientations',...
     sum(Opt.OriWeights<Opt.OriThreshold),nOrientations);
 end
 
@@ -425,7 +423,7 @@ startTime = cputime;
 logstr = '';
 for iOri = 1:nOrientations
   
-  if logmsg>=1
+  if eslogger>=1
     if iOri>1
       remainingTime = (cputime-startTime)/(iOri-1)*(nOrientations-iOri+1);
       backspace = repmat(sprintf('\b'),1,numel(logstr));
@@ -569,10 +567,10 @@ end % for all orientations
 % Compute selectivity.
 if (OrientationSelection)
   Selectivity = (maxEPRfreq-minEPRfreq)/minExWidth;
-  logmsg(2,'  limited excitation width, selectivity %g',Selectivity);
+  eslogger(2,'  limited excitation width, selectivity %g',Selectivity);
 else
   Selectivity = 0;
-  logmsg(2,'  infinite excitation width');
+  eslogger(2,'  infinite excitation width');
 end
 
 % Information structure

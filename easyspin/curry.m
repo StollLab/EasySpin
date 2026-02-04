@@ -69,16 +69,16 @@ if ~isstruct(Opt)
   error('Opt (third input argument) must be a structure or a string.');
 end
 
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
-logmsg(1,'=begin=curry======%s=================',char(datetime));
+eslogger(1,'=begin=curry======%s=================',char(datetime));
 
 doPlot = (nargout==0);
 
 % Spin system
 %-------------------------------------------------------------------------------
-logmsg(1,'Spin system');
+eslogger(1,'Spin system');
 if iscell(Sys)
   error('curry does not support calculations with multiple components.');
 end
@@ -88,7 +88,7 @@ end
 
 % Experimental parameters
 %-------------------------------------------------------------------------------
-logmsg(1,'Experimental parameters');
+eslogger(1,'Experimental parameters');
 
 % Supply defaults
 DefaultExp.SampleFrame = [];
@@ -118,7 +118,7 @@ if ~isfield(Exp,'Field')
 end
 B = Exp.Field/1e3;  % magnetic field, T
 nFields = numel(B);
-logmsg(1,'  number of field values: %d',nFields);
+eslogger(1,'  number of field values: %d',nFields);
 
 % Temperature
 if ~isfield(Exp,'Temperature')
@@ -127,7 +127,7 @@ end
 
 T = reshape(Exp.Temperature,1,[]);  % temperature, K
 nTemperatures = numel(T);
-logmsg(1,'  number of temperature values: %d',nTemperatures);
+eslogger(1,'  number of temperature values: %d',nTemperatures);
 
 if any(T<0)
   error('Negative temperatures are not possible.')
@@ -144,15 +144,15 @@ if Opt.partiallyOrderedSample
 end
 
 if disorderedSample
-  logmsg(1,'  powder calculation');
+  eslogger(1,'  powder calculation');
 else
-  logmsg(1,'  crystal calculation');
+  eslogger(1,'  crystal calculation');
 end
 
 
 % Options
 %-------------------------------------------------------------------------------
-logmsg(1,'Options');
+eslogger(1,'Options');
 
 % Obsolete options
 if isfield(Opt,'nKnots')
@@ -162,7 +162,7 @@ end
 if ~isfield(Opt,'GridSize')
   Opt.GridSize = 10;
 end
-logmsg(1,'  grid size: %d',Opt.GridSize);
+eslogger(1,'  grid size: %d',Opt.GridSize);
 if ~isfield(Opt,'GridSymmetry')
   Opt.GridSymmetry = [];  % needed for p_gridsetup
 end
@@ -187,7 +187,7 @@ if ~isfield(Opt,'Output')
       error('Incorrect number of outputs (1 or 2 expected if Opt.Output is not given.');
   end
 end
-logmsg(1,'  output: %s',Opt.Output);
+eslogger(1,'  output: %s',Opt.Output);
 
 calculateMu = nargout==0;
 calculateChi = nargout==0 || nargout>1;
@@ -213,7 +213,7 @@ for k = 1:numel(keywords)
       error('''%s'' keyword in Opt.Output is not known.',keywords{k});
   end
 end
-logmsg(1,'  number of outputs: %d',numel(keywords));
+eslogger(1,'  number of outputs: %d',numel(keywords));
 
 if calculateMuVec && doPlot
   error('Cannot plot results when calculating full magentic moment vector.');
@@ -230,7 +230,7 @@ switch upper(Opt.Units)
     error('Unknown units ''%s'' in Opt.Units. Use either ''SI'' or ''CGS''.',...
       Opt.Units);
 end
-logmsg(1,' units: %s',upper(Opt.Units));
+eslogger(1,' units: %s',upper(Opt.Units));
 
 % Parse calculation method in Opt.Method
 if ~isfield(Opt,'Method')
@@ -244,7 +244,7 @@ switch lower(Opt.Method)
   otherwise
     error('Opt.Method can be ''operator'' or ''partitionfunction''!');
 end
-logmsg(1,'  calculation method: %s',Opt.Method);
+eslogger(1,'  calculation method: %s',Opt.Method);
 
 % Spin indices for spin-selective magnetic moment calculation
 if ~isfield(Opt,'Spins')
@@ -264,7 +264,7 @@ end
 % zero-field Hamiltonian H0 (MHz)
 % magnetic dipole moment operators muOpxM, muOpyM, muOpzM (MHz/mT)
 %   all are in the molecular frame
-logmsg(1,'-Hamiltonian-------------------------------------------')
+eslogger(1,'-Hamiltonian-------------------------------------------')
 [H0,muOpxM,muOpyM,muOpzM] = ham(Sys);
 if ~isempty(Opt.Spins)
   [muOpxM,muOpyM,muOpzM] = ham_ez(Sys,Opt.Spins);
@@ -309,11 +309,11 @@ calcmu = @(Vecs,muOp,pop) (real(diag(Vecs'*muOp*Vecs)).'*pop)./sum(pop,1);
 getmuproj = @(nM) nM(1)*muOpxM + nM(2)*muOpyM + nM(3)*muOpzM;
 
 % Orientation loop
-logmsg(1,'-orientation loop--------------------------------------')
+eslogger(1,'-orientation loop--------------------------------------')
 if crystalSample
-  logmsg(1,'  looping over %d orientations and %d sites',nOrientations/nSites,nSites);
+  eslogger(1,'  looping over %d orientations and %d sites',nOrientations/nSites,nSites);
 else
-  logmsg(1,'  looping over %d orientations',nOrientations)
+  eslogger(1,'  looping over %d orientations',nOrientations)
 end
 for iOri = 1:nOrientations
   [xL_M,yL_M,zL_M] = erot(Orientations(iOri,:),'rows');
@@ -419,7 +419,7 @@ end % loop over orientations
 
 % Unit conversions
 %-------------------------------------------------------------------------------
-logmsg(1,'  performing unit conversions')
+eslogger(1,'  performing unit conversions')
 if calculateMu
   muz_SI = muz;  % single-center magnetic moment, SI units
   if useCGSunits
@@ -654,4 +654,4 @@ for n = numel(keywords):-1:1
   
 end
 
-logmsg(1,'=end=curry========%s=================\n',char(datetime));
+eslogger(1,'=end=curry========%s=================\n',char(datetime));

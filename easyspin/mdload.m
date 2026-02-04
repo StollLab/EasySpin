@@ -117,11 +117,11 @@ switch nargin
     error('No more than 4 input arguments are possible.')
 end
 
-% Supplement options
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 1; end
-if ~isfield(Opt,'keepProtCA'), Opt.keepProtCA = false; end
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
-logmsg(Opt.Verbosity);
+% Supplement options
+if ~isfield(Opt,'keepProtCA'), Opt.keepProtCA = false; end
 
 % Supplement residue name, assuming default name for R1 label
 if ~isfield(Info,'ResName')
@@ -149,7 +149,7 @@ end
 if ~isfield(Info,'AtomNames')
   switch LabelName
     case 'R1'
-      logmsg(1,'Using default atom names for label R1.');
+      eslogger(1,'Using default atom names for label R1.');
       Info.AtomNames.ONname = 'ON';
       Info.AtomNames.NNname = 'NN';
       Info.AtomNames.C1name = 'C1';
@@ -163,7 +163,7 @@ if ~isfield(Info,'AtomNames')
       Info.AtomNames.CAname = 'CA';
       Info.AtomNames.Nname = 'N';
     case 'TOAC'
-      logmsg(1,'Using default atom names for label TOAC.');
+      eslogger(1,'Using default atom names for label TOAC.');
       Info.AtomNames.ONname = 'OE';
       Info.AtomNames.NNname = 'ND';
       Info.AtomNames.CGSname = 'CG2';
@@ -245,7 +245,7 @@ end
 
 % Importing data from MD trajectory files
 %-------------------------------------------------------------------------------
-logmsg(1,'-- extracting data from MD trajectory files -----------------------------------------');
+eslogger(1,'-- extracting data from MD trajectory files -----------------------------------------');
 
 if Opt.Verbosity==1, tic; end
 
@@ -258,7 +258,7 @@ MD.dt = [];
 ExtCombo = [TrajFileExt, ',', TopFileExt];
 updateuser(0);
 for iTrajFile = 1:nTrajFiles
-  logmsg(1,'trajectory %d',iTrajFile);
+  eslogger(1,'trajectory %d',iTrajFile);
   
   [Traj_,psf] = processMDfiles(TrajFile{iTrajFile}, TopFile, SegName, ResName, ...
     LabelName, AtomNames, ExtCombo);
@@ -314,7 +314,7 @@ MD = rmfield(MD,'Labelxyz');
 
 % Calculate label frame vectors
 %-------------------------------------------------------------------------------
-logmsg(1,'Calculating label frames...');
+eslogger(1,'Calculating label frames...');
 % Initialize big arrays here for efficient memory usage
 MD.FrameTraj = zeros(MD.nSteps,3,3,1);
 
@@ -354,7 +354,7 @@ end
 
 % Calculate side chain dihedral angles
 %-------------------------------------------------------------------------------
-logmsg(1,'Calculating side chain dihedral angles...');
+eslogger(1,'Calculating side chain dihedral angles...');
 switch LabelName
   case 'R1'
     MD.dihedrals = zeros(MD.nSteps,5);
@@ -378,7 +378,7 @@ clear v
 
 % Remove global diffusion of protein
 %-------------------------------------------------------------------------------
-logmsg(1,'-- removing protein global diffusion -----------------------------------------');
+eslogger(1,'-- removing protein global diffusion -----------------------------------------');
 
 % Align protein alpha carbons with inertia tensor frame in first snapshot
 MD.ProtCAxyz = orientproteintraj(MD.ProtCAxyz);
@@ -457,7 +457,7 @@ end
 %-------------------------------------------------------------------------------
 calcProtDiffTensor = false;
 if calcProtDiffTensor
-% logmsg(1,'-- estimating protein global diffusion tensor -----------------------------------------');
+% eslogger(1,'-- estimating protein global diffusion tensor -----------------------------------------');
 % 
 % dt = 2.5*MD.dt;  % NOTE: this assumes a solvent-exposed labeling site with 
 %                  % a TIP3P water model
@@ -493,11 +493,11 @@ if calcProtDiffTensor
 end
 
 if Opt.Verbosity
-  logmsg(1,'Summary:');
-  logmsg(1,'  Label: %s',LabelName);
-  logmsg(1,'  Number of trajectories: %d',nTrajFiles);
-  logmsg(1,'  Number of time steps: %d',MD.nSteps);
-  logmsg(1,'  Size of time step: %g ps',MD.dt/1e-12);
+  eslogger(1,'Summary:');
+  eslogger(1,'  Label: %s',LabelName);
+  eslogger(1,'  Number of trajectories: %d',nTrajFiles);
+  eslogger(1,'  Number of time steps: %d',MD.nSteps);
+  eslogger(1,'  Size of time step: %g ps',MD.dt/1e-12);
 end
 
 end

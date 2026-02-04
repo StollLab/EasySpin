@@ -78,17 +78,15 @@ if nargout>3, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
 
-if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 0; % print level
-end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 %===============================================================================
 % Loop over components and isotopologues
 %===============================================================================
 singleIso = isstruct(Sys) && isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIso
-  logmsg(1,'-- slow motion regime simulation ----------------------------------');
+  eslogger(1,'-- slow motion regime simulation ----------------------------------');
 end
 
 Exp.FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
@@ -145,7 +143,7 @@ end
 %===============================================================================
 
 
-logmsg(1,'-- component spectrum simulation ----------------------------------');
+eslogger(1,'-- component spectrum simulation ----------------------------------');
 
 % Spin system
 %-------------------------------------------------------------------------------
@@ -301,7 +299,7 @@ if ~isnan(Exp.Temperature)
   end
 end
 
-logmsg(1,'Experiment:');
+eslogger(1,'Experiment:');
 
 % Microwave frequency
 if ~isfield(Exp,'mwFreq')
@@ -319,26 +317,26 @@ if FieldSweep
   if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
   end
-  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
+  eslogger(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
 else
   if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
     error('Uninterpretable magnetic field in Exp.Field.');
   end
-  logmsg(1,'  frequency sweep, magnetic field %0.8g T',Exp.Field);
+  eslogger(1,'  frequency sweep, magnetic field %0.8g T',Exp.Field);
 end
 
 % Sweep range (magnetic field, or frequency)
 if FieldSweep
   if isfield(Exp,'CenterSweep')
     if isfield(Exp,'Range')
-      logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
+      eslogger(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
     end
   else
     if isfield(Exp,'Range')
       Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
     else
       if (Sys.nElectrons==1) && (Sys.S==1/2)
-        logmsg(1,'  automatic determination of sweep range');
+        eslogger(1,'  automatic determination of sweep range');
         Stretch = 1.25;
         I = nucspin(Sys.Nucs).';
         if numel(I)>0
@@ -366,7 +364,7 @@ if FieldSweep
 else
   if isfield(Exp,'mwCenterSweep')
     if isfield(Exp,'mwRange')
-      logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
+      eslogger(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
     end
   else
     if isfield(Exp,'mwRange')
@@ -395,10 +393,10 @@ else
 end
 
 if FieldSweep
-  logmsg(1,'  field range (mT): min %g, max %g, center %g, width %g',...
+  eslogger(1,'  field range (mT): min %g, max %g, center %g, width %g',...
     Exp.Range(1),Exp.Range(2),CenterField,SweepWidth);
 else
-  logmsg(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
+  eslogger(1,'  frequency range (GHz): min %g, max %g, center %g, width %g',...
     Exp.mwRange(1),Exp.mwRange(2),CenterFreq,SweepWidth);
 end
 
@@ -420,7 +418,7 @@ if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
 end
 if Exp.ModAmp>0
   if FieldSweep
-    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
+    eslogger(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
     if Exp.Harmonic<1
       error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
     end
@@ -447,12 +445,12 @@ switch Exp.mwMode
   case 'parallel', ParallelMode = true;
   otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+eslogger(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 if ParallelMode
   error('chili does not support parallel-mode spectra.');
 end
 
-logmsg(1,'  %d points',Exp.nPoints);
+eslogger(1,'  %d points',Exp.nPoints);
 
 % Complain if fields only valid in pepper() are given
 if isfield(Exp,'CrystalSymmetry')
@@ -464,19 +462,19 @@ if ~isempty(Exp.Ordering)
   if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
     lambda = Exp.Ordering;
     Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
-    logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
+    eslogger(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
   elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial director ordering (user-supplied function)');
+    eslogger(1,'  partial director ordering (user-supplied function)');
   else
     error('Exp.Ordering must be either a single number or a function handle.');
   end
   if nargin(Exp.Ordering)==1
     Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
   elseif nargin(Exp.Ordering)~=3
-    logmsg(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
+    eslogger(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
   end
 else
-  logmsg(1,'  director ordering: none');
+  eslogger(1,'  director ordering: none');
 end
 partiallyOrderedSample = ~isempty(Exp.Ordering);
 
@@ -675,7 +673,7 @@ Basis.MpSymm = Opt.MpSymm;
 
 % Field sweep and linear solver
 %-------------------------------------------------------------------------------
-logmsg(1,'Methods:');
+eslogger(1,'Methods:');
 
 % Field sweep method: set default
 if FieldSweep
@@ -686,7 +684,7 @@ if FieldSweep
   error(err);
 end
 explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
-logmsg(1,'  field sweep method: %s',Opt.FieldSweepMethod);
+eslogger(1,'  field sweep method: %s',Opt.FieldSweepMethod);
 
 % Set solver if not given
 if isempty(Opt.Solver)
@@ -720,7 +718,7 @@ switch Opt.Solver
   otherwise
     error('Unknown method in Options.Solver. Must be ''L'', ''\'', ''E'', ''C'', or ''B''.');
 end
-logmsg(1,'  solver: %s = %s',Opt.Solver,SolverString);
+eslogger(1,'  solver: %s = %s',Opt.Solver,SolverString);
 
 
 % Set allocation block size, used in chili_lm
@@ -735,13 +733,13 @@ if ~generalLiouvillian
   if Opt.AllocationBlockSize<minBlockSize
     error('Opt.AllocationBlockSize = %d is too small. Increase its value to at least %d.',Opt.AllocationBlockSize,minBlockSize);
   end
-  logmsg(2,'  allocating memory in blocks of %d non-zero elements',Opt.AllocationBlockSize);
+  eslogger(2,'  allocating memory in blocks of %d non-zero elements',Opt.AllocationBlockSize);
 end
 
 % Precalculate spin operator matrices
 %-------------------------------------------------------------------------------
 if generalLiouvillian
-  logmsg(1,'  construction of Liouvillian: general code');
+  eslogger(1,'  construction of Liouvillian: general code');
   
   % calculate spin operators
   for iSpin = numel(Sys.Spins):-1:1
@@ -756,7 +754,7 @@ if generalLiouvillian
   end
   
 else
-  logmsg(1,'  Liouvillian construction: fast S=1/2 code');
+  eslogger(1,'  Liouvillian construction: fast S=1/2 code');
   % no need to calculate spin operators for the fast code
   SpinOps = [];
 end
@@ -857,7 +855,7 @@ if integrateOverGrid
       [phi,theta] = vec2ang(Opt.GridFrame*Vecs);
     end
   end
-  logmsg(1,'  grid simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
+  eslogger(1,'  grid simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
   if ~isempty(Exp.SampleFrame)
     phi = -Exp.SampleFrame(3);
@@ -867,7 +865,7 @@ else
     theta = 0;
   end
   gridWeights = 4*pi;
-  logmsg(2,'  single-orientation simulation');
+  eslogger(2,'  single-orientation simulation');
 end
 nOrientations = numel(phi);
 Basis.DirTilt = any(theta~=0);
@@ -877,7 +875,7 @@ if partiallyOrderedSample
   orderingWeights = Exp.Ordering(0,-theta,-phi);
   if any(orderingWeights<0), error('User-supplied orientation distribution gives negative values!'); end
   if all(orderingWeights==0), error('User-supplied orientation distribution is all-zero.'); end
-  logmsg(2,'  orientational potential');
+  eslogger(2,'  orientational potential');
 else
   orderingWeights = ones(1,nOrientations);
 end
@@ -888,12 +886,12 @@ Weights = 4*pi*Weights/sum(Weights);
 
 % Basis set preparations
 %-------------------------------------------------------------------------------
-logmsg(1,'Basis set:');
-logmsg(1,'  truncation settings:');
-logmsg(1,'    orientational: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, evenK %d, jKmin %+d',...
+eslogger(1,'Basis set:');
+eslogger(1,'  truncation settings:');
+eslogger(1,'    orientational: Leven max %d, Lodd max %d, Mmax %d, Kmax %d, evenK %d, jKmin %+d',...
   Basis.LLMK(1),Basis.LLMK(2),Basis.LLMK(3),Basis.LLMK(4),Basis.evenK,Basis.jKmin);
-logmsg(1,'    spin: pSmin %+d, pImax %s, pImaxall %d',Basis.pSmin,num2str(Basis.pImax),Basis.pImaxall);
-logmsg(1,'    M-p symmetry: %d',Basis.MpSymm);
+eslogger(1,'    spin: pSmin %+d, pImax %s, pImaxall %d',Basis.pSmin,num2str(Basis.pImax),Basis.pImaxall);
+eslogger(1,'    M-p symmetry: %d',Basis.MpSymm);
 
 if generalLiouvillian
   
@@ -905,7 +903,7 @@ if generalLiouvillian
   end
   nOriBasis = numel(Basis.L);
   nSpinBasis = Sys.nStates^2;
-  logmsg(1,'  orientational basis: %d functions',nOriBasis);
+  eslogger(1,'  orientational basis: %d functions',nOriBasis);
   
   % Get (p,q) quantum numbers for transitions, and index vector for reordering
   % basis states from m1-m2 order (standard) to p-q order (used in fast code)
@@ -935,7 +933,7 @@ if generalLiouvillian
   if Opt.pqOrder
     keep = keep(idxpq);
   end
-  logmsg(1,'  spin basis: %d functions (%0.1f%% of %d)',...
+  eslogger(1,'  spin basis: %d functions (%0.1f%% of %d)',...
     sum(keep),sum(keep)/nSpinBasis*100,nSpinBasis);
   keep = repmat(keep,nOriBasis,1);
   
@@ -945,15 +943,15 @@ if generalLiouvillian
     psum = sum(pq(:,1:2:end),2);
     keep_Mp = bsxfun(@minus,psum,M.')==1; % keep only basis states with pS+pI-M == 1
     keep = keep & keep_Mp(:);
-    logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
+    eslogger(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end
 
-  logmsg(1,'  total basis size: %d functions',sum(keep));
+  eslogger(1,'  total basis size: %d functions',sum(keep));
   
 else
   
   Basis = chili_basisbuild(Basis,Sys);
-  logmsg(1,'  total basis size: %d functions',numel(Basis.L));
+  eslogger(1,'  total basis size: %d functions',numel(Basis.L));
   
 end
 if saveDiagnostics
@@ -964,7 +962,7 @@ end
 %-------------------------------------------------------------------------------
 if generalLiouvillian
   
-  logmsg(1,'Precalculating 3j symbols up to Leven=%d and Lodd=%d...',...
+  eslogger(1,'Precalculating 3j symbols up to Leven=%d and Lodd=%d...',...
     Basis.LLMK(1),Basis.LLMK(2));
   computeRankOne = any(F.F1(:)~=0);
   [jjj0,jjj1,jjj2] = jjjsymbol(Basis.LLMK(1),Basis.LLMK(2),computeRankOne);
@@ -976,7 +974,7 @@ end
 % Pre-calculate diffusion operator Wigner expansion coefficient
 % (needed for both Opt.LiouvMethod='fast' and 'general')
 if usePotential
-  logmsg(1,'Calculating Wigner expansion coefficients for potential-dependent part of diffusion matrix');
+  eslogger(1,'Calculating Wigner expansion coefficients for potential-dependent part of diffusion matrix');
   XLMK = chili_xlmk(Potential,Dynamics.R);
 else
   XLMK = {};
@@ -984,7 +982,7 @@ end
 
 if generalLiouvillian
 
-  logmsg(1,'Calculating the diffusion matrix');
+  eslogger(1,'Calculating the diffusion matrix');
   
   % Calculate diffusion superoperator in spatial basis
   Gamma = diffsuperop(Basis,Dynamics.R,XLMK,Potential);
@@ -994,7 +992,7 @@ if generalLiouvillian
   
   maxerr = @(x) full(max(abs(x(:))));
   imagerr = @(x) maxerr(imag(x))/maxerr(real(x));
-  logmsg(1,'  imag/real = %f',imagerr(Gamma));
+  eslogger(1,'  imag/real = %f',imagerr(Gamma));
   
 else
   
@@ -1005,7 +1003,7 @@ end
 
 % Starting vector
 %-------------------------------------------------------------------------------
-logmsg(1,'Calculating starting vector...');
+eslogger(1,'Calculating starting vector...');
 if generalLiouvillian
   if ~isfield(Opt,'StartVec') || isempty(Opt.StartVec)
     % Calculate sqrt(Peq) vector
@@ -1016,12 +1014,12 @@ if generalLiouvillian
     StartVector = kron(sqrtPeq,SdetOp(:)/norm(SdetOp(:)));
     StartVector = StartVector(keep);
     normPeqVec = norm(sqrtPeq)^2;
-    logmsg(1,'  norm of Peq vector: %g',normPeqVec);
+    eslogger(1,'  norm of Peq vector: %g',normPeqVec);
     if normPeqVec<0.99
       fprintf('The norm of the equilibrium population vector in this truncated basis is %0.3g.\n It should be close to 1. The basis might be too small.\n',normPeqVec);
     end
   else
-    logmsg(1,'  using provided vector');
+    eslogger(1,'  using provided vector');
     if numel(Opt.StartVec)==sum(keep)
       StartVector = Opt.StartVec;
       nInt = [];
@@ -1052,12 +1050,12 @@ if saveDiagnostics
 end
 
 BasisSize = size(StartVector,1);
-logmsg(1,'  vector size: %dx1',BasisSize);
-logmsg(1,'  non-zero elements: %d/%d (%0.2f%%)',...
+eslogger(1,'  vector size: %dx1',BasisSize);
+eslogger(1,'  non-zero elements: %d/%d (%0.2f%%)',...
   nnz(StartVector),BasisSize,100*nnz(StartVector)/BasisSize);
-logmsg(1,'  maxabs %g, norm %g',full(max(abs(StartVector))),norm(StartVector));
+eslogger(1,'  maxabs %g, norm %g',full(max(abs(StartVector))),norm(StartVector));
 if ~isempty(nInt)
-  logmsg(1,'  evaluated integrals: 1D %d, 2D %d, 3D %d',nInt(1),nInt(2),nInt(3));
+  eslogger(1,'  evaluated integrals: 1D %d, 2D %d, 3D %d',nInt(1),nInt(2),nInt(3));
 end
 
 % Prepare transformation matrix for K-symmetrization
@@ -1073,12 +1071,12 @@ end
 spec = 0;
 for iOri = 1:nOrientations
   
-  logmsg(1,'Orientation %d/%d: phi = %gdeg, theta = %gdeg (weight %g)',...
+  eslogger(1,'Orientation %d/%d: phi = %gdeg, theta = %gdeg (weight %g)',...
     iOri,nOrientations,phi(iOri)*180/pi,theta(iOri)*180/pi,Weights(iOri));
 
   % Liouvillian matrix
   %-----------------------------------------------------------------------------
-  logmsg(1,'Computing Liouvillian matrix...');
+  eslogger(1,'Computing Liouvillian matrix...');
   if generalLiouvillian
     [Q0B,Q1B,Q2B,Q0G,Q1G,Q2G] = rbos(T,F,[phi(iOri),theta(iOri),0],isFieldDep);
     
@@ -1151,7 +1149,7 @@ for iOri = 1:nOrientations
   % Loop over all field values
   %-----------------------------------------------------------------------------
   for iB = 1:numel(B0)
-    logmsg(1,'Field value %d/%d: %g mT',iB,numel(B0),B0(iB));
+    eslogger(1,'Field value %d/%d: %g mT',iB,numel(B0),B0(iB));
     
     if generalLiouvillian
       
@@ -1244,14 +1242,14 @@ for iOri = 1:nOrientations
     end
     
     maxDval = max(abs(real(L(:))));
-    logmsg(2,'  size: %dx%d, maxabsreal: %g',length(L),length(L),full(maxDval));
+    eslogger(2,'  size: %dx%d, maxabsreal: %g',length(L),length(L),full(maxDval));
     
     maxDvalLim = 2e3;
     if maxDval>maxDvalLim
       %  error(sprintf('Numerical instability, values in diffusion matrix are too large (%g)!',maxDval));
     end
     
-    logmsg(2,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
+    eslogger(2,'  non-zero elements: %d/%d (%0.2f%%)',nnz(L),length(L).^2,100*nnz(L)/length(L)^2);
     
     
     %===========================================================================
@@ -1269,11 +1267,11 @@ for iOri = 1:nOrientations
         end
         [thisspec,converged,dspec] = chili_lanczos(L,StartVector,-1i*omega,Opt);
         if converged
-          logmsg(2,'  converged to within %g at iteration %d/%d',...
+          eslogger(2,'  converged to within %g at iteration %d/%d',...
             Opt.Threshold,numel(dspec),BasisSize);
         else
           thisspec = ones(size(omega));
-          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
+          eslogger(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
             Opt.Threshold,BasisSize,Opt.LLMK');
         end
         
@@ -1315,7 +1313,7 @@ for iOri = 1:nOrientations
       case 'C' % conjugate gradients
         CGshift = 1e-6 + 1e-6i;
         [~,alpha,beta,err,stepsDone] = chili_conjgrad(L,StartVector,CGshift);        
-        logmsg(1,'  step %d/%d: CG converged to within %g',...
+        eslogger(1,'  step %d/%d: CG converged to within %g',...
           stepsDone,BasisSize,err);
         thisspec = chili_contfracspec(-1i*omega,alpha,beta);
         
@@ -1365,7 +1363,7 @@ spec = real(exp(1i*Exp.mwPhase)*spec);
 % Post-convolution
 %===============================================================================
 if doPostConvolution
-  logmsg(1,'Postconvolution...');
+  eslogger(1,'Postconvolution...');
   
   % Spin system with shf nuclei only
   pcidx = Opt.PostConvNucs;
@@ -1409,8 +1407,8 @@ if ~isfield(Opt,'BasisAnalysis')
   Opt.BasisAnalysis = false;
 end
 if Opt.BasisAnalysis
-  logmsg(1,'-------------------------------------------------------------------');
-  logmsg(1,'Basis set analysis');
+  eslogger(1,'-------------------------------------------------------------------');
+  eslogger(1,'Basis set analysis');
   omega_ = linspace(omega(1),omega(end),12);
   u_sum = 0;
   for iOmega = 1:numel(omega_)
@@ -1466,7 +1464,7 @@ if fwhmG>0 && ConvolutionBroadening
   dx = xAxis(2) - xAxis(1);
   alwaysConvolve = true;
   if alwaysConvolve%(fwhmG/dx>2)
-    logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
+    eslogger(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
     spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
     Exp.ConvHarmonic = 0;
   else
@@ -1482,30 +1480,30 @@ outspec = spec;
 %===============================================================================
 % Field modulation, or derivatives
 %===============================================================================
-logmsg(1,'Modulation');
+eslogger(1,'Modulation');
 
 % Pseudo field modulation
 if FieldSweep
   if Exp.ModAmp>0
-    logmsg(1,'  pseudo field modulation with %g mT, harmonic %d',Exp.ModAmp,Exp.ModHarmonic);
+    eslogger(1,'  pseudo field modulation with %g mT, harmonic %d',Exp.ModAmp,Exp.ModHarmonic);
     outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.ModHarmonic);
   else
-    logmsg(1,'  no pseudo field modulation');
+    eslogger(1,'  no pseudo field modulation');
   end
 else
-  logmsg(1,'  no modulation');
+  eslogger(1,'  no modulation');
 end
 
 % Derivatives
 if Exp.DerivHarmonic>0
-  logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
+  eslogger(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
   dx = xAxis(2)-xAxis(1);
   for h = 1:Exp.DerivHarmonic
     dspec = diff(outspec,[],2)/dx;
     outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
   end
 else
-  logmsg(1,'  no derivative');
+  eslogger(1,'  no derivative');
 end
 
 
@@ -1527,7 +1525,7 @@ end
 %===============================================================================
 
 
-logmsg(1,'-------------------------------------------------------------------');
+eslogger(1,'-------------------------------------------------------------------');
 
 end
 %===============================================================================

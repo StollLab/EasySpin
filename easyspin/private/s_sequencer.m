@@ -58,7 +58,7 @@
 
 function varargout = s_sequencer(Exp,Opt)
 
-logmsg(1,'-parsing pulse sequence-----------------------------');
+eslogger(1,'-parsing pulse sequence-----------------------------');
 
 % Validate the input and select a propagation engine
 predefinedExperiment = isfield(Exp,'Sequence') && ischar(Exp.Sequence);
@@ -222,7 +222,7 @@ end
 
 if ~strcmp(origSimulationMode,Opt.SimulationMode)
   message = ['The ''thyme'' simulation mode has to be used.' '\n' 'The reason for this is: ' message '\n'];
-  logmsg(1,message);
+  eslogger(1,message);
 end
 
 % ------------------------------------------------------------------------------
@@ -311,7 +311,7 @@ end
 
 % Set up detection
 %-------------------------------------------------------------------------------
-logmsg(1,'  setting up detection');
+eslogger(1,'  setting up detection');
 
 if isfield(Exp,'DetWindow')
   if isfield(Exp,'DetSequence')
@@ -338,10 +338,10 @@ if isfield(Exp,'DetWindow')
   Opt.SinglePointDetection = isscalar(Exp.DetWindow) || Exp.DetWindow(1) == Exp.DetWindow(2);
   if Opt.SinglePointDetection
     Exp.Sequence{end+1} = 0;
-    logmsg(1,'  single-point detection');
+    eslogger(1,'  single-point detection');
   else
     Exp.Sequence{end+1} = diff(Exp.DetWindow);
-    logmsg(1,'  transient detection');
+    eslogger(1,'  transient detection');
   end
   
   % Update Exp.DetSequence
@@ -350,16 +350,16 @@ if isfield(Exp,'DetWindow')
   
 elseif isfield(Exp,'DetSequence')
   % setting up detection in case of Exp.DetSequence
-  logmsg(1,'  setting up detection:');
+  eslogger(1,'  setting up detection:');
   if ischar(Exp.DetSequence) || isstring(Exp.DetSequence)
     % parsing strings
     if Exp.DetSequence=="last"
       Exp.DetSequence = zeros(1,length(Exp.Sequence));
       Exp.DetSequence(end) = true;
-      logmsg(1,'  detection is active during the last element in Exp.Sequence');
+      eslogger(1,'  detection is active during the last element in Exp.Sequence');
     elseif Exp.DetSequence=="all"
       Exp.DetSequence = ones(1,length(Exp.Sequence));
-      logmsg(1,'  all elements in Exp.Sequence are detected');
+      eslogger(1,'  all elements in Exp.Sequence are detected');
     else
       msg = 'The string you provided in Exp.DetSequence was not recognized.';
       error(msg);
@@ -368,28 +368,28 @@ elseif isfield(Exp,'DetSequence')
     if ~isscalar(Exp.DetSequence) && length(Exp.DetSequence) ~= length(Exp.Sequence)
       error('The lengths of Exp.Sequence and Exp.DetSequence do not match. Length of Exp.DetSequence has to be 1 or the same as Exp.Sequence.')
     end
-    logmsg(1,'  detection set according to Exp.DetSequence');
+    eslogger(1,'  detection set according to Exp.DetSequence');
   end
   
   % identifying single point detection
   if sum(Exp.DetSequence) == 1 && ~isstruct(Exp.Sequence{Exp.DetSequence==1}) && Exp.Sequence{Exp.DetSequence==1} == 0
     Opt.SinglePointDetection = true;
-    logmsg(1,'  single point detection');
+    eslogger(1,'  single point detection');
   end
   
 else
   % default if no detection is given:
-  logmsg(1,'  no detection specified, detection is active during the entire sequence');
+  eslogger(1,'  no detection specified, detection is active during the entire sequence');
   Exp.DetSequence = ones(1,numel(Exp.Sequence));
 end
 
 % Check if resonator is provided
 includeResonator = false;
 if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp,'FrequencyResponse')])
-  logmsg(1,'  resonator present');
+  eslogger(1,'  resonator present');
   if isfield(Exp,'ResonatorFrequency') && isfield(Exp,'ResonatorQL')
-    logmsg(1,'  resonator frequency: %s',num2str(Exp.ResonatorFrequency));
-    logmsg(1,'  resonator QL: %s',num2str(Exp.ResonatorQL));
+    eslogger(1,'  resonator frequency: %s',num2str(Exp.ResonatorFrequency));
+    eslogger(1,'  resonator QL: %s',num2str(Exp.ResonatorQL));
     Resonator.Arg1 = Exp.ResonatorFrequency;
     Resonator.Arg2 = Exp.ResonatorQL;
     includeResonator = true;
@@ -401,9 +401,9 @@ if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp
   
   if isfield(Exp,'FrequencyResponse')
     if includeResonator
-      logmsg(1,'  also found FrequencyResponse of the resonator, ignoring ResonatorFrequency and QL');
+      eslogger(1,'  also found FrequencyResponse of the resonator, ignoring ResonatorFrequency and QL');
     end
-    logmsg(1,'  using Exp.FrequencyResponse to simulate resonator.');
+    eslogger(1,'  using Exp.FrequencyResponse to simulate resonator.');
     Resonator.Arg1 = Exp.FrequencyResponse(1,:);
     Resonator.Arg2 = Exp.FrequencyResponse(2,:);
     includeResonator = true;
@@ -411,21 +411,21 @@ if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp
   
   if isfield(Exp,'ResonatorMode')
     if any(strcmp(Exp.ResonatorMode,{'simulate' 'compensate'}))
-      logmsg(1,'  resonator mode: %s',Exp.ResonatorMode);
+      eslogger(1,'  resonator mode: %s',Exp.ResonatorMode);
       Resonator.Arg3 = Exp.ResonatorMode;
     else
       error('Resonator.Mode must be ''simulate'' or ''compensate''.')
     end
   else
     Resonator.Arg3 = 'simulate';
-    logmsg(1,'  found no Exp.ResonatorMode, incorporating resonator, but not compensating for it');
+    eslogger(1,'  found no Exp.ResonatorMode, incorporating resonator, but not compensating for it');
   end
 end
 
 
 % Determine simulation frame frequency
 %-------------------------------------------------------------------------------
-logmsg(1,'  determining simulation frame frequency');
+eslogger(1,'  determining simulation frame frequency');
 
 if isfield(Exp,'mwFreq')
   freqShift = Exp.mwFreq;
@@ -465,9 +465,9 @@ end
 Opt.FrameShift = frameShift;
 
 % Reporting
-logmsg(1,'    simulation frame frequency: %d GHz',frameShift);
+eslogger(1,'    simulation frame frequency: %d GHz',frameShift);
 if frameShift==0
-  logmsg(1,'    simulating in the lab frame');
+  eslogger(1,'    simulating in the lab frame');
 end
 
 
@@ -475,7 +475,7 @@ end
 %-------------------------------------------------------------------------------
 % Check if IntTimeStep exists and if it is sufficient or, if none provided,
 % compute a new one
-logmsg(1,'  determining minimal required time step');
+eslogger(1,'  determining minimal required time step');
 
 % Determine maximum frequency used by pulses (relative to sim freq)
 maxFreq = -inf;
@@ -507,12 +507,12 @@ if isfield(Opt,'IntTimeStep') && ~isfield(Exp,'DetTimeStep')
     warning(warnMsg);
   end
   
-  logmsg(1,'  automatically assuming a suitable detection time step');
+  eslogger(1,'  automatically assuming a suitable detection time step');
   Exp.DetTimeStep = RefDetTimeStep;
   
 elseif ~isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
   
-  logmsg(1,'  computing an integration time step that fits the provided Exp.DetTimeStep');
+  eslogger(1,'  computing an integration time step that fits the provided Exp.DetTimeStep');
   factor = ceil(Exp.DetTimeStep/RefIntTimeStep);
   Opt.IntTimeStep = Exp.DetTimeStep/factor; 
   
@@ -533,14 +533,14 @@ elseif isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
  
 else
   
-  logmsg(1,'  automatically assuming a suitable integration time step');
+  eslogger(1,'  automatically assuming a suitable integration time step');
   Opt.IntTimeStep = RefIntTimeStep;
   Exp.DetTimeStep = RefDetTimeStep;
   
 end
 
-logmsg(1,'  the integration time step is %0.2e microseconds',Opt.IntTimeStep);
-logmsg(1,'  the detection time step is %0.2e microseconds',Exp.DetTimeStep);
+eslogger(1,'  the integration time step is %0.2e microseconds',Opt.IntTimeStep);
+eslogger(1,'  the detection time step is %0.2e microseconds',Exp.DetTimeStep);
 
 % Create an empty cell array for all the events
 Events = cell(1,length(Exp.Sequence));
@@ -565,7 +565,7 @@ if isfield(Opt,'StateTrajectories')
 end
 
 % Setting up data structures for the pulses and events
-logmsg(1,'  parsing Exp.Sequence:');
+eslogger(1,'  parsing Exp.Sequence:');
 
 % Variables for bookkeeping of pulses and free evolution events
 % A vector to quickly identify pulses, required for the reordering if
@@ -577,9 +577,9 @@ nPulses = length(pulseIndices);
 nDelays = length(delayIndices);
 
 if isfield(Exp,'DetWindow')
-  logmsg(1,'  found %d pulse(s), %d free evolution period(s) and a detection window',nPulses,nDelays-1);
+  eslogger(1,'  found %d pulse(s), %d free evolution period(s) and a detection window',nPulses,nDelays-1);
 else
-  logmsg(1,'  found %d pulse(s) and %d free evolution period(s)',nPulses,nDelays);
+  eslogger(1,'  found %d pulse(s) and %d free evolution period(s)',nPulses,nDelays);
 end
 
 if isfield(Exp,'mwPolarization')
@@ -593,9 +593,9 @@ end
 % Create the Events structure
 % -------------------------------------------------------------------------
 if nPulses > 0
-  logmsg(1,'  computing waveforms and setting up the event structures');
+  eslogger(1,'  computing waveforms and setting up the event structures');
 else
-  logmsg(1,'  setting up the event structures');
+  eslogger(1,'  setting up the event structures');
 end
 
 pulses = cell(1,nPulses);
@@ -839,7 +839,7 @@ end
 % Checks for overlap of pulses that are subject to ringing
 % -------------------------------------------------------------------------
 if includeResonator
-  logmsg(1,'  checking for pulse overlap due to ringing from resonator:');
+  eslogger(1,'  checking for pulse overlap due to ringing from resonator:');
   
   for iEvent = pulseIndices
     followingEvent = iEvent + 1;
@@ -853,7 +853,7 @@ if includeResonator
       end
     end
   end
-  logmsg(1,'  all good!');
+  eslogger(1,'  all good!');
 end
 
 % -------------------------------------------------------------------------
@@ -869,7 +869,7 @@ incrementationScheme = false;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isfield(Exp,'nPoints')
-  logmsg(1,'-validating indirect dimensions------------------------');
+  eslogger(1,'-validating indirect dimensions------------------------');
   nDimensions = length(Exp.nPoints);
   Vary.Points = Exp.nPoints;
   
@@ -892,10 +892,10 @@ if isfield(Exp,'nPoints')
   % changed pulse parameters are stored in PulseModifications. After all
   % dimensions have been checked, the values stored in Pulse
   % -----------------------------------------------------------------------
-  logmsg(1,'  found %d indirect dimension(s)',nDimensions);
-  logmsg(1,'  with a total %d data points',prod(Vary.Points));
+  eslogger(1,'  found %d indirect dimension(s)',nDimensions);
+  eslogger(1,'  with a total %d data points',prod(Vary.Points));
   for iDimension = 1 : nDimensions
-    logmsg(1,'  parsing dimension no. %d',iDimension);
+    eslogger(1,'  parsing dimension no. %d',iDimension);
     % If it is not possible to use a predefined incrementation scheme,
     % incrementation tables are created for each individual dimension, that
     % contain all the changes to event lengths for all events in the
@@ -1091,7 +1091,7 @@ if isfield(Exp,'nPoints')
   
   % Loop over all DataPoints/Aquisitions and check for pulse overlap and
   % compute pulse shapes if they are changed
-  logmsg(1,'  creating the Vary structure that contains all required wave forms and delay changes');
+  eslogger(1,'  creating the Vary structure that contains all required wave forms and delay changes');
   for iDataPoint = 1 : nDataPoints
     % Load starting values for pulses and event lengths
     pulses = InitialPulses;
@@ -1348,7 +1348,7 @@ end
 
 varargout = {Events,Vary,Opt,[]};
 
-logmsg(1,'  pulse sequence parsed successfully!');
+eslogger(1,'  pulse sequence parsed successfully!');
 
 end
 

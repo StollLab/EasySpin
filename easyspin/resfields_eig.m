@@ -58,10 +58,8 @@ if ~isstruct(Sys) || ~isstruct(Exp) || ~isstruct(Opt)
   error('The three inputs must be structures!');
 end
 
-% A global variable sets the level of log display. The global variable
-% is used in logmsg(), which does the log display.
-if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
-logmsg(Opt.Verbosity);
+% Set log level
+if isfield(Opt,'Verbosity'), eslogger(Opt.Verbosity); end
 
 % Mute warnings because of unavoidable division by zero.
 OldWarningState = warning('off');
@@ -141,7 +139,7 @@ msg = 'positions';
 if computeIntensities
   msg = [msg, ', intensities'];
 end
-logmsg(1,'  computing %s',msg);
+eslogger(1,'  computing %s',msg);
 
 
 % Build Hamiltonian components.
@@ -164,7 +162,7 @@ if SimpleEigenproblem
 else
   msg = 'general eigenproblem';
 end
-logmsg(1,'  %s, matrix size %dX%d',msg,length(A),length(A));
+eslogger(1,'  %s, matrix size %dX%d',msg,length(A),length(A));
 clear V E;
 
 % Prepare vectors for intensity computation.
@@ -179,7 +177,7 @@ EigenFields = cell(1,nOrientations);
 Intensities = cell(1,nOrientations);
 
 for iOri = 1:nOrientations
-  logmsg(3,'  orientation %d of %d',iOri,nOrientations);
+  eslogger(3,'  orientation %d of %d',iOri,nOrientations);
   
   [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   muzL = zLab(1)*mux + zLab(2)*muy + zLab(3)*muz;
