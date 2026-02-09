@@ -72,10 +72,12 @@ if printFunctionName
   db = dbstack;
   if numel(db)>=3
     funcname = db(3).name;
+    lineno = db(3).line;
   else
     funcname = '...';
+    lineno = '';
   end
-  fprintf('[%s] ',funcname);
+  fprintf('[%s:%d] ',funcname,lineno);
 end
 
 % Print message
