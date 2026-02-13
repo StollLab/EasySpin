@@ -1,11 +1,11 @@
-% ham_ee  Electron-electron spin interaction Hamiltonian 
+% ham_ee  Electron-electron spin interaction Hamiltonian
 %
-%   Hee = ham_ee(SpinSystem)
-%   Hee = ham_ee(SpinSystem,eSpins)
-%   Hee = ham_ee(SpinSystem,eSpins,'sparse')
+%   [F, dF] = ham_ee(SpinSystem)
+%   [F, dF] = ham_ee(SpinSystem,eSpins)
+%   [F, dF] = ham_ee(SpinSystem,eSpins,'sparse')
 %
 %   Returns the electron-electron spin interaction (EEI)
-%   Hamiltonian, in MHz.
+%   Hamiltonian, in MHz and its derivatives.
 %
 %   Input:
 %   - SpinSystem: Spin system structure. EEI
@@ -18,14 +18,16 @@
 %   Output:
 %   - Hee: Hamiltonian matrix containing the EEI for
 %       electron spins specified in eSpins.
+%   - dF: Derivative of the Hamiltonian matrix containing the EEI for
+%       electron spins specified in eSpins.
 
-function Hee = ham_ee(System,Spins,opt)
+function [F,dF] = ham_ee(System,Spins,opt)
 
 if nargin==0, help(mfilename); return; end
 
 if nargin<1 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
-if nargout>1, error('Too many output arguments.'); end
+if nargout>2, error('Too many output arguments.'); end
 
 if nargin<3, opt = ''; end
 if nargin<2, Spins = []; end
@@ -50,7 +52,7 @@ if isempty(Spins), Spins = 1:System.nElectrons; end
 
 % Some error checking on the second input argument
 if numel(Spins)<2
-  error('Spins (2nd argument) must contain at least 2 values!'); 
+  error('Spins (2nd argument) must contain at least 2 values!');
 end
 if any(Spins<1) || any(Spins>System.nElectrons)
   error('Spins (2nd argument) must contain values between 1 and %d!',System.nElectrons);
@@ -77,11 +79,13 @@ else
   eeFrame = [];
 end
 
+%for conistency accross methods
+nStates=System.nStates;
 % Bilinear coupling term S1*ee*S2
 %----------------------------------------------------------------
 for iPair = 1:nPairs
   iCoupling = find(Coupl(iPair)==allPairsIdx);
-  
+
   % Construct matrix representing coupling tensor
   if System.fullee
     J = ee(3*(iCoupling-1)+(1:3),:);
@@ -92,30 +96,57 @@ for iPair = 1:nPairs
     R_M2ee = erot(eeFrame(iCoupling,:)); % mol frame -> ee frame
     R_ee2M = R_M2ee.';  % ee frame -> mol frame
     J = R_ee2M*J*R_ee2M.';
+  else
+    R_ee2M = eye(3);
   end
-  
+
+  % preparing the derivatives (specific for each electron)
+  dFdeex = sparse(nStates,nStates);
+  dFdeey = sparse(nStates,nStates);
+  dFdeez = sparse(nStates,nStates);
+
+  % preparing the derivatives coefficient
+  deexM = R_ee2M(:,1)*R_ee2M(:,1).';  % rotate derivative wrt eex to molecular frame
+  deeyM = R_ee2M(:,2)*R_ee2M(:,2).';  % rotate derivative wrt eey to molecular frame
+  deezM = R_ee2M(:,3)*R_ee2M(:,3).';  % rotate derivative wrt eez to molecular frame
+
   % Sum up Hamiltonian terms
   for c1 = 1:3
-    so1 = sop(sys,[Pairs(iPair,1),c1],'sparse');
+    if ~useSparseMatrices  % sparse -> full
+      so1 = sop(sys,[Pairs(iPair,1),c1]);
+    else
+      so1 = sop(sys,[Pairs(iPair,1),c1],'sparse');
+    end
     for c2 = 1:3
-      so2 = sop(sys,[Pairs(iPair,2),c2],'sparse');
-      Hee = Hee + so1*J(c1,c2)*so2;
+      if ~useSparseMatrices  % sparse -> full
+        so2 = sop(sys,[Pairs(iPair,2),c2]);
+      else
+        so2 = sop(sys,[Pairs(iPair,2),c2],'sparse');
+      end
+      tempProduct=so1*so2;
+      F = F + J(c1,c2)*tempProduct;
+      dFdeex = dFdeex + deexM(c1,c2)*tempProduct;
+      dFdeey = dFdeey + deeyM(c1,c2)*tempProduct;
+      dFdeez = dFdeez + deezM(c1,c2)*tempProduct;
     end
   end
-  
+
+  dF{iPair} = {dFdeex,dFdeey,dFdeez};  % derivatives
+
   % Isotropic biquadratic exchange coupling term +ee2*(S1.S2)^2
-  %-----------------------------------------------------------------  
+  %-----------------------------------------------------------------
   if System.ee2(iCoupling)==0, continue; end
   Hee2 = 0;
   for c = 1:3
     Hee2 = Hee2 + sop(sys,[Pairs(iPair,1),c;Pairs(iPair,2),c],'sparse');
   end
-  Hee = Hee + System.ee2(iCoupling)*Hee2^2;
+  if ~useSparseMatrices  % sparse -> full
+    F2=full(F2);
+  end
+  dFdJ=F2^2;
+  F = F + System.ee2(iCoupling)*dFdJ;
+  dF{iPair} = {dFdeex,dFdeey,dFdeez,dFdJ};  % derivatives
 end
 
-Hee = (Hee+Hee')/2; % Hermitianise
-if ~useSparseMatrices
-  Hee = full(Hee); % sparse -> full
-end
-
+F = (F+F')/2; % Hermitianise
 end
