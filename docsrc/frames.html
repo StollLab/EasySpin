@@ -37,7 +37,7 @@ To simulate EPR spectra, EasySpin needs to know about the relative orientations 
 <div class="subtitle"><a name="frametypes">Overview</a></div>
 
 <p>
-The figure below summarizes EasySpin's frames. There are four frame types: the lab frame, the sample/crystal frame, the molecular frame, and a set of tensor frames (one for each tensor). The orientation of the sample (crystal, film, powder, frozen solution, etc.) in the lab frame is given in <code>Exp.SampleFrame</code>, the orientation of the paramagnetic molecule in the sample frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.nnFrame</code>, and <code>Sys.DiffFrame</code>.
+The figure below summarizes EasySpin's frames. There are four frame types: the <a href="#labframe">lab frame</a>, the <a href="#sampleframe">sample/crystal frame</a>, the <a href="molframe">molecular frame</a>, and a set of <a href="#tensorframes">tensor frames</a> (one for each tensor). The orientation of the sample (crystal, film, powder, frozen solution, etc.) in the lab frame is given in <code>Exp.SampleFrame</code>, the orientation of the paramagnetic molecule in the sample frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.nnFrame</code>, and <code>Sys.DiffFrame</code>.
 </p>
 
 <div style="text-align:center">
@@ -45,7 +45,7 @@ The figure below summarizes EasySpin's frames. There are four frame types: the l
 </div>
 
 <p>
-This overview explains at how these frames are defined in EasySpin and shows how you can specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
+This guide explains at how these frames are defined in EasySpin and shows how to specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
 </p>
 
 <ul>
@@ -88,6 +88,7 @@ By default, the B<sub>1</sub> field of the incident microwave excitation is alon
 For photoexcited samples, the incident optical excitation beam (from a laser) is assumed to travel along yL by default, which is the common setup used with electromagnets. To specify other laser excitation geometries, use <code>Exp.lightBeam</code>.
 </p>
 
+<!-- ======================================================================================= -->
 <div class="subtitle"><a name="sampleframe">Sample frame</a></div>
 
 <p>
@@ -128,6 +129,7 @@ For powders and frozen solutions, the definition of xS, yS and zS is also arbitr
 In versions of EasySpin prior to 6, the sample frame was called crystal frame, and the axes were denoted as xC, yC and zC.
 </p>
 
+<!-- ======================================================================================= -->
 <div class="subtitle"><a name="molframe">Molecular frame</a></div>
 
 <p>
@@ -137,6 +139,7 @@ The <em>molecular frame</em> M is a reference frame that is fixed in the molecul
 If you import data from quantum chemistry programs like ORCA, then you can take the frame from those calculations as the molecular frame. All imported atom coordinates and calculated tensors will be defined in this frame. EasySpin can <a href="orca.html">import ORCA calculation results</a>.
 </p>
 
+<!-- ======================================================================================= -->
 <div class="subtitle"><a name="tensorframes">Tensor frames</a></div>
 
 <p>
@@ -224,7 +227,7 @@ zM_T = R_M2T(:,3);
 <div class="subtitle"><a name="MC">Molecule orientation within a crystal</a></div>
 
 <p>
-In many crystals, the spin centers do not align with the crystal axes. In these situations, it is necessary to specify a tilt between the sample frame (S), which is fixed relative to the crystal, and the molecular frame (M), which is fixed relative to the spin center. Use <code>Exp.MolFrame</code> for this. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>sample/crystal frame to the molecular frame</em> (S&rarr;M).
+In many crystals, the spin centers do not align with the crystal axes. In these situations, it is necessary to specify a tilt between the sample frame (S), which is fixed relative to the crystal, and the molecular frame (M), which is fixed relative to the spin center. Use <code>Exp.MolFrame</code> for this. This field takes an array of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>sample/crystal frame to the molecular frame</em> (S&rarr;M).
 </p>
 
 <pre class="matlab">
@@ -283,7 +286,7 @@ Here is a simple example.
 </p>
 
 <pre class="matlab">
-Exp.SampleFrame = [30 45 -10]*pi/180;   % Euler angles for L->C transformation
+Exp.SampleFrame = [30 45 -10]*pi/180;   % Euler angles for L->S transformation
 </pre>
 
 <p>
@@ -291,7 +294,17 @@ This indicates that the lab frame (xL,yL,zL) has to be rotated by 30 degrees aro
 </p>
 
 <p>
-<code>Exp.SampleFrame</code> describes the lab-to-sample frame transformation (L&rarr;S). In order to find the <a href="eulerangles.html">Euler angles</a> for the reverse transformation, from the sample to the lab frame (S&rarr;L), invert the order and change the signs of the angles. Here is an example:
+In textbook and literature, it is quite common to use angles &theta; and &phi; to describe the orientation of the magnetic field relative to the sample (often directly to one of the magnetic tensors). These angles are entered in <code>Exp.SampleFrame</code> as follows, assuming <code>Exp.MolFrame = [0 0 0]</code>
+</p>
+
+<pre class="matlab">
+phi = 30;  % degrees
+theta = 12;  % degrees
+Exp.SampleFrame = [0 -theta -phi]*pi/180;
+</pre>
+
+<p>
+<code>Exp.SampleFrame</code> describes the lab-to-sample frame transformation (L&rarr;S). In order to find the <a href="eulerangles.html">Euler angles</a> for the reverse transformation from the sample to the lab frame (S&rarr;L), invert the order and change the signs of the angles. Here is an example:
 </p>
 
 <pre class="matlab">
@@ -302,39 +315,48 @@ Exp.SampleFrame = a_L2S;          % EasySpin expects a lab -> sample frame trans
 </pre>
 
 <p>
-To find out how the sample axes lie in the spectrometer, or how the lab axes lie relative to the sample frame, use EasySpin's <a class="esf" href="erot.html">erot</a> to get the associated transformation matrix. Here is an example:
+To find out how the sample axes are oriented in the spectrometer, or how the lab axes are oriented relative to the sample frame, use EasySpin's <a class="esf" href="erot.html">erot</a> to get the associated transformation matrix. Here is an example:
 </p>
 
 <pre class="matlab">
 a_L2S = [10 45 0]*pi/180;                % Euler angles for L->S transformation
 Exp.SampleFrame = a_L2S;
-R_S2L = erot(Exp.SampleFrame)            % corresponding transformation matrix
+R_L2S = erot(Exp.SampleFrame)            % corresponding transformation matrix
 </pre>
 <pre class="mloutput">
-R_S2L =
+R_L2S =
     0.6964    0.1228   -0.7071
    -0.1736    0.9848         0
     0.6964    0.1228    0.7071
 </pre>
 
 <p>
-In this matrix, the three columns are the three lab axis vectors xL, yL, zL, represented in sample coordinates. Conversely, the three rows are the sample axis vectors xS, yS, zS, represented in lab coordinates.
+In this matrix, the three columns are the three lab axis vectors (xL, yL, zL) represented in sample coordinates. Conversely, the three rows are the sample axis vectors (xS, yS, zS) represented in lab coordinates.
 </p>
 
 <pre class="matlab">
-% columns: lab axes in sample coordinates
-xL = R_L2S(:,1);
-yL = R_L2S(:,2);
-zL = R_L2S(:,3);
+% columns: lab axes in sample frame coordinates
+xL_S = R_L2S(:,1);
+yL_S = R_L2S(:,2);
+zL_S = R_L2S(:,3);
 
-% rows: sample axes in lab coordinates
-xS = R_L2S(1,:).';
-yS = R_L2S(2,:).';
-zS = R_L2S(3,:).';
+% rows: sample axes in lab frame coordinates
+xS_L = R_L2S(1,:).';
+yS_L = R_L2S(2,:).';
+zS_L = R_L2S(3,:).';
 </pre>
 
 <p>
-Prior to EasySpin 6, the relative orientation between lab and sample frame was defined in the field <code>Exp.CrystalOrientation</code>. To convert code containing this to <code>Exp.SampleFrame</code>, invert the order of the three Euler angles and flip their signs.
+To convert a vector from lab frame coordinates to sample frame coordinates, use
+</p>
+
+<pre class="matlab">
+zL_L = [0; 0; 1];    % z lab axis in lab frame coordinates
+zL_S = R_L2S*zL_L;   % same vector transformed to sample frame coordinates
+</pre>
+
+<p>
+Prior to EasySpin 6, the relative orientation between lab and sample frame was defined in the field <code>Exp.CrystalOrientation</code>. This is no longer supported. To convert code containing this to <code>Exp.SampleFrame</code>, invert the order of the three Euler angles and flip their signs.
 </p>
 
 <pre class="matlab">
