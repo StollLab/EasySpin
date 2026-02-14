@@ -11,8 +11,8 @@
 %
 %   Output:
 %   - PGroup: Schoenfliess point group symbol, one of
-%     'Ci','C2h','D2h','C4h','D4h','S6','D3d','C6h','D6h','Th','Oh',Dinfh','O3'.
-%   - R: Rotation matrix with the axes of the symmetry frame along columns.
+%      'Ci','C2h','D2h','C4h','D4h','S6','D3d','C6h','D6h','Th','Oh','Dinfh','O3'.
+%   - R: Transformation matrix from the molecular frame to the symmetry frame.
 
 function [PGroup,RMatrix] = hamsymm(Sys,varargin)
 
@@ -20,34 +20,16 @@ if nargin==0, help(mfilename); return; end
 
 if nargin>1
   options = varargin{end};
-  debugMode = strfind(options,'debug');
+  debugMode = contains(options,'debug');
 else
   debugMode = false;
 end
 
 [Sys,err] = validatespinsys(Sys);
 error(err);
-sysfields = fieldnames(Sys);
 
-higherZeemanPresent = false;
-higherZeemanFields = strncmp(sysfields,'Ham',3).';
-if any(higherZeemanFields) 
-  for n = find(higherZeemanFields)
-    if any(Sys.(sysfields{n})(:))
-      higherZeemanPresent = true;
-    end
-  end
-end
-
-crystalFieldTermsPresent = false;
-cf = strncmp(sysfields,'CF',2).';
-if any(cf)
-  for n = find(cf)
-    if any(Sys.(sysfields{n})(:))
-      crystalFieldTermsPresent = true;
-    end
-  end
-end
+higherZeemanPresent = checkFieldPresence(Sys,'Ham');
+crystalFieldTermsPresent = checkFieldPresence(Sys,'CF');
 
 highOrderTermsPresent = ~isempty(Sys.B) || higherZeemanPresent || crystalFieldTermsPresent;
 
@@ -59,15 +41,7 @@ if debugMode
   end
 end
 
-fullg = Sys.fullg;
-fullA = Sys.fullA;
-fullQ = Sys.fullQ;
-fullD = Sys.fullD;
-fullee = Sys.fullee;
-fullnn = Sys.fullnn;
-fullsigma = Sys.fullsigma;
-
-fullTensorsGiven = any([fullg fullA fullD fullee fullQ fullsigma fullnn]);
+fullTensorsGiven = any([Sys.fullg Sys.fullA Sys.fullD Sys.fullee Sys.fullQ Sys.fullsigma Sys.fullnn]);
 
 if ~fullTensorsGiven && ~highOrderTermsPresent
   if debugMode
@@ -76,7 +50,7 @@ if ~fullTensorsGiven && ~highOrderTermsPresent
   if isisotropic(Sys)
     PGroup = 'O3';
     RMatrix = eye(3);
-    return;
+    return
   end
 end
 
@@ -113,10 +87,10 @@ end
 tdmPresent = ~isempty(Sys.tdm);
 if tdmPresent
   PGroup = 'C1';
-end  
+end
 
 end
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+%===============================================================================
 
 
 %-------------------------------------------------------------------------------
@@ -157,7 +131,7 @@ pa = pa(sort(ii),:);
 % axes exchange (xyz) -> (yzx) -> (zxy) using three rotation matrices
 % (Rz, Rx, Ry).
 
-lockedFrame = 0;
+lockedFrame = false;
 if ~lockedFrame
   % Initialize.
   Rz = eye(3);
@@ -188,21 +162,22 @@ else
 end
 
 
-
-% Precalculation of Hamiltonian and symmetry ops
+% Precalculation of Hamiltonian, set up test field orientations
 %-------------------------------------------------------------------------------
 % Orientation-independent spin Hamiltonian components.
 if ~higherZeemanPresent
   [H0,mux,muy,muz] = ham(Sys);
 end
 
-% Set of field vectors for the test operations.
-q = 7.3234;  % small theta increment
-qq = 6.3456;  % small phi increment
-the = pi/180* [q,  q, q,q/2,q/2,  q,180-q,180-q,180-q,90-q,    q,  q];
-phi = pi/180*([0,120,90, 90,  0,-90,    0,  -90,  180,  90,-2*qq,180]+qq);
-Field = 350; % mT
-FieldVecs = Field*ang2vec(phi,the);  % 3x12 array
+% Set of field vectors for the symmetry test operations. These directions are
+% slightly off potential symmetry axes to detect rotation and reflection symmetries.
+% Each column in FieldVecs tests a specific symmetry operation.
+dtheta = 7.3234;  % small theta increment (degrees)
+dphi = 6.3456;   % small phi increment (degrees)
+the = pi/180* [dtheta, dtheta, dtheta,dtheta/2,dtheta/2, dtheta,180-dtheta,180-dtheta,180-dtheta,90-dtheta, dtheta, dtheta];
+phi = pi/180*([0, 120, 90, 90, 0, -90, 0, -90, 180, 90, -2*dphi, 180]+dphi);
+Field = 350;  % mT, field magnitude
+FieldVecs = Field*ang2vec(phi,the);  % 3x12 array of field vectors
 
 if debugMode
   fprintf('===========================================================\n');
@@ -211,12 +186,12 @@ end
 
 % Determination of point group
 %-------------------------------------------------------------------------------
-% At the outset we assume Ci symmetry around z axis
-% of g (standard) frame. Then we try to find a higher
-% symmetry in one of the frames.
+% At the outset we assume Ci symmetry around z axis of g (standard) frame.
+% Then we try to find a higher symmetry in one of the frames.
 
 highestSymmetry = 0;  % no symmetry (i.e. C1)
 RMatrix = Rz;  % eye(3)
+
 GroupNames = {'Ci','C2h','D2h','C4h','D4h',...
   'S6','D3d','C6h','D6h','Th','Oh','Dinfh','O3'};
 
@@ -239,152 +214,35 @@ for iFrame = 1:nFrames % loop over all potential frames
   % has changed, but not its representation.
   R = Rots(:,:,iFrame);
   B = R*FieldVecs;
+  
+  % Test for symmetry elements
+  eA = computeEigs(B(:,1));
+  eB = computeEigs(B(:,2));
+  eC = computeEigs(B(:,3));
+  symmetryElements.C3z = eqeig(eA,eB);
+  symmetryElements.C4z = eqeig(eA,eC);
+  symmetryElements.C2z = eqeig(eA,computeEigs(B(:,12)));
+  symmetryElements.sigmaxz = eqeig(eA,computeEigs(B(:,11)));
+  symmetryElements.sigmaxy = eqeig(eA,computeEigs(B(:,7)));
+  symmetryElements.C2x = eqeig(eC,computeEigs(B(:,8)));
+  symmetryElements.C2y = eqeig(eA,computeEigs(B(:,9)));
+  symmetryElements.Cinfx = eqeig(eC,computeEigs(B(:,4)));
+  symmetryElements.C3d = eqeig(computeEigs(B(:,10)),computeEigs(B([2 1 3],10)));
 
-  if higherZeemanPresent
-    eA = eig(ham(Sys,B(:,1)));
-    eB = eig(ham(Sys,B(:,2)));
-    eC = eig(ham(Sys,B(:,3)));
-  else
-    eA = eig(H0 - B(1,1)*mux - B(2,1)*muy - B(3,1)*muz);
-    eB = eig(H0 - B(1,2)*mux - B(2,2)*muy - B(3,2)*muz);
-    eC = eig(H0 - B(1,3)*mux - B(2,3)*muy - B(3,3)*muz);
-  end
-
-  C3 = eqeig(eB,eA);  % is there a C3 along z?
-  C4 = eqeig(eC,eA);  % is there a C4 along z?
+  % Determine point group from the symmetry element
+  pointGroupId = determinePointGroup(symmetryElements);
   
   if debugMode
-    if C3
-      fprintf('C3z axis found\n');
-    else
-      fprintf('No C3z axis found\n');
-    end
-    if C4
-      fprintf('C4z axis found\n');
-    else
-      fprintf('No C4z axis found\n');
-    end
-  end
-
-  if ~C3 && ~C4  % none: Ci, C2h, D2h
-
-    if higherZeemanPresent
-      C2z = eqeig(eA,eig(ham(Sys,B(:,12))));
-    else
-      C2z = eqeig(eA,eig(H0-B(1,12)*mux-B(2,12)*muy-B(3,12)*muz));
-    end
-    if ~C2z
-      pg = 1;  % Ci
-    else % D2h, C2h
-      if higherZeemanPresent
-        sigmaxz = eqeig(eA,eig(ham(Sys,B(:,11))));
-      else
-        sigmaxz = eqeig(eA,eig(H0-B(1,11)*mux-B(2,11)*muy-B(3,11)*muz));
-      end
-      if sigmaxz
-        pg = 3;  % D2h
-      else
-        pg = 2;  % C2h
-      end
-    end
-    
-  elseif C3 && ~C4  % C3 axis: S6, D3d, Th, C6h, D6h
-
-    if higherZeemanPresent
-      sigmaxy = eqeig(eA,eig(ham(Sys,B(:,7))));
-    else
-      sigmaxy = eqeig(eA,eig(H0-B(1,7)*mux-B(2,7)*muy-B(3,7)*muz));
-    end
-    if sigmaxy  % Th, C6h, D6h
-      if higherZeemanPresent
-        C2z = eqeig(eC,eig(ham(Sys,B(:,6))));
-      else
-        C2z = eqeig(eC,eig(H0-B(1,6)*mux-B(2,6)*muy-B(3,6)*muz));
-      end
-      if C2z  % C6h, D6h
-        if higherZeemanPresent
-          C2x = eqeig(eC,eig(ham(Sys,B(:,8)))); 
-        else
-          C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));  
-        end
-        if C2x
-          pg = 9;  % D6h
-        else
-          pg = 8;  % C6h
-        end
-      else
-        pg = 10;  % Th
-      end
-    else  % S6, D3d
-      if higherZeemanPresent
-        C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
-      else
-        C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
-      end
-      if ~C2x
-        if higherZeemanPresent
-          C2y = eqeig(eA,eig(ham(Sys,B(:,9))));
-        else
-          C2y = eqeig(eA,eig(H0-B(1,9)*mux-B(2,9)*muy-B(3,9)*muz));
-        end
-      end
-      if C2x || C2y
-        pg = 7;  % D3d
-      else
-        pg = 6;  % S6
-      end
-    end
-    
-  elseif ~C3 && C4  % C4 axis: C4h, D4h, Oh
-    
-    if higherZeemanPresent
-      C2x = eqeig(eC,eig(ham(Sys,B(:,8))));
-    else
-      C2x = eqeig(eC,eig(H0-B(1,8)*mux-B(2,8)*muy-B(3,8)*muz));
-    end
-    if C2x % D4h, Oh
-      if higherZeemanPresent
-        Bs  = [B(2,10),B(3,10),B(1,10)];
-        C3d = eqeig(eig(ham(Sys,B(:,10))),eig(ham(Sys,Bs)));
-      else
-        C3d = eqeig(eig(H0-B(2,10)*mux-B(3,10)*muy-B(1,10)*muz),...
-                    eig(H0-B(1,10)*mux-B(2,10)*muy-B(3,10)*muz));
-      end
-      if C3d
-        pg = 11;  % Oh
-      else
-        pg = 5;  % D4h
-      end
-    else
-      pg = 4;  % C4h
-    end
-    
-  else  % C3 and C4 axes: Dinfh, O3
-
-    if higherZeemanPresent
-      Cinfx = eqeig(eC,eig(ham(Sys,B(:,4))));
-    else
-      Cinfx = eqeig(eC,eig(H0-B(1,4)*mux-B(2,4)*muy-B(3,4)*muz));
-    end
-    if Cinfx
-      pg = 13;  % O3
-    else
-      pg = 12;  % Dinfh
-    end
-    
-  end
-  
-  if debugMode
-    if pg>0
-      fprintf('Point group %s\n',GroupNames{pg});
+    if pointGroupId>0
+      fprintf('Point group %s\n',GroupNames{pointGroupId});
     else
       fprintf('No point group identified.\n');
     end
   end
 
   % Update if symmetry is higher than current best.
-  if pg>highestSymmetry
-    highestSymmetry = pg;
+  if pointGroupId>highestSymmetry
+    highestSymmetry = pointGroupId;
     RMatrix = R;
     if debugMode
       disp('Highest symmetry up to now.');
@@ -408,9 +266,87 @@ if debugMode
   fprintf('Symmetry = %s\n',Group);
 end
 
-end
-%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  % Nested function: compute eigenvalues for a given field direction
+  function e = computeEigs(fieldVec)
+    % Use variables from parent scope: Sys, H0, mux, muy, muz, higherZeemanPresent
+    if higherZeemanPresent
+      e = eig(ham(Sys,fieldVec));
+    else
+      e = eig(H0 - fieldVec(1)*mux - fieldVec(2)*muy - fieldVec(3)*muz);
+    end
+  end
 
+end
+
+
+%===============================================================================
+% Determine point group from symmetry test results
+function pointGroupId = determinePointGroup(symmetryResults)
+  % Determine the spin Hamiltonian point group from the symmetry elements
+  %
+  % Input:
+  %   symmetryResults: struct with fields specifying results of all symmetry tests:
+  %     .C3z, .C4z, .C2z, .sigmaxz, .sigmaxy, .C2x, .C2y, .C3d, .Cinfx
+  %
+  % Output:
+  %   pointGroupId: integer 1-13 indexing into GroupNames array
+  
+  if ~symmetryResults.C3z && ~symmetryResults.C4z
+    % Neither C3z nor C4z: Ci, C2h, D2h
+    if ~symmetryResults.C2z
+      pointGroupId = 1;  % Ci
+    else
+      if symmetryResults.sigmaxz
+        pointGroupId = 3;  % D2h
+      else
+        pointGroupId = 2;  % C2h
+      end
+    end
+    
+  elseif symmetryResults.C3z && ~symmetryResults.C4z
+    % C3z, but no C4z: S6, D3d, Th, C6h, D6h
+    if symmetryResults.sigmaxy
+      % Th, C6h, D6h
+      if symmetryResults.C2z
+        if symmetryResults.C2x
+          pointGroupId = 9;  % D6h
+        else
+          pointGroupId = 8;  % C6h
+        end
+      else
+        pointGroupId = 10;  % Th
+      end
+    else
+      % S6, D3d
+      if symmetryResults.C2x || symmetryResults.C2y
+        pointGroupId = 7;  % D3d
+      else
+        pointGroupId = 6;  % S6
+      end
+    end
+    
+  elseif ~symmetryResults.C3z && symmetryResults.C4z
+    % C4z, but no C3z: C4h, D4h, Oh
+    if symmetryResults.C2x
+      if symmetryResults.C3d
+        pointGroupId = 11;  % Oh
+      else
+        pointGroupId = 5;   % D4h
+      end
+    else
+      pointGroupId = 4;     % C4h
+    end
+    
+  else
+    % Both C3z and C4z axes: Dinfh, O3
+    if symmetryResults.Cinfx
+      pointGroupId = 13;    % O3
+    else
+      pointGroupId = 12;    % Dinfh
+    end
+  end
+
+end
 
 %===============================================================================
 % Determine if two sets of eigenvalues are (approximately) equal
@@ -418,7 +354,7 @@ function tf = eqeig(eA,eB)
 threshold = 1e-12;
 eA = sort(eA);
 eB = sort(eB);
-tf = norm(eA-eB) < threshold*norm(eA);
+tf = norm(eA-eB) < threshold*(norm(eA)+norm(eB))/2;
 end
 
 
@@ -465,7 +401,7 @@ end
 % Nuclear Zeeman interaction
 for iN = 1:nNuclei
   [Sym(end+1),Ax{end+1}] = tensorsymmetry(Sys.sigma(iN,:),Sys.sigmaFrame(iN,:));
-  Name{end+1} = sprintf('sigma%d',iE);
+  Name{end+1} = sprintf('sigma%d',iN);
 end
 
 % Hyperfine interaction
@@ -761,4 +697,26 @@ if iso && isfield(Sys,'A')
   end
 end
 
+end
+
+%===============================================================================
+% Check if any field with given prefix has non-zero elements
+function present = checkFieldPresence(Sys,fieldPrefix)
+  % Input:
+  %   Sys: spin system structure
+  %   fieldPrefix: string prefix to match in field names
+  % Output:
+  %   present: logical, true if any matching field has non-zero values
+  
+  sysfields = fieldnames(Sys);
+  matchingFields = strncmp(sysfields,fieldPrefix,length(fieldPrefix)).';
+  present = false;
+  if any(matchingFields)
+    for n = find(matchingFields)
+      if any(Sys.(sysfields{n})(:))
+        present = true;
+        return;
+      end
+    end
+  end
 end
