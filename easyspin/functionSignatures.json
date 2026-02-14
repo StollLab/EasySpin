@@ -1658,8 +1658,21 @@
     ]
   },
   "gammae": {
-    "description": "Electron gyromagnetic ratio"
+    "description": "Electron gyromagnetic ratio (rad/s/T)"
   },
+  "gamman": {
+    "description": "Nuclear gyromagnetic ratio (rad/s/T)",
+    "inputs": [
+      {
+        "name": "iso",
+        "kind": "required",
+        "type": [
+          "char"
+        ],
+        "purpose": "isotope, or list of isotopes"
+      }
+    ]
+    },
   "garlic": {
     "description": "isotropic and fast-motion cw EPR spectra",
     "inputs": [
@@ -3505,6 +3518,28 @@
           "struct"
         ],
         "purpose": "simulation options"
+      }
+    ]
+  },
+  "phasecorr": {
+    "description": "Phase correction of complex signal",
+    "inputs": [
+      {
+        "name": "V",
+        "kind": "required",
+        "type": [
+          "numeric"
+        ],
+        "purpose": "complex signal"
+      },
+      {
+        "name": "ignoreOffset",
+        "kind": "ordered",
+        "type": [
+            "scalar",
+            "logical"
+        ],
+        "purpose": "ignore offset [true/false]"
       }
     ]
   },
