@@ -72,6 +72,7 @@ if onlySimpleTensors
 else
   [PGroup, RMatrix] = hamsymm_eigs(Sys,higherOrderZeeman);
 end
+RMatrix = RMatrix.';  % conver to molecular frame -> symmetry frame
 
 end
 %===============================================================================
