@@ -34,6 +34,7 @@ $ReleaseID$
 
 <p>Major new features</p>
 <ul>
+<li>The documentation now includes a reference page on <a href="resonators_ref.html">resonators</a>.</li>
 <li>The new function <a class="esf" href="dipbackground">dipbackground</a> calculates background decays for dipolar EPR (DEER etc.)</li>
 <li><a class="esf" href="eprload">eprload</a> can now import 1D and 2D files from CIQTEK spectrometers (file extension <code>.epr</code>).</li>
 <li>The new function <a class="esf" href="gamman">gamman</a> provides nuclear gyromagnetic ratio.</li>
@@ -44,11 +45,12 @@ $ReleaseID$
 
 <p>Major bug fixes</p>
 <ul>
-<li>Eliminate spurious tiny triangles in certain triangulations provided by `sphgrid`.</li>
+<li>Eliminate spurious tiny triangles in certain triangulations provided by <a class="esf" href="sphgrid">sphgrid</a>.</li>
 </ul>
 
 <p>Incompatible changes</p>
 <ul>
+<li> The definition of <code>GridFrame</code>, the second output of <a class="esf" href="hamsymm">hamsymm</a> has changed. Previously, it provided the transformation matrix from the grid frame to the molecular frame, now it provides the transformation matrix from the molecular frame to the grid frame. Similarly, the meaning of <code>Opt.GridFrame</code>, as used in <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="salt.html">salt</a>, <a class="esf" href="saffron.html">saffron</a> etc. has changed.</li>
 </ul>
 
 <div class="subtitle">

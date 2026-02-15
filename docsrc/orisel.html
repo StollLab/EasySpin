@@ -133,8 +133,12 @@ Number of orientations, as in <a class="esf" href="pepper.html">pepper</a> (opti
 
 <div class="optionfield"><code>GridSymmetry</code></div>
 <div class="optiondescr">
-Point-group symmetry of the orientational grid, as in <a class="esf" href="pepper.html">pepper</a>. If not given, the grid symmetry is
-determined automatically from the spin system (see <a class="esf" href="hamsymm.html">hamsymm</a>).
+Point-group symmetry of the orientational grid, as in <a class="esf" href="pepper.html">pepper</a>. If not given, the grid symmetry is determined automatically from the spin system. See <a class="esf" href="hamsymm.html">hamsymm</a>. If <code>GridSymmetry</code> is given, <code>GridFrame</code> must be provided as well.
+</div>
+
+<div class="optionfield"><code>GridFrame</code></div>
+<div class="optiondescr">
+Euler angles (in radians) that specify the orientation of the integration grid relative to the molecular frame. If not given or <code>''</code>, it is determined automatically. If given, <code>GridSymmetry</code> must be provided as well.
 </div>
 
 <p>
@@ -171,12 +175,11 @@ orisel(Sys,Exp);
 </pre>
 
 <p>
-If the full orientational sphere should be plotted, set the
-grid symmetry manually to <code>C1</code>
+If the full orientational sphere should be plotted, set the grid symmetry and frame orientation manually to
 </p>
 
 <pre class="matlab">
-Opt = struct('GridSymmetry','C1');
+Opt = struct('GridSymmetry','C1','GridFrame',[0 0 0]);
 orisel(Sys,Exp,Opt);
 </pre>
 

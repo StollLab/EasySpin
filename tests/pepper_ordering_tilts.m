@@ -12,6 +12,7 @@ Exp.Harmonic = 0;
 
 Opt.GridSize = 11;
 Opt.GridSymmetry = 'Ci';
+Opt.GridFrame = [0 0 0];
 
 Sys.g = [2 2.1 2.2];
 Sys.gFrame = deg2rad([10 40 20]);

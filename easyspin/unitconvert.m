@@ -40,10 +40,8 @@ else
   if ~isnumeric(g)
     error('g value (third input) must be numeric.')
   end
-  if numel(g)>1
-    if ~isequal(size(value),size(g))
-      error('If g (third input) is an array, it must be the same size as values (first input).');
-    end
+  if numel(g)>1 && numel(value)>1 && ~isequal(size(value),size(g))
+    error('If g (third input) is an array, it must be the same size as values (first input).');
   end
 end
 

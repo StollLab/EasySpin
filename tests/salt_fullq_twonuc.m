@@ -27,6 +27,7 @@ Exp.Field = 1200;
 Opt.Method = 'matrix';
 Opt.GridSymmetry = 'Ci';
 Opt.GridSize = [30 0];
+Opt.GridFrame = [0 0 0];
 
 [x,y1] = salt(Sys1,Exp,Opt);
 [x,y2] = salt(Sys2,Exp,Opt);

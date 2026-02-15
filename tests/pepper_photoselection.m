@@ -15,6 +15,7 @@ Exp.Range = [280 400];  % mT
 Exp.Harmonic = 0;
 
 Opt.GridSymmetry = 'D2h';
+Opt.GridFrame = [0 0 0];
 
 iso = 0.2;
 Exp.lightScatter = iso;  % isotropic contribution

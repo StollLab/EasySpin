@@ -124,6 +124,7 @@ The field <code>Sys.Nucs</code> contains a character array giving all the magnet
 
 <p>
 <code>Sys.A</code> gives the hyperfine coupling tensors in MHz (megahertz), with up to three principal values in a row for each of the nuclei listed in <code>Sys.Nucs</code>. The following defines a hydrogen atom with a 10 MHz coupling to the unpaired electron and a <sup>13</sup>C atom with a 12 MHz coupling.
+</p>
 
 <pre class="matlab">
 Sys.Nucs = '1H,13C';
@@ -194,12 +195,15 @@ Sys.logDiff = 9;   % = log10(Sys.Diff)   1e9 rad^2 s^-1 = 1 rad^2 ns^-1
 
 <p>
 <code>Diff</code> and <code>tcorr</code> are related by
+</p>
 
 <pre class="matlab">
 Diff = 1/6./tcorr;
 </pre>
 
+<p>
 The input field <code>Diff</code> can be used to specify an axial rotational diffusion tensor, by giving a 2-element vector with first the perpendicular principal value (for rotation around the x and y axes) and then the parallel principal value (for rotation around the z axis):
+</p>
 
 <pre class="matlab">
 Sys.Diff = [1 2]*1e8;  % in rad^2 s^-1
@@ -217,7 +221,9 @@ Sys.lw = [0.05 0.01];   % [GaussianFWHM, LorentzianFWHM] in mT
 These line broadenings are convolutional, i.e. they broaden all regions of the spectrum equally. For the reliability of the slow-motion simulation algorithm in <code>chili</code>, it is recommended to always use a small residual Lorentzian line width in <code>Sys.lw</code>.
 </p>
 
+<p>
 <code>chili</code> is also capable of simulating spectra including spin exchange due to molecular collisions between radicals in solution. The effective exchange frequency (in inverse microseconds) is specified in <code>Sys.Exchange</code>, e.g.
+</p>
 
 <pre class="matlab">
 Sys.Exchange = 100;     % microseconds^-1
@@ -358,6 +364,7 @@ With this setting, EasySpin will include the relevant polarization factors resul
 
 <p>
 <span class="param">Microwave phase</span>. Occasionally, the EPR absorption signal has a small admixture of the dispersion signal. This happens for example when the microwave phase in the reference arm is not absolutely correctly adjusted. EasySpin can mix dispersion with absorption if a Lorentzian broadening is given:
+</p>
 
 <pre class="matlab">
 Sys.lwpp = [0.2 0.01];           % Lorentzian broadening (2nd number) required
@@ -372,6 +379,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 
 <p>
 In a frozen solution of spin-labelled protein, the protein molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if a orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
+</p>
 
 <p>
 The summation of slow-motion spectra over all possible orientations of an immobile protein or membrane ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder average. In <code>chili</code>, the orientational average is calculated whenever you specify an orientational potential. To get a single-orientation spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single protein orientation, use the field <code>Exp.SampleFrame</code> to specify the sample orientation via the Euler tilt angle (in radians) between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
@@ -381,7 +389,9 @@ The summation of slow-motion spectra over all possible orientations of an immobi
 When <code>chili</code> performs an orientational average, it takes the number of orientations to include from <code>Opt.GridSize</code>. Often, <code>Opt.GridSize</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.GridSize</code> can be increased. Larger values of <code>Opt.GridSize</code> increases the simulation time. It might also be necessary to change the grid symmetry in <code>Opt.GridSymmetry</code> (to e.g. <code>'D2h'</code> or <code>'Ci'</code>).
 </p>
 
-<p><a class="esf" href="chili.html">chili<a> is not able to automatically determine values of <code>Opt.GridSize</code> and <code>Opt.GridSymmetry</code> that yield a converged spectrum. It is therefore important to increase <code>Opt.GridSize</code> until the spectrum doesn't change anymore, and to initially use the most general symmetry setting <code>Opt.GridSymmetry = 'Ci'</code> to assure a correct and converged spectrum.
+<p>
+<a class="esf" href="chili.html">chili</a> is not able to automatically determine values of <code>Opt.GridSize</code> and <code>Opt.GridSymmetry</code> that yield a converged spectrum. It is therefore important to increase <code>Opt.GridSize</code> until the spectrum doesn't change anymore, and to initially use the most general symmetry setting <code>Opt.GridSymmetry = 'Ci'</code> (with <code>Opt.GridFrame = [0 0 0]</code>) to assure a correct and converged spectrum.
+</p>
 
 <!-- ============================================================= -->
 <a name="algorithm"><div class="subtitle">Simulation parameters</div></a>

@@ -10,6 +10,8 @@ Opt = struct('Verbosity',opt.Verbosity);
 
 n1 = 19; k1 = 5;
 n2 = (n1-1)*k1 + 1; k2 = 1;
+
+Opt.GridFrame = [0 0 0];
 Opt.GridSymmetry ='D2h';
 Opt.GridSize = [n1 k1]; [x,y1] = pepper(Sys,Exp,Opt);
 Opt.GridSize = [n2 k2]; [x,y2] = pepper(Sys,Exp,Opt);

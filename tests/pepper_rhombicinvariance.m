@@ -8,6 +8,7 @@ Opt = struct('GridSize',[20 0]);
 Symmetry = {'D2h','Ci','C1','C2h'};
 Sys.lw = 1;
 
+Opt.GridFrame = [0 0 0];
 for k = 1:length(Symmetry)
   Opt.GridSymmetry = Symmetry{k};
   [B,spc(k,:)] = pepper(Sys,Exp,Opt);    

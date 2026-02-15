@@ -14,6 +14,7 @@ Exp.nPoints = 50000;
 
 % (1) Powder averaging (zone projection)
 Opt.GridSymmetry = 'Dinfh';
+Opt.GridFrame = [0 0 0];
 [x,y2] = pepper(Sys,Exp,Opt);
 
 % (2) Powder averaging (triangle projection)

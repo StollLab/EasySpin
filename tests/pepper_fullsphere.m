@@ -11,6 +11,7 @@ Exp.Range = [305 345];
 
 Opt.GridSize = [10 2];
 
+Opt.GridFrame = [0 0 0];
 Opt.GridSymmetry = 'D2h';
 [B,spc0] = pepper(Sys,Exp,Opt);
 Opt.GridSymmetry = 'Ci';

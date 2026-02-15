@@ -21,6 +21,7 @@ Op.Verbosity = opt.Verbosity;
 Symmetry = {'Dinfh','D6h','D4h','Oh','D3d','Th','D2h',...
     'C4h','C6h','S6','C2h','Ci'};
 
+Op.GridFrame = [0 0 0];
 for k = 1:length(Symmetry)
   Op.GridSymmetry = Symmetry{k};
   [x,y(k,:)] = salt(Sy,Ex,Op);

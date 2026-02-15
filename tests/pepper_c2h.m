@@ -21,6 +21,7 @@ Exp.Harmonic = 0;
 Opt.GridSize = [50 3];
 Opt.Method = 'perturb';
 
+Opt.GridFrame = [0 0 0];
 Opt.GridSymmetry = 'Ci';
 [B,spc1] = pepper(Sys,Exp,Opt);
 Opt.GridSymmetry = 'C2h';

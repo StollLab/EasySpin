@@ -344,7 +344,12 @@ Size of orientational grid used in a powder simulation (i.e. if the protein or o
 <div class="optiondescr">
 <code>'Dinfh'</code> (default), <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
 <br>
-Determines the symmetry of the orientational grid for powder simulations. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>Ci</code>, which is slower, but correct for any situation.
+Sets the symmetry of the orientational grid for powder simulations. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>'Ci'</code>, which is slower, but correct for any situation. If <code>GridSymmetry</code> is given, <code>GridFrame</code> must be provided as well.
+</div>
+
+<div class="optionfield"><code>GridFrame</code></div>
+<div class="optiondescr">
+Euler angles (in radians) that specify the orientation of the integration grid relative to the molecular frame. If not given or <code>''</code>, it is determined automatically. If given, <code>GridSymmetry</code> must be provided as well.
 </div>
 
 <div class="optionfield"><code>LiouvMethod</code></div>

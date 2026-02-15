@@ -1,38 +1,51 @@
 function [ok,data] = test(opt,olddata)
 
-% Tests if asymmetric A tensor work
+% Tests if asymmetric A tensor works
 
-Sy = struct('S',1/2,'Nucs','1H','g',[2.2 2.1 2],...
-  'A',2*[-1.2,-0.8,2],'lwEndor',[0,0.01]);
-Ex = struct('Range',[10 18],'Field',326.5,...
-  'nPoints',2^12,'mwFreq',9.7);
-Si = struct('Threshold',1e-5,'GridSize',[20 5],'Intensity','on',...
-  'Enhancement','off','Verbosity',opt.Verbosity);
-Si.GridSymmetry = 'Ci';
+Sys.Nucs = '1H';
+Sys.g = [2.2 2.1 2];
+Sys.A = 2*[-1.2,-0.8,2];
+Sys.lwEndor = [0 0.01];
+Exp.Range = [10 18];
+Exp.Field = 326.5;
+Exp.nPoints = 4000;
+Exp.mwFreq = 9.7;
 
-Sy.A = diag(Sy.A);
-[a,b1] = salt(Sy,Ex,Si);
-Sy.A(1,2) = 5;
-Sy.A(2,1) = -5;
-[a,b2] = salt(Sy,Ex,Si);
+Opt.Threshold = 1e-5;
+Opt.GridSize = [20 5];
+Opt.Intensity = 'on';
+Opt.Enhancement = 'off';
+Opt.Verbosity = opt.Verbosity;
+
+Opt.GridSymmetry = 'Ci';
+Opt.GridFrame = [0 0 0];
+
+% Diagonal A matrix
+Sys.A = diag(Sys.A);
+[nu,spc1] = salt(Sys,Exp,Opt);
+
+% A matrix with antisymmetric contribution
+Sys.A(1,2) = 5;
+Sys.A(2,1) = -5;
+[nu,spc2] = salt(Sys,Exp,Opt);
 
 if opt.Display
   subplot(3,1,[1 2]);
-  plot(a,b1,'b',a,b2,'r',a,olddata.b1,'b.',a,olddata.b2,'r.');
-  title('Tilted tensors, Ci symmetry');
-  legend('symmetric A','asymmetric A','symmetric A, old','asymmetric A, old');
-  xlabel('frequency [MHz]');
+  plot(nu,spc1,'b',nu,spc2,'r',nu,olddata.spc1,'b.',nu,olddata.spc2,'r.');
+  title('C_i symmetry');
+  legend('symmetric A','asymmetric A','symmetric A, ref','asymmetric A, ref');
+  xlabel('frequency (MHz)');
   if ~isempty(olddata)
     subplot(3,1,3);
-    plot(a,b1-olddata.b1,'b.',a,b2-olddata.b2,'r.');
+    plot(nu,spc1-olddata.spc1,'b.',nu,spc2-olddata.spc2,'r.');
   end
 end
 
-data.b1 = b1;
-data.b2 = b2;
+data.spc1 = spc1;
+data.spc2 = spc2;
 
 if isempty(olddata)
   ok = [];
 else
-  ok = areequal(olddata.b1,b1,1e-10,'rel') && areequal(olddata.b2,b2,1e-10,'rel');
+  ok = areequal(olddata.spc1,spc1,1e-10,'rel') && areequal(olddata.spc2,spc2,1e-10,'rel');
 end

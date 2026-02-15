@@ -340,10 +340,13 @@ Opt.GridSize = [31 6];   % 3&deg; increments, 6-fold interpolation (giving 0.5&d
 <code>'C2h'</code> or <code>'Ci'</code>
 <br>
 <p>
-Determines the grid symmetry used for the powder simulation. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants).
-If not given or <code>''</code>, then <code>salt</code> determines the appropriate grid symmetry automatically from the given spin system. With any other setting, <code>pepper</code> is forced into using the specified symmetry, even if it is incorrect for the spin system.
-See also <a class="esf" href="hamsymm.html">hamsymm</a>.
+Sets the symmetry of the orientational grid used for the powder simulation. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta;=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, <code>'Ci'</code> to one hemisphere (four octants), and <code>'C1'</code> to the full sphere. If not given or <code>''</code>, then the required grid symmetry is determined automatically from the spin system parameters. With any other setting, EasySpin uses the specified grid symmetry, even if it is incorrect for the spin system. If <code>GridSymmetry</code> is given, <code>GridFrame</code> must be provided as well. See also <a class="esf" href="hamsymm.html">hamsymm</a>.
 </p>
+</div>
+
+<div class="optionfield"><code>GridFrame</code></div>
+<div class="optiondescr">
+Euler angles (in radians) that specify the orientation of the integration grid relative to the molecular frame. If not given or <code>''</code>, it is determined automatically. If given, <code>GridSymmetry</code> must be provided as well.
 </div>
 
 <div class="optionfield"><code>Sites</code></div>

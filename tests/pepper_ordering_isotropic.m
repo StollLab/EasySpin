@@ -10,6 +10,7 @@ Exp.Range = [300 350];
 Exp.Harmonic = 0;
 
 Opt.GridSymmetry = 'Ci';
+Opt.GridFrame = [0 0 0];
 
 % Isotropic distribution
 Exp.Ordering = [];

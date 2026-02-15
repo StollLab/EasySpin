@@ -7,7 +7,9 @@ Exp.tau = 0.001;
 Exp.dt = 0.010;
 Exp.Field = 350;
 Exp.Range =  [0 30];
+
 Opt.GridSymmetry = 'Ci';
+Opt.GridFrame = [0 0 0];
 
 Sys.Nucs = '1H';
 Sys.lwEndor = 0.1;

@@ -17,6 +17,7 @@ Symmetry = {'Dinfh','D6h','D4h','Oh','D3d','Th','D2h',...
     'C4h','C6h','S6','C2h','Ci','C1'};
 
 for k = 1:numel(Symmetry)
+  Opt.GridFrame = [0 0 0];
   Opt.GridSymmetry = Symmetry{k};
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
 end
