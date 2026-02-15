@@ -52,14 +52,36 @@ if msgLevel>logLevel
   return
 end
 
-% Display message
-if numel(args)>=1
-  fprintf(args{:});
-  fprintf('\n');
-end
+% Print message
+printMessage(args{:});
 
 end
 
+%===============================================================================
 function tf = isValidLogLevel(lev)
 tf = isnumeric(lev) && isscalar(lev) && ismember(lev,0:4);
+end
+
+%===============================================================================
+% Print log message
+function printMessage(varargin)
+
+% Print function name and line number
+printLocation = false;
+if printLocation
+  db = dbstack;
+  if numel(db)>=3
+    funcName = db(3).name;
+    lineNo = db(3).line;
+  else
+    funcName = '...';
+    lineNo = '';
+  end
+  fprintf('[%s:%d] ',funcName,lineNo);
+end
+
+% Print message
+fprintf(varargin{:});
+fprintf('\n');
+
 end
