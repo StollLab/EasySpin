@@ -20,21 +20,29 @@
 % more general (but more expensive) one based on comparing spin Hamiltonian
 % eigenvalues. Neither is perfect.
 %
-% The geometric analysis is not able to identify all symmetries. For example, it
-% doesn't work for the CF3 radical, with three identical A tensor rotated
-% around the zM axis. This has molecular symmetry C3v and should give spin
-% Hamiltonian symmetry C3v x i = D3d. The flaw is that the geometric analysis
-% examines a pair of tensors at a time, and also doesn't take the principal
-% values into account.
+% The geometric analysis disregards tensor principal values and it is therefore
+% not able to identify higher symmetries when multiple tensors with identical
+% principal values but different orientations are present. For example, it
+% doesn't work for the CF3 radical, with three identical A tensors rotated
+% around the zM axis. This has molecular symmetry C3v and spin Hamiltonian
+% symmetry C3v x i = D3d. Geometric analysis returns Ci.
 %
 %   A = [80 87 262]*2.8;
 %   Sys.A = [A; A; A];
 %   beta = 17.8;  % deg
 %   Sys.AFrame = deg2rad([0 beta 0; -120 beta 0; 120 beta 0]);
 %
-% The eigenvalue analysis has problems with two axial tensors with tilted angles.
-% It returns Ci, since it is not able to identify the common rotation axis, because
-% that is not among the candidate frame.
+% The eigenvalue analysis fails in any situation where the symmetry frame
+% is different from any tensor frame, e.g. two identical axial hf tensors
+% with AFrame = deg2rad([20 30 17; 180+20 30 17]).
+%
+% Thankfully, "failure" results in a lower symmetry than the actual one
+% being identified, so the simulated spectrum is still correct.
+%
+% A possible route for improvement is to generate more candidate symmetry
+% frames when multiple equivalent tensors are present. Also, a more general
+% geometric analysis could follow the same logic as the eigenvalue
+% approach, by examining the tensors as tri-axial ellispoids.
 
 function [PGroup,RMatrix] = hamsymm(Sys)
 
