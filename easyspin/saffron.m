@@ -1061,7 +1061,7 @@ if fastSimulationMode
 
     else
 
-      % transition selection
+      % Transition selection
       %------------------------------------------------------------
       muzL = zLab_M(1)*mux + zLab_M(2)*muy + zLab_M(3)*muz;
       H = H0 - Exp.Field*muzL;
@@ -1086,15 +1086,20 @@ if fastSimulationMode
 
       % Remove transitions that are not wanted by the user
       if ~isempty(Opt.Transitions)
-        rmvTransition = ones(size(H));
+        nStates = size(H,1);
+        if any(Opt.Transitions(:)>nStates)
+          error('Opt.Transitions out of range - only values between and %d are valid.',nStates);
+        end
+        rmvTransition = true(size(H));
         for t = 1:size(Opt.Transitions,1)
           tr = Opt.Transitions(t,:);
-          rmvTransition(tr(1),tr(2)) = 0;
-          rmvTransition(tr(2),tr(1)) = 0;
+          rmvTransition(tr(1),tr(2)) = false;
+          rmvTransition(tr(2),tr(1)) = false;
         end
-        SyLab(rmvTransition~=0) = 0;
+        SyLab(rmvTransition) = 0;
       end
 
+      % Build transition list
       [v,u,OriSelWeight] = find(tril(SyLab,-1));
       Transitions = [u,v];
       nTransitions = size(Transitions,1);
@@ -1104,7 +1109,7 @@ if fastSimulationMode
         continue
       end
 
-      % computation of <S> for all manifolds involved
+      % Compute <S> for all manifolds involved
       %------------------------------------------------------------
       ManifoldsInvolved = zeros(1,length(Sx));
       ManifoldsInvolved(u) = 1;
@@ -2031,6 +2036,7 @@ end
 %===============================================================
 endTime = datetime;
 elapsedtime = endTime-startTime;
+elapsedtime.Format = 'hh:mm:ss.SSS';
 logmsg(1,'saffron took %s',elapsedtime);
 
 logmsg(1,'=end=saffron======%s=================\n',datetime);
