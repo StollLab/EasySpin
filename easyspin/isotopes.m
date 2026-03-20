@@ -280,7 +280,16 @@ fh = fopen(DataFile);
 C = textscan(fh,'%f %f %s %s %s %f %f %f %f','commentstyle','%');
 
 % Calculate gyromagnetic ratioes (MHz/T)
-gn = C{7};
+magmom = C{7};
+% Nuclear g factors: Infer from the 1H entry whether gn or gn*I is listed in
+% the data file. If gn*I is listed, then divide out I.
+gn = magmom;
+spin = C{6};
+if magmom(1)<5
+  nzidx = spin~=0;
+  gn(nzidx) = magmom(nzidx)./spin(nzidx);
+end
+C{7} = gn;
 C{10} = gn*nmagn/planck/1e6;
 
 % Assemble isotope symbols
