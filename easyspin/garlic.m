@@ -193,7 +193,7 @@ if FastMotionRegime
   end
   if isfield(Sys,'n')
     if any(Sys.n>1)
-      error('Cannot treat equivalent nuclei in fast-motion regime!\n Please rewrite spin system!');
+      error('garlic cannot simulate fast-motion spectra for spin systems with equivalent nuclei (Sys.n>1).\n Rewrite the spin system without Sys.n.');
     end
   end
   if isfield(Sys,'Potential')
