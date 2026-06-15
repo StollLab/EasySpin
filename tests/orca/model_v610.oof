@@ -1,0 +1,2382 @@
+
+                                 *****************
+                                 * O   R   C   A *
+                                 *****************
+
+                                            #,                                       
+                                            ###                                      
+                                            ####                                     
+                                            #####                                    
+                                            ######                                   
+                                           ########,                                 
+                                     ,,################,,,,,                         
+                               ,,#################################,,                 
+                          ,,##########################################,,             
+                       ,#########################################, ''#####,          
+                    ,#############################################,,   '####,        
+                  ,##################################################,,,,####,       
+                ,###########''''           ''''###############################       
+              ,#####''   ,,,,##########,,,,          '''####'''          '####       
+            ,##' ,,,,###########################,,,                        '##       
+           ' ,,###''''                  '''############,,,                           
+         ,,##''                                '''############,,,,        ,,,,,,###''
+      ,#''                                            '''#######################'''  
+     '                                                          ''''####''''         
+             ,#######,   #######,   ,#######,      ##                                
+            ,#'     '#,  ##    ##  ,#'     '#,    #''#        ,####,    ,#,          
+            ##       ##  ##   ,#'  ##            #'  '#       #'       ,# #          
+            ##       ##  #######   ##           ,######,      #####,      #          
+            '#,     ,#'  ##    ##  '#,     ,#' ,#      #,     #,   #      #          
+             '#######'   ##     ##  '#######'  #'      '#     '####' #    #          
+
+
+
+                #########################################################
+                #                        -***-                          #
+                #          Department of theory and spectroscopy        #
+                #                                                       #
+                #                      Frank Neese                      #
+                #                                                       #
+                #     Directorship, Architecture, Infrastructure        #
+                #                    SHARK, DRIVERS                     #
+                #        Core code/Algorithms in most modules           #
+                #                                                       #
+                #        Max Planck Institute fuer Kohlenforschung      #
+                #                Kaiser Wilhelm Platz 1                 #
+                #                 D-45470 Muelheim/Ruhr                 #
+                #                      Germany                          #
+                #                                                       #
+                #                  All rights reserved                  #
+                #                        -***-                          #
+                #########################################################
+
+
+                         Program Version 6.1.0  -  RELEASE   -
+                                (GIT: $679e74b$)
+                          ($2025-06-10 18:02:51 +0200$)
+
+
+ With contributions from (in alphabetic order):
+[Max-Planck-Institut fuer Kohlenforschung]                               
+  Daniel Aravena         : Magnetic Suceptibility                        
+  Michael Atanasov       : Ab Initio Ligand Field Theory (pilot matlab implementation)
+  Alexander A. Auer      : GIAO ZORA, VPT2 properties, NMR spectrum      
+  Ute Becker             : All parallelization in ORCA, NUMFREQ, NUMCALC 
+  Giovanni Bistoni       : ED, misc. LED, open-shell LED, HFLD           
+  Dmytro Bykov           : pre 5.0 version of the SCF Hessian            
+  Marcos Casanova-Páez   : Triplet and SCS-CIS(D). UHF-(DLPNO)-IP/EA/STEOM-CCSD. UHF-CVS-IP/STEOM-CCSD   
+  Vijay G. Chilkuri      : MRCI spin determinant printing, contributions to CSF-ICE 
+  Pauline Colinet        : FMM embedding                                 
+  Dipayan Datta          : RHF DLPNO-CCSD density                        
+  Achintya Kumar Dutta   : EOM-CC, STEOM-CC                              
+  Nicolas Foglia         : Exact transition moments, OPA infrastructure, MCD improvements    
+  Dmitry Ganyushin       : Spin-Orbit,Spin-Spin,Magnetic field MRCI      
+  Miquel Garcia-Rates    : C-PCM and meta-GGA Hessian, CCSD/C-PCM, Gaussian charge scheme 
+  Tiago L. C. Gouveia    : GS-ROHF, GS-ROCIS                             
+  Yang Guo               : DLPNO-NEVPT2, F12-NEVPT2, CIM, IAO-localization        
+  Andreas Hansen         : Spin unrestricted coupled pair/coupled cluster methods 
+  Ingolf Harden          : AUTO-CI MPn and infrastructure                
+  Benjamin Helmich-Paris : MC-RPA, TRAH-(SCF,CASSCF), AVAS, COSX integrals, SCF dyn. polar., MC-PDFT, srDFT 
+  Lee Huntington         : MR-EOM, pCC                                   
+  Robert Izsak           : Overlap fitted RIJCOSX, COSX-SCS-MP3, EOM     
+  Riya Kayal             : Wick's Theorem for AUTO-CI, AUTO-CI UHF-CCSDT 
+  Emily Kempfer          : AUTO-CI RHF CISDT and CCSDT, approximate NEVPT4
+  Christian Kollmar      : KDIIS, OOCD, Brueckner-CCSD(T), CCSD density, CASPT2, CASPT2-K, improved NEVPT2 
+  Axel Koslowski         : Symmetry handling                             
+  Simone Kossmann        : meta-GGA functionals, TD-DFT gradient, OOMP2, (MP2 Hessian; deprecated post 5.0) 
+  Lucas Lang             : DCDCAS, Hyperfine gauge corrections, ICE-SOC+SSC
+  Marvin Lechner         : AUTO-CI (C++ implementation), FIC-MRCC        
+  Spencer Leger          : CASSCF response                               
+  Dagmar Lenk            : GEPOL surface, SMD, ORCA-2-JSON               
+  Dimitrios Liakos       : Extrapolation schemes; Compound Job, Property file
+  Dimitrios Manganas     : Further ROCIS development; embedding schemes. LFT, Crystal Embedding 
+  Dimitrios Pantazis     : SARC Basis sets                               
+  Anastasios Papadopoulos: AUTO-CI, single reference methods and gradients 
+  Taras Petrenko         : pre 6.0 DFT Hessian and TD-DFT gradient,  ECA, NRVS 
+  Petra Pikulova         : Analytic Raman intensities                    
+  Peter Pinski           : DLPNO-MP2, DLPNO-MP2 Gradient                 
+  Shashank Vittal Rao    : ES-AILFT, MagRelax                            
+  Christoph Reimann      : Effective Core Potentials                     
+  Marius Retegan         : Local ZFS, SOC                                
+  Christoph Riplinger    : Optimizer, TS searches, QM/MM, DLPNO-CCSD(T), (RO)-DLPNO pert. Triples 
+  Michael Roemelt        : Original ROCIS implementation, recursive CI coupling coefficients
+  Masaaki Saitow         : Open-shell DLPNO-CCSD energy and density      
+  Barbara Sandhoefer     : DKH picture change effects                    
+  Yorick L. A. Schmerwitz: GMF and freeze-and-release deltaSCF, NEB S-IDPP initial path                    
+  Kantharuban Sivalingam : CASSCF convergence/infrastructure, NEVPT2, NEVPT3, NEVPT4(SD), FIC-MRCI and CEPA variants
+  Bernardo de Souza      : ESD, SOC TD-DFT                               
+  Georgi L. Stoychev     : AutoAux, RI-MP2 NMR, DLPNO-MP2 response, X2C  
+  Van Anh Tran           : RI-MP2 g-tensors                              
+  Willem Van den Heuvel  : Paramagnetic NMR                              
+  Zikuan Wang            : NOTCH, Electric field optimization            
+  Frank Wennmohs         : Technical directorship and infrastructure     
+  Hang Xu                : AUTO-CI-Response properties                   
+                                                                         
+[FACCTs GmbH]                                                            
+  Markus Bursch, Nicolas Foglia, Miquel Garcia-Rates, Ingolf Harden, Hagen Neugebauer, Anastasios Papadopoulos, 
+  Christoph Riplinger, Bernardo de Souza, Georgi L. Stoychev                                                    
+                                                                 
+  APM, various basis sets, CI-OPT, improved COSX, DLPNO-Multilevel,           
+  DOCKER, DRACO, updates on ESD, Fragmentator, GOAT, IRC, LR-CPCM, L-BFGS, MBIS, meta-GGA TD-DFT gradient, ML-optimized integration grids, 
+  MM, NACMEs, nearIR, NEB, NEB-TS, NL-DFT gradient (VV10), 2- and 3-layer-ONIOM, interface openCOSMO-RS, QMMM,   
+  Crystal-QMMM, RESP, rigid body optimization, SF, symmetry and pop. for TD-DFT, various functionals, SOLVATOR                                   
+                                                                         
+[Other institutions]                                                     
+  V. Asgeirsson          : NEB                                           
+  Christoph Bannwarth    : sTDA-DFT, sTD-DFT, PBEh-3c, B97-3c, D3        
+  Giovanni Bistoni       : ETS/NOCV, ADLD/ADEX, COVALED                  
+  Martin Brehm           : Molecular dynamics                            
+  Ronald Cardenas        : ETS/NOCV                                      
+  Martina Colucci        : COVALED                                       
+  Sebastian Ehlert       : rSCAN, r2SCAN, r2SCAN-3c, D4, dhf basis sets  
+  Marvin Friede          : D4 for Fr, Ra, Ac-Lr                          
+  Lars Goerigk           : TD-DFT with DH, B97 family of functionals     
+  Stefan Grimme          : VdW corrections, initial TS optimization, DFT functionals, gCP, sTDA/sTD-DF 
+  Waldemar Hujo          : DFT-NL                                        
+  H. Jonsson             : NEB                                           
+  Holger Kruse           : gCP                                           
+  Marcel Mueller         : wB97X-3c, vDZP basis set                      
+  Hagen Neugebauer       : wr2SCAN, Native XTB                           
+  Gianluca Regni         : ADLD/ADEX                                     
+  Tobias Risthaus        : pre 6.0 range-separated hybrid DFT and stability analysis
+  Lukas Wittmann         : regularized MP2, r2SCAN double-hybrids, wr2SCAN        
+                                                                         
+We gratefully acknowledge several colleagues who have allowed us to      
+interface, adapt or use parts of their codes:                            
+  Ed Valeev, F. Pavosevic, A. Kumar             : LibInt (2-el integral package), F12 methods 
+  Garnet Chan, S. Sharma, J. Yang, R. Olivares  : DMRG                   
+  Ulf Ekstrom                                   : XCFun DFT Library      
+  Mihaly Kallay                                 : mrcc  (arbitrary order and MRCC methods)
+  Frank Weinhold                                : gennbo (NPA and NBO analysis)           
+  Simon Mueller                                 : openCOSMO-RS                            
+  Christopher J. Cramer and Donald G. Truhlar   : smd solvation model                     
+  S Lehtola, MJT Oliveira, MAL Marques          : LibXC Library                           
+  Liviu Ungur et al                             : ANISO software                          
+
+
+ Your calculation uses the libint2 library for the computation of 2-el integrals
+ For citations please refer to: http://libint.valeyev.net
+
+ Your ORCA version has been built with support for libXC version: 7.0.0
+ For citations please refer to: https://libxc.gitlab.io
+
+ This ORCA versions uses:
+   CBLAS   interface :  Fast vector & matrix operations
+   LAPACKE interface :  Fast linear algebra routines
+   SCALAPACK package :  Parallel linear algebra routines
+   Shared memory     :  Shared parallel matrices
+   BLAS/LAPACK       :  OpenBLAS 0.3.29  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Cooperlake SINGLE_THREADED
+        Core in use  :  Cooperlake
+   Copyright (c) 2011-2014, The OpenBLAS Project
+
+
+  ***********************************
+  * Starting time: Tue Jun  9 18:07:25 2026
+  * Host name:     otterg041
+  * Process ID:    231004
+  * Working dir.:  /otter/ptmp/sucerqdl/epr-cactus/lignin/cand1/1-alcohol
+  ***********************************
+
+NOTE: MaxCore=3000 MB was set to SCF,MP2,MDCI,CIPSI,MRCI,RASCI and CIS
+      => If you want to overwrite this, your respective input block should be placed after the MaxCore statement
+
+
+***************************************
+The coordinates will be read from file: model_opt.xyz
+***************************************
+
+
+================================================================================
+
+----- Orbital basis set information -----
+Your calculation utilizes the basis: EPR-II
+   V. Barone, in Recent Advances in Density Functional Methods, Part 1 (ed. D. P. Chong), World Scientific, Singapore, 1995, p. 287.
+
+The basis set includes element-specific modifications.
+
+Your calculation utilizes the basis: def2-TZVP
+   F. Weigend and R. Ahlrichs, Phys. Chem. Chem. Phys. 7, 3297 (2005).
+
+----- AuxJ basis set information -----
+Your calculation utilizes the AutoAux generation procedure.
+  G. L. Stoychev, A. A. Auer, F. Neese, J. Chem. Theory Comput. 13, 554 (2017)
+
+----- AuxC basis set information -----
+Your calculation utilizes the AutoAux generation procedure.
+  G. L. Stoychev, A. A. Auer, F. Neese, J. Chem. Theory Comput. 13, 554 (2017)
+
+----- AuxJK basis set information -----
+Your calculation utilizes the AutoAux generation procedure.
+  G. L. Stoychev, A. A. Auer, F. Neese, J. Chem. Theory Comput. 13, 554 (2017)
+
+----- AuxX basis set information -----
+Your calculation utilizes the AutoAux generation procedure.
+  G. L. Stoychev, A. A. Auer, F. Neese, J. Chem. Theory Comput. 13, 554 (2017)
+
+================================================================================
+                                        WARNINGS
+                       Please study these warnings very carefully!
+================================================================================
+
+
+WARNING: your system is open-shell and RHF/RKS was chosen
+  ===> : WILL SWITCH to UHF/UKS
+
+
+================================================================================
+                                       INPUT FILE
+================================================================================
+NAME = model_epr.inp
+|  1> ! B3LYP EPR-II AUTOAUX
+|  2> 
+|  3> %basis
+|  4>   NewGTO Cl "Def2-TZVP" end
+|  5>   NewGTO Br "Def2-TZVP" end
+|  6>   NewGTO S "Def2-TZVP" end
+|  7>   NewGTO P "Def2-TZVP" end
+|  8> end
+|  9> 
+| 10> %pal nprocs 16 end
+| 11> %maxcore 3000
+| 12> *XYZFile 0 2 model_opt.xyz
+| 13> %EPRNMR
+| 14>         GTENSOR   TRUE
+| 15>         NUCLEI    =         11, 12 {SHIFT, AISO, ADIP, AORB}
+| 16>         NUCLEI    =         1 {SHIFT, AISO, ADIP, AORB}
+| 17>         ORI       GIAO
+| 18> END
+| 19> 
+| 20>                          ****END OF INPUT****
+================================================================================
+
+                       ****************************
+                       * Single Point Calculation *
+                       ****************************
+
+---------------------------------
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  O     -2.740262   -0.015281   -0.022021
+  C      1.394039   -0.001856    0.022721
+  C      0.673134   -1.230085    0.019558
+  C      0.664797    1.221748    0.014428
+  C     -0.710162   -1.251602    0.003643
+  C     -0.718371    1.234070   -0.001548
+  C     -1.480993   -0.011363   -0.008662
+  C      2.903760    0.003957   -0.000765
+  H      1.229873   -2.164928    0.032104
+  H      1.215364    2.160322    0.023079
+  H     -1.269751   -2.182754    0.003358
+  H     -1.284390    2.161309   -0.005729
+  H      3.309578    0.886470    0.502357
+  H      3.316485   -0.890710    0.474140
+  H      3.267779    0.022404   -1.036916
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+----------------------------
+  NO LB      ZA    FRAG     MASS         X           Y           Z
+   0 O     8.0000    0    15.999   -5.178344   -0.028877   -0.041613
+   1 C     6.0000    0    12.011    2.634351   -0.003507    0.042937
+   2 C     6.0000    0    12.011    1.272038   -2.324524    0.036959
+   3 C     6.0000    0    12.011    1.256284    2.308769    0.027264
+   4 C     6.0000    0    12.011   -1.342012   -2.365184    0.006884
+   5 C     6.0000    0    12.011   -1.357525    2.332054   -0.002925
+   6 C     6.0000    0    12.011   -2.798671   -0.021473   -0.016368
+   7 C     6.0000    0    12.011    5.487311    0.007478   -0.001445
+   8 H     1.0000    0     1.008    2.324123   -4.091120    0.060668
+   9 H     1.0000    0     1.008    2.296704    4.082418    0.043613
+  10 H     1.0000    0     1.008   -2.399481   -4.124807    0.006347
+  11 H     1.0000    0     1.008   -2.427145    4.084281   -0.010826
+  12 H     1.0000    0     1.008    6.254196    1.675185    0.949317
+  13 H     1.0000    0     1.008    6.267249   -1.683199    0.895995
+  14 H     1.0000    0     1.008    6.175208    0.042337   -1.959487
+
+--------------------------------
+INTERNAL COORDINATES (ANGSTROEM)
+--------------------------------
+ O      0   0   0     0.000000000000     0.00000000     0.00000000
+ C      1   0   0     4.134564159279     0.00000000     0.00000000
+ C      2   1   0     1.424170114413    59.40375875     0.00000000
+ C      2   1   3     1.424453783700    59.39038616   180.19802720
+ C      3   2   1     1.383554912267   121.30111783     0.04892780
+ C      4   2   1     1.383315444782   121.30602044   359.95147330
+ C      1   2   3     1.259345560030     0.01450373   302.29409481
+ C      2   1   3     1.509915095765   178.48834266    91.52883963
+ H      3   2   1     1.088139101308   118.80986178   180.17886031
+ H      4   2   1     1.088173011998   118.80557805   179.81973124
+ H      5   3   2     1.086362581741   121.89332045   180.14066721
+ H      6   4   2     1.086354547646   121.91207542   179.85966933
+ H      8   2   3     1.093914325429   111.52348556   209.36408018
+ H      8   2   3     1.093758079979   111.55505699   331.09228083
+ H      8   2   3     1.098389669503   110.24939749    90.27219539
+
+---------------------------
+INTERNAL COORDINATES (A.U.)
+---------------------------
+ O      0   0   0     0.000000000000     0.00000000     0.00000000
+ C      1   0   0     7.813193944163     0.00000000     0.00000000
+ C      2   1   0     2.691291484357    59.40375875     0.00000000
+ C      2   1   3     2.691827541621    59.39038616   180.19802720
+ C      3   2   1     2.614539875427   121.30111783     0.04892780
+ C      4   2   1     2.614087347462   121.30602044   359.95147330
+ C      1   2   3     2.379818216427     0.01450373   302.29409481
+ C      2   1   3     2.853326016470   178.48834266    91.52883963
+ H      3   2   1     2.056284897084   118.80986178   180.17886031
+ H      4   2   1     2.056348979001   118.80557805   179.81973124
+ H      5   3   2     2.052927761630   121.89332045   180.14066721
+ H      6   4   2     2.052912579391   121.91207542   179.85966933
+ H      8   2   3     2.067198489034   111.52348556   209.36408018
+ H      8   2   3     2.066903227925   111.55505699   331.09228083
+ H      8   2   3     2.075655663689   110.24939749    90.27219539
+
+---------------------
+BASIS SET INFORMATION
+---------------------
+There are 3 groups of distinct atoms
+
+ Group   1 Type O   : 10s5p1d contracted to 6s2p1d pattern {511111/41/1}
+ Group   2 Type C   : 10s5p1d contracted to 6s2p1d pattern {511111/41/1}
+ Group   3 Type H   : 6s1p contracted to 4s1p pattern {3111/1}
+
+Atom   0O    basis set group =>   1
+Atom   1C    basis set group =>   2
+Atom   2C    basis set group =>   2
+Atom   3C    basis set group =>   2
+Atom   4C    basis set group =>   2
+Atom   5C    basis set group =>   2
+Atom   6C    basis set group =>   2
+Atom   7C    basis set group =>   2
+Atom   8H    basis set group =>   3
+Atom   9H    basis set group =>   3
+Atom  10H    basis set group =>   3
+Atom  11H    basis set group =>   3
+Atom  12H    basis set group =>   3
+Atom  13H    basis set group =>   3
+Atom  14H    basis set group =>   3
+---------------------------------
+AUXILIARY/J BASIS SET INFORMATION
+---------------------------------
+There are 3 groups of distinct atoms
+
+ Group   1 Type O   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   2 Type C   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   3 Type H   : 15s6p1d contracted to 15s6p1d pattern {111111111111111/111111/1}
+
+Atom   0O    basis set group =>   1
+Atom   1C    basis set group =>   2
+Atom   2C    basis set group =>   2
+Atom   3C    basis set group =>   2
+Atom   4C    basis set group =>   2
+Atom   5C    basis set group =>   2
+Atom   6C    basis set group =>   2
+Atom   7C    basis set group =>   2
+Atom   8H    basis set group =>   3
+Atom   9H    basis set group =>   3
+Atom  10H    basis set group =>   3
+Atom  11H    basis set group =>   3
+Atom  12H    basis set group =>   3
+Atom  13H    basis set group =>   3
+Atom  14H    basis set group =>   3
+---------------------------------
+AUXILIARY/C BASIS SET INFORMATION
+---------------------------------
+There are 3 groups of distinct atoms
+
+ Group   1 Type O   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   2 Type C   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   3 Type H   : 15s6p1d contracted to 15s6p1d pattern {111111111111111/111111/1}
+
+Atom   0O    basis set group =>   1
+Atom   1C    basis set group =>   2
+Atom   2C    basis set group =>   2
+Atom   3C    basis set group =>   2
+Atom   4C    basis set group =>   2
+Atom   5C    basis set group =>   2
+Atom   6C    basis set group =>   2
+Atom   7C    basis set group =>   2
+Atom   8H    basis set group =>   3
+Atom   9H    basis set group =>   3
+Atom  10H    basis set group =>   3
+Atom  11H    basis set group =>   3
+Atom  12H    basis set group =>   3
+Atom  13H    basis set group =>   3
+Atom  14H    basis set group =>   3
+----------------------------------
+AUXILIARY/JK BASIS SET INFORMATION
+----------------------------------
+There are 3 groups of distinct atoms
+
+ Group   1 Type O   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   2 Type C   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   3 Type H   : 15s6p1d contracted to 15s6p1d pattern {111111111111111/111111/1}
+
+Atom   0O    basis set group =>   1
+Atom   1C    basis set group =>   2
+Atom   2C    basis set group =>   2
+Atom   3C    basis set group =>   2
+Atom   4C    basis set group =>   2
+Atom   5C    basis set group =>   2
+Atom   6C    basis set group =>   2
+Atom   7C    basis set group =>   2
+Atom   8H    basis set group =>   3
+Atom   9H    basis set group =>   3
+Atom  10H    basis set group =>   3
+Atom  11H    basis set group =>   3
+Atom  12H    basis set group =>   3
+Atom  13H    basis set group =>   3
+Atom  14H    basis set group =>   3
+---------------------------------
+AUXILIARY/X BASIS SET INFORMATION
+---------------------------------
+There are 3 groups of distinct atoms
+
+ Group   1 Type O   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   2 Type C   : 17s13p12d2f contracted to 17s13p12d2f pattern {11111111111111111/1111111111111/111111111111/11}
+ Group   3 Type H   : 15s6p1d contracted to 15s6p1d pattern {111111111111111/111111/1}
+
+Atom   0O    basis set group =>   1
+Atom   1C    basis set group =>   2
+Atom   2C    basis set group =>   2
+Atom   3C    basis set group =>   2
+Atom   4C    basis set group =>   2
+Atom   5C    basis set group =>   2
+Atom   6C    basis set group =>   2
+Atom   7C    basis set group =>   2
+Atom   8H    basis set group =>   3
+Atom   9H    basis set group =>   3
+Atom  10H    basis set group =>   3
+Atom  11H    basis set group =>   3
+Atom  12H    basis set group =>   3
+Atom  13H    basis set group =>   3
+Atom  14H    basis set group =>   3
+
+
+           ************************************************************
+           *        Program running with 16 parallel MPI-processes    *
+           *              working on a common directory               *
+           ************************************************************
+------------------------------------------------------------------------------
+                             ORCA STARTUP CALCULATIONS
+                           -- RI-GTO INTEGRALS CHOSEN --
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+                   ___                                                        
+                  /   \      - P O W E R E D   B Y -                         
+                 /     \                                                     
+                 |  |  |   _    _      __       _____    __    __             
+                 |  |  |  | |  | |    /  \     |  _  \  |  |  /  |          
+                  \  \/   | |  | |   /    \    | | | |  |  | /  /          
+                 / \  \   | |__| |  /  /\  \   | |_| |  |  |/  /          
+                |  |  |   |  __  | /  /__\  \  |    /   |      \           
+                |  |  |   | |  | | |   __   |  |    \   |  |\   \          
+                \     /   | |  | | |  |  |  |  | |\  \  |  | \   \       
+                 \___/    |_|  |_| |__|  |__|  |_| \__\ |__|  \__/        
+                                                                              
+                      - O R C A' S   B I G   F R I E N D -                    
+                                      &                                       
+                       - I N T E G R A L  F E E D E R -                       
+                                                                              
+ v1 FN, 2020, v2 2021, v3 2022-2024                                           
+------------------------------------------------------------------------------
+
+
+----------------------
+SHARK INTEGRAL PACKAGE
+----------------------
+
+Number of atoms                             ...     15
+Number of basis functions                   ...    185
+Number of shells                            ...    107
+Maximum angular momentum                    ...      2
+Integral batch strategy                     ... SHARK/LIBINT Hybrid
+RI-J (if used) integral strategy            ... SPLIT-RIJ (Revised 2003 algorithm where possible)
+Printlevel                                  ...      1
+Contraction scheme used                     ... SEGMENTED contraction
+Prescreening option                         ... SCHWARTZ
+   Thresh                                   ... 1.000e-10
+   Tcut                                     ... 1.000e-11
+   Tpresel                                  ... 1.000e-11 
+Coulomb Range Separation                    ... NOT USED
+Exchange Range Separation                   ... NOT USED
+Multipole approximations                    ... NOT USED
+Finite Nucleus Model                        ... NOT USED
+CABS basis                                  ... NOT available
+Auxiliary Coulomb fitting basis             ... AVAILABLE
+   # of basis functions in Aux-J            ...   1306
+   # of shells in Aux-J                     ...    506
+   Maximum angular momentum in Aux-J        ...      3
+Auxiliary J/K fitting basis                 ... AVAILABLE
+   # of basis functions in Aux-JK           ...   1306
+   # of shells in Aux-JK                    ...    506
+   Maximum angular momentum in Aux-JK       ...      3
+Auxiliary Correlation fitting basis         ... AVAILABLE
+   # of basis functions in Aux-C            ...   1306
+   # of shells in Aux-C                     ...    506
+   Maximum angular momentum in Aux-C        ...      3
+Auxiliary 'external' fitting basis          ... NOT available
+
+Checking pre-screening integrals            ... done (  0.0 sec) Dimension = 107
+   => SHARK Basis and OBASIS are compatible. Storing Pre-screening
+Shell pair information
+Shell pair cut-off parameter TPreSel        ...   1.0e-11
+Total number of shell pairs                 ...      5778
+Shell pairs after pre-screening             ...      4732
+Total number of primitive shell pairs       ...     15902
+Primitive shell pairs kept                  ...     10118
+          la=0 lb=0:   2151 shell pairs
+          la=1 lb=0:   1561 shell pairs
+          la=1 lb=1:    265 shell pairs
+          la=2 lb=0:    543 shell pairs
+          la=2 lb=1:    177 shell pairs
+          la=2 lb=2:     35 shell pairs
+
+Checking whether 4 symmetric matrices of dimension 185 fit in memory
+:Max Core in MB      =   3000.00
+ MB in use           =      9.09
+ MB left             =   2990.91
+ MB needed           =      0.53
+ Data fit in memory  = YES
+Calculating RI/J V-Matrix + Cholesky decomp.... done (  0.1 sec)
+Calculating RI/JK V-Matrix + Cholesky decomp.... done (  0.1 sec)
+Calculating RI/C V-Matrix + Cholesky decomp.... done (  0.1 sec)
+Calculating Nuclear repulsion               ... done (  0.0 sec) ENN=    328.998985283445 Eh
+
+Diagonalization of the overlap matrix:
+Smallest eigenvalue                        ... 3.829e-04
+Time for diagonalization                   ...    0.002 sec
+Threshold for overlap eigenvalues          ... 1.000e-07
+Number of eigenvalues below threshold      ... 0
+Time for construction of square roots      ...    0.002 sec
+Total time needed                          ...    0.005 sec
+
+-------------------
+DFT GRID GENERATION
+-------------------
+
+General Integration Accuracy     IntAcc      ... 4.388
+Radial Grid Type                 RadialGrid  ... OptM3 with GC (2021)
+Angular Grid (max. ang.)         AngularGrid ... 4 (Lebedev-302)
+Angular grid pruning method      GridPruning ... 4 (adaptive)
+Weight generation scheme         WeightScheme... mBecke (2022)
+Basis function cutoff            BFCut       ... 1.0000e-10
+Integration weight cutoff        WCut        ... 1.0000e-14
+Partially contracted basis set               ... off
+Rotationally invariant grid construction     ... off
+Angular grids for H and He will be reduced by one unit
+
+Total number of grid points                  ...    70730
+Total number of batches                      ...     1111
+Average number of points per batch           ...       63
+Average number of grid points per atom       ...     4715
+
+--------------------
+COSX GRID GENERATION
+--------------------
+
+GRIDX 1
+-------
+General Integration Accuracy     IntAcc      ... 3.816
+Radial Grid Type                 RadialGrid  ... OptM3 with GC (2021)
+Angular Grid (max. ang.)         AngularGrid ... 1 (Lebedev-50)
+Angular grid pruning method      GridPruning ... 4 (adaptive)
+Weight generation scheme         WeightScheme... mBecke (2022)
+Basis function cutoff            BFCut       ... 1.0000e-10
+Integration weight cutoff        WCut        ... 1.0000e-14
+Partially contracted basis set               ... on
+Rotationally invariant grid construction     ... off
+Angular grids for H and He will be reduced by one unit
+
+Total number of grid points                  ...     9055
+Total number of batches                      ...       78
+Average number of points per batch           ...      116
+Average number of grid points per atom       ...      604
+UseSFitting                                  ... on
+
+GRIDX 2
+-------
+General Integration Accuracy     IntAcc      ... 4.020
+Radial Grid Type                 RadialGrid  ... OptM3 with GC (2021)
+Angular Grid (max. ang.)         AngularGrid ... 2 (Lebedev-110)
+Angular grid pruning method      GridPruning ... 4 (adaptive)
+Weight generation scheme         WeightScheme... mBecke (2022)
+Basis function cutoff            BFCut       ... 1.0000e-10
+Integration weight cutoff        WCut        ... 1.0000e-14
+Partially contracted basis set               ... on
+Rotationally invariant grid construction     ... off
+Angular grids for H and He will be reduced by one unit
+
+Total number of grid points                  ...    19767
+Total number of batches                      ...      161
+Average number of points per batch           ...      122
+Average number of grid points per atom       ...     1318
+UseSFitting                                  ... on
+
+GRIDX 3
+-------
+General Integration Accuracy     IntAcc      ... 4.338
+Radial Grid Type                 RadialGrid  ... OptM3 with GC (2021)
+Angular Grid (max. ang.)         AngularGrid ... 3 (Lebedev-194)
+Angular grid pruning method      GridPruning ... 4 (adaptive)
+Weight generation scheme         WeightScheme... mBecke (2022)
+Basis function cutoff            BFCut       ... 1.0000e-10
+Integration weight cutoff        WCut        ... 1.0000e-14
+Partially contracted basis set               ... on
+Rotationally invariant grid construction     ... off
+Angular grids for H and He will be reduced by one unit
+
+Total number of grid points                  ...    43486
+Total number of batches                      ...      346
+Average number of points per batch           ...      125
+Average number of grid points per atom       ...     2899
+UseSFitting                                  ... on
+Grids setup in   0.6 sec
+Initializing property integral containers    ... done (  0.0 sec)
+
+SHARK setup successfully completed in   1.0 seconds
+
+Maximum memory used throughout the entire STARTUP-calculation: 21.7 MB
+[1781021247.674758] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674774] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c03c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674788] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0580 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674797] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0740 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674804] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0900 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674810] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0ac0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674816] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0c80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674754] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9da2c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674774] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9da480 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674788] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9da640 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674797] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9da800 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674803] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9da9c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674810] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9dab80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674816] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9dad40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674823] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9daf00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674829] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9db0c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674835] [otterg041:231128:0]           mpool.c:54   UCX  WARN  object 0x3f9db280 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674823] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c0e40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674829] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c1000 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674835] [otterg041:231116:0]           mpool.c:54   UCX  WARN  object 0x98c11c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.674837] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ff2c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674881] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ff480 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674887] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ff640 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674893] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ff800 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674898] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ff9c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674902] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ffb80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674906] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256ffd40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674845] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97ba200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674883] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97ba3c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674891] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97ba580 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674897] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97ba740 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674904] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97ba900 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674928] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97baac0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674935] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97bac80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674927] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x256fff00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674932] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x257000c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674935] [otterg041:231107:0]           mpool.c:54   UCX  WARN  object 0x25700280 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674942] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97bae40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674949] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97bb000 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674956] [otterg041:231122:0]           mpool.c:54   UCX  WARN  object 0x97bb1c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.674991] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675013] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d83c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675020] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8580 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675026] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8740 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675030] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8900 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675036] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8ac0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675039] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8c80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675045] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d8e40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675051] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d9000 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675055] [otterg041:231105:0]           mpool.c:54   UCX  WARN  object 0xb3d91c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 88576 rendezvous zero-copy read from remote cma/memory 9439.3 MB was not returned to mpool ucp_requests
+[1781021247.675092] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8100 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 12800 rendezvous zero-copy read from remote cma/memory 4825.4 MB was not returned to mpool ucp_requests
+[1781021247.675107] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a82c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675097] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc02c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675113] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8480 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675119] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8640 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675123] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8800 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675128] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a89c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675132] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8b80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675136] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8d40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675141] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a8f00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675106] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6240 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675121] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6400 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675127] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a65c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675134] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6780 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675138] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6940 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675146] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6b00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675153] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6cc0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675106] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfd200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675121] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfd3c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675127] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfd740 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 12800 rendezvous zero-copy read from remote cma/memory 4825.4 MB was not returned to mpool ucp_requests
+[1781021247.675133] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfd900 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675138] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfdac0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675144] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfdc80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675149] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfde40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675155] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfe000 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675162] [otterg041:231102:0]           mpool.c:54   UCX  WARN  object 0x6bfe1c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675113] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc0480 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675120] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc0640 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675125] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc0800 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675129] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc09c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675138] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc0b80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675146] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc0d40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675152] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc0f00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675157] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc10c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675163] [otterg041:231135:0]           mpool.c:54   UCX  WARN  object 0x2ebc1280 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675110] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f82c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675124] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f8480 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675130] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f8640 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675140] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f8800 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675147] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f89c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675154] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f8b80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675160] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f8d40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675166] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f8f00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675172] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f90c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675178] [otterg041:231113:0]           mpool.c:54   UCX  WARN  object 0x2a7f9280 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675147] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a90c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675155] [otterg041:231097:0]           mpool.c:54   UCX  WARN  object 0x58a9280 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675160] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a6e80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675166] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a7040 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675172] [otterg041:231124:0]           mpool.c:54   UCX  WARN  object 0x393a7200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675204] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294ca240 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675222] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294ca400 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675230] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294ca5c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675236] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294ca780 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675243] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294ca940 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675251] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294cab00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675258] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294cacc0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675264] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294cae80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675271] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294cb040 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675278] [otterg041:231137:0]           mpool.c:54   UCX  WARN  object 0x294cb200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675302] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675317] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x92403c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675325] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240580 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675331] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240740 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675338] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240900 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675344] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240ac0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675350] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240c80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675357] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9240e40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675363] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x9241000 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675370] [otterg041:231132:0]           mpool.c:54   UCX  WARN  object 0x92411c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675403] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3240 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675419] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3400 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675428] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c35c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675435] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3780 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675442] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3940 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675448] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3b00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675454] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3cc0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675460] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c3e80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675466] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c4040 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675472] [otterg041:231108:0]           mpool.c:54   UCX  WARN  object 0x134c4200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675534] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201f100 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675553] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201f2c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675539] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955e200 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675553] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955e3c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675562] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955e580 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675570] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955e740 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675562] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201f640 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 12800 rendezvous zero-copy read from remote cma/memory 4825.4 MB was not returned to mpool ucp_requests
+[1781021247.675570] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201f800 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675578] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201f9c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675578] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955e900 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675586] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955eac0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675593] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955ec80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675601] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955ee40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675585] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201fb80 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675593] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201fd40 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675601] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x2201ff00 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675608] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x220200c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675616] [otterg041:231099:0]           mpool.c:54   UCX  WARN  object 0x22020280 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 79360 rendezvous zero-copy read from remote cma/memory 9265.5 MB was not returned to mpool ucp_requests
+[1781021247.675609] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955f000 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+[1781021247.675616] [otterg041:231119:0]           mpool.c:54   UCX  WARN  object 0x955f1c0 {{cpml|proto|cb|init|rk_use} tag_send from host memory length 81920 rendezvous zero-copy read from remote cma/memory 9317.0 MB was not returned to mpool ucp_requests
+
+
+           ************************************************************
+           *        Program running with 16 parallel MPI-processes    *
+           *              working on a common directory               *
+           ************************************************************
+-------------------------------------------------------------------------------
+                                 ORCA GUESS
+                   Start orbitals & Density for SCF / CASSCF
+-------------------------------------------------------------------------------
+
+------------
+SCF SETTINGS
+------------
+Hamiltonian:
+ Density Functional     Method          .... DFT(GTOs)
+ Exchange Functional    Exchange        .... B88
+   X-Alpha parameter    XAlpha          ....  0.666667
+   Becke's b parameter  XBeta           ....  0.004200
+ Correlation Functional Correlation     .... LYP
+ LDA part of GGA corr.  LDAOpt          .... VWN-5
+ Gradients option       PostSCFGGA      .... off
+ Hybrid DFT is turned on
+   Fraction HF Exchange ScalHFX         ....  0.200000
+   Scaling of DF-GGA-X  ScalDFX         ....  0.720000
+   Scaling of DF-GGA-C  ScalDFC         ....  0.810000
+   Scaling of DF-LDA-C  ScalLDAC        ....  1.000000
+   Perturbative correction              ....  0.000000
+   NL short-range parameter             ....  4.800000
+ RI-approximation to the Coulomb term is turned on
+   Number of AuxJ basis functions       .... 1306
+   RIJ-COSX (HFX calculated with COS-X)).... on
+
+
+General Settings:
+ Integral files         IntName         .... model_epr
+ Hartree-Fock type      HFTyp           .... UHF
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   57
+ Basis Dimension        Dim             ....  185
+ Nuclear Repulsion      ENuc            ....    328.9989852834 Eh
+
+Convergence Acceleration:
+ AO-DIIS                CNVDIIS         .... on
+   Start iteration      DIISMaxIt       ....    12
+   Startup error        DIISStart       ....  0.200000
+   # of expansion vecs  DIISMaxEq       ....     5
+   Bias factor          DIISBfac        ....   1.050
+   Max. coefficient     DIISMaxC        ....  10.000
+ MO-DIIS                CNVKDIIS        .... off
+ Trust-Rad. Augm. Hess. CNVTRAH         .... auto
+   Auto Start mean grad. ratio tolernc. ....  1.125000
+   Auto Start start iteration           ....    50
+   Auto Start num. interpolation iter.  ....    10
+   Max. Number of Micro iterations      ....    24
+   Max. Number of Macro iterations      .... Maxiter - #DIIS iter
+   Number of Davidson start vectors     ....     2
+   Converg. threshold    (grad. norm)   ....   5.000e-05
+   Grad. Scal. Fac. for Micro threshold ....   0.100
+   Minimum threshold for Micro iter.    ....   1.000e-02
+   NR start threshold (gradient norm)   ....   1.000e-04
+   Initial trust radius                 ....   0.400
+   Minimum AH scaling param. (alpha)    ....   1.000
+   Maximum AH scaling param. (alpha)    .... 1000.000
+   Quad. conv. algorithm                .... NR
+   White noise on init. David. guess    .... on
+   Maximum white noise                  ....   0.010
+   Pseudo random numbers                .... off
+   Inactive MOs                         .... canonical
+   Orbital update algorithm             .... Taylor
+   Preconditioner                       .... Diag
+   Full preconditioner red. dimension   ....   250
+ SOSCF                 CNVSOSCF           .... on
+   Start iteration     SOSCFMaxIt         ....   150
+   Startup grad/error  SOSCFStart         ....  0.003300
+   Hessian update      SOSCFHessUp        .... L-BFGS
+   Autom. constraints  SOSCFAutoConstrain .... off
+ Level Shifting         CNVShift        .... on
+   Level shift para.    LevelShift      ....    0.2500
+   Turn off err/grad.   ShiftErr        ....    0.0010
+ Zerner damping         CNVZerner       .... off
+ Static damping         CNVDamp         .... on
+   Fraction old density DampFac         ....    0.7000
+   Max. Damping (<1)    DampMax         ....    0.9800
+   Min. Damping (>=0)   DampMin         ....    0.0000
+   Turn off err/grad.   DampErr         ....    0.1000
+
+SCF Procedure:
+ Maximum # iterations   MaxIter         ....   125
+ SCF integral mode      SCFMode         .... Direct
+   Integral package                     .... SHARK and LIBINT hybrid scheme
+ Reset frequency        DirectResetFreq ....    20
+ Integral Threshold     Thresh          ....  1.000e-10 Eh
+ Primitive CutOff       TCut            ....  1.000e-11 Eh
+
+Convergence Tolerance:
+ Convergence Check Mode ConvCheckMode   .... Total+1el-Energy
+ Convergence forced     ConvForced      .... 0
+ Energy Change          TolE            ....  1.000e-06 Eh
+ 1-El. energy change                    ....  1.000e-03 Eh
+ Orbital Gradient       TolG            ....  5.000e-05
+ Orbital Rotation angle TolX            ....  5.000e-05
+ DIIS Error             TolErr          ....  1.000e-06
+
+------------------------------
+INITIAL GUESS: MODEL POTENTIAL
+------------------------------
+Loading Hartree-Fock densities                     ... done
+Calculating cut-offs                               ... done
+Initializing the effective Hamiltonian             ... done
+Setting up the integral package (SHARK)            ... done
+Starting the Coulomb interaction                   ... done (   0.0 sec)
+Making the grid                                    ... done (   0.1 sec)
+Mapping shells                                     ... done
+Starting the XC term evaluation                    ... done (   0.0 sec)
+  promolecular density results
+     # of electrons  =     56.998664761
+     EX              =    -46.196938624
+     EC              =     -1.905596856
+     EX+EC           =    -48.102535481
+Transforming the Hamiltonian                       ... done (   0.0 sec)
+Diagonalizing the Hamiltonian                      ... done (   0.0 sec)
+Back transforming the eigenvectors                 ... done (   0.0 sec)
+Now organizing SCF variables                       ... done
+                      ------------------
+                      INITIAL GUESS DONE (   0.2 sec)
+                      ------------------
+             **** ENERGY FILE WAS UPDATED (model_epr.en.tmp) ****
+Finished Guess after   0.9 sec
+Maximum memory used throughout the entire GUESS-calculation: 11.6 MB
+
+
+           ************************************************************
+           *        Program running with 16 parallel MPI-processes    *
+           *              working on a common directory               *
+           ************************************************************
+
+-------------------------------------------------------------------------------------------
+                                      ORCA LEAN-SCF
+                              memory conserving SCF solver
+-------------------------------------------------------------------------------------------
+
+----------------------------------------D-I-I-S--------------------------------------------
+Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     DIISErr   Damp  Time(sec)
+-------------------------------------------------------------------------------------------
+               ***  Starting incremental Fock matrix formation  ***
+    1    -345.7915797085121312     0.00e+00  6.98e-03  6.69e-02  1.31e-01  0.700   0.6
+Warning: op=1 Small HOMO/LUMO gap (   0.066) - skipping pre-diagonalization
+         Will do a full diagonalization
+    2    -345.8843801656446431    -9.28e-02  5.09e-03  4.63e-02  5.05e-02  0.700   0.4
+                               ***Turning on AO-DIIS***
+    3    -345.9211473840501867    -3.68e-02  2.20e-03  1.69e-02  1.77e-02  0.700   0.4
+    4    -345.9433761500685023    -2.22e-02  3.70e-03  4.05e-02  1.21e-02  0.000   0.3
+    5    -345.9931826266639519    -4.98e-02  1.05e-03  7.25e-03  5.77e-03  0.000   0.4
+    6    -345.9937412314073981    -5.59e-04  5.66e-04  6.63e-03  4.60e-03  0.000   0.3
+                              *** Initializing SOSCF ***
+---------------------------------------S-O-S-C-F--------------------------------------
+Iteration    Energy (Eh)           Delta-E    RMSDP     MaxDP     MaxGrad    Time(sec)
+--------------------------------------------------------------------------------------
+    7    -345.9939710158454318    -2.30e-04  3.48e-04  5.05e-03  3.28e-03     0.4
+               *** Restarting incremental Fock matrix formation ***
+    8    -345.9940968462703950    -1.26e-04  3.51e-04  4.13e-03  1.89e-03     0.5
+    9    -345.9941784941904643    -8.16e-05  4.69e-04  6.56e-03  1.13e-03     0.4
+   10    -345.9941885701118736    -1.01e-05  1.60e-04  1.61e-03  1.73e-03     0.4
+   11    -345.9942123753695569    -2.38e-05  1.03e-04  1.24e-03  5.50e-04     0.4
+   12    -345.9942144345798170    -2.06e-06  3.96e-05  3.73e-04  2.05e-04     0.4
+   13    -345.9942150569870591    -6.22e-07  3.51e-05  6.61e-04  2.12e-04     0.3
+                 **** Energy Check signals convergence ****
+
+               *****************************************************
+               *                     SUCCESS                       *
+               *           SCF CONVERGED AFTER  13 CYCLES          *
+               *****************************************************
+
+Recomputing exchange energy using gridx3       ... done (    0.416 sec)
+Old exchange energy                            :     -9.378824757 Eh
+New exchange energy                            :     -9.378962201 Eh
+Exchange energy change after final integration :     -0.000137444 Eh
+Total energy after final integration           :   -345.994352821 Eh
+             **** ENERGY FILE WAS UPDATED (model_epr.en.tmp) ****
+
+----------------
+TOTAL SCF ENERGY
+----------------
+
+Total Energy       :       -345.99435282120936 Eh           -9414.98499 eV
+
+Components:
+Nuclear Repulsion  :        328.99898528344545 Eh            8952.51753 eV
+Electronic Energy  :       -674.99320066020505 Eh          -18367.49878 eV
+One Electron Energy:      -1119.11867294863782 Eh          -30452.76728 eV
+Two Electron Energy:        444.12547228843277 Eh           12085.26850 eV
+
+Virial components:
+Potential Energy   :       -689.38498962843482 Eh          -18759.11926 eV
+Kinetic Energy     :        343.39063680722541 Eh            9344.13427 eV
+Virial Ratio       :          2.00758237335238
+
+DFT components:
+N(Alpha)           :       28.999991833663 electrons
+N(Beta)            :       27.999988427811 electrons
+N(Total)           :       56.999980261474 electrons
+E(X)               :      -37.253802111336 Eh       
+E(C)               :       -2.251109750974 Eh       
+E(XC)              :      -39.504911862309 Eh       
+
+---------------
+SCF CONVERGENCE
+---------------
+
+  Last Energy change         ...    6.2241e-07  Tolerance :   1.0000e-06
+  Last MAX-Density change    ...    6.6117e-04  Tolerance :   1.0000e-05
+  Last RMS-Density change    ...    3.5135e-05  Tolerance :   1.0000e-06
+  Last DIIS Error            ...    3.2831e-03  Tolerance :   1.0000e-06
+  Last Orbital Gradient      ...    2.1170e-04  Tolerance :   5.0000e-05
+  Last Orbital Rotation      ...    7.8346e-04  Tolerance :   5.0000e-05
+
+
+----------------------
+UHF SPIN CONTAMINATION
+----------------------
+
+Warning: in a DFT calculation there is little theoretical justification to 
+         calculate <S**2> as in Hartree-Fock theory. We will do it anyways
+         but you should keep in mind that the values have only limited relevance
+
+Expectation value of <S**2>     :     0.787033
+Ideal value S*(S+1) for S=0.5   :     0.750000
+Deviation                       :     0.037033
+
+----------------
+ORBITAL ENERGIES
+----------------
+                 SPIN UP ORBITALS
+  NO   OCC          E(Eh)            E(eV) 
+   0   1.0000     -19.135170      -520.6945 
+   1   1.0000     -10.266202      -279.3575 
+   2   1.0000     -10.242037      -278.7000 
+   3   1.0000     -10.216851      -278.0146 
+   4   1.0000     -10.216828      -278.0140 
+   5   1.0000     -10.216209      -277.9972 
+   6   1.0000     -10.216174      -277.9962 
+   7   1.0000     -10.203335      -277.6468 
+   8   1.0000      -1.023919       -27.8623 
+   9   1.0000      -0.865366       -23.5478 
+  10   1.0000      -0.773688       -21.0531 
+  11   1.0000      -0.766588       -20.8599 
+  12   1.0000      -0.682061       -18.5598 
+  13   1.0000      -0.624740       -17.0000 
+  14   1.0000      -0.590059       -16.0563 
+  15   1.0000      -0.500834       -13.6284 
+  16   1.0000      -0.487611       -13.2686 
+  17   1.0000      -0.470064       -12.7911 
+  18   1.0000      -0.443396       -12.0654 
+  19   1.0000      -0.438922       -11.9437 
+  20   1.0000      -0.419118       -11.4048 
+  21   1.0000      -0.412169       -11.2157 
+  22   1.0000      -0.409597       -11.1457 
+  23   1.0000      -0.376566       -10.2469 
+  24   1.0000      -0.363976        -9.9043 
+  25   1.0000      -0.339701        -9.2437 
+  26   1.0000      -0.280263        -7.6264 
+  27   1.0000      -0.257495        -7.0068 
+  28   1.0000      -0.223476        -6.0811 
+  29   0.0000      -0.030563        -0.8317 
+  30   0.0000      -0.009367        -0.2549 
+  31   0.0000       0.007128         0.1940 
+  32   0.0000       0.043633         1.1873 
+  33   0.0000       0.043871         1.1938 
+  34   0.0000       0.064494         1.7550 
+  35   0.0000       0.078367         2.1325 
+  36   0.0000       0.078951         2.1484 
+  37   0.0000       0.103322         2.8115 
+  38   0.0000       0.123009         3.3472 
+  39   0.0000       0.141667         3.8549 
+
+                 SPIN DOWN ORBITALS
+  NO   OCC          E(Eh)            E(eV) 
+   0   1.0000     -19.124321      -520.3992 
+   1   1.0000     -10.267651      -279.3970 
+   2   1.0000     -10.236404      -278.5467 
+   3   1.0000     -10.218560      -278.0611 
+   4   1.0000     -10.218546      -278.0608 
+   5   1.0000     -10.212449      -277.8949 
+   6   1.0000     -10.212422      -277.8941 
+   7   1.0000     -10.203637      -277.6551 
+   8   1.0000      -1.003954       -27.3190 
+   9   1.0000      -0.858288       -23.3552 
+  10   1.0000      -0.765330       -20.8257 
+  11   1.0000      -0.763176       -20.7671 
+  12   1.0000      -0.676282       -18.4026 
+  13   1.0000      -0.620521       -16.8852 
+  14   1.0000      -0.585789       -15.9401 
+  15   1.0000      -0.496476       -13.5098 
+  16   1.0000      -0.485271       -13.2049 
+  17   1.0000      -0.466321       -12.6893 
+  18   1.0000      -0.437784       -11.9127 
+  19   1.0000      -0.434781       -11.8310 
+  20   1.0000      -0.410964       -11.1829 
+  21   1.0000      -0.408653       -11.1200 
+  22   1.0000      -0.385667       -10.4945 
+  23   1.0000      -0.373105       -10.1527 
+  24   1.0000      -0.361519        -9.8374 
+  25   1.0000      -0.308862        -8.4045 
+  26   1.0000      -0.270386        -7.3576 
+  27   1.0000      -0.246755        -6.7145 
+  28   0.0000      -0.132828        -3.6144 
+  29   0.0000      -0.016766        -0.4562 
+  30   0.0000       0.007239         0.1970 
+  31   0.0000       0.014691         0.3998 
+  32   0.0000       0.043794         1.1917 
+  33   0.0000       0.044448         1.2095 
+  34   0.0000       0.065307         1.7771 
+  35   0.0000       0.079078         2.1518 
+  36   0.0000       0.079921         2.1747 
+  37   0.0000       0.104694         2.8489 
+  38   0.0000       0.136548         3.7157 
+*Only the first 10 virtual orbitals were printed.
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+                    ********************************
+
+--------------------------------------------
+MULLIKEN ATOMIC CHARGES AND SPIN POPULATIONS
+--------------------------------------------
+   0 O :   -0.318744    0.403083
+   1 C :    0.454148    0.373607
+   2 C :   -0.232134   -0.137221
+   3 C :   -0.229458   -0.136898
+   4 C :   -0.125101    0.286440
+   5 C :   -0.125870    0.284863
+   6 C :    0.173872   -0.067994
+   7 C :   -0.608257   -0.024113
+   8 H :    0.114339    0.005859
+   9 H :    0.114461    0.005850
+  10 H :    0.136328   -0.014645
+  11 H :    0.136339   -0.014571
+  12 H :    0.163284    0.006141
+  13 H :    0.162742    0.005452
+  14 H :    0.184053    0.024146
+Sum of atomic charges         :   -0.0000000
+Sum of atomic spin populations:    1.0000000
+
+-----------------------------------------------------
+MULLIKEN REDUCED ORBITAL CHARGES AND SPIN POPULATIONS
+-----------------------------------------------------
+CHARGE
+  0 O s       :     3.953325  s :     3.953325
+      pz      :     1.278293  p :     4.348472
+      px      :     1.241004
+      py      :     1.829175
+      dz2     :     0.002187  d :     0.016946
+      dxz     :     0.004600
+      dyz     :     0.000016
+      dx2y2   :     0.006658
+      dxy     :     0.003486
+
+  1 C s       :     2.999941  s :     2.999941
+      pz      :     0.879933  p :     2.462944
+      px      :     0.807785
+      py      :     0.775225
+      dz2     :     0.004268  d :     0.082967
+      dxz     :     0.010608
+      dyz     :     0.011658
+      dx2y2   :     0.027217
+      dxy     :     0.029218
+
+  2 C s       :     3.196772  s :     3.196772
+      pz      :     0.989936  p :     2.962925
+      px      :     0.999181
+      py      :     0.973809
+      dz2     :     0.003862  d :     0.072437
+      dxz     :     0.009390
+      dyz     :     0.005304
+      dx2y2   :     0.022801
+      dxy     :     0.031080
+
+  3 C s       :     3.196485  s :     3.196485
+      pz      :     0.989688  p :     2.960572
+      px      :     0.997323
+      py      :     0.973561
+      dz2     :     0.003861  d :     0.072402
+      dxz     :     0.009429
+      dyz     :     0.005258
+      dx2y2   :     0.022859
+      dxy     :     0.030995
+
+  4 C s       :     3.164207  s :     3.164207
+      pz      :     0.932350  p :     2.895259
+      px      :     0.979273
+      py      :     0.983636
+      dz2     :     0.004055  d :     0.065635
+      dxz     :     0.009713
+      dyz     :     0.003783
+      dx2y2   :     0.019050
+      dxy     :     0.029034
+
+  5 C s       :     3.164258  s :     3.164258
+      pz      :     0.932456  p :     2.895965
+      px      :     0.979859
+      py      :     0.983650
+      dz2     :     0.004053  d :     0.065647
+      dxz     :     0.009695
+      dyz     :     0.003805
+      dx2y2   :     0.019017
+      dxy     :     0.029078
+
+  6 C s       :     3.047649  s :     3.047649
+      pz      :     0.873867  p :     2.620878
+      px      :     0.842490
+      py      :     0.904521
+      dz2     :     0.006056  d :     0.157601
+      dxz     :     0.028472
+      dyz     :     0.009659
+      dx2y2   :     0.038804
+      dxy     :     0.074609
+
+  7 C s       :     3.248456  s :     3.248456
+      pz      :     1.132983  p :     3.292195
+      px      :     0.997604
+      py      :     1.161608
+      dz2     :     0.014577  d :     0.067606
+      dxz     :     0.012667
+      dyz     :     0.011055
+      dx2y2   :     0.015542
+      dxy     :     0.013765
+
+  8 H s       :     0.863388  s :     0.863388
+      pz      :     0.005734  p :     0.022274
+      px      :     0.006594
+      py      :     0.009946
+
+  9 H s       :     0.863259  s :     0.863259
+      pz      :     0.005730  p :     0.022280
+      px      :     0.006558
+      py      :     0.009991
+
+ 10 H s       :     0.841704  s :     0.841704
+      pz      :     0.005427  p :     0.021968
+      px      :     0.006731
+      py      :     0.009811
+
+ 11 H s       :     0.841697  s :     0.841697
+      pz      :     0.005426  p :     0.021964
+      px      :     0.006777
+      py      :     0.009761
+
+ 12 H s       :     0.817732  s :     0.817732
+      pz      :     0.005601  p :     0.018984
+      px      :     0.005552
+      py      :     0.007830
+
+ 13 H s       :     0.818286  s :     0.818286
+      pz      :     0.005468  p :     0.018972
+      px      :     0.005567
+      py      :     0.007937
+
+ 14 H s       :     0.796825  s :     0.796825
+      pz      :     0.009103  p :     0.019123
+      px      :     0.005597
+      py      :     0.004423
+
+
+SPIN
+  0 O s       :    -0.000304  s :    -0.000304
+      pz      :     0.391415  p :     0.403817
+      px      :     0.009171
+      py      :     0.003231
+      dz2     :     0.000006  d :    -0.000430
+      dxz     :    -0.000423
+      dyz     :     0.000002
+      dx2y2   :    -0.000010
+      dxy     :    -0.000005
+
+  1 C s       :     0.021599  s :     0.021599
+      pz      :     0.325112  p :     0.354493
+      px      :     0.013477
+      py      :     0.015904
+      dz2     :    -0.001201  d :    -0.002485
+      dxz     :    -0.000120
+      dyz     :    -0.001141
+      dx2y2   :    -0.000052
+      dxy     :     0.000030
+
+  2 C s       :    -0.011507  s :    -0.011507
+      pz      :    -0.109997  p :    -0.133055
+      px      :    -0.011797
+      py      :    -0.011262
+      dz2     :     0.000340  d :     0.007341
+      dxz     :     0.004955
+      dyz     :     0.001834
+      dx2y2   :     0.000065
+      dxy     :     0.000147
+
+  3 C s       :    -0.011450  s :    -0.011450
+      pz      :    -0.109832  p :    -0.132756
+      px      :    -0.011745
+      py      :    -0.011179
+      dz2     :     0.000341  d :     0.007308
+      dxz     :     0.004963
+      dyz     :     0.001793
+      dx2y2   :     0.000062
+      dxy     :     0.000150
+
+  4 C s       :     0.012980  s :     0.012980
+      pz      :     0.255426  p :     0.275565
+      px      :     0.009388
+      py      :     0.010752
+      dz2     :    -0.000903  d :    -0.002105
+      dxz     :    -0.001280
+      dyz     :     0.000186
+      dx2y2   :    -0.000164
+      dxy     :     0.000056
+
+  5 C s       :     0.012905  s :     0.012905
+      pz      :     0.254023  p :     0.274062
+      px      :     0.009360
+      py      :     0.010679
+      dz2     :    -0.000898  d :    -0.002104
+      dxz     :    -0.001281
+      dyz     :     0.000184
+      dx2y2   :    -0.000162
+      dxy     :     0.000053
+
+  6 C s       :    -0.006781  s :    -0.006781
+      pz      :    -0.060078  p :    -0.075025
+      px      :    -0.002701
+      py      :    -0.012246
+      dz2     :     0.000100  d :     0.013812
+      dxz     :     0.012906
+      dyz     :     0.001246
+      dx2y2   :     0.000057
+      dxy     :    -0.000497
+
+  7 C s       :    -0.007455  s :    -0.007455
+      pz      :    -0.006335  p :    -0.021959
+      px      :    -0.012854
+      py      :    -0.002770
+      dz2     :     0.000637  d :     0.005301
+      dxz     :     0.004387
+      dyz     :     0.000036
+      dx2y2   :     0.000211
+      dxy     :     0.000030
+
+  8 H s       :     0.006567  s :     0.006567
+      pz      :    -0.000669  p :    -0.000708
+      px      :    -0.000036
+      py      :    -0.000003
+
+  9 H s       :     0.006558  s :     0.006558
+      pz      :    -0.000669  p :    -0.000708
+      px      :    -0.000037
+      py      :    -0.000002
+
+ 10 H s       :    -0.016027  s :    -0.016027
+      pz      :     0.001441  p :     0.001382
+      px      :    -0.000043
+      py      :    -0.000017
+
+ 11 H s       :    -0.015945  s :    -0.015945
+      pz      :     0.001433  p :     0.001374
+      px      :    -0.000042
+      py      :    -0.000017
+
+ 12 H s       :     0.006215  s :     0.006215
+      pz      :    -0.000020  p :    -0.000073
+      px      :    -0.000067
+      py      :     0.000013
+
+ 13 H s       :     0.005528  s :     0.005528
+      pz      :    -0.000020  p :    -0.000076
+      px      :    -0.000067
+      py      :     0.000011
+
+ 14 H s       :     0.024161  s :     0.024161
+      pz      :     0.000011  p :    -0.000014
+      px      :    -0.000056
+      py      :     0.000031
+
+
+
+                     *******************************
+                     * LOEWDIN POPULATION ANALYSIS *
+                     *******************************
+
+-------------------------------------------
+LOEWDIN ATOMIC CHARGES AND SPIN POPULATIONS
+-------------------------------------------
+   0 O :   -0.118541    0.388884
+   1 C :   -0.039918    0.298169
+   2 C :   -0.043616   -0.077468
+   3 C :   -0.043331   -0.077428
+   4 C :    0.002477    0.226563
+   5 C :    0.002338    0.225239
+   6 C :   -0.095895   -0.015769
+   7 C :   -0.040083    0.002327
+   8 H :    0.054907   -0.000702
+   9 H :    0.055004   -0.000702
+  10 H :    0.060609    0.000530
+  11 H :    0.060613    0.000523
+  12 H :    0.045653    0.005107
+  13 H :    0.045291    0.004501
+  14 H :    0.054494    0.020225
+
+----------------------------------------------------
+LOEWDIN REDUCED ORBITAL CHARGES AND SPIN POPULATIONS
+----------------------------------------------------
+CHARGE
+  0 O s       :     3.605242  s :     3.605242
+      pz      :     1.270009  p :     4.483559
+      px      :     1.427905
+      py      :     1.785644
+      dz2     :     0.004245  d :     0.029741
+      dxz     :     0.006232
+      dyz     :     0.000007
+      dx2y2   :     0.012799
+      dxy     :     0.006457
+
+  1 C s       :     2.866262  s :     2.866262
+      pz      :     0.858976  p :     2.944155
+      px      :     1.020026
+      py      :     1.065153
+      dz2     :     0.013149  d :     0.229501
+      dxz     :     0.027096
+      dyz     :     0.031913
+      dx2y2   :     0.081048
+      dxy     :     0.076296
+
+  2 C s       :     2.863544  s :     2.863544
+      pz      :     0.947433  p :     2.997538
+      px      :     1.046890
+      py      :     1.003215
+      dz2     :     0.010698  d :     0.182535
+      dxz     :     0.025726
+      dyz     :     0.012882
+      dx2y2   :     0.059546
+      dxy     :     0.073681
+
+  3 C s       :     2.863536  s :     2.863536
+      pz      :     0.947291  p :     2.997299
+      px      :     1.047028
+      py      :     1.002979
+      dz2     :     0.010696  d :     0.182495
+      dxz     :     0.025844
+      dyz     :     0.012741
+      dx2y2   :     0.059624
+      dxy     :     0.073590
+
+  4 C s       :     2.883529  s :     2.883529
+      pz      :     0.896024  p :     2.945944
+      px      :     1.044412
+      py      :     1.005507
+      dz2     :     0.011572  d :     0.168050
+      dxz     :     0.025619
+      dyz     :     0.009287
+      dx2y2   :     0.052462
+      dxy     :     0.069110
+
+  5 C s       :     2.883487  s :     2.883487
+      pz      :     0.896123  p :     2.946074
+      px      :     1.044351
+      py      :     1.005600
+      dz2     :     0.011572  d :     0.168101
+      dxz     :     0.025540
+      dyz     :     0.009374
+      dx2y2   :     0.052457
+      dxy     :     0.069158
+
+  6 C s       :     2.841175  s :     2.841175
+      pz      :     0.843908  p :     2.855568
+      px      :     0.958955
+      py      :     1.052704
+      dz2     :     0.022560  d :     0.399152
+      dxz     :     0.062222
+      dyz     :     0.025509
+      dx2y2   :     0.106646
+      dxy     :     0.182215
+
+  7 C s       :     2.859168  s :     2.859168
+      pz      :     1.035580  p :     3.063580
+      px      :     0.993976
+      py      :     1.034025
+      dz2     :     0.020959  d :     0.117335
+      dxz     :     0.024292
+      dyz     :     0.012941
+      dx2y2   :     0.032285
+      dxy     :     0.026857
+
+  8 H s       :     0.862289  s :     0.862289
+      pz      :     0.017953  p :     0.082803
+      px      :     0.023831
+      py      :     0.041020
+
+  9 H s       :     0.862205  s :     0.862205
+      pz      :     0.017939  p :     0.082790
+      px      :     0.023630
+      py      :     0.041222
+
+ 10 H s       :     0.854871  s :     0.854871
+      pz      :     0.017406  p :     0.084520
+      px      :     0.024643
+      py      :     0.042471
+
+ 11 H s       :     0.854869  s :     0.854869
+      pz      :     0.017402  p :     0.084518
+      px      :     0.024873
+      py      :     0.042243
+
+ 12 H s       :     0.874061  s :     0.874061
+      pz      :     0.023689  p :     0.080286
+      px      :     0.019908
+      py      :     0.036689
+
+ 13 H s       :     0.874439  s :     0.874439
+      pz      :     0.022970  p :     0.080270
+      px      :     0.020049
+      py      :     0.037251
+
+ 14 H s       :     0.865072  s :     0.865072
+      pz      :     0.044089  p :     0.080435
+      px      :     0.019431
+      py      :     0.016915
+
+
+SPIN
+  0 O s       :     0.004327  s :     0.004327
+      pz      :     0.377473  p :     0.385379
+      px      :     0.004980
+      py      :     0.002926
+      dz2     :     0.000056  d :    -0.000823
+      dxz     :    -0.000626
+      dyz     :     0.000001
+      dx2y2   :    -0.000186
+      dxy     :    -0.000067
+
+  1 C s       :     0.010121  s :     0.010121
+      pz      :     0.282152  p :     0.296056
+      px      :     0.006788
+      py      :     0.007116
+      dz2     :    -0.001352  d :    -0.008008
+      dxz     :    -0.000955
+      dyz     :    -0.004133
+      dx2y2   :    -0.000765
+      dxy     :    -0.000804
+
+  2 C s       :    -0.004668  s :    -0.004668
+      pz      :    -0.085127  p :    -0.095676
+      px      :    -0.005405
+      py      :    -0.005144
+      dz2     :     0.000430  d :     0.022876
+      dxz     :     0.014850
+      dyz     :     0.005872
+      dx2y2   :     0.000839
+      dxy     :     0.000885
+
+  3 C s       :    -0.004658  s :    -0.004658
+      pz      :    -0.085037  p :    -0.095556
+      px      :    -0.005409
+      py      :    -0.005109
+      dz2     :     0.000432  d :     0.022786
+      dxz     :     0.014880
+      dyz     :     0.005755
+      dx2y2   :     0.000831
+      dxy     :     0.000888
+
+  4 C s       :     0.006190  s :     0.006190
+      pz      :     0.217530  p :     0.226645
+      px      :     0.004736
+      py      :     0.004379
+      dz2     :    -0.000862  d :    -0.006272
+      dxz     :    -0.003409
+      dyz     :    -0.000541
+      dx2y2   :    -0.000730
+      dxy     :    -0.000729
+
+  5 C s       :     0.006152  s :     0.006152
+      pz      :     0.216294  p :     0.225357
+      px      :     0.004712
+      py      :     0.004351
+      dz2     :    -0.000858  d :    -0.006269
+      dxz     :    -0.003406
+      dyz     :    -0.000549
+      dx2y2   :    -0.000724
+      dxy     :    -0.000731
+
+  6 C s       :    -0.005232  s :    -0.005232
+      pz      :    -0.034761  p :    -0.049230
+      px      :    -0.007622
+      py      :    -0.006848
+      dz2     :     0.000313  d :     0.038694
+      dxz     :     0.033347
+      dyz     :     0.003888
+      dx2y2   :     0.001192
+      dxy     :    -0.000046
+
+  7 C s       :    -0.001899  s :    -0.001899
+      pz      :    -0.000288  p :    -0.008785
+      px      :    -0.007168
+      py      :    -0.001329
+      dz2     :     0.001243  d :     0.013011
+      dxz     :     0.010759
+      dyz     :     0.000068
+      dx2y2   :     0.000745
+      dxy     :     0.000196
+
+  8 H s       :     0.002392  s :     0.002392
+      pz      :    -0.002465  p :    -0.003095
+      px      :    -0.000271
+      py      :    -0.000359
+
+  9 H s       :     0.002389  s :     0.002389
+      pz      :    -0.002462  p :    -0.003091
+      px      :    -0.000269
+      py      :    -0.000360
+
+ 10 H s       :    -0.006317  s :    -0.006317
+      pz      :     0.005800  p :     0.006847
+      px      :     0.000308
+      py      :     0.000739
+
+ 11 H s       :    -0.006284  s :    -0.006284
+      pz      :     0.005766  p :     0.006807
+      px      :     0.000312
+      py      :     0.000729
+
+ 12 H s       :     0.005448  s :     0.005448
+      pz      :    -0.000042  p :    -0.000341
+      px      :    -0.000219
+      py      :    -0.000080
+
+ 13 H s       :     0.004830  s :     0.004830
+      pz      :    -0.000034  p :    -0.000329
+      px      :    -0.000219
+      py      :    -0.000076
+
+ 14 H s       :     0.020827  s :     0.020827
+      pz      :    -0.000370  p :    -0.000602
+      px      :    -0.000209
+      py      :    -0.000024
+
+
+
+                      *****************************
+                      * MAYER POPULATION ANALYSIS *
+                      *****************************
+
+  NA   - Mulliken gross atomic population
+  ZA   - Total nuclear charge
+  QA   - Mulliken gross atomic charge
+  VA   - Mayer's total valence
+  BVA  - Mayer's bonded valence
+  FA   - Mayer's free valence
+
+  ATOM       NA         ZA         QA         VA         BVA        FA
+  0 O      8.3187     8.0000    -0.3187     2.0774     1.9197     0.1577
+  1 C      5.5459     6.0000     0.4541     3.7332     3.6263     0.1069
+  2 C      6.2321     6.0000    -0.2321     4.2078     4.1955     0.0122
+  3 C      6.2295     6.0000    -0.2295     4.2070     4.1948     0.0122
+  4 C      6.1251     6.0000    -0.1251     4.0032     3.9374     0.0658
+  5 C      6.1259     6.0000    -0.1259     4.0025     3.9374     0.0651
+  6 C      5.8261     6.0000     0.1739     4.0030     3.9969     0.0061
+  7 C      6.6083     6.0000    -0.6083     3.8696     3.8691     0.0005
+  8 H      0.8857     1.0000     0.1143     0.9616     0.9615     0.0000
+  9 H      0.8855     1.0000     0.1145     0.9614     0.9614     0.0000
+ 10 H      0.8637     1.0000     0.1363     0.9590     0.9588     0.0003
+ 11 H      0.8637     1.0000     0.1363     0.9590     0.9588     0.0002
+ 12 H      0.8367     1.0000     0.1633     0.9672     0.9672     0.0000
+ 13 H      0.8373     1.0000     0.1627     0.9676     0.9675     0.0000
+ 14 H      0.8159     1.0000     0.1841     0.9573     0.9567     0.0006
+
+  Mayer bond orders larger than 0.100000
+B(  0-O ,  6-C ) :   1.6094 B(  1-C ,  2-C ) :   1.3507 B(  1-C ,  3-C ) :   1.3490 
+B(  1-C ,  4-C ) :   0.1102 B(  1-C ,  5-C ) :   0.1095 B(  1-C ,  7-C ) :   0.8363 
+B(  2-C ,  4-C ) :   1.5923 B(  2-C ,  8-H ) :   0.9847 B(  3-C ,  5-C ) :   1.5934 
+B(  3-C ,  9-H ) :   0.9847 B(  4-C ,  6-C ) :   1.1380 B(  4-C , 10-H ) :   0.9736 
+B(  5-C ,  6-C ) :   1.1376 B(  5-C , 11-H ) :   0.9735 B(  7-C , 12-H ) :   0.9734 
+B(  7-C , 13-H ) :   0.9741 B(  7-C , 14-H ) :   0.9450 
+
+-------
+TIMINGS
+-------
+
+Total SCF time: 0 days 0 hours 0 min 6 sec 
+
+Total time                  ....       6.559 sec
+Sum of individual times     ....       6.162 sec  ( 93.9%)
+
+SCF preparation             ....       0.531 sec  (  8.1%)
+Fock matrix formation       ....       4.937 sec  ( 75.3%)
+  Startup                   ....       0.038 sec  (  0.8% of F)
+  Split-RI-J                ....       0.956 sec  ( 19.4% of F)
+  Chain of spheres X        ....       2.757 sec  ( 55.8% of F)
+  XC integration            ....       1.235 sec  ( 25.0% of F)
+    Basis function eval.    ....       0.127 sec  ( 10.3% of XC)
+    Density eval.           ....       0.157 sec  ( 12.7% of XC)
+    XC-Functional eval.     ....       0.026 sec  (  2.1% of XC)
+    XC-Potential eval.      ....       0.278 sec  ( 22.5% of XC)
+Diagonalization             ....       0.000 sec  (  0.0%)
+Density matrix formation    ....       0.145 sec  (  2.2%)
+Total Energy calculation    ....       0.065 sec  (  1.0%)
+Population analysis         ....       0.034 sec  (  0.5%)
+Orbital Transformation      ....       0.057 sec  (  0.9%)
+Orbital Orthonormalization  ....       0.000 sec  (  0.0%)
+DIIS solution               ....       0.233 sec  (  3.6%)
+SOSCF solution              ....       0.159 sec  (  2.4%)
+Finished LeanSCF after   6.6 sec
+
+Maximum memory used throughout the entire LEANSCF-calculation: 18.8 MB
+
+
+           ************************************************************
+           *        Program running with 16 parallel MPI-processes    *
+           *              working on a common directory               *
+           ************************************************************
+
+------------------------------------------------------------------------------
+                         ORCA PROPERTY INTEGRAL CALCULATIONS
+------------------------------------------------------------------------------
+
+GBWName                                   ... model_epr.gbw
+Number of atoms                           ...     15
+Number of basis functions                 ...    185
+Max core memory                           ...   3000 MB
+
+Dipole integrals                          ... YES
+Quadrupole integrals                      ...  NO
+Linear momentum integrals                 ...  NO
+Angular momentum integrals                ...  NO
+Higher moments length integrals           ...  NO
+Higher moments velocity integrals         ...  NO
+Kinetic energy integrals                  ... YES
+GIAO right hand sides                     ... YES
+GIAO dipole derivative integrals          ...  NO
+SOC integrals                             ... YES
+EPR diamagnetic integrals (GIAO)          ... YES
+EPR gauge integrals                       ...  NO
+Field gradient integrals                  ...  NO (   0 nuclei)
+Spin-dipole/Fermi contact integrals       ... YES (   3 nuclei)
+Contact density integrals                 ...  NO (   0 nuclei)
+Nucleus-orbit integrals                   ... YES (   3 nuclei)
+Geometric perturbations                   ...  NO (  15 nuclei)
+
+Choice of electric origin   ... Center of mass
+Position of electric origin ... ( -0.0218, -0.0119,  0.0041) 
+Choice of magnetic origin   ... GIAO
+Position of magnetic origin ... (  0.0000,  0.0000,  0.0000) 
+
+Calculating integrals                     ... Electric Dipole (Length)     done (  0.0 sec)
+Calculating integrals                     ... Kinetic Energy               done (  0.0 sec)
+Calculating integrals                     ... EPR-dia integrals            done (  0.1 sec)
+  g-Tensor DSO: Zeff (2-electron approx.) ... YES 
+Calculating integrals                     ... Nucleus-Orbit integrals      done (  0.0 sec)
+Calculating integrals                     ... SD/FC/EFG integrals          done (  0.0 sec)
+
+Calculating integrals                     ... GIAO Right Hand Sides
+     -> RIJCOSX used in SCF. Same chosen for GIAO calculation.
+  One-electron GIAO integrals (SHARK)     ... done (  0.0 sec)
+  Calculating G(B)[P]                     ... (RI-J: SHARK-ok) (COSX-ok) (add-J+K:ok) => dG/dB done (  0.7 sec)
+  DFT XC-terms                            ... done (  0.9 sec)
+  Extracting occupied and virtual blocks  ... 
+  Operator  0  NO=  29 NV= 156 
+  Operator  1  NO=  28 NV= 157 
+  Transforming and RHS contribution       ... done
+  Adding eps_i * S(B)_ai terms            ... done
+  Projecting overlap derivatives          ... done (  0.0 sec)
+  Building G[dS/dB_ij] (COSX)             ... done (  0.1 sec)
+  Transforming to MO basis                ... done
+  Summing G[dS/dB_ij] into RHS contribs.  ... done
+  GIAO Right hand sides done (  1.9 sec)
+
+Calculating integrals                     ... Spin-Orbit Coupling
+  Spin-orbit operator                     ... Spin-Orbit Mean-Field (SOMF)
+      1-El-Flag                           ...  1 ON
+      Coulomb-Flag                        ...  3 ON (Via RI)
+      Exchange-Flag                       ...  3 ON (AMFI type)
+      DFT-Correlation Flag                ...  0 OFF
+      Max-Center                          ...  4   
+      Relativistic Picture Change         ... OFF     
+  RI-J SOMF                               ... done (  0.3 sec)
+  One-electron part                       ... done (  0.0 sec)
+  Two-electron DoJ,X=0,1 MaxCenter=1      ... done (  0.1 sec)
+  SOC integrals done (  0.4 sec)
+
+Property integrals calculated in   2.6 sec
+
+Maximum memory used throughout the entire PROPINT-calculation: 32.1 MB
+
+-------------------------   --------------------
+FINAL SINGLE POINT ENERGY      -345.994352821209
+-------------------------   --------------------
+
+
+
+           ************************************************************
+           *        Program running with 16 parallel MPI-processes    *
+           *              working on a common directory               *
+           ************************************************************
+------------------------------------------------------------------------------
+                            ORCA SCF RESPONSE CALCULATION
+------------------------------------------------------------------------------
+
+GBWName                                 ... model_epr.gbw
+Number of atoms                         ...     15
+Number of basis functions               ...    185
+Max core memory                         ...   3000 MB
+
+Electric field perturbation             ...  NO
+Quadrupolar field perturbation          ...  NO
+Magnetic field perturbation (no GIAO)   ...  NO
+Magnetic field perturbation (with GIAO) ... YES
+Linear momentum (velocity) perturbation ...  NO
+Spin-orbit coupling perturbation        ...  NO
+Choice of electric origin               ... Center of mass
+Position of electric origin             ...    -0.021764    -0.011896     0.004111
+Choice of magnetic origin               ... GIAO
+Position of magnetic origin             ...     0.000000     0.000000     0.000000
+Nuclear geometric perturbations         ...  NO (  45 perturbations)
+Nucleus-orbit perturbations             ... YES (   9 perturbations)
+Spin-dipole/Fermi contact perturbations ...  NO (   0 perturbations)
+
+Total number of real perturbations      ...      0
+Total number of imaginary perturbations ...     12
+Total number of triplet perturbations   ...      0
+Total number of SOC perturbations       ...      0
+
+Using XC Grid                  ... (model_epr.grid_cpscf.tmp) 
+Recalculating density on grid  ... (model_epr.grho_cpscf0.tmp) done
+Calculating the xc-kernel      ... (model_epr.fxc_cpscf0.tmp) done
+
+                              ***************************
+                              * IMAGINARY PERTURBATIONS *
+                              ***************************
+
+
+
+-------------------
+SHARK CP-SCF DRIVER
+-------------------
+
+Dimension of the orbital basis          ...    185
+Dimension of the CPSCF-problem          ...   8920
+Number of operators                     ...      2
+Max. number of iterations               ...    128
+Convergence Tolerance                   ... 1.0e-03
+Number of perturbations                 ...     12
+Perturbation type                       ... IMAGINARY
+
+----------------------------
+POPLE LINEAR EQUATION SOLVER
+----------------------------
+
+  ITERATION   0:   ||err||_max =   1.4621e+01 (   0.5 sec   0/ 12 done)
+  ITERATION   1:   ||err||_max =   1.3349e+00 (   0.5 sec   0/ 12 done)
+  ITERATION   2:   ||err||_max =   6.7299e-02 (   0.4 sec   2/ 12 done)
+  ITERATION   3:   ||err||_max =   5.5186e-03 (   0.3 sec   8/ 12 done)
+  ITERATION   4:   ||err||_max =   4.3215e-04 (   0.2 sec  12/ 12 done)
+
+CP-SCF equations solved in   2.0 sec
+Response densities calculated in   0.1 sec
+
+Maximum memory used throughout the entire SCFRESP-calculation: 53.7 MB
+
+
+           ************************************************************
+           *        Program running with 16 parallel MPI-processes    *
+           *              working on a common directory               *
+           ************************************************************
+
+------------------------------------------------------------------------------
+                              ORCA PROPERTY CALCULATIONS
+------------------------------------------------------------------------------
+
+GBWName                                 ... model_epr.gbw
+Number of atoms                         ...     15
+Number of basis functions               ...    185
+Max core memory                         ...   3000 MB
+
+Electric properties:
+Dipole moment                           ... YES
+Quadrupole moment                       ...  NO
+Static polarizability (Dipole/Dipole)   ...  NO
+Static polarizability (Dipole/Quad.)    ...  NO
+Static polarizability (Quad./Quad.)     ...  NO
+Static polarizability (Velocity)        ...  NO
+Static hyperpolarizability              ...  NO
+
+Atomic electric properties:
+Dipole moment                           ...  NO
+Quadrupole moment                       ...  NO
+Static polarizability                   ...  NO
+
+Choice of electric origin               ... Center of mass
+Position of electric origin             ...    -0.021764    -0.011896     0.004111
+
+General magnetic properties:
+Magnetizability                         ...  NO
+
+EPR properties:
+g-Tensor (aka g-matrix)                 ... YES
+Zero-Field splitting spin-orbit         ...  NO
+Zero-field splitting spin-spin          ...  NO
+Hyperfine couplings                     ... YES (   3 nuclei)
+Quadrupole couplings                    ...  NO (   0 nuclei)
+Contact density                         ...  NO (   0 nuclei)
+
+NMR properties:
+Chemical shifts                         ... YES (   3 nuclei)
+Spin-rotation constants                 ...  NO (   0 nuclei)
+Spin-spin couplings                     ...  NO (   0 nuclei,    0 pairs)
+
+Choice of magnetic origin               ... GIAO
+Position of magnetic origin             ...     0.000000     0.000000     0.000000
+
+Properties with geometric perturbations:
+SCF Hessian                             ...  NO
+IR spectrum                             ...  NO
+VCD spectrum                            ...  NO
+X-ray spectroscopy properties:
+SCF XES/XAS/RIXS spectra                ...  NO
+
+SCF SOC stabilization energy            ...  NO
+Diagonal Born-Oppenheimer correction    ...  NO
+
+-------------
+DIPOLE MOMENT
+-------------
+
+Method             : SCF
+Type of density    : Electron Density
+Multiplicity       :   2
+Irrep              :   0
+Energy             :  -345.9943528212093611 Eh
+Basis              : AO
+                                X                 Y                 Z
+Electronic contribution:     -7.377316939      -0.026604630       0.013790637
+Nuclear contribution   :      9.215275982       0.033808162      -0.021780666
+                        -----------------------------------------
+Total Dipole Moment    :      1.837959043       0.007203532      -0.007990029
+                        -----------------------------------------
+Magnitude (a.u.)       :      1.837990527
+Magnitude (Debye)      :      4.671800645
+
+
+
+--------------------
+Rotational spectrum 
+--------------------
+ 
+Rotational constants in cm-1:             0.176853             0.050340             0.039476 
+Rotational constants in MHz :          5301.912880          1509.163850          1183.461153 
+
+Dipole components along the rotational axes: 
+x,y,z [a.u.] :    -1.837911     0.000947    -0.017117 
+x,y,z [Debye]:    -4.671597     0.002407    -0.043507 
+
+ 
+
+Dipole moment calculation done in   0.0 sec 
+
+-------------------
+ELECTRONIC G-MATRIX
+-------------------
+
+Method             : SCF
+Type of density    : Spin Density
+Type of derivative : Magnetic Field (with GIAOs) (Direction=X)
+Multiplicity       :   2
+Irrep              :   0
+Basis              : AO
+The g-matrix: 
+              2.0104313    0.0000162    0.0000952
+              0.0000148    2.0046182   -0.0000049
+             -0.0000080   -0.0000050    2.0021317
+
+Breakdown of the contributions
+ gel          2.0023193    2.0023193    2.0023193
+ gRMC        -0.0002109   -0.0002109   -0.0002109
+ gDSO(tot)    0.0000289    0.0000723    0.0001268
+ gPSO(tot)   -0.0000059    0.0024374    0.0081964
+             ----------   ----------   ----------
+ g(tot)       2.0021314    2.0046182    2.0104316 iso=  2.0057271
+ Delta-g     -0.0001878    0.0022989    0.0081123 iso=  0.0034078
+
+ Orientation: 
+  X          -0.0052469   -0.0026489   -0.9999827
+  Y           0.0020282    0.9999944   -0.0026595
+  Z           0.9999842   -0.0020422   -0.0052415
+
+Notes:  (1) The g-matrix conforms to the "BgS" spin Hamiltonian convention. 
+        (2) The principal values are square roots of the eigenvalues of g*gT.
+        (3) Orientations are eigenvectors of g*gT written as column vectors.
+        (4) Individual contributions are projections of the full matrices onto the eigenvectors of g*gT.
+        (5) Tensor is right-handed.
+
+
+EPR g-tensor done in   0.0 sec 
+
+-----------------------------------------
+ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE (3 nuclei)
+-----------------------------------------
+
+Number of nuclei to compute A(iso)       :     3
+Number of nuclei to compute A(dip)       :     3
+Number of nuclei to compute A(orb)       :     3
+Number of nuclei to compute A(dia)       :     3
+Number of nuclei to compute EFG          :     0
+Number of nuclei to compute Rho(0)       :     0
+Relativistic treatment                   :  Off
+
+Method             : SCF
+Type of density    : Electron Density
+Multiplicity       :   2
+Irrep              :   0
+Energy             :  -345.9943528212093611 Eh
+Basis              : AO
+ -----------------------------------------------------------
+ Nucleus  10H : A  : Isotope=    1 I=  0.5 P=533.5514 MHz/au**3 
+                Q  : Isotope=    2 I=  1.0 Q=  0.0029 barn      
+                HFC: iso  =YES dip=YES orb=YES gauge=YES    
+                EFG: fgrad= NO rho= NO                      
+ -----------------------------------------------------------
+
+ Total HFC matrix (all values in MHz): 
+ ----------------------------------------------------------------
+               -26.0285               7.6690              -0.0688
+                 7.7173             -11.6194               0.0667
+                -0.0693               0.0661             -22.3661
+
+ A(FC)         -19.9904             -19.9904             -19.9904
+ A(SD)          11.7351              -2.3740              -9.3611
+ A(ORB+DIA)     -0.0287              -0.0007              -0.0135    A(PC) =   -0.0143
+ A(ORB)         -0.0306               0.0001              -0.0137    A(PC) =   -0.0147
+ A(DIA)          0.0019              -0.0008               0.0002    A(PC) =    0.0004
+             ----------           ----------           ----------
+ A(Tot)         -8.2840             -22.3650             -29.3650    A(iso)=  -20.0047
+ Orientation: 
+  X           0.3970448            0.0127404           -0.9177108
+  Y           0.9177960           -0.0028740            0.3970418
+  Z           0.0024210           -0.9999147           -0.0128342
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ -----------------------------------------------------------
+ Nucleus  11H : A  : Isotope=    1 I=  0.5 P=533.5514 MHz/au**3 
+                Q  : Isotope=    2 I=  1.0 Q=  0.0029 barn      
+                HFC: iso  =YES dip=YES orb=YES gauge=YES    
+                EFG: fgrad= NO rho= NO                      
+ -----------------------------------------------------------
+
+ Total HFC matrix (all values in MHz): 
+ ----------------------------------------------------------------
+               -25.7898              -7.7137              -0.0353
+                -7.7619             -11.6531              -0.1113
+                -0.0356              -0.1107             -22.2619
+
+ A(FC)         -19.8873             -19.8873             -19.8873
+ A(SD)          11.6752              -2.3736              -9.3016
+ A(ORB+DIA)     -0.0286              -0.0007              -0.0135    A(PC) =   -0.0143
+ A(ORB)         -0.0305               0.0001              -0.0137    A(PC) =   -0.0147
+ A(DIA)          0.0019              -0.0008               0.0002    A(PC) =    0.0004
+             ----------           ----------           ----------
+ A(Tot)         -8.2407             -22.2616             -29.2025    A(iso)=  -19.9016
+ Orientation: 
+  X           0.4027137            0.0127124            0.9152377
+  Y          -0.9153045           -0.0012580            0.4027605
+  Z           0.0062714           -0.9999184            0.0111291
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ -----------------------------------------------------------
+ Nucleus   0O : A  : Isotope=   17 I=  2.5 P=-72.3588 MHz/au**3 
+                Q  : Isotope=   17 I=  2.5 Q= -0.0256 barn      
+                HFC: iso  =YES dip=YES orb=YES gauge=YES    
+                EFG: fgrad= NO rho= NO                      
+ -----------------------------------------------------------
+
+ Total HFC matrix (all values in MHz): 
+ ----------------------------------------------------------------
+                31.2260              -0.0034               2.0751
+                -0.0033              33.9341              -0.3618
+                 2.0753              -0.3618            -144.6021
+
+ A(FC)         -25.4508             -25.4508             -25.4508
+ A(SD)          59.5679              59.6081            -119.1760
+ A(ORB+DIA)     -2.8667              -0.2225              -0.0005    A(PC) =   -1.0299
+ A(ORB)         -2.8662              -0.2223              -0.0006    A(PC) =   -1.0297
+ A(DIA)         -0.0004              -0.0002               0.0001    A(PC) =   -0.0002
+             ----------           ----------           ----------
+ A(Tot)         31.2505              33.9348            -144.6273    A(iso)=  -26.4807
+ Orientation: 
+  X          -0.9999263           -0.0028416            0.0117995
+  Y          -0.0028657            0.9999938           -0.0020259
+  Z          -0.0117937           -0.0020595           -0.9999283
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+
+Hyperfine and quadrupole coupling calculation done in   0.8 sec 
+----------------------------------------------------------------------------
+                           ORCA EULER ANGLE PROGRAM
+----------------------------------------------------------------------------
+
+Only g-tensor available        -->  using g-tensor as reference tensor
+
+Reference tensor               ...  g
+
+g-tensor ordering              ...  |g_min> --> |gx>
+                                    |g_mid> --> |gy>
+                                    |g_max> --> |gz>
+
+A- and EFG-tensor ordering     ...  the axes |Ax>, |Qx>, |Ay>, etc. are assigned
+                                    such that the Euler rotation is minimal. You
+                                    can find the respective eigenvalues as Ax,
+                                    EFGx, Ay, etc. in the tables below.
+                                    The relation of |Ax>, |Ay>,  etc. to Amin, Amid, etc.
+                                    (as printed in the ORCA EPR/NMR CALCULATION Output)
+                                    is obtained in the detailed printout.
+
+Euler rotation around          ...  z - y - z
+   First rotation              -->  by alpha around z
+   Second rotation             -->  by beta around y'
+   Third rotation              -->  by gamma around z''
+   Positive / Negative angle   -->  clockwise / counterclockwise rotation
+
+Plot EFG-tensors                    (-)
+Plot HFC-tensors                    (-)
+Detailed Printout                   (-)
+
+-------------------------------------------------------------------------
+          Euler rotation of hyperfine tensor to g-tensor
+-------------------------------------------------------------------------
+
+-------------------------------------------------------------------
+ Atom  |   Alpha    Beta    Gamma   |   Ax       Ay       Az 
+       |          [degrees]         |           [MHz]         
+-------------------------------------------------------------------
+ 10H      -88.9     23.6     89.0     -22.37    -8.28   -29.37
+ 11H       88.9     23.6    -89.0     -22.26    -8.24   -29.20
+  0O        1.7      0.4     -1.7    -144.63    33.93    31.25
+-------------------------------------------------------------------
+
+GIAO: Analytic para- and diamagnetic shielding integrals (SHARK)       ... done (  0.0 sec)
+-------------------
+CHEMICAL SHIELDINGS (ppm)
+-------------------
+
+Method             : SCF
+Type of density    : Electron Density
+Type of derivative : Magnetic Field (with GIAOs) (Direction=X)
+Multiplicity       :   2
+Irrep              :   0
+Basis              : AO
+ --------------
+ Nucleus  10H :
+ --------------
+
+Diamagnetic contribution to the shielding tensor (ppm) : 
+            31.031          7.451         0.045
+             8.162         41.512         0.022
+            -0.011          0.078        20.351
+
+Paramagnetic contribution to the shielding tensor (ppm): 
+            -1.067         -6.799         0.010
+            -9.312        -18.538        -0.011
+             0.066         -0.133         3.364
+
+Total shielding tensor (ppm): 
+            29.964          0.652         0.055
+            -1.150         22.974         0.010
+             0.054         -0.056        23.714
+
+
+ Diagonalized sT*s matrix:
+ 
+ sDSO            41.780           20.370           30.743  iso=      30.965
+ sPSO           -18.813            3.344           -0.772  iso=      -5.414
+        ---------------  ---------------  ---------------
+ Total           22.967           23.714           29.971  iso=      25.551
+
+ Orientation: 
+  X           0.0183509   -0.0092568   -0.9997888
+  Y           0.9994100   -0.0288648    0.0186112
+  Z           0.0290310    0.9995405   -0.0087217
+
+ --------------
+ Nucleus  11H :
+ --------------
+
+Diamagnetic contribution to the shielding tensor (ppm) : 
+            31.134         -7.530         0.075
+            -8.229         41.452        -0.109
+             0.025         -0.161        20.433
+
+Paramagnetic contribution to the shielding tensor (ppm): 
+            -1.182          6.935        -0.018
+             9.421        -18.470         0.102
+             0.025          0.219         3.278
+
+Total shielding tensor (ppm): 
+            29.952         -0.595         0.057
+             1.192         22.982        -0.007
+             0.050          0.058        23.711
+
+
+ Diagonalized sT*s matrix:
+ 
+ sDSO            41.835           20.452           30.734  iso=      31.007
+ sPSO           -18.864            3.260           -0.771  iso=      -5.458
+        ---------------  ---------------  ---------------
+ Total           22.971           23.711           29.963  iso=      25.548
+
+ Orientation: 
+  X          -0.0255542   -0.0094194   -0.9996291
+  Y           0.9991408    0.0323968   -0.0258470
+  Z          -0.0326283    0.9994307   -0.0085835
+
+ --------------
+ Nucleus   0O :
+ --------------
+
+Diamagnetic contribution to the shielding tensor (ppm) : 
+           416.988          0.171         0.684
+             0.178        360.918        -0.033
+             0.801         -0.029       344.255
+
+Paramagnetic contribution to the shielding tensor (ppm): 
+         -2153.695         -4.201       -24.299
+            -3.778       -738.065         1.467
+           -10.942          1.496         0.311
+
+Total shielding tensor (ppm): 
+         -1736.707         -4.030       -23.615
+            -3.599       -377.148         1.435
+           -10.141          1.466       344.566
+
+
+ Diagonalized sT*s matrix:
+ 
+ sDSO           344.248          360.917          416.995  iso=     374.054
+ sPSO             0.409         -738.057        -2153.801  iso=    -963.817
+        ---------------  ---------------  ---------------
+ Total          344.657         -377.140        -1736.806  iso=    -589.763
+
+ Orientation: 
+  X          -0.0129519    0.0028747    0.9999120
+  Y           0.0020784   -0.9999936    0.0029018
+  Z           0.9999140    0.0021158    0.0129459
+
+
+
+----------------------------------------------------------
+CHEMICAL SHIELDING SUMMARY (ppm)  --  Orbital contribution
+----------------------------------------------------------
+
+
+  Nucleus  Element    Isotropic     Anisotropy
+  -------  -------  ------------   ------------
+     10       H           25.551          6.631 
+     11       H           25.548          6.622 
+      0       O         -589.763      -1720.564 
+
+
+NMR shielding tensor and spin rotation calculation done in   0.0 sec 
+
+Maximum memory used throughout the entire PROP-calculation: 16.7 MB
+
+--------------------------------
+SUGGESTED CITATIONS FOR THIS RUN
+--------------------------------
+
+Below you find a list of papers that are relevant to this ORCA run
+We neither can nor want to force you to cite these papers, but we appreciate if you do
+You receive ORCA, which is the product of decades of hard work by many enthusiastic individuals, for free
+The only thing we kindly ask in return is that you cite our papers,
+We deeply appreciate it, if you show your appreciation for ORCA by not just citing the generic ORCA reference.
+
+Please note that relegating all ORCA citations to the supporting information does *not* help us.
+SI sections are not indexed - citations you put there will not count into any citation statistics
+But we need these citations in order to attract the funding resources that allow us to do what we are doing
+
+Therefore, if you are a happy ORCA user, please consider citing a few of the papers listed below in the main body of your paper
+
+In addition to the list printed below, the program has created the file model_epr.bibtex that contains the list in bibtex format
+You can import this file easily into all common literature databanks and citation aid programs
+
+
+List of essential papers. We consider these as the minimum necessary citations
+
+  1. Neese, F.
+     Software update: the ORCA program system, version 6.0
+     WIRES Comput. Molec. Sci. 2025 15(1), e70019
+     doi.org/10.1002/wcms.7019
+
+List of papers to cite with high priority. The work reported in these papers was absolutely
+necessary for this run to complete.
+Our perspective: the developers of density functionals and basis sets usually get cited in chemistry papers
+Good! But without the algorithms to do something with them, the functionals or basis sets would not do anything.
+Hence, in our opinion, the algorithm design and method developments papers are equally worthy of getting cited
+
+  1. Neese, F.
+     Prediction of electron paramagnetic resonance g values using coupled perturbed Hartree-Fock and Kohn-Sham theory
+     J. Chem. Phys. 2001 115(24), 11080-11096
+     doi.org/10.1063/1.1419058
+  2. Neese, F.
+     An improvement of the resolution of the identity approximation for the formation of the Coulomb matrix
+     J. Comp. Chem. 2003 24(14), 1740-1747
+     doi.org/10.1002/jcc.10318
+  3. Neese, F.
+     Metal and ligand hyperfine couplings in transition metal complexes: The effect of spin-orbit coupling as studied by coupled perturbed Kohn-Sham theory
+     J. Chem. Phys. 2003 118(9), 3939-3948
+     doi.org/10.1063/1.1540619
+  4. Neese, F.
+     Efficient and accurate approximations to the molecular spin-orbit coupling operator and their use in molecular g-tensor calculations
+     J. Chem. Phys. 2005 122(3), Art. No. 034107
+     doi.org/10.1063/1.1829047
+  5. Neese, F.; Wennmohs, F.; Hansen, A.; Becker, U.
+     Efficient, approximate and parallel Hartree-Fock and hybrid DFT calculations. A 'chain-of-spheres' algorithm for the Hartree-Fock exchange
+     Chem. Phys. 2009 356(1-3), 98-109
+     doi.org/10.1016/j.chemphys.2008.10.036
+  6. Stoychev, G.L.; Auer, A.A.; Neese, F.
+     Automatic Generation of Auxiliary Basis Sets
+     J. Theo. Comp. Chem. 2017 13 , 554-562
+     doi.org/10.1021/acs.jctc.6b01041
+  7. Stoychev, G.L.; Auer, A.A.; Izsak, R.; Neese, F.
+     Self-Consistent Field Calculation of Nuclear Magnetic Resonance Chemical Shielding Constants Using Gauge-Including Atomic Orbitals and Approximate Two-Electron Integrals
+     J. Chem. Theory Comput. 2018 14(2), 619-637
+     doi.org/10.1021/acs.jctc.7b01006
+  8. Helmich-Paris, B.; de Souza, B.; Neese, F.; Izsák, R.
+     An improved chain of spheres for exchange algorithm
+     J. Chem. Phys. 2021 155(10), 104109
+     doi.org/10.1063/5.0058766
+  9. Neese, F.
+     The SHARK Integral Generation and Digestion System
+     J. Comp. Chem. 2022 44(3), 381
+     doi.org/10.1002/jcc.26942
+
+List of suggested additional citations. These are papers that are important in the 'surrounding' of 
+of this run, or papers that preceded the highly important papers. If you like your results we are grateful for a citation.
+
+  1. Neese, F.
+     Theoretical study of ligand superhyperfine structure. Application to Cu(II) complexes
+     J. Phys. Chem. A 2001 105(17), 4290-4299
+     doi.org/10.1021/jp003254f
+  2. Izsak, R.; Neese, F.
+     An overlap fitted chain of spheres exchange method
+     J. Chem. Phys. 2011 135 , 144105
+     doi.org/10.1063/1.3646921
+  3. Izsak, R.; Hansen, A.; Neese, F.
+     The resolution of identity and chain of spheres approximations for the LPNO-CCSD singles Fock term
+     Molec. Phys. 2012 110 , 2413-2417
+     doi.org/10.1080/00268976.2012.687466
+  4. Neese, F.
+     The ORCA program system
+     WIRES Comput. Molec. Sci. 2012 2(1), 73-78
+     doi.org/10.1002/wcms.81
+  5. Izsak, R.; Neese, F.; Klopper, W.
+     Robust fitting techniques in the chain of spheres approximation to the Fock exchange: The role of the complementary space
+     J. Chem. Phys. 2013 139 , 
+     doi.org/10.1063/1.4819264
+  6. Neese, F.
+     Software update: the ORCA program system, version 4.0
+     WIRES Comput. Molec. Sci. 2018 8(1), 1-6
+     doi.org/10.1002/wcms.1327
+  7. Neese, F.; Wennmohs, F.; Becker, U.; Riplinger, C.
+     The ORCA quantum chemistry program package
+     J. Chem. Phys. 2020 152(22), 224108
+     doi.org/10.1063/5.0004608
+  8. Neese, F.
+     Software update: The ORCA program system—Version 5.0
+     WIRES Comput. Molec. Sci. 2022 12(1), e1606
+     doi.org/10.1002/wcms.1606
+
+List of optional additional citations
+
+  1. Neese, F.
+     Approximate second-order SCF convergence for spin unrestricted wavefunctions
+     Chem. Phys. Lett. 2000 325(1-3), 93-98
+     doi.org/10.1016/s0009-2614(00)00662-x
+
+Timings for individual modules:
+
+Sum of individual times          ...       19.200 sec (=   0.320 min)
+Startup calculation              ...        1.716 sec (=   0.029 min)   8.9 %
+SCF iterations                   ...        8.046 sec (=   0.134 min)  41.9 %
+Property integrals               ...        3.598 sec (=   0.060 min)  18.7 %
+SCF Response                     ...        3.466 sec (=   0.058 min)  18.1 %
+Property calculations            ...        2.374 sec (=   0.040 min)  12.4 %
+                             ****ORCA TERMINATED NORMALLY****
+TOTAL RUN TIME: 0 days 0 hours 0 minutes 20 seconds 300 msec
