@@ -225,7 +225,8 @@ for iStructure = 1:nStructures
     Araw = cell(1,nAtoms);
     efg = cell(1,nAtoms);
     while k<=krange(end)
-      if regexp(L{k},'^\s*Nucleus\s*')
+      if regexp(L{k},'ORCA EULER ANGLE PROGRAM'); break; end
+      if regexp(L{k},'^\s*Nucleus\s+\d')
         iAtom = sscanf(L{k}(9:end),'%d',1)+1;
         [~,qrefEl] = referenceisotope(Element{iAtom});
       elseif regexp(L{k},'^\s*(Raw HFC matrix|Total HFC matrix)')
