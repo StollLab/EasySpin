@@ -207,17 +207,28 @@ if isfield(Exp,'Mode')
   error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
 end
 
-% Check microwave frequency and static field
+% Determine field vs. frequency sweep
 if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
   if ~isfield(Exp,'Field')
-    error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
+    error('Provide either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
   end
   FieldSweep = false;
 else
   if isfield(Exp,'Field') && ~isempty(Exp.Field)
-    error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
+    error('Provide either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
   end
   FieldSweep = true;
+end
+
+% Error if incorrect Range/CenterSweep fields are given in Exp
+if FieldSweep
+  if isfield(Exp,'mwRange') || isfield(Exp,'mwCenterSweep')
+    error('Exp.mwRange and Exp.mwCenterSweep cannot be used in a field sweep (Exp.mwFreq is given).');
+  end
+else
+  if isfield(Exp,'Range') || isfield(Exp,'CenterSweep')
+    error('Exp.Range and Exp.CenterSweep cannot be used in a frequency sweep (Exp.Field is given).');
+  end
 end
 
 if ~FieldSweep
