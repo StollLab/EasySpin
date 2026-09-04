@@ -222,12 +222,18 @@ end
 
 % Error if incorrect Range/CenterSweep fields are given in Exp
 if FieldSweep
-  if isfield(Exp,'mwRange') || isfield(Exp,'mwCenterSweep')
-    error('Exp.mwRange and Exp.mwCenterSweep cannot be used in a field sweep (Exp.mwFreq is given).');
+  if isfield(Exp,'mwRange') && ~isnan(Exp.mwRange)
+    error('Exp.mwRange cannot be used in a field sweep (Exp.mwFreq is given).');
+  end
+  if isfield(Exp,'mwCenterSweep') && ~isnan(Exp.mwCenterSweep)
+    error('Exp.mwCenterSweep cannot be used in a field sweep (Exp.mwFreq is given).');
   end
 else
-  if isfield(Exp,'Range') || isfield(Exp,'CenterSweep')
-    error('Exp.Range and Exp.CenterSweep cannot be used in a frequency sweep (Exp.Field is given).');
+  if isfield(Exp,'Range') && ~isnan(Exp.Range)
+    error('Exp.Range cannot be used in a frequency sweep (Exp.Field is given).');
+  end
+  if isfield(Exp,'CenterSweep') && ~isnan(Exp.CenterSweep)
+    error('Exp.CenterSweep cannot be used in a frequency sweep (Exp.Field is given).');
   end
 end
 
@@ -250,7 +256,7 @@ end
 % Automatic field range determination
 if FieldSweep
   if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
-    if numel(Sys.S)==1 && (Sys.S==1/2) && ~any(Sys.L(:))
+    if isscalar(Sys.S) && (Sys.S==1/2) && ~any(Sys.L(:))
       logmsg(1,'  automatic determination of sweep range');
       I = nucspin(Sys.Nucs).';
       if ~isempty(I)
