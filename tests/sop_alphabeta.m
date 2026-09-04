@@ -11,4 +11,3 @@ myOp{2} = [0 0; 0 1];
 for k = 1:numel(Op)
   ok(k) = areequal(Op{k},myOp{k},1e-10,'abs');
 end
-

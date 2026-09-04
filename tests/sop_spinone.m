@@ -1,10 +1,12 @@
 function ok = test()
 
-% Check all matrices for S=1
+% Check matrices of all basic spin operators for S=1
+
+S = 1;
 
 ops = 'exyz+-';
 for k = 1:numel(ops)
-  Op{k} = sop(1,ops(k));
+  Op{k} = sop(S,ops(k));
 end
 
 myOp{1} = [1  0 0; 0 1  0; 0 0  1];               % identity

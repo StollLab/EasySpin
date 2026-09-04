@@ -2,9 +2,11 @@ function ok = test()
 
 % Check matrices of all basic spin operators for S=3/2
 
+S = 3/2;
+
 ops = 'exyz+-';
 for k = 1:numel(ops)
-  Op{k} = sop(3/2,ops(k));
+  Op{k} = sop(S,ops(k));
 end
 
 a = sqrt(3/4);
