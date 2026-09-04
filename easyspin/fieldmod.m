@@ -38,52 +38,53 @@ function varargout = fieldmod(B,spc,ModAmp,Harmonic)
 
 if nargin==0, help(mfilename); return; end
 
-plotResult = nargout==0;
-
+% Check input and output arguments
 if nargin<3 || nargin>4, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
 if nargout>1, error('Too many output arguments.'); end
 
-% Supplement arguments and check range.
+plotResult = nargout==0;
+
+% Supplement arguments and check range
 if nargin<4, Harmonic = 1; end
 if numel(Harmonic)~=1 || Harmonic<0 || ~isreal(Harmonic) || mod(Harmonic,1)
   error('Harmonic must be a positive integer (1, 2, 3, etc)!');
 end
 
-% Check ModAmpl
+% Check ModAmp
 if ModAmp<=0
   error('Modulation amplitude (3rd argument) must be positive.');
 end
 
-% Get length of vectors.
+% Get length of vectors
 n = length(B);
 if length(spc)~=n, error('x and y must have the same length!'); end
 
-sizespc = size(spc);
-if all(sizespc~=1)
+if ~isvector(spc)
   error('spc (2nd input) must be a row or column vector.');
 end
 
-isRowVector = (sizespc(1)==1);
+isRowVector = isrow(spc);
 spc = spc(:);
 
-% Compute relative base-to-peak amplitude.
+% Compute base-to-peak amplitude relative to field increment
 dx = B(2) - B(1);
-Ampl = ModAmp/2/dx;
+bpAmp = ModAmp/2/dx;
 
-% FFT-based convolution
+% Convolution with Bessel function via FFT
 %-------------------------------------------------------------------------------
-% Compute FFT of input signal, zero negative part.
+% Compute FFT of input signal, zero negative part
 NN = 2*n+1; % to avoid fold-around during convolution
-ffty = fft(spc,NN);
-ffty(ceil(NN/2)+1:end) = 0;
+spc_fft = fft(spc,NN);
+spc_fft(ceil(NN/2)+1:end) = 0;
 
-% Convolution with IFT of Bessel function.
+% Multiply with Bessel function and inverse FT
 S = (0:NN-1).'/NN;
-yMod = ifft(ffty.*besselj(Harmonic,2*pi*Ampl*S));
-yMod = yMod(1:n); % pick out the correct subarray
+spc_fft = spc_fft.*besselj(Harmonic,2*pi*bpAmp*S);
+yMod = ifft(spc_fft);
+yMod = yMod(1:n);  % pick out the positive subarray
 
-% Adjust phase.
+% Adjust phase
 yMod = (1i)^Harmonic * yMod;
 
 if isRowVector
