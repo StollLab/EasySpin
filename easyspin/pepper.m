@@ -222,17 +222,17 @@ end
 
 % Error if incorrect Range/CenterSweep fields are given in Exp
 if FieldSweep
-  if isfield(Exp,'mwRange') && ~isnan(Exp.mwRange)
+  if isfield(Exp,'mwRange') && ~any(isnan(Exp.mwRange))
     error('Exp.mwRange cannot be used in a field sweep (Exp.mwFreq is given).');
   end
-  if isfield(Exp,'mwCenterSweep') && ~isnan(Exp.mwCenterSweep)
+  if isfield(Exp,'mwCenterSweep') && ~any(isnan(Exp.mwCenterSweep))
     error('Exp.mwCenterSweep cannot be used in a field sweep (Exp.mwFreq is given).');
   end
 else
-  if isfield(Exp,'Range') && ~isnan(Exp.Range)
+  if isfield(Exp,'Range') && ~any(isnan(Exp.Range))
     error('Exp.Range cannot be used in a frequency sweep (Exp.Field is given).');
   end
-  if isfield(Exp,'CenterSweep') && ~isnan(Exp.CenterSweep)
+  if isfield(Exp,'CenterSweep') && ~any(isnan(Exp.CenterSweep))
     error('Exp.CenterSweep cannot be used in a frequency sweep (Exp.Field is given).');
   end
 end
