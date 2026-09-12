@@ -35,7 +35,8 @@ nParams = numel(lb);
 
 Fmin = Inf;
 bestx = zeros(nParams,1);
-startTime = cputime;
+startTime = tic;
+elapsedTime = 0;
   
 stopCode = 0;
 for iTrial = 1:FitOpt.nTrials
@@ -65,7 +66,7 @@ for iTrial = 1:FitOpt.nTrials
   end
   if UserStop, stopCode = 2; end
   
-  elapsedTime = (cputime-startTime)/60;
+  elapsedTime = toc(startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; end
   if F<FitOpt.TolFun, stopCode = 3; end
   

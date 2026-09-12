@@ -51,7 +51,8 @@ FitOpt = adddefaults(FitOpt,DefOpt);
 
 delta = FitOpt.delta;
 
-startTime = cputime;
+startTime = tic;
+elapsedTime = 0;
 
 % Check parameters and function call
 F = NaN;
@@ -217,7 +218,7 @@ while ~stopCode
   A = Je'*Je;
   
   if isinf(norm_g) || isinf(norm(A(:),Inf)), stopCode = -5; break; end
-  elapsedTime = (cputime-startTime)/60;
+  elapsedTime = toc(startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 3; break; end
 
 end
@@ -263,6 +264,7 @@ info.lambda = FitOpt.lambda;
 info.nIterations = iIteration-1;
 info.stop = stopCode;
 info.nEvals = nEvals;
+info.elapsedTime = elapsedTime;
 
 end
 %======================================================================

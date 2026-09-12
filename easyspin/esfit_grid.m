@@ -85,7 +85,8 @@ end
 %--------------------------------------------------------------------------
 minF = Inf;
 bestx = NaN(nParams,1);
-startTime = cputime;
+startTime = tic;
+elapsedTime = 0;
 stopCode = 0;
 nEvals = 0;
 iIteration = 0;
@@ -118,7 +119,7 @@ for idx = 1:nGridPoints
     UserStop = false;
   end
   
-  elapsedTime = (cputime-startTime)/60;
+  elapsedTime = toc(startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; end
   if UserStop, stopCode = 2; end
   if minF<FitOpt.TolFun, stopCode = 3; end
@@ -138,5 +139,6 @@ if FitOpt.Verbosity>0
 end
 
 info.stop = stopCode;
+info.elapsedTime = elapsedTime;
 
 end

@@ -41,6 +41,9 @@
 %                 (cell array for data input consisting of multiple datasets)
 %        .weight  array of weights to use when combining residual vectors
 %                 of all datasets for global fitting
+%        .RandomSeed number to use as a seed for the random number generator
+%                 (default = [])
+%
 % Output:
 %     fit           structure with fitting results
 %       .pfit       fitted parameter vector (contains only active fitting parameters)
@@ -130,6 +133,12 @@ else
   if ~isstruct(Opt)
     error('Opt (last input argument) must be a structure.');
   end
+end
+
+if isfield(Opt,'RandomSeed') && ~isempty(Opt.RandomSeed)
+  initialState = rng;
+  cleanup = onCleanup(@() rng(initialState));
+  rng(Opt.RandomSeed);
 end
 
 % Set up global structure for data sharing among local functions
