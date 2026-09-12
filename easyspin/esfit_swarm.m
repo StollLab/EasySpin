@@ -69,7 +69,8 @@ gX = bestX(:,1);
 bestF = Inf(1,nParticles);
 F = Inf(1,nParticles);
 globalbestF = Inf;
-startTime = cputime;
+startTime = tic;
+elapsedTime = 0;
 nStalledIterations = 0; % counts the number of iterations globalbestF hasn't changed
 
 if FitOpt.Verbosity
@@ -115,7 +116,7 @@ while stopCode==0
     FitOpt.IterationPrintFunction(str);
   end
   
-  elapsedTime = (cputime-startTime)/60;
+  elapsedTime = toc(startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; end
   if globalbestF<FitOpt.TolFun, stopCode = 3; end
   if nStalledIterations==FitOpt.TolStallIter, stopCode = 4; end

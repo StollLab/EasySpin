@@ -328,7 +328,14 @@ Opt.x = linspace(350,370,1000);
 <div class="optionfield"><code>FitOpt.maxTime</code></div>
 <div class="optiondescr">
 <p>
-Time, in minutes, after which <code>esfit</code> will terminate even if the fitting has not yet converged.
+Time, in minutes, after which <code>esfit</code> will terminate even if the fitting has not yet converged. Note that the elapsed time is evaluated once per fitting iteration (or generation in case of the genetic algorithm), therefore the overall time may exceed <code>maxTime</code> for simulations and fitting algorithms requiring significant time per iteration.
+</p>
+</div>
+
+<div class="optionfield"><code>FitOpt.RandomSeed</code></div>
+<div class="optiondescr">
+<p>
+Optional seed for the random-number generator used by the fitting algorithms. Useful for reproducibility and for ensuring independent random sequences when running fits in parallel on a cluster. If specified, the random-number generator is set for the duration of the fit and restored afterwards. If omitted, the random-number generator is not altered (default). 
 </p>
 </div>
 

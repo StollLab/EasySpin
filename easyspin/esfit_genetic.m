@@ -46,7 +46,8 @@ if FitOpt.Verbosity
 end
 
 nEvals = 0;  % number of function evaluations
-startTime = cputime;
+startTime = tic;
+elapsedTime = 0;
 
 % Generate initial population
 Population = lb+ (ub-lb).*rand(FitOpt.PopulationSize,nParams);
@@ -97,7 +98,7 @@ while true
   end
   
   if gen>=FitOpt.maxGenerations, stopCode = 0; break; end
-  elapsedTime = (cputime-startTime)/60;
+  elapsedTime = toc(startTime)/60;
   if elapsedTime>FitOpt.maxTime, stopCode = 1; break; end
   if bestScore<FitOpt.TolFun, stopCode = 2; break; end
   
@@ -182,6 +183,7 @@ while true
   info.bestx = bestx;
   info.minF = bestScore;
   info.nEvals = nEvals;
+  info.elapsedTime = elapsedTime;
   info.iter = gen;
   info.newbest = newbest;
   if ~isempty(FitOpt.IterFcn)

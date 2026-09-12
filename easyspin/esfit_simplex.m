@@ -102,7 +102,8 @@ constrain = @(x)max(min(x,ub),lb); unconstrain = @(x)x;
 iIteration = 0;
 nEvals = 0;
 stopCode = 0;
-startTime = cputime;
+startTime = tic;
+elapsedTime = 0;
 
 % Set up a initial simplex near the initial guess.
 nVertices = nParams+1;
@@ -146,7 +147,7 @@ while true
 
   % Check whether to stop the iteration loop
   %-----------------------------------------------------------
-  elapsedTime = (cputime-startTime)/60;
+  elapsedTime = toc(startTime)/60;
   if elapsedTime>FitOpt.maxTime
     stopCode = 1;
     break
