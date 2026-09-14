@@ -585,6 +585,7 @@ All other capabilities of <code>pepper</code> apply equally to frequency sweep a
 
 <p>
 EasySpin is not able to handle systems with degenerate energy levels in an exact fashion when using matrix diagonalization. To make it possible to simulate EPR spectra of such systems, EasySpin automatically adds small random perturbations to non-zero Hamiltonian matrix elements. The level of this added noise can be adjusted in <code>Opt.FuzzLevel</code>. The default value is 1e-10 and should be adequate for most cases.
+The default is instead set to 0 if non-equilibrium spin sublevel populations have been provided, but can be set to any user-defined value if required.
 </p>
 
 <p>
