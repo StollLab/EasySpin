@@ -153,6 +153,9 @@ end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 
+% Determine if non-equilibrium populations need to be computed
+computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
+
 % Photoselection
 if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
 if ~isfield(Exp,'lightScatter'), Exp.lightScatter = 0; end
@@ -215,11 +218,14 @@ DefaultOptions.Transitions = [];  % list of transitions to include
 DefaultOptions.Threshold = 1e-4;  % cutoff threshold for transition pre-selection
 DefaultOptions.Hybrid = 0;
 DefaultOptions.HybridCoreNuclei = [];
+DefaultOptions.FuzzLevel = 1e-10;
+if computeNonEquiPops
+  DefaultOptions.FuzzLevel = 0;
+end
 
 % undocumented fields
 DefaultOptions.TPSGridSize = 4;      % grid size for transition pre-selection
 DefaultOptions.TPSGridSymm = 'D2h';  % grid symmetry for transition pre-selection
-DefaultOptions.FuzzLevel = 1e-10;
 DefaultOptions.Freq2Field = true;
 DefaultOptions.maxSegments = 2000;
 DefaultOptions.ModellingAccuracy = 2e-6;
@@ -409,7 +415,6 @@ nFull = hsdim(Sys);
 nSHFNucStates = nFull/nCore;
 
 % Temperature, non-equilibrium populations
-computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
 if computeNonEquiPops
 
   initState = Sys.initState{1};
@@ -458,7 +463,7 @@ end
 % possible degeneracies. Apply if there are more than one electrons or nuclei.
 % This is a very crude workaround to prevent numerical issues due to degeneracies.
 % It probably adds noise in a lot of situations where it is not necessary.
-if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1) && ~computeNonEquiPops
+if Opt.FuzzLevel>0 && ~higherOrder && (CoreSys.nNuclei>1 || CoreSys.nElectrons>1)
   noise = 1 + Opt.FuzzLevel*(2*rand(size(kH0))-1);
   noise = (noise+noise.')/2; % make sure it's Hermitian
   kH0 = kH0.*noise;

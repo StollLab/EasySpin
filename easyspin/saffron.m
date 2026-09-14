@@ -132,7 +132,7 @@ end
 if any(Sys.L(:))
   error('saffron does not support Sys.L.');
 end
-if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain)
+if any(Sys.gStrain(:)) || any(Sys.AStrain(:)) || any(Sys.DStrain(:))
   error('saffron does not support Sys.gStrain, Sys.AStrain, or Sys.DStrain.');
 end
 
