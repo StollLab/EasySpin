@@ -3,211 +3,268 @@ use warnings;
 
 # other dependencies
 use Fcntl ':flock';  # for locking on system level
-use Net::SSH::Perl;  # to use SSH protocol
+use FindBin;         # to locate config.pl next to this script, regardless of cwd
+use IO::Handle;      # for $lockFile->autoflush, so lock-file diagnostics are visible immediately
 
-my $Build;
-if ($ARGV[0]){
-    $Build = $ARGV[0];
+my $build;
+if ($ARGV[0]) {
+    $build = $ARGV[0];
 }
 else {
-    die("publish.pl must be called with an argument that specifies the version to upload. \n");
+    die("publish.pl must be called with an argument that specifies the version to upload (e.g. v6.0.14). \n");
+}
+
+# Reject anything that isn't a plausible build/tag identifier before it is used
+# to build local shell commands and the remote SSH command string.
+if ($build !~ /^[A-Za-z0-9_.-]+$/) {
+    die("Invalid build identifier '$build': only letters, digits, dots, dashes and underscores are allowed.\n");
 }
 
 print "Publishing\n";
 print "------------------------------------------------------\n";
-print "Build: $Build.\n";
+print "Build: $build.\n";
 
-# variables imported from config.pl
+# Variables imported from config.pl
 our ($SourceDir, $BuildsDir, $UploadDir, $ServerDir, $StableMajorVersion, $DefaultMajorVersion, $KeyForStableVersion, $KeyForDefaultVersion, $KeyForDeveloperVersion, $KeyForExperimentalVersion, $ChannelForDocumentation, $username, $hostname, @HTMLfiles, $KeyWebserver);
 
 print "Loading config file...\n";
-require './config.pl'; # load configuration file
+require "$FindBin::Bin/config.pl";  # load configuration file (always next to this script)
 
-# settings ------------------------------------------------------------------
-# options for file locking - to ensure only one instance is running:
-my $NumberOfAttempts = 3; # number of Attempts to obtain a lock
-my $WaitTime = 90; # time to wait between Attempts in seconds
-
-my $WebServerLogin = $username."@".$hostname;
-
-# Creating a lock file 
-# ---------------------------------------------------------------------------------
-print "Creating lock file...\n";
-my $LockFilename = "upload.lock";
-open (my $LockFile,'>'.$SourceDir.'/'.$LockFilename) or die $!;
-
-my $Attempts = 0;
-my $LockObtained = 0;
-
-while ($Attempts < $NumberOfAttempts) {
-    $LockObtained = flock $LockFile, LOCK_EX|LOCK_NB;
-    if ($LockObtained) {
-        last;
-    }
-    ++$Attempts;
-    print("  Another instance of publish.pl appears to be running, trying again in $WaitTime seconds.\n");
-    sleep($WaitTime);
+# Config paths may use a leading "~" for the home directory. system() is now
+# called in list form (no shell involved, see below), so nothing expands "~"
+# automatically; expand it here with glob(), which resolves "~" without
+# shelling out. Falls back to the original string if glob() finds nothing.
+if (defined $KeyWebserver) {
+    my ($expandedKey) = glob($KeyWebserver);
+    $KeyWebserver = $expandedKey if defined $expandedKey;
 }
 
-if ($LockObtained) {
+# Creating a lock file to prevent another instance of this script from running
+# ---------------------------------------------------------------------------------
+print "Creating lock file...\n";
+my $numberOfAttempts = 3;  # number of attempts to obtain a lock
+my $waitTime = 90;  # time to wait between attempts in seconds
+my $lockFilename = "upload.lock";
+my $lockPath = $SourceDir.'/'.$lockFilename;
+open (my $lockFile,'>'.$lockPath) or die "Cannot open lock file '$lockPath': $!\n";
+$lockFile->autoflush(1);
+
+my $lockObtained = 0;
+for my $attempt (1..$numberOfAttempts) {
+    $lockObtained = flock $lockFile, LOCK_EX|LOCK_NB;
+    last if $lockObtained;
+    print("  Another instance of publish.pl appears to be running, trying again in $waitTime seconds.\n");
+    sleep($waitTime) if $attempt < $numberOfAttempts;
+}
+
+if ($lockObtained) {
+    # Record who holds the lock and since when, for diagnostics if a future run has to wait on it.
+    print $lockFile "Lock file created by pid $$ at ".scalar(localtime)."\n";
     print "  Lock file created. \n";
 }
 else {
-    print "  Cannot obtain lock, exiting. \n";
-    exit;
+    print STDERR "  Cannot obtain lock after $numberOfAttempts attempts (another instance appears to be running), exiting.\n";
+    close $lockFile;
+    exit 1;
 }
 
-# Add key to easyspin.org to keychain
+# Share one SSH connection across every ssh/scp call below instead of opening
+# a new TCP+SSH handshake each time. Without this, the webserver's sshd can
+# refuse or drop connections ("kex_exchange_identification: Connection closed
+# by remote host") when too many separate connections arrive in the short
+# burst this script produces (one scp per HTML file, plus the final upload
+# and doc-extraction ssh call).
 # ---------------------------------------------------------------------------------
-print "Adding SSH key to keychain...\n";
-system("ssh-add $KeyWebserver"); # private key to log into easyspin.org
+my $webServerLogin = $username."@".$hostname;
+my $sshControlPath = "/tmp/.easyspin-publish-ssh-$$";
+my @sshMuxOpts = ('-o', 'ControlMaster=auto', '-o', "ControlPath=$sshControlPath", '-o', 'ControlPersist=10m');
 
-
-# Set up environment
 # ---------------------------------------------------------------------------------
-if (-e "$UploadDir") {
-    system("rm -r $UploadDir");
-}
-
-system("mkdir $UploadDir");
-
-# Determine the release channel
+# Main publishing sequence, wrapped in eval so that any failure (die) still
+# falls through to the cleanup below instead of leaving the lock file and the
+# upload directory behind.
 # ---------------------------------------------------------------------------------
-print "Determining release channel from build ID.\n";
-my $ReleaseChannel;
-my $MatchPattern = '(\d+).(\d+).(\d+)-?([a-z]+)?[-.]?(\d+)?';
+my $success = eval {
 
-my @BuildID = ($Build =~ m/$MatchPattern/);
+    # Add key to webserver to keychain
+    # ---------------------------------------------------------------------------------
+    print "Adding SSH key to keychain...\n";
+    my $sshadd_status = system('ssh-add', $KeyWebserver);  # private key to log into webserver
+    die "Adding SSH key failed: exit code  $?\n" if $sshadd_status!=0;
 
-if ($BuildID[0]) {
-    if ($BuildID[3]) {
-        $ReleaseChannel = $KeyForDeveloperVersion;
+    # Set up environment
+    # ---------------------------------------------------------------------------------
+    if (-e $UploadDir) {
+        my $rm_status = system('rm', '-r', $UploadDir);
+        die "Could not remove upload directory: exit code  $?\n" if $rm_status!=0;
     }
-    elsif ($BuildID[0] eq $StableMajorVersion) {
-        $ReleaseChannel = $KeyForStableVersion;
-    }
-    elsif ($BuildID[0] eq $DefaultMajorVersion) {
-        $ReleaseChannel = $KeyForDefaultVersion;
-    }
-}
-else {
-    # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
-    $ReleaseChannel = $KeyForExperimentalVersion;
-}
-print "  Release channel: $ReleaseChannel.\n";
 
-my $ZipBuild;
+    my $mkdir_status = system('mkdir', $UploadDir);
+    die "Could not create upload directory: exit code  $?\n" if $mkdir_status!=0;
 
-if ($BuildID[0]) {
-    my $vMatchPattern = 'v(.*)';
-    my @ShortTag = ($Build =~ m/$vMatchPattern/);
-    if (@ShortTag[0]) {
-        $ZipBuild = $Build;
-        $Build = @ShortTag[0];
+    # Determine the release channel
+    # ---------------------------------------------------------------------------------
+    print "Determining release channel from build ID.\n";
+    my $releaseChannel;
+    # Anchored and dot-escaped so a version-looking substring embedded in an
+    # unrelated tag (e.g. "nightly-2024.01.15") isn't mistaken for a semantic
+    # version; an optional leading "v" is allowed since git tags commonly use it.
+    my $matchPattern = '^v?(\d+)\.(\d+)\.(\d+)-?([a-z]+)?[-.]?(\d+)?$';
+
+    my @buildID = ($build =~ m/$matchPattern/);
+
+    if ($buildID[0]) {
+        if ($buildID[3]) {
+            $releaseChannel = $KeyForDeveloperVersion;
+        }
+        elsif ($buildID[0] eq $StableMajorVersion) {
+            $releaseChannel = $KeyForStableVersion;
+        }
+        elsif ($buildID[0] eq $DefaultMajorVersion) {
+            $releaseChannel = $KeyForDefaultVersion;
+        }
     }
     else {
-        $ZipBuild = $Build;
+        # if tag does not follow semantic versioning, e.g. easyspin-evolve.zip
+        $releaseChannel = $KeyForExperimentalVersion;
     }
-}
-else {
-    $ZipBuild = $Build;
-}
+    print "  Release channel: $releaseChannel.\n";
 
-# Look for zip file with the provided tag
-# ---------------------------------------------------------------------------------
-my $zipFileName = 'easyspin-'.$ZipBuild.'.zip';
-my $NewzipFileName = 'easyspin-'.$Build.'.zip';
+    # Git tags conventionally include a leading "v" (e.g. "v6.0.14"), but the
+    # build artifact on disk, the HTML version strings, and the remote
+    # directory names all use the bare version number, so strip it here.
+    if ($buildID[0]) {
+        $build =~ s/^v//;
+    }
 
-if (-e "$BuildsDir$zipFileName") {
+    # Look for zip file with the provided tag
+    # ---------------------------------------------------------------------------------
+    my $zipFileName = 'easyspin-'.$build.'.zip';
+
     print("Copying $zipFileName to upload directory. \n");
-    system('cp '.$BuildsDir.$zipFileName.' '.$UploadDir.$NewzipFileName);
-}
-else {
-    die("$zipFileName does not exist in $BuildsDir \n");
-}
+    die("$zipFileName does not exist in $BuildsDir \n") unless (-e "$BuildsDir$zipFileName");
+    my $cp_status = system('cp', $BuildsDir.$zipFileName, $UploadDir.$zipFileName);
+    die "cp command failed: exit code  $?\n" if $cp_status!=0;
 
-# Regexp to find versions and links to zip files in the html files
-# ---------------------------------------------------------------------------------
-my $findLinkTozipFile = '<!--'.$ReleaseChannel.'zip-->';
-my $matchzipFile = "easyspin-(.*?).zip";
-my $replacezipFile = "easyspin-$Build.zip";my $replaceLinkTozipFile = '<!--'.$ReleaseChannel.'--><a href="easyspin-'.$Build.'.zip"><!--zip-->';
+    # Regexp to find versions and links to zip files in the html files
+    # ---------------------------------------------------------------------------------
+    # Escaped once for use inside the regex patterns below (the replacement-side
+    # strings don't need this, since s/// treats the replacement as a plain
+    # string, not a pattern).
+    my $quotedChannel = quotemeta($releaseChannel);
 
-my $matchOldVersion = '<!--'.$ReleaseChannel.'-->(.*?)<!--version-->';
-my $replaceOldVersion = '<!--'.$ReleaseChannel.'-->'.$Build.'<!--version-->';
+    my $findLinkTozipFile = '<!--'.$quotedChannel.'zip-->';
+    my $matchzipFile = "easyspin-(.*?).zip";
+    my $replacezipFile = "easyspin-$build.zip";
+    my $replaceLinkTozipFile = '<!--'.$releaseChannel.'--><a href="easyspin-'.$build.'.zip"><!--zip-->';
 
-my $matchInVersionsFile = "$ReleaseChannel:.*";
-my $replaceInVersionsFile = "$ReleaseChannel:$Build";
+    my $matchOldVersion = '<!--'.$quotedChannel.'-->(.*?)<!--version-->';
+    my $replaceOldVersion = '<!--'.$releaseChannel.'-->'.$build.'<!--version-->';
 
-# Get html files from easyspin.org and update them with the new version tags and zipfile names
-# ---------------------------------------------------------------------------------
-print "Downloading and updating HTML files...\n";
-foreach (@HTMLfiles) {
-    my $CurrentFile = $_;
-    print("Getting $CurrentFile...\n");
+    my $matchInVersionsFile = "$quotedChannel:.*";
+    my $replaceInVersionsFile = "$releaseChannel:$build";
 
-    # download the current html file from easyspin.org
-    system('scp '.$WebServerLogin.':'.$ServerDir.$CurrentFile.' '.$UploadDir.$CurrentFile.'.bak');
-    
-    # scan through the html file and replace strings
-    print("Updating $CurrentFile...\n");
-    open(my $InputHTML,'<'.$UploadDir.$CurrentFile.'.bak') or die("Cannot open $CurrentFile.bak!");
-    open(my $OutputHTML,'>'.$UploadDir.$CurrentFile) or die("Cannot open $CurrentFile!");
-    while (<$InputHTML>) {
+    # Get html files from webserver and update them with the new version tags and zipfile names
+    # ---------------------------------------------------------------------------------
+    print "Downloading and updating HTML files...\n";
+    foreach (@HTMLfiles) {
+        my $currentFile = $_;
+        print("Getting $currentFile...\n");
 
-        if ($_ =~ m/$findLinkTozipFile/) {
-            $_ =~ s/$matchzipFile/$replacezipFile/g;
+        # Download the current html file
+        my $scp_dl_status = system('scp', @sshMuxOpts, $webServerLogin.':'.$ServerDir.$currentFile, $UploadDir.$currentFile.'.bak');
+        die "scp command failed for $currentFile: exit code  $?\n" if $scp_dl_status!=0;
+
+        # Scan through the html file and replace strings
+        print("Updating $currentFile...\n");
+        open(my $inputHTML,'<'.$UploadDir.$currentFile.'.bak') or die("Cannot open $currentFile.bak!");
+        open(my $outputHTML,'>'.$UploadDir.$currentFile) or die("Cannot open $currentFile!");
+        while (<$inputHTML>) {
+
+            if ($_ =~ m/$findLinkTozipFile/) {
+                $_ =~ s/$matchzipFile/$replacezipFile/g;
+            }
+            $_ =~ s/$matchOldVersion/$replaceOldVersion/g;
+            $_ =~ s/$matchInVersionsFile/$replaceInVersionsFile/g;
+            print $outputHTML $_;
         }
-        $_ =~ s/$matchOldVersion/$replaceOldVersion/g;
-        $_ =~ s/$matchInVersionsFile/$replaceInVersionsFile/g;
-        print $OutputHTML $_;    
+
+        close($inputHTML) or die("Cannot close $inputHTML!");
+        close($outputHTML) or die("Cannot close $outputHTML!");
     }
 
-    close($InputHTML) or die("Cannot close $InputHTML!");
-    close($OutputHTML) or die("Cannot close $OutputHTML!");  
+    print("Deleting backup versions of html files...\n");
+    my @bakFiles = glob($UploadDir.'*.bak');
+    if (@bakFiles) {
+        system('rm', @bakFiles) == 0
+            or warn "Could not remove backup HTML files: exit code $?\n";
+    }
+
+    # Upload entire upload directory to webserver
+    # ---------------------------------------------------------------------------------
+    print("Uploading all new files to webserver via SCP...\n");
+
+    my @uploadFiles = glob($UploadDir.'*');
+    my $scp_status = @uploadFiles ? system('scp', @sshMuxOpts, @uploadFiles, $webServerLogin.':'.$ServerDir) : 0;
+    die "SCP command failed: exit code  $?\n" if $scp_status!=0;
+
+    # Unzip the build on the server and extract documentation
+    # ---------------------------------------------------------------------------------
+    # only happens for the release channel that is specified with $ChannelForDocumentation in the config file
+
+    if ($releaseChannel eq $ChannelForDocumentation) {
+
+        # Compose server-side command
+        my $changeDir = "cd ".$ServerDir;
+        my $rmFolders = "rm -rf ./documentation ./examples";
+        my $unzipDoc = "unzip -qq ".$zipFileName." 'easyspin-".$build."/documentation/*' -d ./tmp/";
+        my $unzipExamples = "unzip -qq ".$zipFileName." 'easyspin-$build/examples/*' -d ./tmp/";
+        my $moveFiles = "cp -r ./tmp/easyspin-".$build."/* ./";
+        my $rmTempDir = "rm -r ./tmp";
+        my $issueCmd = join('; ', $changeDir, $rmFolders, $unzipExamples, $unzipDoc, $moveFiles, $rmTempDir);
+
+        print("Unzipping new stable version and updating documentation and examples...\n");
+
+        # Execute command via SSH
+        my $ssh_status = system('ssh', @sshMuxOpts, '-o','IdentitiesOnly=yes','-i',$KeyWebserver,$webServerLogin,$issueCmd);
+        die "SSH command failed: exit code  $?\n" if $ssh_status!=0;
+    }
+
+    1; # signal success to eval
+};
+my $error = $@;  # immediately capture error
+
+if (!$success) {
+    print STDERR "ERROR: $error";
 }
 
-print("Deleting backup versions of html files...\n");
-system('rm '.$UploadDir.'*.bak');
-
-# Upload entire upload directory to easyspin org and then clean it
+# Remove the upload directory whether or not publishing succeeded
 # ---------------------------------------------------------------------------------
-print("Uploading all new files to easyspin.org via SCP...\n");
-
-system('scp '.$UploadDir.'* '.$WebServerLogin.':'.$ServerDir);
-
-# Remove upload directory
-print("Removing upload directory...\n");
-system("rm -R $UploadDir");
-
-# SSH into the server, unzip the build and extract documentation
-# ---------------------------------------------------------------------------------
-# only happens for the release channel that is specified with $ChannelForDocumentation in the config file
-
-if ($ReleaseChannel eq $ChannelForDocumentation) {
-    print("Logging into easyspin.org via SSH...\n");
-    my $SSHSession = Net::SSH::Perl->new($hostname);
-    $SSHSession -> login("$username");
-
-    my $changeDir = "cd ".$ServerDir." \n";
-    my $rmFolders = "rm -rf ./documentation ./examples \n";
-    my $unzipDoc = qq(unzip -qq $NewzipFileName 'easyspin-$Build/documentation/*' -d ./tmp/ \n);
-    my $unzipExamples = qq(unzip -qq $NewzipFileName 'easyspin-$Build/examples/*' -d ./tmp/ \n);
-    my $moveFiles = qq(cp -r ./tmp/easyspin-$Build/* ./ \n);
-    my $rmTempDir = qq(rm -r ./tmp \n);
-
-    print("Unzipping new stable version and updating documentation and examples...\n");
-    my $IssueCmd = $changeDir.$rmFolders.$unzipExamples.$unzipDoc.$moveFiles.$rmTempDir;
-
-    # send command
-    my ($STDOut,$STDErr,$Exit) = $SSHSession->cmd($IssueCmd);
-
+if (-e $UploadDir) {
+    print "Removing upload directory...\n";
+    system('rm', '-r', $UploadDir) == 0
+        or warn "Could not remove upload directory '$UploadDir': exit code $?\n";
 }
 
-# Clean up lock file and exit
+# Close the shared SSH connection (if one was ever opened), so no background
+# master process or control socket is left behind.
+# ---------------------------------------------------------------------------------
+if (-S $sshControlPath) {
+    system('ssh', '-o', "ControlPath=$sshControlPath", '-O', 'exit', $webServerLogin);
+}
+
+# Remove lock file and exit
 # ---------------------------------------------------------------------------------
 print "Removing lock file...\n";
-close $LockFile;
-system('rm '.$SourceDir.'/'.$LockFilename);
+close $lockFile;
+unlink($lockPath) or warn "Could not remove lock file: $!\n";
 
 # ---------------------------------------------------------------------------------
-print "Finished.\n";
+if ($success) {
+    print "Finished.\n";
+    exit 0;
+}
+else {
+    print "Finished with errors.\n";
+    exit 1;
+}
