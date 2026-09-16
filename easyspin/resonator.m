@@ -97,7 +97,7 @@ if numel(t0)~=numel(signal0)
 end
 
 % Check input arguments and get transfer function
-if numel(varargin{1})==1 && numel(varargin{2})==1
+if isscalar(varargin{1}) && isscalar(varargin{2})
   [f,H] = transferfunction('ideal',varargin{1},varargin{2});
 else
   if numel(varargin{1})~=numel(varargin{2})
@@ -107,6 +107,11 @@ else
 end
 
 option = varargin{3};
+if ~ischar(option)
+  error('The option input must be the string ''simulate'' or ''compensate''.');
+elseif ~any(strcmp(option,{'simulate','compensate'}))
+  error('Unknown option ''%s''. Use ''simulate'' or ''compensate''.',option);
+end
 
 % Default options
 if nargin==7
@@ -303,7 +308,7 @@ switch type
     else
       % Estimate center frequency and loaded Q
       [v1max,maxind] = max(FrequencyResponse_);
-      f0 = f(ind(1)+maxind); % GHz
+      f0 = f(ind(1)-1+maxind); % GHz
 
       v1_3dB = (3/4)*v1max;
       ind_3dB = [find(FrequencyResponse_>v1_3dB,1,'first') find(FrequencyResponse_>v1_3dB,1,'last')];
@@ -338,7 +343,7 @@ switch type
       % Phase response
       betaid = atan(imag(Hid)./real(Hid));
       if exist('FrequencyResponse_i','var')
-        betaexp(ind) = atan(FrequencyResponse_i./FrequencyResponse_r);
+        betaexp(ind) = atan2(FrequencyResponse_i,FrequencyResponse_r);
       else
         % Estimate phase response
         betaexp = -imag(hilberttrans(log(abs(H0))));
