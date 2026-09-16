@@ -377,43 +377,52 @@ defaultLineWidth = 0.5;
 
 % Obtain handle of object under mouse pointer
 hObj = hittest(); % hittest() is an undocumented built-in MATLAB function :-/
-hParent = hObj.Parent;  % this is either the axes or the figure
-
-% Remove any previous thick lines
-if ~isempty(hPrevLine) && isvalid(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
-  set(hPrevLine,'LineWidth',defaultLineWidth);
-  hPrevLine = [];
+if isempty(hObj) || ~isvalid(hObj)
+  return
 end
 
-% Construct information string for level, transition or spectral line,
-% using UserData of object under mouse pointer
-switch hObj.Tag
-  case 'level'
-    infostr = sprintf(' level %d',hObj.UserData);
-    hObj.LineWidth = hoverLineWidth;
-    hPrevLine = hObj;
-  case 'transition'
-    infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
-      hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
-    hObj.LineWidth = hoverLineWidth;
-    hPrevLine = hObj;
-  case 'line'
-    infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
-      hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
-    hObj.LineWidth = hoverLineWidth;
-    hPrevLine = hObj;
-  otherwise
-    % Remove information if not over a relevant object
-    infostr = '';
-end
+% Guard with try/catch so a handle going stale mid-callback doesn't throw error.
+try
+  hParent = hObj.Parent;  % this is either the axes or the figure
 
-% Display information
-hText = findobj(hParent,'Tag','infotext');
-set(hText,'String',infostr);
+  % Remove any previous thick lines
+  if ~isempty(hPrevLine) && isvalid(hPrevLine) && ~strcmp(hPrevLine.Tag,'line')
+    set(hPrevLine,'LineWidth',defaultLineWidth);
+    hPrevLine = [];
+  end
 
-% Update position (for infotext to remain visible after zooming in)
-if ~isempty(hText) && ~isempty(infostr)
-  hText.Position(1:2) = [hParent.XLim(1) hParent.YLim(1)];
+  % Construct information string for level, transition or spectral line,
+  % using UserData of object under mouse pointer
+  switch hObj.Tag
+    case 'level'
+      infostr = sprintf(' level %d',hObj.UserData);
+      hObj.LineWidth = hoverLineWidth;
+      hPrevLine = hObj;
+    case 'transition'
+      infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+        hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+      hObj.LineWidth = hoverLineWidth;
+      hPrevLine = hObj;
+    case 'line'
+      infostr = sprintf(' transition %d-%d: %0.2f mT, relative intensity %0.4f ',...
+        hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
+      hObj.LineWidth = hoverLineWidth;
+      hPrevLine = hObj;
+    otherwise
+      % Remove information if not over a relevant object
+      infostr = '';
+  end
+
+  % Display information
+  hText = findobj(hParent,'Tag','infotext');
+  set(hText,'String',infostr);
+
+  % Update position (for infotext to remain visible after zooming in)
+  if ~isempty(hText) && ~isempty(infostr)
+    hText.Position(1:2) = [hParent.XLim(1) hParent.YLim(1)];
+  end
+catch
+  % Ignore: object(s) under the pointer went away mid-callback.
 end
 
 end
