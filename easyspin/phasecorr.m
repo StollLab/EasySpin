@@ -67,14 +67,9 @@ c = sum(Vr.*Vi,'all');
 phi0 = atan2(c,b-a);
 phimin = phi0/2 + pi/2;
 
-% Determine phase that results in smaller phase shift
-phaseshift = @(a) mod(a+pi,2*pi)-pi;
-if abs(phaseshift(phimin+pi))<abs(phaseshift(phimin))
-  phimin = phimin + pi;
-end
-
-% Wrap phase shift angle to (-pi,pi)
-phimin = mod(phimin+pi,2*pi)-pi;
+% Select the smaller of the two equivalent minima (phimin, phimin+pi)
+% and wrap to (-pi/2,pi/2]
+phimin = mod(phimin+pi/2,pi) - pi/2;
 
 V_phased = V*exp(1i*phimin);
 
