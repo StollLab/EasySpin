@@ -55,17 +55,17 @@ if nargin<2
 end
 
 % Determine phase that minimizes imaginary part (with or without offset)
+Vr = real(V);
+Vi = imag(V);
 if ignoreOffset
-  phimin = fminbnd(@(ph)objfun(V,ph),0,pi);
-else
-  Vr = real(V);
-  Vi = imag(V);
-  a = sum(Vr.^2,'all')/2;
-  b = sum(Vi.^2,'all')/2;
-  c = sum(Vr.*Vi,'all');
-  phi0 = atan2(c,b-a);
-  phimin = phi0/2 + pi/2;
+  Vr = Vr - mean(Vr,'all');
+  Vi = Vi - mean(Vi,'all');
 end
+a = sum(Vr.^2,'all')/2;
+b = sum(Vi.^2,'all')/2;
+c = sum(Vr.*Vi,'all');
+phi0 = atan2(c,b-a);
+phimin = phi0/2 + pi/2;
 
 % Determine phase that results in smaller phase shift
 phaseshift = @(a) mod(a+pi,2*pi)-pi;
@@ -92,14 +92,6 @@ switch nargout
     varargout  = {V_phased,phimin};
 end
 
-end
-
-% Objective function for phasing
-%-----------------------------------------------------------------------------
-function f = objfun(V,phi)
-Vi = imag(V*exp(1i*phi));
-Vic = Vi - mean(Vi,'all');
-f = sum(Vic.^2,'all');
 end
 
 % Plotting
