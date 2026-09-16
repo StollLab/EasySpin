@@ -1,5 +1,4 @@
-% resonator      Simulation of/compensation for the effect of the resonator
-%                on a pulse
+% resonator      Simulation of/compensation for resonator effect on a pulse
 %
 %  [t,signal] = resonator(t0,signal0,mwFreq,nu,TransferFunction,'simulate')
 %  [t,signal] = resonator(t0,signal0,mwFreq,nu0,QL,'simulate')
@@ -34,43 +33,39 @@
 %    J. Magn. Reson. 230, 27-39 (2013). (DOI: 10.1016/j.jmr.2013.01.002)
 %
 %  Input:
-%   - t0                   = time axis for the input signal (in microseconds)
-%   - signal0              = input signal vector
-%   - mwFreq               = microwave frequency for the input signal
-%                            in GHz
-%   - nu/nu0               = frequency axis for the resonator transfer 
-%                            function (in GHz) or resonator center 
-%                            frequency (in GHz)
-%   - TransferFunction/QL  = resonator transfer function or magnitude
-%                            response or loaded Q-value
-%   - 'simulate'/'compensate'
-%   - Options structure with the following fields:
-%        Opt.CutoffFactor     = cutoff factor for truncation of the pulse after
-%                               convolution/deconvolution with the resonator
-%                               transfer function
-%                               (default:1/1000)
-%        Opt.TimeStep         = time step in microseconds (if it is not provided the
-%                               ideal time step is estimated based on the 
-%                               Nyquist condition with an oversampling factor)
-%        Opt.OverSampleFactor = oversampling factor for the determination of the 
-%                               time step (default: 10)
-%        Opt.N                = multiplication factor used in the determination
-%                               of the width of the frequency domain window considered
-%                               for the Fourier convolution/deconvolution, the center
-%                               frequency and bandwidth of the input signal are 
-%                               estimated from the magnitude FT and the width 
-%                               is set to Opt.N times the estimated bandwidth
-%        Opt.Window           = type of apodization window used on the frequency
-%                               domain output (over the width determined by Opt.N)
-%                               (see apowin() for available options) (default: 'gau')
-%        Opt.alpha            = alpha parameter the apodization function defined in
-%                               Opt.Window (see apowin() for details) (default: 0.6)
+%    t0                   time axis for the input signal (in µs)
+%    signal0              input signal vector
+%    mwFreq               microwave frequency for the input signal (in GHz)
+%    nu/nu0               frequency axis for the resonator transfer function or
+%                           resonator center frequency (in GHz)
+%    TransferFunction/QL  resonator transfer function or magnitude
+%                           response or loaded Q-value
+%    'simulate'/'compensate'
+%    Opt                  options structure with the following fields:
+%      CutoffFactor       cutoff factor for truncation of the pulse after
+%                           convolution/deconvolution with the resonator
+%                           transfer function (default:1/1000)
+%      TimeStep           time step in microseconds (if it is not provided the
+%                           ideal time step is estimated based on the 
+%                           Nyquist condition with an oversampling factor)
+%      OverSampleFactor   oversampling factor for the determination of the 
+%                           time step (default: 10)
+%      N                  multiplication factor used in the determination
+%                           of the width of the frequency domain window considered
+%                           for the Fourier convolution/deconvolution, the center
+%                           frequency and bandwidth of the input signal are 
+%                           estimated from the magnitude FT and the width 
+%                           is set to Opt.N times the estimated bandwidth
+%      Window             type of apodization window used on the frequency
+%                           domain output (over the width determined by Opt.N)
+%                           (see apowin() for available options) (default: 'gau')
+%      alpha              alpha parameter the apodization function defined in
+%                           Opt.Window (see apowin() for details) (default: 0.6)
 %
 %  Output:
-%   - t         = time axis for the output signal (in microseconds)
-%   - signal    = signal modified by the resonator transfer function or
-%                 compensated for the resonator transfer function
-%
+%    t       time axis for the output signal (in microseconds)
+%    signal  signal modified by the resonator transfer function or
+%              compensated for the resonator transfer function
 
 function [t,signal] = resonator(t0,signal0,mwFreq,varargin)
 
@@ -136,7 +131,7 @@ end
 if ~isfield(Opt,'Window') || isempty(Opt.Window)
   Opt.Window = 'gau';
 end
-if (~isfield(Opt,'alpha') || isempty(Opt.alpha))
+if ~isfield(Opt,'alpha') || isempty(Opt.alpha)
   Opt.alpha = 0.6;
 end
 
@@ -154,34 +149,38 @@ FT = ifftshift(fft(fftshift(signal_)));
 f_ = fdaxis(dt,numel(FT));
 
 % Extract pulse frequency response
+% For a real baseband signal, FT is symmetric about f=0, so restrict to
+% the positive-frequency half.
+ind0 = 1;
 if isreal(signal0) && mwFreq==0
-  [~,ind0] = min(abs(f_));
-  intg = cumtrapz(abs(FT(ind0:end)));
-  [~,indmax] = min(abs(intg-0.5*max(intg)));
-  indmax = ind0+indmax;
-  indbw = find(abs(FT(indmax:end))>0.01*max(abs(FT)),1,'last');
-else
-  intg = cumtrapz(abs(FT));
-  [~,indmax] = min(abs(intg-0.5*max(intg)));
-  indbw = find(abs(FT(indmax:end))>0.01*max(abs(FT)),1,'last');
+  ind0 = find(f_>=0,1);
 end
-startind = indmax-Opt.N*indbw;
-endind = indmax+Opt.N*indbw;
-delta = max(max(endind-numel(f_),1-startind),0);
+% Find (weighted) median frequency via integral
+absFT = abs(FT);
+intg = cumtrapz(absFT(ind0:end));
+[~,indmedian] = min(abs(intg-0.5*intg(end)));
+indmedian = ind0 + indmedian;
+% Set bandwidth (based on one-sided estimate)
+indbw = find(absFT(indmedian:end)>0.01*max(absFT),1,'last');
+startind = indmedian - Opt.N*indbw;
+endind = indmedian + Opt.N*indbw;
+% Clip symmetrically if range overflows
+overflow = max(endind-numel(f_),1-startind);
+delta = max(overflow,0);
 indpulse = startind+delta:endind-delta;
+% Frequency range that contains most of the frequency content of the pulse
 f_pulse = f_(indpulse);
 FT_pulse = FT(indpulse);
 
 % Interpolation of the transfer function onto the same axis
-H_ = interp1((f-mwFreq*1e3),H,f_pulse,'pchip');
+H_ = interp1(f-mwFreq*1e3,H,f_pulse,'pchip');
 
+% Convolution/deconvolution via frequency domain
 switch option
-  case 'simulate'
-  % Fourier convolution
-  FTc_pulse = FT_pulse.*H_;
-  case 'compensate'
-  % Fourier deconvolution
-  FTc_pulse = FT_pulse./H_;
+  case 'simulate'  % Fourier convolution
+    FTc_pulse = FT_pulse.*H_;
+  case 'compensate'  % Fourier deconvolution
+    FTc_pulse = FT_pulse./H_;
 end
 
 % Windowing
@@ -217,9 +216,9 @@ end
 if estimateTimeStep
   
   % Get maximum frequency
-  [maxvalue,indmax] = max(abs(FTc));
-  indbw = find(abs(FTc(indmax:end))>0.05*maxvalue,1,'last');
-  maxFreq = 2*(f_(indmax+indbw-1)-f_(indmax));
+  [maxvalue,indmedian] = max(abs(FTc));
+  indbw = find(abs(FTc(indmedian:end))>0.05*maxvalue,1,'last');
+  maxFreq = 2*(f_(indmedian+indbw-1)-f_(indmedian));
   
   % Define new time step
   Nyquist_dt = 1/(2*maxFreq);
@@ -319,7 +318,8 @@ switch type
       % Fit f0 and QL for best overlap
       fitfunc = @(x) abs(Hideal(f(ind),x(1),x(2),v1max));
       x0 = [f0 QL];
-      result = esfit(FrequencyResponse_,fitfunc,x0,[0.01 0.01],[1e6 1e6]);
+      fitOpt.Verbosity = 0;
+      result = esfit(FrequencyResponse_,fitfunc,x0,[0.01 0.01],[1e6 1e6],fitOpt);
       x = result.pfit;
       f0 = x(1);
       QL = x(2);
