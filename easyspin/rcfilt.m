@@ -30,6 +30,8 @@ if nargin<4, UpDown = 'up'; end
 
 % Check input arguments
 err = '';
+if ~isnumeric(y), err = 'y must be numeric!'; end
+if isnumeric(y) && any(~isfinite(y(:))), err = 'y must not contain NaN or Inf values!'; end
 if ~isreal(TimeConstant), err = 'Time constant must be real!'; end
 if ~isreal(SampleTime), err = 'Sampling time must be real!'; end
 if numel(TimeConstant)~=1, err = 'Time constant must be a scalar!'; end
@@ -54,9 +56,7 @@ if TimeConstant==0
   yFiltered = y;
 else
   e = exp(-SampleTime/TimeConstant);
-  for iCol = size(y,2):-1:1
-    yFiltered(:,iCol) = filter(1-e,[1 -e],y(:,iCol));
-  end
+  yFiltered = filter(1-e,[1 -e],y);  % applies to columns if y is a matrix
 end
 
 if Invert
