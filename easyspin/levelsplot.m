@@ -131,7 +131,7 @@ end
 if isstruct(B)
   error('Third input argument (B) wrong: can''t be a structure.');
 end
-if isempty(B) || numel(B)==1
+if isempty(B) || isscalar(B)
   error('Input argument that specifies B range needs at least two elements, [Bmin Bmax].')
 end
 switch numel(B)
@@ -348,29 +348,11 @@ text(hLevelsAxes,xl(1),yl(2),oristr,'VerticalAl','top');
 
 % Activate mouseovers (callback function handles multiple axes)
 %-------------------------------------------------------------------------------
+hPrevLine = [];
 set(gcf,'WindowButtonMotionFcn',@windowButtonMotionFcn);
-
-end
-%===============================================================================
-
-
-%-------------------------------------------------------------------------------
-function Eout = unit_convert(E_MHz,toUnit)
-
-switch toUnit
-  case 'GHz', Eout = E_MHz/1e3;
-  case 'cm^-1', Eout = unitconvert(E_MHz,'MHz->cm^-1');
-  case 'eV', Eout = unitconvert(E_MHz,'MHz->eV');
-  otherwise
-    error('Unsupported unit ''%s'' in Opt.Units.',toUnit);
-end
-
-end
 
 %-------------------------------------------------------------------------------
 function windowButtonMotionFcn(~,~,~)
-
-persistent hPrevLine
 
 hoverLineWidth = 2;
 defaultLineWidth = 0.5;
@@ -423,6 +405,23 @@ try
   end
 catch
   % Ignore: object(s) under the pointer went away mid-callback.
+end
+
+end
+
+end
+%===============================================================================
+
+
+%-------------------------------------------------------------------------------
+function Eout = unit_convert(E_MHz,toUnit)
+
+switch toUnit
+  case 'GHz', Eout = E_MHz/1e3;
+  case 'cm^-1', Eout = unitconvert(E_MHz,'MHz->cm^-1');
+  case 'eV', Eout = unitconvert(E_MHz,'MHz->eV');
+  otherwise
+    error('Unsupported unit ''%s'' in Opt.Units.',toUnit);
 end
 
 end
