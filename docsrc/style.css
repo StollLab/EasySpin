@@ -265,6 +265,10 @@ table.brieflist td {
   padding-right: 0.5em;
 }
 
+table.examplelist tr:nth-child(odd) {
+  background-color: #f3f3f3;
+}
+
 html {
   scroll-padding-top: 50px;
 }
