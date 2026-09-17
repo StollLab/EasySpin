@@ -48,7 +48,7 @@ This functions adds noise to a given signal <code>y</code> to give the noisy sig
 </p>
 
 <p>
-The signal amplitude is estimated from the difference of the maximum and the minimum value of the signal <code>y</code>, and the noise amplitude is set such that the ratio of the signal amplitude to the noise standard deviation gives the number requested in <code>SNR</code>.
+The signal amplitude is estimated from the difference of the maximum and the minimum value of the signal <code>y</code>, and the noise amplitude is set such that the ratio of the signal amplitude to the noise standard deviation gives the number requested in <code>SNR</code>. If <code>y</code> is complex-valued, the signal amplitude and the noise are determined separately for the real and imaginary parts, using the larger of the two signal amplitudes to set the noise level for both parts.
 </p>
 
 <p>

@@ -11,7 +11,10 @@
 %   'u': uniform distribution
 %
 %   The SNR is defined as the ratio of signal amplitude to the
-%   standard deviation of the noise amplitude distribution.
+%   standard deviation of the noise amplitude distribution. If y is
+%   complex-valued, the signal amplitude and the noise are determined
+%   separately for the real and imaginary parts, using the larger of
+%   the two signal amplitudes to set the noise level for both parts.
 %
 %   Example:
 %     x = linspace(-1,1,1001);
@@ -50,12 +53,16 @@ end
   
 complexData = ~isreal(y); % check for complex data
 if complexData
-  noise = complex(noisefun(),noisefun());
+  noiseRe = noisefun();
+  noiseRe = noiseRe/std(noiseRe(:)); % scale to stddev = 1
+  noiseIm = noisefun();
+  noiseIm = noiseIm/std(noiseIm(:)); % scale to stddev = 1
+  noise = complex(noiseRe,noiseIm);
 else
   noise = noisefun();
+  noise = noise/std(noise(:)); % scale to stddev = 1
 end
 
-noise = noise/std(noise(:)); % scale to stddev = 1
 noise = reshape(noise,dims);
 
 signallevel_re = max(real(y(:))) - min(real(y(:)));

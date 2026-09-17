@@ -70,6 +70,7 @@ $ReleaseID$
 <ul>
 <li> The definition of <code>GridFrame</code>, the second output of <a class="esf" href="hamsymm">hamsymm</a> has changed. Previously, it provided the transformation matrix from the grid frame to the molecular frame, now it provides the transformation matrix from the molecular frame to the grid frame. Similarly, the meaning of <code>Opt.GridFrame</code>, as used in <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="salt.html">salt</a>, <a class="esf" href="saffron.html">saffron</a> etc. has changed.</li>
 <li>The syntax of <a class="esf" href="propint">propint</a> has changed: the number-of-integration-steps input <code>n</code> has been replaced by an options structure <code>Opt</code> with fields <code>Opt.n</code> and <code>Opt.Method</code>.</li>
+<li><a class="esf" href="addnoise">addnoise</a> now sets the noise level for complex-valued signals based on the real and imaginary parts separately, changing the noise realizations for complex-valued input compared to earlier releases.</li>
 </ul>
 
 <div class="subtitle">
