@@ -4,8 +4,8 @@ clear, clf
 
 % Define a single-line absorption spectrum
 B = linspace(330,370,1e3);  % field range, mT
-lwpp = 2; % line width (peak-to-eak), mT
-FWHM = 2/sqrt(3)*lwpp; % line width (full width at half height), mT
+lwpp = 2; % line width (peak-to-peak), mT
+FWHM = sqrt(3)*lwpp; % line width (full width at half height), mT
 spc0 = lorentzian(B,350,FWHM);
 
 % Compute the 1st-harmonic spectrum detected with field modulation
