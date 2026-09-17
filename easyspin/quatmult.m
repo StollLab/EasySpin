@@ -26,24 +26,26 @@ if ~isequal(size(q),size(r))
   error('Size input arrays must be equal.')
 end
 
-qIndex = repmat({':'},1,ndims(q)-1);
-rIndex = repmat({':'},1,ndims(r)-1);
+q_ = reshape(q,4,[]);
+r_ = reshape(r,4,[]);
 
-q0 = q(1,qIndex{:});
-q1 = q(2,qIndex{:});
-q2 = q(3,qIndex{:});
-q3 = q(4,qIndex{:});
+q0 = q_(1,:);
+q1 = q_(2,:);
+q2 = q_(3,:);
+q3 = q_(4,:);
 
-r0 = r(1,rIndex{:});
-r1 = r(2,rIndex{:});
-r2 = r(3,rIndex{:});
-r3 = r(4,rIndex{:});
+r0 = r_(1,:);
+r1 = r_(2,:);
+r2 = r_(3,:);
+r3 = r_(4,:);
 
-t = zeros(size(q));
+t_ = zeros(size(q_));
 
-t(1,qIndex{:}) = r0.*q0 - r1.*q1 - r2.*q2 - r3.*q3;
-t(2,qIndex{:}) = r0.*q1 + r1.*q0 - r2.*q3 + r3.*q2;
-t(3,qIndex{:}) = r0.*q2 + r1.*q3 + r2.*q0 - r3.*q1;
-t(4,qIndex{:}) = r0.*q3 - r1.*q2 + r2.*q1 + r3.*q0;
+t_(1,:) = r0.*q0 - r1.*q1 - r2.*q2 - r3.*q3;
+t_(2,:) = r0.*q1 + r1.*q0 - r2.*q3 + r3.*q2;
+t_(3,:) = r0.*q2 + r1.*q3 + r2.*q0 - r3.*q1;
+t_(4,:) = r0.*q3 - r1.*q2 + r2.*q1 + r3.*q0;
+
+t = reshape(t_,qshape);
 
 end
