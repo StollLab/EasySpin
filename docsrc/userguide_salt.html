@@ -31,7 +31,7 @@
 <p>
 This user guide explains how to simulate solid-state ENDOR spectra of powders, frozen solutions 
 or single crystals using EasySpin's ENDOR simulation function <a class="esf" href="salt.html">salt</a>.
-You should be familiar with the simulation solid-state cw EPR spectra using <a class="esf" href="pepper.html">pepper</a>
+You should be familiar with the simulation of solid-state cw EPR spectra using <a class="esf" href="pepper.html">pepper</a>
 (see the corresponding <a href="userguide_pepper.html">user guide</a>).
 </p>
 
@@ -47,7 +47,7 @@ This user guide contains the following sections:
 <li><a href = "#orisel">Orientation selection</a></li>
 <li><a href = "#crystals">Powders and crystals</a></li>
 <li><a href = "#options">Simulation options</a></li>
-<li><a href = "#options">Matrix diagonalization and perturbation theory</a></li>
+<li><a href = "#speedups">Matrix diagonalization and perturbation theory</a></li>
 </ul>
 
 <!-- ============================================================= -->
@@ -130,7 +130,7 @@ Sys.lwEndor = [0.1 0.2];  % both broadenings simultaneously
 </pre>
 
 <p>
-EasySpin supports are series of different <a href="broadenings.html">EPR line broadening models</a>.
+EasySpin supports a series of different <a href="broadenings.html">EPR line broadening models</a>.
 The only one supported in an ENDOR simulation is <code>HStrain</code>: it co-determines
 the effective excitation width, together with <code>Exp.ExciteWidth</code>.
 Strain broadenings (<code>gStrain</code>, <code>AStrain</code> and <code>DStrain</code>) as well as
@@ -221,7 +221,7 @@ next section to it.
 </p>
 
 <!-- ============================================================= -->
-<a name="oriselect"><div class="subtitle">Orientation selection</div></a>
+<a name="orisel"><div class="subtitle">Orientation selection</div></a>
 
 <p>
 In an ENDOR experiment of a disordered system, not all paramagnetic centers are excited.
@@ -270,8 +270,6 @@ Exp.ExciteWidth = 100;   % total excitation width in MHz: sqrt(200^2+100^2) = 22
 As you can see, the total excitation width is rather insensitive to <code>ExciteWidth</code>,
 if <code>ExciteWidth</code> is much smaller than <code>HStrain</code>.
 </p>
-
-</pre>
 
 <!-- ============================================================= -->
 <a name="crystals"><div class="subtitle">Powders and crystals</div></a>

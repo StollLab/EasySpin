@@ -104,7 +104,7 @@ Exp.dt = 0.005;             % µs
 </pre>
 
 <p>
-With these inputs, you can call the simulation function. If you don't ask for outputs, then it will plot the result. Otherwise, you get the result stored in the outputs, and no plotting is happening. For two-pulse ESSEM, a 1D experiment, the first output is the time &tau;, and the second output is the echo amplitude.
+With these inputs, you can call the simulation function. If you don't ask for outputs, then it will plot the result. Otherwise, you get the result stored in the outputs, and no plotting is happening. For two-pulse ESEEM, a 1D experiment, the first output is the time &tau;, and the second output is the echo amplitude.
 </p>
 
 <pre class="matlab">
@@ -233,7 +233,7 @@ A pulse experiment is specified in two parts: the pulse sequence and the indirec
 <p>
 To specify the pulse sequence, you need to provide details about each (rectangular) pulse and its temporal placement relative to the preceding one. 
 Each pulse needs a flip angle and, if you want to use real pulses, a duration. 
-Pulses need to be defined separately <code>Par</code>.and can then be combined with delays in <code>Exp.Sequence</code>.
+Pulses need to be defined separately as <code>Par</code>, and can then be combined with delays in <code>Exp.Sequence</code>.
 The flip angles go into <code>Par.Flip</code>, in radians:
 </p>
 
@@ -315,7 +315,7 @@ Exp.Dim1 = {'d1' 0.01; 'd2' 0.03 };
 </pre>
 
 <p>
-If you want to decrement an interval instead of incrementing it, use negative signs. For, example, the following gives a one-dimensional incrementation scheme where the second interval is incremented and the third one is decrement at the same time. This gives a fixed-length pulse experiment.
+If you want to decrement an interval instead of incrementing it, use negative signs. For, example, the following gives a one-dimensional incrementation scheme where the second interval is incremented and the third one is decremented at the same time. This gives a fixed-length pulse experiment.
 </p>
 
 <pre class="matlab">
@@ -356,7 +356,7 @@ Exp.Sequence = {p90 tau p90 0 p90 tau}; % three pulse ESEEM sequence, the
 					% starting value for the 2nd delay is 0
 
 Exp.nPoints = 512;        % 512 data points
-Exp.Dim1 = {'d2', 0.1}; % increment 2nd delay by 8 ns 
+Exp.Dim1 = {'d2', 0.1}; % increment 2nd delay by 100 ns
 
 saffron(Sys,Exp);
 </pre>
@@ -390,7 +390,7 @@ For more details, see the pages on <a href="frames.html">frames</a> and <a href=
 </a>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> has a range of settings that can be used to adjust the level of theory and other aspects of the simulation. These are provided in the third input argument to saffron, usually called <code>Opt</code>. One of the most often neede parameters is <code>Opt.GridSize</code>, which specifies the resolution of the orientational grid used for powder simulations. The higher the number in <code>Opt.GridSize</code>, the finer the grid.
+<a class="esf" href="saffron.html">saffron</a> has a range of settings that can be used to adjust the level of theory and other aspects of the simulation. These are provided in the third input argument to saffron, usually called <code>Opt</code>. One of the most often needed parameters is <code>Opt.GridSize</code>, which specifies the resolution of the orientational grid used for powder simulations. The higher the number in <code>Opt.GridSize</code>, the finer the grid.
 </p>
 
 <pre class="mlexample">

@@ -136,7 +136,7 @@ More than one of these broadenings can be specified simultaneously. The total br
 The broadenings resulting from the various strains are computed in an approximate way. For example, for <code>gStrain</code>, the derivative with respect to g of the resonance field of a given transition is computed, and then the magnitude of this derivative is multiplied by the value from <code>gStrain</code> to give the actual line width. A Gaussian with this line width is then added to the spectrum. A similar procedure is used for all other strains.
 
 <p>
-This approximation, which corresponds to the first term in a Taylor expansion or to first-order perturbation theory, is valid only as long as the strain distribution width is much smaller than the parameter itself, e.g. a <code>gStrain</code> of 0.02 for a <code>g</code> of 2. If the distributions is wider, an explicit loop (see below) should be used, see <a href="#explicit">below</a>.
+This approximation, which corresponds to the first term in a Taylor expansion or to first-order perturbation theory, is valid only as long as the strain distribution width is much smaller than the parameter itself, e.g. a <code>gStrain</code> of 0.02 for a <code>g</code> of 2. If the distribution is wider, an explicit loop should be used, see <a href="#explicit">below</a>.
 
 
 <div class="optionfield"><code>HStrain</code></div>
@@ -214,7 +214,6 @@ The distributions in D and in E are treated as uncorrelated, unless <code>DStrai
 <p>
 Examples:
 <code>DStrain = [10, 5]</code> specifies a Gaussian distribution of D with a FWHM of 10 MHz and a Gaussian distribution of E with a FWHM of 5 MHz. <code>DStrain = [100 33]</code> specifies a Gaussian distribution of D with a FWHM of 100 MHz and a Gaussian distribution of E with a FWHM of 33 MHz. For two electron spins, <code>DStrain = [10 5; 100 20]</code> specifies <code>[10 5]</code> for the first electron spin and <code>[100 20]</code> for the second.
-<ul>
 
 </div>
 
@@ -231,7 +230,7 @@ If the spin system has more than one electron spin, give one correlation coeffic
 <div class="subtitle"><a name="explicit">Broadening via explicit averaging over distributions</a></div>
 
 <p>
-You can model any arbitrary form of inhomogeneous broadening. For this, run explicit loops over distributions of spin Hamiltonian parameters, simulate the associated spectra and sum them up (including weights of the distribution function) to obtain an broadened spectrum.
+You can model any arbitrary form of inhomogeneous broadening. For this, run explicit loops over distributions of spin Hamiltonian parameters, simulate the associated spectra and sum them up (including weights of the distribution function) to obtain a broadened spectrum.
 </p>
 
 <p>

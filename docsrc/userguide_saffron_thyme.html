@@ -36,8 +36,8 @@ This second part of the user guide on <a class="esf" href="saffron.html">saffron
 If you have not read the first part of the guide yet, it can be found <a class="esf" href="userguide_saffron.html">here</a>.
  
 <p> 
-<a class="esf" href="saffron.html">saffron</a> includes a very fast algorithm, that allows to simulate a variety of pre- and user-defined pulse EPR experiments.
-But it does not support if in your simulation you want to do one of the following:
+<a class="esf" href="saffron.html">saffron</a> includes a very fast algorithm that allows you to simulate a variety of pre- and user-defined pulse EPR experiments.
+But it does not work if you want to do one of the following in your simulation:
 <ul>
 <li> Use frequency-swept pulses or pulses with different frequencies
 <li> Transient detection
@@ -125,9 +125,9 @@ a figure is generated. The two horizontal axes are the time of the transient in 
 </a>
 
 <p>
-Detection is controlled with the field <code>Exp.DetWindow</code>. It allows to use single-point detection as well as transient detection.
+Detection is controlled with the field <code>Exp.DetWindow</code>. It allows you to use single-point detection as well as transient detection.
 The position of the detection is set in relation to the end of the last event in the pulse sequence, which is the zero time of the detection.
-This last event can be a pulse or a free evolution period. You are also free to position your detection anyway you want, with the only requirement, that it must not overlap with the last pulse.
+This last event can be a pulse or a free evolution period. You are also free to position your detection any way you want, with the only requirement that it must not overlap with the last pulse.
 
 <p>
 Take for example the pulse sequence for the stimulated echo:
@@ -145,7 +145,7 @@ Exp.DetWindow = [-0.1 0.1];  % µs
 </pre>
 
 <p>
-The detection window provide a lot freedom with where you want to detect. To detect an FID of a length &tau; after the last pulse, we could for example write:
+The detection window provides a lot of freedom in where you want to detect. To detect an FID of a length &tau; after the last pulse, we could for example write:
 
 <pre class="matlab">
 % Keeping the same sequence definition as above
@@ -170,9 +170,8 @@ Exp.DetWindow = 0;
 <p>
 Another field that can be specified is the down conversion frequency <code>Exp.DetFreq</code>. 
 By default <a class="esf" href="saffron.html">saffron</a> uses <code>Exp.mwFreq</code> for down conversion.
-For down conversion with a different the frequency has to be specified in GHz:
+For down-conversion with a different frequency, it has to be specified in GHz:
 
-<code>Exp.DetWindow</code> also allows single point detection:
 <pre class="matlab">
 Exp.DetFreq = 9.7; % Down conversion with 9.7 GHz
 Exp.DetFreq = 0;   % No down conversion
@@ -181,10 +180,10 @@ Exp.DetFreq = 0;   % No down conversion
 If down-conversion is switched off, the signal is returned in the simulation frame.
 
 <p>
-The last field related to detection is <code>Exp.DetIntegrate</code>, which, if switched on, tell <a class="esf" href="saffron.html">saffron</a> to integrate the signal.
+The last field related to detection is <code>Exp.DetIntegrate</code>, which, if switched on, tells <a class="esf" href="saffron.html">saffron</a> to integrate the signal.
 
 <p>
-Something to keep in mind: The entire detection window is used. This means, that if there is other echoes within the detection window, those will get integrated as well and might interfere with your data. 
+Something to keep in mind: The entire detection window is used. This means that if there are other echoes within the detection window, those will get integrated as well and might interfere with your data.
 
 <!-- ============================================================= -->
 <a name="frequency_modulated_pulses">
@@ -195,7 +194,7 @@ Something to keep in mind: The entire detection window is used. This means, that
 <a class="esf" href="saffron.html">saffron</a> not only supports monochromatic rectangular pulses, but works with all pulse shapes that are described in the <a class="esf" href="pulse.html">documentation</a> and the <a class="esf" href="userguide_shapedpulses.html">userguide</a> of pulse. 
 
 <p>
-Note, that if you work with frequency swept pulses, refocusing conditions might be slightly different to what you are used from working with rectangular pulses, e. g. the echo position might shift slightly, or the last pulse has to have half the length of the previous pulses to ensure proper refocusing.
+Note, that if you work with frequency swept pulses, refocusing conditions might be slightly different from what you are used to when working with rectangular pulses, e.g. the echo position might shift slightly, or the last pulse has to have half the length of the previous pulses to ensure proper refocusing.
 
 <p>
 Let us create a two-pulse echo sequence with linearly-swept chirp pulses with smoothed edges.
@@ -254,7 +253,7 @@ Chirp180.Phase = pi;
 </pre>
 
 <!-- ============================================================= -->
-<a name="phase_cycling">
+<a name="indirect_dimensions">
 <div class="subtitle">Changing pulse parameters with indirect dimensions</div>
 </a>
 
@@ -354,7 +353,7 @@ Here, the explicit declaration of the empty brackets <code>[]</code> means no ph
 
 <p>
 It is not possible to phase cycle pulses simultaneously with <code>Exp.PhaseCycle</code>.
-However, you simultaneous phase cycling can be done through an additional indirect dimension.
+However, simultaneous phase cycling can be done through an additional indirect dimension.
 If, for example, you want to phase cycle the second and third pulse together you could write:
 
 <pre class="matlab">
@@ -365,7 +364,7 @@ Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4}
 After the simulation finished, you need to sum up the signals with the correct detection phase manually.
 
 <p>
-Although <code>Exp.DimX</code> can be used for phase-cycling of single pulses as well, this is not recommended as using <code>Exp.PhaseCycle</code>, significantly improves performance.
+Although <code>Exp.DimX</code> can be used for phase-cycling of single pulses as well, this is not recommended, as using <code>Exp.PhaseCycle</code> significantly improves performance.
 
 <p>
 Phase cycling in this form is not available for the <em>fast</em> method, but something similar to it can be achieved with <a class="esf" href="saffron.html#filter">filters</a>.
@@ -454,7 +453,7 @@ Relaxation times  in the lower triangle of <code>T2</code> are ignored.
 Spin systems that contain several spins are assigned relaxation times analogously, but require a slightly deeper insight into ordering of the states:
 The representation of the operators is in terms of product Zeeman basis states |m<sub>1</sub>,m<sub>2</sub>,m<sub>3</sub>,..>, where m<sub>1</sub> is for the first spin, m<sub>2</sub> is for the second spin, etc.
 The basis functions are again in descending order m<sub>i</sub>, left to the right.
-E.g. for two coupled (electron) spins with <i>S,</i> = 1/2, you get the following energy level scheme:
+E.g. for two coupled (electron) spins with <i>S</i> = 1/2, you get the following energy level scheme:
 </p>
 
 <img src="img/spidyan_relaxation2.png" width="450">
@@ -467,7 +466,7 @@ E.g. for two coupled (electron) spins with <i>S,</i> = 1/2, you get the followin
 
 <p>
 The detected signal corresponds to the expectation value of &langle;<i>&Scirc;</i><sub>-</sub>&rangle;.
-This means that the signals real part contains &langle;<i>&Scirc;</i><sub>x</sub>&rangle; and the imaginary part &langle;-<i>&Scirc;</i><sub>y</sub>&rangle;.
+This means that the signal's real part contains &langle;<i>&Scirc;</i><sub>x</sub>&rangle; and the imaginary part &langle;-<i>&Scirc;</i><sub>y</sub>&rangle;.
 Keep this in mind, if you need &langle;<i>&Scirc;</i><sub>y</sub>&rangle;.
 
 <p>
@@ -481,12 +480,11 @@ By default <a class="esf" href="saffron.html">saffron</a> assumes <code>Opt.Grid
 For simulations using the <em>thyme</em> method, <a class="esf" href="saffron.html">saffron</a> usually changes into a simulation frame that rotates slower than the labframe.
 By default, the simulation frame changes all electron Zeeman interaction to about <code>3</code> GHz - the exact value depends on your experiment definition.
 This has the advantage that a much larger time step can be used (which speeds up the simulation).
-In most cases this will not have an effect of the outcome of the simulation.
+In most cases this will not have an effect on the outcome of the simulation.
 However, if the off-diagonal elements in your Hamiltonian are large, this could lead to problems.
 If you suspect this is the case, you can switch the frame shift off by setting <code>Opt.SimFreq = 0</code>, or set <code>Opt.SimFreq</code> to a value you would find appropriate.
 For example: For a Q-band simulation where all pulses have frequencies between 33 and 34 GHz, <a class="esf" href="saffron.html">saffron</a> will select 31 GHz as simulation frequency.
 If you are worried that this might interfere with your Hamiltonian, you could consider setting <code>Opt.SimFreq</code> to 15 GHz, which would still be significantly faster than <code>Opt.SimFreq = 0</code>.
-</ul>
 <hr>
 </section>
 

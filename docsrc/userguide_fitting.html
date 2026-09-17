@@ -107,7 +107,7 @@ Here is what the various parameters mean:
 </li>
 <li>
 <p>
-<code>SysVary</code> is a structure similar to <code>Sys0</code> containing the search ranges of the parameters that should be fitted. For example, <code>SysVary.lwpp = 3</code> indicates that the <code>lwpp</code> parameter can be varied by up to 3 from the center value. For a multi-component fit, <code>SysVary</code>> is again a list of structures, one for each component, e.g. <code>{Vary1, Vary2}</code>.
+<code>SysVary</code> is a structure similar to <code>Sys0</code> containing the search ranges of the parameters that should be fitted. For example, <code>SysVary.lwpp = 3</code> indicates that the <code>lwpp</code> parameter can be varied by up to 3 from the center value. For a multi-component fit, <code>SysVary</code> is again a list of structures, one for each component, e.g. <code>{Vary1, Vary2}</code>.
 <br> Alternatively, two separate structures containing the upper and lower bounds, <code>SysVaryLB</code> and <code>SysVaryUB</code>, can be provided.
 </p>
 </li>
@@ -399,7 +399,7 @@ For some situations, e.g. for magnetization data, it is necessary not to scale a
 </p>
 
 <p>
-A polynomial baseline correction can be be performed in addition to scaling - see the documentation of <a class="esf" href="esfit.html">esfit</a> for more details.
+A polynomial baseline correction can be performed in addition to scaling - see the documentation of <a class="esf" href="esfit.html">esfit</a> for more details.
 </p>
 
 <!-- ============================================================= -->

@@ -34,7 +34,7 @@ They can be accessed through the <code>Exp.Sequence</code> field.
 </p>
 
 <p>
-If any of the below sequences is used in combination with the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> algorithm</a> , standard monochromatic rectangular pulses are assumed with a length of 16 ns for a 90&deg pulses and 32 ns for a 180&deg pulses.
+If any of the below sequences is used in combination with the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> algorithm</a>, standard monochromatic rectangular pulses are assumed with a length of 16 ns for 90&deg; pulses and 32 ns for 180&deg; pulses.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -169,12 +169,12 @@ Exp.nPoints = [128 64]; % 128 points along first dimension, 64 along the second
 </pre>
 </div>
 
-<div class="subtitle">MimsEndor</div>
+<div class="subtitle">MimsENDOR</div>
 
 Minimal call:
 
 <pre class="matlab">
-Exp.Sequence = 'MimsEndor'
+Exp.Sequence = 'MimsENDOR'
 Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;
 Exp.tau = 0.1; % tau in microseconds
 </pre>
@@ -194,6 +194,7 @@ Contains lower and upper limit of the frequency range for ENDOR. Values should b
 <p>
 <a class="esf" href="saffron.html">saffron</a>,
 <a class="esf" href="spidyan.html">spidyan</a>
+</p>
 
 <hr>
 

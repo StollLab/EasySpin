@@ -98,7 +98,7 @@ Exp.SampleRotation = {[1 1 0],45*pi/180};  % rotation around the lab axis [1 1 0
 </pre>
 
 <p>
-The EasySpin 5 function <code>rotatecrystal</code>, which was provided for this, is no longer available. EasySpin 6 provides <a class="esf">rotateframe</a>.
+The EasySpin 5 function <code>rotatecrystal</code>, which was provided for this, is no longer available. EasySpin 6 provides <a class="esf" href="rotateframe.html">rotateframe</a>.
 </p>
 
 <!-- ============================================================= -->
@@ -235,7 +235,7 @@ Some options have changed as well. Instead of <code>FitOpt.Scaling</code>, use <
 <a name="ham"><div class="subtitle">Hamiltonian functions</div></a>
 
 <p>
-All functions that return hamiltonians have been renamed. The full hamiltonian function <code>sham</code> is now called <a class="esf" href="ham.html">ham</a>.
+All functions that return Hamiltonians have been renamed. The full hamiltonian function <code>sham</code> is now called <a class="esf" href="ham.html">ham</a>.
 </p>
 
 <pre class="matlab">
@@ -255,7 +255,7 @@ Functions that return specific terms have been renamed to all start with <code>h
 <a class="esf" href="ham_nn.html">ham_nn</a> for nucleus-nucleus interaction,
 <a class="esf" href="ham_oz.html">ham_oz</a> for orbital Zeeman interaction,
 <a class="esf" href="ham_so.html">ham_so</a> for spin-orbit coupling,
-<a class="esf" href="ham_cf.html">ham_cf</a> for crystal field terms,
+<a class="esf" href="ham_cf.html">ham_cf</a> for crystal field terms.
 </p>
 
 <p>
@@ -267,7 +267,7 @@ Here are a few examples:
 Hhf = hfine(Sys);   % EasySpin 5
 Hhf = ham_hf(Sys);  % EasySpin 6
 
-% Zero=field interaction
+% Zero-field interaction
 Hzf = zfield(Sys);    % EasySpin 5
 Hzf = ham_zf(Sys);    % EasySpin 6
 

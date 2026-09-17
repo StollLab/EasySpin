@@ -63,7 +63,7 @@ muBM = curry(Sys,Exp);
 </p>
 
 <p>
-Additionally, you can provide a third input argument, <code>Opt</code>, that is a structure containing calculation options such as which output to provide and with system of units (SI or CGS) to use. For example,
+Additionally, you can provide a third input argument, <code>Opt</code>, that is a structure containing calculation options such as which output to provide and which system of units (SI or CGS) to use. For example,
 </p>
 
 <pre class="matlab">
@@ -76,7 +76,7 @@ chimol = curry(Sys,Exp,Opt);
 <a name="spins"><div class="subtitle">The spin system</div></a>
 
 <p>
-To calculate magnetic moment and magnetic susceptibility, first of all you need to provide the system of spins and the parameters of the associated spin Hamiltonian as a <a href="spinsystem">spin system structure</a>. Here is a simple example of two coupled spins-1/2 with isotropic g factors and strong exchange coupling:
+To calculate magnetic moment and magnetic susceptibility, first of all you need to provide the system of spins and the parameters of the associated spin Hamiltonian as a <a href="spinsystem.html">spin system structure</a>. Here is a simple example of two coupled spins-1/2 with isotropic g factors and strong exchange coupling:
 </p>
 
 <pre class="matlab">
@@ -102,7 +102,7 @@ Sys.J = 5 * 29.98e3;   % all in one line
 </pre>
 
 <p>
-You can also give antisymmetric and symmetric coupling terms, in <code>Sys.dvec</code> and <code>Sys.eeD</code>, for details see the page on <a href="spinsystem">spin system structures</a>.
+You can also give antisymmetric and symmetric coupling terms, in <code>Sys.dvec</code> and <code>Sys.dip</code>, for details see the page on <a href="spinsystem.html">spin system structures</a>.
 </p>
 
 <p>
@@ -125,7 +125,7 @@ As with the rest of EasySpin, there is in principle no limit on the number of sp
 <a name="exp"><div class="subtitle">Experimental parameters</div></a>
 
 <p>
-For SQUID magnetometry, you only need two basis experimental settings: the magnetic field values and the temperatures at which you measure the magnetic moment and the magnetic susceptibility.
+For SQUID magnetometry, you only need two basic experimental settings: the magnetic field values and the temperatures at which you measure the magnetic moment and the magnetic susceptibility.
 </p>
 
 <p>
@@ -204,7 +204,7 @@ Opt.Output = 'chimol muBM';         % reverse order to the default
 </pre>
 
 <p>
-Several ways to represent the magnetic susceptibility are used. Beside &chi;<sub>zz</sub> (where often the index is omitted), the product of temperature and susceptibility &chi;<sub>zz</sub>T and the inverse of the susceptibility 1/&chi;<sub>zz</sub> are common. Also the effective magnetic moment &mu;<sub>eff</sub> is used. All of them contain the same information, however their appearance is quite different. A free paramagnet is described by &chi;<sub>zz</sub> = C/T with Curie constant C and temperature T. Hence, &chi;<sub>zz</sub> approaches C at low temperatures and tend towards zero at high temperatures. In contrast 1/&chi;<sub>zz</sub> decrease linearly with decreasing temperature. &chi;<sub>zz</sub>T is simply a constant line at C. In the section <a href="#fitting">Least-squares fitting</a> we will discuss implications of that.
+Several ways to represent the magnetic susceptibility are used. Beside &chi;<sub>zz</sub> (where often the index is omitted), the product of temperature and susceptibility &chi;<sub>zz</sub>T and the inverse of the susceptibility 1/&chi;<sub>zz</sub> are common. Also the effective magnetic moment &mu;<sub>eff</sub> is used. All of them contain the same information, however their appearance is quite different. A free paramagnet is described by &chi;<sub>zz</sub> = C/T with Curie constant C and temperature T. Hence, &chi;<sub>zz</sub> approaches C at low temperatures and tends towards zero at high temperatures. In contrast 1/&chi;<sub>zz</sub> decreases linearly with decreasing temperature. &chi;<sub>zz</sub>T is simply a constant line at C. In the section <a href="#fitting">Least-squares fitting</a> we will discuss implications of that.
 </p>
 
 <p>
@@ -312,7 +312,7 @@ In almost all cases magnetometry data is given in absolute units, therefore it i
 </p>
 
 <p>
-For most spin systems it is not recommended to fit &chi;<sub>zz</sub>. Instead &chi;<sub>zz</sub>T (or &mu;<sub>eff</sub>) should be used, especially when g factors should be obtained. This can be easily visualized by converting poor fits to &chi;<sub>zz</sub>T (or &mu;<sub>eff</sub>) to &chi;<sub>zz</sub> and compare it to the data or you run the following example:
+For most spin systems it is not recommended to fit &chi;<sub>zz</sub>. Instead &chi;<sub>zz</sub>T (or &mu;<sub>eff</sub>) should be used, especially when g factors should be obtained. This can be easily visualized by converting poor fits to &chi;<sub>zz</sub>T (or &mu;<sub>eff</sub>) to &chi;<sub>zz</sub> and comparing it to the data, or by running the following example:
 </p>
 
 <pre class="matlab">
@@ -340,7 +340,7 @@ title('\chi');
 </pre>
 
 <p>
-To increase the reliability of the least-square fitting it is often a good idea to fit both the magnetic moment and the magnetic susceptibility simultaneously. Let's say you have measured &chi;<sub>zz</sub>T at at two fields and a range of temperatures, and the magnetic moment at 3 temperatures over a range of fields:
+To increase the reliability of the least-square fitting it is often a good idea to fit both the magnetic moment and the magnetic susceptibility simultaneously. Let's say you have measured &chi;<sub>zz</sub>T at two fields and a range of temperatures, and the magnetic moment at 3 temperatures over a range of fields:
 </p>
 
 <pre class="matlab">

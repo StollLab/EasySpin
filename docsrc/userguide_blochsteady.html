@@ -66,7 +66,7 @@ T2 = 0.5;  % microseconds
 </pre>
 
 <p>
-The next four input parameters give the experimental parameters. <code>deltaB1</code> is the field offset from the resonance frequency of the spin, in mT. Setting it to zero sets the field on-resonance with the spin. <code>B1</code> is the microwave magnetic field amplitude at the sample, in mT. The last two parameters give the peak-to-peak modulation amplitude (<code>ModAmp</code>, in mT) and the modulation frequency (<code>ModFreq</code>, in kHz) of the applied field modulation along B<sub>0</sub>. Again, here are some exemplary values:
+The next four input parameters give the experimental parameters. <code>deltaB0</code> is the field offset from the resonance frequency of the spin, in mT. Setting it to zero sets the field on-resonance with the spin. <code>B1</code> is the microwave magnetic field amplitude at the sample, in mT. The last two parameters give the peak-to-peak modulation amplitude (<code>ModAmp</code>, in mT) and the modulation frequency (<code>ModFreq</code>, in kHz) of the applied field modulation along B<sub>0</sub>. Again, here are some exemplary values:
 
 <pre class="matlab">
 B1 = 0.05;      % mT
@@ -134,7 +134,7 @@ ylabel('time (\mus)');
 </pre>
 
 <!-- ============================================================= -->
-<a name="powders"><div class="subtitle">Powders</div></a>
+<a name="powders"><div class="subtitle">Powder averages</div></a>
 
 You can use <a class="esf" href="blochsteady.html">blochsteady</a> to simulate rapid-scan spectra of powders. For spin systems with essentially isotropic g factors, there is a very compact way: First simulate the spectrum using <a class="esf" href="pepper.html">pepper</a>, and then use this to run a field sweep with <a class="esf" href="blochsteady.html">blochsteady</a>.
 
@@ -188,7 +188,7 @@ xlabel('time (\mus)');
 
 
 <!-- ============================================================= -->
-<a name="powders"><div class="subtitle">Powders</div></a>
+<a name="deconv"><div class="subtitle">Converting rapid-scan signal to spectrum</div></a>
 
 <p>
 To convert an experimental or simulated rapid-scan time domain signal to its corresponding spectrum, use the function <a class="esf" href="rapidscan2spc.html">rapidscan2spc</a>. Here is a simple example.

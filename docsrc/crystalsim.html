@@ -107,7 +107,7 @@ pepper(Sys,Exp);
 </pre>
 
 <p>
-This simulation gives a spectrum with a single line. However, in space group Pmmm, there are four symmetry-related sites per unit cell, related to each other by 180-degree rotations around the x, y and z crystal axes, so in principle there are four separate EPR transitions. We see only one line here because the g tensor is aligned with the crystal frame (both <code>Sys.gFrame</code> and <code>Exp.MolFrame</code> are zero). In this case, the g tensors of all four sites have the same orienation. The sample orientation is irrelevant.
+This simulation gives a spectrum with a single line. However, in space group Pmmm, there are four symmetry-related sites per unit cell, related to each other by 180-degree rotations around the x, y and z crystal axes, so in principle there are four separate EPR transitions. We see only one line here because the g tensor is aligned with the crystal frame (both <code>Sys.gFrame</code> and <code>Exp.MolFrame</code> are zero). In this case, the g tensors of all four sites have the same orientation. The sample orientation is irrelevant.
 </p>
 
 <p>
@@ -136,7 +136,7 @@ Now, the four sites are magnetically distinct, and four lines appear in the EPR 
 
 <!-- ======================================================================================= -->
 
-<div class="subtitle"><a name="frames">Crystal rotations</a></div>
+<div class="subtitle"><a name="rotations">Crystal rotations</a></div>
 
 <p>
 To simulate a series of EPR spectra that result from the rotation of a crystal in the spectrometer, use the field <code>Exp.SampleRotation</code>, which implements the sample rotation in a way that mimics how the experiment is performed.
@@ -162,7 +162,7 @@ pepper(Sys,Exp);
 </pre>
 
 <p>
-This gives the EPR spectrum for the initial crystal orientation. Next, define how the sample is rotated. For a typical X-band EPR spectrometer with horizontal static magnetic field (laboratory z axis), a resonator with vertically oscillating microwave field (laboratory x axis), and a vertical sample tube (along the laborary x axus), the sample tube is commonly rotated around its own axis, i.e. around the laboratory x axis. We define this rotation axis and the rotation angle (in radians) in the field <code>Exp.SampleRotation</code>:
+This gives the EPR spectrum for the initial crystal orientation. Next, define how the sample is rotated. For a typical X-band EPR spectrometer with horizontal static magnetic field (laboratory z axis), a resonator with vertically oscillating microwave field (laboratory x axis), and a vertical sample tube (along the laboratory x axis), the sample tube is commonly rotated around its own axis, i.e. around the laboratory x axis. We define this rotation axis and the rotation angle (in radians) in the field <code>Exp.SampleRotation</code>:
 </p>
 
 <pre class="matlab">
@@ -218,7 +218,7 @@ ylabel('\rho (deg)');
 </pre>
 
 
-<div class="subtitle"><a name="frames">Site-selective simulations</a></div>
+<div class="subtitle"><a name="siteselective">Site-selective simulations</a></div>
 
 <p>
 In a crystal simulation, EasySpin first determines the number of magnetically distinct sites in the crystal unit cell from the symmetry given in <code>Exp.CrystalSymmetry</code>. Then, it simulates the EPR spectra of all sites and sums them up to obtain the total EPR spectrum.
@@ -246,8 +246,6 @@ pepper(Sys,Exp,Opt);
 <p>
 If <code>Opt.Sites</code> is empty or not given, all sites are included.
 </p>
-
-</td></tr>
 
 <hr>
 </section>

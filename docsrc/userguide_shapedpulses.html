@@ -62,7 +62,7 @@ This will calculate the shape of a simple monochromatic rectangular pulse. <code
 </p>
 
 <p>
-<a class="esf" href="pulse.html">pulse</a> returns two things, the time axis and the IQ modulation data. The time axis is in microseconds and goes from 0 to <Code>Par.tp</code>. The number of points is chosen automatically to accommodate the AM and FM without aliasing, but you can override this and specify the time step in <code>Par.TimeStep</code>. <code>IQ</code> is a complex vector that contains the in-phase (I) and quadrature (Q) signals needed to drive an IQ mixer to generate the final pulse shape at microwave frequencies. I is the real part of <code>IQ</code>, and Q is the imaginary part.
+<a class="esf" href="pulse.html">pulse</a> returns two things, the time axis and the IQ modulation data. The time axis is in microseconds and goes from 0 to <code>Par.tp</code>. The number of points is chosen automatically to accommodate the AM and FM without aliasing, but you can override this and specify the time step in <code>Par.TimeStep</code>. <code>IQ</code> is a complex vector that contains the in-phase (I) and quadrature (Q) signals needed to drive an IQ mixer to generate the final pulse shape at microwave frequencies. I is the real part of <code>IQ</code>, and Q is the imaginary part.
 </p>
 
 <p>
@@ -163,7 +163,7 @@ The last input <code>'IQmod'</code> tells the function to perform IQ modulation,
 </p>
 
 <p>
-<a class="esf" href="rfmixer.html">rfmixer</a> can take a series of options in a optional structure. The most important one is the time step, in <code>Opt.dt</code>:
+<a class="esf" href="rfmixer.html">rfmixer</a> can take a series of options in an optional structure. The most important one is the time step, in <code>Opt.dt</code>:
 </p>
 
 <pre class="matlab">
@@ -275,7 +275,7 @@ In addition to the resonator, another source of non-linear distortions is the tr
 </p>
 
 <p>
-The <a class="esf" href="transmitter.html">transmitter</a> function allows to simulate the effect of this distortion on a pulse shape, and also to compensate a pulse shape to account for this. In either case, you need to provide the power transfer curve that maps the input amplitude (<code>Ain</code>) to the output amplitude (<code>Aout</code>). To simulate the effect, provide the pulse shape input signal and use the <code>'simulate'</code> option. Be careful to properly scale the input signal so it is within the range of <code>Ain</code>.
+The <a class="esf" href="transmitter.html">transmitter</a> function allows you to simulate the effect of this distortion on a pulse shape, and also to compensate a pulse shape to account for this. In either case, you need to provide the power transfer curve that maps the input amplitude (<code>Ain</code>) to the output amplitude (<code>Aout</code>). To simulate the effect, provide the pulse shape input signal and use the <code>'simulate'</code> option. Be careful to properly scale the input signal so it is within the range of <code>Ain</code>.
 </p>
 
 <pre class="matlab">

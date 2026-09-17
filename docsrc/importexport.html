@@ -38,7 +38,7 @@ Here, we look at how you can get your data in and out of EasySpin/Matlab.
 <div class="subtitle">Importing data</div>
 
 <p>
-To import experimental EPR spectral data acquired on commercial spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code> supports a variety of file formats, including those used by Bruker, Active Spectrum, magnettech, Adani, JEOL and CIQTEK spectrometers. (Thanks to these vendors for sharing their file format specification with EasySpin!).
+To import experimental EPR spectral data acquired on commercial spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code> supports a variety of file formats, including those used by Bruker, Active Spectrum, Magnettech, Adani, JEOL and CIQTEK spectrometers. (Thanks to these vendors for sharing their file format specifications with EasySpin!).
 
 <ul>
 <li>
@@ -54,20 +54,20 @@ are all equivalent:
 </pre>
 
 <li>
-If you have data from a older or a smaller Bruker spectrometer, then your data are stored in a set of two files: *.spc for the spectral data, and *.par for the parameters. These data can be loaded by <code>eprload</code> using
+If you have data from an older or a smaller Bruker spectrometer, then your data are stored in a set of two files: *.spc for the spectral data, and *.par for the parameters. These data can be loaded by <code>eprload</code> using
 
 <pre class="matlab">
 [B,spc] = eprload('myolddata.spc');    % Bruker SPC/PAR
 </pre>
 
 <li>
-Files from Active Spectrum, magnettech, Adani and JEOL spectrometers can be imported with <a class="esf" href="eprload.html">eprload</a> as well:
+Files from Active Spectrum, Magnettech, Adani and JEOL spectrometers can be imported with <a class="esf" href="eprload.html">eprload</a> as well:
 
 <pre class = "matlab">
 [B,spc] = eprload('myspectrum.esr');   % Active Spectrum
 [B,spc] = eprload('myspectrum.dat');   % Adani
-[B,spc] = eprload('myspectrum.spe');   % magnettech, old binary format
-[B,spc] = eprload('myspectrum.xml');   % magnettech, new XML format
+[B,spc] = eprload('myspectrum.spe');   % Magnettech, old binary format
+[B,spc] = eprload('myspectrum.xml');   % Magnettech, new XML format
 [B,spc] = eprload('myspectrum');       % JEOL
 [B,spc] = eprload('myspectrum.epr');   % CIQTEK
 </pre>
@@ -131,7 +131,7 @@ Data can also be exported to Microsoft Excel format. Here is how it works:
 
 <pre class="matlab">
 data = [B(:) spc(:)];
-writetable('myfile',data);
+writematrix(data,'myfile.xlsx');
 </pre>
 </ul>
 <hr>

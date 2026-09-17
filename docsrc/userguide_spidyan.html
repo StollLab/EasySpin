@@ -47,7 +47,7 @@ This guide covers the following topics:
 <li><a href = "#adiabatic">3D plot of adiabatic passage</a></li>
 <li><a href = "#detection">Detection</a></li>
 <li><a href = "#bulldozer">Enhancement of the central transition of a high-spin system</a></li>
-<li><a href = "#excitation_and_detection_operators">Selective excitation and detection operators<a></li>
+<li><a href = "#excitation_and_detection_operators">Selective excitation and detection operators</a></li>
 <li><a href = "#rabi">Rabi oscillation</a></li>
 <li><a href = "#spinecho_nitroxide">Spin echo of a nitroxide</a></li>
 <li><a href = "#spinecho_gaussian">Spin echo of a Gaussian line</a></li>
@@ -127,7 +127,7 @@ Since we are interested in the inversion of the spin we chose <i>&Scirc;<sub>z</
 <div class="subtitle2">Monochromatic rectangular pulse</div>
 
 <p>
-First, let us start with a commong monochromatic rectangular pulse:
+First, let us start with a common monochromatic rectangular pulse:
 
 <pre class="matlab">
 Monochromatic.tp = 0.06; % pulse length in &mu;s
@@ -213,7 +213,7 @@ HS.Type = 'sech/tanh';
 HS.beta = 10; % truncation parameter of 'sech'
 HS.n = 1; % exponent of the secant function argument
 HS.tp = 0.2; % pulse length
-HS.Frequency = [-50 50]; % excitation band, GHz
+HS.Frequency = [-50 50]; % excitation band, MHz
 HS.Flip = pi; % flip angle in rad
 
 % Update sequence
@@ -230,16 +230,16 @@ Although trajectory is slightly different, both adiabatic pulses end up in the s
 
 <p>
 The quality, of adiabatic pulses is in general described by a parameter called critical adiabaticity <code>Q<sub>crit</sub></code>, which measures the ability of the pulse to invert the spin and depends on the amplitude and the sweep rate.
-The flip angle and <code>Q<sub>crit</sub></code> are related through the Landau-Zener-Stückelberg-Majorana equation:, e.g, a <code>Q<sub>crit</sub></code> of 5 corresponds to a &pi; pulse and a <code>Q<sub>crit</sub></code> of about 0.7 to a &pi;/2 pulse.
+The flip angle and <code>Q<sub>crit</sub></code> are related through the Landau-Zener-Stückelberg-Majorana equation, e.g., a <code>Q<sub>crit</sub></code> of 5 corresponds to a &pi; pulse and a <code>Q<sub>crit</sub></code> of about 0.7 to a &pi;/2 pulse.
 Hence, it is not only possible to define the pulses with <code>Pulse.Flip</code>, but instead you can provide <code>Pulse.Amplitude</code> or <code>Pulse.Qcrit</code> for frequency-swept pulses.
 
 <p>
 Adiabatic pulses have the big advantage, that they invert all spins within their excitation band equally.
-You can see this, by changing the resonance frequency of the spin <code>Sys.ZeemanFreq</code> from <code>9.500</code> by to 25 MHz to <code>Sys.ZeemanFreq = 9.525</code> and then comparing the three pulses.
+You can see this, by changing the resonance frequency of the spin <code>Sys.ZeemanFreq</code> from <code>9.500</code> by 25 MHz to <code>Sys.ZeemanFreq = 9.525</code> and then comparing the three pulses.
 
 <p>
 A second advantage of adiabatic pulses is, that overturning of the spin is not possible, something that is common with rectangular pulses, see <a href = "#rabi">this example</a>.
-This means, no matter how strong the amplitude of your pulse gets, the flip angle can not became larger than &pi;.
+This means, no matter how strong the amplitude of your pulse gets, the flip angle can not become larger than &pi;.
 You can try this by removing <code>Par.Flip</code> from the pulse definitions, and instead using <code>Par.Amplitude</code>.
 
 <!-- ============================================================= -->
@@ -269,7 +269,7 @@ Exp.mwFreq = 9.500; % GHz
 
 <p>
 For the three-dimensional plot we need the expectation values of <i>&Scirc;<sub>x</sub></i>, <i>&Scirc;<sub>y</sub></i> and <i>&Scirc;<sub>z</sub></i>.
-Since <code><i>&Scirc;<sub>+</sub></i> = <i>&Scirc;<sub>x</sub></i> + i <i>&Scirc;<sub>y</sub></i></code> we can use this to our advantag and use for the detection:
+Since <code><i>&Scirc;<sub>+</sub></i> = <i>&Scirc;<sub>x</sub></i> + i <i>&Scirc;<sub>y</sub></i></code> we can use this to our advantage for the detection:
 
 <pre class="matlab">
 Exp.DetOperator = {'z1','+1'}; % detection operators
@@ -283,9 +283,9 @@ Since <i>&Scirc;<sub>z</sub></i> does not contain any rotating components, the d
 <p>
 We can run the simulation and plot it:
 
+<pre class="matlab">
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 
-<pre class="matlab">
 % Plotting
 figure(1)
 clf
@@ -298,7 +298,7 @@ legend(Exp.DetOperator)
 </pre>
 
 <p>
-In order to get a three-dimensional plot, we need use the real and imaginary parts of  <code><<i>&Scirc;<sub>y</sub></i>></code>:
+In order to get a three-dimensional plot, we need to use the real and imaginary parts of  <code><<i>&Scirc;<sub>y</sub></i>></code>:
 
 <pre class="matlab">
 figure(2)
@@ -338,11 +338,11 @@ With <a class="esf" href="spidyan.html">spidyan</a> you get more control over wh
 <div class="subtitle2">Detection operators</div>
 
 <p>
-The first topic concern detection operators.
+The first topic concerns detection operators.
 By default, if <code>Exp.DetOperator</code> is omitted, <i>&Scirc;<sub>+</sub></i> of all electrons is detected.
 
 <p>
-But using <code>Exp.DetOperator</code> it is not only possible to use several operators at once, you can even specify <a href="excitation_and_detection_operators">spin</a> and <a href="bulldozer">transition selective</a> operators, using the extended <a class="esf" href="sop.html">sop syntax</a>.
+But using <code>Exp.DetOperator</code> it is not only possible to use several operators at once, you can even specify <a href="#excitation_and_detection_operators">spin</a> and <a href="#bulldozer">transition selective</a> operators, using the extended <a class="esf" href="sop.html">sop syntax</a>.
 The detection operators are specified in a cell array, e. g.
 
 <pre class="matlab">
@@ -355,7 +355,7 @@ uses <i>&Scirc;<sub>z</sub></i> and <i>&Scirc;<sub>x</sub></i> of the first spin
 <p>
 For each of the components of <code>Exp.DetOperator</code> a frequency for downconversion in GHz must be provided. 
 Detection operators that correspond only to elements on the diagonal of the detection operator do not need to be down converted.
-Such operators are any <i>&Scirc;<sub>z</sub></i>-operators, written like <code>'z1'</code>, polarization operators between two levels, specified for example with  <code>z(1|2)1</code> and population operators selective operators, specified with like <code>e(2)</code>.
+Such operators are any <i>&Scirc;<sub>z</sub></i>-operators, written like <code>'z1'</code>, polarization operators between two levels, specified for example with <code>z(1|2)</code>, and population-selective operators, specified like <code>e(2)</code>.
 
 <p>
 Assuming that both spins are of the same type, we could write for the above example:
@@ -397,8 +397,8 @@ Exp.DetSequence = [0 0 1 0] % detection during the third event
 </pre>
 
 <p>
-Keep in mind, that detection not only requires a significant amount of computing time, it also keeps <a class="esf" href="spidyan.html">spidyan</a> from using some of it speed-up tricks.
-Hence, if you run big simulation with a lot indirect dimensions and data points, you might want to think about reducing detection to a minimum for the sake of speed.
+Keep in mind, that detection not only requires a significant amount of computing time, it also keeps <a class="esf" href="spidyan.html">spidyan</a> from using some of its speed-up tricks.
+Hence, if you run a big simulation with a lot of indirect dimensions and data points, you might want to think about reducing detection to a minimum for the sake of speed.
 
 <!-- ============================================================= -->
 <a name="bulldozer"><div class="subtitle">Enhancement of the central transition of a high-spin system</div></a>
@@ -469,8 +469,8 @@ legend(Exp.DetOperator)
 </pre>
 
 <p>
-shows how the first pulse shuffles polarization from one of the outer transitions to the central transition, and increasing the polarization on the central transition from 1 to to 2. 
-The second pulse does the same with the other out transition, raising the polarization of the central transition to 3!
+shows how the first pulse shuffles polarization from one of the outer transitions to the central transition, and increasing the polarization on the central transition from 1 to 2.
+The second pulse does the same with the other outer transition, raising the polarization of the central transition to 3!
 Try this with a <code>S = 5/2</code> or <code>S = 7/2</code> and see if you can achieve even larger enhancements - you might have to adapt the excitation bands of your pulses and add the correct detection operators!
 
 <p>
@@ -575,7 +575,7 @@ Opt.ExcOperator = {Op};
 <a name="rabi"><div class="subtitle">Rabi oscillation</div></a>
 
 <p>
-This is example is going how to setup a rabi oscillation with <a class="esf" href="spidyan.html">spidyan</a> using indirect dimensions.
+This example shows how to set up a Rabi oscillation with <a class="esf" href="spidyan.html">spidyan</a> using indirect dimensions.
 For more info on indirect dimension, please refer to the <a class="esf" href="spidyan.html#indirect_dimensions">documentation</a>.
 Once again, we start with the spin system: and then set up a very short 1 ns rectangular pulse.
 
@@ -625,7 +625,7 @@ Alternatively, we could have adapted <code>Exp.Sequence</code> and used <code>Ex
 <pre class="matlab">
 Exp.Sequence = {Pulse 0}; % append an event with length 0 &mu;s
 
-Exp.DetSequence = [0 1]; % detect only during the the second element in Exp.Sequence
+Exp.DetSequence = [0 1]; % detect only during the second element in Exp.Sequence
 </pre>
 
 <p>
@@ -696,13 +696,13 @@ Chirp90.Type = 'quartersin/linear';
 Chirp90.trise = 0.030;           % edge smoothing, &mu;s
 Chirp90.tp = 0.200;              % pulse length, &mu;s
 Chirp90.Flip = pi/2;             % flip angle, rad
-Chirp90.Frequency = [-120 120];  % excitation band, GHz
+Chirp90.Frequency = [-120 120];  % excitation band, MHz
 
 Chirp180.Type = 'quartersin/linear';
 Chirp180.trise = 0.030;             % smoothed edges, &mu;s
 Chirp180.tp = 0.100;                % pulse length, &mu;s
 Chirp180.Flip = pi;                 % flip angle, rad
-Chirp180.Frequency = [-120 120];    % excitation band, GHz
+Chirp180.Frequency = [-120 120];    % excitation band, MHz
 </pre>
 
 Next we build the pulse sequence, set field and carrierfrequency and set up detection: 
@@ -828,8 +828,7 @@ clf
 plot(t,abs(Signal));
 xlabel('t (\mus)')
 axis tight
-ylim([0 1])detect electron coherence
-Exp.DetFreq = 9.5; % GHz
+ylim([0 1])
 </pre>
 
 <!-- ============================================================= -->
@@ -842,8 +841,8 @@ This allows us to assign the real part of the wave to an excitation operator tha
 Look at the following example:
 
 <pre class="matlab">
-  CombinedPulses.IQ = real(mwPulse) + imag(rfPulse);
-  CombinedPulses.t = t_mwPulse);
+  CombinedPulses.IQ = real(mwPulse) + 1i*real(rfPulse);
+  CombinedPulses.t = t_mwPulse;
 
   Opt.ExcOperator{1} = sop([1/2 1/2],'xe') + 1i*sop([1/2 1/2],'ex');
   
@@ -855,11 +854,11 @@ Look at the following example:
 </pre>
 
 Here, we are working with a two-spin system <math>S = 1/2</math> and <math>I = 1/2</math> (you can tell that by the way we are calling <code>sop</code> when creating the excitation operator).
-We created two wave forms using <code>pulse</code> (not shown) <code>mwPulse</code> and <code>rfPulse</code> that we then stored in the <code>IQ</code> field of the <code>CombindePulses</code> structure - the microwave pulse in the real part and the rf pulse as the imaginary part.
+We created two wave forms using <code>pulse</code> (not shown), <code>mwPulse</code> and <code>rfPulse</code>, that we then stored in the <code>IQ</code> field of the <code>CombinedPulses</code> structure - the microwave pulse in the real part and the rf pulse as the imaginary part.
 The corresponding time axis is saved to <code>CombinedPulses.t</code> (both pulses must have the same length and time step).
 </p>
 <p>
-In the next step we assign spin selective operators: The electron spin is to get excited only real part of the pulse and the nucleus by the imaginary part.
+In the next step we assign spin selective operators: The electron spin is to get excited only by the real part of the pulse and the nucleus by the imaginary part.
 With <code>Exp.mwPolarization = 'circular'</code> we are letting <code>spidyan</code> (or <code>saffron</code>) know that it should expect a wave form that contains a real and an imaginary part.
 </p>
 <p>

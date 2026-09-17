@@ -71,7 +71,7 @@ orca hydroxyl.oif > hydroxyl.oof
 </pre>
 
 <p>
-This generate a long output text file <code>hydroxyl.oof</code>. Additionally, it generates a smaller file <code>hydroxyl_property.txt</code> that contains all the calculated properties. (Prior to version 5, ORCA generated a binary property file instead <code>hydroxyl.prop</code>.)
+This generates a long output text file <code>hydroxyl.oof</code>. Additionally, it generates a smaller file <code>hydroxyl_property.txt</code> that contains all the calculated properties. (Prior to version 5, ORCA generated a binary property file instead <code>hydroxyl.prop</code>.)
 </p>
 
 <!-- --------------------------------------------------------------------- -->
@@ -118,11 +118,11 @@ In the imported <code>Sys</code> structure above, the <code>Sys.Nucs</code> fiel
 </p>
 
 <p>
-Of course, the hyperfine values are isotope-specific. For example, in the absence of any isotope effects, the hyperfine values of <sup>2</sup>H are about 6.5 times smaller than those of <sup>1</sup>>H. The same holds for nuclear quadrupole coupling constants: They also depend on the isotope.
+Of course, the hyperfine values are isotope-specific. For example, in the absence of any isotope effects, the hyperfine values of <sup>2</sup>H are about 6.5 times smaller than those of <sup>1</sup>H. The same holds for nuclear quadrupole coupling constants: They also depend on the isotope.
 </p>
 
 <p>
-EasySpin uses the following convention to decide isotope of a given element the values in <code>Sys.A</code> and in <code>Sys.Q</code> refer to:
+EasySpin uses the following convention to decide which isotope of a given element the values in <code>Sys.A</code> and in <code>Sys.Q</code> refer to:
 
 <ol>
 <li><code>Sys.A</code> refers to the most abundant isotope among the isotopes with spin 1/2 or larger.

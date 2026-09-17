@@ -47,7 +47,7 @@ Spin system structures are used by many EasySpin functions, among them the simul
 <a class="esf" href="chili.html">chili</a> (slow-motion EPR),
 <a class="esf" href="garlic.html">garlic</a> (isotropic EPR),
 <a class="esf" href="pepper.html">pepper</a> (solid-state EPR),
-<a class="esf" href="salt.html">salt</a> (ENDOR)
+<a class="esf" href="salt.html">salt</a> (ENDOR),
 <a class="esf" href="saffron.html">saffron</a> (pulse EPR), and
 <a class="esf" href="curry.html">curry</a> (magnetometry).
 </p>
@@ -196,7 +196,7 @@ In the case of multiple atoms, <code>Abund</code> should be a cell array with a 
 
 <pre class="matlab">
 Sys.Nucs = '63Cu,(32,33)S';    % 63Cu with enriched 33S
-Sys.Abund = {1,[0.1,0.9]];     % 100% 63Cu, 10% 32S and 90% 33S
+Sys.Abund = {1,[0.1,0.9]};     % 100% 63Cu, 10% 32S and 90% 33S
 </pre>
 
 <p>
@@ -206,7 +206,7 @@ Custom and natural abundance mixtures and single isotopes can be all used at the
 <pre class="matlab">
 Sys.Nucs = 'Cu,(32,33)S,1H'; % natural Cu with enriched 33S and a pure 1H
 Sys.Abund = {1,[0.1,0.9],1}; % one way
-Sys.Abund = {[],[0.1,0.9],[]}; % another way, yieldig the same result
+Sys.Abund = {[],[0.1,0.9],[]}; % another way, yielding the same result
 </pre>
 
 </div>
@@ -309,7 +309,7 @@ Sys.g = [ 2.003397   -0.000431   -0.000004;...
          -0.000014    0.000013    2.002237];
 
 % full g tensors for two electron spins
-Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0, 0 0 2.1];
+Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0; 0 0 2.1];
 </pre>
 
 <p>
@@ -400,7 +400,7 @@ For axial and isotropic hyperfine tensors, the notation can be shortened, just a
 <pre class="matlab">
 Sys.A = [4 10];       % = [4 4 10]  (axial, 1 electron and 1 nucleus)
 Sys.A = 34;           % = [34 34 34] (isotropic, 1 electron and 1 nucleus)
-Sys.A = [4 10; 1 2];  % = [4 4 10; 1 1 2]  (axial, 1 electron and 2 nucleui)
+Sys.A = [4 10; 1 2];  % = [4 4 10; 1 1 2]  (axial, 1 electron and 2 nuclei)
 Sys.A = [7; 3];        % = [7 7 7; 3 3 3] (isotropic, 1 electron and 2 nuclei)
 </pre>
 
@@ -756,7 +756,7 @@ Sys.B4 = [0 132 0 0 0 0 0 0 0];  % B(4,q) with q = +4,+3,+2,+1,0,-1,-2,-3,-4
 The only nonzero elements in the above examples are therefore B(2,0) and B(4,+3).
 
 <p>
-Positive (and zero) q correspond to to the cosine tesseral operators, and negative q correspond to the sine tesseral operators.
+Positive (and zero) q correspond to the cosine tesseral operators, and negative q correspond to the sine tesseral operators.
 </p>
 
 <p>
@@ -1189,7 +1189,7 @@ This is fully analogous to <code>eeFrame</code> (see above). Check out the page 
 </div>
 
 <a name="soi"><div class="subtitle">Orbital angular momenta and spin-orbit interaction</div></a>
-Each electron spin in the spin system can be coupled to an orbital angular momentum, with the associated quantum number defined in the field <code>L</code> and the associated isotropic orbital g factors in the field <code>gL</code> . Spin-orbit coupling is specified via the field <code>soc</code>. Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
+Each electron spin in the spin system can be coupled to an orbital angular momentum, with the associated quantum number defined in the field <code>L</code> and the associated isotropic orbital g factors in the field <code>gL</code>. Spin-orbit coupling is specified via the field <code>soc</code>. Orbital angular momenta are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a> (magnetometry).
 
 <div class="optionfield"><code>L</code></div>
 <div class="optiondescr">
@@ -1238,16 +1238,16 @@ Sys.CF4 = -8700;                    % equivalent abbreviated form
 </pre>
 
 <p>
-If more than one electron spin (and therefore more than one orbital angular moment) is present, specify one row of 2k+1 elements for each orbital angular moment. The first row is for the first orbital angular moment, etc.
+If more than one electron spin (and therefore more than one orbital angular momentum) is present, specify one row of 2k+1 elements for each orbital angular momentum. The first row is for the first orbital angular momentum, etc.
 </p>
 
 <pre class="matlab">
 Sys.S = [5/2 2];     % two spins
 Sys.L = [1 2];       % with two orbital angular momenta
-CF20a = 100;          % for the first orbital angular moment
-CF20b = -98;          % for the second orbital angular moment
-Sys.CF2 = [0 0 CF20a 0 0; 0 0 CF20b 0 0]; % two rows: one row per orbital angular moment
-Sys.CF2 = [CF20a; CF20b];                 % abbreviated form for two orbital angular moment, two rows as well
+CF20a = 100;          % for the first orbital angular momentum
+CF20b = -98;          % for the second orbital angular momentum
+Sys.CF2 = [0 0 CF20a 0 0; 0 0 CF20b 0 0]; % two rows: one row per orbital angular momentum
+Sys.CF2 = [CF20a; CF20b];                 % abbreviated form for two orbital angular momenta, two rows as well
 </pre>
 
 <p>
@@ -1276,14 +1276,14 @@ Sys.gL = [0.97 0.93];  % gL for two orbital angular momenta
 
 <div class="optionfield"><code>soc</code></div>  
 <div class="optiondescr">
-Spin-orbit coupling constants, in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contain the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
+Spin-orbit coupling constants, in MHz. It can also contain higher orders of the spin-orbit coupling, as sometimes used for heavier elements. Each electron spin can only be coupled to one orbital angular momentum. If more than one electron is present, the first row contains the coupling between the first electron spin and the first orbital angular momentum and so on. Examples:
 <pre class="matlab">
 % three electron spins, with linear soc parameter of 170, 250 cm^-1 and 0:
-Sys.soc = unitconvert([170; 250; 0],'cm^-1->MHz);
-% as above, plus the first spin has a cubic soc parameter of 10 cm-^1:
-Sys.soc = unitconvert([170 0, 10; 250, 0, 0; 0, 0, 0],'cm^-1->MHz'); 
+Sys.soc = unitconvert([170; 250; 0],'cm^-1->MHz');
+% as above, plus the first spin has a cubic soc parameter of 10 cm^-1:
+Sys.soc = unitconvert([170 0, 10; 250, 0, 0; 0, 0, 0],'cm^-1->MHz');
 
-% two electron spin with S =1/2 and 1 and L = 2 and 1
+% two electron spins with S =1/2 and 1 and L = 2 and 1
 Sys.S = [1/2 1];
 Sys.L = [2 1];
 Sys.soc = unitconvert([200; 100],'cm^-1->MHz');
@@ -1294,11 +1294,11 @@ Sys.soc = unitconvert([200; 100],'cm^-1->MHz');
 
 <a name="Ham"><div class="subtitle">General parameters for spin Hamiltonian expanded in magnetic field and electron spin</div></a>
 <p>
-The Spin-Hamiltonian is in general a polynom of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameter are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR)and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
+The Spin-Hamiltonian is in general a polynomial of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameters are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
 </p>
 <div class="optionfield"><code>Ham</code></div>  
 <div class="optiondescr">
-The coefficients C(p<sub>B</sub>, p<sub>S</sub>, p, q) should be real and in units of MHz (mT)<sup>-p<sub>B</sub></sup>.The p<sub>B</sub>, p<sub>S</sub>, p are integrated in the field name in this order. If any of these fields are not given, they are treated as zero.
+The coefficients C(p<sub>B</sub>, p<sub>S</sub>, p, q) should be real and in units of MHz (mT)<sup>-p<sub>B</sub></sup>. The p<sub>B</sub>, p<sub>S</sub>, p are encoded in the field name in this order. If any of these fields are not given, they are treated as zero.
 Each field that is given should contain a row vector of 2p+1 parameters, in order of decreasing q, running from +p to -p. For example: 
 <pre class="matlab">
 Sys.Ham134 = [0 0 36 0 0 0 12 0 0 0]; % pB = 1, pS = 3, p = 4, q = +4,+3,+2,+1,0,-1,-2,-3,-4
@@ -1326,7 +1326,7 @@ For a full documentation of the line broadening fields in the spin system struct
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
 
 <p>
-For the simulation of spin-polarised systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The general syntax is
+For the simulation of spin-polarized systems, the non-equilibrium populations need to be specified in the field <code>Sys.initState</code>. The general syntax is
 </p>
 
 <pre class="matlab">
@@ -1430,12 +1430,12 @@ Sys.initState = {Sigma,'coupled'};
 <li>String shorthand specifying the initial state. The available shorthands are:
 
 <ul>
-<li> Spin polarisation arising from population of the singlet state for two coupled identical spins (e.g. spin-correlated radical pair with singlet precursor)
+<li> Spin polarization arising from population of the singlet state for two coupled identical spins (e.g. spin-correlated radical pair with singlet precursor)
 <pre class="matlab">
 Sys.initState = 'singlet';   % only possible if Sys.S = [1/2 1/2]
 </pre> 
 </p>
-<li> Spin polarisation arising from population of the T<sub>0</sub> sublevel in a triplet state (e.g. for a triplet formed by recombination from a spin-correlated radical pair state)
+<li> Spin polarization arising from population of the T<sub>0</sub> sublevel in a triplet state (e.g. for a triplet formed by recombination from a spin-correlated radical pair state)
 <pre class="matlab">
 Sys.initState = 'T0';
 </pre> 

@@ -97,7 +97,7 @@ The last line calls the simulation function, which plots the result. Copy and pa
 </p>
 
 <p>
-Of course, the names of the input and output variables don't have to be <code>Sys</code>, </code><code>Exp</code>, <code>x</code>, and <code>Spec</code>.
+Of course, the names of the input and output variables don't have to be <code>Sys</code>, <code>Exp</code>, <code>x</code>, and <code>Spec</code>.
 You can give them any name you like, as long as it is a valid MATLAB variable name, e.g., <code>FremySaltSolution</code> or <code>QbandExperiment</code>. For economy, throughout this tutorial, we will use short names like <code>Sys</code> and <code>Exp</code>.
 </p>
 
@@ -158,7 +158,7 @@ For more details on these static parameters of the spin system, see the document
 <a name="dynamics"><div class="subtitle">Dynamic parameters</div></a>
 
 <p>
-The spin system structure also collects parameters relating to the dynamics of the paramagnetic molecules. <code>chili</code> of Brownian diffusion
+The spin system structure also collects parameters relating to the dynamics of the paramagnetic molecules. <code>chili</code> models Brownian rotational diffusion.
 </p>
 
 <p>
@@ -378,7 +378,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 <a name="momd"><div class="subtitle">Orientational averaging</div></a>
 
 <p>
-In a frozen solution of spin-labelled protein, the protein molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if a orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
+In a frozen solution of spin-labelled protein, the protein molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if an orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
 </p>
 
 <p>
@@ -413,7 +413,7 @@ All numbers must be positive or zero. The first number is the maximum even L, th
 </p>
 
 <p>
-One approach to optimize the basis size is to start from <code>[2 0 0 0]</code> and increase each of the four numbers in turn, run the simulation, and see if the spectrum changes. Once the spectrum doesn't change anymore, the basis size large enough. If your spin system or rotational parameters change, you need to test the basis size again for convergence.
+One approach to optimize the basis size is to start from <code>[2 0 0 0]</code> and increase each of the four numbers in turn, run the simulation, and see if the spectrum changes. Once the spectrum doesn't change anymore, the basis size is large enough. If your spin system or rotational parameters change, you need to test the basis size again for convergence.
 </p>
 
 <p>
@@ -435,11 +435,11 @@ Opt.Verbosity = 2;     % print more information
 <a name="multinuc"><div class="subtitle">Spin centers with many nuclei</div></a>
 
 <p>
-The Stochastic Liouville equation solver in <code>chili</code> is capable of simulating slow-motional cw EPR spectra of systems with multiple nuclei. However, the computational cost increased rapidly with the number of spins, to a degree that simulations with more than three or four nuclei might be unbearably slow or may run out of memory.
+The Stochastic Liouville equation solver in <code>chili</code> is capable of simulating slow-motional cw EPR spectra of systems with multiple nuclei. However, the computational cost increases rapidly with the number of spins, to a degree that simulations with more than three or four nuclei might be unbearably slow or may run out of memory.
 </p>
 
 <p>
-There is a workaround for situations where the hyperfine coupling of one or two nuclei is significantly larger than those of all other nuclei. In that case, <code>chili</code> can be instructed via <code>Opt.PostConvNuclei</code> to use an approximate procedure: The slow-motional spectrum is simulated using only the electron spin and the nuclei with the dominant hyperfine couplings, and the resulting spectrum is convoluted with the isotropic splitting pattern due to all other nuclei. This post-convolution technique often gives reasonable results very close to the exact solution.
+There is a workaround for situations where the hyperfine coupling of one or two nuclei is significantly larger than those of all other nuclei. In that case, <code>chili</code> can be instructed via <code>Opt.PostConvNucs</code> to use an approximate procedure: The slow-motional spectrum is simulated using only the electron spin and the nuclei with the dominant hyperfine couplings, and the resulting spectrum is convoluted with the isotropic splitting pattern due to all other nuclei. This post-convolution technique often gives reasonable results very close to the exact solution.
 </p>
 
 <p>

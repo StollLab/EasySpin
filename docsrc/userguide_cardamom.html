@@ -29,7 +29,7 @@
 <div class="functitle">Simulating trajectory-based cw EPR spectra</div>
 
 <p>
-This user guide explains how to simulate trajectory-based cw EPR spectra of using EasySpin's function <a class="esf" href="cardamom.html">cardamom</a>. It is assumed that you are familiar with the basics of MATLAB, esp. with structures.
+This user guide explains how to simulate trajectory-based cw EPR spectra using EasySpin's function <a class="esf" href="cardamom.html">cardamom</a>. It is assumed that you are familiar with the basics of MATLAB, esp. with structures.
 </p>
 
 This user guide contains the following topics:
@@ -100,7 +100,7 @@ Doing a simulation only requires a few lines of code. A simple example is
 Sys = struct('g',[2.008,2.006,2.003],'Nucs','14N','A',[20,20,85]);
 Sys.tcorr = 4e-8;
 Exp = struct('mwFreq',9.5);
-Par = struct('dtSpin',2e-9,'dtSpatial',2e-9,'nSteps',100,'nTraj'400);
+Par = struct('dtSpin',2e-9,'dtSpatial',2e-9,'nSteps',100,'nTraj',400);
 cardamom(Sys,Exp,Par);
 </pre>
 
@@ -117,10 +117,10 @@ Copy and paste the code above to your MATLAB command window to see the graph.
 
 <p>
 Of course, the names of the input and output variables don't have
-to be <code>Sys</code>, <code>Par</code>, </code><code>Exp</code>, <code>Field</code>, and <code>Spec</code>.
+to be <code>Sys</code>, <code>Par</code>, <code>Exp</code>, <code>Field</code>, and <code>Spec</code>.
 You can give them any name you like, as long as it is a valid MATLAB
 variable name, e.g., <code>FremySaltSolution</code> or <code>QbandExperiment</code>.
-For convenience, thoughout this tutorial, we will use short names like <code>Sys</code> and <code>Exp</code>.
+For convenience, throughout this tutorial, we will use short names like <code>Sys</code> and <code>Exp</code>.
 </p>
 
 <!-- ============================================================= -->
@@ -143,7 +143,7 @@ The first line defines the g tensor of the spin system via its three principal v
 
 <p>
 The field <code>Sys.Nucs</code> contains a character array giving all the magnetic nuclei in the spin system, a nitrogen-14 in the above example. 
-If <code>Sys.Nucs</code> is not specified, <code>cardamom</code> always assumes a <sup>14</sup>N nitroxide spin label. If a simulation with a different type of nucleus is desired, then a different simulation method called <code>'ISTOs'</code>needs to be declared in <code>Opt.Method</code>. For more details, please see <a class="esf" href="cardamom.html">cardamom</a>.
+If <code>Sys.Nucs</code> is not specified, <code>cardamom</code> always assumes a <sup>14</sup>N nitroxide spin label. If a simulation with a different type of nucleus is desired, then a different simulation method called <code>'ISTOs'</code> needs to be declared in <code>Opt.Method</code>. For more details, please see <a class="esf" href="cardamom.html">cardamom</a>.
 <!-- 
 Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multinuclear systems</a> about details of the slow-motion simulation in that case.
 -->
@@ -247,7 +247,7 @@ Diff = 1/6/tcorr;
 
 <p>	
 The input field <code>Diff</code> can be used to specify an axial rotational diffusion
-tensor, by giving a 2-element vector with first the perpendicular and the the parallel
+tensor, by giving a 2-element vector with first the perpendicular and then the parallel
 principal value:
 
 <pre class="matlab">
@@ -268,8 +268,8 @@ Alternatively, the transition probability matrix <code>TransProb</code> can be g
 </p>
 
 <pre class="matlab">
-Sys.TransRates = [0.3, 0.36;
-                  0.7, 0.64];
+Sys.TransProb = [0.3, 0.36;
+                 0.7, 0.64];
 </pre>
 
 <p>
@@ -282,7 +282,7 @@ Sys.Orientations = [   0,    0, 0;
 </pre>
 
 <p>
-The fields <code>Sys.lwpp</code> and <code>Sys.lw</code> has the same meaning as for the other EPR simulation functions (<a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>,
+The fields <code>Sys.lwpp</code> and <code>Sys.lw</code> have the same meaning as for the other EPR simulation functions (<a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>,
 <a class="esf" href="pepper.html">pepper</a>). You can use them to specify an additional convolution Gaussian and/or Lorentzian broadening in mT (<code>Sys.lwpp</code> for peak-to-peak, and <code>Sys.lw</code> for full width at half maximum).
 </p>
 
@@ -291,7 +291,7 @@ Sys.lwpp = [0.05 0.01];   % [GaussianPP, LorentzianPP] in mT
 </pre>
 
 <p>
-For the reliability of the simulation algorithm we recommend to add a small residual Lorentzian broadening in <code>Sys.lwpp</code>.
+For the reliability of the simulation algorithm we recommend adding a small residual Lorentzian broadening in <code>Sys.lwpp</code>.
 </p>
 
 
@@ -438,7 +438,7 @@ Since <code>cardamom</code> calculates cw EPR spectra by first simulating spin d
 </p>
 
 <pre class="matlab">
-Par.dtStoch = 1e-9; % spatial propagation
+Par.dtSpatial = 1e-9; % spatial propagation
 </pre>
 
 <p>

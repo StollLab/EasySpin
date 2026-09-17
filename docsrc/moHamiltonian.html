@@ -35,10 +35,10 @@ is in general a sum of terms with
 $\left(\boldsymbol{B}\right)^{p_B}\cdot\left(\widehat{\boldsymbol{S}}\right)^{
 p_S}$
 -->
-, with p<sub>B</sub> and p<sub>S</sub> non-negative integers. p<sub>B</sub> +p<sub>S</sub> has to be even to fulfil time-reversal invariance. Only terms with p<sub>S</sub> &le; 2S are effective. Mc Gavine et al. formulated such general spin Hamiltonian using tesseral harmonics. Advantages are the following:
+, with p<sub>B</sub> and p<sub>S</sub> non-negative integers. p<sub>B</sub> +p<sub>S</sub> has to be even to fulfil time-reversal invariance. Only terms with p<sub>S</sub> &le; 2S are effective. McGavin et al. formulated such general spin Hamiltonian using tesseral harmonics. Advantages are the following:
 <ul>
 <li> behavior of all terms under axis rotation is straightforward to establish
-<li> the same symmetry selection rules as for the crystal field applies and can be readily adopted.
+<li> the same symmetry selection rules as for the crystal field apply and can be readily adopted.
 </ul>
 This general spin Hamiltonian can be written as:
 <img src="eqn/moHamiltonian2.png" alt="[eqn]"><!--MATH
@@ -104,17 +104,17 @@ $\boldsymbol{B} = \left( r_B, \theta_B, \phi_B\right)^\text{T}$
 --> and <img src="eqn/moHamiltonian5.png" alt="[eqn]"><!--MATH
 $Y_{p_B}^{q_B}\left(\theta_B,\phi_B\right)$
 --> denote the spherical harmonics.
-Prefactors A<sub>p<sub></sub></sub><sup>q<subS</sub></sup> and &alpha;<sub>p<sub>B</sub></sub> are tabulated in McGavin et al.
-<img src="eqn/moHamiltonian6.png" alt="[eqn]"><!--MATH  
+Prefactors A<sub>p<sub>S</sub></sub><sup>q<sub>S</sub></sup> and &alpha;<sub>p<sub>B</sub></sub> are tabulated in McGavin et al.
+<img src="eqn/moHamiltonian6.png" alt="[eqn]"><!--MATH
 $\begin{pmatrix}
   p_B & p_S & p \\
   q_B & q_S & -q
- \end{pmatrix}$ 
---> is a Wigner 3-j symbol.Wigner 3j symbols are zero unless q<sub>B</sub> + q<sub>S</sub> = q and <img src="eqn/moHamiltonian7.png" alt="[eqn]"><!--MATH
+ \end{pmatrix}$
+--> is a Wigner 3-j symbol. Wigner 3-j symbols are zero unless q<sub>B</sub> + q<sub>S</sub> = q and <img src="eqn/moHamiltonian7.png" alt="[eqn]"><!--MATH
 $\left|p_B-p_S\right| \leq p \leq p_B + p_S$
 -->. The parameters describing the spin system are the <img src="eqn/moHamiltonian8.png" alt="[eqn]"><!--MATH
 $C_{p,q}^{p_B,p_S}$
--->. They are given in units of Energy (Magnetic Field)<sup>p<sub>B</sub></sup>, which correspond in Easyspin to MHz (mT)<sup>p<sub>B</sub></sup>.
+-->. They are given in units of Energy (Magnetic Field)<sup>p<sub>B</sub></sup>, which correspond in EasySpin to MHz (mT)<sup>p<sub>B</sub></sup>.
 The allowed coefficients have p an even integer numbers between |p<sub>B</sub>-p<sub>S</sub>| and p<sub>B</sub>+p<sub>S</sub> and q integer number between -p and +p. 
 For example for p<sub>B</sub> = 1 and p<sub>S</sub> = 3 
 the 
@@ -128,11 +128,11 @@ following coefficients are allowed:
 = 1,p_S = 3}, C_{4,1}^{p_B = 1,p_S = 3},\nonumber\\
 &C_{4,0}^{p_B = 1,p_S = 3},& 
 C_{4,-1}^{p_B = 1,p_S = 3}, C_{4,-2}^{p_B = 1,p_S = 3},C_{4,-3}^{p_B = 1,p_S = 
-3} C_{4,-4}^{p_B = 1,p_S = 3}. \nonumber
+3}, C_{4,-4}^{p_B = 1,p_S =3}. \nonumber
 \end{eqnarray}
 -->
 <p>
-Next we will derive the coefficients <img src="eqn/moHamiltonian10.png" alt="[eqn]"><!--MATH $C_{p,q}^{p_B,p_S}$ --> for Hamiltonian's 
+Next we will derive the coefficients <img src="eqn/moHamiltonian10.png" alt="[eqn]"><!--MATH $C_{p,q}^{p_B,p_S}$ --> for Hamiltonians
 widely used in spin physics.
 <!-- ============================================================= -->
 <div class="subtitle"><a name="l">Electron Zeeman Interaction</a></div>
@@ -163,15 +163,15 @@ with symmetric g matrix and the Bohr magneton &mu;<sub>B</sub>. We can construct
 <div class="subtitle"><a name="l">Zero-Field Hamiltonian</a></div>
 The zero-field terms in the spin Hamiltonian are commonly expressed as:
 <img src="eqn/moHamiltonian14.png" alt="[eqn]"><!--MATH
-$ \widehat{H}_\text{zero-field} \left(\widehat{\boldsymbol{S}}\right)= \sum_{p_S 
-= 
-2}^{2S} \sum_{q_S = - p_S}^{ps} B_{p_S}^{q_S}\cdot 
+$ \widehat{H}_\text{zero-field} \left(\widehat{\boldsymbol{S}}\right)= \sum_{p_S
+=
+2}^{2S} \sum_{q_S = - p_S}^{p_S} B_{p_S}^{q_S}\cdot
 \widehat{O}_{p_S}^{q_S}\left(\widehat{\boldsymbol{S}}\right)$
 -->
-However, the most common form which is quadratic in S
-and 
-consider 
-the diagonal terms in a trace-free representation is:
+However, the most common form, which is quadratic in S
+and
+considers
+the diagonal terms in a trace-free representation, is:
 <img src="eqn/moHamiltonian15.png" alt="[eqn]"><!--MATH
 \begin{eqnarray}
  \nonumber \widehat{H}_\text{DE} \left(\widehat{\boldsymbol{S}}\right) &=&
