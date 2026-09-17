@@ -470,7 +470,7 @@ end
 if immediateBinning
   B = [];
   Int = [];
-  Wid = [];
+  lw = [];
   Transitions = [];
   spec = spec/dB/prod(nNucStates);
   spec = spec*(2*pi); % powder chi integral
@@ -489,49 +489,53 @@ else
   % Widths
   %-------------------------------------------------------------------
   if any(Sys.HStrain)
-    lw2 = sum(Sys.HStrain.^2*vecs.^2,1); % MHz^2
-    lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3; % mT
-    Wid = repmat(lw,nNucTrans*2*S,1);
+    lw2 = sum(Sys.HStrain.^2*vecs.^2,1);  % MHz^2
+    lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3;  % MHz -> mT
+    lw = repmat(lw,nNucTrans*2*S,1);
   else
-    Wid = 0;
+    lw = 0;
   end
   
   if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
     
     if any(Sys.gStrain(:))
-      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3;  % -> MHz
+      lw_g = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3;  % -> MHz
       if any(Sys.gFrame(:))
         R_g2M = erot(Sys.gFrame(1,:)).';  % g frame -> molecular frame
-        gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
+      else
+        R_g2M = eye(3);
       end
     else
-      gStrainMatrix = zeros(3);
+      lw_g = zeros(3);
     end
     
     if any(Sys.AStrain) && Sys.nNuclei>0
-      AStrainMatrix = diag(Sys.AStrain);
+      lw_A = diag(Sys.AStrain);
       if isfield(Sys,'AFrame')
-        Rp = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame
-        AStrainMatrix = Rp*AStrainMatrix*Rp.';
-      end
-      corr = Sys.gAStrainCorr;
-      mI1 = -Sys.I(1):+Sys.I(1);
-      for idx = 1:numel(mI1)
-        StrainMatrix = gStrainMatrix + corr*(mI1(idx))*AStrainMatrix;
-        for iOri = 1:nOrientations
-          lw2(idx,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
+        if any(Sys.gFrame~=Sys.AFrame(1,:))
+          error('For g/A strain, the g and A tensors must be collinear.');
         end
       end
-      Wid_gA = sqrt(lw2)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3; % MHz -> mT
-      idx = repmat(1:numel(mI1),2*S*nNucTrans/numel(mI1),1);
-      Wid = sqrt(Wid_gA(idx(:),:).^2 + Wid.^2);
-    else
-      StrainMatrix = gStrainMatrix;
-      for iOri = 1:nOrientations
-        lw2(1,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
+      rho = Sys.gAStrainCorr;  % correlation coefficient
+      mI1 = -Sys.I(1):+Sys.I(1);
+      for idx = 1:numel(mI1)
+        lw_A_ = mI1(idx).*lw_A;
+        lw2_gA_ = lw_g.^2 + lw_A_.^2 + 2*rho*lw_g.*lw_A_;
+        lw2_gA_ = R_g2M*lw2_gA_*R_g2M.';
+        for iOri = 1:nOrientations
+          lw2_gA(idx,iOri) = vecs(:,iOri).'*lw2_gA_*vecs(:,iOri);
+        end
       end
-      Wid_gA = sqrt(lw2)*planck*1e6./geff/bmagn*1e3; % MHz -> mT
-      Wid = sqrt(repmat(Wid_gA.^2,2*S*nNucTrans,1)+Wid.^2);
+      whos lw2 geff mI1
+      lw_gA = sqrt(lw2_gA)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3;  % MHz -> mT
+      idx = repmat(1:numel(mI1),2*S*nNucTrans/numel(mI1),1);
+      lw = sqrt(lw_gA(idx(:),:).^2 + lw.^2);
+    else
+      for iOri = 1:nOrientations
+        lw2(1,iOri) = vecs(:,iOri).'*R_g2M*lw_g.^2*R_g2M.'*vecs(:,iOri);
+      end
+      lw_gA = sqrt(lw2)*planck*1e6./geff/bmagn*1e3;  % MHz -> mT
+      lw = sqrt(repmat(lw_gA.^2,2*S*nNucTrans,1)+lw.^2);
     end
 
   elseif any(Sys.DStrain(:))
@@ -603,12 +607,12 @@ if nSites>1 && ~pepperCall
   siz = [nTransitions*nSites, numel(B)/nTransitions/nSites];
   B = reshape(B,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end
-  if ~isempty(Wid), Wid = reshape(Wid,siz); end
+  if ~isempty(lw), lw = reshape(lw,siz); end
 end
 
 % Arrange output
 %---------------------------------------------------------------
-Output = {B,Int,Wid,Transitions,spec};
+Output = {B,Int,lw,Transitions,spec};
 varargout = Output(1:max(nargout,1));
 
 end
