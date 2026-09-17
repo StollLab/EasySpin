@@ -1654,6 +1654,15 @@
           "integer"
         ],
         "purpose": "detection harmonic of modulated spectrum, default 1"
+      },
+      {
+        "name": "Method",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'fft', 'conv'}"
+        ],
+        "purpose": "calculation method, default 'fft'"
       }
     ]
   },
@@ -3822,47 +3831,6 @@
     ]
   },
   "quat2euler": {
-    "description": "Converts unit quaternion(s) to Euler angles",
-    "inputs": [
-      {
-        "name": "q0",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "first component of unit quaternion(s)"
-      },
-      {
-        "name": "q1",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "second component of unit quaternion(s)"
-      },
-      {
-        "name": "q2",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "third component of unit quaternion(s)"
-      },
-      {
-        "name": "q3",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "fourth component of unit quaternion(s)"
-      }
-    ]
-  },
-  "quat2euler": {
     "description": "Euler angles from unit quaternions",
     "inputs": [
       {
@@ -3877,47 +3845,6 @@
     ]
   },
   "quat2rotmat": {
-    "description": "Converts unit quaternion(s) to rotation matix(ices)",
-    "inputs": [
-      {
-        "name": "q0",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "first component of unit quaternion(s)"
-      },
-      {
-        "name": "q1",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "second component of unit quaternion(s)"
-      },
-      {
-        "name": "q2",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "third component of unit quaternion(s)"
-      },
-      {
-        "name": "q3",
-        "kind": "required",
-        "type": [
-          "numeric",
-          "nrows=1"
-        ],
-        "purpose": "fourth component of unit quaternion(s)"
-      }
-    ]
-  },
-  "quat2euler": {
     "description": "Converts unit quaternion(s) to rotation matix(ices)",
     "inputs": [
       {
