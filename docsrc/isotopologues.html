@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+   <meta charset="utf-8">
+   <link rel="icon" href="img/eslogo196.png">
+   <link rel="stylesheet" type="text/css" href="style.css">
+   <link rel="stylesheet" href="highlight/matlab.css">
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
+   <title>isotopologues</title>
+</head>
+
+<body>
+
+<header>
+<ul>
+<li><img src="img/eslogo42.png">
+<li class="header-title">EasySpin
+<li><a href="index.html">Documentation</a>
+<li><a href="references.html">Publications</a>
+<li><a href="http://easyspin.org" target="_blank">Website</a>
+<li><a href="http://easyspin.org/academy" target="_blank">Academy</a>
+<li><a href="http://easyspin.org/forum" target="_blank">Forum</a>
+</ul>
+</header>
+
+<section>
+
+<div class="functitle">isotopologues</div>
+
+<p>
+Generate list of isotopologues.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Syntax</div>
+
+<pre class="matlab">
+isotopologues(NucList)
+isotopologues(NucList,nEquiv)
+isotopologues(NucList,nEquiv,Abundances)
+isotopologues(NucList,nEquiv,Abundances,relThreshold)
+isotopologues(Sys)
+isotopologues(Sys,relThreshold)
+out = isotopologues(...)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">Description</div>
+
+<p>
+This function computes all possible isotopologues of a given list of nuclei or elements, along with their abundances. It is a stand-alone version of the isotope-mixture handling that EasySpin's simulation functions perform internally for spin systems that contain natural-abundance or custom isotope mixtures (see the description of <a href="spinsystem.html"><code>Sys.Nucs</code></a>).
+</p>
+
+<p>
+<code>NucList</code> is a character array with a comma-separated list of nuclei or elements, using the same syntax as <a href="spinsystem.html"><code>Sys.Nucs</code></a>, e.g. <code>'Cu'</code> for a natural-abundance mixture of copper isotopes, <code>'63Cu'</code> for a single isotope, or <code>'(12,13)C'</code> for a custom isotope mixture.
+</p>
+
+<p>
+<code>nEquiv</code> is a vector giving the number of equivalent nuclei for each entry in <code>NucList</code> (analogous to <a href="spinsystem.html"><code>Sys.n</code></a>). If omitted, it defaults to 1 for each nucleus.
+</p>
+
+<p>
+<code>Abundances</code> is a cell array with one entry per nucleus, giving custom isotope abundances for any custom isotope mixtures in <code>NucList</code> (analogous to <a href="spinsystem.html"><code>Sys.Abund</code></a>). Use <code>[]</code> for natural-abundance mixtures and single isotopes.
+</p>
+
+<p>
+<code>relThreshold</code> is the abundance threshold for isotopologues to be included in the output, relative to the abundance of the most abundant isotopologue. It must be between 0 and 1. Isotopologues less abundant than this are dropped. The default is <code>1e-4</code>.
+</p>
+
+<p>
+Instead of <code>NucList</code>, <code>nEquiv</code> and <code>Abundances</code>, a spin system structure <code>Sys</code> with fields <code>Nucs</code>, <code>n</code> and <code>Abund</code> can be given directly. If <code>Sys</code> also contains hyperfine and/or quadrupole fields (<code>A</code>, <code>A_</code>, <code>Q</code>, <code>AFrame</code>, <code>QFrame</code>), these are included in the output and rescaled for each isotope combination according to its nuclear g values and quadrupole moments.
+</p>
+
+<p>
+If an output is requested, <code>out</code> is a structure array with one element per isotopologue, with the fields
+</p>
+
+<pre>
+out(k).Nucs     comma-separated list of isotopes for this isotopologue
+out(k).n        number of equivalent nuclei for each isotope
+out(k).weight   absolute abundance (statistical weight) of this isotopologue
+</pre>
+
+<p>
+plus, if <code>Sys</code> was given, the corresponding rescaled <code>A</code>, <code>A_</code>, <code>Q</code>, <code>AFrame</code> and <code>QFrame</code> fields.
+</p>
+
+<p>
+If no output is requested, the list of isotopologues is printed to the command window instead.
+</p>
+
+<!-- =================================================================== -->
+<div class="subtitle">Examples</div>
+
+<p>
+Copper has two naturally occurring isotopes, <sup>63</sup>Cu and <sup>65</sup>Cu. Without an output argument, the isotopologues and their abundances are printed:
+</p>
+
+<pre class="matlab">
+isotopologues('Cu')
+</pre>
+<pre class="mloutput">
+Sys.Abund   Sys.Nucs Sys.n
+  0.691700   63Cu     1
+  0.308300   65Cu     1
+2 of 2 isotopologues with abundance above threshold (1.00e-04)
+</pre>
+
+<p>
+With two elements, all combinations of isotopes are generated:
+</p>
+
+<pre class="matlab">
+isotopologues('Cu,N')
+</pre>
+<pre class="mloutput">
+Sys.Abund   Sys.Nucs    Sys.n
+  0.689155   63Cu,14N     1  1
+  0.002545   63Cu,15N     1  1
+  0.307165   65Cu,14N     1  1
+  0.001135   65Cu,15N     1  1
+4 of 4 isotopologues with abundance above threshold (1.00e-04)
+</pre>
+
+<p>
+With an output argument, the list is returned as a structure array instead of being printed:
+</p>
+
+<pre class="matlab">
+out = isotopologues('Cu,N');
+out(1)
+</pre>
+<pre class="mloutput">
+ans =
+  struct with fields:
+
+      Nucs: '63Cu,14N'
+         n: [1 1]
+    weight: 0.6892
+</pre>
+
+<p>
+Two equivalent copper nuclei give three isotopologues, since <sup>63</sup>Cu/<sup>65</sup>Cu and <sup>65</sup>Cu/<sup>63</sup>Cu are indistinguishable:
+</p>
+
+<pre class="matlab">
+isotopologues('Cu',2)
+</pre>
+<pre class="mloutput">
+Sys.Abund   Sys.Nucs     Sys.n
+  0.478449   63Cu          2
+  0.426502   63Cu,65Cu     1  1
+  0.095049   65Cu          2
+3 of 3 isotopologues with abundance above threshold (1.00e-04)
+</pre>
+
+<!-- =================================================================== -->
+<div class="subtitle">See also</div>
+<p>
+<a href="spinsystem.html">spin system structures</a>,
+<a class="esf" href="isotopes.html">isotopes</a>,
+<a class="esf" href="nucabund.html">nucabund</a>,
+<a class="esf" href="nucdata.html">nucdata</a>,
+<a class="esf" href="nucspinadd.html">nucspinadd</a>,
+<a class="esf" href="nucspinkeep.html">nucspinkeep</a>,
+<a class="esf" href="nucspinrmv.html">nucspinrmv</a>
+</p>
+
+<hr>
+</section>
+
+<footer></footer>
+
+</body>
+</html>

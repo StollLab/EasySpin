@@ -20,11 +20,11 @@
 %      Abundances    cell array of nuclear abundances
 %      relThreshold  isotopologue abundance threshold, relative to
 %                       abundance of most abundant isotopologue
-%                       (between 0 and 1, default 0.001)
+%                       (between 0 and 1, default 1e-4)
 %
 %    out                 structure array containing a list of all isotopologues
 %       out(k).Nucs      string with list of isotopes
-%       out(k).Abund     overall absolute abundance
+%       out(k).weight    overall absolute abundance
 %       out(k).n         number of equivalent nuclei
 %
 %    If out is not requested, the list of isotopologues is displayed.
@@ -80,7 +80,11 @@ else
   if nargin>4
     error('At most four inputs are possible.');
   end
-  
+
+end
+
+if relAbundanceThreshold<0 || relAbundanceThreshold>1
+  error('relThreshold must be between 0 and 1.');
 end
 
 if ~ischar(NucList) && ~isstring(NucList)
@@ -96,8 +100,13 @@ end
 %===============================================================================
 if isempty(NucList)
   if nargout==0
+    if SysInput && isfield(Sys,'weight') && ~isempty(Sys.weight)
+      absWeight = Sys.weight;
+    else
+      absWeight = 1;
+    end
     fprintf('Abs.Abund   Rel.Abund   Composition\n');
-    fprintf('1.000       1.000       (no nuclei)\n');
+    fprintf('%0.3f       1.000       (no nuclei)\n',absWeight);
   else
     if SysInput
       if ~isfield(Sys,'weight'), Sys.weight = 1; end
@@ -251,7 +260,7 @@ for iNuc = 1:nNucs
     % Explicit single isotope
     
     MassNumbers = sscanf(N,'%d');
-    Element{iNuc} = N(floor(log10(MassNumbers)+1)+1:end);
+    Element{iNuc} = N(numel(sprintf('%d',MassNumbers))+1:end);
     isoAbundances = 1;
     
   end
