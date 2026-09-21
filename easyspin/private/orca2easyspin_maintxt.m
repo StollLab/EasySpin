@@ -112,7 +112,7 @@ for iStructure = 1:nStructures
       break
     end
   end
-  Charge = str2double(regexp(L{k},'\d+$','match','once'));
+  Charge = str2double(regexp(L{k},'-?\d+$','match','once'));
   data(iStructure).Charge = Charge;
 
   % Spin multiplicity
