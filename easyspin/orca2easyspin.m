@@ -53,10 +53,6 @@ end
 %--------------------------------------------------------------------------
 [output_path,output_name,output_ext] = fileparts(OrcaOutput);
 
-if output_ext==".txt" && numel(output_name)>9 && output_name(end-8:end)=="_property"
-  error('orca2easyspin() currently does not support reading spin Hamiltonian parameters from _property.txt files. Provide the main output file instead.')
-end
-
 if output_ext==".prop"
   % binary property file (ORCA versions < 5)
   readmode = 'propbin';
@@ -66,6 +62,7 @@ if output_ext==".prop"
 elseif output_ext==".txt" && numel(output_name)>9 && output_name(end-8:end)=="_property"
   % text-based property file (ORCA versions >= 5)
   readmode = 'proptxt';
+  error('orca2easyspin() currently does not support reading spin Hamiltonian parameters from _property.txt files. Provide the main output file instead.');
   mainOutputFile = fullfile(output_path,output_name(1:end-9));
   binaryPropFile = '';
   textPropFile = fullfile(output_path,[output_name output_ext]);
@@ -107,7 +104,7 @@ end
 %--------------------------------------------------------------------------
 switch readmode
   case "mainout"
-    Sys = orca2easyspin_maintxt(mainOutputFile);
+    Sys = orca2easyspin_mainout(mainOutputFile);
   case "propbin"
     Sys = orca2easyspin_propbin(binaryPropFile);
   case "proptxt"
@@ -130,18 +127,18 @@ if ~exist(mainOutputFile,'file')
   return
 end
 maxLines = 50; % limit search to initial lines
-if ~isempty(mainOutputFile)
-  fh = fopen(mainOutputFile);
-  idx = 0;
-  while isempty(OrcaVersion) && idx<maxLines && ~feof(fh)
-    idx = idx + 1;
-    thisLine = fgetl(fh);
-    OrcaVersion = regexp(thisLine,'\d+\.\d+\.\d+','match','once');
+fh = fopen(mainOutputFile);
+idx = 0;
+while isempty(OrcaVersion) && idx<maxLines
+  idx = idx + 1;
+  thisLine = fgetl(fh);
+  if ~ischar(thisLine)  % reached end of file
+    break
   end
-  fclose(fh);
+  OrcaVersion = regexp(thisLine,'\d+\.\d+\.\d+','match','once');
 end
+fclose(fh);
 end
-
 
 % Remove all nuclei with hyperfine coupling strength below a threshold
 function Sys = nucspinhftrim(Sys,HyperfineCutoff)
@@ -149,7 +146,7 @@ if isfield(Sys,'Nucs') && isfield(Sys,'A')
   for iSys = 1:numel(Sys)
     Amax = max(abs(Sys(iSys).A),[],2);
     keep = Amax > abs(HyperfineCutoff);
-    if ~isfield(Sys,'Nucs') || isempty(Sys.Nucs)
+    if isempty(Sys(iSys).Nucs)
       continue
     end
     Nucs = Sys(iSys).Nucs;
