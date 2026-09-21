@@ -1,6 +1,6 @@
 % orca2easyspin_maintxt   Read EPR properties from main ORCA output file
 
-function [Sys,info] = orca2easyspin_maintxt(mainfile)
+function [Sys,data] = orca2easyspin_maintxt(mainfile)
 
 % File import and checks
 %--------------------------------------------------------------------------
@@ -24,7 +24,7 @@ end
 % Determine ORCA version
 versionLine = contains(L,'Program Version');
 OrcaVersion = regexp(L{versionLine},'\d+\.\d+\.\d+','match','once');
-info.OrcaVersion = OrcaVersion;
+data.OrcaVersion = OrcaVersion;
 
 
 % Extract contents of input file
@@ -36,7 +36,7 @@ while L{k}(1)=='|', k = k+1; end
 endInput = k - 2;
 inputFile = L(startInput:endInput);
 inputFile = regexprep(inputFile,'^\|\s*\d+>\s+','');
-info.InputFile = char(inputFile);
+data.InputFile = char(inputFile);
 
 
 % Determine whether the file contains multiple structures
@@ -78,7 +78,6 @@ end
 
 % Loop over all structures and read properties
 %--------------------------------------------------------------------------
-data = struct;
 for iStructure = 1:nStructures
 
   if iStructure<nStructures
@@ -160,24 +159,26 @@ for iStructure = 1:nStructures
       k = k+1;
     end
     % Read raw asymmetric g matrix and symmetrize
-    g_raw = readmatrix(L(k+(1:3)));
-    g_sym = (g_raw.'*g_raw)^(1/2);
-    g_sym = (g_sym+g_sym.')/2;  % eliminate numerical errors
-    % Diagonalize to get eigenvalues and eigenvectors
-    [V,g] = eig(g_sym);
+    graw = readmatrix(L(k+(1:3)));
+    gsym = sqrtm(graw*graw.');
+    gsym = (gsym+gsym.')/2;  % eliminate numerical errors
+    % Diagonalize to get eigenvalues and eignevectors
+    [R_g2M,g] = eig(gsym);
     gvals = diag(g).';
-    if det(V)<0
-      V(:,1) = -V(:,1);
+    % Enforce right-handed frame
+    if det(R_g2M)<0
+      R_g2M(:,1) = -R_g2M(:,1);
     end
-    gFrame = eulang(V.');
+    R_M2g = R_g2M.';
+    gFrame = eulang(R_M2g);
   else
-    g_raw = [];
-    g_sym = [];
+    graw = [];
+    gsym = [];
     gvals = [];
     gFrame = [];
   end
-  data(iStructure).graw = g_raw;
-  data(iStructure).g = g_sym;
+  data(iStructure).graw = graw;
+  data(iStructure).g = gsym;
   data(iStructure).gvals = gvals;
   data(iStructure).gFrame = gFrame;
 
@@ -185,29 +186,25 @@ for iStructure = 1:nStructures
   %------------------------------------------------------------------------
   k = findheader('ZERO-FIELD-SPLITTING TENSOR',L,krange);
   if ~isempty(k)
-    % read raw D matrix (cm^-1) and diagonalize
-    D_raw = readmatrix(L(k+3:k+5));
-    recalcVecs = true;
-    if recalcVecs
-      [D_vecs,D_vals] = eig(D_raw);
-      D_vals = diag(D_vals).';
-      if det(D_vecs)<0
-        D_vecs(:,1) = -D_vecs(:,1);
-      end
-    else
-      D_vals = sscanf(L{k+8},'%f %f %f').';
-      D_vecs = readmatrix(L(k+9:k+11));
+    % Read raw D matrix (cm^-1)
+    Draw = readmatrix(L(k+3:k+5));
+    Draw = Draw*100*clight/1e6;  % cm^-1 -> MHz
+    % Diagonalize to get eigenvalues and eigenvectors
+    [R_D2M,D] = eig(Draw);
+    Dvals = diag(D).';
+    % Enforce right-handed frame
+    if det(R_D2M)<0
+      R_D2M(:,1) = -R_D2M(:,1);
     end
-    D_raw = D_raw*100*clight/1e6;  % cm^-1 -> MHz
-    D_vals = D_vals*100*clight/1e6;  % cm^-1 -> MHz
-    DFrame = eulang(D_vecs.');
+    R_M2D = R_D2M.';
+    DFrame = eulang(R_M2D);
   else
-    D_raw = [];
-    D_vals = [];
+    Draw = [];
+    Dvals = [];
     DFrame = [];
   end
-  data(iStructure).Draw = D_raw;
-  data(iStructure).Dvals = D_vals;
+  data(iStructure).Draw = Draw;
+  data(iStructure).Dvals = Dvals;
   data(iStructure).DFrame = DFrame;
 
   % Hyperfine and electric field gradient
@@ -244,10 +241,11 @@ for iStructure = 1:nStructures
           idx = idx+1;
         end
         % Read principal values and eigenvectors
-        A_vals = sscanf(L{idx}(13:end),'%f %f %f').';
-        R = readmatrix(L(idx+2:idx+4),5);
-        A{iAtom} = A_vals;
-        AFrame{iAtom} = eulang(R.');
+        Avals = sscanf(L{idx}(13:end),'%f %f %f').';
+        R_A2M = readmatrix(L(idx+2:idx+4),5);
+        A{iAtom} = Avals;
+        R_M2A = R_A2M.';
+        AFrame{iAtom} = eulang(R_M2A);
         k = k+5;
 
       elseif regexp(L{k},'^\s*Raw EFG matrix\s*')
