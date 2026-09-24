@@ -58,9 +58,10 @@ end
 if isempty(Method)
   Method = 'f+';
   if max([j1 j2 j3])>20
-    Method = 'b+';
+    Method = 'r+';
   end
 end
+Method(Method=='b') = 'r'; % 'b' (Java BigInteger, removed) is an alias for 'r'
 
 isint = @(x) x==floor(x);
 istriangle = @(a,b,c) (a+b>=c) && (b+c>=a) && (c+a>=b);
@@ -106,7 +107,13 @@ if ~istriangle(j1,j2,j3)
   return
 end
 
-% (iii) The sum of j must be even if the sum of m is zero
+% (iii) Each m must satisfy |m|<=j.
+if abs(m1)>j1 || abs(m2)>j2 || abs(m3)>j3
+  value = 0;
+  return
+end
+
+% (iv) The sum of j must be even if all m are zero
 if m1==0 && m2==0 && m3==0 && mod(j1+j2+j3,2)
   value = 0;
   return
@@ -182,38 +189,10 @@ if any(Method=='f')
   end
   value = (-1)^(j1-j2-m3)*binsum;
 
-elseif any(Method=='b')
-  % prefactor: logarithmic
-  % sum: binomials, using Java class BigInteger/BigDecimal
-  
-  % binomial sum
-  t = tmin;
-  p = binom_bi(j1+j2-j3,t);
-  p = p.multiply(binom_bi( j1-j2+j3,j1-m1-t));
-  p = p.multiply(binom_bi(-j1+j2+j3,j2+m2-t));
-  p = p.multiply(bi((-1)^t));
-  binsum = p;
-  for t = tmin+1:tmax
-    q1 = (j1+j2-j3-t+1)*(j1-m1-t+1)*(j2+m2-t+1);
-    q2 = t*(-j2+j3+m1+t)*(-j1+j3-m2+t);
-    p = p.multiply(bi(q1));
-    p = p.divide(bi(q2));
-    p = p.multiply(bi(-1));
-    binsum = binsum.add(p);
-  end
-  n = length(binsum.toString)-1; % 10-base exponent
-  % don't merge the following three lines - Matlab 7.5 throws an error
-  b = java.math.BigDecimal(binsum).movePointLeft(n).doubleValue;
-  %b = b.movePointLeft(n);
-  %b = b.doubleValue;
-  
-  prefactor_ln = ...
-    facln(j1+m1) + facln(j1-m1) + facln(j2+m2) + facln(j2-m2) + ...
-    facln(j3+m3) + facln(j3-m3) - facln(j1+j2+j3+1) - ...
-    facln(j1+j2-j3) - facln(j1-j2+j3) - facln(-j1+j2+j3);
-  
-  value = (-1)^(j1-j2-m3)*exp(prefactor_ln/2+n*log(10))*b;
-  
+elseif any(Method=='r')
+  % three-term recursion in j1
+  value = threej_recursion(j1,j2,j3,m1,m2,m3);
+
 else
   
   error('Unknown computation method.');
@@ -227,19 +206,96 @@ end
 
 
 %-------------------------------------------------------------------------------
-function v = bi(d)
-v = java.math.BigInteger(sprintf('%d',d));
+function value = threej_recursion(j1,j2,j3,m1,m2,m3)
+% Computes the 3j symbol via the three-term recursion in j1 of
+%   K. Schulten, R. G. Gordon, J. Math. Phys. 16, 1961 (1975)
+%   https://doi.org/10.1063/1.522426
+% All 3j symbols with j1 = j1min..j1max are computed, with forward recursion
+% from j1min and backward recursion from j1max, joined in the classically
+% allowed region. Normalization and sign are fixed via
+%   sum_j1 (2*j1+1)*(3j symbol)^2 = 1
+%   sign of 3j symbol for j1max = (-1)^(j2-j3-m1)
+
+% Recurse over the largest j, since this gives the shortest recursion.
+% An odd permutation of columns gives a phase factor (-1)^(j1+j2+j3).
+phase = 1;
+if j2>j1 && j2>=j3
+  [j1,j2] = deal(j2,j1);
+  [m1,m2] = deal(m2,m1);
+  phase = (-1)^(j1+j2+j3);
+elseif j3>j1
+  [j1,j3] = deal(j3,j1);
+  [m1,m3] = deal(m3,m1);
+  phase = (-1)^(j1+j2+j3);
 end
 
-%-------------------------------------------------------------------------------
-function v = binom_bi(n,k)
-v = bi(1);
-for q = n-k+1:n
-  v = v.multiply(bi(q));
+% Recursion coefficients:
+%   cUp(j)*f(j+1) + cMid(j)*f(j) + cDown(j)*f(j-1) = 0
+jmin = max(abs(j2-j3),abs(m1));
+jmax = j2+j3;
+N = jmax-jmin+1;
+jv = jmin + (0:N-1);
+A = @(j) sqrt(max(0,(j.^2-(j2-j3)^2).*((j2+j3+1)^2-j.^2).*(j.^2-m1^2)));
+cUp = jv.*A(jv+1);
+cMid = -(2*jv+1).*((j2*(j2+1)-j3*(j3+1))*m1 - jv.*(jv+1)*(m3-m2));
+cDown = (jv+1).*A(jv);
+
+bigValue = 1e100; % rescaling threshold to avoid overflow
+
+if N==1
+  f = 1;
+else
+  % Forward recursion from jmin, until the values stop increasing (i.e.
+  % until past the classically forbidden region at small j1)
+  fFwd = zeros(1,N);
+  fFwd(1) = 1;
+  if jmin==0
+    % j2==j3 and m1==0: first recursion equation is trivial, use explicit
+    % values for j1 = 0 and 1 instead
+    fFwd(2) = m2/sqrt(j2*(j2+1));
+  else
+    fFwd(2) = -cMid(1)/cUp(1);
+  end
+  k = N;
+  for i = 2:N-1
+    fFwd(i+1) = -(cMid(i)*fFwd(i) + cDown(i)*fFwd(i-1))/cUp(i);
+    if abs(fFwd(i+1))>bigValue
+      fFwd(1:i+1) = fFwd(1:i+1)/bigValue;
+    end
+    if abs(fFwd(i+1))<abs(fFwd(i))
+      k = i;
+      break
+    end
+  end
+
+  if k==N
+    f = fFwd;
+  else
+    % Backward recursion from jmax down to k-1
+    fBwd = zeros(1,N);
+    fBwd(N) = 1;
+    fBwd(N-1) = -cMid(N)/cDown(N);
+    for i = N-1:-1:max(k,2)
+      fBwd(i-1) = -(cUp(i)*fBwd(i+1) + cMid(i)*fBwd(i))/cDown(i);
+      if abs(fBwd(i-1))>bigValue
+        fBwd(i-1:N) = fBwd(i-1:N)/bigValue;
+      end
+    end
+    % Join, scaling via least-squares fit over the overlap k-1..k+1
+    idx = max(k-1,1):min(k+1,N);
+    scale = sum(fFwd(idx).*fBwd(idx))/sum(fBwd(idx).^2);
+    f = [fFwd(1:k) scale*fBwd(k+1:N)];
+  end
 end
-for q = 1:k
-  v = v.divide(bi(q));
+
+% Normalize and fix sign
+f = f/sqrt(sum((2*jv+1).*f.^2));
+if sign(f(N))~=(-1)^(j2-j3-m1)
+  f = -f;
 end
+
+value = phase*f(j1-jmin+1);
+
 end
 
 %-------------------------------------------------------------------------------
