@@ -4,15 +4,6 @@
 
 function [Data, Abscissa, Parameters] = eprload_MagnettechXML(FileName)
 
-% Preparation for Base64 decoding: Use Java class of Apache Commons Code
-% (seen available in R2012b, R2017b, R2021b)
-if ~exist('org.apache.commons.codec.binary.Base64','class')
-  error('No Java Base64 decoder available to read Magnettech XML data.');
-else
-  base64 = org.apache.commons.codec.binary.Base64;
-end
-% Since R2016b: matlab.net.base64decode is available, but it is much slower
-
 % Read XML file and convert to Matlab structure for easy access
 Document = xml2struct(FileName);
 
@@ -93,9 +84,8 @@ for iCurve = 1:numel(CurveList)
     % chars per entry (9*6=72 bits=9 chars)
     data_txt(data_txt=='=') = 'A';
 
-    % Decode (9 bytes per double). int8 conversion is needed for older
-    % versions of the Java class
-    bytestream_ = base64.decode(int8(data_txt));
+    % Decode (9 bytes per double)
+    bytestream_ = base64decode(data_txt);
     
     bytestream_(9:9:end) = []; % remove every ninth byte (double has 8 bytes)
     data = typecast(bytestream_,'double'); % typecast without changing the underlying data
@@ -150,5 +140,32 @@ Parameters = parsefieldparams(Parameters);
 % Store all curves from the file in the parameters
 % (incl. sin and cos MW absorption data)
 Parameters.Curves = Curves;
+
+end
+
+%-------------------------------------------------------------------------------
+function bytes = base64decode(str)
+% Decode Base64 string into column vector of bytes (uint8). Characters
+% outside the Base64 alphabet (e.g. whitespace) are ignored.
+
+alphabet = ['A':'Z' 'a':'z' '0':'9' '+/'];
+lut = zeros(1,256,'uint8');
+lut(double(alphabet)+1) = 0:63;
+valid = false(1,256);
+valid(double([alphabet '='])+1) = true;
+
+str = str(valid(min(double(str),255)+1));
+if mod(numel(str),4)~=0
+  error('Invalid Base64 data: number of characters is not a multiple of 4.');
+end
+nPad = numel(str) - numel(regexprep(str,'=+$',''));
+
+% Convert groups of 4 characters (4x6 bits) to 3 bytes (3x8 bits)
+v = reshape(lut(double(str)+1),4,[]);
+b1 = bitor(bitshift(v(1,:),2),bitshift(v(2,:),-4));
+b2 = bitor(bitshift(v(2,:),4),bitshift(v(3,:),-2));
+b3 = bitor(bitshift(v(3,:),6),v(4,:));
+bytes = reshape([b1;b2;b3],[],1);
+bytes(end-nPad+1:end) = [];
 
 end
