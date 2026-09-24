@@ -34,11 +34,14 @@ Data = Document.ESRXmlFile.Data;
 Measurement = Data.Measurement;
 Parameters = Measurement.Attributes;
 CurveList = Measurement.DataCurves.Curve;
+% xml2struct returns a single element as struct, multiple ones as cell array
+if isstruct(CurveList), CurveList = {CurveList}; end
 
 % Add all children Param nodes from Parameters node to Parameter structure
 % (if Recipe is present - it's absent for a dip sweep)
 if isfield(Measurement,'Recipe')
   ParameterList = Measurement.Recipe.Parameters.Param;
+  if isstruct(ParameterList), ParameterList = {ParameterList}; end
   for p = 1:numel(ParameterList)
     PName = ParameterList{p}.Attributes.Name;
     P_ = ParameterList{p}.Text;

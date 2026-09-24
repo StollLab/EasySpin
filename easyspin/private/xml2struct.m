@@ -3,7 +3,7 @@
 %     s = xml2struct(fileName)
 %
 %  Input:
-%     fileName    file name of XML file
+%     fileName    file name of XML file (extension .xml can be omitted)
 %
 %  Output:
 %     s           A hierarchical MATLAB structure representing the XML tree
@@ -16,27 +16,38 @@
 %    </XMLname>
 %
 %  will produce:
-%     s.XMLname.Attributes.attrib1 = "Some value";
-%     s.XMLname.Element.Text = "Some text";
-%     s.XMLname.Data{1}.Attributes.attrib2 = "2";
-%     s.XMLname.Data{1}.Text = "Some more text";
-%     s.XMLname.Data{2}.Attributes.attrib3 = "8.3";
-%     s.XMLname.Data{2}.Attributes.attrib4 = "1";
-%     s.XMLname.Data{2}.Text = "Even more text";
+%     s.XMLname.Attributes.attrib1 = 'Some value';
+%     s.XMLname.Element.Text = 'Some text';
+%     s.XMLname.Data{1}.Attributes.attrib2 = '2';
+%     s.XMLname.Data{1}.Text = 'Some more text';
+%     s.XMLname.Data{2}.Attributes.attrib3 = '8.3';
+%     s.XMLname.Data{2}.Attributes.attrib4 = '1';
+%     s.XMLname.Data{2}.Text = 'Even more text';
 %
-% The following characters are substituted:
+%  All values are char row vectors. An element that occurs once is a struct,
+%  an element that occurs several times is a cell array of structs.
+%
+%  Text, CDATA, and comment content of an element is stored in the fields
+%  Text, CDATA, and Comment, respectively, alongside any child elements.
+%  Whitespace-only content is omitted. Processing instructions are skipped.
+%
+%  In element and attribute names, the following characters are substituted:
 %   '-'     '_dash_'
 %   ':'     '_colon_'
 %   '.'     '_dot_'
+%  Any remaining characters not allowed in MATLAB field names are replaced
+%  by '_', and names are truncated to namelengthmax.
 %
-% XML elements with names #text, #comment, and #cdata-section are skipped.
+%  The file is parsed with the MATLAB DOM API (matlab.io.xml.dom, R2021a and
+%  later), which does not require Java. Files with a DOCTYPE declaration are
+%  rejected, as a protection against XXE attacks.
 
 % Written by W. Falkena, ASTI, TUDelft, 21-08-2010
 % Attribute parsing speed increased by 40% by A. Wanner, 14-6-2011
 % Added CDATA support by I. Smirnov, 20-3-2012
 %
 % Modified by X. Mo, University of Wisconsin, 12-5-2012
-% Modified by Stefan Stoll, University of Washington, Feb 2018
+% Modified by Stefan Stoll, University of Washington, Feb 2018, Sep 2026
 
 function s = xml2struct(fileName)
 
@@ -45,126 +56,99 @@ if nargin < 1
   return
 end
 
-if isa(fileName, 'org.apache.xerces.dom.DeferredDocumentImpl') || ...
-   isa(fileName, 'org.apache.xerces.dom.DeferredElementImpl')
-  % Input is a java XML object
-  xDoc = fileName;
-else
-  % Check for existence
-  if exist(fileName,'file') == 0
-    % Perhaps the xml extension was omitted from the file name.
-    % Add the extension and try again.
-    if ~strcmp(fileName(end-3:end),'.xml')
-      fileName = [fileName '.xml'];
-    end
-    if exist(fileName,'file') == 0
-      error(['The file ' fileName ' could not be found.']);
-    end
-  end
-  % Read the xml file
-  xDoc = xmlread(fileName);
+fileName = char(fileName);
+
+% Check for existence, add .xml extension if omitted
+if ~isfile(fileName) && ~endsWith(fileName,'.xml','IgnoreCase',true)
+  fileName = [fileName '.xml'];
+end
+if ~isfile(fileName)
+  error('The file %s could not be found.',fileName);
 end
 
-%parse xDoc into a MATLAB structure
+% Read the xml file
+xDoc = parseFile(matlab.io.xml.dom.Parser,fileName);
+
+% Parse xDoc into a MATLAB structure
 s = parseChildNodes(xDoc);
 
 end
 
 % ----- Subfunction parseChildNodes -----
-function [children,ptext,textflag] = parseChildNodes(theNode)
-% Recurse over node children.
+function [children,text] = parseChildNodes(theNode)
+% Recurse over node children. Returns child elements in children, and
+% text, CDATA, and comment content in text.
+
 children = struct;
-ptext = struct;
-textflag = 'Text';
-if hasChildNodes(theNode)
-  childNodes = getChildNodes(theNode);
-  numChildNodes = getLength(childNodes);
-  
-  for count = 1:numChildNodes
-    theChild = item(childNodes,count-1);
-    [text,name,attr,childs,textflag] = getNodeData(theChild);
-    
-    if (~strcmp(name,'#text') && ~strcmp(name,'#comment') && ~strcmp(name,'#cdata_dash_section'))
-      %XML allows the same elements to be defined multiple times,
-      %put each in a different cell
-      if (isfield(children,name))
-        if (~iscell(children.(name)))
-          %put existsing element into cell format
-          children.(name) = {children.(name)};
-        end
-        index = length(children.(name))+1;
-        %add new element
-        children.(name){index} = childs;
-        if(~isempty(fieldnames(text)))
-          children.(name){index} = text;
-        end
-        if(~isempty(attr))
-          children.(name){index}.('Attributes') = attr;
-        end
-      else
-        %add previously unknown (new) element to the structure
-        children.(name) = childs;
-        if(~isempty(text) && ~isempty(fieldnames(text)))
-          children.(name) = text;
-        end
-        if(~isempty(attr))
-          children.(name).('Attributes') = attr;
-        end
+text = struct;
+if ~hasChildNodes(theNode)
+  return
+end
+
+childNodes = getChildNodes(theNode);
+for count = 1:getLength(childNodes)
+  theChild = item(childNodes,count-1);
+
+  if isa(theChild,'matlab.io.xml.dom.Element')
+    name = validName(getNodeName(theChild));
+    element = parseElement(theChild);
+    % XML allows the same element to occur multiple times,
+    % put each occurrence in a different cell
+    if isfield(children,name)
+      if ~iscell(children.(name))
+        children.(name) = {children.(name)};
       end
+      children.(name){end+1} = element;
     else
-      ptextflag = 'Text';
-      if (strcmp(name, '#cdata_dash_section'))
-        ptextflag = 'CDATA';
-      elseif (strcmp(name, '#comment'))
-        ptextflag = 'Comment';
-      end
-      
-      %this is the text in an element (i.e., the parentNode)
-      if ~isempty(regexprep(text.(textflag),'[\s]*',''))
-        if ~isfield(ptext,ptextflag) || isempty(ptext.(ptextflag))
-          ptext.(ptextflag) = text.(textflag);
-        else
-          %what to do when element data is as follows:
-          %<element>Text <!--Comment--> More text</element>
-          
-          %put the text in different cells:
-          % if (~iscell(ptext)) ptext = {ptext}; end
-          % ptext{length(ptext)+1} = text;
-          
-          %just append the text
-          ptext.(ptextflag) = [ptext.(ptextflag) text.(textflag)];
-        end
-      end
+      children.(name) = element;
     end
-    
+    continue
   end
+
+  % CDATASection is a subclass of Text, so it has to be checked first
+  if isa(theChild,'matlab.io.xml.dom.CDATASection')
+    textfield = 'CDATA';
+  elseif isa(theChild,'matlab.io.xml.dom.Text')
+    textfield = 'Text';
+  elseif isa(theChild,'matlab.io.xml.dom.Comment')
+    textfield = 'Comment';
+  else
+    continue % skip processing instructions etc.
+  end
+
+  str = rowchar(getTextContent(theChild));
+  if all(isspace(str)), continue; end
+  if isfield(text,textfield)
+    % <element>Text <!--Comment--> More text</element>: append the text
+    text.(textfield) = [text.(textfield) str];
+  else
+    text.(textfield) = str;
+  end
+
 end
+
 end
 
-% ----- Subfunction getNodeData -----
-function [text,name,attr,childs,textflag] = getNodeData(theNode)
-% Create structure of node info.
+% ----- Subfunction parseElement -----
+function element = parseElement(theNode)
+% Create structure of element: child elements, text, and attributes.
 
-%make sure name is allowed as structure name
-name = toCharArray(getNodeName(theNode))';
-name = strrep(name, '-', '_dash_');
-name = strrep(name, ':', '_colon_');
-name = strrep(name, '.', '_dot_');
+[element,text] = parseChildNodes(theNode);
 
-attr = parseAttributes(theNode);
-if (isempty(fieldnames(attr)))
-  attr = [];
+% Add text content alongside child elements
+textfields = fieldnames(text);
+for k = 1:numel(textfields)
+  element.(textfields{k}) = text.(textfields{k});
 end
 
-%parse child nodes
-[childs,text,textflag] = parseChildNodes(theNode);
+% Store the (possibly whitespace-only) text of elements without other content
+if isempty(fieldnames(element))
+  element.Text = rowchar(getTextContent(theNode));
+end
 
-if (isempty(fieldnames(childs)) && isempty(fieldnames(text)))
-  % Get the data of any childless nodes
-  % faster than if any(strcmp(methods(theNode), 'getData'))
-  % no need to try-catch (?)
-  % faster than text = char(getData(theNode));
-  text.(textflag) = toCharArray(getTextContent(theNode))';
+attributes = parseAttributes(theNode);
+if ~isempty(fieldnames(attributes))
+  element.Attributes = attributes;
 end
 
 end
@@ -176,21 +160,29 @@ function attributes = parseAttributes(theNode)
 attributes = struct;
 if hasAttributes(theNode)
   theAttributes = getAttributes(theNode);
-  numAttributes = getLength(theAttributes);
-  
-  for count = 1:numAttributes
-    %attrib = item(theAttributes,count-1);
-    %attr_name = regexprep(char(getName(attrib)),'[-:.]','_');
-    %attributes.(attr_name) = char(getValue(attrib));
-    
-    %Suggestion of Adrian Wanner
-    str = toCharArray(toString(item(theAttributes,count-1)))';
-    k = strfind(str,'=');
-    attr_name = str(1:(k(1)-1));
-    attr_name = strrep(attr_name, '-', '_dash_');
-    attr_name = strrep(attr_name, ':', '_colon_');
-    attr_name = strrep(attr_name, '.', '_dot_');
-    attributes.(attr_name) = str((k(1)+2):(end-1));
+  for count = 1:getLength(theAttributes)
+    attrib = item(theAttributes,count-1);
+    attributes.(validName(getName(attrib))) = rowchar(getValue(attrib));
   end
 end
+
+end
+
+% ----- Subfunction validName -----
+function name = validName(name)
+% Convert XML name to valid MATLAB field name.
+
+name = char(name);
+name = strrep(name, '-', '_dash_');
+name = strrep(name, ':', '_colon_');
+name = strrep(name, '.', '_dot_');
+name = matlab.lang.makeValidName(name);
+name = name(1:min(end,namelengthmax));
+
+end
+
+% ----- Subfunction rowchar -----
+function str = rowchar(str)
+% Convert to char row vector (also for empty strings).
+str = reshape(char(str),1,[]);
 end
