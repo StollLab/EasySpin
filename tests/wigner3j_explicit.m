@@ -51,7 +51,7 @@ for k = 1:nBaseCases
 end
 
 for k = 1:numel(jm)
-  a0 = wigner3j(jm{k},'f');
-  a1 = wigner3j(jm{k},'f+');
+  a0 = wigner3j(jm{k},'');
+  a1 = wigner3j(jm{k},'e');
   ok(k) = abs(a0-a1)<1e-10;
 end

@@ -64,7 +64,11 @@ m_1 & m_2 & m_3
 The six parameters can be specified separately or in groups.
 In the three-argument form, <code>wigner3j</code> takes <code>jm1 = [j1 m1]</code>, <code>jm2 = [j2 m2]</code>
 and <code>jm3 = [j3 m3]</code>. If two arguments are given, it takes <code>jjj = [j1 j2 j3]</code> and
-<code>mmm = [m1 m2 m3]</code>. If one argument is give, it takes the 2x3 array <code>jjjmmm = [j1 j2 j3; m1 m2 m3]</code>.
+<code>mmm = [m1 m2 m3]</code>. If one argument is given, it takes the 2x3 array <code>jjjmmm = [j1 j2 j3; m1 m2 m3]</code>.
+</p>
+
+<p>
+If the parameters violate one of the selection rules (m1+m2+m3 = 0, triangle condition for j1, j2, j3, |m|&le;j for each column), <code>wigner3j</code> returns 0.
 </p>
 
 <p>
@@ -93,8 +97,7 @@ ans =
 <div class="subtitle">Algorithm</div>
 
 <p>
-If any of the three j values is less or equal to 2, <code>wigner3j</code> uses explicit expressions. For larger values, a general expression containing an alternating
-sum of binomial coefficients is used. For j values large than about 20, high-precisions arithmetic is used internally.
+If any of the three j values is less than or equal to 2, <code>wigner3j</code> uses explicit expressions. If all three m values are zero, it uses a dedicated product formula. In all other cases, it uses the Schulten-Gordon algorithm, a three-term recursion relation in j1: it computes the 3-j symbols for all allowed values of j1 at once, with forward recursion from the smallest j1 and backward recursion from the largest j1, and fixes their overall scale and sign via the normalization relation. This is numerically stable and accurate to about machine precision in double-precision arithmetic, even for large j values.
 </p>
 
 <p>
@@ -102,13 +105,11 @@ sum of binomial coefficients is used. For j values large than about 20, high-pre
 </p>
 <ul>
 <li>
-E. R. Edmonds, Angular Momentum, Princeton University Press, 1957
+A. R. Edmonds, Angular Momentum in Quantum Mechanics, Princeton University Press, 1957
 <li>
-Shan-Tao Lai, Ying-Nan Chiu, Computer Physics Communications 61, 350-360 (1990)
+Robert E. Tuzun, Paul Burkhardt, Don Secrest, Computer Physics Communications 112, 112-148 (1998), <a href="https://doi.org/10.1016/S0010-4655(98)00065-4" target="_blank">doi:10.1016/S0010-4655(98)00065-4</a>
 <li>
-Liqiang Wei, Computer Physics Communications 120, 222-230 (1999)
-<li>
-Robert E. Tuzun, Paul Burkhardt, Don Secrest, Computer Physics Communications 112, 112-148 (1998)
+Klaus Schulten, Roy G. Gordon, J. Math. Phys. 16, 1961-1970 (1975), <a href="https://doi.org/10.1063/1.522426" target="_blank">doi:10.1063/1.522426</a>
 </ul>
 
 <!-- ============================================================= -->
