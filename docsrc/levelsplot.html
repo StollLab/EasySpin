@@ -65,6 +65,10 @@ Hovering with the mouse pointer over an energy level displays its number, and ho
 </p>
 
 <p>
+By default, <code>levelsplot</code> replaces the content of the current axes. If <code>hold</code> is on, the diagram is added to the current axes instead. This makes it possible to compare, e.g., different orientations in one plot. Each added diagram is drawn in the next color of the axes color order, and its orientation label is placed below the previous ones. With <code>Opt.StickSpectrum</code>, <code>hold</code> needs to be on in both subplots.
+</p>
+
+<p>
 <code>Opt</code> is an optional structure to provide additional settings. It can have the following fields:
 </p>
 
@@ -120,6 +124,17 @@ FieldRange = [0 500];  % mT
 mwFreq = 9.5;  % GHz
 Opt.SlopeColor = true;
 levelsplot(spins,Ori,FieldRange,mwFreq,Opt);
+</pre>
+
+<p>
+To compare the energy levels for the field along z and along x in the same plot, use <code>hold on</code>:
+</p>
+
+<pre class="matlab">
+levelsplot(spins,'z',FieldRange,mwFreq);
+hold on
+levelsplot(spins,'x',FieldRange,mwFreq);
+hold off
 </pre>
 
 <!-- ====================================================== -->

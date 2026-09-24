@@ -30,6 +30,9 @@
 %  transitions, gray lines forbidden ones. Hovering with the cursor over
 %  the lines displays intensity information.
 %
+%  If hold is on, the diagram is added to the current axes instead of
+%  replacing its content, e.g. to compare different orientations.
+%
 %  Example:
 %    Sys = struct('S',7/2,'g',2,'D',5000);
 %    levelsplot(Sys,'xy',[0 6000],95);
@@ -198,21 +201,31 @@ end
 if Opt.StickSpectrum && computeResonances
   subplot(4,1,[1 2 3]);
 end
-cla
 hLevelsAxes = gca;
+holdState = ishold(hLevelsAxes);
+if ~holdState
+  cla(hLevelsAxes);
+end
+
+% Number of diagrams already in the axes (when hold is on)
+nPrev = numel(findobj(hLevelsAxes,'Tag','oritext'));
 linecolor = [0 0.4470 0.7410];
+if nPrev>0
+  colorOrder = hLevelsAxes.ColorOrder;
+  linecolor = colorOrder(mod(nPrev,size(colorOrder,1))+1,:);
+end
 
 if Opt.SlopeColor
   for iLevel = nLevels:-1:1
     col = abs(deriv(E(:,iLevel)));
-    hLevels(iLevel) = patch([Bvec(:)*Bscale; NaN],[E(:,iLevel); NaN],[col; NaN],'EdgeColor','interp','LineWidth',Opt.LineWidth);
+    hLevels(iLevel) = patch(hLevelsAxes,[Bvec(:)*Bscale; NaN],[E(:,iLevel); NaN],[col; NaN],'EdgeColor','interp','LineWidth',Opt.LineWidth);
   end
   if ~isfield(Opt,'ColorMap')
     Opt.ColorMap = parula;
   end
-  colormap(flipud(Opt.ColorMap));
+  colormap(hLevelsAxes,flipud(Opt.ColorMap));
 else
-  hLevels = plot(Bvec*Bscale,E*Escale,'b','LineWidth',Opt.LineWidth);
+  hLevels = plot(hLevelsAxes,Bvec*Bscale,E*Escale,'LineWidth',Opt.LineWidth);
   set(hLevels,'Color',linecolor);
 end
 for iLevel = 1:nLevels
@@ -228,13 +241,15 @@ catch
   % pre-R2018b
 end
 
-box on
-axis tight
-ylabel(sprintf('energy (%s)',energyUnit));
-set(gca,'Tag','diagram');
-xl = xlim;
-yl = ylim;
-text(xl(1),yl(1),'','Tag','infotext','VerticalAlignment','bottom');
+box(hLevelsAxes,'on');
+axis(hLevelsAxes,'tight');
+ylabel(hLevelsAxes,sprintf('energy (%s)',energyUnit));
+set(hLevelsAxes,'Tag','diagram');
+xl = xlim(hLevelsAxes);
+yl = ylim(hLevelsAxes);
+if isempty(findobj(hLevelsAxes,'Tag','infotext'))
+  text(hLevelsAxes,xl(1),yl(1),'','Tag','infotext','VerticalAlignment','bottom');
+end
 
 % Calculate and plot transitions if requested
 %-------------------------------------------------------------------------------
@@ -269,7 +284,7 @@ if computeResonances
       E_MHz = E_MHz - Opt.Offset;
       E = unit_convert(E_MHz,Opt.Units);
 
-      h = line(resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition','LineWidth',Opt.TransLineWidth);
+      h = line(hLevelsAxes,resonFields(iF)*[1 1]*Bscale,Escale*E(Transitions(iF,:)),'Tag','transition','LineWidth',Opt.TransLineWidth);
       h.UserData = [Transitions(iF,:) resonFields(iF) absintensity(iF)];
       transitionColor = absintensity(iF)*Opt.AllowedColor + (1-absintensity(iF))*Opt.ForbiddenColor;
       h.Color = transitionColor;
@@ -278,9 +293,11 @@ if computeResonances
     end
 
     if Opt.StickSpectrum
-      xl = xlim;
+      xl = xlim(hLevelsAxes);
       subplot(4,1,4);
-      cla
+      if ~ishold
+        cla
+      end
       yline(0);
       for iF = 1:numel(resonFields)
         hLine = line([1 1]*resonFields(iF)*Bscale,[0 intensity(iF)],'Color',linecolor,'LineWidth',2,'Tag','line');
@@ -300,9 +317,9 @@ if computeResonances
     
   else
     % no resonance fields
-    xl = xlim;
-    yl = ylim;
-    h = text(xl(1),yl(1),' no EPR resonances in field range');
+    xl = xlim(hLevelsAxes);
+    yl = ylim(hLevelsAxes);
+    h = text(hLevelsAxes,xl(1),yl(1),' no EPR resonances in field range');
     set(h,'Color','r','VerticalAl','bottom');
   end
 end
@@ -342,9 +359,19 @@ else
                 oristr,phi*180/pi,theta*180/pi,mwstr);
 end
 
-xl = xlim(hLevelsAxes);
-yl = ylim(hLevelsAxes);
-text(hLevelsAxes,xl(1),yl(2),oristr,'VerticalAl','top');
+% Normalized units keep all labels at the top, even if axis limits change when
+% more diagrams are added (hold on); stack labels of subsequent diagrams below
+yLabel = 1;
+if nPrev>0
+  hPrevLabels = findobj(hLevelsAxes,'Tag','oritext');
+  extents = vertcat(hPrevLabels.Extent);
+  yLabel = min(extents(:,2));
+end
+h = text(hLevelsAxes,0,yLabel,oristr,'Units','normalized',...
+  'VerticalAl','top','Tag','oritext');
+if nPrev>0
+  h.Color = linecolor;
+end
 
 % Activate mouseovers (callback function handles multiple axes)
 %-------------------------------------------------------------------------------
