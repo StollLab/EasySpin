@@ -1,25 +1,23 @@
 function ok = test()
 
-% Hybrid method with looping transitions
-% make sure pepper is not crashing
-% (bug in 4.0.0.616, reported by Troy Stich 3May2011)
+% Make sure pepper does not crash for a powder spectrum computed with the
+% hybrid method when looping transitions are present.
 
-Sys.S = [5/2 5/2];% two spin centers
+Sys.S = [1 1];
 Sys.g = [2 2];
-Sys.lw = 2;
-Sys.ee = [4.0]*clight*100/1e6;
-Sys.Nucs = '55Mn,55Mn';
-Sys.D = [1 0.23; 1 0.23]*4000;
+Sys.lw = 2;  % mT
+Sys.ee = 4.0*clight*100/1e6;  % cm^-1 -> MHz
+Sys.Nucs = '1H,1H';
+Sys.D = [1 0.23; 1 0.23]*12e3;  % large enough to give looping transitions at 9.39 GHz
 Sys.A = [1 0; 0 1]*250;
 
-Exp.mwFreq = 9.39;
-Exp.Range = [10 700];
+Exp.mwFreq = 9.39;  % GHz
+Exp.Range = [10 700];  % mT
 
 Exp.nPoints = 4096;
-Exp.SampleFrame = [0 0 0]*pi/180;
-Exp.Temperature = 6;
+Exp.Temperature = 6;  % K
 
 Opt.Method = 'hybrid';
-[x,y] = pepper(Sys,Exp,Opt);
+[~,~] = pepper(Sys,Exp,Opt);
 
 ok = true;

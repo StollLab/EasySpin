@@ -4,83 +4,70 @@ function ok = test()
 
 rng(5);
 
-% Build spin system with spin in Sys.S and orbital angular momenta in Sys.L
-n = 1;
-SysSL.S = randi(3,1,n)/2;
-SysSL.g = rand(3*n,3);
-SysSL.L = randi(2,1,n);
-SysSL.soc = rand(n,2)*1000;
-SysSL.gL = rand(n,1);
-nSpins = length(SysSL.S);
-if n > 1
-  SysSL.ee = zeros(nchoosek(nSpins,2),1);
-end
+% Build spin system with spin in Sys.S and orbital angular momentum in Sys.L
+SysSL.S = randi(3)/2;
+SysSL.g = rand(3,3);
+SysSL.L = randi(2);
+SysSL.soc = rand(1,2)*1000;
+SysSL.gL = rand;
 
-% Build spin system with both spin and orbital angular momenta in Sys.S
-SysS.S = [SysSL.S,SysSL.L];
-% Build array of g matrices:
-SysS.g = [SysSL.g;zeros(3*n,3)];
-for k = 1:n
-  gL = diag(SysSL.gL(k)*ones(1,3));
-  SysS.g(3*(n+k-1)+1:3*(n+k),:) = gL;
-end
+% Build spin system with both spin and orbital angular momentum in Sys.S
+SysS.S = [SysSL.S SysSL.L];
+SysS.g = [SysSL.g; SysSL.gL*eye(3)];
+SysS.ee = SysSL.soc(1);  % spin-orbit coupling as bilinear spin-spin coupling
+SysS.ee2 = SysSL.soc(2);  % and as biquadratic spin-spin coupling
 
-% Distribute soc over ee and ee2
-len = 2*nSpins;
-k = nchoosek(1:len,2);
-eelen = nchoosek(len,2);
-SysS.ee = zeros(eelen,1);
-SysS.ee2 = zeros(eelen,1);
-for m = 1:nSpins
-  x = logical((k(:,1)==m).*(k(:,2)==m+nSpins));
-  SysS.ee(x) = SysSL.soc(m,1);
-  SysS.ee2(x) = SysSL.soc(m,2);
-end
-
-% Build zero-field splitting part
+% Build zero-field splitting and crystal-field part
 for k = 2:2:8
   lfieldname = sprintf('CF%d',k);
   sfieldname = sprintf('B%d',k);
-  SysSL.(sfieldname) = rand(n,2*k+1).*repmat(((k/2)<=SysSL.S).',1,2*k+1);
-  SysSL.(lfieldname) = rand(n,2*k+1).*repmat(((k/2)<=SysSL.L).',1,2*k+1);
-  SysS.(sfieldname) = [SysSL.(sfieldname);SysSL.(lfieldname)];
+  SysSL.(sfieldname) = rand(1,2*k+1)*(k/2<=SysSL.S);
+  SysSL.(lfieldname) = rand(1,2*k+1)*(k/2<=SysSL.L);
+  SysS.(sfieldname) = [SysSL.(sfieldname); SysSL.(lfieldname)];
 end
 
-% Build random experiment for frequency-domain pepper
+% Build random experiment for frequency-domain pepper, using a few random
+% crystal orientations (much faster than a powder)
 FDExp.Temperature = rand * 300;
 FDExp.Field = rand *1e3;
+FDExp.MolFrame = [0 0 0];
+FDExp.SampleFrame = rand(3,3)*pi;
+
+% Switch off random Hamiltonian fuzzing, so that both spin systems give
+% identical spectra
+Opt.FuzzLevel = 0;
 
 % Compare S&L with S-only spin system
-[nu,fd1] = pepper(SysSL,FDExp);
-fd2 = pepper(SysS,FDExp);
-ok(1) = areequal(fd1,fd2,1e-8,'abs');
+[nu,fd1] = pepper(SysSL,FDExp,Opt);
+fd2 = pepper(SysS,FDExp,Opt);
+ok(1) = areequal(fd1,fd2,1e-12,'rel');
 
 % Build field-sweep experimet based on FD sim, always a transition in spectral window 
 [~, ind] = max(fd1);
 Exp.mwFreq = nu(ind);
 Exp.CenterSweep = FDExp.Field*[1 0.5];
 Exp.Temperature = FDExp.Temperature;
-
-Opt = struct;
+Exp.MolFrame = FDExp.MolFrame;
+Exp.SampleFrame = FDExp.SampleFrame;
 
 s1 = pepper(SysSL,Exp,Opt);
 s2 = pepper(SysS,Exp,Opt);
-ok(2) = areequal(s1,s2,1e-10,'abs');
+ok(2) = areequal(s1,s2,1e-12,'rel');
 
 % Test with an added nucleus
 %-------------------------------------------------------------------------------
 SysSL.Nucs = '1H';
-SysSL.A = rand(3,3*n);
+SysSL.A = rand(3,3);
 SysS.Nucs = SysSL.Nucs;
-SysS.A = [SysSL.A, zeros(3,3*n)];
+SysS.A = [SysSL.A, zeros(3,3)];
 Opt.Method = 'hybrid';
 
 % Frequency sweep
 fd3 = pepper(SysSL,FDExp,Opt);
 fd4 = pepper(SysS,FDExp,Opt);
-ok(3) = areequal(fd3,fd4,1e-6,'abs');
+ok(3) = areequal(fd3,fd4,1e-12,'rel');
 
 % Field sweep
 s3 = pepper(SysSL,Exp,Opt);
 s4 = pepper(SysS,Exp,Opt);
-ok(4) = areequal(s3,s4,1e-6,'abs');
+ok(4) = areequal(s3,s4,1e-12,'rel');
