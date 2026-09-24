@@ -7,7 +7,7 @@ function [Sys,data] = orca2easyspin_mainout(mainfile)
 % Read entire file into cell array
 L = cellstr(readlines(mainfile));
 
-% Remove empty lines and lines containing a single (non-printable) character
+% Remove empty lines & lines with a single character (to shorten file)
 rmv = cellfun(@(x)length(strtrim(x))<=1,L);
 L(rmv) = [];
 nLines = numel(L);
@@ -79,6 +79,7 @@ end
 
 % Loop over all structures and read properties
 %--------------------------------------------------------------------------
+data = repmat(data,1,nStructures);
 for s = 1:nStructures
 
   if s<nStructures
@@ -87,7 +88,7 @@ for s = 1:nStructures
     linerange = startIdx(s):nLines;
   end
 
-  % Atom info, and Cartesian coordinates
+  % Atom info and Cartesian coordinates
   [nAtoms,NucId,Element,xyz] = parsecoordinates(L,linerange);
   data(s).nAtoms = nAtoms;
   data(s).NucId = NucId;
@@ -104,9 +105,9 @@ for s = 1:nStructures
   data(s).S = S;
 
   % Mulliken atomic charges and spin populations
-  [MullikenCharge,MullikenSpin] = parsemulliken(L,linerange,nAtoms);
-  data(s).MullikenCharge = MullikenCharge;
-  data(s).MullikenSpin = MullikenSpin;
+  [MullikenChargePop,MullikenSpinPop] = parsemulliken(L,linerange,nAtoms);
+  data(s).MullikenCharge = MullikenChargePop;
+  data(s).MullikenSpin = MullikenSpinPop;
 
   % g matrix
   [graw,g,gvals,gFrame] = parsegmatrix(L,linerange);
@@ -122,13 +123,13 @@ for s = 1:nStructures
   data(s).DFrame = DFrame;
 
   % Hyperfine and electric field gradient
-  [hfc,efg,Q,QFrame,A,AFrame] = parsehyperfinequadrupole(L,linerange,Element,nAtoms);
-  data(s).hfc = hfc;
-  data(s).efg = efg;
-  data(s).Q = Q;
-  data(s).QFrame = QFrame;
-  data(s).A = A;
+  [Araw,Avals,AFrame,efg,Qvals,QFrame] = parsehyperfinequadrupole(L,linerange,Element,nAtoms);
+  data(s).Araw = Araw;
+  data(s).A = Avals;
   data(s).AFrame = AFrame;  
+  data(s).efg = efg;
+  data(s).Q = Qvals;
+  data(s).QFrame = QFrame;
 
 end  % for s = 1:nStructures
 
@@ -190,13 +191,15 @@ end
 
 end
 
+%-------------------------------------------------------------------------------
 function M = parsematrix(L,startidx)
 if nargin<2, startidx = 1; end
-for k = 1:3
+for k = 3:-1:1
   M(k,:) = sscanf(L{k}(startidx:end),'%f %f %f').';
 end
 end
 
+%-------------------------------------------------------------------------------
 function k = findheader(header,L,krange)
 header_found = false;
 for k = krange
@@ -210,6 +213,7 @@ if ~header_found
 end
 end
 
+%-------------------------------------------------------------------------------
 function [vals,angles] = diagonalizetensor(T,sortByMagnitude)
 if nargin<2
   sortByMagnitude = false;
@@ -228,6 +232,7 @@ end
 angles = eulang(R_T2M.');
 end
 
+%-------------------------------------------------------------------------------
 function [nAtoms,NucId,Element,xyz] = parsecoordinates(L,krange)
 k = findheader('CARTESIAN COORDINATES (ANGSTROEM)',L,krange);
 if isempty(k)
@@ -248,6 +253,7 @@ end
 nAtoms = size(xyz,1);
 end
 
+%-------------------------------------------------------------------------------
 function charge = parsecharge(L,krange)
 found = false;
 for k = krange
@@ -262,6 +268,7 @@ end
 charge = str2double(regexp(L{k},'-?\d+$','match','once'));
 end
 
+%-------------------------------------------------------------------------------
 function [Multiplicity,S] = parsespinmultiplicity(L,krange)
 found = false;
 for k = krange
@@ -277,6 +284,7 @@ Multiplicity = str2double(regexp(L{k},'\d+$','match','once'));
 S = (Multiplicity-1)/2;
 end
 
+%-------------------------------------------------------------------------------
 function [MullikenCharge,MullikenSpin] = parsemulliken(L,krange,nAtoms)
 MullikenTitle{1} = 'MULLIKEN ATOMIC CHARGES AND SPIN DENSITIES';  % <2.7
 MullikenTitle{2} = 'MULLIKEN ATOMIC CHARGES AND SPIN POPULATIONS'; % >=2.7
@@ -301,8 +309,9 @@ MullikenCharge = Mulliken(:,1);
 MullikenSpin = Mulliken(:,2);
 end
 
-function [graw,gsym,gvals,gFrame] = parsegmatrix(L,krange)
-k = findheader('ELECTRONIC G-MATRIX',L,krange);
+%-------------------------------------------------------------------------------
+function [graw,gsym,gvals,gFrame] = parsegmatrix(L,searchrange)
+k = findheader('ELECTRONIC G-MATRIX',L,searchrange);
 if isempty(k)
   graw = [];
   gsym = [];
@@ -310,18 +319,42 @@ if isempty(k)
   gFrame = [];
   return
 end
+
 % Locate g matrix (number of lines down from header depends on ORCA version)
 while ~contains(L{k},'The g-matrix')
   k = k+1;
 end
-% Read raw asymmetric g matrix and symmetrize
-graw = parsematrix(L(k+(1:3)));
-gsym = sqrtm(graw*graw.');
-gsym = (gsym+gsym.')/2;  % eliminate numerical errors
-% Diagonalize to get eigenvalues and orientation
-[gvals,gFrame] = diagonalizetensor(gsym);
+
+% Read either the raw matrix & symmetrize & diagonalize it, or read the
+% principal values and rotation matrix as calculated by ORCA. The latter is
+% typically more accurate, since the former relies on the few sigfigs that
+% are printed. But the difference might not matter.
+readRawMatrix = false;
+if readRawMatrix
+  % Read raw (asymmetric) g matrix and symmetrize
+  graw = parsematrix(L(k+(1:3)));
+  gsym = sqrtm(graw*graw.');  % symmetrize
+  gsym = (gsym+gsym.')/2;  % eliminate numerical errors
+  % Diagonalize to get eigenvalues and orientation
+  [gvals,gFrame] = diagonalizetensor(gsym);
+else
+  % Read symmetrized g principal values and rotation matrix
+  while ~contains(L{k},'g(tot)')
+    k = k+1;
+  end
+  gvals = sscanf(L{k}(12:end),'%f %f %f').';
+  while ~contains(L{k},'Orientation:')
+    k = k+1;
+  end
+  R_g2M = parsematrix(L(k+(1:3)),12);
+  graw = [];
+  R_M2g = R_g2M.';
+  gFrame = eulang(R_M2g);
+  gsym = R_g2M*diag(gvals)*R_g2M.'; 
+end
 end
 
+%-------------------------------------------------------------------------------
 function [Draw,Dvals,DFrame] = parsezfs(L,krange)
 k = findheader('ZERO-FIELD-SPLITTING TENSOR',L,krange);
 if isempty(k)
@@ -330,14 +363,25 @@ if isempty(k)
   DFrame = [];
   return
 end
-% Read raw D matrix (cm^-1) and convert to MHz
-Draw = parsematrix(L(k+3:k+5));
-Draw = Draw*100*clight/1e6;  % cm^-1 -> MHz
-% Diagonalize to get eigenvalues and orientation
-[Dvals,DFrame] = diagonalizetensor(Draw);
+
+readRawMatrix = true;
+if readRawMatrix
+  % Read raw D matrix (cm^-1) and convert to MHz
+  Draw = parsematrix(L(k+3:k+5));
+  Draw = Draw*100*clight/1e6;  % cm^-1 -> MHz
+  % Diagonalize to get eigenvalues and orientation
+  [Dvals,DFrame] = diagonalizetensor(Draw);
+else
+  % Read principal values and rotation matrix
+  Dvals = sscanf(L{k+8},'%f %f %f').';
+  Dvals = Dvals*100*clight/1e6;  % cm^-1 -> MHz
+  R_D2M = parsematrix(L(k+8+(1:3)));
+  DFrame = eulang(R_D2M);
+  Draw = [];
+end
 end
 
-function [Araw,efg,Q,QFrame,A,AFrame] = parsehyperfinequadrupole(L,krange,Element,nAtoms)
+function [Araw,A,AFrame,efg,Q,QFrame] = parsehyperfinequadrupole(L,krange,Element,nAtoms)
 
 Araw = cell(1,nAtoms);
 efg = cell(1,nAtoms);

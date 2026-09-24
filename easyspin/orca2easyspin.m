@@ -20,13 +20,15 @@
 %  Besides the main text-formatted output file, ORCA also generates an
 %  additional file that contains atomic coordinates and calculated
 %  properties such as g and A matrices, Q tensors, etc. This property file
-%  is text-based and ends in _property.txt. Before ORCA 5, the property
-%  file was binary and had extension .prop. orca2easyspin can read either
-%  the main output file or the associated property file.
+%  is text-based and ends in .property.txt (ORCA 6 and later). Before
+%  ORCA 5, the property file was binary and had extension .prop.
+%  orca2easyspin can read the main output file or either of these property
+%  files. The text-based property files from ORCA 5 (_property.txt) are
+%  not supported.
 %
 %  Examples:
 %    Sys = orca2easyspin('nitroxide.out')   % all ORCA versions
-%    Sys = orca2easyspin('nitroxide_property.txt')   % ORCA v5 and later
+%    Sys = orca2easyspin('nitroxide.property.txt')   % ORCA v6 and later
 %    Sys = orca2easyspin('nitroxide.prop')   % ORCA prior to v5
 %
 %  If HyperfineCutoff (a single value, in MHz) is given, all nuclei with
@@ -56,47 +58,21 @@ end
 if output_ext==".prop"
   % binary property file (ORCA versions < 5)
   readmode = 'propbin';
-  mainOutputFile = fullfile(output_path,output_name);
-  binaryPropFile = fullfile(output_path,[output_name output_ext]);
-  textPropFile = '';
-elseif output_ext==".txt" && numel(output_name)>9 && output_name(end-8:end)=="_property"
-  % text-based property file (ORCA versions >= 5)
-  readmode = 'proptxt';
-  error('orca2easyspin() currently does not support reading spin Hamiltonian parameters from _property.txt files. Provide the main output file instead.');
-  mainOutputFile = fullfile(output_path,output_name(1:end-9));
-  binaryPropFile = '';
-  textPropFile = fullfile(output_path,[output_name output_ext]);
+  fileType = 'binary ORCA property';
+elseif output_ext==".txt" && endsWith(output_name,".property")
+  % text-based property file (ORCA versions >= 6)
+  readmode = 'proptxtv6';
+  fileType = 'text-based ORCA property';
+elseif output_ext==".txt" && endsWith(output_name,"_property")
+  error('ORCA 5 property files (_property.txt) are not supported. Provide the main output file instead.');
 else
   % main ORCA output file
   readmode = 'mainout';
-  mainOutputFile = strcat(fullfile(output_path,output_name), output_ext);
-  binaryPropFile = strcat(fullfile(output_path,output_name), output_ext,'.prop');
-  textPropFile = strcat(fullfile(output_path,output_name),'_property.txt');
-end
-existMain = exist(mainOutputFile,'file');
-existPropBin = exist(binaryPropFile,'file');
-existPropTxt = exist(textPropFile,'file');
-
-if readmode=="mainout" && ~existMain
-  error('Cannot access ORCA output file %s.',mainOutputFile);
-end
-if readmode=="propbin" && ~existPropBin
-  error('Cannot access binary ORCA property file %s.',binaryPropFile);
-end
-if readmode=="proptxt" && ~existPropTxt
-  error('Cannot access text-based ORCA property file %s.',textPropFile);
+  fileType = 'ORCA output';
 end
 
-
-% Block reading buggy property files (early ORCA 5 versions)
-%--------------------------------------------------------------------------
-if readmode=="proptxt"
-  % Determine ORCA version, if possible
-  vOrca = getOrcaVersion(mainOutputFile);
-  buggyVersions = ["5.0.0", "5.0.1", "5.0.2", "5.0.3"];
-  if any(vOrca==buggyVersions)
-    error('Cannot read property file for ORCA version %s. Use main output file instead.',vOrca);
-  end
+if ~exist(OrcaOutput,'file')
+  error('Cannot access %s file %s.',fileType,OrcaOutput);
 end
 
 
@@ -104,11 +80,11 @@ end
 %--------------------------------------------------------------------------
 switch readmode
   case "mainout"
-    Sys = orca2easyspin_mainout(mainOutputFile);
+    Sys = orca2easyspin_mainout(OrcaOutput);
   case "propbin"
-    Sys = orca2easyspin_propbin(binaryPropFile);
-  case "proptxt"
-    Sys = orca2easyspin_proptxt(textPropFile);
+    Sys = orca2easyspin_propbin(OrcaOutput);
+  case "proptxtv6"
+    Sys = orca2easyspin_proptxtv6(OrcaOutput);
 end
 
 % Apply hyperfine cutoff
@@ -118,27 +94,6 @@ Sys = nucspinhftrim(Sys,HyperfineCutoff);
 end
 %==========================================================================
 
-
-% Determine ORCA version by looking through the top of the text-based
-% output file for a line containing "Program Version x.y.z"
-function OrcaVersion = getOrcaVersion(mainOutputFile)
-OrcaVersion = '';
-if ~exist(mainOutputFile,'file')
-  return
-end
-maxLines = 50; % limit search to initial lines
-fh = fopen(mainOutputFile);
-idx = 0;
-while isempty(OrcaVersion) && idx<maxLines
-  idx = idx + 1;
-  thisLine = fgetl(fh);
-  if ~ischar(thisLine)  % reached end of file
-    break
-  end
-  OrcaVersion = regexp(thisLine,'\d+\.\d+\.\d+','match','once');
-end
-fclose(fh);
-end
 
 % Remove all nuclei with hyperfine coupling strength below a threshold
 function Sys = nucspinhftrim(Sys,HyperfineCutoff)

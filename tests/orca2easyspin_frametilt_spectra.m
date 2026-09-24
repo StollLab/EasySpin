@@ -3,6 +3,12 @@ function ok = test(opt)
 % identical structures but in two different ORCA coordinate frames
 %----------------------------------------------------------------------------------------
 
+% Simulation options: to keep the test fast, simulate only the main
+% isotopologue and use a coarse orientational grid. This still clearly
+% detects wrong g, A, and D frames.
+Opt.IsoCutoff = 0.02;
+Opt.GridSize = 10;
+
 % Methyl radical (tests g- and A-Frames)
 %----------------------------------------------------------------------------------------
 
@@ -21,8 +27,9 @@ Exp.Range = [335 360];
 Exp.nPoints = 2e3;
 Exp.Harmonic = 0;
 
-[B,sim] = pepper(Sys,Exp);
-[B,simtilted] = pepper(Systilted,Exp);
+Opt.Method = 'perturb';
+[B,sim] = pepper(Sys,Exp,Opt);
+[B,simtilted] = pepper(Systilted,Exp,Opt);
 
 % Check that the EPR spectra match
 ok(1) = areequal(sim,simtilted,0.1,'rel');
@@ -53,8 +60,9 @@ Exp.Range = [0 150];
 Exp.nPoints = 5e3;
 Exp.Harmonic = 0;
 
-[B,sim] = pepper(Sys,Exp);
-[B,simtilted] = pepper(Systilted,Exp);
+Opt.Method = 'matrix';
+[B,sim] = pepper(Sys,Exp,Opt);
+[B,simtilted] = pepper(Systilted,Exp,Opt);
 
 % Check that the EPR spectra match
 ok(2) = areequal(sim,simtilted,0.1,'rel');

@@ -55,7 +55,8 @@ This function loads EPR properties calculated by <a href="http://cec.mpg.de/foru
 
 <p>
 For ORCA versions prior to 5, a binary property output file with the extension <code>.prop</code> is also provided by ORCA and can be used with <code>orca2easyspin</code>. There is no significant difference, or advantage, of using the property file compared to using the main output file.
-The text-based property output file with extension <code>_property.txt</code> provided starting from ORCA version 5, and containing calculated properties in a condensed format compared to the main output file, can currently not be used to load data into EasySpin, the main output file should be used instead. 
+Starting with ORCA version 6, ORCA provides a text-based property output file with extension <code>.property.txt</code> that contains the calculated properties in a condensed format. It can be used with <code>orca2easyspin</code> as well. In this case, <code>Sys</code> additionally contains the total charge (<code>Sys.charge</code>), the element symbols of all atoms (<code>Sys.Elements</code>), and the atom coordinates in &Aring; (<code>Sys.xyz</code>).
+The text-based property output file with extension <code>_property.txt</code> provided by ORCA version 5 is not supported; use the main output file instead.
 </p>
 
 <p>
