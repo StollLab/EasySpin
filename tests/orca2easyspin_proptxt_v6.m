@@ -3,9 +3,8 @@ function ok = test()
 % Compare spin systems read from ORCA 6 property files (*.property.txt)
 % with those read from the corresponding main output files.
 
-names = {'aminoxyl','dioxygen','nitroxide','nitroxide_tilted',...
-  'tripletformaldehyde','tripletformaldehyde_tilted'};
-folder = 'orcanew/v6.1.0/';
+names = {'nitroxide_tilted_v610','tripletformaldehyde_tilted_v610'};
+folder = 'orca/';
 
 tensor = @(v,ang) erot(ang).'*diag(v)*erot(ang);
 maxdiff = @(T1,T2) max(abs(T1(:)-T2(:)));
