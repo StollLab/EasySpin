@@ -1,58 +1,103 @@
 # Testing framework in EasySpin
 
-The folder `tests/` contains the test suite for EasySpin. Each file in this folder is a test or group of tests. The function that runs tests is `estest`.
+The folder `tests/` contains the test suite for EasySpin. Each test is a separate function file. The test runner is `estest`.
+
+A file counts as a test if its name contains an underscore (`_`). Other files, such as `estestexamples.m`, are ignored. Test files are named `<function>_<description>.m`, where `<function>` is the EasySpin function being tested, for example `pepper_c2h.m` or `sop_spinonehalf.m`.
 
 ## Running tests
 
-To run tests, use the function `estest`. Its first input is the name of the test or group of tests. The second input are options. Here are a few example
+Run `estest` from any folder, with EasySpin on the MATLAB path. `estest.m` is located in `easyspin/`, but is not included in releases.
+
+Arguments starting with `-` are options. All other arguments are test name patterns. A pattern matches a test name exactly, unless it contains the wildcard `*`. You can give several patterns, and the options can go in any position.
 
 ```matlab
-estest           % run all tests (could take a long time!)
-estest so        % run all tests starting with so
-estest pepper    % run all tests starting with pepper
-estest pepper d  % run all tests starting with pepper, plotting test results if implemented
-estest pepper t  % run all tests starting with pepper, reporting timings
+estest                  % run all tests (takes a long time!)
+estest -t               % run all tests and report timings
+estest pepper_c2h       % run only the test pepper_c2h
+estest pepper*          % run all tests whose names start with pepper
+estest *crystal*        % run all tests whose names contain crystal
+estest pepper* garlic*  % run all pepper and garlic tests
+estest pepper* -t       % run all pepper tests and report timings
+estest pepper* -d       % run all pepper tests and plot their results
 ```
 
-There are several possible outcomes of each test function call. It could crash, which `estest` will catch and then proceed to the next test. If it doesn't crash, it returns an array of booleans containing `true` or `false` depending on whether the associated subtests passed or failed. For a test function to pass, all subtests must return `true`.
+The function syntax works too, for example `estest('pepper*','-t')`. You can also pass a cell array of test names: `estest({'pepper_c2h','sop_spinonehalf'})`.
 
-There are two different types of tests, those that are self-sufficient, and those that need external reference data. The latter are stored in `tests/data`. Both types of tests are run by `estest`.
+| Option | Effect |
+| ------ | ------ |
+| `-d` | Display. Tests plot or print their results. `estest` pauses after each test; press a key to continue. |
+| `-t` | Report the time taken by each test, plus the total time and the 10 slowest tests. With `-d`, the time spent waiting for a keypress is not counted, but the time spent plotting is. |
+| `-r` | Regenerate and store reference data for regression tests (see below). |
+| `-c` | Report code coverage of the EasySpin functions. |
+| `-l` | With `-c`, also list the lines that the tests didn't cover. |
 
-`estest` prints a summary of test outcomes to the command window. Filenames of failed tests are linked such that they can be opened in the MATLAB editor with one click.
+Options can be combined, for example `-tc`.
+
+### Output
+
+`estest` prints one line per test. Each line shows the test type (`direct` or `regression`) and the outcome:
+
+- `pass`: all subtests returned `true`.
+- `failed`: at least one subtest returned `false`. The line lists the numbers of the failed subtests.
+- `crashed`: the test threw an error. `estest` catches it, prints the error report, and moves on to the next test.
+- `not tested`: the test returned an empty result, for example because a regression test has no reference data yet.
+
+At the end, `estest` lists the failed and crashed tests again and prints a summary. Test names are links that open the file in the MATLAB editor. The link "rerun failed and crashed tests" runs only those tests again.
+
+To get the results programmatically, request an output: `out = estest('pepper*')`. `out.outcomes` holds one code per test: 0 pass, 1 failed, 2 crashed, 3 not tested. `out.Results` holds the details.
 
 ## Writing a test
 
-Use one of the following three test function definitions
-Unit test function syntax:
+A test function uses one of these three signatures. The name of the function inside the file doesn't matter; `estest` calls it by its file name.
 
 ```matlab
-  function ok = test()          % simple direct test
-  function ok = test(opt)       % direct test that responds to options
-  function [ok,data] = test(opt,refdata) % regression test with external reference data
+function ok = test()                    % direct test
+function ok = test(opt)                 % direct test that responds to options
+function [ok,data] = test(opt,refdata)  % regression test with stored reference data
 ```
 
-Options are passed to test functions in `opt`. The most relevant is `opt.Display`. Test functions can plot test results if this variable is set to `true` and should not plot anything if it is set to `false`.
+`ok` is either a single logical or a logical array with one element per subtest. The test passes if all elements are `true`. Returning an array rather than combining the subtests into one value lets `estest` report which subtests failed.
 
-If a test needs external reference data, for example, a reference simulation, the test function should generate that data and return it in the second output argument `data`. `estest` will store the data in the `tests/data` folder and supply it the next time the test functions is called in the second input argument, `refdata`.
+`opt` is a structure with these fields:
 
-If you call `estest` with the `r` option, then `estest` will not record the results of the test, but only store the regenerated reference data obtained from the test function. Example
+- `opt.Display`: `true` if the test should plot or print its results (`-d`). Otherwise, the test must not plot anything.
+- `opt.Regenerate`: `true` if reference data is being regenerated (`-r`).
+- `opt.Verbosity`: 1 with `-d` and 0 otherwise. You can pass it on to EasySpin functions to get extra log output.
+
+### Regression tests
+
+Some tests compare against a reference result that was calculated earlier, for example a stored simulation. For these tests:
+
+1. The test calculates its result and returns it as `data`.
+2. `estest` stores `data` in `tests/data/<testname>.mat`.
+3. On later runs, `estest` loads that file and passes its contents to the test as `refdata`. The test compares its new result against it.
+
+`estest` stores reference data only when called with `-r`. When you write a new regression test, run it once with `-r` to create the reference data:
 
 ```matlab
-estest pepper_edgecase r
+estest pepper_axiallw -r
 ```
 
-There is an important utility function, `areequal()`, that tests should use for numerical comparisons. Here are some examples:
+With `-r`, `refdata` is empty. In that case, the test should return `ok = []`, so that it is reported as `not tested`. Only regenerate reference data if you are sure the current results are correct. Otherwise you overwrite a good reference with a wrong one.
+
+See `blochsteady_simple.m` for a complete example.
+
+### Comparing numbers
+
+For numerical comparisons, use `areequal` (in `tests/private/`):
 
 ```matlab
-ok = areequal(value,refvalue,1e-9,'rel');  % true if value and refvalue are within 1e-9 relative of each other
-ok = areequal(value,refvalue,1e-2,'abs');  % true if value and refvalue are within 1e-9 absolute of each other
+ok = areequal(value,refvalue);             % true if exactly equal
+ok = areequal(value,refvalue,1e-9,'rel');  % true if all differences are within 1e-9 times max(abs(refvalue))
+ok = areequal(value,refvalue,1e-2,'abs');  % true if all differences are within 1e-2
 ```
 
-Preferably, use the relative mode (`'rel'`) so that it is easy to see how tight the test is without knowing the scale of the signals.
+Both inputs must be numeric arrays of the same size. If they aren't, `areequal` throws an error, and the test is reported as crashed. Prefer the relative mode (`'rel'`), because it shows how tight the test is without knowing the scale of the values.
 
 ## Tips for writing good tests
 
-- Write short tests. Keep them as simple as possible.
-- Write many tests, to cover all possible execution pathways through a function.
-- Write fast tests. If a test involves intense calculations, reduce the numnber of points etc. to keep the time cost at a minimum.
-- If you run multiple subtests, store test outcomes in an Boolean array, and return that. `estest` can make use of this granular information.
+- Keep tests short and simple.
+- Write many tests, so that all execution paths through a function are covered.
+- Keep tests fast. If a test involves heavy calculations, reduce the number of points and similar settings. Use `estest -t` to find slow tests.
+- If a test contains several subtests, return their outcomes as a logical array rather than combining them into one value. That way `estest` can report which subtests failed.
+- Test functions must not plot anything unless `opt.Display` is `true`.

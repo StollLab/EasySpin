@@ -12,7 +12,7 @@
 - add new functions to `easyspin/functionSignatures.json`
 
 ## Testing
-- run complete test suite (`tests/estest`) on all platforms available
+- run complete test suite (`estest`) on all platforms available
 - run all examples
 
 ## Compilation (happens automatically on tag)

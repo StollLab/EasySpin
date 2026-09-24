@@ -105,6 +105,7 @@ fprintf(' ok\n');
 
 fprintf('  Copying toolbox files... ');
 copyfile(tbxSrcDir,tbxDir);
+delete(fullfile(tbxDir,'estest.m'));  % developer tool, tests are not shipped
 fprintf(' ok\n');
 
 

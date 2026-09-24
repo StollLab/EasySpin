@@ -1,39 +1,61 @@
 % estest    Unit test runner for EasySpin
 %
 %   Usage:
-%     estest            run all tests
-%     estest asdf       run all tests whose names start with asdf
-%     estest asdf d     run all tests whose names start with asdf and
-%                       display results
-%     estest asdf r     run all tests whose names start with asdf and
-%                       recalculate and store regression data
-%     estest asdf t     run all tests whose names start with asdf and
-%                       report timings
-%     estest asdf c     run all tests whose name starts with asdf and
-%                       report all lines of code not covered by the tests
+%     estest                  run all tests
+%     estest *                run all tests
+%     estest pepper_c2h       run only the test pepper_c2h
+%     estest pepper*          run all tests whose names start with pepper
+%     estest *crystal*        run all tests whose names contain crystal
+%     estest pepper* garlic*  run all tests matching any of the patterns
+%     estest -t               run all tests and report timings
+%     estest pepper* -t       run all tests starting with pepper and report
+%                             timings
+%
+%   Arguments starting with - are options, all others are test name
+%   patterns. A pattern matches exactly, unless it contains the wildcard *.
+%   Options can be given in any position and can be combined (e.g. -tc).
+%     -d   display results
+%     -r   recalculate and store regression data
+%     -t   report timings
+%     -c   report code coverage
+%     -l   list lines of code not covered by the tests (with -c)
 %
 %   Either the command syntax, as above, or the function syntax, e.g.
-%   estest('asdf','t'), can be used.
+%   estest('pepper*','-t'), can be used. A cell array of test names can be
+%   given as well, e.g. estest({'pepper_c2h','sop_spinonehalf'}).
 %
-%   Run all tests including timings:   estest('','t')
+%   estest runs the tests in the tests folder of the EasySpin source
+%   repository and can be called from any folder. To be recognized as a
+%   test, a file name must contain an underscore (_). Files without _ are
+%   ignored.
 %
-%   To be recognized as a test function, the file name must contain an
-%   underscore (_) in their filename. Files without _ are ignored.
+%   A test function has one of these signatures:
+%     ok = test()                    direct test
+%     ok = test(opt)                 direct test that responds to options
+%     [ok,data] = test(opt,refdata)  regression test with reference data
 %
-%   A test function must return one output, ok, which can be a scalar or
-%   an array of true/false. True indicates that the test has passed. An
-%   array indicates a series of subtests.
+%   ok is true/false, or an array of true/false with one element per
+%   subtest. The test passes if all elements are true. An empty ok means
+%   the test was not run (e.g. no reference data available).
 %
-%   Optionally, a structure is passed to the test function that contains
-%   the following fields:
+%   opt is a structure with the following fields:
+%     opt.Display     true/false - whether the test should plot/print (-d)
+%     opt.Regenerate  true/false - whether reference data is being
+%                      regenerated (-r)
+%     opt.Verbosity   1 with -d, 0 otherwise - can be passed on to EasySpin
+%                      functions for additional logging
 %
-%   Opt.Display     true/false - whether the test function should plot/print
-%   Opt.Regenerate  true/false - whether the test function should
-%                    regenerate reference data
-%   Opt.Verbosity   true/false - is passed on to EasySpin functions for
-%                    additional logging
+%   For regression tests, data is stored in data/<testname>.mat when
+%   estest is called with -r, and passed back as refdata in later runs.
+%   With -r, refdata is empty.
+%
+%   To get the results, request an output: out = estest(...). out.outcomes
+%   contains one code per test (0 pass, 1 failed, 2 crashed, 3 not tested),
+%   and out.Results contains the details.
+%
+%   See README.md in the tests folder for more information.
 
-function out = estest(testName,params)
+function out = estest(varargin)
 
 % Check whether EasySpin is on the MATLAB path
 EasySpinPath = fileparts(which('easyspin'));
@@ -41,57 +63,80 @@ if isempty(EasySpinPath)
   error('EasySpin is not on the MATLAB path!');
 end
 
+% Change to tests folder, and change back when done (also on error or Ctrl+C)
+testsDir = fullfile(fileparts(EasySpinPath),'tests');
+if ~isfolder(testsDir)
+  error('Test folder %s not found. estest requires the EasySpin source repository.',testsDir);
+end
+oldDir = cd(testsDir);
+restoreDir = onCleanup(@()cd(oldDir));  %#ok<NASGU>
+
 fid = 1;  % output to command window
 
-if nargin<1
-  testName = '';
+% Separate options (starting with -) from test name patterns
+flags = '';
+patterns = {};
+for iArg = 1:nargin
+  arg = varargin{iArg};
+  if isstring(arg)
+    arg = cellstr(arg);
+  end
+  if iscell(arg)
+    patterns = [patterns arg(:).'];  %#ok<AGROW>
+  elseif ischar(arg)
+    if startsWith(arg,'-')
+      flags = [flags arg(2:end)];  %#ok<AGROW>
+    else
+      patterns{end+1} = arg;  %#ok<AGROW>
+    end
+  else
+    error('Inputs must be strings/character arrays, or cell arrays of such.');
+  end
 end
-
-if nargin<2
-  params = '';
+unknownFlags = setdiff(flags,'drtcl');
+if ~isempty(unknownFlags)
+  error('Unknown option(s): %s. Valid options are -d, -r, -t, -c, -l.',...
+    strjoin(cellstr(unknownFlags(:)),', '));
+end
+runAll = isempty(patterns) || all(strcmp(patterns,'*'));
+if isempty(patterns)
+  patterns = {'*'};
 end
 
 % Options to pass along to test functions
-Opt.Display = any(params=='d');
-Opt.Regenerate = any(params=='r');
+Opt.Display = any(flags=='d');
+Opt.Regenerate = any(flags=='r');
 Opt.Verbosity = double(Opt.Display);
 
-displayTimings = any(params=='t');
-runCodeCoverageAnalysis = any(params=='c');
+displayTimings = any(flags=='t');
+runCodeCoverageAnalysis = any(flags=='c');
+listMissedLines = any(flags=='l');
 
-if Opt.Display && displayTimings
-  error('Cannot plot test results and report timings at the same time.');
-end
 
-% Assemble list of file names of tests to be run
-if ischar(testName)
-  if any(testName=='*')
-    error('Dont''t use * in first input argument.')
+% Assemble list of tests to be run: all m files in folder with _ in their
+% name that match any of the patterns (exact match unless * is used)
+fileList = dir('*.m');
+allTestNames = {fileList.name};
+allTestNames = allTestNames(contains(allTestNames,'_'));
+allTestNames = erase(allTestNames,regexpPattern('\.m$'));
+selectedTests = {};
+for p = 1:numel(patterns)
+  pattern = regexprep(patterns{p},'\.m$','');
+  regex = ['^' regexptranslate('wildcard',pattern) '$'];
+  matches = allTestNames(~cellfun(@isempty,regexp(allTestNames,regex,'once')));
+  if isempty(matches)
+    fprintf('No tests matching ''%s''.\n',pattern);
   end
-  % Get list of m files in folder, remove all file without _
-  fileMask = [testName '*.m'];
-  fileList = dir(fileMask);
-  for i = numel(fileList):-1:1
-    if ~any(fileList(i).name=='_')
-      fileList(i) = [];
-    end
-  end
-  if numel(fileList)==0
-    fprintf('No test functions matching the pattern %s\n',fileMask);
-    return
-  end
-  testFileNames = {fileList.name}.';
-elseif iscell(testName)
-  if numel(testName)==0
-    fprintf('No tests to run.\n');
-    return
-  end
-  testName = cellstr(testName);  % convert strings to char arrays (needed by sort)
-  testFileNames = cellfun(@(x)[x '.m'],testName,'UniformOutput',false);
-else
-  error('First input must be a string/character array, or a cell array of such.');
+  selectedTests = [selectedTests matches];  %#ok<AGROW>
 end
-testFileNames = sort(testFileNames);
+if isempty(selectedTests)
+  if nargout==1
+    out.Results = struct([]);
+    out.outcomes = [];
+  end
+  return
+end
+testFileNames = strcat(unique(selectedTests).','.m');
 
 fprintf(fid,'=======================================================================\n');
 fprintf(fid,'EasySpin test set                      %s\n(MATLAB %s)\n',char(datetime),version);
@@ -109,12 +154,9 @@ fprintf(fid,'-------------------------------------------------------------------
 
 outcomeStrings = {'pass','failed','crashed','not tested'};
 
-% List all the functions, including private
+% List all EasySpin functions (not including private ones)
 if runCodeCoverageAnalysis
-  % Get path to Easyspin functions folder
-  path = fileparts(which('estest'));
-  path = path(1:end-length('\tests'));
-  Files = dir(fullfile(path,'easyspin','*.m'));
+  Files = dir(fullfile(EasySpinPath,'*.m'));
   executedLines = repmat({[]},length(Files),1);
 end
 
@@ -159,7 +201,7 @@ for iTest = 1:nTests
   nArgsOut = nargout(testFcn);
   nArgsIn = nargin(testFcn);
   usesStoredData = nArgsIn==2 && nArgsOut==2;
-  tic
+  startTime = tic;
   try
     if usesStoredData
       if nArgsIn<2, error('2 inputs are needed.'); end
@@ -192,8 +234,9 @@ for iTest = 1:nTests
     errorStr = getReport(errorInfo);
     errorStr = ['    ' regexprep(errorStr,'\n','\n    ') newline];
   end
-  timeElapsed(iTest) = toc;
+  timeElapsed(iTest) = toc(startTime);
 
+  % Wait for keypress (after timing, so waiting is not included)
   if Opt.Display
     if iTest<numel(testFileNames)
       pause;
@@ -205,12 +248,16 @@ for iTest = 1:nTests
     p = profile('info');
     profile off
     
-    % Make list of all profiled function calls
-    executedFcns = {p.FunctionTable(:).CompleteName};
+    % Make list of files of all profiled function calls
+    executedFiles = {p.FunctionTable(:).FileName};
     % Analyze code coverage of each API function
     for n = 1:length(Files)
-      fcnName = Files(n).name;
-      pos = find(contains(executedFcns,fcnName));
+      fcnFile = fullfile(Files(n).folder,Files(n).name);
+      if ispc
+        pos = find(strcmpi(executedFiles,fcnFile));
+      else
+        pos = find(strcmp(executedFiles,fcnFile));
+      end
       if ~isempty(pos)
         % initialize containers
         for i = 1:length(pos)
@@ -253,18 +300,17 @@ for iTest = 1:nTests
   nameStr = testResults(iTest).name;
   str = sprintf('%-47s  %-12s%-8s%s\n%s',...
        nameStr,typeStr,outcomeStr,timeStr,errorStr);
-  str(str=='\') = '/';
-  
+
   nBlanks = max(47-length(nameStr),0);
-  nameStrLink = sprintf('<a href="matlab: edit %s">%s</a>%s',nameStr,nameStr,repmat(' ',1,nBlanks));
+  testFile = strrep(fullfile(testsDir,[nameStr '.m']),'\','/');
+  nameStrLink = sprintf('<a href="matlab: edit(''%s'')">%s</a>%s',testFile,nameStr,repmat(' ',1,nBlanks));
   strLink = sprintf('%s  %-12s%-8s%s\n%s',...
        nameStrLink,typeStr,outcomeStr,timeStr,errorStr);
-  strLink(strLink=='\') = '/';
-  
+
   testResults(iTest).msg = str;
   testResults(iTest).msgLink = strLink;
-  
-  fprintf(fid,strLink);
+
+  fprintf(fid,'%s',strLink);
 end
 
 % Display results of code coverage analysis
@@ -288,14 +334,15 @@ if runCodeCoverageAnalysis
     covered = length(executed);
     totalCovered = totalCovered + covered;
     runnable = length(unique(runnableLines));
-    Code = fileread(fcnName);
+    Code = fileread(fullfile(Path,fcnName));
     % Account for lines missed by callstats
     if covered > runnable
         totalRunnable = totalRunnable + covered;
     else
         totalRunnable = totalRunnable + runnable;
     end
-    if params =='l'
+    missed = [];
+    if listMissedLines
       missed = runnableLines;
       for k=1:length(executed)
         missed(runnableLines==executed(k)) = NaN;
@@ -311,12 +358,12 @@ if runCodeCoverageAnalysis
     end
     coverage = 100*covered/runnable;
     % Print to command window
-    if (~isempty(testName) && coverage~=0) || isempty(testName)
+    if runAll || coverage~=0
         fprintf('%-20s%-18s%5.1f%% %18s  %s\n',fcnName,' ',coverage,'Lines missing:',mat2str(missed))
     end
   end
   totalCoverage = totalCovered/totalRunnable*100;
-  if isempty(testName)
+  if runAll
     fprintf('Total code coverage: %3.2f%%\n',totalCoverage);
   end
 end
@@ -335,10 +382,11 @@ if displayTimings
 end
 
 % Display all tests that failed or crashed
-if any(allOutcomes==1) || any(allOutcomes==2)
+failedOrCrashed = find(allOutcomes==1 | allOutcomes==2);
+if ~isempty(failedOrCrashed)
   fprintf(fid,'-----------------------------------------------------------------------\n');
-  for iTest = find(allOutcomes)
-    fprintf(fid,testResults(iTest).msgLink);
+  for iTest = failedOrCrashed
+    fprintf(fid,'%s',testResults(iTest).msgLink);
   end
 end
 
@@ -346,15 +394,14 @@ nPasses = sum(allOutcomes==0);
 nFailures = sum(allOutcomes==1);
 nCrashes = sum(allOutcomes==2);
 fprintf(fid,'-----------------------------------------------------------------------\n');
-msg = sprintf('%d passes, %d failures, %d crashes\n',nPasses,nFailures,nCrashes);
-fprintf(fid,msg);
+fprintf(fid,'%d passes, %d failures, %d crashes\n',nPasses,nFailures,nCrashes);
 fprintf(fid,'-----------------------------------------------------------------------\n');
 
 % Assemble list of all failed and crashed tests and provide link to rerun them.
 if nFailures+nCrashes>0
   testList = cell(1,nFailures+nCrashes);
   idx = 1;
-  for iTest = find(allOutcomes)
+  for iTest = failedOrCrashed
     testList{idx} = ['''' testResults(iTest).name ''''];
     idx = idx + 1;
   end
