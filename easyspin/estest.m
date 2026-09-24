@@ -14,6 +14,11 @@
 %   Arguments starting with - are options, all others are test name
 %   patterns. A pattern matches exactly, unless it contains the wildcard *.
 %   Options can be given in any position and can be combined (e.g. -tc).
+%
+%   Do not use a lone * followed by further arguments in command syntax:
+%   MATLAB parses "estest * -t" as the expression estest()*(-t), so estest
+%   is called without any arguments. Use "estest -t" or "estest -t *"
+%   instead.
 %     -d   display results
 %     -r   recalculate and store regression data
 %     -t   report timings
