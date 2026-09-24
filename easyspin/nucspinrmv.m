@@ -41,6 +41,17 @@ else
   NewSys.Nucs = Nucs;
 end
 
+% nuclear atom indices (e.g. from orca2easyspin) ---------
+if isfield(NewSys,'NucsIdx')
+  NucsIdx = NewSys.NucsIdx;
+  NucsIdx(rmvidx) = [];
+  if isempty(NucsIdx)
+    NewSys = rmfield(NewSys,'NucsIdx');
+  else
+    NewSys.NucsIdx = NucsIdx;
+  end
+end
+
 % chemical shift tensor and angles -----------------------
 if ~isfield(NewSys,'fullsigma')
   if isfield(NewSys,'sigma')

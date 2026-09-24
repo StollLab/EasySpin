@@ -106,6 +106,11 @@ if isfield(NewSys,'n')
   NewSys.n(iNuc) = 1;
 end
 
+% Append atom index (e.g. from orca2easyspin); unknown for added nucleus
+if isfield(NewSys,'NucsIdx')
+  NewSys.NucsIdx(iNuc) = NaN;
+end
+
 % Append A and AFrame
 NewSys.A = appendtensor(NewSys.A,NewSys.AFrame,A,AFrame,nNuclei,'A');
 fullA = numel(A)==9 || size(Sys.A,1)==3*nNuclei;
@@ -115,7 +120,7 @@ end
 
 % Append Q and QFrame
 if isfield(Sys,'Q') || any(Q(:)~=0)
-  I = nucspin(Nucs);
+  I = quadrupolespins([Nucs {Nuc}]);
   NewSys.Q = appendtensor(NewSys.Q,NewSys.QFrame,Q,QFrame,nNuclei,'Q',I);
   fullQ = numel(Q)==9 || size(NewSys.Q,1)==3*nNuclei;
   if ~fullQ
@@ -169,11 +174,11 @@ switch numel(Q)
   case 1
     eeQqh = Q;
     eta = 0;
-    Qpv = eeQqh/(4*I*(2*I-1)) * [-1+eta, -1-eta, 2];
+    Qpv = eeQqh*qprefactor(I) * [-1+eta, -1-eta, 2];
   case 2
     eeQqh = Q(1);
     eta = Q(2);
-    Qpv = eeQqh/(4*I*(2*I-1)) * [-1+eta, -1-eta, 2];
+    Qpv = eeQqh*qprefactor(I) * [-1+eta, -1-eta, 2];
   case 3
     Qpv = Q;
   otherwise
@@ -214,13 +219,17 @@ nT = numel(T);
 fullT = nT==9;
 
 if Atensor
-  one2two = @(T)T(:,[1 1]);
-  one2three = @(T)T(:,[1 1 1]);
-  two2three = @(T)T(:,[1 1 2]);
+  one2two = @(T,I)T(:,[1 1]);
+  one2three = @(T,I)T(:,[1 1 1]);
+  two2three = @(T,I)T(:,[1 1 2]);
+  I0 = [];
+  Inew = [];
 else
-  one2two = @(T)[T(:) zeros(size(T(:)))];
-  one2three = @(T)T(:)./(4*I.*(2*I-1)) * [-1 -1 2];
-  two2three = @(T)T(:,1)./(4*I.*(2*I-1)) * [-1+T(:,2) -1-T(:,2) 2];
+  one2two = @(T,I)[T(:) zeros(size(T(:)))];
+  one2three = @(T,I)T(:).*qprefactor(I(:)) .* [-1 -1 2];
+  two2three = @(T,I)T(:,1).*qprefactor(I(:)) .* [-1+T(:,2) -1-T(:,2) 2*ones(size(T,1),1)];
+  I0 = I(1:nNuclei);  % spins of existing nuclei
+  Inew = I(end);  % spin of added nucleus
 end
 
 Tnew = T0;
@@ -243,7 +252,7 @@ if fullT0 || fullT
       Tnew = [T0temp; T];
     else
       for iNuc0 = 1:nNuclei
-        T0temp(iList(iNuc0):iList(iNuc0)+2,:) = fullifyQ(T0(iNuc0,:),T0FrameTemp(iNuc0,:),I(iNuc0));
+        T0temp(iList(iNuc0):iList(iNuc0)+2,:) = fullifyQ(T0(iNuc0,:),T0FrameTemp(iNuc0,:),I0(iNuc0));
       end
       Tnew = [T0temp; T];
     end
@@ -251,7 +260,7 @@ if fullT0 || fullT
     if Atensor
       Tnew = [T0; fullifyA(T,TFrame)];
     else
-      Tnew = [T0; fullifyQ(T,TFrame,I)];
+      Tnew = [T0; fullifyQ(T,TFrame,Inew)];
     end
   else
     Tnew = [T0; T];
@@ -261,28 +270,57 @@ else
     if nT0==1
       Tnew(newNuc) = T;
     elseif nT0==2
-      Tnew(newNuc,:) = one2two(T);
+      Tnew(newNuc,:) = one2two(T,Inew);
     else
-      Tnew(newNuc,:) = one2three(T);
+      Tnew(newNuc,:) = one2three(T,Inew);
     end
   elseif nT==2
     if nT0==1
-      Tnew = [one2two(Tnew(:)); T];
+      Tnew = [one2two(Tnew(:),I0); T];
     elseif nT0==2
       Tnew(newNuc,:) = T;
     else
-      Tnew(newNuc,:) = two2three(T);
+      Tnew(newNuc,:) = two2three(T,Inew);
     end
   else % nT==3
     if nT0==1
       Tnew = Tnew(:);
-      Tnew = [one2three(Tnew); T];
+      Tnew = [one2three(Tnew,I0); T];
     elseif nT0==2
-      Tnew = [two2three(Tnew); T];
+      Tnew = [two2three(Tnew,I0); T];
     else
       Tnew = [Tnew; T];
     end
   end
 end
 
+end
+
+%-------------------------------------------------------------------------------
+% Nuclear spins to use for converting quadrupole couplings. For an isotope
+% (e.g. '14N'), its spin is used. For an element (e.g. 'N'), the spin of the
+% quadrupole reference isotope (most abundant isotope with I>=1) is used,
+% or 1/2 if the element has no such isotope.
+function I = quadrupolespins(NucList)
+I = zeros(1,numel(NucList));
+for k = 1:numel(NucList)
+  if any(isstrprop(NucList{k},'digit'))
+    I(k) = nucspin(NucList{k});
+  else
+    [~,qref] = referenceisotope(NucList{k});
+    if isempty(qref)
+      I(k) = 1/2;
+    else
+      I(k) = qref.I;
+    end
+  end
+end
+end
+
+%-------------------------------------------------------------------------------
+% Prefactor for converting e^2qQ/h to principal values of Q; zero for I<1,
+% since such nuclei have no quadrupole coupling.
+function f = qprefactor(I)
+f = zeros(size(I));
+f(I>=1) = 1./(4*I(I>=1).*(2*I(I>=1)-1));
 end
