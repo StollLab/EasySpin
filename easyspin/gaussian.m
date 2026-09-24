@@ -82,14 +82,9 @@ if diff==-1
 
   % dispersion
   if calcDispersion
-    if license('test','symbolic_toolbox')
-      % hypergeom() is from the Symbolic Math Toolbox
-      ydisp = sqrt(2/pi)*2/sqrt(pi)/sig/2 * ...  % prefactor
-        sig*sqrt(2) *...  % dx/dk
-        1/2*k.^2.*hypergeom([1,1],[3/2,2],-k.^2);  % integral of Dawson function
-    else
-      error('Gaussian dispersion integral requires the Symbolic Math Toolbox.')
-    end
+    ydisp = sqrt(2/pi)*2/sqrt(pi)/sig/2 * ...  % prefactor
+      sig*sqrt(2) *...  % dx/dk
+      dawsonFintegral(k);  % integral of Dawson function
   end
   
 else
@@ -131,6 +126,43 @@ end
 function y = dawsonFderiv(x,n)
 % Calculates the n-th derivative of the Dawson function, d^F(x)/dx^n
 y = (-1)^n * (hermitepoly(x,n).*dawsonF(x) - Gpoly(x,n-1));
+end
+
+function y = dawsonFintegral(x)
+% Calculates the integral of the Dawson function from 0 to x,
+%   x^2/2*2F2([1,1],[3/2,2],-x^2)
+% (even function of x)
+y = zeros(size(x));
+ax = abs(x);
+
+% Small arguments: Gauss-Legendre quadrature over [0,|x|]
+xmax = 6;
+small = ax<=xmax;
+if any(small(:))
+  % Golub-Welsch algorithm for nodes u and weights w over [-1,1]
+  n = 40;
+  beta = 0.5./sqrt(1-(2*(1:n-1)).^(-2));
+  [V,D] = eig(diag(beta,1)+diag(beta,-1));
+  [u,idx] = sort(diag(D));
+  w = 2*V(1,idx).^2;
+  a = ax(small);
+  t = a(:)/2*(u.'+1);
+  y(small) = a(:)/2.*(dawsonF(t)*w.');
+end
+
+% Large arguments: asymptotic expansion
+%   (1/2)*log(2x) + gamma/4 - sum_k (2k-1)!!/2^k/(4k)/x^(2k)
+if any(~small(:))
+  a = ax(~small);
+  EulerGamma = 0.57721566490153286;
+  y_ = log(2*a)/2 + EulerGamma/4;
+  c = 1;
+  for k = 1:30
+    c = c*(2*k-1)/2;  % (2k-1)!!/2^k
+    y_ = y_ - c/(4*k)./a.^(2*k);
+  end
+  y(~small) = y_;
+end
 end
 
 function y = Gpoly(x,n)

@@ -1,13 +1,6 @@
 function ok = test()
 
-% Test Gaussian dispersion integral against explicit value
-
-% gaussian() dispersion integral is only implemented using MATLAB's
-% Symbolic Math Toolbox
-if ~license('test','symbolic_toolbox')
-  ok = true;
-  return
-end
+% Test Gaussian dispersion integral against explicit value (small k)
 
 x = 5;
 x0 = 4;
