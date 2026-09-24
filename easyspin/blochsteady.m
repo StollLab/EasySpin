@@ -20,7 +20,7 @@
 %
 %    Options  calculation options
 %      .Verbosity   whether to print information (0 or 1; 0 default)
-%      .nPoints     number of points, chosen automatically by default
+%      .nPoints     number of points; default is even and chosen automatically
 %      .kmax        highest Fourier order, chosen automatically by default
 %      .Method      calculation method for time-domain signal
 %                   'td'   explicit evolution in time-domain
@@ -199,7 +199,7 @@ tPeriod = 1/modFreq;  % modulation period
 % Number of points in time domain
 nPoints = Opt.nPoints;
 if isempty(nPoints)
-  nPoints = 2*kmax-1;
+  nPoints = 2*kmax;  % even, so period can be split into two half-periods (e.g. rapidscan2spc)
 end
 
 t = linspace(0,tPeriod,nPoints+1).';
@@ -227,8 +227,6 @@ switch Opt.Method
         My = My + Yk(idx)*phase;
         Mz = Mz + Zk(idx)*phase;
       end
-      f = @(x)max(abs(imag(x)))/max(abs(real(x)));
-      f(Mx), f(My), f(Mz)
       Mx = real(Mx);
       My = real(My);
       Mz = real(Mz);

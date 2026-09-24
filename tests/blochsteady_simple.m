@@ -8,7 +8,8 @@ B1 = 0.02;       % microwave field, in mT
 ModAmp = 0.5;    % peak-to-peak field modulation amplitude, in mT
 ModFreq = 50;    % field modulation frequency, in kHz
 
-[t,Mx,My,Mz] = blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq);
+Opt.nPoints = 1217;  % fixed, to match reference data (previous default)
+[t,Mx,My,Mz] = blochsteady(g,T1,T2,deltaB0,B1,ModAmp,ModFreq,Opt);
 
 data.t = t;
 data.Mx = Mx;
