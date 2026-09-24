@@ -1,0 +1,251 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:     -285.8001750171
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Electric_Properties
+   comment:     The SCF Calculated Electric Properties
+   geom. index: 1
+   prop. index: 1
+       Filename                          : .\nitroxide.scfp 
+       Do Dipole Moment Calculation      : 1 
+       Do Quadrupole Moment Calculation  : 0 
+       Do Polarizability Calculation     : 0 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        3.5688170926
+        Electronic Contribution:
+                   0          1          2    
+      0      -2.445574  -0.001287  -0.243952
+        Nuclear Contribution:
+                   0          1          2    
+      0       3.839055   0.002008   0.415925
+        Total Dipole moment:
+                   0          1          2    
+      0       1.393480   0.000721   0.171973
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_GTensor
+   comment:     Electronic g tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ g tensor: 
+                   0          1          2    
+      0       2.008951   0.000001   0.001033
+      1       0.000001   2.006018   0.000004
+      2       0.001104   0.000004   2.002263
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 6H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0       0.510721  -1.308264   0.390782
+      1      -1.301743  -2.625023  -0.117331
+      2       0.391374  -0.118365  -2.963888
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 2
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 7H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0       0.507555   1.311433   0.392913
+      1       1.304911  -2.622154   0.118406
+      2       0.393492   0.119441  -2.963421
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 3
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 8H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0      51.367091   4.877488  -1.531311
+      1       4.878838  56.433353  -2.869416
+      2      -1.532174  -2.857976  48.344386
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 4
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 9H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0      49.744993   4.160431   2.058087
+      1       4.159525  56.491447   3.759041
+      2       2.058853   3.749130  48.673121
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 5
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 10H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0      51.380206  -4.881026  -1.543366
+      1      -4.882373  56.412413   2.881624
+      2      -1.544218   2.870183  48.355454
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 6
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 11H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0      49.756753  -4.172283   2.055354
+      1      -4.171377  56.495777  -3.742871
+      2       2.056110  -3.732958  48.661591
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 7
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 0C 
+ Isotope: 13 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 134.190303 
+ A tensor (MHz): 
+                   0          1          2    
+      0       0.698836  -0.699746   0.284097
+      1      -0.692068  -1.599333  -0.056412
+      2       0.284900  -0.057653  -1.457920
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 8
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 1C 
+ Isotope: 13 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 134.190303 
+ A tensor (MHz): 
+                   0          1          2    
+      0       0.697174   0.702061   0.285265
+      1       0.694382  -1.597767   0.056503
+      2       0.286054   0.057745  -1.457724
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 9
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 2C 
+ Isotope: 13 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 134.190303 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -21.088779   1.803969   0.077945
+      1       1.810099 -19.873184   0.164981
+      2       0.078892   0.164885 -22.925887
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 10
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 4C 
+ Isotope: 13 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 134.190303 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -21.084189  -1.805611   0.074993
+      1      -1.811743 -19.876964  -0.159575
+      2       0.075929  -0.159478 -22.926335
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 11
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 3N 
+ Isotope: 14 
+ Nuclear Spin:  1.0 
+ Prefactor (MHz): 38.567697 
+ A tensor (MHz): 
+                   0          1          2    
+      0       0.313594   0.009817 -10.001127
+      1       0.009818  -1.489035  -0.069981
+      2     -10.000963  -0.069980  71.846044
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 12
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 5O  
+ Isotope: 17 
+ Nuclear Spin:  2.5 
+ Prefactor (MHz): -72.358765 
+ A tensor (MHz): 
+                   0          1          2    
+      0      36.732168  -0.032984  36.128408
+      1      -0.033000  38.949165   0.228315
+      2      36.130126   0.228320 -196.575658
+-------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+-------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    12        Geometry Index:    1
+    Coordinates:
+            C     -0.046437026425    0.579065487832    0.082443320702
+            C     -0.047250077906    1.906700338787    0.083592536483
+            C     -1.432847303939    2.462855927202   -0.076901290266
+            N     -2.236782906411    1.241738147399   -0.144986202248
+            C     -1.431345310315    0.021493756961   -0.079031693070
+            O     -3.480711432679    1.241150439679   -0.347733742546
+            H      0.828894635764   -0.050200062910    0.182486027968
+            H      0.827301486503    2.536874932929    0.184733379066
+            H     -1.561256643862    3.049884775229   -0.993935104073
+            H     -1.755837896344    3.082346334945    0.767485581468
+            H     -1.559028829290   -0.564088111683   -0.997092225804
+            H     -1.753581695096   -0.599865966370    0.764267412321

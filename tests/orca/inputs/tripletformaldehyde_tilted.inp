@@ -1,0 +1,9 @@
+! B3LYP EPR-II
+*xyzfile 0 3 tripletformaldehyde_opt_tilted.xyz
+%eprnmr
+  gtensor 1
+  DTensor ssandso
+  Nuclei = all H {aiso, adip, aorb, fgrad, rho}
+  Nuclei = all C {aiso, adip, aorb, fgrad, rho}
+  Nuclei = all O {aiso, adip, aorb, fgrad, rho}
+end

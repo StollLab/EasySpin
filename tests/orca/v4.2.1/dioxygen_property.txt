@@ -1,0 +1,81 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:     -150.3056883670
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Electric_Properties
+   comment:     The SCF Calculated Electric Properties
+   geom. index: 1
+   prop. index: 1
+       Filename                          : .\dioxygen.scfp 
+       Do Dipole Moment Calculation      : 1 
+       Do Quadrupole Moment Calculation  : 0 
+       Do Polarizability Calculation     : 0 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        0.0000000004
+        Electronic Contribution:
+                   0          1          2    
+      0      -0.000000  -0.000000   0.000000
+        Nuclear Contribution:
+                   0          1          2    
+      0       0.000000   0.000000   0.000000
+        Total Dipole moment:
+                   0          1          2    
+      0      -0.000000  -0.000000   0.000000
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_GTensor
+   comment:     Electronic g tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ g tensor: 
+                   0          1          2    
+      0       2.004790   0.000000  -0.000000
+      1       0.000000   2.004790  -0.000000
+      2       0.000000   0.000000   2.002123
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 0O 
+ Isotope: 17 
+ Nuclear Spin:  2.5 
+ Prefactor (MHz): -72.358765 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -79.548307   0.000000   0.000000
+      1       0.000000 -79.548307   0.000000
+      2       0.000000   0.000000  52.911880
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 2
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 1O  
+ Isotope: 17 
+ Nuclear Spin:  2.5 
+ Prefactor (MHz): -72.358765 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -79.548306  -0.000000   0.000000
+      1      -0.000000 -79.548306   0.000000
+      2       0.000000   0.000000  52.911880
+-------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+-------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    2        Geometry Index:    1
+    Coordinates:
+            O      0.000000000000    0.000000000000   -0.000705716291
+            O      0.000000000000    0.000000000000    1.210705716291

@@ -1,0 +1,115 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:     -131.0651889216
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Electric_Properties
+   comment:     The SCF Calculated Electric Properties
+   geom. index: 1
+   prop. index: 1
+       Filename                          : .\aminoxyl.scfp 
+       Do Dipole Moment Calculation      : 1 
+       Do Quadrupole Moment Calculation  : 0 
+       Do Polarizability Calculation     : 0 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        3.0751385622
+        Electronic Contribution:
+                   0          1          2    
+      0       0.663959   0.548099   0.007239
+        Nuclear Contribution:
+                   0          1          2    
+      0      -1.550549  -1.370023  -0.052901
+        Total Dipole moment:
+                   0          1          2    
+      0      -0.886589  -0.821923  -0.045662
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_GTensor
+   comment:     Electronic g tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ g tensor: 
+                   0          1          2    
+      0       2.007887   0.003859   0.000877
+      1       0.003740   2.005685  -0.001231
+      2       0.000834  -0.001264   2.005125
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 2H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -52.037299  -0.830216 -11.974265
+      1      -0.809165 -22.523553 -24.250315
+      2     -12.003922 -24.288656 -22.780289
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 2
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 3H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -29.358493  -4.252213  25.460115
+      1      -4.276172 -49.835626   9.908543
+      2      25.488277   9.945959 -18.332905
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 3
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 0N 
+ Isotope: 14 
+ Nuclear Spin:  1.0 
+ Prefactor (MHz): 38.567697 
+ A tensor (MHz): 
+                   0          1          2    
+      0      20.046781 -24.193032 -16.019620
+      1     -24.194311  27.895022  18.848193
+      2     -16.020138  18.847810  10.906676
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 4
+ Source density: 1 SCF 
+ Spin multiplicity: 2 
+ Nucleus: 1O  
+ Isotope: 17 
+ Nuclear Spin:  2.5 
+ Prefactor (MHz): -72.358765 
+ A tensor (MHz): 
+                   0          1          2    
+      0     -32.810583 111.443608  68.579975
+      1     111.439847 -96.724243 -91.049827
+      2      68.578501 -91.050942  -7.590656
+-------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+-------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    4        Geometry Index:    1
+    Coordinates:
+            N      0.889588205511   -1.054642840024    0.176092430300
+            O      1.919179818892   -0.311915041204    0.146346453287
+            H      0.796093241749   -1.744616436602    0.913741268441
+            H      0.311325733847   -1.135538682170   -0.653362152028

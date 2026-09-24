@@ -53,6 +53,8 @@ efg = [];
 efgFrame = [];
 rho0 = [];
 Atoms = [];
+AIdx = [];  % indices of atoms with hyperfine data
+efgIdx = [];  % indices of atoms with EFG data
 
 while ~feof(f)
   
@@ -120,6 +122,7 @@ while ~feof(f)
     % A matrices ---------------------------------------
     case {6, 15, 24, 31, 38}
       nucIdx = data(1,:)+1;
+      AIdx = union(AIdx,nucIdx);
       %aiso = data(2,:);
       for iNuc=1:numel(nucIdx)
         idx = nucIdx(iNuc);
@@ -132,6 +135,7 @@ while ~feof(f)
     % EFG tensors ----------------------------------------
     case {7, 16, 25, 32, 39}
       nucIdx = data(1,:)+1;
+      efgIdx = union(efgIdx,nucIdx);
       for iNuc = numel(nucIdx):-1:1
         idx = nucIdx(iNuc);
         efg_au = data(2:4,iNuc).'; % EFG, atomic unit (Eh/e/a0^2)
@@ -152,8 +156,6 @@ while ~feof(f)
 end
 fclose(f);
 
-nAtoms = numel(Atoms);
-
 % Compile spin system
 %-------------------------------------------------------------------------------
 info = struct();
@@ -162,12 +164,16 @@ if isempty(S)
 else
   Sys.S = S;
 end
+if ~isempty(Charge)
+  Sys.charge = Charge;
+  info.Charge = Charge;
+end
+if ~isempty(Atoms)
+  Sys.Elements = arrayfun(@elementno2symbol,Atoms(:).','UniformOutput',false);
+end
 if ~isempty(xyz)
   Sys.xyz = xyz;
   info.NucId = Atoms;
-end
-if ~isempty(Charge)
-  info.Charge = Charge;
 end
 if ~isempty(gpv)
   Sys.g = gpv;
@@ -178,53 +184,36 @@ if ~isempty(Dpv)
   Sys.DFrame = DFrame;
 end
 
-% Pad with zeros if necessary
-anyHyperfine = ~isempty(Apv);
-anyQuadrupole = ~isempty(efg);
-if anyHyperfine
-  if size(Apv,1)<nAtoms, Apv(nAtoms,:) = 0; end
-  if size(AFrame,1)<nAtoms, AFrame(nAtoms,:) = 0; end
-end
-if anyQuadrupole
-  if size(efg,1)<nAtoms, efg(nAtoms,:) = 0; end
-  if size(efgFrame,1)<nAtoms, efgFrame(nAtoms,:) = 0; end
-  Qpv = zeros(size(efg));
-end
+% Collect nuclei with hyperfine and/or EFG data, in order of atom index
+NucsIdx = union(AIdx,efgIdx);
+NucsIdx = NucsIdx(:).';
+nNucs = numel(NucsIdx);
+if nNucs>0 && ~isempty(Atoms)
+  Sys.Nucs = nuclist2string(Sys.Elements(NucsIdx));
+  Sys.NucsIdx = NucsIdx;
 
-if nAtoms>0
-  
-  % Convert electric field gradient principal values to Q tensor principal values
-  if anyQuadrupole
-    for iAtom = nAtoms:-1:1
-      if ~any(efg(iAtom,:)), continue; end
-      Qpv(iAtom,:) = efg2Q(efg(iAtom,:),Atoms(iAtom),'SI');
+  % Build Sys.A and Sys.AFrame (zeros for nuclei without hyperfine data)
+  if ~isempty(AIdx)
+    Sys.A = zeros(nNucs,3);
+    Sys.AFrame = zeros(nNucs,3);
+    [~,iA] = ismember(AIdx,NucsIdx);
+    Sys.A(iA,:) = Apv(AIdx,:);
+    Sys.AFrame(iA,:) = AFrame(AIdx,:);
+  end
+
+  % Build Sys.Q and Sys.QFrame from EFG principal values
+  if ~isempty(efgIdx)
+    Sys.Q = zeros(nNucs,3);
+    Sys.QFrame = zeros(nNucs,3);
+    for n = 1:nNucs
+      iAtom = NucsIdx(n);
+      if ~ismember(iAtom,efgIdx) || ~any(efg(iAtom,:)), continue; end
+      Sys.Q(n,:) = efg2Q(efg(iAtom,:),Atoms(iAtom),'SI');
+      Sys.QFrame(n,:) = efgFrame(iAtom,:);
     end
   end
-  
-  % Build Sys.Nucs
-  NucStr = [];
-  for iAtom = 1:nAtoms
-    NucStr = [NucStr ',' elementno2symbol(Atoms(iAtom))]; %#ok<AGROW>
-  end
-  if ~isempty(NucStr)
-    NucStr(1) = [];
-  end
-  Sys.Nucs = NucStr;
-  Sys.NucsIdx = 1:nAtoms;
-  
-  % Build Sys.A and Sys.AFrame
-  if anyHyperfine
-    Sys.A = Apv;
-    Sys.AFrame = AFrame;
-  end
-  
-  % Build Sys.Q and Sys.QFrame
-  if anyQuadrupole
-    Sys.Q = Qpv;
-    Sys.QFrame = efgFrame;
-  end
-  
-end % if nAtoms>0
+
+end
 Sys.data = info;
 
 end % function

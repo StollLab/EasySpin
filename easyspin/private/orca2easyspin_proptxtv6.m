@@ -128,12 +128,19 @@ for iSection = 1:numel(sectionStart)
 
 end
 
+% In multi-geometry files (scans), ORCA writes $Calculation_Info only once
+% (for the last geometry). Multiplicity and charge are the same for all
+% geometries, so use them for geometries without $Calculation_Info.
+hasInfo = ~arrayfun(@(d)isempty(d.Multiplicity),data);
+iInfo = find(hasInfo,1);
+for iGeom = find(~hasInfo)
+  data(iGeom).Multiplicity = data(iInfo).Multiplicity;
+  data(iGeom).Charge = data(iInfo).Charge;
+end
+
 for iGeom = 1:numel(data)
   if isempty(data(iGeom).xyz)
     error('No $Geometry section found for geometry %d.',iGeom);
-  end
-  if isempty(data(iGeom).Multiplicity)
-    error('No $Calculation_Info section found for geometry %d.',iGeom);
   end
 end
 

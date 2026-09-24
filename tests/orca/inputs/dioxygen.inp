@@ -1,0 +1,6 @@
+! B3LYP EPR-II
+*xyzfile 0 3 dioxygen_opt.xyz
+%eprnmr
+  gtensor 1
+  Nuclei = all O {aiso, adip, aorb, fgrad, rho}
+end

@@ -30,6 +30,6 @@ Sys4 = nucspinadd(Sys,'2H',[1 1 1],[],[-0.1 -0.1 0.2]);
 ok(4) = areequal(Sys4.Q,[0 0 0; -1 -1 2; -0.1 -0.1 0.2],1e-12,'abs');
 
 % Spin system from ORCA property file
-Sys = orca2easyspin('orca/nitroxide_tilted_v610.property.txt');
+Sys = orca2easyspin('orca/v6.1.0/nitroxide_tilted.property.txt');
 Sys5 = nucspinadd(Sys,'15N',[1 2 3]);
 ok(5) = size(Sys5.Q,1)==numel(Sys.NucsIdx)+1 && isequal(Sys5.Q(1:end-1,:),Sys.Q);

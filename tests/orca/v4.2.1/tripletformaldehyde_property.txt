@@ -1,0 +1,127 @@
+-------------------------------------------------------------
+----------------------- !PROPERTIES! ------------------------
+-------------------------------------------------------------
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Energy
+   comment:     The SCF energy
+   geom. index: 1
+   prop. index: 1
+        SCF Energy:     -114.3666310440
+------------------------ !PROPERTY! -------------------------
+   name:        SCF_Electric_Properties
+   comment:     The SCF Calculated Electric Properties
+   geom. index: 1
+   prop. index: 1
+       Filename                          : .\tripletformaldehyde.scfp 
+       Do Dipole Moment Calculation      : 1 
+       Do Quadrupole Moment Calculation  : 0 
+       Do Polarizability Calculation     : 0 
+** Dipole moment part of electric properties **
+        Magnitude of dipole moment (Debye) :        1.5494749867
+        Electronic Contribution:
+                   0          1          2    
+      0      -1.606981  -0.041150  -0.184187
+        Nuclear Contribution:
+                   0          1          2    
+      0       2.171778  -0.187303   0.204773
+        Total Dipole moment:
+                   0          1          2    
+      0       0.564797  -0.228453   0.020587
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_GTensor
+   comment:     Electronic g tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ g tensor: 
+                   0          1          2    
+      0       2.005145   0.000371   0.000273
+      1       0.000584   2.005265   0.000428
+      2       0.000311   0.000404   2.003442
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_DTensor
+   comment:     ZFS D tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ D tensor (cm^-1): 
+                   0          1          2    
+      0       0.312296   0.003919   0.071632
+      1       0.005881  -0.181972   0.025798
+      2       0.071184   0.022772  -0.300794
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 1
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 0H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     120.463313  -6.105420  14.274160
+      1      -6.110610 127.832300  -8.206221
+      2      14.274467  -8.209268 137.576218
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 2
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 2H 
+ Isotope: 1 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 533.551395 
+ A tensor (MHz): 
+                   0          1          2    
+      0     127.685750  -1.168823 -18.406490
+      1      -1.172377 123.606778   3.277266
+      2     -18.408110   3.281278 134.536115
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 3
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 1C 
+ Isotope: 13 
+ Nuclear Spin:  0.5 
+ Prefactor (MHz): 134.190303 
+ A tensor (MHz): 
+                   0          1          2    
+      0      60.587103  -1.027649  -0.273458
+      1      -1.063517 142.925216  15.244732
+      2      -0.280075  15.248587  64.162380
+------------------------ !PROPERTY! -------------------------
+   name:        EPRNMR_ATensor
+   comment:     Hyperfine A tensor
+   geom. index: 1
+   prop. index: 4
+ Source density: 1 SCF 
+ Spin multiplicity: 3 
+ Nucleus: 3O  
+ Isotope: 17 
+ Nuclear Spin:  2.5 
+ Prefactor (MHz): -72.358765 
+ A tensor (MHz): 
+                   0          1          2    
+      0      44.458544   4.543380  20.937331
+      1       4.530617 -21.522947  21.932127
+      2      20.934969  21.933489 -129.229829
+-------------------------------------------------------------
+----------------------- !GEOMETRIES! ------------------------
+-------------------------------------------------------------
+------------------------ !GEOMETRY! -------------------------
+    Number of atoms:    4        Geometry Index:    1
+    Coordinates:
+            H     -1.542350627150    0.868118997658    0.953176325591
+            C     -1.974213809292    1.314895582227    0.045710059840
+            H     -1.343959761880    1.207603860744   -0.849315340879
+            O     -3.225876801678    1.015429559371   -0.149571044552

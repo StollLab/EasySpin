@@ -1,0 +1,9 @@
+! UKS B3LYP 6-31G
+*xyz 0 2
+O 0 0 0
+H 0 0 1.1
+*
+
+%eprnmr
+  gtensor 1
+end

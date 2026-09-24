@@ -1,0 +1,9 @@
+! B3LYP EPR-II
+*xyzfile 0 2 nitroxide_opt.xyz
+%eprnmr
+  gtensor 1
+  Nuclei = all H {aiso, adip, aorb, fgrad, rho}
+  Nuclei = all C {aiso, adip, aorb, fgrad, rho}
+  Nuclei = all N {aiso, adip, aorb, fgrad, rho}
+  Nuclei = all O {aiso, adip, aorb, fgrad, rho}
+end

@@ -1,0 +1,2565 @@
+
+                                 *****************
+                                 * O   R   C   A *
+                                 *****************
+
+           --- An Ab Initio, DFT and Semiempirical electronic structure package ---
+
+                  #######################################################
+                  #                        -***-                        #
+                  #          Department of theory and spectroscopy      #
+                  #               Directorship: Frank Neese             #
+                  #        Max Planck Institute fuer Kohlenforschung    #
+                  #                Kaiser Wilhelm Platz 1               #
+                  #                 D-45470 Muelheim/Ruhr               #
+                  #                      Germany                        #
+                  #                                                     #
+                  #                  All rights reserved                #
+                  #                        -***-                        #
+                  #######################################################
+
+
+                         Program Version 4.2.1 -  RELEASE  -
+
+
+ With contributions from (in alphabetic order):
+   Daniel Aravena         : Magnetic Suceptibility
+   Michael Atanasov       : Ab Initio Ligand Field Theory (pilot matlab implementation)
+   Alexander A. Auer      : GIAO ZORA, VPT2
+   Ute Becker             : Parallelization
+   Giovanni Bistoni       : ED, misc. LED, open-shell LED, HFLD
+   Martin Brehm           : Molecular dynamics
+   Dmytro Bykov           : SCF Hessian
+   Vijay G. Chilkuri      : MRCI spin determinant printing, contributions to CSF-ICE
+   Dipayan Datta          : RHF DLPNO-CCSD density
+   Achintya Kumar Dutta   : EOM-CC, STEOM-CC
+   Dmitry Ganyushin       : Spin-Orbit,Spin-Spin,Magnetic field MRCI
+   Miquel Garcia          : C-PCM Hessian, Gaussian charge scheme
+   Yang Guo               : DLPNO-NEVPT2, CIM, IAO-localization
+   Andreas Hansen         : Spin unrestricted coupled pair/coupled cluster methods
+   Benjamin Helmich-Paris : CASSCF linear response (MC-RPA)
+   Lee Huntington         : MR-EOM, pCC
+   Robert Izsak           : Overlap fitted RIJCOSX, COSX-SCS-MP3, EOM
+   Christian Kollmar      : KDIIS, OOCD, Brueckner-CCSD(T), CCSD density
+   Simone Kossmann        : Meta GGA functionals, TD-DFT gradient, OOMP2, MP2 Hessian
+   Martin Krupicka        : AUTO-CI
+   Lucas Lang             : DCDCAS
+   Dagmar Lenk            : GEPOL surface, SMD
+   Dimitrios Liakos       : Extrapolation schemes; Compound Job, initial MDCI parallelization
+   Dimitrios Manganas     : Further ROCIS development; embedding schemes
+   Dimitrios Pantazis     : SARC Basis sets
+   Taras Petrenko         : DFT Hessian,TD-DFT gradient, ASA, ECA, R-Raman, ABS, FL, XAS/XES, NRVS
+   Peter Pinski           : DLPNO-MP2, DLPNO-MP2 Gradient
+   Christoph Reimann      : Effective Core Potentials
+   Marius Retegan         : Local ZFS, SOC
+   Christoph Riplinger    : Optimizer, TS searches, QM/MM, DLPNO-CCSD(T), (RO)-DLPNO pert. Triples
+   Tobias Risthaus        : Range-separated hybrids, TD-DFT gradient, RPA, STAB
+   Michael Roemelt        : Original ROCIS implementation
+   Masaaki Saitow         : Open-shell DLPNO-CCSD energy and density
+   Barbara Sandhoefer     : DKH picture change effects
+   Avijit Sen             : IP-ROCIS
+   Kantharuban Sivalingam : CASSCF convergence, NEVPT2, FIC-MRCI
+   Bernardo de Souza      : ESD, SOC TD-DFT
+   Georgi Stoychev        : AutoAux, RI-MP2 NMR
+   Willem Van den Heuvel  : Paramagnetic NMR
+   Boris Wezisla          : Elementary symmetry handling
+   Frank Wennmohs         : Technical directorship
+
+
+ We gratefully acknowledge several colleagues who have allowed us to
+ interface, adapt or use parts of their codes:
+   Stefan Grimme, W. Hujo, H. Kruse,             : VdW corrections, initial TS optimization,
+                  C. Bannwarth                     DFT functionals, gCP, sTDA/sTD-DF
+   Ed Valeev, F. Pavosevic, A. Kumar             : LibInt (2-el integral package), F12 methods
+   Garnet Chan, S. Sharma, J. Yang, R. Olivares  : DMRG
+   Ulf Ekstrom                                   : XCFun DFT Library
+   Mihaly Kallay                                 : mrcc  (arbitrary order and MRCC methods)
+   Andreas Klamt, Michael Diedenhofen            : otool_cosmo (COSMO solvation model)
+   Jiri Pittner, Ondrej Demel                    : Mk-CCSD
+   Frank Weinhold                                : gennbo (NPA and NBO analysis)
+   Christopher J. Cramer and Donald G. Truhlar   : smd solvation model
+   Lars Goerigk                                  : TD-DFT with DH, B97 family of functionals
+   V. Asgeirsson, H. Jonsson                     : NEB implementation
+   FAccTs GmbH                                   : IRC, NEB, NEB-TS, Multilevel, MM, QM/MM, CI optimization
+   S Lehtola, MJT Oliveira, MAL Marques          : LibXC Library
+
+
+ Your calculation uses the libint2 library for the computation of 2-el integrals
+ For citations please refer to: http://libint.valeyev.net
+
+ Your ORCA version has been built with support for libXC version: 4.2.3
+ For citations please refer to: https://tddft.org/programs/libxc/
+
+ This ORCA versions uses:
+   CBLAS   interface :  Fast vector & matrix operations
+   LAPACKE interface :  Fast linear algebra routines
+
+
+
+
+***************************************
+The coordinates will be read from file: nitroxide_opt.xyz
+***************************************
+
+
+----- Orbital basis set information -----
+Your calculation utilizes the basis: EPR-II
+   V. Barone, in Recent Advances in Density Functional Methods, Part 1 (ed. D. P. Chong), World Scientific, Singapore, 1995, p. 287.
+
+================================================================================
+                                        WARNINGS
+                       Please study these warnings very carefully!
+================================================================================
+
+
+WARNING: your system is open-shell and RHF/RKS was chosen
+  ===> : WILL SWITCH to UHF/UKS
+
+
+INFO   : the flag for use of LIBINT has been found!
+
+================================================================================
+                                       INPUT FILE
+================================================================================
+NAME = .\nitroxide.inp
+|  1> ! B3LYP EPR-II
+
+|  2> *xyzfile 0 2 nitroxide_opt.xyz
+
+|  3> %eprnmr
+
+|  4>   gtensor 1
+
+|  5>   Nuclei = all H {aiso, adip, aorb, fgrad, rho}
+
+|  6>   Nuclei = all C {aiso, adip, aorb, fgrad, rho}
+
+|  7>   Nuclei = all N {aiso, adip, aorb, fgrad, rho}
+
+|  8>   Nuclei = all O {aiso, adip, aorb, fgrad, rho}
+
+|  9> end
+
+| 10> 
+| 11>                          ****END OF INPUT****
+================================================================================
+
+                       ****************************
+                       * Single Point Calculation *
+                       ****************************
+
+---------------------------------
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  C     -0.046437    0.579065    0.082443
+  C     -0.047250    1.906700    0.083593
+  C     -1.432847    2.462856   -0.076901
+  N     -2.236783    1.241738   -0.144986
+  C     -1.431345    0.021494   -0.079032
+  O     -3.480711    1.241150   -0.347734
+  H      0.828895   -0.050200    0.182486
+  H      0.827301    2.536875    0.184733
+  H     -1.561257    3.049885   -0.993935
+  H     -1.755838    3.082346    0.767486
+  H     -1.559029   -0.564088   -0.997092
+  H     -1.753582   -0.599866    0.764267
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+----------------------------
+  NO LB      ZA    FRAG     MASS         X           Y           Z
+   0 C     6.0000    0    12.011   -0.087753    1.094275    0.155795
+   1 C     6.0000    0    12.011   -0.089290    3.603141    0.157967
+   2 C     6.0000    0    12.011   -2.707689    4.654123   -0.145322
+   3 N     7.0000    0    14.007   -4.226907    2.346545   -0.273984
+   4 C     6.0000    0    12.011   -2.704851    0.040617   -0.149348
+   5 O     8.0000    0    15.999   -6.577591    2.345434   -0.657122
+   6 H     1.0000    0     1.008    1.566384   -0.094864    0.344849
+   7 H     1.0000    0     1.008    1.563373    4.793999    0.349095
+   8 H     1.0000    0     1.008   -2.950347    5.763447   -1.878265
+   9 H     1.0000    0     1.008   -3.318053    5.824790    1.450338
+  10 H     1.0000    0     1.008   -2.946138   -1.065972   -1.884231
+  11 H     1.0000    0     1.008   -3.313789   -1.133582    1.444256
+
+--------------------------------
+INTERNAL COORDINATES (ANGSTROEM)
+--------------------------------
+ C      0   0   0     0.000000000000     0.00000000     0.00000000
+ C      1   0   0     1.327635597301     0.00000000     0.00000000
+ C      2   1   0     1.501648087849   111.76717362     0.00000000
+ N      3   2   1     1.463583492771   101.70115326     1.05165837
+ C      4   3   2     1.463583305070   113.03126216   358.22879324
+ O      4   3   2     1.260343242518   123.36777455   183.61489318
+ H      1   2   3     1.082676865670   125.56509511   179.92977761
+ H      2   1   3     1.082677203949   125.56583379   180.06964314
+ H      3   2   1     1.096377144354   113.31386789   242.93866084
+ H      3   2   1     1.095938172173   113.51223749   119.40881298
+ H      5   4   3     1.096377830707   110.08902951   241.36739194
+ H      5   4   3     1.095936847910   110.21645325   122.46416445
+
+---------------------------
+INTERNAL COORDINATES (A.U.)
+---------------------------
+ C      0   0   0     0.000000000000     0.00000000     0.00000000
+ C      1   0   0     2.508867684545     0.00000000     0.00000000
+ C      2   1   0     2.837703635560   111.76717362     0.00000000
+ N      3   2   1     2.765771975465   101.70115326     1.05165837
+ C      4   3   2     2.765771620762   113.03126216   358.22879324
+ O      4   3   2     2.381703563097   123.36777455   183.61489318
+ H      1   2   3     2.045962767649   125.56509511   179.92977761
+ H      2   1   3     2.045963406904   125.56583379   180.06964314
+ H      3   2   1     2.071852542320   113.31386789   242.93866084
+ H      3   2   1     2.071023005117   113.51223749   119.40881298
+ H      5   4   3     2.071853839339   110.08902951   241.36739194
+ H      5   4   3     2.071020502623   110.21645325   122.46416445
+
+---------------------
+BASIS SET INFORMATION
+---------------------
+There are 4 groups of distinct atoms
+
+ Group   1 Type C   : 10s5p1d contracted to 6s2p1d pattern {511111/41/1}
+ Group   2 Type N   : 10s5p1d contracted to 6s2p1d pattern {511111/41/1}
+ Group   3 Type O   : 10s5p1d contracted to 6s2p1d pattern {511111/41/1}
+ Group   4 Type H   : 6s1p contracted to 4s1p pattern {3111/1}
+
+Atom   0C    basis set group =>   1
+Atom   1C    basis set group =>   1
+Atom   2C    basis set group =>   1
+Atom   3N    basis set group =>   2
+Atom   4C    basis set group =>   1
+Atom   5O    basis set group =>   3
+Atom   6H    basis set group =>   4
+Atom   7H    basis set group =>   4
+Atom   8H    basis set group =>   4
+Atom   9H    basis set group =>   4
+Atom  10H    basis set group =>   4
+Atom  11H    basis set group =>   4
+------------------------------------------------------------------------------
+                           ORCA GTO INTEGRAL CALCULATION
+------------------------------------------------------------------------------
+
+                         BASIS SET STATISTICS AND STARTUP INFO
+
+ # of primitive gaussian shells          ...  138
+ # of primitive gaussian functions       ...  234
+ # of contracted shells                  ...   84
+ # of contracted basis functions         ...  144
+ Highest angular momentum                ...    2
+ Maximum contraction depth               ...    5
+ Integral package used                   ... LIBINT
+ Integral threshhold            Thresh   ...  1.000e-10
+ Primitive cut-off              TCut     ...  1.000e-11
+
+
+------------------------------ INTEGRAL EVALUATION ----------------------------
+
+
+ * One electron integrals 
+ Pre-screening matrix                    ... done
+ Shell pair data                         ... done (   0.001 sec)
+
+Timings:
+ Total evaluation time               ...     0.003 sec (   0.000 min)
+ One electron matrix time            ...     0.018 sec (   0.000 min) =600.0%
+ Schwartz matrix evaluation time     ...     0.192 sec (   0.003 min) =6400.0%
+
+-------------------------------------------------------------------------------
+                                 ORCA SCF
+-------------------------------------------------------------------------------
+
+------------
+SCF SETTINGS
+------------
+Hamiltonian:
+ Density Functional     Method          .... DFT(GTOs)
+ Exchange Functional    Exchange        .... B88
+   X-Alpha parameter    XAlpha          ....  0.666667
+   Becke's b parameter  XBeta           ....  0.004200
+ Correlation Functional Correlation     .... LYP
+ LDA part of GGA corr.  LDAOpt          .... VWN-5
+ Gradients option       PostSCFGGA      .... off
+ Hybrid DFT is turned on
+   Fraction HF Exchange ScalHFX         ....  0.200000
+   Scaling of DF-GGA-X  ScalDFX         ....  0.720000
+   Scaling of DF-GGA-C  ScalDFC         ....  0.810000
+   Scaling of DF-LDA-C  ScalLDAC        ....  1.000000
+   Perturbative correction              ....  0.000000
+   Density functional embedding theory  .... OFF
+   NL short-range parameter             ....  4.800000
+
+
+General Settings:
+ Integral files         IntName         .... .\nitroxide
+ Hartree-Fock type      HFTyp           .... UHF
+ Total Charge           Charge          ....    0
+ Multiplicity           Mult            ....    2
+ Number of Electrons    NEL             ....   45
+ Basis Dimension        Dim             ....  144
+ Nuclear Repulsion      ENuc            ....    231.5050767222 Eh
+
+Convergence Acceleration:
+ DIIS                   CNVDIIS         .... on
+   Start iteration      DIISMaxIt       ....    12
+   Startup error        DIISStart       ....  0.200000
+   # of expansion vecs  DIISMaxEq       ....     5
+   Bias factor          DIISBfac        ....   1.050
+   Max. coefficient     DIISMaxC        ....  10.000
+ Newton-Raphson         CNVNR           .... off
+ SOSCF                  CNVSOSCF        .... off
+ Level Shifting         CNVShift        .... on
+   Level shift para.    LevelShift      ....    0.2500
+   Turn off err/grad.   ShiftErr        ....    0.0010
+ Zerner damping         CNVZerner       .... off
+ Static damping         CNVDamp         .... on
+   Fraction old density DampFac         ....    0.7000
+   Max. Damping (<1)    DampMax         ....    0.9800
+   Min. Damping (>=0)   DampMin         ....    0.0000
+   Turn off err/grad.   DampErr         ....    0.1000
+ Fernandez-Rico         CNVRico         .... off
+
+SCF Procedure:
+ Maximum # iterations   MaxIter         ....   125
+ SCF integral mode      SCFMode         .... Direct
+   Integral package                     .... LIBINT
+ Reset frequency        DirectResetFreq ....    20
+ Integral Threshold     Thresh          ....  1.000e-10 Eh
+ Primitive CutOff       TCut            ....  1.000e-11 Eh
+
+Convergence Tolerance:
+ Convergence Check Mode ConvCheckMode   .... Total+1el-Energy
+ Convergence forced     ConvForced      .... 0
+ Energy Change          TolE            ....  1.000e-06 Eh
+ 1-El. energy change                    ....  1.000e-03 Eh
+ DIIS Error             TolErr          ....  1.000e-06
+
+
+Diagonalization of the overlap matrix:
+Smallest eigenvalue                        ... 9.940e-04
+Time for diagonalization                   ...    0.005 sec
+Threshold for overlap eigenvalues          ... 1.000e-08
+Number of eigenvalues below threshold      ... 0
+Time for construction of square roots      ...    0.002 sec
+Total time needed                          ...    0.007 sec
+
+-------------------
+DFT GRID GENERATION
+-------------------
+
+General Integration Accuracy     IntAcc      ...  4.340
+Radial Grid Type                 RadialGrid  ... Gauss-Chebyshev
+Angular Grid (max. acc.)         AngularGrid ... Lebedev-110
+Angular grid pruning method      GridPruning ... 3 (G Style)
+Weight generation scheme         WeightScheme... Becke
+Basis function cutoff            BFCut       ...    1.0000e-10
+Integration weight cutoff        WCut        ...    1.0000e-14
+Grids for H and He will be reduced by one unit
+
+# of grid points (after initial pruning)     ...  14806 (   0.0 sec)
+# of grid points (after weights+screening)   ...  13922 (   0.0 sec)
+nearest neighbour list constructed           ...    0.0 sec
+Grid point re-assignment to atoms done       ...    0.0 sec
+Grid point division into batches done        ...    0.0 sec
+Reduced shell lists constructed in    0.1 sec
+
+Total number of grid points                  ...    13922
+Total number of batches                      ...      221
+Average number of points per batch           ...       62
+Average number of grid points per atom       ...     1160
+Average number of shells per batch           ...    52.98 (63.07%)
+Average number of basis functions per batch  ...   103.62 (71.96%)
+Average number of large shells per batch     ...    43.51 (82.13%)
+Average number of large basis fcns per batch ...    85.00 (82.03%)
+Maximum spatial batch extension              ...  20.52, 20.95, 21.59 au
+Average spatial batch extension              ...   4.10,  4.00,  4.02 au
+
+Time for grid setup =    0.156 sec
+
+------------------------------
+INITIAL GUESS: MODEL POTENTIAL
+------------------------------
+Loading Hartree-Fock densities                     ... done
+Calculating cut-offs                               ... done
+Setting up the integral package                    ... done
+Initializing the effective Hamiltonian             ... done
+Starting the Coulomb interaction                   ... done (   0.1 sec)
+Reading the grid                                   ... done
+Mapping shells                                     ... done
+Starting the XC term evaluation                    ... done (   0.1 sec)
+  promolecular density results
+     # of electrons  =     44.998537796
+     EX              =    -37.102663242
+     EC              =     -1.520415091
+     EX+EC           =    -38.623078333
+Transforming the Hamiltonian                       ... done (   0.0 sec)
+Diagonalizing the Hamiltonian                      ... done (   0.0 sec)
+Back transforming the eigenvectors                 ... done (   0.0 sec)
+Now organizing SCF variables                       ... done
+                      ------------------
+                      INITIAL GUESS DONE (   0.5 sec)
+                      ------------------
+--------------
+SCF ITERATIONS
+--------------
+ITER       Energy         Delta-E        Max-DP      RMS-DP      [F,P]     Damp
+               ***  Starting incremental Fock matrix formation  ***
+  0   -285.6664097713   0.000000000000 0.05174961  0.00112403  0.1930547 0.7000
+  1   -285.7269423885  -0.060532617197 0.03622727  0.00083777  0.0767048 0.7000
+                               ***Turning on DIIS***
+  2   -285.7518517490  -0.024909360505 0.05976037  0.00144038  0.0290058 0.0000
+  3   -285.7912532703  -0.039401521232 0.02305814  0.00064329  0.0506739 0.0000
+  4   -285.7999474999  -0.008694229628 0.01010807  0.00022383  0.0127538 0.0000
+  5   -285.8003024745  -0.000354974663 0.00386294  0.00009978  0.0122946 0.0000
+  6   -285.8004980071  -0.000195532601 0.00213063  0.00005019  0.0027052 0.0000
+  7   -285.8005199134  -0.000021906277 0.00221606  0.00004417  0.0008630 0.0000
+  8   -285.8005274068  -0.000007493399 0.00047978  0.00001049  0.0007212 0.0000
+  9   -285.8005285311  -0.000001124236 0.00025962  0.00000409  0.0002534 0.0000
+                 **** Energy Check signals convergence ****
+
+               *****************************************************
+               *                     SUCCESS                       *
+               *           SCF CONVERGED AFTER  10 CYCLES          *
+               *****************************************************
+
+Setting up the final grid:
+
+General Integration Accuracy     IntAcc      ...  4.670
+Radial Grid Type                 RadialGrid  ... Gauss-Chebyshev
+Angular Grid (max. acc.)         AngularGrid ... Lebedev-302
+Angular grid pruning method      GridPruning ... 3 (G Style)
+Weight generation scheme         WeightScheme... Becke
+Basis function cutoff            BFCut       ...    1.0000e-10
+Integration weight cutoff        WCut        ...    1.0000e-14
+Grids for H and He will be reduced by one unit
+
+# of grid points (after initial pruning)     ...  57636 (   0.0 sec)
+# of grid points (after weights+screening)   ...  53424 (   0.1 sec)
+nearest neighbour list constructed           ...    0.0 sec
+Grid point re-assignment to atoms done       ...    0.0 sec
+Grid point division into batches done        ...    0.2 sec
+Reduced shell lists constructed in    0.8 sec
+
+Total number of grid points                  ...    53424
+Total number of batches                      ...      840
+Average number of points per batch           ...       63
+Average number of grid points per atom       ...     4452
+Average number of shells per batch           ...    48.22 (57.40%)
+Average number of basis functions per batch  ...    94.40 (65.56%)
+Average number of large shells per batch     ...    38.93 (80.75%)
+Average number of large basis fcns per batch ...    75.89 (80.40%)
+Maximum spatial batch extension              ...  17.52, 17.32, 16.73 au
+Average spatial batch extension              ...   2.60,  2.58,  2.61 au
+
+Final grid set up in    0.9 sec
+Final integration                            ... done (   1.2 sec)
+Change in XC energy                          ...     0.000353712
+Integrated number of electrons               ...    45.000035180
+Previous integrated no of electrons          ...    45.003172740
+
+----------------
+TOTAL SCF ENERGY
+----------------
+
+Total Energy       :         -285.80017502 Eh           -7777.01814 eV
+
+Components:
+Nuclear Repulsion  :          231.50507672 Eh            6299.57340 eV
+Electronic Energy  :         -517.30525174 Eh          -14076.59154 eV
+One Electron Energy:         -845.55697370 Eh          -23008.77500 eV
+Two Electron Energy:          328.25172196 Eh            8932.18346 eV
+
+Virial components:
+Potential Energy   :         -569.81620287 Eh          -15505.48716 eV
+Kinetic Energy     :          284.01602785 Eh            7728.46903 eV
+Virial Ratio       :            2.00628185
+
+
+DFT components:
+N(Alpha)           :       23.000017288104 electrons
+N(Beta)            :       22.000017891504 electrons
+N(Total)           :       45.000035179608 electrons
+E(X)               :      -29.934332755866 Eh       
+E(C)               :       -1.792692813946 Eh       
+E(XC)              :      -31.727025569812 Eh       
+DFET-embed. en.    :        0.000000000000 Eh       
+
+---------------
+SCF CONVERGENCE
+---------------
+
+  Last Energy change         ...   -1.9789e-07  Tolerance :   1.0000e-06
+  Last MAX-Density change    ...    8.5645e-05  Tolerance :   1.0000e-05
+  Last RMS-Density change    ...    1.0350e-06  Tolerance :   1.0000e-06
+  Last DIIS Error            ...    2.8865e-05  Tolerance :   1.0000e-06
+
+             **** THE GBW FILE WAS UPDATED (.\nitroxide.gbw) ****
+             **** DENSITY FILE WAS UPDATED (.\nitroxide.scfp) ****
+             **** ENERGY FILE WAS UPDATED (.\nitroxide.en.tmp) ****
+----------------------
+UHF SPIN CONTAMINATION
+----------------------
+
+Warning: in a DFT calculation there is little theoretical justification to 
+         calculate <S**2> as in Hartree-Fock theory. We will do it anyways
+         but you should keep in mind that the values have only limited relevance
+
+Expectation value of <S**2>     :     0.753914
+Ideal value S*(S+1) for S=0.5   :     0.750000
+Deviation                       :     0.003914
+
+             **** THE GBW FILE WAS UPDATED (.\nitroxide.gbw) ****
+             **** DENSITY FILE WAS UPDATED (.\nitroxide.scfp) ****
+----------------
+ORBITAL ENERGIES
+----------------
+                 SPIN UP ORBITALS
+  NO   OCC          E(Eh)            E(eV) 
+   0   1.0000     -19.139306      -520.8070 
+   1   1.0000     -14.421591      -392.4314 
+   2   1.0000     -10.231422      -278.4111 
+   3   1.0000     -10.231415      -278.4110 
+   4   1.0000     -10.212560      -277.8979 
+   5   1.0000     -10.211625      -277.8724 
+   6   1.0000      -1.100913       -29.9574 
+   7   1.0000      -0.893542       -24.3145 
+   8   1.0000      -0.753712       -20.5095 
+   9   1.0000      -0.743923       -20.2432 
+  10   1.0000      -0.597325       -16.2540 
+  11   1.0000      -0.577712       -15.7203 
+  12   1.0000      -0.517240       -14.0748 
+  13   1.0000      -0.510709       -13.8971 
+  14   1.0000      -0.454775       -12.3750 
+  15   1.0000      -0.433651       -11.8002 
+  16   1.0000      -0.428871       -11.6702 
+  17   1.0000      -0.406523       -11.0620 
+  18   1.0000      -0.386294       -10.5116 
+  19   1.0000      -0.380395       -10.3511 
+  20   1.0000      -0.269588        -7.3359 
+  21   1.0000      -0.257077        -6.9954 
+  22   1.0000      -0.186257        -5.0683 
+  23   0.0000      -0.003655        -0.0995 
+  24   0.0000       0.016046         0.4366 
+  25   0.0000       0.041011         1.1160 
+  26   0.0000       0.046325         1.2606 
+  27   0.0000       0.066263         1.8031 
+  28   0.0000       0.110355         3.0029 
+  29   0.0000       0.128541         3.4978 
+  30   0.0000       0.165053         4.4913 
+  31   0.0000       0.171415         4.6644 
+  32   0.0000       0.196177         5.3382 
+  33   0.0000       0.218361         5.9419 
+  34   0.0000       0.218469         5.9449 
+  35   0.0000       0.226851         6.1729 
+  36   0.0000       0.232009         6.3133 
+  37   0.0000       0.254941         6.9373 
+  38   0.0000       0.259136         7.0514 
+  39   0.0000       0.297397         8.0926 
+  40   0.0000       0.311341         8.4720 
+  41   0.0000       0.312403         8.5009 
+  42   0.0000       0.324189         8.8216 
+  43   0.0000       0.346595         9.4313 
+  44   0.0000       0.347303         9.4506 
+  45   0.0000       0.399624        10.8743 
+  46   0.0000       0.411721        11.2035 
+  47   0.0000       0.427076        11.6213 
+  48   0.0000       0.437969        11.9177 
+  49   0.0000       0.470643        12.8068 
+  50   0.0000       0.492106        13.3909 
+  51   0.0000       0.506209        13.7746 
+  52   0.0000       0.531263        14.4564 
+  53   0.0000       0.595638        16.2081 
+  54   0.0000       0.666144        18.1267 
+  55   0.0000       0.694675        18.9031 
+  56   0.0000       0.734070        19.9751 
+  57   0.0000       0.783090        21.3090 
+  58   0.0000       0.806374        21.9426 
+  59   0.0000       0.835829        22.7440 
+  60   0.0000       0.836361        22.7585 
+  61   0.0000       0.854332        23.2475 
+  62   0.0000       0.861068        23.4309 
+  63   0.0000       0.872597        23.7446 
+  64   0.0000       0.889960        24.2171 
+  65   0.0000       0.922327        25.0978 
+  66   0.0000       0.943441        25.6723 
+  67   0.0000       0.943600        25.6767 
+  68   0.0000       0.956501        26.0277 
+  69   0.0000       0.959048        26.0970 
+  70   0.0000       0.979351        26.6495 
+  71   0.0000       1.076688        29.2982 
+  72   0.0000       1.146786        31.2056 
+  73   0.0000       1.213501        33.0210 
+  74   0.0000       1.227118        33.3916 
+  75   0.0000       1.274066        34.6691 
+  76   0.0000       1.320257        35.9260 
+  77   0.0000       1.389351        37.8062 
+  78   0.0000       1.403936        38.2031 
+  79   0.0000       1.436330        39.0845 
+  80   0.0000       1.457886        39.6711 
+  81   0.0000       1.476234        40.1704 
+  82   0.0000       1.491664        40.5902 
+  83   0.0000       1.552648        42.2497 
+  84   0.0000       1.554830        42.3091 
+  85   0.0000       1.558831        42.4180 
+  86   0.0000       1.644003        44.7356 
+  87   0.0000       1.647973        44.8436 
+  88   0.0000       1.664726        45.2995 
+  89   0.0000       1.671067        45.4720 
+  90   0.0000       1.703791        46.3625 
+  91   0.0000       1.716414        46.7060 
+  92   0.0000       1.798165        48.9306 
+  93   0.0000       1.854133        50.4535 
+  94   0.0000       1.874229        51.0004 
+  95   0.0000       1.902828        51.7786 
+  96   0.0000       1.916785        52.1584 
+  97   0.0000       1.975819        53.7648 
+  98   0.0000       2.035730        55.3950 
+  99   0.0000       2.079095        56.5751 
+ 100   0.0000       2.142899        58.3113 
+ 101   0.0000       2.148918        58.4750 
+ 102   0.0000       2.168660        59.0122 
+ 103   0.0000       2.270611        61.7865 
+ 104   0.0000       2.303464        62.6804 
+ 105   0.0000       2.326754        63.3142 
+ 106   0.0000       2.386797        64.9481 
+ 107   0.0000       2.414717        65.7078 
+ 108   0.0000       2.447468        66.5990 
+ 109   0.0000       2.460229        66.9462 
+ 110   0.0000       2.487137        67.6784 
+ 111   0.0000       2.547715        69.3269 
+ 112   0.0000       2.554865        69.5214 
+ 113   0.0000       2.634472        71.6876 
+ 114   0.0000       2.698965        73.4426 
+ 115   0.0000       2.765824        75.2619 
+ 116   0.0000       2.846166        77.4481 
+ 117   0.0000       3.090617        84.1000 
+ 118   0.0000       3.291061        89.5543 
+ 119   0.0000       3.474536        94.5469 
+ 120   0.0000       4.974998       135.3766 
+ 121   0.0000       4.984243       135.6281 
+ 122   0.0000       5.082533       138.3027 
+ 123   0.0000       5.121867       139.3731 
+ 124   0.0000       5.180173       140.9597 
+ 125   0.0000       5.291542       143.9902 
+ 126   0.0000       5.386559       146.5757 
+ 127   0.0000       5.453863       148.4072 
+ 128   0.0000       5.561428       151.3342 
+ 129   0.0000       5.891400       160.3131 
+ 130   0.0000       7.119147       193.7218 
+ 131   0.0000       9.029376       245.7018 
+ 132   0.0000      29.658013       807.0356 
+ 133   0.0000      29.871278       812.8388 
+ 134   0.0000      29.982844       815.8747 
+ 135   0.0000      30.232944       822.6802 
+ 136   0.0000      36.598306       995.8905 
+ 137   0.0000      36.607491       996.1405 
+ 138   0.0000      36.687507       998.3178 
+ 139   0.0000      36.758462      1000.2486 
+ 140   0.0000      36.850539      1002.7542 
+ 141   0.0000      36.970324      1006.0137 
+ 142   0.0000      41.045388      1116.9018 
+ 143   0.0000      53.555636      1457.3229 
+
+                 SPIN DOWN ORBITALS
+  NO   OCC          E(Eh)            E(eV) 
+   0   1.0000     -19.125171      -520.4224 
+   1   1.0000     -14.410399      -392.1269 
+   2   1.0000     -10.232101      -278.4296 
+   3   1.0000     -10.232094      -278.4294 
+   4   1.0000     -10.212556      -277.8978 
+   5   1.0000     -10.211622      -277.8724 
+   6   1.0000      -1.075498       -29.2658 
+   7   1.0000      -0.882830       -24.0230 
+   8   1.0000      -0.752226       -20.4691 
+   9   1.0000      -0.732096       -19.9213 
+  10   1.0000      -0.588417       -16.0117 
+  11   1.0000      -0.575856       -15.6699 
+  12   1.0000      -0.508234       -13.8298 
+  13   1.0000      -0.487117       -13.2551 
+  14   1.0000      -0.448813       -12.2128 
+  15   1.0000      -0.425933       -11.5902 
+  16   1.0000      -0.423342       -11.5197 
+  17   1.0000      -0.404624       -11.0104 
+  18   1.0000      -0.380051       -10.3417 
+  19   1.0000      -0.329530        -8.9670 
+  20   1.0000      -0.264623        -7.2008 
+  21   1.0000      -0.244394        -6.6503 
+  22   0.0000      -0.041366        -1.1256 
+  23   0.0000      -0.003101        -0.0844 
+  24   0.0000       0.016585         0.4513 
+  25   0.0000       0.041267         1.1229 
+  26   0.0000       0.046943         1.2774 
+  27   0.0000       0.066699         1.8150 
+  28   0.0000       0.114321         3.1108 
+  29   0.0000       0.130635         3.5547 
+  30   0.0000       0.168036         4.5725 
+  31   0.0000       0.178956         4.8696 
+  32   0.0000       0.197920         5.3857 
+  33   0.0000       0.220456         5.9989 
+  34   0.0000       0.223167         6.0727 
+  35   0.0000       0.232770         6.3340 
+  36   0.0000       0.233345         6.3496 
+  37   0.0000       0.259078         7.0499 
+  38   0.0000       0.259307         7.0561 
+  39   0.0000       0.298872         8.1327 
+  40   0.0000       0.311751         8.4832 
+  41   0.0000       0.315079         8.5737 
+  42   0.0000       0.324939         8.8420 
+  43   0.0000       0.347390         9.4530 
+  44   0.0000       0.358857         9.7650 
+  45   0.0000       0.400142        10.8884 
+  46   0.0000       0.414874        11.2893 
+  47   0.0000       0.428473        11.6593 
+  48   0.0000       0.438776        11.9397 
+  49   0.0000       0.472262        12.8509 
+  50   0.0000       0.492121        13.3913 
+  51   0.0000       0.511085        13.9073 
+  52   0.0000       0.531254        14.4562 
+  53   0.0000       0.621110        16.9013 
+  54   0.0000       0.666213        18.1286 
+  55   0.0000       0.694866        18.9083 
+  56   0.0000       0.766877        20.8678 
+  57   0.0000       0.786980        21.4148 
+  58   0.0000       0.809707        22.0332 
+  59   0.0000       0.841012        22.8851 
+  60   0.0000       0.845348        23.0031 
+  61   0.0000       0.856080        23.2951 
+  62   0.0000       0.863430        23.4951 
+  63   0.0000       0.874716        23.8022 
+  64   0.0000       0.891349        24.2548 
+  65   0.0000       0.926029        25.1985 
+  66   0.0000       0.944039        25.6886 
+  67   0.0000       0.949256        25.8306 
+  68   0.0000       0.957243        26.0479 
+  69   0.0000       0.964981        26.2585 
+  70   0.0000       0.980891        26.6914 
+  71   0.0000       1.080735        29.4083 
+  72   0.0000       1.149775        31.2870 
+  73   0.0000       1.214125        33.0380 
+  74   0.0000       1.234547        33.5937 
+  75   0.0000       1.276647        34.7393 
+  76   0.0000       1.321124        35.9496 
+  77   0.0000       1.389723        37.8163 
+  78   0.0000       1.405186        38.2371 
+  79   0.0000       1.446681        39.3662 
+  80   0.0000       1.460287        39.7364 
+  81   0.0000       1.482058        40.3288 
+  82   0.0000       1.494371        40.6639 
+  83   0.0000       1.555392        42.3244 
+  84   0.0000       1.561037        42.4780 
+  85   0.0000       1.562543        42.5190 
+  86   0.0000       1.644896        44.7599 
+  87   0.0000       1.650263        44.9059 
+  88   0.0000       1.668499        45.4022 
+  89   0.0000       1.678203        45.6662 
+  90   0.0000       1.708858        46.5004 
+  91   0.0000       1.719256        46.7833 
+  92   0.0000       1.800782        49.0018 
+  93   0.0000       1.864835        50.7448 
+  94   0.0000       1.879871        51.1539 
+  95   0.0000       1.904055        51.8120 
+  96   0.0000       1.916903        52.1616 
+  97   0.0000       1.978371        53.8342 
+  98   0.0000       2.044629        55.6372 
+  99   0.0000       2.094271        56.9880 
+ 100   0.0000       2.144276        58.3487 
+ 101   0.0000       2.151391        58.5423 
+ 102   0.0000       2.170213        59.0545 
+ 103   0.0000       2.273852        61.8747 
+ 104   0.0000       2.305067        62.7241 
+ 105   0.0000       2.353190        64.0336 
+ 106   0.0000       2.400635        65.3246 
+ 107   0.0000       2.420098        65.8542 
+ 108   0.0000       2.449556        66.6558 
+ 109   0.0000       2.465637        67.0934 
+ 110   0.0000       2.492249        67.8176 
+ 111   0.0000       2.548168        69.3392 
+ 112   0.0000       2.559676        69.6523 
+ 113   0.0000       2.652583        72.1805 
+ 114   0.0000       2.738768        74.5257 
+ 115   0.0000       2.794696        76.0475 
+ 116   0.0000       2.846679        77.4621 
+ 117   0.0000       3.132897        85.2505 
+ 118   0.0000       3.297875        89.7397 
+ 119   0.0000       3.492238        95.0286 
+ 120   0.0000       4.980737       135.5328 
+ 121   0.0000       4.989954       135.7835 
+ 122   0.0000       5.082946       138.3140 
+ 123   0.0000       5.121949       139.3753 
+ 124   0.0000       5.182959       141.0355 
+ 125   0.0000       5.295718       144.1038 
+ 126   0.0000       5.386729       146.5803 
+ 127   0.0000       5.455505       148.4518 
+ 128   0.0000       5.561871       151.3462 
+ 129   0.0000       5.891202       160.3078 
+ 130   0.0000       7.143450       194.3832 
+ 131   0.0000       9.061090       246.5648 
+ 132   0.0000      29.657858       807.0314 
+ 133   0.0000      29.870643       812.8215 
+ 134   0.0000      29.982096       815.8543 
+ 135   0.0000      30.232651       822.6723 
+ 136   0.0000      36.607421       996.1386 
+ 137   0.0000      36.616607       996.3885 
+ 138   0.0000      36.687486       998.3172 
+ 139   0.0000      36.762956      1000.3709 
+ 140   0.0000      36.859381      1002.9947 
+ 141   0.0000      36.974635      1006.1310 
+ 142   0.0000      41.059561      1117.2875 
+ 143   0.0000      53.572197      1457.7736 
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+                    ********************************
+
+--------------------------------------------
+MULLIKEN ATOMIC CHARGES AND SPIN POPULATIONS
+--------------------------------------------
+   0 C :   -0.104048    0.000767
+   1 C :   -0.103981    0.000766
+   2 C :   -0.280758   -0.033624
+   3 N :    0.254441    0.446634
+   4 C :   -0.280771   -0.033625
+   5 O :   -0.394578    0.518089
+   6 H :    0.122502   -0.000782
+   7 H :    0.122473   -0.000781
+   8 H :    0.166785    0.026856
+   9 H :    0.165570    0.024421
+  10 H :    0.166795    0.026856
+  11 H :    0.165569    0.024422
+Sum of atomic charges         :   -0.0000000
+Sum of atomic spin populations:    1.0000000
+
+-----------------------------------------------------
+MULLIKEN REDUCED ORBITAL CHARGES AND SPIN POPULATIONS
+-----------------------------------------------------
+CHARGE
+  0 C s       :     3.149631  s :     3.149631
+      pz      :     0.983487  p :     2.884270
+      px      :     0.937020
+      py      :     0.963763
+      dz2     :     0.003936  d :     0.070148
+      dxz     :     0.004593
+      dyz     :     0.012015
+      dx2y2   :     0.019960
+      dxy     :     0.029644
+  1 C s       :     3.149630  s :     3.149630
+      pz      :     0.983477  p :     2.884203
+      px      :     0.936906
+      py      :     0.963821
+      dz2     :     0.003931  d :     0.070147
+      dxz     :     0.004600
+      dyz     :     0.012013
+      dx2y2   :     0.019963
+      dxy     :     0.029640
+  2 C s       :     3.176679  s :     3.176679
+      pz      :     1.130092  p :     3.004282
+      px      :     0.925995
+      py      :     0.948195
+      dz2     :     0.015099  d :     0.099797
+      dxz     :     0.012250
+      dyz     :     0.033287
+      dx2y2   :     0.014984
+      dxy     :     0.024178
+  3 N s       :     3.328765  s :     3.328765
+      pz      :     1.446405  p :     3.333662
+      px      :     0.854555
+      py      :     1.032702
+      dz2     :     0.004894  d :     0.083131
+      dxz     :     0.015911
+      dyz     :     0.005129
+      dx2y2   :     0.019419
+      dxy     :     0.037777
+  4 C s       :     3.176695  s :     3.176695
+      pz      :     1.130113  p :     3.004279
+      px      :     0.925751
+      py      :     0.948415
+      dz2     :     0.015113  d :     0.099797
+      dxz     :     0.012235
+      dyz     :     0.033281
+      dx2y2   :     0.014962
+      dxy     :     0.024206
+  5 O s       :     4.011487  s :     4.011487
+      pz      :     1.437128  p :     4.361910
+      px      :     1.069000
+      py      :     1.855783
+      dz2     :     0.002933  d :     0.021180
+      dxz     :     0.006217
+      dyz     :     0.000114
+      dx2y2   :     0.008142
+      dxy     :     0.003775
+  6 H s       :     0.854839  s :     0.854839
+      pz      :     0.006116  p :     0.022658
+      px      :     0.009128
+      py      :     0.007414
+  7 H s       :     0.854868  s :     0.854868
+      pz      :     0.006117  p :     0.022658
+      px      :     0.009120
+      py      :     0.007422
+  8 H s       :     0.814566  s :     0.814566
+      pz      :     0.008697  p :     0.018648
+      px      :     0.004427
+      py      :     0.005524
+  9 H s       :     0.815762  s :     0.815762
+      pz      :     0.007989  p :     0.018668
+      px      :     0.004996
+      py      :     0.005683
+ 10 H s       :     0.814557  s :     0.814557
+      pz      :     0.008707  p :     0.018648
+      px      :     0.004424
+      py      :     0.005517
+ 11 H s       :     0.815763  s :     0.815763
+      pz      :     0.007979  p :     0.018667
+      px      :     0.004991
+      py      :     0.005697
+
+SPIN
+  0 C s       :     0.000808  s :     0.000808
+      pz      :     0.000787  p :     0.000280
+      px      :    -0.000140
+      py      :    -0.000368
+      dz2     :    -0.000028  d :    -0.000320
+      dxz     :    -0.000026
+      dyz     :     0.000042
+      dx2y2   :    -0.000184
+      dxy     :    -0.000124
+  1 C s       :     0.000808  s :     0.000808
+      pz      :     0.000786  p :     0.000279
+      px      :    -0.000138
+      py      :    -0.000369
+      dz2     :    -0.000028  d :    -0.000320
+      dxz     :    -0.000026
+      dyz     :     0.000042
+      dx2y2   :    -0.000183
+      dxy     :    -0.000125
+  2 C s       :    -0.010498  s :    -0.010498
+      pz      :    -0.011071  p :    -0.033568
+      px      :    -0.007872
+      py      :    -0.014625
+      dz2     :    -0.000050  d :     0.010441
+      dxz     :     0.000503
+      dyz     :     0.009800
+      dx2y2   :    -0.000034
+      dxy     :     0.000223
+  3 N s       :     0.026987  s :     0.026987
+      pz      :     0.390725  p :     0.416838
+      px      :     0.010953
+      py      :     0.015160
+      dz2     :    -0.000473  d :     0.002809
+      dxz     :     0.003736
+      dyz     :     0.000105
+      dx2y2   :    -0.000115
+      dxy     :    -0.000444
+  4 C s       :    -0.010497  s :    -0.010497
+      pz      :    -0.011070  p :    -0.033569
+      px      :    -0.007889
+      py      :    -0.014611
+      dz2     :    -0.000051  d :     0.010441
+      dxz     :     0.000509
+      dyz     :     0.009793
+      dx2y2   :    -0.000031
+      dxy     :     0.000222
+  5 O s       :     0.007178  s :     0.007178
+      pz      :     0.497974  p :     0.511403
+      px      :     0.007184
+      py      :     0.006245
+      dz2     :     0.000086  d :    -0.000492
+      dxz     :    -0.000479
+      dyz     :     0.000000
+      dx2y2   :    -0.000052
+      dxy     :    -0.000047
+  6 H s       :    -0.000781  s :    -0.000781
+      pz      :     0.000005  p :    -0.000001
+      px      :    -0.000006
+      py      :     0.000000
+  7 H s       :    -0.000781  s :    -0.000781
+      pz      :     0.000005  p :    -0.000001
+      px      :    -0.000006
+      py      :     0.000000
+  8 H s       :     0.027008  s :     0.027008
+      pz      :    -0.000025  p :    -0.000153
+      px      :     0.000025
+      py      :    -0.000152
+  9 H s       :     0.024576  s :     0.024576
+      pz      :    -0.000010  p :    -0.000155
+      px      :     0.000011
+      py      :    -0.000157
+ 10 H s       :     0.027009  s :     0.027009
+      pz      :    -0.000026  p :    -0.000153
+      px      :     0.000025
+      py      :    -0.000152
+ 11 H s       :     0.024577  s :     0.024577
+      pz      :    -0.000009  p :    -0.000155
+      px      :     0.000011
+      py      :    -0.000157
+
+
+                     *******************************
+                     * LOEWDIN POPULATION ANALYSIS *
+                     *******************************
+
+-------------------------------------------
+LOEWDIN ATOMIC CHARGES AND SPIN POPULATIONS
+-------------------------------------------
+   0 C :   -0.056100   -0.000212
+   1 C :   -0.056091   -0.000213
+   2 C :   -0.004606    0.000662
+   3 N :    0.048009    0.426848
+   4 C :   -0.004607    0.000662
+   5 O :   -0.225651    0.503195
+   6 H :    0.048228   -0.000470
+   7 H :    0.048227   -0.000470
+   8 H :    0.051202    0.017790
+   9 H :    0.050092    0.017209
+  10 H :    0.051205    0.017790
+  11 H :    0.050091    0.017209
+
+----------------------------------------------------
+LOEWDIN REDUCED ORBITAL CHARGES AND SPIN POPULATIONS
+----------------------------------------------------
+CHARGE
+  0 C s       :     2.881633  s :     2.881633
+      pz      :     0.946284  p :     2.995441
+      px      :     0.983850
+      py      :     1.065306
+      dz2     :     0.010581  d :     0.179026
+      dxz     :     0.012685
+      dyz     :     0.029938
+      dx2y2   :     0.053468
+      dxy     :     0.072355
+  1 C s       :     2.881634  s :     2.881634
+      pz      :     0.946274  p :     2.995430
+      px      :     0.983873
+      py      :     1.065283
+      dz2     :     0.010572  d :     0.179026
+      dxz     :     0.012704
+      dyz     :     0.029926
+      dx2y2   :     0.053503
+      dxy     :     0.072322
+  2 C s       :     2.850160  s :     2.850160
+      pz      :     1.036575  p :     2.936639
+      px      :     0.972952
+      py      :     0.927113
+      dz2     :     0.028354  d :     0.217807
+      dxz     :     0.026722
+      dyz     :     0.060501
+      dx2y2   :     0.039726
+      dxy     :     0.062505
+  3 N s       :     3.089750  s :     3.089750
+      pz      :     1.412134  p :     3.665205
+      px      :     1.089235
+      py      :     1.163836
+      dz2     :     0.012429  d :     0.197035
+      dxz     :     0.033066
+      dyz     :     0.011637
+      dx2y2   :     0.051029
+      dxy     :     0.088874
+  4 C s       :     2.850160  s :     2.850160
+      pz      :     1.036595  p :     2.936639
+      px      :     0.972777
+      py      :     0.927267
+      dz2     :     0.028374  d :     0.217809
+      dxz     :     0.026714
+      dyz     :     0.060478
+      dx2y2   :     0.039656
+      dxy     :     0.062587
+  5 O s       :     3.652741  s :     3.652741
+      pz      :     1.444857  p :     4.532081
+      px      :     1.255880
+      py      :     1.831344
+      dz2     :     0.005895  d :     0.040828
+      dxz     :     0.011882
+      dyz     :     0.000164
+      dx2y2   :     0.016881
+      dxy     :     0.006005
+  6 H s       :     0.865691  s :     0.865691
+      pz      :     0.019231  p :     0.086081
+      px      :     0.040234
+      py      :     0.026616
+  7 H s       :     0.865693  s :     0.865693
+      pz      :     0.019237  p :     0.086081
+      px      :     0.040196
+      py      :     0.026648
+  8 H s       :     0.868327  s :     0.868327
+      pz      :     0.040598  p :     0.080471
+      px      :     0.015402
+      py      :     0.024471
+  9 H s       :     0.869589  s :     0.869589
+      pz      :     0.037092  p :     0.080319
+      px      :     0.017789
+      py      :     0.025439
+ 10 H s       :     0.868325  s :     0.868325
+      pz      :     0.040653  p :     0.080470
+      px      :     0.015392
+      py      :     0.024425
+ 11 H s       :     0.869590  s :     0.869590
+      pz      :     0.037040  p :     0.080319
+      px      :     0.017771
+      py      :     0.025509
+
+SPIN
+  0 C s       :    -0.000062  s :    -0.000062
+      pz      :     0.000439  p :     0.000535
+      px      :     0.000143
+      py      :    -0.000046
+      dz2     :    -0.000032  d :    -0.000686
+      dxz     :    -0.000097
+      dyz     :     0.000019
+      dx2y2   :    -0.000417
+      dxy     :    -0.000158
+  1 C s       :    -0.000062  s :    -0.000062
+      pz      :     0.000438  p :     0.000535
+      px      :     0.000143
+      py      :    -0.000046
+      dz2     :    -0.000032  d :    -0.000686
+      dxz     :    -0.000098
+      dyz     :     0.000019
+      dx2y2   :    -0.000416
+      dxy     :    -0.000159
+  2 C s       :    -0.003205  s :    -0.003205
+      pz      :    -0.005794  p :    -0.020698
+      px      :    -0.005608
+      py      :    -0.009295
+      dz2     :     0.000225  d :     0.024564
+      dxz     :     0.001820
+      dyz     :     0.021013
+      dx2y2   :     0.000345
+      dxy     :     0.001160
+  3 N s       :     0.013918  s :     0.013918
+      pz      :     0.384512  p :     0.404147
+      px      :     0.008898
+      py      :     0.010736
+      dz2     :     0.000605  d :     0.008783
+      dxz     :     0.009351
+      dyz     :     0.000011
+      dx2y2   :     0.000145
+      dxy     :    -0.001328
+  4 C s       :    -0.003205  s :    -0.003205
+      pz      :    -0.005793  p :    -0.020698
+      px      :    -0.005621
+      py      :    -0.009285
+      dz2     :     0.000223  d :     0.024565
+      dxz     :     0.001837
+      dyz     :     0.020996
+      dx2y2   :     0.000349
+      dxy     :     0.001159
+  5 O s       :     0.006347  s :     0.006347
+      pz      :     0.481052  p :     0.494045
+      px      :     0.007343
+      py      :     0.005650
+      dz2     :     0.000451  d :     0.002803
+      dxz     :     0.002241
+      dyz     :     0.000001
+      dx2y2   :     0.000095
+      dxy     :     0.000013
+  6 H s       :    -0.000510  s :    -0.000510
+      pz      :     0.000033  p :     0.000040
+      px      :     0.000001
+      py      :     0.000006
+  7 H s       :    -0.000510  s :    -0.000510
+      pz      :     0.000033  p :     0.000040
+      px      :     0.000001
+      py      :     0.000006
+  8 H s       :     0.018239  s :     0.018239
+      pz      :    -0.000211  p :    -0.000449
+      px      :    -0.000071
+      py      :    -0.000167
+  9 H s       :     0.017847  s :     0.017847
+      pz      :    -0.000207  p :    -0.000638
+      px      :    -0.000142
+      py      :    -0.000289
+ 10 H s       :     0.018239  s :     0.018239
+      pz      :    -0.000211  p :    -0.000449
+      px      :    -0.000071
+      py      :    -0.000167
+ 11 H s       :     0.017847  s :     0.017847
+      pz      :    -0.000207  p :    -0.000638
+      px      :    -0.000142
+      py      :    -0.000290
+
+
+                      *****************************
+                      * MAYER POPULATION ANALYSIS *
+                      *****************************
+
+  NA   - Mulliken gross atomic population
+  ZA   - Total nuclear charge
+  QA   - Mulliken gross atomic charge
+  VA   - Mayer's total valence
+  BVA  - Mayer's bonded valence
+  FA   - Mayer's free valence
+
+  ATOM       NA         ZA         QA         VA         BVA        FA
+  0 C      6.1040     6.0000    -0.1040     3.9312     3.9312     0.0000
+  1 C      6.1040     6.0000    -0.1040     3.9312     3.9312     0.0000
+  2 C      6.2808     6.0000    -0.2808     3.9973     3.9965     0.0008
+  3 N      6.7456     7.0000     0.2544     3.3095     3.1275     0.1820
+  4 C      6.2808     6.0000    -0.2808     3.9973     3.9966     0.0008
+  5 O      8.3946     8.0000    -0.3946     1.7829     1.5120     0.2709
+  6 H      0.8775     1.0000     0.1225     0.9713     0.9713     0.0000
+  7 H      0.8775     1.0000     0.1225     0.9713     0.9713     0.0000
+  8 H      0.8332     1.0000     0.1668     0.9545     0.9537     0.0008
+  9 H      0.8344     1.0000     0.1656     0.9543     0.9537     0.0006
+ 10 H      0.8332     1.0000     0.1668     0.9545     0.9537     0.0008
+ 11 H      0.8344     1.0000     0.1656     0.9543     0.9537     0.0006
+
+  Mayer bond orders larger than 0.100000
+B(  0-C ,  1-C ) :   1.9134 B(  0-C ,  4-C ) :   1.0074 B(  0-C ,  6-H ) :   0.9865 
+B(  1-C ,  2-C ) :   1.0074 B(  1-C ,  7-H ) :   0.9865 B(  2-C ,  3-N ) :   0.9552 
+B(  2-C ,  8-H ) :   0.9470 B(  2-C ,  9-H ) :   0.9480 B(  3-N ,  4-C ) :   0.9552 
+B(  3-N ,  5-O ) :   1.2756 B(  4-C , 10-H ) :   0.9470 B(  4-C , 11-H ) :   0.9480 
+
+
+-------
+TIMINGS
+-------
+
+Total SCF time: 0 days 0 hours 0 min 45 sec 
+
+Total time                  ....      45.085 sec
+Sum of individual times     ....      44.483 sec  ( 98.7%)
+
+Fock matrix formation       ....      42.815 sec  ( 95.0%)
+  XC integration            ....       4.884 sec  ( 11.4% of F)
+    Basis function eval.    ....       0.893 sec  ( 18.3% of XC)
+    Density eval.           ....       1.377 sec  ( 28.2% of XC)
+    XC-Functional eval.     ....       0.231 sec  (  4.7% of XC)
+    XC-Potential eval.      ....       2.104 sec  ( 43.1% of XC)
+Diagonalization             ....       0.089 sec  (  0.2%)
+Density matrix formation    ....       0.009 sec  (  0.0%)
+Population analysis         ....       0.058 sec  (  0.1%)
+Initial guess               ....       0.340 sec  (  0.8%)
+Orbital Transformation      ....       0.000 sec  (  0.0%)
+Orbital Orthonormalization  ....       0.000 sec  (  0.0%)
+DIIS solution               ....       0.124 sec  (  0.3%)
+Grid generation             ....       1.048 sec  (  2.3%)
+
+-------------------------   --------------------
+FINAL SINGLE POINT ENERGY      -285.800175017060
+-------------------------   --------------------
+
+   --->>> g-tensor requested, so NeedSOC=true
+
+                            ***************************************
+                            *     ORCA property calculations      *
+                            ***************************************
+
+                                    ---------------------
+                                    Active property flags
+                                    ---------------------
+   (+) Dipole Moment
+   (+) g-tensor
+   (+) Nuclear properties (Hyperfine,Quadrupole)
+   (+) Spin-Orbit Integrals are needed
+
+
+------------------------------------------------------------------------------
+                       ORCA ELECTRIC PROPERTIES CALCULATION
+------------------------------------------------------------------------------
+
+Dipole Moment Calculation                       ... on
+Quadrupole Moment Calculation                   ... off
+Polarizability Calculation                      ... off
+GBWName                                         ... .\nitroxide.gbw
+Electron density file                           ... .\nitroxide.scfp
+The origin for moment calculation is the CENTER OF MASS  = (-2.866316,  2.347290 -0.170004)
+
+-------------
+DIPOLE MOMENT
+-------------
+                                X             Y             Z
+Electronic contribution:     -2.44557      -0.00129      -0.24395
+Nuclear contribution   :      3.83905       0.00201       0.41592
+                        -----------------------------------------
+Total Dipole Moment    :      1.39348       0.00072       0.17197
+                        -----------------------------------------
+Magnitude (a.u.)       :      1.40405
+Magnitude (Debye)      :      3.56882
+
+
+
+--------------------
+Rotational spectrum 
+--------------------
+ 
+Rotational constants in cm-1:     0.254049     0.122728     0.085424 
+Rotational constants in MHz :  7616.194719  3679.286080  2560.951311 
+
+ Dipole components along the rotational axes: 
+x,y,z [a.u.] :     1.404051    -0.000016     0.001921 
+x,y,z [Debye]:     3.568814    -0.000042     0.004883 
+
+ 
+------------------------------------------------------------------------------
+                         ORCA SPIN-ORBIT COUPLING CALCULATION
+------------------------------------------------------------------------------
+
+GBW file                                    ... .\nitroxide.gbw
+Input density                               ... .\nitroxide.scfp
+Output integrals                            ... .\nitroxide
+Operator type                               ... Mean-field/Effective potential
+   One-Electron Terms                       ... 1
+   Coulomb Contribution                     ... 2
+   Exchange Contribution                    ... 3
+   Correlation Contribution                 ... 0
+   Maximum number of centers                ... 4
+Setting up the integration grid             ... done
+Evaluating density on the grid              ... (NumEl=   45.003173) done
+Evaluating Coulomb term semi-analytically   ... done
+One-Center Exchange (+SOO)                  ... done
+Evaluating the spin-orbit operator          ... done
+Total time for SOC:  5.994
+------------------------------------------------------------------------------
+                                ORCA EPR/NMR CALCULATION
+------------------------------------------------------------------------------
+
+GBWName                      ... .\nitroxide.gbw
+Electron density file        ... .\nitroxide.scfp
+Spin density file            ... .\nitroxide.scfr
+Spin-orbit integrals         ... .\nitroxide
+Origin for angular momentum  ... Center of electronic charge
+Coordinates of the origin    ...   -2.81196948    2.34731844   -0.16458318 (bohrs)
+Details of the CP(SCF) procedure:
+       Solver   = POPLE   
+       MaxIter  =    64   
+       Tolerance=    1.000e-06
+       Op-0     =   0- 22 =>  23-143
+       Op-1     =   0- 21 =>  22-143
+Multiplicity                 ... 2
+g-tensor                     ... 1
+NMR chemical shifts          ... 0
+Number of nuclei for epr/nmr ... 12
+   Nucleus:   6H 
+       Hyperfine : Isotope=    1 I=   0.500 P= 533.551
+       Quadrupole: Isotope=    2 I=   1.000 Q=   0.003
+       Spin-Orbit: Zeff=   1.000
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   7H 
+       Hyperfine : Isotope=    1 I=   0.500 P= 533.551
+       Quadrupole: Isotope=    2 I=   1.000 Q=   0.003
+       Spin-Orbit: Zeff=   1.000
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   8H 
+       Hyperfine : Isotope=    1 I=   0.500 P= 533.551
+       Quadrupole: Isotope=    2 I=   1.000 Q=   0.003
+       Spin-Orbit: Zeff=   1.000
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   9H 
+       Hyperfine : Isotope=    1 I=   0.500 P= 533.551
+       Quadrupole: Isotope=    2 I=   1.000 Q=   0.003
+       Spin-Orbit: Zeff=   1.000
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:  10H 
+       Hyperfine : Isotope=    1 I=   0.500 P= 533.551
+       Quadrupole: Isotope=    2 I=   1.000 Q=   0.003
+       Spin-Orbit: Zeff=   1.000
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:  11H 
+       Hyperfine : Isotope=    1 I=   0.500 P= 533.551
+       Quadrupole: Isotope=    2 I=   1.000 Q=   0.003
+       Spin-Orbit: Zeff=   1.000
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   0C 
+       Hyperfine : Isotope=   13 I=   0.500 P= 134.190
+       Quadrupole: Isotope=   13 I=   0.500 Q=   0.000
+       Spin-Orbit: Zeff=   3.600
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   1C 
+       Hyperfine : Isotope=   13 I=   0.500 P= 134.190
+       Quadrupole: Isotope=   13 I=   0.500 Q=   0.000
+       Spin-Orbit: Zeff=   3.600
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   2C 
+       Hyperfine : Isotope=   13 I=   0.500 P= 134.190
+       Quadrupole: Isotope=   13 I=   0.500 Q=   0.000
+       Spin-Orbit: Zeff=   3.600
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   4C 
+       Hyperfine : Isotope=   13 I=   0.500 P= 134.190
+       Quadrupole: Isotope=   13 I=   0.500 Q=   0.000
+       Spin-Orbit: Zeff=   3.600
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   3N 
+       Hyperfine : Isotope=   14 I=   1.000 P=  38.568
+       Quadrupole: Isotope=   14 I=   1.000 Q=   0.020
+       Spin-Orbit: Zeff=   4.550
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+   Nucleus:   5O 
+       Hyperfine : Isotope=   17 I=   2.500 P= -72.359
+       Quadrupole: Isotope=   17 I=   2.500 Q=  -0.026
+       Spin-Orbit: Zeff=   5.600
+       Ncuelar Spin-Spin: Gn=   0.000
+       rho(0)=Y f(grad)=Y a(iso)=Y a(dip)=Y a(orb)=Y sigma(nmr)=N spin-spin(nmr)=all-N,DSO-N,PSO-N,FC-N,SD-N
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating angular momentum integrals               ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.013452614232
+     CP-SCF ITERATION   2:      0.000133128323
+     CP-SCF ITERATION   3:      0.000000655987
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Magnetic field perturbation calculated in 28.838 sec
+
+-------------------
+ELECTRONIC G-MATRIX
+-------------------
+
+ The g-matrix: 
+              2.0089507    0.0000009    0.0010333
+              0.0000008    2.0060184    0.0000039
+              0.0011042    0.0000040    2.0022629
+
+ gel          2.0023193    2.0023193    2.0023193
+ gRMC        -0.0002914   -0.0002914   -0.0002914
+ gDSO(tot)    0.0001373    0.0002036    0.0001478
+ gPSO(tot)   -0.0000689    0.0037868    0.0069416
+             ----------   ----------   ----------
+ g(tot)       2.0020963    2.0060184    2.0091173 iso=  2.0057440
+ Delta-g     -0.0002230    0.0036991    0.0067980 iso=  0.0034247
+ Orientation: 
+  X          -0.1540680   -0.0006109   -0.9880601
+  Y          -0.0009598    0.9999994   -0.0004687
+  Z           0.9880598    0.0008761   -0.1540685
+
+Notes:  (1) The g-matrix conforms to the "BgS" spin Hamiltonian convention. 
+        (2) The principal values are square roots of the eigenvalues of g*gT.
+        (3) Orientations are eigenvectors of g*gT written as column vectors.
+        (4) Individual contributions are projections of the full matrices onto the eigenvectors of g*gT.
+        (5) Tensor is right-handed.
+
+
+-----------------------------------------
+ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE
+-----------------------------------------
+
+ -----------------------------------------------------------
+ Nucleus   6H : A:ISTP=    1 I=  0.5 P=533.5514 MHz/au**3
+                Q:ISTP=    2 I=  1.0 Q=  0.0029 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000003053719
+     CP-SCF ITERATION   2:      0.000000185301
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.007 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                 0.5107              -1.3083               0.3908
+                -1.3017              -2.6250              -0.1173
+                 0.3914              -0.1184              -2.9639
+
+ A(FC)          -1.6953              -1.6953              -1.6953
+ A(SD)           2.7091              -1.3049              -1.4042
+ A(ORB+DIA)      0.0107              -0.0003              -0.0026    A(PC) =   0.0026
+ A(ORB)          0.0110              -0.0002              -0.0023    A(PC) =   0.0028
+ A(DIA)         -0.0003              -0.0001              -0.0003    A(PC) =  -0.0002
+             ----------           ----------           ----------
+ A(Tot)          1.0245              -3.0005              -3.1021    A(iso)=   -1.6927
+ Orientation: 
+  X          -0.9354933           -0.0169919            0.3529356
+  Y           0.3384326            0.2440218            0.9087996
+  Z          -0.1015662            0.9696209           -0.2225302
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+             0.1557      -0.2216       0.0371
+            -0.2216       0.0089      -0.0253
+             0.0371      -0.0253      -0.1646
+
+ V(El)       0.6170       0.7827      -1.3997
+ V(Nuc)     -0.7681      -0.9516       1.7196
+         ----------   ----------   ----------
+ V(Tot)     -0.1511      -0.1689       0.3199 
+ Orientation: 
+  X       0.5789014   -0.1145475    0.8073116
+  Y       0.8125718   -0.0013127   -0.5828596
+  Z       0.0678249    0.9934169    0.0923181
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0029 I=  1.0)
+  e**2qQ            =     0.215 MHz 
+  e**2qQ/(4I*(2I-1))=     0.054 MHz 
+  eta               =     0.056
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=      0.484210049 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   7H : A:ISTP=    1 I=  0.5 P=533.5514 MHz/au**3
+                Q:ISTP=    2 I=  1.0 Q=  0.0029 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000003050758
+     CP-SCF ITERATION   2:      0.000000185134
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.007 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                 0.5076               1.3114               0.3929
+                 1.3049              -2.6222               0.1184
+                 0.3935               0.1194              -2.9634
+
+ A(FC)          -1.6953              -1.6953              -1.6953
+ A(SD)           2.7091              -1.3049              -1.4042
+ A(ORB+DIA)      0.0107              -0.0003              -0.0026    A(PC) =   0.0026
+ A(ORB)          0.0110              -0.0002              -0.0023    A(PC) =   0.0028
+ A(DIA)         -0.0003              -0.0001              -0.0003    A(PC) =  -0.0002
+             ----------           ----------           ----------
+ A(Tot)          1.0245              -3.0005              -3.1021    A(iso)=   -1.6927
+ Orientation: 
+  X          -0.9350766           -0.0166934           -0.3540524
+  Y          -0.3394055           -0.2457211            0.9079786
+  Z          -0.1021554            0.9691968            0.2241022
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+             0.1551       0.2218       0.0375
+             0.2218       0.0094       0.0257
+             0.0375       0.0257      -0.1645
+
+ V(El)       0.6170       0.7827      -1.3997
+ V(Nuc)     -0.7681      -0.9516       1.7196
+         ----------   ----------   ----------
+ V(Tot)     -0.1511      -0.1689       0.3199 
+ Orientation: 
+  X       0.5799080    0.1145390    0.8065900
+  Y      -0.8119720    0.0005734    0.5836961
+  Z       0.0663935   -0.9934186    0.0933350
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0029 I=  1.0)
+  e**2qQ            =     0.215 MHz 
+  e**2qQ/(4I*(2I-1))=     0.054 MHz 
+  eta               =     0.056
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=      0.484210231 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   8H : A:ISTP=    1 I=  0.5 P=533.5514 MHz/au**3
+                Q:ISTP=    2 I=  1.0 Q=  0.0029 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000003674688
+     CP-SCF ITERATION   2:      0.000000983066
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.011 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                51.3671               4.8775              -1.5313
+                 4.8788              56.4334              -2.8694
+                -1.5322              -2.8580              48.3444
+
+ A(FC)          52.0434              52.0434              52.0434
+ A(SD)          -4.6087              -3.6100               8.2187
+ A(ORB+DIA)     -0.0018               0.0003               0.0161    A(PC) =   0.0049
+ A(ORB)         -0.0017               0.0008               0.0173    A(PC) =   0.0055
+ A(DIA)         -0.0001              -0.0005              -0.0012    A(PC) =  -0.0006
+             ----------           ----------           ----------
+ A(Tot)         47.4329              48.4337              60.2782    A(iso)=   52.0483
+ Orientation: 
+  X          -0.0168825            0.8672753            0.4975425
+  Y           0.3118890           -0.4682166            0.8267397
+  Z           0.9499685            0.1691354           -0.2625890
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+            -0.1418      -0.0215       0.0441
+            -0.0215      -0.0186      -0.1958
+             0.0441      -0.1958       0.1603
+
+ V(El)       0.5713       0.6892      -1.2605
+ V(Nuc)     -0.7112      -0.8409       1.5521
+         ----------   ----------   ----------
+ V(Tot)     -0.1399      -0.1517       0.2916 
+ Orientation: 
+  X       0.6107165   -0.7839176    0.1117970
+  Y       0.7013678    0.4699770   -0.5359149
+  Z       0.3675711    0.4057029    0.8368373
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0029 I=  1.0)
+  e**2qQ            =     0.196 MHz 
+  e**2qQ/(4I*(2I-1))=     0.049 MHz 
+  eta               =     0.041
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=      0.486507408 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   9H : A:ISTP=    1 I=  0.5 P=533.5514 MHz/au**3
+                Q:ISTP=    2 I=  1.0 Q=  0.0029 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000003712374
+     CP-SCF ITERATION   2:      0.000000792040
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.006 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                49.7450               4.1604               2.0581
+                 4.1595              56.4914               3.7590
+                 2.0589               3.7491              48.6731
+
+ A(FC)          51.6317              51.6317              51.6317
+ A(SD)          -4.6283              -3.8003               8.4286
+ A(ORB+DIA)     -0.0009              -0.0013               0.0166    A(PC) =   0.0048
+ A(ORB)         -0.0009              -0.0009               0.0178    A(PC) =   0.0053
+ A(DIA)         -0.0000              -0.0004              -0.0012    A(PC) =  -0.0005
+             ----------           ----------           ----------
+ A(Tot)         47.0025              47.8301              60.0769    A(iso)=   51.6365
+ Orientation: 
+  X           0.4004632            0.8199706           -0.4089957
+  Y           0.1803025           -0.5081371           -0.8421922
+  Z          -0.8983987            0.2635240           -0.3513330
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+            -0.1091      -0.0675      -0.1015
+            -0.0675      -0.0043       0.1924
+            -0.1015       0.1924       0.1133
+
+ V(El)       0.5805       0.6908      -1.2714
+ V(Nuc)     -0.7209      -0.8430       1.5639
+         ----------   ----------   ----------
+ V(Tot)     -0.1404      -0.1522       0.2926 
+ Orientation: 
+  X       0.6949463   -0.6579791   -0.2900226
+  Y       0.6789467    0.4676027    0.5660204
+  Z      -0.2368142   -0.5902636    0.7716916
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0029 I=  1.0)
+  e**2qQ            =     0.196 MHz 
+  e**2qQ/(4I*(2I-1))=     0.049 MHz 
+  eta               =     0.040
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=      0.486901978 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus  10H : A:ISTP=    1 I=  0.5 P=533.5514 MHz/au**3
+                Q:ISTP=    2 I=  1.0 Q=  0.0029 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000003674636
+     CP-SCF ITERATION   2:      0.000000982226
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.007 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                51.3802              -4.8810              -1.5434
+                -4.8824              56.4124               2.8816
+                -1.5442               2.8702              48.3555
+
+ A(FC)          52.0445              52.0445              52.0445
+ A(SD)          -4.6087              -3.6100               8.2187
+ A(ORB+DIA)     -0.0018               0.0003               0.0161    A(PC) =   0.0049
+ A(ORB)         -0.0017               0.0008               0.0173    A(PC) =   0.0055
+ A(DIA)         -0.0001              -0.0005              -0.0012    A(PC) =  -0.0006
+             ----------           ----------           ----------
+ A(Tot)         47.4340              48.4348              60.2793    A(iso)=   52.0494
+ Orientation: 
+  X           0.0164918            0.8666986            0.4985595
+  Y           0.3135628            0.4689902           -0.8256673
+  Z          -0.9494242            0.1699465           -0.2640300
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+            -0.1418       0.0212       0.0439
+             0.0212      -0.0192       0.1955
+             0.0439       0.1955       0.1610
+
+ V(El)       0.5713       0.6892      -1.2605
+ V(Nuc)     -0.7112      -0.8409       1.5521
+         ----------   ----------   ----------
+ V(Tot)     -0.1399      -0.1517       0.2916 
+ Orientation: 
+  X      -0.6115814   -0.7833375    0.1111332
+  Y       0.7012563   -0.4716552    0.5345848
+  Z      -0.3663437    0.4048750    0.8377759
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0029 I=  1.0)
+  e**2qQ            =     0.196 MHz 
+  e**2qQ/(4I*(2I-1))=     0.049 MHz 
+  eta               =     0.041
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=      0.486507555 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus  11H : A:ISTP=    1 I=  0.5 P=533.5514 MHz/au**3
+                Q:ISTP=    2 I=  1.0 Q=  0.0029 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000003713911
+     CP-SCF ITERATION   2:      0.000000790865
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.007 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                49.7568              -4.1723               2.0554
+                -4.1714              56.4958              -3.7429
+                 2.0561              -3.7330              48.6616
+
+ A(FC)          51.6332              51.6332              51.6332
+ A(SD)          -4.6282              -3.8003               8.4285
+ A(ORB+DIA)     -0.0009              -0.0013               0.0166    A(PC) =   0.0048
+ A(ORB)         -0.0009              -0.0009               0.0178    A(PC) =   0.0053
+ A(DIA)         -0.0000              -0.0004              -0.0012    A(PC) =  -0.0005
+             ----------           ----------           ----------
+ A(Tot)         47.0041              47.8316              60.0783    A(iso)=   51.6380
+ Orientation: 
+  X          -0.4006373            0.8193693           -0.4100289
+  Y           0.1782727            0.5086724            0.8423012
+  Z           0.8987261            0.2643603           -0.3498643
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+            -0.1092       0.0675      -0.1011
+             0.0675      -0.0034      -0.1927
+            -0.1011      -0.1927       0.1127
+
+ V(El)       0.5805       0.6909      -1.2714
+ V(Nuc)     -0.7209      -0.8430       1.5639
+         ----------   ----------   ----------
+ V(Tot)     -0.1404      -0.1522       0.2926 
+ Orientation: 
+  X       0.6957990    0.6573820   -0.2893314
+  Y      -0.6776644    0.4673955   -0.5677256
+  Z      -0.2379804    0.5910925    0.7706977
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0029 I=  1.0)
+  e**2qQ            =     0.196 MHz 
+  e**2qQ/(4I*(2I-1))=     0.049 MHz 
+  eta               =     0.040
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=      0.486904957 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   0C : A:ISTP=   13 I=  0.5 P=134.1903 MHz/au**3
+                Q:ISTP=   13 I=  0.5 Q=  0.0000 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000155775449
+     CP-SCF ITERATION   2:      0.000003486199
+     CP-SCF ITERATION   3:      0.000000182637
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.011 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                 0.6988              -0.6997               0.2841
+                -0.6921              -1.5993              -0.0564
+                 0.2849              -0.0577              -1.4579
+
+ A(FC)          -0.7877              -0.7877              -0.7877
+ A(SD)           1.7050              -0.7035              -1.0015
+ A(ORB+DIA)      0.0110              -0.0003              -0.0060    A(PC) =   0.0016
+ A(ORB)          0.0112              -0.0003              -0.0059    A(PC) =   0.0017
+ A(DIA)         -0.0002              -0.0000              -0.0001    A(PC) =  -0.0001
+             ----------           ----------           ----------
+ A(Tot)          0.9282              -1.4915              -1.7951    A(iso)=   -0.7861
+ Orientation: 
+  X           0.9561406           -0.0960904           -0.2766981
+  Y          -0.2671893            0.1009542           -0.9583413
+  Z           0.1200213            0.9902398            0.0708521
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+            -0.0456       0.0384      -0.0267
+             0.0384      -0.1396       0.0053
+            -0.0267       0.0053       0.1851
+
+ V(El)      -0.4031      -0.7625       1.1657
+ V(Nuc)      0.3688       0.6087      -0.9775
+         ----------   ----------   ----------
+ V(Tot)     -0.0344      -0.1538       0.1882 
+ Orientation: 
+  X       0.9324712    0.3430391    0.1132328
+  Y       0.3455433   -0.9383990   -0.0026640
+  Z       0.1053437    0.0416110   -0.9935649
+
+Note: Tensor is right-handed
+
+ RHO(0)=    119.614340193 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   1C : A:ISTP=   13 I=  0.5 P=134.1903 MHz/au**3
+                Q:ISTP=   13 I=  0.5 Q=  0.0000 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000155787017
+     CP-SCF ITERATION   2:      0.000003479154
+     CP-SCF ITERATION   3:      0.000000183944
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.010 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                 0.6972               0.7021               0.2853
+                 0.6944              -1.5978               0.0565
+                 0.2861               0.0577              -1.4577
+
+ A(FC)          -0.7877              -0.7877              -0.7877
+ A(SD)           1.7050              -0.7035              -1.0015
+ A(ORB+DIA)      0.0110              -0.0003              -0.0060    A(PC) =   0.0016
+ A(ORB)          0.0112              -0.0003              -0.0059    A(PC) =   0.0017
+ A(DIA)         -0.0002              -0.0000              -0.0001    A(PC) =  -0.0001
+             ----------           ----------           ----------
+ A(Tot)          0.9283              -1.4915              -1.7951    A(iso)=   -0.7861
+ Orientation: 
+  X           0.9558131           -0.0959489            0.2778762
+  Y           0.2681485           -0.1028621           -0.9578704
+  Z           0.1204896            0.9900572           -0.0725884
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+            -0.0455      -0.0382      -0.0268
+            -0.0382      -0.1396      -0.0059
+            -0.0268      -0.0059       0.1851
+
+ V(El)      -0.4031      -0.7626       1.1657
+ V(Nuc)      0.3688       0.6087      -0.9775
+         ----------   ----------   ----------
+ V(Tot)     -0.0344      -0.1538       0.1882 
+ Orientation: 
+  X      -0.9328806    0.3419221    0.1132392
+  Y       0.3446170    0.9387324    0.0045311
+  Z      -0.1047520    0.0432512   -0.9935574
+
+Note: Tensor is right-handed
+
+ RHO(0)=    119.614346018 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   2C : A:ISTP=   13 I=  0.5 P=134.1903 MHz/au**3
+                Q:ISTP=   13 I=  0.5 Q=  0.0000 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000296729277
+     CP-SCF ITERATION   2:      0.000012501747
+     CP-SCF ITERATION   3:      0.000000509632
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.007 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+               -21.0888               1.8040               0.0779
+                 1.8101             -19.8732               0.1650
+                 0.0789               0.1649             -22.9259
+
+ A(FC)         -21.3113             -21.3113             -21.3113
+ A(SD)           2.7344              -1.1071              -1.6272
+ A(ORB+DIA)      0.0099               0.0329               0.0033    A(PC) =   0.0153
+ A(ORB)          0.0106               0.0330               0.0031    A(PC) =   0.0156
+ A(DIA)         -0.0007              -0.0002               0.0001    A(PC) =  -0.0002
+             ----------           ----------           ----------
+ A(Tot)        -18.5671             -22.3856             -22.9352    A(iso)=  -21.2960
+ Orientation: 
+  X          -0.5826171            0.8123770            0.0245121
+  Y          -0.8117034           -0.5800768           -0.0681804
+  Z          -0.0411693           -0.0596197            0.9973718
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+             0.0566       0.1720       0.0182
+             0.1720       0.1015       0.0117
+             0.0182       0.0117      -0.1580
+
+ V(El)      -0.2776       0.4563      -0.1787
+ V(Nuc)      0.1837      -0.6159       0.4323
+         ----------   ----------   ----------
+ V(Tot)     -0.0939      -0.1596       0.2536 
+ Orientation: 
+  X      -0.7446301   -0.1021449    0.6596153
+  Y       0.6611456    0.0229232    0.7499074
+  Z      -0.0917197    0.9945054    0.0504633
+
+Note: Tensor is right-handed
+
+ RHO(0)=    119.451950505 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   4C : A:ISTP=   13 I=  0.5 P=134.1903 MHz/au**3
+                Q:ISTP=   13 I=  0.5 Q=  0.0000 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.000296428783
+     CP-SCF ITERATION   2:      0.000012493197
+     CP-SCF ITERATION   3:      0.000000516497
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.011 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+               -21.0842              -1.8056               0.0750
+                -1.8117             -19.8770              -0.1596
+                 0.0759              -0.1595             -22.9263
+
+ A(FC)         -21.3112             -21.3112             -21.3112
+ A(SD)           2.7344              -1.1072              -1.6272
+ A(ORB+DIA)      0.0099               0.0329               0.0033    A(PC) =   0.0153
+ A(ORB)          0.0106               0.0330               0.0031    A(PC) =   0.0156
+ A(DIA)         -0.0007              -0.0002               0.0001    A(PC) =  -0.0002
+             ----------           ----------           ----------
+ A(Tot)        -18.5669             -22.3854             -22.9351    A(iso)=  -21.2958
+ Orientation: 
+  X          -0.5836220            0.8116575           -0.0244433
+  Y           0.8110517            0.5811843           -0.0664826
+  Z          -0.0397551           -0.0586255           -0.9974881
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+             0.0570      -0.1721       0.0180
+            -0.1721       0.1011      -0.0112
+             0.0180      -0.0112      -0.1581
+
+ V(El)      -0.2776       0.4563      -0.1787
+ V(Nuc)      0.1837      -0.6159       0.4323
+         ----------   ----------   ----------
+ V(Tot)     -0.0939      -0.1596       0.2536 
+ Orientation: 
+  X       0.7437930   -0.1022501    0.6605429
+  Y       0.6618993   -0.0249227   -0.7491783
+  Z       0.0930661    0.9944465    0.0491420
+
+Note: Tensor is right-handed
+
+ RHO(0)=    119.451952374 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   3N : A:ISTP=   14 I=  1.0 P= 38.5677 MHz/au**3
+                Q:ISTP=   14 I=  1.0 Q=  0.0204 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.020207087465
+     CP-SCF ITERATION   2:      0.000155570649
+     CP-SCF ITERATION   3:      0.000000326407
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.008 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                 0.3136               0.0098             -10.0011
+                 0.0098              -1.4890              -0.0700
+               -10.0010              -0.0700              71.8460
+
+ A(FC)          23.5222              23.5222              23.5222
+ A(SD)         -24.5400             -25.1570              49.6970
+ A(ORB+DIA)     -0.0406               0.1457              -0.0011    A(PC) =   0.0347
+ A(ORB)         -0.0399               0.1461              -0.0011    A(PC) =   0.0350
+ A(DIA)         -0.0006              -0.0004               0.0001    A(PC) =  -0.0003
+             ----------           ----------           ----------
+ A(Tot)         -1.0584              -1.4891              73.2181    A(iso)=   23.5569
+ Orientation: 
+  X           0.9907212            0.0006285            0.1359084
+  Y           0.0005046           -0.9999994            0.0009459
+  Z           0.1359090           -0.0008686           -0.9907209
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+             0.6071      -0.0000       0.2231
+            -0.0000       0.3471       0.0013
+             0.2231       0.0013      -0.9542
+
+ V(El)       0.3582      -0.7129       0.3546
+ V(Nuc)     -0.0112       1.3513      -1.3401
+         ----------   ----------   ----------
+ V(Tot)      0.3471       0.6384      -0.9854 
+ Orientation: 
+  X       0.0006032    0.9903293   -0.1387353
+  Y      -0.9999994    0.0004774   -0.0009398
+  Z      -0.0008645    0.1387358    0.9903290
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q= 0.0204 I=  1.0)
+  e**2qQ            =    -4.733 MHz 
+  e**2qQ/(4I*(2I-1))=    -1.183 MHz 
+  eta               =     0.296
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=    193.950629050 a.u.**-3
+
+ -----------------------------------------------------------
+ Nucleus   5O : A:ISTP=   17 I=  2.5 P=-72.3588 MHz/au**3
+                Q:ISTP=   17 I=  2.5 Q= -0.0256 barn     
+ -----------------------------------------------------------
+ Solving for nuclear perturbation:
+Forming RHS of the CP-SCF equations         ... 
+Using LibInt in CPSCF-CP
+
+Calculating nucleus orbit integrals         ... done
+
+------------------------------------------------------------------------------
+                           ORCA CP-SCF CALCULATION
+------------------------------------------------------------------------------
+
+Input orbitals are from        ... .\nitroxide.gbw
+Input Perturbation             ... .\nitroxide.pin.tmp
+Wavefunction output            ... .\nitroxide.pout.tmp
+Perturbation mode              ... Imaginary perturbation
+Solver                         ... POPLE
+Max. number of iterations      ... 64
+Convergence tolerance          ... 1.000e-06
+Integral handling              ... Direct
+Number of perturbations        ... 3
+Number of operators            ... 2
+Orbital ranges used for CP-SCF:
+ Operator 0:  Orbitals   0... 22  to  23...143
+ Operator 1:  Orbitals   0... 21  to  22...143
+DFT calculation                         ... on
+Variables per vector in CP-SCF ... 5467
+Number of vectors sought       ... 3
+     CP-SCF ITERATION   0: 
+     CP-SCF ITERATION   1:      0.071055961725
+     CP-SCF ITERATION   2:      0.000323268309
+     CP-SCF ITERATION   3:      0.000000697285
+
+Forming final perturbed densities           ... done
+Transforming perturbed density to AO basis  ... done
+
+Using FinalGrid as integration grid:         ... finished setting up the grid
+Time for grid setup =    0.007 sec
+
+ Raw HFC matrix (all values in MHz): 
+ ------------------------------
+                36.7322              -0.0330              36.1284
+                -0.0330              38.9492               0.2283
+                36.1301               0.2283            -196.5757
+
+ A(FC)         -39.7553             -39.7553             -39.7553
+ A(SD)          78.8295              83.4795            -162.3090
+ A(ORB+DIA)     -0.1248              -1.5253               0.0216    A(PC) =  -0.5428
+ A(ORB)         -0.1252              -1.5262               0.0218    A(PC) =  -0.5432
+ A(DIA)          0.0003               0.0009              -0.0002    A(PC) =   0.0004
+             ----------           ----------           ----------
+ A(Tot)         38.9494              42.1989            -202.0426    A(iso)=  -40.2981
+ Orientation: 
+  X           0.0006135            0.9887457           -0.1496048
+  Y          -0.9999994            0.0004756           -0.0009572
+  Z          -0.0008753            0.1496053            0.9887454
+
+Notes:  (1) The A matrix conforms to the "SAI" spin Hamiltonian convention.
+        (2) Tensor is right-handed.
+
+ Raw EFG matrix (all values in a.u.**-3):
+             1.9842       0.0023       0.3168
+             0.0023      -2.1696      -0.0019
+             0.3168      -0.0019       0.1855
+
+ V(El)       0.8409       0.7527      -1.5936
+ V(Nuc)     -0.7095       1.2856      -0.5760
+         ----------   ----------   ----------
+ V(Tot)      0.1313       2.0383      -2.1697 
+ Orientation: 
+  X      -0.1685311    0.9856961   -0.0006164
+  Y      -0.0009648    0.0004603    0.9999994
+  Z       0.9856959    0.1685316    0.0008734
+
+Note: Tensor is right-handed
+
+
+ Quadrupole tensor eigenvalues (in MHz;Q=-0.0256 I=  2.5)
+  e**2qQ            =    13.040 MHz 
+  e**2qQ/(4I*(2I-1))=     0.326 MHz 
+  eta               =     0.879
+  NOTE: the diagonal representation of the SH term I*Q*I = e**2qQ/(4I(2I-1))*[-(1-eta),-(1+eta),2]
+
+ RHO(0)=    295.673769502 a.u.**-3
+
+
+------------------------------------------------------------------------------- 
+----------------------------------------------------------------------------
+                           ORCA EULER ANGLE PROGRAM
+----------------------------------------------------------------------------
+
+Only g-tensor available        -->  using g-tensor as reference tensor
+
+Reference tensor               ...  g
+
+g-tensor ordering              ...  |g_min> --> |gx>
+                                    |g_mid> --> |gy>
+                                    |g_max> --> |gz>
+
+A- and EFG-tensor ordering     ...  the axes |Ax>, |Qx>, |Ay>, etc. are assigned
+                                    such that the Euler rotation is minimal. You
+                                    can find the respective eigenvalues as Ax,
+                                    EFGx, Ay, etc. in the tables below.
+                                    The relation of |Ax>, |Ay>,  etc. to Amin, Amid, etc.
+                                    (as printed in the ORCA EPR/NMR CALCULATION Output)
+                                    is obtained in the detailed printout.
+
+Euler rotation around          ...  z - y - z
+   First rotation              -->  by alpha around z
+   Second rotation             -->  by beta around y'
+   Third rotation              -->  by gamma around z''
+   Positive / Negative angle   -->  clockwise / counterclockwise rotation
+
+Plot EFG-tensors                    (-)
+Plot HFC-tensors                    (-)
+Detailed Printout                   (-)
+
+-------------------------------------------------------------------------
+          Euler rotation of hyperfine tensor to g-tensor
+-------------------------------------------------------------------------
+
+-------------------------------------------------------------------
+ Atom  |   Alpha    Beta    Gamma   |   Ax       Ay       Az 
+       |          [degrees]         |           [MHz]         
+-------------------------------------------------------------------
+  6H     -112.9     20.0     97.3      -3.00    -3.10     1.02
+  7H      112.9     20.0    -97.3      -3.00    -3.10     1.02
+  8H     -106.0     28.0     85.9      47.43    60.28    48.43
+  9H      -60.7     31.7     75.2      47.00    60.08    47.83
+ 10H      106.0     28.0    -85.9      47.43    60.28    48.43
+ 11H       60.7     31.7    -75.2      47.00    60.08    47.83
+  0C     -102.4     15.6     96.1      -1.49    -1.80     0.93
+  1C      102.4     15.6    -96.1      -1.49    -1.80     0.93
+  2C     -107.0     37.5    107.5     -22.94   -18.57   -22.39
+  4C      107.0     37.5   -107.5     -22.94   -18.57   -22.39
+  3N      179.9      1.1   -179.9      73.22    -1.49    -1.06
+  5O      180.0      0.3   -180.0    -202.04    38.95    42.20
+-------------------------------------------------------------------
+
+
+-------------------------------------------------------------------------------
+    Euler rotation of Electric Field Gradient (EFG) tensor to g-tensor
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------
+ Atom  |   Alpha    Beta    Gamma  |   EFGx     EFGy     EFGz
+       |          [degrees]        |         [a.u.**-3]       
+-------------------------------------------------------------------
+  6H      -93.9     35.7     93.2     -0.17    -0.15     0.32
+  7H       93.9     35.7    -93.2     -0.17    -0.15     0.32
+  8H     -109.9     44.6    137.9      0.29    -0.14    -0.15
+  9H      -75.6     42.2     44.1      0.29    -0.14    -0.15
+ 10H      109.9     44.6   -137.9      0.29    -0.14    -0.15
+ 11H       75.6     42.2    -44.1      0.29    -0.14    -0.15
+  0C       96.8     20.3    -96.6      0.19    -0.15    -0.03
+  1C      -96.8     20.3     96.6      0.19    -0.15    -0.03
+  2C      -94.5     41.4     92.0     -0.16     0.25    -0.09
+  4C       94.5     41.4    -92.0     -0.16     0.25    -0.09
+  3N     -180.0      0.9    180.0     -0.99     0.35     0.64
+  5O        0.0      0.8     -0.0      0.13    -2.17     2.04
+-------------------------------------------------------------------
+
+
+Timings for individual modules:
+
+Sum of individual times         ...      825.548 sec (=  13.759 min)
+GTO integral calculation        ...        0.400 sec (=   0.007 min)   0.0 %
+Spin-Orbit-Coupling Matrices    ...        5.994 sec (=   0.100 min)   0.7 %
+SCF iterations                  ...       45.127 sec (=   0.752 min)   5.5 %
+EPR/NMR calculation             ...      774.027 sec (=  12.900 min)  93.8 %
+                             ****ORCA TERMINATED NORMALLY****
+TOTAL RUN TIME: 0 days 0 hours 13 minutes 46 seconds 50 msec

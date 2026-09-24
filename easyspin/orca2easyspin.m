@@ -14,6 +14,11 @@
 %
 %  Output:
 %    Sys       spin system structure, or array of spin system structures
+%              In addition to the spin Hamiltonian parameters (S, g, D, A,
+%              Q, frames, Nucs, NucsIdx), it contains the total charge
+%              (Sys.charge), the element symbols of all atoms
+%              (Sys.Elements), and the atom coordinates in Angstrom (Sys.xyz).
+%              These are included if they are present in the file.
 %    Sys.data  contains additional data read from the output file
 %              (coordinates, charge, electric field gradients, etc)
 %
@@ -95,30 +100,35 @@ end
 %==========================================================================
 
 
-% Remove all nuclei with hyperfine coupling strength below a threshold
+% Remove all nuclei with hyperfine coupling strength below a threshold.
+% Nuclei without hyperfine data (all-zero A) but with quadrupole data are kept.
 function Sys = nucspinhftrim(Sys,HyperfineCutoff)
-if isfield(Sys,'Nucs') && isfield(Sys,'A')
-  for iSys = 1:numel(Sys)
-    Amax = max(abs(Sys(iSys).A),[],2);
-    keep = Amax > abs(HyperfineCutoff);
-    if isempty(Sys(iSys).Nucs)
-      continue
-    end
-    Nucs = Sys(iSys).Nucs;
-    if ischar(Nucs)
-      Nucs = nucstring2list(Nucs);
-    end
-    Sys(iSys).NucsIdx = Sys(iSys).NucsIdx(keep);
-    Sys(iSys).Nucs = nuclist2string(Nucs(keep));
-    Sys(iSys).A = Sys(iSys).A(keep,:);
-    if isfield(Sys,'AFrame')
-      Sys(iSys).AFrame = Sys(iSys).AFrame(keep,:);
-    end
-    if isfield(Sys,'Q')
-      Sys(iSys).Q = Sys(iSys).Q(keep,:);
-    end
-    if isfield(Sys,'QFrame')
-      Sys(iSys).QFrame = Sys(iSys).QFrame(keep,:);
+if ~isfield(Sys,'Nucs')
+  return
+end
+perNucFields = {'A','AFrame','Q','QFrame'};
+for iSys = 1:numel(Sys)
+  if isempty(Sys(iSys).Nucs)
+    continue
+  end
+  Nucs = nucstring2list(Sys(iSys).Nucs);
+  nNucs = numel(Nucs);
+  if isfield(Sys,'A') && ~isempty(Sys(iSys).A)
+    Amax = max(abs(Sys(iSys).A),[],2).';
+  else
+    Amax = zeros(1,nNucs);
+  end
+  if isfield(Sys,'Q') && ~isempty(Sys(iSys).Q)
+    hasQ = any(Sys(iSys).Q,2).';
+  else
+    hasQ = false(1,nNucs);
+  end
+  keep = Amax>abs(HyperfineCutoff) | (Amax==0 & hasQ);
+  Sys(iSys).Nucs = nuclist2string(Nucs(keep));
+  Sys(iSys).NucsIdx = Sys(iSys).NucsIdx(keep);
+  for f = perNucFields
+    if isfield(Sys,f{1}) && ~isempty(Sys(iSys).(f{1}))
+      Sys(iSys).(f{1}) = Sys(iSys).(f{1})(keep,:);
     end
   end
 end

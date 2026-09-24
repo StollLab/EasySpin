@@ -143,8 +143,10 @@ for s = nStructures:-1:1
     Sys(s).xyz= d.xyz;
   end
 
-  % Spin multiplicity
+  % Spin multiplicity, charge, elements
   Sys(s).S = d.S;
+  Sys(s).charge = d.Charge;
+  Sys(s).Elements = d.Element;
 
   % g tensor
   if ~isempty(d.g)
@@ -183,6 +185,9 @@ for s = nStructures:-1:1
         end
       end
     end
+  end
+  if idx>0
+    Sys(s).Nucs = nuclist2string(Sys(s).Nucs);
   end
 
   % Store all other data in spin system structure
@@ -254,30 +259,28 @@ nAtoms = size(xyz,1);
 end
 
 %-------------------------------------------------------------------------------
+% In multi-structure files, the charge might be printed only once (e.g.
+% for the first step of a parameter scan). If it is not found within
+% krange, the entire file is searched.
 function charge = parsecharge(L,krange)
-found = false;
-for k = krange
-  if regexp(L{k},'^\s*Total Charge','match','once')
-    found = true;
-    break
-  end
+k = findline(L,krange,'^\s*Total Charge');
+if isempty(k)
+  k = findline(L,1:numel(L),'^\s*Total Charge');
 end
-if ~found
+if isempty(k)
   error('Charge not found.');
 end
 charge = str2double(regexp(L{k},'-?\d+$','match','once'));
 end
 
 %-------------------------------------------------------------------------------
+% Same fallback to the entire file as for the charge.
 function [Multiplicity,S] = parsespinmultiplicity(L,krange)
-found = false;
-for k = krange
-  if regexp(L{k},'^\s*Multiplicity','match','once')
-    found = true;
-    break
-  end
+k = findline(L,krange,'^\s*Multiplicity');
+if isempty(k)
+  k = findline(L,1:numel(L),'^\s*Multiplicity');
 end
-if ~found
+if isempty(k)
   error('Spin multiplicity not found.');
 end
 Multiplicity = str2double(regexp(L{k},'\d+$','match','once'));
@@ -285,6 +288,14 @@ S = (Multiplicity-1)/2;
 end
 
 %-------------------------------------------------------------------------------
+% Index of first line in krange that matches the regular expression pattern
+function k = findline(L,krange,pattern)
+k = krange(find(~cellfun(@isempty,regexp(L(krange),pattern,'once')),1));
+end
+
+%-------------------------------------------------------------------------------
+% The Mulliken analysis can be absent (e.g. with NoPop, or for later steps
+% of a parameter scan). In that case, return empty arrays silently.
 function [MullikenCharge,MullikenSpin] = parsemulliken(L,krange,nAtoms)
 MullikenTitle{1} = 'MULLIKEN ATOMIC CHARGES AND SPIN DENSITIES';  % <2.7
 MullikenTitle{2} = 'MULLIKEN ATOMIC CHARGES AND SPIN POPULATIONS'; % >=2.7
@@ -303,7 +314,6 @@ if found
   end
 else
   Mulliken = zeros(0,2);
-  fprintf('No Mulliken analysis found.\n');
 end
 MullikenCharge = Mulliken(:,1);
 MullikenSpin = Mulliken(:,2);
