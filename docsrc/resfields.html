@@ -79,21 +79,25 @@ Gives the spectrometer's operating frequency in GHz. (<code>resfields</code> and
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
-Gives the spectrometer's static field, in mT. (<code>resfreqs</code> and <code>resfreqs_perturb</code> only.)
+Gives the spectrometer's static field, in mT. (<code>resfreqs_matrix</code> and <code>resfreqs_perturb</code> only.)
 </div>
 
 <div class="optionfield"><code>CenterSweep</code></div>
 <div class="optiondescr">
-Defines the center and width <code>[center sweep]</code> of the range which is searched for resonances. For field sweeps, the units are mT. For frequency sweeps, the units are GHz. Only resonances within this range are computed.
+<em>2-element vector</em> <code>[center sweep]</code><br>
+Center and width of the range which is searched for resonances. For field sweeps, the units are mT. For frequency sweeps, the units are GHz. Only resonances within this range are computed.
 <br>
-The range can be specified either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
 </div>
 
 <div class="optionfield"><code>Range</code></div>
 <div class="optiondescr">
-Defines the start and end <code>[sweepmin sweepmax]</code> of the range which is searched for resonances. For field sweeps, the units are mT. For frequency sweeps, the units are GHz. Only resonances within this range are computed.
+<em>2-element vector</em> <code>[sweepmin sweepmax]</code><br>
+Lower and upper limit of the range which is searched for resonances. For field sweeps, the units are mT. For frequency sweeps, the units are GHz. Only resonances within this range are computed.
 <br>
-The range can be specified either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
+For field sweeps, negative fields and field ranges across zero are supported, e.g. <code>Exp.Range = [-400 400]</code>. A negative field points along the negative z axis of the lab frame. For such ranges, a transition with some resonance fields inside the range is returned with all its resonance fields, including those outside the range.
+<br>
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
 </div>
 
 <div class="optionfield"><code>Temperature</code></div>

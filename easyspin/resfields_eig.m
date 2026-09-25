@@ -1,22 +1,23 @@
 % resfields_eig  Resonance fields by the eigenfield method 
 %
-%   B = resfields_eig(Sys, Par,)
-%   B = resfields_eig(Sys, Par, Opt)
+%   B = resfields_eig(Sys, Exp)
+%   B = resfields_eig(Sys, Exp, Opt)
 %   [B, Int] = resfields_eig(...)
 %
 %   Calculates all resonance fields of spin system
 %   Sys solving a generalized eigenvalue problem
-%   in Liouville space together with transition pro-
-%   babilitites.
+%   in Liouville space together with transition
+%   probabilities.
 %
 %   Input:
 %   - Sys: spin system specification structure
-%   - Par: structure with fields
+%   - Exp: structure with fields
 %        mwFreq - spectrometer frequency [GHz]
-%        Mode - 'parallel' or 'perpendicular' (default)
-%          direction of mirowave field relative to static field
+%        mwMode - 'parallel' or 'perpendicular' (default)
+%          direction of microwave field relative to static field
 %        Range - [Bmin Bmax] If set, compute only eigenfields
-%           between Bmin and Bmax. [mT]
+%           between Bmin and Bmax. [mT] Default: [0 realmax]
+%           negative fields are possible (field along -z(Lab))
 %        Temperature - temperature [K]; if given, thermal
 %           equilibrium populations are included in intensities
 %   - Opt: options structure with fields
@@ -24,7 +25,8 @@
 %          relative intensity above Threshold.
 %
 %   Output:
-%   - B:   cell array of all resonance fields [mT]
+%   - B:   cell array of all resonance fields [mT], one cell per orientation
+%          (numeric array for a single orientation)
 %   - Int: transition intensities [MHz^2/mT^2]
 
 function varargout = resfields_eig(Sys, Exp, Opt)
@@ -94,8 +96,8 @@ Exp = adddefaults(Exp,DefaultExp);
 if isnan(Exp.mwFreq), error('Exp.mwFreq missing!'); end
 
 if (diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-   ~isreal(Exp.Range) || any(Exp.Range<0) || (numel(Exp.Range)~=2)
-  error('Exp.Range is not valid!');
+   ~isreal(Exp.Range) || (numel(Exp.Range)~=2)
+  error('Invalid sweep range! Check Exp.Range.');
 end
 
 if isempty(Exp.mwMode), Exp.mwMode = 'perpendicular'; end
@@ -211,10 +213,10 @@ for iOri = 1:nOrientations
       Vecs = Vecs(:,idx);
     end
 
-    % Remove negative, nonfinite and complex eigenfields
-    % and those above user limit Options.MaxField
+    % Remove nonfinite and complex eigenfields and those outside the
+    % field range (negative eigenfields are resonances at negative fields)
     idx = (abs(imag(Fields))<Opt.RejectionRatio*abs(real(Fields))) & ...
-      (Fields>0) & isfinite(Fields) & ...
+      isfinite(Fields) & ...
       (Fields>Exp.Range(1)) & (Fields<Exp.Range(2));
     if ~any(idx)
       EigenFields{iOri} = [];
@@ -299,7 +301,7 @@ for iOri = 1:nOrientations
     end
 
     inRange = (abs(imag(Fields))<Opt.RejectionRatio*abs(real(Fields))) & ...
-      (Fields>0) & isfinite(Fields) & ...
+      isfinite(Fields) & ...
       (Fields>Exp.Range(1)) & (Fields<Exp.Range(2));
     EigenFields{iOri} = real(Fields(inRange));
     Intensities = {[]};

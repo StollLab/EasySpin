@@ -13,13 +13,14 @@
 %    Sys: spin system structure
 %    Exp: experimental parameters
 %      mwFreq              microwave frequency, in GHz
-%      Range               field sweep range, [Bmin Bmax], in mT
-%      CenterField         field sweep range, [center sweep], in mT
+%      Range               sweep range, [sweepmin sweepmax], in mT
+%      CenterSweep         sweep range, [center sweep], in mT
+%                            negative fields are possible (field along -z(Lab))
 %      Temperature         temperature, in K
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      Mode                excitation mode: 'perpendicular', 'parallel', {[}k_tilt alpha_pol}
+%      mwMode              excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
@@ -49,7 +50,7 @@ switch nargin
   case 2, Opt = struct;
   case 3
   otherwise
-    error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
+    error('Use two or three inputs: resfields_perturb(Sys,Exp) or resfields_perturb(Sys,Exp,Opt)!');
 end
 
 % A global variable sets the level of log display. The global variable
@@ -68,7 +69,7 @@ if Sys.nElectrons~=1
   err = sprintf('Perturbation theory available only for systems with 1 electron. Yours has %d.',Sys.nElectrons);
 end
 if any(Sys.L(:))
-    err = sprintf('Perturbation theory not available for elctron spin combined with orbital angular momentum!');
+    err = sprintf('Perturbation theory not available for electron spin combined with orbital angular momentum!');
 end
 if any(Sys.AStrain)
 %  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
@@ -77,7 +78,7 @@ if highSpin && any(Sys.DStrain(:)) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
 end
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
-  err = 'D stain cannot be used with tilted D tensors.';
+  err = 'D strain cannot be used with tilted D tensors.';
 end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
@@ -164,20 +165,14 @@ end
 
 if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
 
-if ~isnan(Exp.CenterSweep)
-  if ~isnan(Exp.Range)
-    %logmsg(0,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
-  end
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-  Exp.Range = max(Exp.Range,0);
-end
-
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
+Exp.Range = p_sweeprange(Exp,false,true);
 if isfield(Exp,'SearchRange'), Exp.Range = Exp.SearchRange; end
+if isempty(Exp.Range), error('Exp.Range/Exp.CenterSweep is missing!'); end
 
-if isnan(Exp.Range), error('Experiment.Range/Exp.CenterSweep is missing!'); end
-if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) || any(Exp.Range<0)
-  error('Exp.Range is not valid!');
-end
+% Negative fields: resonances at -B are obtained from those at +B via time
+% reversal symmetry
+mirror = any(Exp.Range<0);
 
 % Determine excitation mode
 [xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
@@ -343,8 +338,8 @@ for iOri = nOrientations:-1:1
     elseif mwmode.unpolarizedMode
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
     elseif mwmode.circpolarizedMode
-      TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2) + ...
-        mwmode.circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
+      TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2);
+      circularTerm = mwmode.circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
     end
   else
     if mwmode.linearpolarizedMode
@@ -355,9 +350,16 @@ for iOri = nOrientations:-1:1
       TransitionRate(:,iOri) = c2/2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
     elseif mwmode.circpolarizedMode
       nk_ = R_L2M*nk; % transform to molecular frame representation
-      TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2) + ...
-        mwmode.circSense*2*c2*det(g)*xik/norm(g.'*n0);
+      TransitionRate(:,iOri) = c2*(trgg-norm(g*u)^2-norm(cross(g.'*nk_,u))^2);
+      circularTerm = mwmode.circSense*2*c2*det(g)*xik/norm(g.'*n0);
     end
+  end
+  if mwmode.circpolarizedMode
+    % circular term changes sign for mirrored resonances at -B
+    TransitionRateMirror = TransitionRate(:,iOri) - circularTerm;
+    TransitionRate(:,iOri) = TransitionRate(:,iOri) + circularTerm;
+  else
+    TransitionRateMirror = TransitionRate(:,iOri);
   end
 
   % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
@@ -365,6 +367,7 @@ for iOri = nOrientations:-1:1
   
   % Combine all factors into overall line intensity
   Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE*photoWeight;
+  IntensityMirror(:,iOri) = Polarization.*TransitionRateMirror*dBdE*photoWeight;
   
   if highSpin
     Du = D*u;
@@ -455,6 +458,10 @@ for iOri = nOrientations:-1:1
       % directly accumulate into spectrum
       spec = spec + Intensity(imS,iOri)*Exp.AccumWeights(iOri)*...
         multinucstick(B0,nNucStates,Bshifts,Baxis(1),dB,Exp.nPoints);
+      if mirror
+        spec = spec + IntensityMirror(imS,iOri)*Exp.AccumWeights(iOri)*...
+          multinucstick(-B0,nNucStates,-Bshifts,Baxis(1),dB,Exp.nPoints);
+      end
     else
       if secondOrder
         Bfinal{imS}(iOri,:) = (E0-E1D-E2D-sum(E1A+E2A+E2DA,2))*preOri;
@@ -565,7 +572,7 @@ else
       dHdE_ = dHdE_*DeltaE;
     end
     
-    % Calculate freq-domain linedwidths
+    % Calculate freq-domain linewidths
     lwD = diff(dHdD_,1,1);
     lwE = diff(dHdE_,1,1);
     % convert from MHz to mT
@@ -592,6 +599,22 @@ else
     lowerLevels = upperLevels;
   end
 
+  % Negative fields: add mirrored resonances at -B, and remove resonances
+  % without any position in range
+  if mirror
+    IntMirror = repelem(IntensityMirror,nNucSublevels,1)/nNucSublevels;
+    IntMirror = flipud(IntMirror);
+    B = [B; -B];
+    Int = [Int; IntMirror];
+    if ~isempty(Wid), Wid = [Wid; Wid]; end
+    Transitions = [Transitions; Transitions];
+    keep = any(B>=Exp.Range(1) & B<=Exp.Range(2),2);
+    B = B(keep,:);
+    Int = Int(keep,:);
+    if ~isempty(Wid), Wid = Wid(keep,:); end
+    Transitions = Transitions(keep,:);
+  end
+
   spec = 0;
 
 end
@@ -600,7 +623,8 @@ end
 d = dbstack;
 pepperCall = numel(d)>1 && strcmp(d(2).name,'pepper');
 if nSites>1 && ~pepperCall
-  siz = [nTransitions*nSites, numel(B)/nTransitions/nSites];
+  nRows = size(B,1);
+  siz = [nRows*nSites, numel(B)/nRows/nSites];
   B = reshape(B,siz);
   if ~isempty(Int), Int = reshape(Int,siz); end
   if ~isempty(Wid), Wid = reshape(Wid,siz); end

@@ -499,60 +499,55 @@ switch program
       end
       logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
     else
-      if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
+      if (numel(Exp.Field)~=1) || ~isreal(Exp.Field)
+        error('Uninterpretable magnetic field in Exp.Field.');
+      end
+      if Exp.Field<0
+        error('Exp.Field cannot be negative.');
+      end
+      if Exp.Field==0
         error('Uninterpretable magnetic field in Exp.Field.');
       end
       logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
     end
 
-    % Sweep range (magnetic field, or frequency)
+    % Sweep range from CenterSweep or Range (CenterSweep has precedence)
     if FieldSweep
-      if isfield(Exp,'CenterSweep')
-        if isfield(Exp,'Range')
-          logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
-        end
-      else
-        if isfield(Exp,'Range')
-          Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
-        else
-          if (Sys.nElectrons==1) && (Sys.S==1/2)
-            logmsg(1,'  automatic determination of sweep range');
-            Stretch = 1.25;
-            I = nucspin(Sys.Nucs).';
-            if numel(I)>0
-              Amax = max(abs(Sys.A),[],2);
-              hf = sum(I.*Amax)*1e6; % MHz -> Hz
-            else
-              hf = 0;
-            end
-            gmax = max(Sys.g(:));
-            gmin = min(Sys.g(:));
-            if FieldSweep
-              minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
-              maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
-              Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
-            else
-              minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
-              maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
-              Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
-            end
+      Range = p_sweeprange(Exp,false,false);
+      if isempty(Range)
+        if (Sys.nElectrons==1) && (Sys.S==1/2)
+          logmsg(1,'  automatic determination of sweep range');
+          Stretch = 1.25;
+          I = nucspin(Sys.Nucs).';
+          if numel(I)>0
+            Amax = max(abs(Sys.A),[],2);
+            hf = sum(I.*Amax)*1e6; % MHz -> Hz
           else
-            error('Cannot automatically determine sweep range for this spin system.');
+            hf = 0;
           end
-        end
-      end
-    else
-      if isfield(Exp,'mwCenterSweep')   %TODO implement in cardamom
-        if isfield(Exp,'mwRange')
-          logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
-        end
-      else
-        if isfield(Exp,'mwRange')
-          Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
+          gmax = max(Sys.g(:));
+          gmin = min(Sys.g(:));
+          if FieldSweep
+            minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
+            maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
+            Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
+          else
+            minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
+            maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
+            Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
+          end
         else
-          error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
+          error('Cannot automatically determine sweep range for this spin system.');
         end
+        Range = p_sweeprange(Exp,false,false);
       end
+      Exp.CenterSweep = [mean(Range) diff(Range)];
+    else
+      mwRange = p_sweeprange(Exp,true,false);  %TODO implement in cardamom
+      if isempty(mwRange)
+        error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
+      end
+      Exp.mwCenterSweep = [mean(mwRange) diff(mwRange)];
     end
 
     if FieldSweep
@@ -560,17 +555,11 @@ switch program
       CenterField = Exp.CenterSweep(1);
       Sweep = Exp.CenterSweep(2);
       Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Sweep;
-      if any(Exp.Range<0) || diff(Exp.Range)<=0
-        error('Invalid sweep range! Check Exp.CenterSweep or Exp.Range.');
-      end
     else
       CenterFreq = Exp.mwCenterSweep(1);
       Sweep = Exp.mwCenterSweep(2);
       Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*Sweep;
       CenterField = Exp.Field;
-      if any(Exp.mwRange<0) || diff(Exp.mwRange)<=0
-        error('Invalid sweep range! Check Exp.mwCenterSweep or Exp.mwRange.');
-      end
     end
 
     if FieldSweep

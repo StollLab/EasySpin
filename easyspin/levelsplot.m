@@ -13,6 +13,7 @@
 %               (b) orientation of lab frame in molecular frame
 %               - 3-element vector [phi theta chi] (radians)
 %    B          field range, in mT; either Bmax, [Bmin Bmax], or a full vector
+%               negative fields are possible (field along -z(Lab))
 %    mwFreq     spectrometer frequency, in GHz
 %    Exp        experiment structure, alternative to mwFreq
 %      mwFreq          spectrometer frequency, in GHz (required)
@@ -151,7 +152,7 @@ switch numel(B)
     Bvec = B;
 end
 % Set horizontal and vertical units, scaling and labels
-if max(Bvec)>=2000  % mT
+if max(Bvec)-min(Bvec)>=2000  % mT
   Bscale = 1e-3;  % use tesla for plotting
   fieldUnit = 'T';
 else

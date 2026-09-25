@@ -13,7 +13,8 @@
 %   - Exp: experiment specification
 %       mwFreq        spectrometer frequency, in GHz
 %       Field         magnetic field, in mT
-%       Range         radiofrequency range [low,high], in MHz
+%       Range         sweep range, [sweepmin sweepmax], in MHz
+%       CenterSweep   sweep range, [center sweep], in MHz
 %       nPoints       number of points
 %       Temperature   temperature of the sample, by default off (NaN)
 %       ExciteWidth   ENDOR excitation width, FWHM, in MHz
@@ -196,6 +197,7 @@ end
 
 % Error if vital parameters are missing.
 if isnan(Exp.Field), error('Experiment.Field is missing!'); end
+if any(Exp.Field<0), error('Exp.Field cannot be negative.'); end
   
 if isnan(Exp.mwFreq)
   if ~isinf(Exp.ExciteWidth)
@@ -203,34 +205,12 @@ if isnan(Exp.mwFreq)
   end
 end
 
-AutoRange = isnan(Exp.Range) & isnan(Exp.CenterSweep);
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
+Range = p_sweeprange(Exp,false,false);
+AutoRange = isempty(Range);
+if ~AutoRange, Exp.Range = Range; end
 if Method==1
 %  if AutoRange, error('Cannot automatically determine rf range. Please specify Exp.Range or Exp.CenterSweep.'); end
-end
-
-% Check both CenterSweep and Range, prefer CenterSweep
-if ~isnan(Exp.CenterSweep)
-  if ~isnan(Exp.Range)
-    logmsg(0,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
-  end
-  if Exp.CenterSweep(2)<=0
-    error('Sweep range in Exp.CenterSweep must be positive.');
-  end
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-  if Exp.Range(1)<0
-    error('Start value resulting from Exp.CenterSweep is negative (%g).',Exp.Range(1));
-  end
-end
-
-% Check Exp.Range
-if ~isnan(Exp.Range)
-  if any(diff(Exp.Range)<=0) || ...
-      any(~isfinite(Exp.Range)) || ...
-      ~isreal(Exp.Range) || ...
-      any(Exp.Range<0) || ...
-      (numel(Exp.Range)~=2)
-    error('Experiment.Range is not valid!');
-  end
 end
 
 % Automatic on-resonance setting: (1) isotropic g, (2) mwFreq==0

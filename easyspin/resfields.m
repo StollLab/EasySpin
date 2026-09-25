@@ -13,13 +13,14 @@
 %    Sys: spin system structure
 %    Exp: experimental parameters
 %      mwFreq              microwave frequency, in GHz
-%      Range               field sweep range, [Bmin Bmax], in mT
-%      CenterField         field sweep range, [center sweep], in mT
+%      Range               sweep range, [sweepmin sweepmax], in mT
+%      CenterSweep         sweep range, [center sweep], in mT
+%                            negative fields are possible (field along -z(Lab))
 %      Temperature         temperature, in K
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
+%      mwMode              excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      Transitions         nx2 array of level pairs
@@ -29,7 +30,8 @@
 %      Sites               list of crystal sites to include (default []: all)
 %
 %   Output:
-%    Pos     line positions (in mT)
+%    Pos     line positions (in mT); if the field range includes negative
+%            fields, lines partly in range can have positions out of range
 %    Int     line intensities
 %    Wid     Gaussian line widths, full width half maximum (FWHM)
 %    Trans   list of transitions included in the computation
@@ -130,22 +132,17 @@ end
 if isnan(Exp.mwFreq), error('Exp.mwFreq is missing!'); end
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
-if ~isnan(Exp.CenterSweep)
-  if ~isnan(Exp.Range)
-    %logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
-  end
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-  if Exp.Range(1)<0
-    error('Lower field limit from Exp.CenterSweep cannt be negative.');
-  end
-end
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
+Exp.Range = p_sweeprange(Exp,false,true);
+if isempty(Exp.Range), error('Exp.Range/Exp.CenterSweep is missing!'); end
 
-if isnan(Exp.Range), error('Exp.Range/Exp.CenterSweep is missing!'); end
-if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range)
-  error('Exp.Range is not valid!');
-end
-if any(Exp.Range<0)
-  error('Negative magnetic fields in Exp.Range are not possible.');
+% Negative fields: resonances at -B are obtained from those at +B via time
+% reversal symmetry. The resonance search is done over |B| only.
+mirror = any(Exp.Range<0);
+if mirror && Exp.Range(2)>0
+  searchRange = [0 max(abs(Exp.Range))];
+else
+  searchRange = sort(abs(Exp.Range));
 end
 
 % Determine excitation mode
@@ -520,6 +517,23 @@ else
   end
 end
 
+% Mirrored resonances at negative fields: circular polarization and
+% non-eigenbasis initial states require separately computed intensities
+mirrorCircular = mirror && mwmode.circpolarizedMode;
+mirrorPopulations = mirror && computeNonEquiPops && ~strcmp(initStateBasis,'eigen');
+computeMirrorIntensities = computeIntensities && (mirrorCircular || mirrorPopulations);
+if mirrorPopulations
+  % Time-reversed density matrix, using the time-reversal operator
+  % Theta = Y*K with Y = exp(-i*pi*Jy) and K complex conjugation
+  Jy = 0;
+  for iSpin = 1:numel(spinvec(CoreSys))
+    Jy = Jy + sop(CoreSys,[iSpin,2]);
+  end
+  Y = expm(-1i*pi*full(Jy));
+  initStateTR = conj(Y'*initState*Y);
+  clear Jy Y
+end
+
 % Check whether looping transitions are possible.
 maxZeroFieldSplit = ZFEnergies(end) - ZFEnergies(1);
 if maxZeroFieldSplit>1e3
@@ -556,13 +570,13 @@ if higherOrder
   [Transitions,u,v,nTransitions,Trans,postSelectionThreshold] = ...
     p_transitionpreselection(Opt,CoreSys,nLevels,nCore,...
                              preSelectionThreshold,postSelectionThreshold,...
-                             nOrientations,angles_M2L,mean(Exp.Range),...
+                             nOrientations,angles_M2L,mean(searchRange),...
                              true,[],[],[],[],mwmode,HFIStrength);
 else
   [Transitions,u,v,nTransitions,Trans,postSelectionThreshold] = ...
     p_transitionpreselection(Opt,CoreSys,nLevels,nCore,...
                              preSelectionThreshold,postSelectionThreshold,...
-                             nOrientations,angles_M2L,mean(Exp.Range),...
+                             nOrientations,angles_M2L,mean(searchRange),...
                              false,kH0,kmuxM,kmuyM,kmuzM,mwmode,HFIStrength);
 end
 %===============================================================================
@@ -626,7 +640,7 @@ if computeStrains
       AStrainMatrix = R_A2M*AStrainMatrix*R_A2M.';
     end
     % Diagonalize Hamiltonian at center field.
-    centerB = mean(Exp.Range);
+    centerB = mean(searchRange);
     [Vecs,E] = eig(kH0 - centerB*kmuzM);
     [~,idx] = sort(real(diag(E)));
     Vecs = Vecs(:,idx);
@@ -677,6 +691,9 @@ end
 
 if computeIntensities
   Idat = NaN(nTransitions,nOrientations);
+  if computeMirrorIntensities
+    IdatMirror = NaN(nTransitions,nOrientations);
+  end
   if nPerturbNuclei>0
     for iiNuc = nPerturbNuclei:-1:1
       pIdatN{iiNuc} = zeros(nTransitions,nOrientations,nPerturbTransitions(iiNuc));
@@ -720,7 +737,7 @@ if higherOrder
   maxSlope = 0;
   for iOri = 1:nOrientations
     [~,~,zLab_M] = erot(angles_M2L(iOri,:),'rows');
-    [~,~,der]= gethamdata_hO(Exp.Range(2),zLab_M,CoreSys,Opt.Sparse,[],nLevels);
+    [~,~,der]= gethamdata_hO(searchRange(2),zLab_M,CoreSys,Opt.Sparse,[],nLevels);
     maxSlope = max([maxSlope,max(der)]);
   end
 else
@@ -830,7 +847,7 @@ for iOri = 1:nOrientations
     getHamData = @(B) gethamdata(B,kH0,kmuzL,Trans,nLevels);
   end
   [Bknots,splineModelCoeffs,stateStability,dB,nSegments,vectors,nDiagonalizations,nMaxSegmentsReached] = ...
-    p_buildlevelmodel(Exp.Range,getHamData,u,v,nCore,mwFreq,levelAccuracy,maxSlope,...
+    p_buildlevelmodel(searchRange,getHamData,u,v,nCore,mwFreq,levelAccuracy,maxSlope,...
                       LoopFields,Opt.maxSegments,nDiagonalizations,nMaxSegmentsReached);
   
   iiTrans = 1;
@@ -869,6 +886,9 @@ for iOri = 1:nOrientations
           Pdat = p_insertrow(Pdat,iiTrans);
           if computeIntensities
             Idat = p_insertrow(Idat,iiTrans);
+          end
+          if computeMirrorIntensities
+            IdatMirror = p_insertrow(IdatMirror,iiTrans);
           end
           if computeStrains
             Wdat = p_insertrow(Wdat,iiTrans);
@@ -986,8 +1006,8 @@ for iOri = 1:nOrientations
             elseif mwmode.unpolarizedMode
               TransitionRate = ((1+xik^2)*norm(mu_L)^2+(1-3*xik^2)*abs(nB0_L.'*mu_L)^2)/4;
             elseif mwmode.circpolarizedMode
-              TransitionRate = ((1+xik^2)*norm(mu_L)^2+(1-3*xik^2)*abs(nB0_L.'*mu_L)^2)/2 - ...
-                mwmode.circSense*xik*(nB0_L.'*cross(1i*mu_L,conj(mu_L)));
+              TransitionRate = ((1+xik^2)*norm(mu_L)^2+(1-3*xik^2)*abs(nB0_L.'*mu_L)^2)/2;
+              circularTerm = mwmode.circSense*xik*(nB0_L.'*cross(1i*mu_L,conj(mu_L)));
             end
           else
             if mwmode.linearpolarizedMode
@@ -995,9 +1015,19 @@ for iOri = 1:nOrientations
             elseif mwmode.unpolarizedMode
               TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2)/2;
             elseif mwmode.circpolarizedMode
-              TransitionRate = (norm(mu_L)^2-abs(nk_L.'*mu_L)^2) - ...
-                mwmode.circSense*(nk_L.'*cross(1i*mu_L,conj(mu_L)));
+              TransitionRate = norm(mu_L)^2-abs(nk_L.'*mu_L)^2;
+              circularTerm = mwmode.circSense*(nk_L.'*cross(1i*mu_L,conj(mu_L)));
             end
+          end
+          if mwmode.circpolarizedMode
+            % circular term changes sign for mirrored resonance at -B
+            TransitionRateMirror = TransitionRate + circularTerm;
+            TransitionRate = TransitionRate - circularTerm;
+            if abs(TransitionRateMirror)<1e-10
+              TransitionRateMirror = 0;
+            end
+          else
+            TransitionRateMirror = TransitionRate;
           end
           if abs(TransitionRate)<1e-10
             TransitionRate = 0;
@@ -1024,8 +1054,15 @@ for iOri = 1:nOrientations
                 PopulationV = V'*initState*V; % upper level
             end
             Polarization = real(PopulationU - PopulationV);
+            if mirrorPopulations
+              % populations of time-reversed states for mirrored resonance at -B
+              PolarizationMirror = real(U'*initStateTR*U - V'*initStateTR*V);
+            end
             if nPerturbNuclei>0
               Polarization = Polarization/prod(2*Sys.I+1);            
+              if mirrorPopulations
+                PolarizationMirror = PolarizationMirror/prod(2*Sys.I+1);
+              end
             end
           else
             % no temperature given
@@ -1036,6 +1073,10 @@ for iOri = 1:nOrientations
           % Update intensity results array
           Idat(iiTrans,iOri) = dBdE * TransitionRate * Polarization * photoWeight;
           % dBdE proportionality not valid near looping field coalescences!
+          if computeMirrorIntensities
+            if ~mirrorPopulations, PolarizationMirror = Polarization; end
+            IdatMirror(iiTrans,iOri) = dBdE * TransitionRateMirror * PolarizationMirror * photoWeight;
+          end
         end
         
         % Calculate gradient of resonance frequency
@@ -1135,6 +1176,44 @@ end % for all orientations
 
 clear fH1 fVu fVv Hu Hv pVu pVv NucTransitionRates vidx uidx
 idxTr(end) = [];
+
+% Negative fields: add mirrored resonances at -B
+%-----------------------------------------------------------------------
+% Resonances at -B are the time-reversal images of those at +B. Positions
+% outside the field range are kept for resonances that are partly in range.
+if mirror
+  Pdat = [Pdat; -Pdat];
+  if computeIntensities
+    if computeMirrorIntensities
+      Idat = [Idat; IdatMirror];
+    else
+      Idat = [Idat; Idat];
+    end
+  end
+  if computeStrains, Wdat = [Wdat; Wdat]; end
+  if computeGradient, Gdat = [Gdat; Gdat]; end
+  idxTr = [idxTr; idxTr];
+  for iiNuc = 1:nPerturbNuclei
+    pPdatN{iiNuc} = [pPdatN{iiNuc}; -pPdatN{iiNuc}];
+    if computeIntensities
+      pIdatN{iiNuc} = [pIdatN{iiNuc}; pIdatN{iiNuc}];
+    end
+  end
+
+  % Remove resonances without any position in range
+  keep = any(Pdat>=Exp.Range(1) & Pdat<=Exp.Range(2),2);
+  Pdat = Pdat(keep,:);
+  if computeIntensities, Idat = Idat(keep,:); end
+  if computeStrains, Wdat = Wdat(keep,:); end
+  if computeGradient, Gdat = Gdat(keep,:); end
+  idxTr = idxTr(keep);
+  for iiNuc = 1:nPerturbNuclei
+    pPdatN{iiNuc} = pPdatN{iiNuc}(keep,:,:);
+    if computeIntensities
+      pIdatN{iiNuc} = pIdatN{iiNuc}(keep,:,:);
+    end
+  end
+end
 %=======================================================================
 
 logmsg(2,'  ## %2d resonances total from %d level pairs',size(Pdat,1),nTransitions);

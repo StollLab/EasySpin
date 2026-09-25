@@ -13,13 +13,13 @@
 %    Sys: spin system structure
 %    Exp: experimental parameters
 %      Field               static field, in mT
-%      Range               frequency sweep range, [numin numax], in GHz
-%      CenterField         frequency sweep range, [center sweep], in GHz
+%      Range               sweep range, [sweepmin sweepmax], in GHz
+%      CenterSweep         sweep range, [center sweep], in GHz
 %      Temperature         temperature, in K
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
+%      mwMode              excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
@@ -44,7 +44,7 @@ switch nargin
   case 2, Opt = struct;
   case 3
   otherwise
-    error('Use two or three inputs: refields_perturb(Sys,Exp) or refields_perturb(Sys,Exp,Opt)!');
+    error('Use two or three inputs: resfreqs_perturb(Sys,Exp) or resfreqs_perturb(Sys,Exp,Opt)!');
 end
 
 % A global variable sets the level of log display. The global variable
@@ -162,8 +162,15 @@ if isfield(Exp,'Mode')
   error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
 end
 
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
+Exp.Range = p_sweeprange(Exp,false,false);
+
 err = '';
-if ~isfield(Exp,'Field'), err = 'Exp.Field is missing.'; end
+if ~isfield(Exp,'Field')
+  err = 'Exp.Field is missing.';
+elseif Exp.Field<0
+  err = 'Exp.Field cannot be negative. Negative fields are only supported for field sweeps.';
+end
 
 [xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
@@ -546,7 +553,7 @@ else
       dHdE_ = dHdE_*DeltaE;
     end
     
-    % Calculate freq-domain linedwidths
+    % Calculate freq-domain linewidths
     lwD = diff(dHdD_,1,1);
     lwE = diff(dHdE_,1,1);
     Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);

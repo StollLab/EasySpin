@@ -207,7 +207,7 @@ Exp.mwFreq = 34.9;   % Q-band
 </pre>
 
 <p>
-<span class="param">Field range</span>. There are two ways to provide the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
+<span class="param">Field range</span>. There are two ways to provide the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>. If both are given, <code>Exp.CenterSweep</code> has precedence.
 </p>
 
 <pre class="matlab">
@@ -216,7 +216,11 @@ Exp.Range = [300 380];      % in mT
 </pre>
 
 <p>
-<code>Exp.CenterSweep</code> and <code>Exp.Range</code> can be omitted. If omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails and ask for an explicit range.
+Negative fields and field ranges across zero are supported, e.g. <code>Exp.Range = [-100 400]</code>. A negative field points along the negative z axis of the lab frame.
+</p>
+
+<p>
+If both <code>Exp.CenterSweep</code> and <code>Exp.Range</code> are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for many common systems, but fails in more complicated situations. EasySpin issues an error when it fails.
 </p>
 
 <p>
@@ -451,7 +455,7 @@ For this, all you need to do is the following
 <ul>
 <li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
 otherwise EasySpin does not know what to do.
-<li>Give a frequency range (in GHz) in <code>Exp.Range</code> or <code>Exp.CenterSweep</code>. You can also omit these, in which case <code>pepper</code> will determine an adequate range automatically.
+<li>Give a frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. You can also omit these, in which case <code>garlic</code> determines an adequate range automatically.
 <li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>
 

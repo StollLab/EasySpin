@@ -334,7 +334,7 @@ Exp.mwFreq = 34.9;   % Q-band
 </pre>
 
 <p>
-<span class="param">Field range</span>. There are two ways to enter the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>.
+<span class="param">Field range</span>. There are two ways to provide the magnetic field sweep range. Either give the center field and the sweep width (in mT) in <code>Exp.CenterSweep</code>, or specify the lower and upper limit of the sweep range (again in mT) in <code>Exp.Range</code>. If both are given, <code>Exp.CenterSweep</code> has precedence.
 </p>
 
 <pre class="matlab">
@@ -343,11 +343,7 @@ Exp.Range = [300 380];      % in mT
 </pre>
 
 <p>
-On many cw EPR spectrometers, the field range is specified using center field and sweep width, so <code>Exp.CenterSweep</code> is often the more natural choice.
-</p>
-
-<p>
-<code>Exp.CenterSweep</code> and <code>Exp.Range</code> are only optional. If both are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for most common systems, but fails in some complicated situations. EasySpin will issue an error when it fails.
+If both <code>Exp.CenterSweep</code> and <code>Exp.Range</code> are omitted, EasySpin tries to determine a field range large enough to accommodate the full spectrum. This automatic ranging works for many common systems, but fails in more complicated situations. EasySpin issues an error when it fails.
 </p>
 
 <p>

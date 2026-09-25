@@ -13,13 +13,13 @@
 %    Sys: spin system structure
 %    Exp: experimental parameters
 %      Field               static field, in mT
-%      Range               frequency sweep range, [numin numax], in GHz
-%      CenterField         frequency sweep range, [center sweep], in GHz
+%      Range               sweep range, [sweepmin sweepmax], in GHz
+%      CenterSweep         sweep range, [center sweep], in GHz
 %      Temperature         temperature, in K
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
+%      mwMode              excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      Transitions         nx2 array of level pairs
@@ -115,7 +115,7 @@ if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
 end
 
 if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
-  error('D stain cannot be used with tilted D tensors.');
+  error('D strain cannot be used with tilted D tensors.');
 end
 
 if any( strncmp(fieldnames(Sys),'ZB',2))
@@ -151,19 +151,12 @@ if isnan(Exp.Field)
   Exp.Field = 0.0;
   logmsg(1,'Exp.Field is missing, assuming 0.0 mT');
 end
-
-if ~isnan(Exp.CenterSweep)
-  if ~isnan(Exp.Range)
-    logmsg(1,'Using Experiment.CenterSweep and ignoring Experiment.Range.');
-  end
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-  Exp.Range = max(Exp.Range,0);
+if Exp.Field<0
+  error('Exp.Field cannot be negative. Negative fields are only supported for field sweeps.');
 end
 
-if isnan(Exp.Range), Exp.Range = []; end
-if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ~isreal(Exp.Range) || any(Exp.Range<0)
-  error('Exp.Range is not valid!');
-end
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
+Exp.Range = p_sweeprange(Exp,false,false);
 
 Exp.Range = Exp.Range*1e3; % GHz -> MHz, for comparison with Pdat
 

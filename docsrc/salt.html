@@ -114,19 +114,23 @@ Magnetic field (in mT) at which the experiment is performed.
 <div class="optionfield"><code>Range</code></div>
 <div class="optiondescr">
 <p>
-Two-element array with lower and upper limit of the rf frequency
-range <code>[rfmin rfmax]</code>. The values are in MHz. Example:
-<code>Exp.Range = [1 30]</code>.
-<p>If omitted, EasySpin tries
-to determine the frequency range automatically.
+<em>2-element vector</em> <code>[sweepmin sweepmax]</code><br>
+Lower and upper limit of the rf sweep range, in MHz, e.g. <code>Exp.Range = [1 30]</code>.
+</p>
+<p>
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit. If both are omitted, EasySpin tries to determine the rf range automatically.
 </p>
 </div>
 
 <div class="optionfield"><code>CenterSweep</code></div>
 <div class="optiondescr">
 <p>
-Two-element array with center and sweep width of the rf frequency range <code>[rfcenter rfwidth]</code>. The values are in MHz. Example: <code>Exp.CenterSweep = [51 10]</code>.
-<p>If omitted, EasySpin tries to determine the frequency range automatically.
+<em>2-element vector</em> <code>[center sweep]</code><br>
+Center and width of the rf sweep range, in MHz, e.g. <code>Exp.CenterSweep = [51 10]</code>.
+</p>
+<p>
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit. If both are omitted, EasySpin tries to determine the rf range automatically.
+</p>
 </div>
 
 <div class="optionfield"><code>nPoints</code></div>
@@ -258,7 +262,7 @@ If the orientational distribution provided via <code>Exp.Ordering</code> is very
 </div>
 
 <p>
-There are defaults for all fields except <code>Range</code> and <code>Field</code>, which have to be specified when invoking <code>salt</code>.
+There are defaults for all fields except <code>Field</code>, which has to be specified when invoking <code>salt</code>.
 </p>
 
 <p>

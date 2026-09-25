@@ -176,6 +176,9 @@ end
 if ~isfield(Exp,'Field')
   error('Exp.Field is missing. Give a magnetic field in mT.');
 end
+if any(Exp.Field<0)
+  error('Exp.Field cannot be negative.');
+end
 
 % Exp.Sequence is a required field
 if ~isfield(Exp,'Sequence')

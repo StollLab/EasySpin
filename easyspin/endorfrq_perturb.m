@@ -99,6 +99,7 @@ DefaultExp.MolFrame = [0 0 0];
 DefaultExp.SampleRotation = [];
 
 if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end
+if any(Exp.Field<0), error('Exp.Field cannot be negative.'); end
 
 Exp = adddefaults(Exp,DefaultExp);
 

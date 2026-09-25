@@ -118,7 +118,7 @@ For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly p
 <div class="optiondescr">
 <em>2-element vector</em> <code>[Bmin Bmax]</code><br>
 If set, <code>resfields_eig</code> will only return eigenfields falling between <code>Bmin</code>
-and <code>Bmax</code> (both in mT).
+and <code>Bmax</code> (both in mT). Negative fields and field ranges across zero are supported. A negative field points along the negative z axis of the lab frame. The default is <code>[0 realmax]</code>.
 </div>
 
 <div class="optionfield"><code>Temperature</code></div>

@@ -57,8 +57,11 @@
 %
 %   Exp: experimental parameter settings
 %     mwFreq         microwave frequency, in GHz (for field sweeps)
-%     Range          sweep range, [sweepmin sweepmax], in mT (for field sweep)
-%     CenterSweep    sweep range, [center sweep], in mT (for field sweep)
+%     Range          sweep range, [sweepmin sweepmax], in mT (for field sweeps)
+%     CenterSweep    sweep range, [center sweep], in mT (for field sweeps)
+%     Field          static field, in mT (for frequency sweeps)
+%     mwRange        sweep range, [sweepmin sweepmax], in GHz (for frequency sweeps)
+%     mwCenterSweep  sweep range, [center sweep], in GHz (for frequency sweeps)
 %     nPoints        number of points
 %     Harmonic       detection harmonic: 0, 1 (default), 2
 %     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)

@@ -17,11 +17,12 @@
 %      B2, B4, B6 etc.
 %    Exp: experimental parameters
 %      mwFreq              microwave frequency, in GHz (for field sweeps)
-%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
-%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps
+%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweeps)
+%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps)
+%                            negative fields are possible (field along -z(Lab))
 %      Field               static field, in mT (for frequency sweeps)
-%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
-%      mwCenterSweep       sweep range, [center sweep], in GHz (for freq. sweeps)
+%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for frequency sweeps)
+%      mwCenterSweep       sweep range, [center sweep], in GHz (for frequency sweeps)
 %      nPoints             number of points
 %      Harmonic            detection harmonic: 0, 1 (default), 2
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
@@ -31,10 +32,10 @@
 %      SampleFrame         3-element array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      Mode                excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
+%      mwMode              excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
 %      Ordering            coefficient for non-isotropic orientational distribution
 %    Opt: computational options
-%      Method              'matrix', 'perturb1', 'perturb2'='perturb'
+%      Method              'matrix', 'perturb1', 'perturb2'='perturb', 'hybrid', 'eig'
 %      separate            '', 'components', 'transitions', 'sites', 'orientations'
 %      Verbosity           0, 1, 2
 %      GridSize            grid size;  N1, [N1 Ninterp]
@@ -250,6 +251,9 @@ else
   if numel(Exp.Field)~=1 || ~isreal(Exp.Field)
     error('Uninterpretable magnetic field in Exp.Field.');
   end
+  if Exp.Field<0
+    error('Exp.Field cannot be negative. Negative fields are only supported for field sweeps.');
+  end
   logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
@@ -296,37 +300,13 @@ else
   % Automatic range for frequency sweep is done later.
 end
 
-% Check both CenterSweep and Range, prefer CenterSweep
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
 if FieldSweep
-  if ~isnan(Exp.CenterSweep)
-    Exp.Range = Exp.CenterSweep(1) + [-1 1]*Exp.CenterSweep(2)/2;
-    if Exp.Range(1)<0
-      error('Lower field limit from Exp.CenterSweep cannot be negative.');
-    end
-  end
-  if isfield(Exp,'Range') && all(~isnan(Exp.Range))
-    if any(diff(Exp.Range)<=0) || any(~isfinite(Exp.Range)) || ...
-        ~isreal(Exp.Range)
-      error('Exp.Range is not valid!');
-    end
-    if any(Exp.Range<0)
-      error('Negative magnetic fields in Exp.Range are not possible.');
-    end
-  end
+  Range = p_sweeprange(Exp,false,true);
+  if ~isempty(Range), Exp.Range = Range; end
 else
-  if ~isnan(Exp.mwCenterSweep)
-    Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]*Exp.mwCenterSweep(2)/2;
-    Exp.mwRange = max(Exp.mwRange,0);
-  end
-  if isfield(Exp,'mwRange') && all(~isnan(Exp.mwRange))
-    if diff(Exp.mwRange)<=0 || any(~isfinite(Exp.mwRange)) || ...
-        any(~isreal(Exp.mwRange))
-      error('Exp.mwRange is not valid!');
-    end
-    if any(Exp.mwRange<0)
-      error('Exp.mwRange cannot be negative.');
-    end
-  end
+  mwRange = p_sweeprange(Exp,true,false);
+  if ~isempty(mwRange), Exp.mwRange = mwRange; end
 end
 
 
@@ -582,7 +562,11 @@ if FieldSweep
     end
     
     Exp1 = Exp;
-    Exp1.Range = [0 1e8];
+    if Exp.Range(1)<0
+      Exp1.Range = [-1e8 1e8];
+    else
+      Exp1.Range = [0 1e8];
+    end
     
     logmsg(2,'  -entering resfields_eig----------------------------------');
     [Pdat,Idat] = resfields_eig(Sys,Exp1,Opt);
@@ -613,7 +597,9 @@ if FieldSweep
     % Set search range larger than requested field range
     Exp1 = Exp;
     Exp1.SearchRange = Exp1.Range + 0.2*diff(Exp.Range)*[-1 1];
-    Exp1.SearchRange(Exp1.SearchRange<0) = 0;
+    if Exp.Range(1)>=0
+      Exp1.SearchRange(Exp1.SearchRange<0) = 0;
+    end
     
     Exp1.AccumWeights = Exp.OriWeights;
     
@@ -721,16 +707,24 @@ end
 
 if FieldSweep
   if Method~=6
-    loopingTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
+    % Transitions can appear more than once: looping transitions, and
+    % transitions with resonances at both positive and negative fields
+    duplicateTransitionsPresent = size(unique(Transitions,'rows'),1)<size(Transitions,1);
+    if duplicateTransitionsPresent
+      fieldSign = sign(max(Pdat,[],2));
+      loopingTransitionsPresent = size(unique([Transitions fieldSign],'rows'),1)<size(Transitions,1);
+    else
+      loopingTransitionsPresent = false;
+    end
     if loopingTransitionsPresent && ~crystalSample
       logmsg(0,'** Looping transitions found. Artifacts at coalescence points possible.');
     end
   else
     % hybrid method: Transitions contains replicas of core sys transitions
-    loopingTransitionsPresent = false;
+    duplicateTransitionsPresent = false;
   end
 else
-  loopingTransitionsPresent = false;
+  duplicateTransitionsPresent = false;
 end
 
 if FieldSweep
@@ -1145,10 +1139,11 @@ end
 %=======================================================================
 logmsg(1,'-final-------------------------------------------------');
 
-% Combine branches of looping transitions if separate output
+% Combine branches of looping transitions and resonances at positive and
+% negative fields if separate output
 %-----------------------------------------------------------------------
 if FieldSweep && ~crystalSample
-  if ~summedOutput && loopingTransitionsPresent
+  if ~summedOutput && duplicateTransitionsPresent
     [Transitions,~,idx] = unique(Transitions,'rows');
     nTransitions = size(Transitions,1);
     newspec = zeros(nTransitions,Exp.nPoints);

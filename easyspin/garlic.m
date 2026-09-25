@@ -26,11 +26,12 @@
 %
 %   Exp:  experimental parameter settings
 %      mwFreq              microwave frequency, in GHz (for field sweeps)
-%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweep)
-%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps
+%      Range               sweep range, [sweepmin sweepmax], in mT (for field sweeps)
+%      CenterSweep         sweep range, [center sweep], in mT (for field sweeps)
+%                            negative fields are possible (field along -z(Lab))
 %      Field               static field, in mT (for frequency sweeps)
-%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for freq. sweeps)
-%      mwCenterSweep       sweep range, [center sweep], in GHz (for freq. sweeps)
+%      mwRange             sweep range, [sweepmin sweepmax], in GHz (for frequency sweeps)
+%      mwCenterSweep       sweep range, [center sweep], in GHz (for frequency sweeps)
 %      nPoints             number of points
 %      Harmonic            detection harmonic: 0, 1 (default), 2
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
@@ -260,7 +261,13 @@ if FieldSweep
   end
   logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
 else
-  if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
+  if (numel(Exp.Field)~=1) || ~isreal(Exp.Field)
+    error('Uninterpretable magnetic field in Exp.Field.');
+  end
+  if Exp.Field<0
+    error('Exp.Field cannot be negative. Negative fields are only supported for field sweeps.');
+  end
+  if Exp.Field==0
     error('Uninterpretable magnetic field in Exp.Field.');
   end
   logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
@@ -272,46 +279,18 @@ if ~FieldSweep
   Exp.mwPhase = -Exp.mwPhase;
 end
 
-% Sweep range (magnetic field or frequency)
-SweepAutoRange = false;
+% Sweep range from CenterSweep or Range (CenterSweep has precedence)
 if FieldSweep
-  if isfield(Exp,'CenterSweep')
-    if isfield(Exp,'Range')
-      logmsg(0,'Using Exp.CenterSweep and ignoring Exp.Range.');
-    end
-  else
-    if isfield(Exp,'Range')
-      if (Exp.Range(1)>=Exp.Range(2)) || any(Exp.Range<0)
-        error('Invalid sweep range!');
-      end
-      Exp.CenterSweep = [mean(Exp.Range) diff(Exp.Range)];
-    else
-      logmsg(1,'  automatic determination of sweep range');
-      SweepAutoRange = true;
-    end
-  end
-  if ~SweepAutoRange
-    Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*Exp.CenterSweep(2);
-  end
+  Range = p_sweeprange(Exp,false,true);
+  SweepAutoRange = isempty(Range);
+  if ~SweepAutoRange, Exp.Range = Range; end
 else
-  if isfield(Exp,'mwCenterSweep')
-    if isfield(Exp,'mwRange')
-      logmsg(0,'Using Exp.mwCenterSweep and ignoring Exp.mwRange.');
-    end
-  else
-    if isfield(Exp,'mwRange')
-      if (Exp.mwRange(1)>=Exp.mwRange(2)) || any(Exp.mwRange<0)
-        error('Invalid sweep range!');
-      end
-      Exp.mwCenterSweep = [mean(Exp.mwRange) diff(Exp.mwRange)];
-    else
-      logmsg(1,'  automatic determination of sweep range');
-      SweepAutoRange = true;
-    end
-  end
-  if ~SweepAutoRange
-    Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*Exp.mwCenterSweep(2);
-  end
+  mwRange = p_sweeprange(Exp,true,false);
+  SweepAutoRange = isempty(mwRange);
+  if ~SweepAutoRange, Exp.mwRange = mwRange; end
+end
+if SweepAutoRange
+  logmsg(1,'  automatic determination of sweep range');
 end
 
 % Number of points
@@ -733,6 +712,19 @@ else
 end
 if ~FieldSweep
   Positions = Positions/1e9; % Hz -> GHz
+end
+
+% Negative fields: add mirrored lines at -B (time reversal symmetry)
+if FieldSweep && Exp.Range(1)<0
+  if Exp.Range(2)>0
+    Positions = [Positions(:); -Positions(:)];
+    Intensities = [Intensities(:); Intensities(:)];
+    if numel(LorentzianLw)>1
+      LorentzianLw = [LorentzianLw(:); LorentzianLw(:)];
+    end
+  else
+    Positions = -Positions;
+  end
 end
 
 % Line intensities

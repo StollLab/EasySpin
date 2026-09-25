@@ -295,26 +295,13 @@ if EasySpinFunction
   end
   
   % For field and frequency sweeps, require manual field range (to prevent
-  % users from comparing sim and exp spectra with different ranges)
-  if ~any(isfield(p0{2},{'Range','CenterSweep','mwRange','mwCenterSweep'}))
+  % users from comparing sim and exp spectra with different ranges), and
+  % get x-axis for plotting in GUI
+  mwSweep = isfield(p0{2},'mwRange') || isfield(p0{2},'mwCenterSweep');
+  allowNegative = ~mwSweep && any(strcmp(esfitdata.fcnName,{'pepper','garlic'}));
+  range = p_sweeprange(p0{2},mwSweep,allowNegative);
+  if isempty(range)
     error('Please specify field or frequency range, in Exp.Range/Exp.mwRange or in Exp.CenterSweep/Exp.mwCenterSweep.');
-  end
-
-  % Get x-axis for plotting in GUI
-  if isfield(p0{2},'mwRange') || isfield(p0{2},'mwCenterSweep')
-    rangefield = 'mwRange';
-    centersweepfield = 'mwCenterSweep';
-  elseif isfield(p0{2},'Range') || isfield(p0{2},'CenterSweep')
-    rangefield = 'Range';
-    centersweepfield = 'CenterSweep';
-  end
-  if isfield(p0{2},centersweepfield) && all(~isnan(p0{2}.(centersweepfield)))
-    range = p0{2}.(centersweepfield)(1) + [-1 1]/2*p0{2}.(centersweepfield)(2);
-  else
-    range = p0{2}.(rangefield);
-  end
-  if any(range<0) || diff(range)<=0 || any(~isfinite(range)) || any(~isreal(range))
-    error('Invalid sweep range! Check Exp.(mw)CenterSweep or Exp.(mw)Range.');
   end
   Opt.x = linspace(range(1),range(2),p0{2}.nPoints);
 

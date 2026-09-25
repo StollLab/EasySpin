@@ -86,6 +86,7 @@ DefaultExp.SampleRotation = [];
 DefaultExp.Range = []; % for compatibility, internal
 
 if ~isfield(Exp,'Field'), error('Exp.Field is missing.'); end
+if any(Exp.Field<0), error('Exp.Field cannot be negative.'); end
 
 Exp = adddefaults(Exp,DefaultExp);
 

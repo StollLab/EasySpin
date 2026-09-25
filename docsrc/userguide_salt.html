@@ -167,7 +167,7 @@ Exp.mwFreq = 9.612;     % in GHz
 <p>
 The radiofrequency range, in MHz, is taken from either <code>Range</code> or
 <code>CenterSweep</code> (which are used by <code>pepper</code> for the <em>magnetic field</em> range).
-Of course, only one of the two can be used in a given simulation. If you omit both of them,
+If both are given, <code>CenterSweep</code> has precedence. If you omit both of them,
 EasySpin automatically determines a suitable frequency range.
 </p>
 

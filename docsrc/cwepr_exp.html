@@ -33,6 +33,7 @@ There are several functions in EasySpin that calculate continuous-wave EPR spect
 </p>
 <p>
 <a class="esf" href="chili.html">chili</a> (slow-motion regime),
+<a class="esf" href="cardamom.html">cardamom</a> (trajectory-based slow-motion regime),
 <a class="esf" href="garlic.html">garlic</a> (isotropic limit),
 <a class="esf" href="pepper.html">pepper</a> (solid-state limit).
 </p>
@@ -59,22 +60,25 @@ For frequency sweeps, omit this field and use <code>Exp.Field</code> to specify 
 <div class="optionfield"><code>CenterSweep</code></div>
 <div class="optiondescr">
 <p>
-(For field sweeps only). <em>2-element vector</em> <code>[center, sweep]</code><br>
-Contains center and sweep width of the sweep range. For magnetic field sweeps, values should be in mT, e.g. <code>Exp.CenterSweep=[310 100]</code>.
+(For field sweeps only). <em>2-element vector</em> <code>[center sweep]</code><br>
+Center and width of the field sweep range, in mT, e.g. <code>Exp.CenterSweep = [340 80]</code>.
 </p>
 <p>
-The sweep range can be specified either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
 </p>
 </div>
 
 <div class="optionfield"><code>Range</code></div>
 <div class="optiondescr">
 <p>
-(For field sweeps only). <em>2-element vector</em> <code>[lo hi]</code><br>
-Contains lower and upper limit of the field sweep range. Values should be in mT, e.g. <code>Exp.Range=[260 360]</code>.
+(For field sweeps only). <em>2-element vector</em> <code>[sweepmin sweepmax]</code><br>
+Lower and upper limit of the field sweep range, in mT, e.g. <code>Exp.Range = [300 380]</code>.
 </p>
 <p>
-The sweep range can be specified either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
+</p>
+<p>
+<a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="garlic.html">garlic</a> support negative fields and field ranges across zero, given in <code>Range</code> or in <code>CenterSweep</code>, e.g. <code>Exp.Range = [-400 400]</code>. A negative field points along the negative z axis of the lab frame.
 </p>
 </div>
 
@@ -90,21 +94,21 @@ For field sweeps, omit this field and use <code>Exp.mwFreq</code>.
 <div class="optiondescr">
 <p>
 (For frequency sweeps only). <em>2-element vector</em> <code>[center sweep]</code><br>
-Contains center and sweep width of the frequency sweep range. The values should be in GHz, e.g. <code>Exp.mwCenterSweep=[9 10]</code>.
+Center and width of the frequency sweep range, in GHz, e.g. <code>Exp.mwCenterSweep = [9.5 1]</code>.
 </p>
 <p>
-The sweep range can be specified either in <code>mwCenterSweep</code> or in <code>mwRange</code>. If both are given, <code>mwCenterSweep</code> has precedence.
+Give the sweep range either in <code>mwCenterSweep</code> or in <code>mwRange</code>. If both are given, <code>mwCenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
 </p>
 </div>
 
 <div class="optionfield"><code>mwRange</code></div>
 <div class="optiondescr">
 <p>
-(For frequency sweeps only). <em>2-element vector</em> <code>[lo hi]</code><br>
-Contains lower and upper limit of the frequency sweep range. Values should be in GHz, e.g. <code>Exp.mwRange=[9 10]</code>.
+(For frequency sweeps only). <em>2-element vector</em> <code>[sweepmin sweepmax]</code><br>
+Lower and upper limit of the frequency sweep range, in GHz, e.g. <code>Exp.mwRange = [9 10]</code>.
 </p>
 <p>
-The sweep range can be specified either in <code>mwCenterSweep</code> or in <code>mwRange</code>. If both are given, <code>mwCenterSweep</code> has precedence.
+Give the sweep range either in <code>mwCenterSweep</code> or in <code>mwRange</code>. If both are given, <code>mwCenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
 </p>
 </div>
 
