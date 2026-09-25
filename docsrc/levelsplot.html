@@ -39,6 +39,8 @@ Display energy level diagram, resonances and stick spectrum.
 levelsplot(Sys,Ori,B)
 levelsplot(Sys,Ori,B,mwFreq)
 levelsplot(Sys,Ori,B,mwFreq,Opt)
+levelsplot(Sys,Ori,B,Exp)
+levelsplot(Sys,Ori,B,Exp,Opt)
 </pre>
 
 <!-- ====================================================== -->
@@ -58,6 +60,10 @@ Displays the energy level diagram (Zeeman diagram) for the spin system specified
 
 <p>
 If <code>mwFreq</code>, the spectrometer frequency in GHz is given, resonances for this frequency are plotted as well. Their color indicates the transition amplitude: Red lines indicated allowed resonances, gray ones indicate forbidden ones. Clicking on a resonance line will print its relative transition probability to the command window.
+</p>
+
+<p>
+Instead of <code>mwFreq</code>, an experiment structure <code>Exp</code> can be given. It must contain <code>mwFreq</code> and can contain <code>mwMode</code> and <code>Temperature</code>, with the same meaning as in <a class="esf" href="resfields.html">resfields</a>. With <code>Exp.mwMode = 'parallel'</code>, for example, parallel-mode transition intensities are shown. Fields that specify the orientation or the field range (<code>SampleFrame</code>, <code>MolFrame</code>, <code>SampleRotation</code>, <code>Range</code>, <code>CenterSweep</code>) are not allowed in <code>Exp</code>, since these are given by <code>Ori</code> and <code>B</code>.
 </p>
 
 <p>
@@ -135,6 +141,18 @@ levelsplot(spins,'z',FieldRange,mwFreq);
 hold on
 levelsplot(spins,'x',FieldRange,mwFreq);
 hold off
+</pre>
+
+<p>
+To show parallel-mode transitions for a triplet with rhombic zero-field splitting, provide an experiment structure with <code>mwMode</code>:
+</p>
+
+<pre class="matlab">
+Sys.S = 1;
+Sys.D = [3000 500];  % MHz
+Exp.mwFreq = 9.5;  % GHz
+Exp.mwMode = 'parallel';
+levelsplot(Sys,'z',[0 600],Exp);
 </pre>
 
 <!-- ====================================================== -->

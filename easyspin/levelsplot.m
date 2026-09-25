@@ -3,6 +3,8 @@
 %  levelsplot(Sys,Ori,B)
 %  levelsplot(Sys,Ori,B,mwFreq)
 %  levelsplot(Sys,Ori,B,mwFreq,Opt)
+%  levelsplot(Sys,Ori,B,Exp)
+%  levelsplot(Sys,Ori,B,Exp,Opt)
 %
 %    Sys        spin system structure
 %    Ori        (a) orientation of magnetic field vector in molecular frame
@@ -12,6 +14,11 @@
 %               - 3-element vector [phi theta chi] (radians)
 %    B          field range, in mT; either Bmax, [Bmin Bmax], or a full vector
 %    mwFreq     spectrometer frequency, in GHz
+%    Exp        experiment structure, alternative to mwFreq
+%      mwFreq          spectrometer frequency, in GHz (required)
+%      mwMode          microwave excitation mode, e.g. 'perpendicular' (default)
+%                      or 'parallel'; see resfields
+%      Temperature     temperature, in K
 %    Opt        options
 %      Units           energy units for plotting, 'GHz' or 'cm^-1' or 'eV'
 %      nPoints         number of points
@@ -69,7 +76,7 @@ switch nargin
     fprintf('Second input argument (orientation) missing; assuming ''%s''.\n',Ori);
     fprintf('Third input argument (magnetic field range [Bmin Bmax]) missing; assuming [%d %d] mT.\n',B(1),B(2));
   otherwise
-    error('Too many input arguments! At most 5 (Sys,Ori,B,mwFreq,Opt) are possible.');
+    error('Too many input arguments! At most 5 (Sys,Ori,B,mwFreq,Opt) or (Sys,Ori,B,Exp,Opt) are possible.');
 end
 
 % Check number of output arguments
@@ -152,8 +159,22 @@ else
   fieldUnit = 'mT';
 end
 
-% Parse mwFreq (fourth input argument)
+% Parse mwFreq or Exp (fourth input argument)
 %-------------------------------------------------------------------------------
+ExpUser = struct;
+if isstruct(mwFreq)
+  ExpUser = mwFreq;
+  conflictingFields = {'SampleFrame','MolFrame','SampleRotation','CrystalOrientation','Range','CenterSweep','Field'};
+  for f = conflictingFields
+    if isfield(ExpUser,f{1})
+      error('Exp.%s is not supported in levelsplot. Use the second and third input arguments (Ori, B) instead.',f{1});
+    end
+  end
+  if ~isfield(ExpUser,'mwFreq')
+    error('Fourth input argument (Exp) must contain the field mwFreq.');
+  end
+  mwFreq = ExpUser.mwFreq;
+end
 if ~isempty(mwFreq)
   if ~isnumeric(mwFreq) || numel(mwFreq)~=1 || ~isreal(mwFreq)
     error('Fourth input argument (mwFreq) must be a single number.');
@@ -257,7 +278,9 @@ if computeResonances
   
   % Calculate resonance fields
   resfieldsOpt = struct('Threshold',0,'Freq2Field',0);
-  Exp = struct('mwFreq',mwFreq,'Range',B([1 end]));
+  Exp = ExpUser;
+  Exp.mwFreq = mwFreq;
+  Exp.Range = B([1 end]);
   Exp.SampleFrame = [-chi -theta -phi];
   [resonFields,intensity,~,Transitions] = resfields(Sys,Exp,resfieldsOpt);
 
@@ -328,16 +351,24 @@ xlabel(sprintf('magnetic field (%s)',fieldUnit));
 % Display orientation and microwave frequency (if given)
 %-------------------------------------------------------------------------------
 if isfinite(mwFreq)
+  modestr = '';
+  if isfield(ExpUser,'mwMode') && ~isempty(ExpUser.mwMode) && ~isequal(ExpUser.mwMode,'perpendicular')
+    if isequal(ExpUser.mwMode,'parallel')
+      modestr = ', parallel';
+    else
+      modestr = ', user mw mode';
+    end
+  end
   switch Opt.Units
     case 'GHz'
-      mwstr = sprintf('  %g GHz\n',mwFreq);
+      mwstr = sprintf('  %g GHz%s\n',mwFreq,modestr);
     case 'cm^-1'
-      mwstr = sprintf('  %0.3g cm^{-1} (%g GHz)\n',mwFreq*1e9/clight/100,mwFreq);
+      mwstr = sprintf('  %0.3g cm^{-1} (%g GHz)%s\n',mwFreq*1e9/clight/100,mwFreq,modestr);
     case 'eV'
       if Escale==1e3
-        mwstr = sprintf('  %0.3g meV (%g GHz)\n',mwFreq*1e9*planck/evolt*1e3,mwFreq);
+        mwstr = sprintf('  %0.3g meV (%g GHz)%s\n',mwFreq*1e9*planck/evolt*1e3,mwFreq,modestr);
       else
-        mwstr = sprintf('  %0.3g eV (%g GHz)\n',mwFreq*1e9*planck/evolt,mwFreq);
+        mwstr = sprintf('  %0.3g eV (%g GHz)%s\n',mwFreq*1e9*planck/evolt,mwFreq,modestr);
       end
   end
 else
