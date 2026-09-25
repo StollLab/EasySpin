@@ -17,6 +17,8 @@
 %          direction of mirowave field relative to static field
 %        Range - [Bmin Bmax] If set, compute only eigenfields
 %           between Bmin and Bmax. [mT]
+%        Temperature - temperature [K]; if given, thermal
+%           equilibrium populations are included in intensities
 %   - Opt: options structure with fields
 %        Threshold - if set, return only transitions with
 %          relative intensity above Threshold.
@@ -80,7 +82,7 @@ end
 DefaultExp.mwFreq = NaN;
 DefaultExp.Range = [0 realmax];
 DefaultExp.mwMode = 'perpendicular';
-DefaultExp.Temperature = NaN; % not implemented!!
+DefaultExp.Temperature = NaN;
 
 DefaultExp.SampleFrame = [0 0 0];
 DefaultExp.CrystalSymmetry = 1;
@@ -100,10 +102,14 @@ if isempty(Exp.mwMode), Exp.mwMode = 'perpendicular'; end
 
 ParallelMode = (2==parseoption(Exp,'mwMode',{'perpendicular','parallel'}));
 
-% Thermal and non-thermal spin polarizations are not supported
-computeBoltzmannPopulations = ~isnan(Exp.Temperature) && ~isinf(Exp.Temperature);
-if computeBoltzmannPopulations
-  error('Thermal equilibrium populations (Exp.Temperature) not implemented.');
+% Thermal equilibrium populations (non-equilibrium populations not supported)
+if isempty(Exp.Temperature)
+  computeBoltzmannPopulations = false;
+else
+  if numel(Exp.Temperature)~=1 || ~isnumeric(Exp.Temperature)
+    error('If given, Exp.Temperature must be a single number.');
+  end
+  computeBoltzmannPopulations = isfinite(Exp.Temperature);
 end
 computeNonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if computeNonEquiPops
@@ -111,6 +117,11 @@ if computeNonEquiPops
 end
 
 mwFreq = Exp.mwFreq*1e3;
+
+if computeBoltzmannPopulations
+  % Pre-factor for thermal equilibrium populations computations
+  BoltzmannPreFactor = 1e6*planck/boltzm/Exp.Temperature; % MHz^-1
+end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,~,averageOverChi] = p_crystalorientations(Exp,Opt);
@@ -232,28 +243,46 @@ for iOri = 1:nOrientations
         end
       end
       
+      % Reshape eigenvectors to |u><v| matrices
+      % |u><u| = (|u><v|)(|v><u|), |v><v| = (|v><u|)(|u><v|)
+      n = length(H0);
+      Vecs = reshape(Vecs,n,n,numel(Vecs)/n^2);
+      nFields = size(Vecs,3);
+
       % Compute polarization
-      Polarization = 1;
-      Polarization = Polarization/prod(2*Sys.I+1);
-      
+      if computeBoltzmannPopulations
+        % Thermal populations at the resonance field, H = H0 - B*muzL
+        % Polarization = <u|rho|u> - <v|rho|v> = trace(rho*commute(|u><v|,|v><u|))
+        Polarization = zeros(1,nFields);
+        for iVec = 1:nFields
+          H = H0 - EigenFields{iOri}(iVec)*muzL;
+          [W,E] = eig((H+H')/2,'vector');
+          Populations = exp(-BoltzmannPreFactor*(E-min(E)));
+          Populations = Populations/sum(Populations);
+          rho = W*diag(Populations)*W';
+          V = Vecs(:,:,iVec);
+          Polarization(iVec) = abs(real(trace(rho*commute(V,V'))));
+        end
+      else
+        Polarization = 1;
+        Polarization = Polarization/prod(2*Sys.I+1);
+      end
+
       % Compute frequency-to-field domain conversion factor
       if computeFreq2Field
         % 1/(<v|G|v>-<u|G|u>) = 1/(trace(G|v><v|) - trace(G|u><u|)) =
         %   1/trace(A*(|v><v|-|u><u|)) = 1/trace(A*commute(|u><v|,|v><u|))
-        % |u><u| = (|u><v|)(|v><u|)
-        n = length(H0);
-        Vecs = reshape(Vecs,n,n,numel(Vecs)/n^2);
-        dBdE = [];
-        for iVec = 1:size(Vecs,3)
+        dBdE = zeros(1,nFields);
+        for iVec = 1:nFields
           V = Vecs(:,:,iVec);
-          dBdE(iVec) = 1/abs(trace(-muzL*commute(V,V')));  %#ok
+          dBdE(iVec) = 1/abs(trace(-muzL*commute(V,V')));
         end
       else
         dBdE = ones(size(TransitionRate));
       end
-      
+
       % Combine factors
-      Intensities{iOri} = Polarization*real(TransitionRate.*dBdE).';
+      Intensities{iOri} = real(Polarization.*TransitionRate.*dBdE).';
       
       idx = Intensities{iOri}>=Opt.Threshold(1)*max(Intensities{iOri});
       EigenFields{iOri} = EigenFields{iOri}(idx);
