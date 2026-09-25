@@ -26,6 +26,21 @@ MD.dt = MD.dt*tScale;
 MD.removeGlobal = 0;
 MD.DiffGlobal = 6e6;
 
+% Spin propagation parameters
+T = 200e-9;
+Par.dtSpin = 2.0e-9;
+Par.nSteps = ceil(T/Par.dtSpin);
+
+% Truncate MD trajectory to the length needed for a few sliding-window
+% trajectories (cardamom derives the number of trajectories for MD-direct
+% from the trajectory length and the lag time Opt.LagTime, default 2 ns)
+nWindows = 10;
+nFrames = (Par.nSteps + nWindows - 1)*round(Par.dtSpin/MD.dt);
+MD.FrameTraj = MD.FrameTraj(:,:,1:nFrames);
+MD.FrameTrajwrtProt = MD.FrameTrajwrtProt(:,:,1:nFrames);
+MD.dihedrals = MD.dihedrals(:,:,1:nFrames);
+MD.RProtDiff = MD.RProtDiff(:,:,1:nFrames);
+
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
 
@@ -34,13 +49,8 @@ Sys.Nucs = '14N';
 Sys.A = unitconvert([6, 36]/10,'mT->MHz');
 Sys.lw = [0.1, 0.1];
 
-T = 200e-9;
-Par.dtSpin = 2.0e-9;
-Par.nSteps = ceil(T/Par.dtSpin);
-
 Par.Model = 'MD-direct';
 Par.nOrients = 100;
-Par.nTraj = 100;
 
 Exp.mwFreq = 9.4;
 

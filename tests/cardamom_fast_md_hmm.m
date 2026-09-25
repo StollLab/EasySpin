@@ -39,7 +39,7 @@ Par.dtSpin = Par.dtSpatial;
 Par.nSteps = ceil(T/Par.dtSpin);
 
 Par.Model = 'MD-HMM';
-Par.nTraj = 100;
+Par.nTraj = 10;
 Par.nOrients = 100;
 
 Exp.mwFreq = 9.4;
