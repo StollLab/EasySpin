@@ -64,7 +64,7 @@ varargout = cell(1,nargout);
 if nargin==0, help(mfilename); return; end
 
 % Check expiry date
-error(eschecker);
+error(eschecker('internal'));
 
 % Check Matlab version.
 warning(chkmlver);

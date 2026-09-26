@@ -74,7 +74,7 @@ function result = esfit_legacy(data,fcn,p0,varargin)
 if nargin==0, help(mfilename); return; end
 
 % Check expiry date
-error(eschecker);
+error(eschecker('internal'));
 
 % Parse argument list
 switch nargin

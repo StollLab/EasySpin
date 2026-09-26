@@ -65,22 +65,6 @@ end
 %===============================================================================
 % Print log message
 function printMessage(varargin)
-
-% Print function name and line number
-printLocation = false;
-if printLocation
-  db = dbstack;
-  if numel(db)>=3
-    funcName = db(3).name;
-    lineNo = db(3).line;
-  else
-    funcName = '...';
-    lineNo = '';
-  end
-  fprintf('[%s:%d] ',funcName,lineNo);
-end
-
-% Print message
 fprintf(varargin{:});
 fprintf('\n');
 

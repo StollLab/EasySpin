@@ -67,7 +67,7 @@ function varargout = chili(Sys,Exp,Opt)
 if nargin==0, help(mfilename); return; end
 
 % Check expiry date
-error(eschecker);
+error(eschecker('internal'));
 
 % Check Matlab version
 warning(chkmlver);

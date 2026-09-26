@@ -92,7 +92,7 @@ if isunix
 end
 
 % Check expiry date
-error(eschecker);
+error(eschecker('internal'));
 
 % Parse argument list
 switch nargin

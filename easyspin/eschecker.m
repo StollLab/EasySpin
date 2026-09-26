@@ -8,7 +8,7 @@
 % a file that should check the expiry date:
 %{
 % Check expiry date
-error(eschecker);
+error(eschecker('internal'));
 %}
 
 function varargout = eschecker(varargin)
@@ -16,11 +16,15 @@ function varargout = eschecker(varargin)
 if nargout>1
   error('At most one output argument is possible.');
 end
+if nargin>1
+  error('At most one input argument is possible.');
+end
 
-% Determine whether this function has been called by an EasySpin function
-EasySpinFilenames = {'cardamom','chili','curry','esfit','garlic','pepper','saffron','salt','spidyan'};
-db = dbstack;
-internalCall = numel(db)>=2 && any(strcmp(db(2).name,EasySpinFilenames));
+% Internal calls from EasySpin functions pass 'internal'
+internalCall = nargin==1;
+if internalCall && ~strcmp(varargin{1},'internal')
+  error('The only allowed input argument is ''internal''.');
+end
 
 
 % Version and expiry date settings
