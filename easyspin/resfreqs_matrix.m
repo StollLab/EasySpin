@@ -194,6 +194,7 @@ if usePhotoSelection
 end
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
+if ~isfield(Opt,'separateSites'), Opt.separateSites = true; end % internal; false keeps sites as columns
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
@@ -1005,9 +1006,7 @@ if computeStrains && numel(Wdat)>0
 end
 
 % Reshape arrays in the case of crystals with multiple sites
-d = dbstack;
-pepperCall = numel(d)>1 && strcmp(d(2).name,'pepper');
-if ~pepperCall
+if Opt.separateSites
   if nSites>1
     % Pdat, Idat, Wdat have size [nTransitions, nSites*nOrientations]
     % Resize to [nTransitions*nSites, nOrientations]
@@ -1020,7 +1019,7 @@ end
 
 % Sort transitions lexicograpically (for each crystal site)
 [Transitions, idx] = sortrows(Transitions);
-if ~pepperCall
+if Opt.separateSites
   if nSites>1
     idx = idx(:) + (0:nSites-1)*nTransitions;
   end

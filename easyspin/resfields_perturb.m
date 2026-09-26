@@ -233,6 +233,7 @@ end
 % Options
 %---------------------------------------------------------------------
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
+if ~isfield(Opt,'separateSites'), Opt.separateSites = true; end % internal; false keeps sites as columns
 
 if ~isfield(Opt,'PerturbOrder'), Opt.PerturbOrder = 2; end
 
@@ -625,9 +626,7 @@ else
 end
 
 % Reshape arrays in the case of crystals with site splitting
-d = dbstack;
-pepperCall = numel(d)>1 && strcmp(d(2).name,'pepper');
-if nSites>1 && ~pepperCall
+if nSites>1 && Opt.separateSites
   nRows = size(B,1);
   siz = [nRows*nSites, numel(B)/nRows/nSites];
   B = reshape(B,siz);

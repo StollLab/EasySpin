@@ -181,6 +181,7 @@ error(err);
 if ~isfield(Opt,'Sites')
   Opt.Sites = [];
 end
+if ~isfield(Opt,'separateSites'), Opt.separateSites = true; end % internal; false keeps sites as columns
 
 
 % Photoselection
@@ -508,9 +509,7 @@ end
 spec = 0;
 
 % Reshape arrays in the case of crystals with site splitting
-db = dbstack;
-pepperCall = numel(db)>1 && strcmp(db(2).name,'pepper');
-if nSites>1 && ~pepperCall
+if nSites>1 && Opt.separateSites
   siz = [nRows*nSites, numel(nu)/nRows/nSites];
   nu = reshape(nu,siz);
   Int = reshape(Int,siz);

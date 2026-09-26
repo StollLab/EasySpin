@@ -149,6 +149,7 @@ end
 [xi1,xik,nB1_L,nk_L,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
 if ~isfield(Opt,'Sites'), Opt.Sites = []; end
+if ~isfield(Opt,'separateSites'), Opt.separateSites = true; end % internal; false keeps sites as columns
 
 % Determine if non-equilibrium populations need to be computed
 computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
@@ -1391,9 +1392,7 @@ if numel(Gdat)>0
 end
 
 % Reshape arrays in the case of crystals with multiple sites
-d = dbstack;
-pepperCall = numel(d)>1 && strcmp(d(2).name,'pepper');
-if ~pepperCall
+if Opt.separateSites
   if nSites>1
     % Pdat, Idat, Wdat have size [nTransitions, nSites*nOrientations]
     % Resize to [nTransitions*nSites, nOrientations]
@@ -1407,7 +1406,7 @@ end
 
 % Sort transitions lexicograpically (for each crystal site)
 [Transitions, idx] = sortrows(Transitions);
-if ~pepperCall
+if Opt.separateSites
   if nSites>1
     idx = idx(:) + (0:nSites-1)*nTransitions;
   end

@@ -431,6 +431,7 @@ logmsg(1,'-resonances--------------------------------------------');
 MethodName = {'  method: matrix diagonalization','  method: perturbation theory'};
 logmsg(1,MethodName{Method});
 logmsg(2,'  -endorfrq start-----------------------------------');
+Opt.separateSites = false; % keep crystal sites as separate columns
 switch Method
   case 1, [Pdat,Idat,Transitions,Info] = endorfrq(Sys,Exp,Opt);
   case 2, [Pdat,Idat,Transitions,Info] = endorfrq_perturb(Sys,Exp,Opt);

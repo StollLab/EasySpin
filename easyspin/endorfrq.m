@@ -109,6 +109,7 @@ end
 if ~isfield(Opt,'Sites')
   Opt.Sites = [];
 end
+if ~isfield(Opt,'separateSites'), Opt.separateSites = true; end % internal; false keeps sites as columns
 
 % Process crystal orientations, crystal symmetry, and frame transforms
 [Orientations,nOrientations,nSites,AverageOverChi] = p_crystalorientations(Exp,Opt);
@@ -580,9 +581,7 @@ end
 Info.Selectivity = Selectivity;
 
 % Reshape arrays in the case of crystals with site splitting
-d = dbstack;
-saltCall = numel(d)>1 && strcmp(d(2).name,'salt');
-if nSites>1 && ~saltCall
+if nSites>1 && Opt.separateSites
   siz = [nTransitions*nSites, numel(Pdat)/nTransitions/nSites];
   Pdat = reshape(Pdat,siz);
   if ~isempty(Idat), Idat = reshape(Idat,siz); end

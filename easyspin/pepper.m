@@ -549,6 +549,9 @@ MethodMsg{14} = 'frequency sweep, second-order perturbation theory';
 MethodMsg{15} = 'frequency sweep, hybrid (matrix diagonalization for electron spin, perturbation for nuclei)';
 logmsg(1,'  method: %s',MethodMsg{Method});
 
+% Keep crystal sites as separate columns in the resonance data
+Opt.separateSites = false;
+
 if FieldSweep
   % Field sweeps
   %---------------------------------------------------------------------------
