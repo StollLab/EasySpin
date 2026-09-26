@@ -282,12 +282,8 @@ if immediateBinning
   spec = zeros(1,Exp.nPoints);
 end
 
-if ~isnan(Exp.Temperature)
-  Populations = exp(-planck*(2*S:-1:0).'*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
-  Populations = Populations/sum(Populations);
-  Polarization = diff(Populations);
-  Polarization = Polarization(end:-1:1);
-else
+useTemperature = ~isnan(Exp.Temperature);
+if ~useTemperature
   Polarization = ones(2*S,1);
 end
 
@@ -309,7 +305,15 @@ for iOri = nOrientations:-1:1
   geff(iOri) = norm(g.'*n0);
   E0 = bmagn*geff(iOri)*B0/planck/1e6; % MHz
   u = g.'*n0/geff(iOri); % molecular frame representation
-    
+
+  % Thermal polarization, using Zeeman level spacing
+  if useTemperature
+    Populations = exp(-(2*S:-1:0).'*planck*E0*1e6/boltzm/Exp.Temperature);
+    Populations = Populations/sum(Populations);
+    Polarization = diff(Populations);
+    Polarization = Polarization(end:-1:1);  % compensates for flipud(Int) below
+  end
+
   % Compute intensities
   %----------------------------------------------------------------
 
