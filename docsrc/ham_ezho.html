@@ -32,7 +32,7 @@
 <div class="subtitle">Syntax</div>
 
 <p>
-Higher-order electron Zeeman Hamiltonian, electron magnetic dipole moment.
+Higher-order electron Zeeman Hamiltonian and its field-independent tensors.
 </p>
 
 <pre class="matlab">
@@ -43,10 +43,9 @@ H = ham_ezho(Sys, B, idx, 'sparse', lB)
 [G0, G1, G2, G3] = ham_ezho(Sys)
 [G0,...] = ham_ezho(Sys, idx)
 [G0,...] = ham_ezho(Sys, idx, 'sparse')
-GlB = ham_ezho(Sys, idx, 'sparse', lB)
+[GlB1,GlB2,...] = ham_ezho(Sys, idx, 'sparse', lB)
 cG = ham_ezho(Sys)
-cG = ham_ezho(Sys, idx, 'sparse', lB)
-
+cG = ham_ezho(Sys, [], idx, 'sparse', lB)
 </pre>
 
 <!-- ============================================================= -->
@@ -56,7 +55,11 @@ cG = ham_ezho(Sys, idx, 'sparse', lB)
 <code>ham_ezho</code> calculates the matrix representing the multiple-order electron Zeeman interaction Hamiltonian (in units of MHz) for the <a href="spinsystem.html">spin system</a> given in <code>Sys</code>.
 
 <p>
-<code>Sys</code> is a spin system structure. <code>ham_ezho</code> utilizes fields in <code>Sys</code> of the form <code>Sys.Ham112</code>, where the three digits indicate the field order <code>lB</code>, the spin order <code>lS</code>, and the total order <code>l</code>, respectively. For example, <code>Sys.Ham335</code> indicates <code>lB=3</code>, <code>lS=3</code> and <code>l=5</code>. <code>lB+lS</code> has to be even due to the time inversion symmetry of the Hamiltonian. The possible values for <code>l</code> run from <code>|lB-lS|</code> to <code>lB+lS</code>. Each <code>Ham</code> field should contain <code>2*l+1</code> elements, e.g. 11 for <code>l=5</code>. The results returned with field orders zero (<code>lB=0</code>) and one (<code>lB=1</code>) are equivalent to the zero-field interaction (obtainable also with <a class="esf" href="ham_zf.html">ham_zf</a>) and the standard electron Zeeman interaction (obtainable also with <a class="esf" href="ham_ez.html">ham_ez</a>). The unit of a field is assumed to be MHz/mT<sup>lB</sup>.
+<code>Sys</code> is a spin system structure. <code>ham_ezho</code> utilizes fields in <code>Sys</code> of the form <code>Sys.Ham112</code>, where the three digits indicate the order in the magnetic field <code>lB</code> (0 to 8), the rank of the spin operators <code>lS</code> (1 to 8), and the rank of the coupling <code>l</code>, respectively. For example, <code>Sys.Ham334</code> indicates <code>lB=3</code>, <code>lS=3</code> and <code>l=4</code>. <code>lB+lS</code> has to be even due to the time inversion symmetry of the Hamiltonian. The possible values for <code>l</code> run from <code>|lB-lS|</code> to <code>lB+lS</code>, but only even <code>l</code> are used. Fields with odd <code>lB+lS</code> or odd <code>l</code> are ignored, and <code>lS=0</code> is not supported.
+</p>
+
+<p>
+Each <code>Ham</code> field contains <code>2*l+1</code> real elements per electron spin, e.g. 9 for <code>l=4</code>, ordered as m=l,...,-l. For several electron spins, the field has one row per electron spin. A column vector with one value per electron spin is interpreted as the m=0 component. The unit of a field is MHz/mT<sup>lB</sup>. The results returned with field orders zero (<code>lB=0</code>) and one (<code>lB=1</code>) are equivalent to the zero-field interaction (obtainable also with <a class="esf" href="ham_zf.html">ham_zf</a>) and the standard electron Zeeman interaction (obtainable also with <a class="esf" href="ham_ez.html">ham_ez</a>).
 </p>
 
 <p>
@@ -64,7 +67,15 @@ cG = ham_ezho(Sys, idx, 'sparse', lB)
 </p>
 
 <p>
-If <code>B</code> is omitted, the function returns the components of the multiple-order electron Zeeman interaction Hamiltonian, defined by the nth order derivative. <code>Gn</code> contain (d^n/dB^n) H, a tensor of rank n. They are in units of MHz/(mT)^n.
+If <code>B</code> is omitted or empty, the function returns the field-independent tensors <code>G0</code>, <code>G1</code>, <code>G2</code>, <code>G3</code>, in units of MHz/mT<sup>n</sup>. <code>Gn</code> contains the coefficients of the terms of order n in the magnetic field, such that
+</p>
+
+<pre class="matlab">
+H = G0 + sum_i G1{i}*B(i) + sum_ij G2{i,j}*B(i)*B(j) + sum_ijk G3{i,j,k}*B(i)*B(j)*B(k)
+</pre>
+
+<p>
+where i, j, k = 1, 2, 3 correspond to the x, y, z components of <code>B</code>. <code>G0</code> is a matrix, <code>G1</code> is a 1x3 cell array, <code>G2</code> is a 3x3 cell array, and <code>G3</code> is a 3x3x3 cell array of matrices. <code>G2</code> and <code>G3</code> are symmetric in their indices. <code>Gn</code> is the n-th derivative of <code>H</code> divided by n!, e.g. <code>G3{1,2,3} = 1/6*d^3H/(dBx dBy dBz)</code>. Tensors are available up to third order in <code>B</code>; fields of higher order are ignored.
 </p>
 
 <p>
@@ -76,11 +87,11 @@ If <code>'sparse'</code> is given as argument, results are returned in sparse fo
 </p>
 
 <p>
-If only terms of order <code>lB</code> in the magnetic field are required, a scalar/vector fourth argument can be supplied.
+If only terms of order <code>lB</code> in the magnetic field are required, a scalar or vector <code>lB</code> can be supplied as the last input. By default, all orders (0 to 8) are included in <code>H</code>, and all orders up to the highest one in <code>Sys</code> are returned as tensors. For tensors, <code>lB</code> can be 0 to 3.
 </p>
 
 <p>
-The <code>Gn</code> can also be returned as a cell array, <code>cG</code>.
+With several outputs, the tensors for orders 0, 1, ... are returned, one per output; with <code>lB</code> given, the number of outputs must equal the number of elements in <code>lB</code>. With a single output, the tensors are returned in the cell array <code>cG = {G0,G1,...}</code>. To request specific spins or orders in this case, an empty array must be given in place of <code>B</code>, as in <code>ham_ezho(Sys,[],idx,'sparse',lB)</code>.
 </p>
 
 <!-- ============================================================= -->

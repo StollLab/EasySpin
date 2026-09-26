@@ -1999,15 +1999,14 @@
         "purpose": "if given, matrix returned in sparse format"
       },
       {
-        "name": "1B",
+        "name": "lB",
         "kind": "ordered",
         "type": [
           "numeric",
           "real",
-          "integer",
-          "positive"
+          "integer"
         ],
-        "purpose": "terms of order 1B to return, default=0:8"
+        "purpose": "terms of order lB to return, default=0:8"
       }
     ]
   },
@@ -2043,15 +2042,14 @@
         "purpose": "if given, matrix returned in sparse format"
       },
       {
-        "name": "1B",
+        "name": "lB",
         "kind": "ordered",
         "type": [
           "numeric",
           "real",
-          "integer",
-          "positive"
+          "integer"
         ],
-        "purpose": "terms of order 1B to return, default=0:highest"
+        "purpose": "terms of order lB to return (0 to 3), default=0:highest"
       }
     ]
   },

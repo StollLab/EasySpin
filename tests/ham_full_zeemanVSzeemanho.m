@@ -34,10 +34,6 @@ Sys2.g = Sys2.g *(planck*1e9)/bmagn;
 Hz{1} = ham(Sys1,B);
 [Hz{2},Hz{3}] = ham(Sys1,B);
 [Hz{4},Hz{5},Hz{6},Hz{7}] = ham(Sys1);
-Hz{3} = -Hz{3};
-Hz{5} = -Hz{5};
-Hz{6} = -Hz{6};
-Hz{7} = -Hz{7};
 
 H{1} = ham(Sys2,B);
 [H{2},H{3}] = ham(Sys2,B);

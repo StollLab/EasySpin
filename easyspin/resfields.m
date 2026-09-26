@@ -803,16 +803,14 @@ for iOri = 1:nOrientations
   else
     sp = '';
     if Opt.Sparse, sp = 'sparse'; end
+    % Total magnetic moment: electron, nuclear, and orbital moments, minus
+    % the first-order higher-order Zeeman tensor (which is dH/dB)
     g1 = ham_ezho(CoreSys,[],[],sp,1);
-    [g0{1},g0{2},g0{3}] = ham_ez(CoreSys,[],sp);
-    if Sys.nNuclei>0
-      [mu0n{1},mu0n{2},mu0n{3}] = ham_nz(CoreSys,[],sp);
-      for k = 1:3
-        g0{k} = g0{k} - mu0n{k};
-      end
-    end
+    [mu0e{1},mu0e{2},mu0e{3}] = ham_ez(CoreSys,[],sp);
+    [mu0n{1},mu0n{2},mu0n{3}] = ham_nz(CoreSys,[],sp);
+    [mu0o{1},mu0o{2},mu0o{3}] = ham_oz(CoreSys,[],sp);
     for n = 3:-1:1
-      kmuM{n} = -(g1{1}{n}+g0{n});
+      kmuM{n} = mu0e{n} + mu0n{n} + mu0o{n} - g1{1}{n};
     end
     kmuzL = zLab_M(1)*kmuM{1} + zLab_M(2)*kmuM{2} + zLab_M(3)*kmuM{3};
     kmuxL = xLab_M(1)*kmuM{1} + xLab_M(2)*kmuM{2} + xLab_M(3)*kmuM{3};
@@ -1621,21 +1619,18 @@ else  % Automatic transition pre-selection
     if higherOrder
       if Opt.Sparse
         sp = 'sparse';
-        g1 = ham_ezho(coreSys,[],sp,1);
       else
         sp = '';
-        g1 = ham_ezho(coreSys,[],[],sp,1);
       end
-      [g0{1},g0{2},g0{3}] = ham_ez(coreSys,[],sp);
-      if coreSys.nNuclei>0
-        [mu0n{1},mu0n{2},mu0n{3}] = ham_nz(coreSys,[],sp);
-        for k = 1:3
-          g0{k} = g0{k} - mu0n{k};
-        end
-      end
-      ExM = g1{1}{1} + g0{1};
-      EyM = g1{1}{2} + g0{2};
-      EzM = g1{1}{3} + g0{3};
+      % Negative total magnetic moment (dH/dB): first-order higher-order
+      % Zeeman tensor minus electron, nuclear, and orbital moments
+      g1 = ham_ezho(coreSys,[],[],sp,1);
+      [mu0e{1},mu0e{2},mu0e{3}] = ham_ez(coreSys,[],sp);
+      [mu0n{1},mu0n{2},mu0n{3}] = ham_nz(coreSys,[],sp);
+      [mu0o{1},mu0o{2},mu0o{3}] = ham_oz(coreSys,[],sp);
+      ExM = g1{1}{1} - mu0e{1} - mu0n{1} - mu0o{1};
+      EyM = g1{1}{2} - mu0e{2} - mu0n{2} - mu0o{2};
+      EzM = g1{1}{3} - mu0e{3} - mu0n{3} - mu0o{3};
     else
       ExM = -kmuxM;
       EyM = -kmuyM;

@@ -97,21 +97,21 @@ if isempty(B0)
   
   if higherOrderZeeman
     % full tensors up to the highest used order will be provided
-    zHo = ham_ezho(Sys,[],opt);
+    zHo = ham_ezho(Sys,[],[],opt);
     switch highest
       case 0
         if nargout==4
-          varargout = {H0+zHo,muxM,muyM,muzM};
+          varargout = {H0+zHo{1},muxM,muyM,muzM};
         elseif nargout==1
-          varargout{1} = {H0+zHo,muxM,muyM,muzM};
+          varargout{1} = {H0+zHo{1},muxM,muyM,muzM};
         else
           error('1 or 4 output arguments expected!');
         end
       case 1
         if nargout==4
-          varargout = {H0+zHo{1},muxM+zHo{2}{1},muyM+zHo{2}{2},muzM+zHo{2}{3}};
+          varargout = {H0+zHo{1},muxM-zHo{2}{1},muyM-zHo{2}{2},muzM-zHo{2}{3}};
         elseif nargout==1
-          varargout{1} = {H0+zHo{1},muxM+zHo{2}{1},muyM+zHo{2}{2},muzM+zHo{2}{3}};
+          varargout{1} = {H0+zHo{1},muxM-zHo{2}{1},muyM-zHo{2}{2},muzM-zHo{2}{3}};
         else
           error('1 or 4 output arguments expected!');
         end
@@ -119,7 +119,7 @@ if isempty(B0)
         zHo{1} = zHo{1}+H0;
         Gn = {muxM,muyM,muzM};
         for k = 3:-1:1
-          zHo{2}{k} = zHo{2}{k}+Gn{k};
+          zHo{2}{k} = Gn{k}-zHo{2}{k};
         end
         if nargout==highest+1
           varargout = zHo;
@@ -159,12 +159,12 @@ if higherOrderZeeman
   if nargout==1 || nargout==0
     varargout = {H0 - norm(B0)*muzL + ham_ezho(Sys,B0,[],opt)};
   elseif nargout==2 && highest<2
-    zHo = ham_ezho(Sys,[],opt);
+    zHo = ham_ezho(Sys,[],[],opt);
     if highest==1
-      muzL = muzL + nB0(1)*zHo{2}{1} + nB0(2)*zHo{2}{2} + nB0(3)*zHo{2}{3};
+      muzL = muzL - nB0(1)*zHo{2}{1} - nB0(2)*zHo{2}{2} - nB0(3)*zHo{2}{3};
       H0 = H0 + zHo{1};
     else
-      H0 = H0 + zHo;
+      H0 = H0 + zHo{1};
     end
     varargout = {H0,muzL};
   else
