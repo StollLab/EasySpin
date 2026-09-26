@@ -20,7 +20,8 @@
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
-%      mwMode              excitation mode: 'perpendicular', 'parallel', {k_tilt alpha_pol}
+%      mwMode              excitation mode: 'perpendicular', 'parallel', {k pol}
+%                            pol: polarization angle, 'circular+', 'circular-', 'unpolarized'
 %    Opt: additional computational options
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
@@ -29,8 +30,8 @@
 %   Output:
 %    Pos     line positions (in mT)
 %    Int     line intensities
-%    Wid     Gaussian line widths, full width half maximum (FWHM)
-%    Trans   list of transitions
+%    Wid     Gaussian line widths, full width half maximum (FWHM), in mT
+%    Trans   list of transitions (level indices; nuclear sublevel indices are approximate)
 
 function varargout = resfields_perturb(Sys,Exp,Opt)
 
@@ -83,6 +84,9 @@ end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
 end
+if ~isempty(Sys.initState)
+  err = 'Sys.initState is not supported by resfields_perturb.';
+end
 error(err);
 
 if ~isfield(Sys,'gAStrainCorr')
@@ -99,7 +103,9 @@ else
 end
 
 if highSpin
-  if ~Sys.fullD
+  if Sys.fullD
+    D = Sys.D;
+  else
     R_D2M = erot(Sys.DFrame).'; % D frame -> molecular frame
     D = R_D2M*diag(Sys.D)*R_D2M.';
   end
@@ -339,7 +345,7 @@ for iOri = nOrientations:-1:1
       TransitionRate(:,iOri) = c2/4*(1+xik^2)*(trgg-norm(g*u)^2);
     elseif mwmode.circpolarizedMode
       TransitionRate(:,iOri) = c2/2*(1+xik^2)*(trgg-norm(g*u)^2);
-      circularTerm = mwmode.circSense*2*c2*xik^2*det(g)/norm(g.'*n0);
+      circularTerm = mwmode.circSense*2*c2*xik*det(g)/norm(g.'*n0);
     end
   else
     if mwmode.linearpolarizedMode
@@ -517,31 +523,30 @@ else
     
     if any(Sys.AStrain) && Sys.nNuclei>0
       AStrainMatrix = diag(Sys.AStrain);
-      if isfield(Sys,'AFrame')
+      if any(Sys.AFrame(1,:))
         Rp = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame
         AStrainMatrix = Rp*AStrainMatrix*Rp.';
       end
       corr = Sys.gAStrainCorr;
       mI1 = -Sys.I(1):+Sys.I(1);
+      lw2 = zeros(numel(mI1),nOrientations);
       for idx = 1:numel(mI1)
         StrainMatrix = gStrainMatrix + corr*(mI1(idx))*AStrainMatrix;
-        for iOri = 1:nOrientations
-          lw2(idx,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
-        end
+        lw2(idx,:) = sum(vecs.*(StrainMatrix^2*vecs),1);
       end
       Wid_gA = sqrt(lw2)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3; % MHz -> mT
-      idx = repmat(1:numel(mI1),2*S*nNucTrans/numel(mI1),1);
-      Wid = sqrt(Wid_gA(idx(:),:).^2 + Wid.^2);
+      % mS outer, nuclear sublevels inner; first nucleus varies slowest
+      idx = repmat(repelem(1:numel(mI1),nNucTrans/numel(mI1)),1,2*S);
+      Wid = sqrt(Wid_gA(idx,:).^2 + Wid.^2);
     else
-      StrainMatrix = gStrainMatrix;
-      for iOri = 1:nOrientations
-        lw2(1,iOri) = vecs(:,iOri).'*StrainMatrix.^2*vecs(:,iOri);
-      end
+      lw2 = sum(vecs.*(gStrainMatrix^2*vecs),1);
       Wid_gA = sqrt(lw2)*planck*1e6./geff/bmagn*1e3; % MHz -> mT
       Wid = sqrt(repmat(Wid_gA.^2,2*S*nNucTrans,1)+Wid.^2);
     end
 
-  elseif any(Sys.DStrain(:))
+  end
+
+  if any(Sys.DStrain(:))
     if any(Sys.DFrame(:))
       error('Cannot use D/E strain with tilted D tensor.');
     end
@@ -565,38 +570,38 @@ else
       CovMatrix = [DeltaD^2 R12; R12 DeltaE^2];
       [V,L] = eig(CovMatrix);
       L = sqrt(diag(L));
-      dHdD_ = L(1)*(V(1,1)*dHdD_ + V(1,2)*dHdE_);
-      dHdE_ = L(2)*(V(2,1)*dHdD_ + V(2,2)*dHdE_);
+      dH1 = L(1)*(V(1,1)*dHdD_ + V(2,1)*dHdE_);
+      dH2 = L(2)*(V(1,2)*dHdD_ + V(2,2)*dHdE_);
     else
-      dHdD_ = dHdD_*DeltaD;
-      dHdE_ = dHdE_*DeltaE;
+      dH1 = dHdD_*DeltaD;
+      dH2 = dHdE_*DeltaE;
     end
-    
-    % Calculate freq-domain linewidths
-    lwD = diff(dHdD_,1,1);
-    lwE = diff(dHdE_,1,1);
+
+    % Calculate freq-domain linewidths, one row per mS <-> mS-1 transition
+    lw1 = diff(dH1,1,1);
+    lw2 = diff(dH2,1,1);
     % convert from MHz to mT
     MHz2mT = (planck/bmagn*1e9)./geff;
-    lwD = bsxfun(@times,lwD,MHz2mT);
-    lwE = bsxfun(@times,lwE,MHz2mT);
-    Wid2_DE = repmat(lwD.^2+lwE.^2,nNucTrans,1);
+    lw1 = lw1.*MHz2mT;
+    lw2 = lw2.*MHz2mT;
+    Wid2_DE = repelem(lw1.^2+lw2.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
+  end
 
-  elseif Wid>0  % HStrain
-
-  else
+  if ~any(Wid(:))
     Wid = [];
   end
 
   % Transitions
   %-------------------------------------------------------------------
-  Transitions = [];
-  lowerLevels = (1:nNucSublevels).';
-  for mSidx = 1:2*S
-    upperLevels = lowerLevels + nNucSublevels;  % only correct for weak HFC
-    newTransitions = [lowerLevels upperLevels];
-    Transitions = [Transitions; newTransitions];  %#ok
-    lowerLevels = upperLevels;
+  % Levels are numbered by increasing energy; the first transition block
+  % (mS = S <-> S-1) involves the highest levels. Nuclear sublevel ordering
+  % is only approximate.
+  Transitions = zeros(2*S*nNucSublevels,2);
+  for imS = 1:2*S
+    lowerLevels = (2*S-imS)*nNucSublevels + (1:nNucSublevels).';
+    Transitions((imS-1)*nNucSublevels+(1:nNucSublevels),:) = ...
+      [lowerLevels lowerLevels+nNucSublevels];
   end
 
   % Negative fields: add mirrored resonances at -B, and remove resonances

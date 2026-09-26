@@ -98,6 +98,8 @@ Lower and upper limit of the range which is searched for resonances. For field s
 For field sweeps, negative fields and field ranges across zero are supported, e.g. <code>Exp.Range = [-400 400]</code>. A negative field points along the negative z axis of the lab frame. For such ranges, a transition with some resonance fields inside the range is returned with all its resonance fields, including those outside the range.
 <br>
 Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
+<br>
+The perturbation theory functions do not restrict the returned resonances to the range. <code>resfreqs_perturb</code> does not use the range at all. <code>resfields_perturb</code> uses it only for ranges that include negative fields, in which case it removes transitions without any resonance field inside the range.
 </div>
 
 <div class="optionfield"><code>Temperature</code></div>
@@ -108,6 +110,10 @@ This field specifies the temperature of the spin system in the EPR experiment, i
 
 <p>
 To specify non-equilibrium populations, use the spin system field <code>Sys.initState</code>. See the <a href="spinpolarization.html">user guide on spin polarization</a>.
+</p>
+
+<p>
+<code>resfields_perturb</code> and <code>resfreqs_perturb</code> compute the populations from the electron Zeeman splitting only, neglecting all other interactions. They do not support <code>Sys.initState</code>.
 </p>
 </div>
 
@@ -267,6 +273,11 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, nothing is shown. 1 logs relevant information, 2 gives more details.
 </div>
 
+<div class="optionfield"><code>FuzzLevel</code></div>
+<div class="optiondescr">
+The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot  handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10).
+</div>
+
 <p>
 For <code>resfields_perturb</code> and <code>resfreqs_perturb</code>, the option fields are
 
@@ -275,14 +286,14 @@ For <code>resfields_perturb</code> and <code>resfreqs_perturb</code>, the option
 Determines the perturbation theory order. Can be 1 or 2.
 </div>
 
+<div class="optionfield"><code>Sites</code></div>
+<div class="optiondescr">
+In crystal simulations, this gives a list of crystal sites to include in the simulation. See above.
+</div>
+
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 Determines how much information is printed to the command window. If <code>Opt.Verbosity=0</code>, nothing is shown. 1 logs relevant information, 2 gives more details.
-</div>
-
-<div class="optionfield"><code>FuzzLevel</code></div>
-<div class="optiondescr">
-The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot  handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10). This field is only used when matrix diagonalization is used.
 </div>
 
 <div class="subtitle2">Outputs</div>
@@ -290,10 +301,10 @@ The amount of random noise to add to non-zero Hamiltonian matrix elements to bre
 <p>
 There are up to five outputs from <code>resfields</code>, <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <code>resfreqs_perturb</code>.
 <ul>
-<li>Line positions are returned in matrix <code>Pos</code>, in units of mT. The various transitions are along columns, each column corresponding to a separate orientation.
+<li>Line positions are returned in matrix <code>Pos</code>, in units of mT for <code>resfields</code> and <code>resfields_perturb</code>, and in MHz for <code>resfreqs_matrix</code> and <code>resfreqs_perturb</code>. Each row corresponds to a transition, and each column to a separate orientation. For crystals with several magnetically distinct sites, the rows contain all transitions for the first site, followed by all transitions for the second site, etc.
 <li>The <code>Int</code> output contains the intensities, with the same layout as <code>Pos</code>.
-<li>Line widths are in <code>Wid</code>, again in mT. They are Gaussian FWHM (full widths at half maximum).
-<li><code>Trans</code> is the list of computed transitions. This list has the same format as the <code>Transitions</code> option in <code>Opt</code>.
+<li>Line widths are in <code>Wid</code>, with the same units and layout as <code>Pos</code>. They are Gaussian FWHM (full widths at half maximum). <code>Wid</code> is empty if no line broadenings are given in <code>Sys</code>.
+<li><code>Trans</code> is the list of computed transitions. This list has the same format as the <code>Transitions</code> option in <code>Opt</code>. For <code>resfields_perturb</code> and <code>resfreqs_perturb</code>, the level indices of nuclear sublevels are only approximate.
 </ul>
 
 <div class="subtitle">Examples</div>
