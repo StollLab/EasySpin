@@ -19,7 +19,7 @@
 %
 %   Output:
 %   - mux, muy, muz: Components of the magnetic dipole moment operator
-%     for the selected orbital angular momenta as defined by mui=d(H)/d(B_i)
+%     for the selected orbital angular momenta as defined by mui=-d(H)/d(B_i)
 %     i=x,y,z where B_i are the cartesian components of
 %     the external field in the molecular frame. Units are MHz/mT = GHz/T.
 %     To get the full orbital Zeeman Hamiltonian, use

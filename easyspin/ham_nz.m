@@ -123,7 +123,7 @@ if isempty(B0)
   end
   varargout = {muxM, muyM, muzM};
 else
-  H = muxM*B0(1) + muyM*B0(2) + muzM*B0(3);
+  H = -(muxM*B0(1) + muyM*B0(2) + muzM*B0(3));
   if ~useSparseMatrices
     H = full(H);
   end
