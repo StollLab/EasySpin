@@ -2,7 +2,8 @@ function ok = test(opt)
 
 % Total transition intensity should be independent of orientation of k
 % vector relative to B0, no matter what the crystal orientation and the
-% polarization angle are.
+% polarization angle are. Without temperature, polarizations are
+% proportional to the transition frequency, so rates are intensity/frequency.
 
 Sys.S = 1;
 Sys.D = -3*30e3*[1 0.01];
@@ -17,7 +18,8 @@ beta = linspace(0,pi/2,31);
 
 for a = numel(beta):-1:1
   Exp.mwMode = {beta(a) alpha};
-  [~,Intensity(:,a)] = resfreqs_matrix(Sys,Exp,Opt);
+  [Pos,Int] = resfreqs_matrix(Sys,Exp,Opt);
+  Intensity(:,a) = Int./Pos;
 end
 
 Intensity = abs(sum(Intensity));

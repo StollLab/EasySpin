@@ -19,3 +19,9 @@ Exp.Temperature = 2;  % K
 
 ok(1) = areequal(Pos_p,Pos_m,1e-3,'rel');
 ok(2) = areequal(Int_p/max(Int_p),Int_m/max(Int_m),2e-2,'rel');  % perturbation theory neglects D in populations and transition rates
+
+% Without temperature: high-temperature limit, including absolute scale
+Exp = rmfield(Exp,'Temperature');
+[~,Int_p] = resfreqs_perturb(Sys,Exp);
+[~,Int_m] = resfreqs_matrix(Sys,Exp);
+ok(3) = areequal(sort(Int_p(:)),sort(Int_m(:)),2e-2,'rel');

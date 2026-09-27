@@ -19,6 +19,7 @@ spc = pepper(Sys,Exp);
 
 Vary.g = [0.02 0.02];
 FitOpt.Verbosity = 0;
+FitOpt.maxTime = 0.5;  % minutes; the 'dint' target does not reach TolFun for large spectra
 
 rmsd = zeros(1,nMethods);
 

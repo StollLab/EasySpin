@@ -36,7 +36,6 @@ Exp.Range = [332 342];
 [x,y_both] = pepper(Sys,Exp);
 [x,y1] = pepper(Sys1,Exp);
 [x,y2] = pepper(Sys2,Exp);
-y_both = y_both/2;
 
 if opt.Display
   subplot(2,1,1);

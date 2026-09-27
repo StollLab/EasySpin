@@ -66,7 +66,7 @@
 %     Harmonic       detection harmonic: 0, 1 (default), 2
 %     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
 %     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
-%     Temperature    temperature, in K
+%     Temperature    ignored (not supported)
 %
 %   Par: structure with simulation parameters
 %     Model      model for spin label dynamics

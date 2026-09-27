@@ -37,8 +37,8 @@ Exact resonance fields (eigenfields) of a spin system.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-B = resfields_eig(Sys,Par)
-B = resfields_eig(sys,Par,Opt)
+B = resfields_eig(Sys,Exp)
+B = resfields_eig(Sys,Exp,Opt)
 [B,Int] = resfields_eig(...)
 </pre>
 
@@ -46,16 +46,17 @@ B = resfields_eig(sys,Par,Opt)
 <div class="subtitle">Description</div>
 
 <p>
-Given a spin system <code>Sys</code> and a set of orientations <code>Par.SampleFrame</code>,
+Given a spin system <code>Sys</code> and a set of orientations <code>Exp.SampleFrame</code>,
 <code>resfields_eig</code> computes exact resonance fields (so called eigenfields)
 for a cw EPR experiment.
 </p>
 
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>.
+</p>
 
 <p>
-<code>Par</code> is a structure containing fields for the experimental parameters.
+<code>Exp</code> is a structure containing fields for the experimental parameters.
 </p>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -74,6 +75,16 @@ Exp.SampleFrame = [0 pi/2 0];                % sample/crystal frame tilted relat
 Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relative to lab frame
 Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
 </pre>
+</div>
+
+<div class="optionfield"><code>CrystalSymmetry</code></div>
+<div class="optiondescr">
+Specifies the symmetry of the crystal, as the number or symbol of the space group, or the symbol of its point group. When given, all symmetry-related sites in the crystal are included. If not given, space group 1 (one site per unit cell) is assumed. See <a class="esf" href="resfields.html">resfields</a> for details.
+</div>
+
+<div class="optionfield"><code>MolFrame</code></div>
+<div class="optiondescr">
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">crystal frame</a> to the <a href="frames.html">molecular frame</a>. The default is <code>[0 0 0]</code>.
 </div>
 
 <div class="optionfield"><code>mwMode</code></div>
@@ -99,6 +110,7 @@ For experiments with a microwave (or THz) beam, use <code>Exp.mwMode = {k pol}</
 
 <p>
 For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the microwave propagation direction <code>nk</code> and the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
+</p>
 <pre class="matlab">
 k = 'y';   % propagation along y lab axis
 pol = -pi/2; % B1 along x lab axis
@@ -109,8 +121,6 @@ pol = -pi/2; % B1 along x lab axis
 <p>
 For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly polarized radiation, set <code>pol='circular+'</code> or <code>pol='circular-'</code>, depending on the sense of rotation.
 </p>
-
-</ul>
 
 </div>
 
@@ -123,7 +133,7 @@ and <code>Bmax</code> (both in mT). Negative fields and field ranges across zero
 
 <div class="optionfield"><code>Temperature</code></div>
 <div class="optiondescr">
-Temperature of the spin system, in K. If given, thermal equilibrium populations of the energy levels at the resonance fields are included in the transition intensities. If not given (or set to <code>NaN</code> or <code>Inf</code>), all transitions are assumed to have the same population difference.
+Temperature of the spin system, in K. If given, thermal equilibrium populations of the energy levels at the resonance fields are included in the transition intensities. If not given (or set to <code>NaN</code> or <code>Inf</code>), population differences are computed in the high-temperature limit, with k<sub>B</sub>T replaced by h&middot;<code>Exp.mwFreq</code>/2. This is accurate only if k<sub>B</sub>T is much larger than the total spread of the energy levels. The absolute intensity scale is arbitrary.
 </div>
 
 <p>
@@ -133,21 +143,19 @@ The structure <code>Opt</code> contains computational options.
 <div class="optionfield"><code>Freq2Field</code>, <code>1</code> (default) or <code>0</code>
 </div>
 <div class="optiondescr">
-Determines whether the frequency-to-field conversion factor is included in the line intensities of field-swept spectra. <code>1</code> indicates yes, <code>0</code> indicates no. The factor is the generalized 1/g Aasa-V&auml;nng&aring;rd factor. This setting is ignored for frequency-swept spectra.
+Determines whether the frequency-to-field conversion factor is included in the line intensities of field-swept spectra. <code>1</code> indicates yes, <code>0</code> indicates no. The factor is the generalized 1/g Aasa-V&auml;nng&aring;rd factor.
 </div>
 
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
-Relative threshold for eigenfields. Only eigenfields with a relative transition intensity above the threshold are returned. The relative intensity of the strongest transition is 1. The default value is 1e-4.
+Relative threshold for eigenfields. Only eigenfields with a relative transition intensity above the threshold are returned. The relative intensity of the strongest transition is 1. The default value is 0, i.e. all eigenfields are returned.
 </div>
 
 <p>
 <code>resfields_eig</code> returns the resonance fields (mT) in <code>B</code> and,
 optionally,
-transition intensities (MHz^2/mT^2) in <code>Int</code>.
-The intensities returned are integrated over the plane normal to the external
-magnetic field direction if only two of the three Euler angles are
-specified in <code>Ori</code> (see above).
+transition intensities (MHz<sup>2</sup>/mT<sup>2</sup>) in <code>Int</code>.
+For several orientations, <code>B</code> and <code>Int</code> are cell arrays with one cell per orientation, since the number of resonance fields can differ between orientations. For a single orientation, they are numeric arrays.
 </p>
 
 <div class="subtitle">Examples</div>
@@ -157,25 +165,30 @@ The resonance fields of an S=3/2 system with orthorhombic zero-field
 splitting for an arbitrary orientation are
 </p>
 
+<pre class="matlab">
+Sys.S = 3/2;
+Sys.D = [5000 1000];  % MHz
+Exp.mwFreq = 9.5;  % GHz
+Exp.SampleFrame = [0 pi/3 pi/5];
+B = resfields_eig(Sys,Exp)
+</pre>
 <pre class="mloutput">
 B =
-   59.5729
-  123.0851
-  148.9710
-  253.3805
-  387.0805
-  512.8191
+   25.5749
+  242.3859
+  268.5827
+  360.7869
 </pre>
 
 <p>
-These values are exact within the numerical accuracy of MATLAB's generalised
+These values are exact within the numerical accuracy of MATLAB's generalized
 eigenproblem solver <code>eig(A,B)</code>.
 </p>
 
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>resfields_eig</code> solves a generalised eigenproblem in Liouville space describing
+<code>resfields_eig</code> solves a generalized eigenproblem in Liouville space describing
 the fixed-frequency swept-field situation in cw EPR experiments. This approach
 was first described in R.L. Belford et al., J.Magn.Reson. 11, 251-265 (1973).
 </p>

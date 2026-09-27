@@ -224,7 +224,7 @@ If both <code>Exp.CenterSweep</code> and <code>Exp.Range</code> are omitted, Eas
 </p>
 
 <p>
-<span class="param">Points</span>. By default, <code>pepper</code> computes a 1024-point spectrum. However, you can change the number of points to a different value using
+<span class="param">Points</span>. By default, <a class="esf" href="pepper.html">pepper</a> computes a 1024-point spectrum. However, you can change the number of points to a different value using
 </p>
 
 <pre class="matlab">
@@ -279,7 +279,7 @@ Exp.Temperature = 4.2;  % temperature in kelvin
 </pre>
 
 <p>
-With this, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature, as it has no effect on the overall spectral shape. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings.
+With this, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature, as it has no effect on the overall spectral shape. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings. If <code>Exp.Temperature</code> is not given, EasySpin uses the high-temperature limit.
 </p>
 
 <p>
@@ -444,8 +444,8 @@ garlic(Nx,Exp);
 <a name="freqsweep"><div class="subtitle">Frequency-swept spectra</div></a>
 
 <p>
-<code>garlic</code>, like the other cw EPR simulation functions <code>pepper</code>
-and <code>chili</code>, does field sweeps by default. However, you can use it to
+<code>garlic</code>, like the other cw EPR simulation functions <a class="esf" href="pepper.html">pepper</a>
+and <a class="esf" href="chili.html">chili</a>, does field sweeps by default. However, you can use it to
 simulate frequency-swept spectra as well.
 </p>
 

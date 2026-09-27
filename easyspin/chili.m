@@ -41,7 +41,7 @@
 %      Harmonic       detection harmonic: 0, 1, 2
 %      ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
-%      Temperature    temperature, in K
+%      Temperature    temperature, in K; if omitted: high-temperature limit
 %
 %   Opt: simulation options
 %      LLMK           basis set parameters, [evenLmax oddLmax Mmax Kmax]
@@ -1321,7 +1321,11 @@ spec = spec/scale;
 % Rescale to match rigid-limit chili intensities to pepper intensities
 spec = spec*1e10;
 spec = spec/2; % since chili uses normalized Sx and pepper uses unnormalized Sx
-% (works only for S=1/2)
+% Starting vector is normalized Sx, so scale by Tr(Sx^2)/N of the spin system
+% (N = number of states), relative to S=1/2, to match pepper for any spin system
+SxNormSq = sum(Sys.S.*(Sys.S+1))/3;  % Tr(Sx^2)/N
+SxNormSq_S12 = (1/2)*(1/2+1)/3;  % Tr(Sx^2)/N for S=1/2
+spec = spec*SxNormSq/SxNormSq_S12;
 
 if Opt.highField
   spec = spec/2;
@@ -1425,18 +1429,19 @@ end
 %===============================================================================
 % Temperature: include Boltzmann equilibrium polarization
 %===============================================================================
-if isfinite(Exp.Temperature)
-  if FieldSweep
-     DeltaE = planck*Exp.mwFreq*1e9; % joule
-  else
-     DeltaE = bmagn*gavg*Exp.Field*1e-3; % joule
-  end
-  e = exp(-DeltaE/boltzm/Exp.Temperature);
-  Population = [1 e];
-  Population = Population/sum(Population);
-  Polarization = Population(1) - Population(2);
-  spec = spec*Polarization;
+if FieldSweep
+  DeltaE = Exp.mwFreq;  % GHz
+else
+  DeltaE = xAxis;  % GHz
 end
+if isfinite(Exp.Temperature)
+  Polarization = tanh(planck*DeltaE*1e9/(2*boltzm*Exp.Temperature));  % two-level
+else
+  % no temperature: high-temperature limit, with kT replaced by h*nuRef/2
+  if FieldSweep, nuRef = Exp.mwFreq; else, nuRef = 1; end  % GHz
+  Polarization = DeltaE/nuRef;
+end
+spec = spec.*Polarization;
 
 
 %===============================================================================

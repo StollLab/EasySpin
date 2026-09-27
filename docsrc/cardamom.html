@@ -49,7 +49,7 @@ Simulation of slow-motion CW-EPR spectra from time-domain trajectories
 <p>
 <code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations or molecular dynamics  (MD) simulations. If stochastic dynamics is to be used, then <code>cardamom</code> uses 
 <a class="esf" href="stochtraj_diffusion.html"><code>stochtraj_diffusion</code> </a> or <a class="esf" href="stochtraj_jump.html"><code>stochtraj_jump</code> </a>
-to simulate the orientational trajectories required to calculate a cw EPR spectrum. If MD is to be used, then <code>cardamom</code> requires that the information and processed output of the MD simulation (which can itself be done by using <code>mdload</code>) be provided, including the orientational trajectories.
+to simulate the orientational trajectories required to calculate a cw EPR spectrum. If MD is to be used, then <code>cardamom</code> requires that the information and processed output of the MD simulation (which can itself be done by using <a class="esf" href="mdload.html">mdload</a>) be provided, including the orientational trajectories.
 </p>
 
 <p>
@@ -58,7 +58,7 @@ to simulate the orientational trajectories required to calculate a cw EPR spectr
 
 <ul>
 <li><code>Sys</code>: static and dynamic properties of the spin system
-<li><code>Exp</code>: EPR experimental parameters, see <a href="cwepr_exp.html">cw EPR experimental parameters</a>
+<li><code>Exp</code>: EPR experimental parameters, see <a href="cwepr_exp.html">cw EPR experimental parameters</a> (<code>Exp.Temperature</code> is ignored)
 <li><code>Par</code>: simulation parameters for quantum propagation
 <li><code>Opt</code>: other simulation options
 <li><code>MD</code>: molecular dynamics parameters
@@ -88,7 +88,7 @@ The first two output arguments <code>B</code> and <code>spc</code> are mandatory
 <!-- ============================================================= -->
 
 <p>
-<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
+<code>Sys</code> is a structure containing the dynamic properties for generating the stochastic rotational trajectories. Many of its fields overlap with those of <a class="esf" href="chili.html">chili</a>. This allows the user to easily simulate EPR spectra in both frequency and time domains for easy comparison.
 </p>
 
 <!-- ============================================================= -->
@@ -159,7 +159,7 @@ It is also possible to specify an orientational potential to simulate restricted
 </p>
 
 <p>
-The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <code>stochtraj_diffusion</code> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to assure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
+The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to assure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
 </p>
 
 <p>
@@ -428,7 +428,7 @@ Optional rotational diffusion coefficient for simulating stochastic isotropic gl
 <div class="optionfield"><code>HMM</code></div>
 <div class="optiondescr">
 <p>
-Optional HMM model parameters to be used when setting <code>Par.Model = 'MD-HMM'</code>. If used, please set it equal to the output argument from <code>mdhmm</code>.
+Optional HMM model parameters to be used when setting <code>Par.Model = 'MD-HMM'</code>. If used, please set it equal to the output argument from <a class="esf" href="mdhmm.html">mdhmm</a>.
 </div>
 
 <!-- ============================================================= -->
@@ -480,7 +480,7 @@ Par.nTraj = 400;
 </pre>
 
 <p>
-To simulate a cw EPR spectrum using an MD trajectory with a direct model (we assume that the MD trajectory has already been processed and output to the variable <code>MD</code> using <code>mdload</code>), enter
+To simulate a cw EPR spectrum using an MD trajectory with a direct model (we assume that the MD trajectory has already been processed and output to the variable <code>MD</code> using <a class="esf" href="mdload.html">mdload</a>), enter
 </p>
 
 <pre class="matlab">

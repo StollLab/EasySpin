@@ -16,7 +16,7 @@
 %      Range               sweep range, [sweepmin sweepmax], in mT
 %      CenterSweep         sweep range, [center sweep], in mT
 %                            negative fields are possible (field along -z(Lab))
-%      Temperature         temperature, in K
+%      Temperature         temperature, in K; if omitted: high-temperature limit
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
@@ -1064,9 +1064,10 @@ for iOri = 1:nOrientations
               end
             end
           else
-            % no temperature given
-            Polarization = 1; % same polarization for each electron transition
-            Polarization = Polarization/prod(2*Sys.I+1);
+            % no temperature: high-temperature limit, with kT replaced by h*nuRef/2
+            nuRef = mwFreq;  % reference frequency, MHz
+            Etrans = mwFreq;  % transition energy; all transitions are at mwFreq, MHz
+            Polarization = Etrans/(nuRef/2)/prod(2*Sys.S+1)/prod(2*Sys.L+1)/prod(2*Sys.I+1);
           end
           
           % Update intensity results array

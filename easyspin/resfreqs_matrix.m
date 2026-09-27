@@ -15,7 +15,7 @@
 %      Field               static field, in mT
 %      Range               sweep range, [sweepmin sweepmax], in GHz
 %      CenterSweep         sweep range, [center sweep], in GHz
-%      Temperature         temperature, in K
+%      Temperature         temperature, in K; if omitted: high-temperature limit
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
@@ -756,10 +756,10 @@ for iOri = 1:nOrientations
       end
        
     else
-      % no temperature given
-      % same polarization for each electron transition
-      %Polarization = Polarization/prod(2*Sys.S+1); % needed to make consistent with high-temp limit
-      Polarization = 1/prod(2*Sys.I+1);
+      % no temperature: high-temperature limit, with kT replaced by h*nuRef/2
+      nuRef = 1e3;  % reference frequency, MHz
+      nElStates = prod(2*Sys.S+1)*prod(2*Sys.L+1);
+      Polarization = (E(v)-E(u))/(nuRef/2)/nElStates/prod(2*Sys.I+1);
     end
     Idat(:,iOri) = TransitionRates(:).*Polarization(:)*photoWeight;
     

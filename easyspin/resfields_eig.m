@@ -19,7 +19,8 @@
 %           between Bmin and Bmax. [mT] Default: [0 realmax]
 %           negative fields are possible (field along -z(Lab))
 %        Temperature - temperature [K]; if given, thermal
-%           equilibrium populations are included in intensities
+%           equilibrium populations are included in intensities;
+%           if omitted: high-temperature limit
 %   - Opt: options structure with fields
 %        Threshold - if set, return only transitions with
 %          relative intensity above Threshold.
@@ -133,7 +134,7 @@ end
 %===================================================================
 DefaultOptions.Freq2Field = true;
 DefaultOptions.Threshold = 0;
-DefaultOptions.RejectionRatio = 1e-8; % UNDOCUMENTED!
+DefaultOptions.RejectionRatio = 1e-8;  % undocumented: max |imag/real| ratio for accepting an eigenfield
 
 Opt = adddefaults(Opt,DefaultOptions);
 
@@ -266,8 +267,10 @@ for iOri = 1:nOrientations
           Polarization(iVec) = abs(real(trace(rho*commute(V,V'))));
         end
       else
-        Polarization = 1;
-        Polarization = Polarization/prod(2*Sys.I+1);
+        % no temperature: high-temperature limit, with kT replaced by h*nuRef/2
+        nuRef = mwFreq;  % reference frequency, MHz
+        Etrans = mwFreq;  % transition energy; all transitions are at mwFreq, MHz
+        Polarization = Etrans/(nuRef/2)/prod(2*Sys.S+1)/prod(2*Sys.L+1)/prod(2*Sys.I+1);
       end
 
       % Compute frequency-to-field domain conversion factor

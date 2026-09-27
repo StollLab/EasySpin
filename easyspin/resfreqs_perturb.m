@@ -13,7 +13,7 @@
 %    Sys: spin system structure
 %    Exp: experimental parameters
 %      Field               static field, in mT
-%      Temperature         temperature, in K
+%      Temperature         temperature, in K; if omitted: high-temperature limit
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample/crystal orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
 %      MolFrame            Euler angles (in radians) for molecular frame orientation
@@ -245,9 +245,6 @@ end
 B0 = Exp.Field*1e-3; % mT -> T
 
 useTemperature = ~isnan(Exp.Temperature);
-if ~useTemperature
-  Polarization = ones(nTransitions,1);
-end
 
 gg = g*g.';
 trgg = trace(gg);
@@ -281,6 +278,10 @@ for iOri = 1:nOrientations
     Populations = exp(-(2*S:-1:0).'*planck*E0_*1e6/boltzm/Exp.Temperature);
     Populations = Populations/sum(Populations);
     Polarization = diff(Populations);
+  else
+    % no temperature: high-temperature limit, with kT replaced by h*nuRef/2
+    nuRef = 1e3;  % reference frequency, MHz
+    Polarization = E0_/(nuRef/2)/(2*S+1)*ones(nTransitions,1);
   end
 
   % Compute intensities

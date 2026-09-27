@@ -51,11 +51,11 @@ The usage of <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <
 <div class="subtitle">Description</div>
 
 <p>
-<code>resfields</code> and <code>resfields_perturb</code> compute resonance fields, line intensities and line widths for field-swept cw EPR spectra. <code>resfields</code> using matrix diagonalization and energy level diagram modelling, and <code>resfields_perturb</code> uses perturbation theory.
+<code>resfields</code> and <code>resfields_perturb</code> compute resonance fields, line intensities and line widths for field-swept cw EPR spectra. <code>resfields</code> uses matrix diagonalization and energy level diagram modeling, and <code>resfields_perturb</code> uses perturbation theory.
 </p>
 
 <p>
-<code>resfreqs_matrix</code> and <code>resfreqs_perturb</code> compute resonance frequencies, line intensities and line widths for frequency-swept cw EPR spectra. <code>resfreqs_matrix</code> using matrix diagonalization, and <code>resfreqs_perturb</code> uses perturbation theory.
+<code>resfreqs_matrix</code> and <code>resfreqs_perturb</code> compute resonance frequencies, line intensities and line widths for frequency-swept cw EPR spectra. <code>resfreqs_matrix</code> uses matrix diagonalization, and <code>resfreqs_perturb</code> uses perturbation theory.
 </p>
 
 <p>
@@ -87,7 +87,7 @@ Gives the spectrometer's static field, in mT. (<code>resfreqs_matrix</code> and 
 <em>2-element vector</em> <code>[center sweep]</code><br>
 Center and width of the range which is searched for resonances. For field sweeps, the units are mT. For frequency sweeps, the units are GHz. Only resonances within this range are computed.
 <br>
-Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence. The lower limit must be smaller than the upper limit.
+Give the sweep range either in <code>CenterSweep</code> or in <code>Range</code>. If both are given, <code>CenterSweep</code> has precedence.
 </div>
 
 <div class="optionfield"><code>Range</code></div>
@@ -105,7 +105,7 @@ The perturbation theory functions do not restrict the returned resonances to the
 <div class="optionfield"><code>Temperature</code></div>
 <div class="optiondescr">
 <p>
-This field specifies the temperature of the spin system in the EPR experiment, in kelvin. E.g., <code>Exp.Temperature = 298</code> corresponds to room temperature. If given, populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium, and the population differences between two levels are included in the line intensities of the corresponding EPR transition. If not given (or set to <code>NaN</code>), the populations are not calculated, and all transitions are assumed to have equal population difference of 1.
+This field specifies the temperature of the spin system in the EPR experiment, in kelvin. E.g., <code>Exp.Temperature = 298</code> corresponds to room temperature. If given, populations are computed for all energy levels assuming thermal (Boltzmann) equilibrium, and the population differences between two levels are included in the line intensities of the corresponding EPR transition. If not given (or set to <code>NaN</code>), population differences are computed in the high-temperature limit, with k<sub>B</sub>T replaced by h&middot;<code>Exp.mwFreq</code>/2. This is accurate only if k<sub>B</sub>T is much larger than the total spread of the energy levels. The absolute intensity scale is arbitrary.
 </p>
 
 <p>
@@ -177,6 +177,7 @@ For experiments with a microwave (or THz) beam, use <code>Exp.mwMode = {k pol}</
 
 <p>
 For linearly polarized mw irradiation, additionally provide <code>pol</code>, the polarization angle of the radiation, in radians. To calculate the microwave propagation direction <code>nk</code> and the B1 direction <code>nB1</code> from <code>k</code> and <code>pol</code>, use
+</p>
 <pre class="matlab">
 k = 'y';   % propagation along y lab axis
 pol = -pi/2; % B1 along x lab axis
@@ -188,8 +189,6 @@ pol = -pi/2; % B1 along x lab axis
 For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly polarized radiation, set <code>pol='circular+'</code> or <code>pol='circular-'</code>, depending on the sense of rotation.
 </p>
 
-</ul>
-
 </div>
 
 <div class="optionfield"><code>lightBeam</code></div>
@@ -199,11 +198,12 @@ Specifies mode of photoexcitation. If photoexcitation is present, photoselection
 </p>
 <p>
 Possible settings for <code>lightBeam</code> are
+</p>
 <ul>
 <li><code>Exp.lightBeam = ''</code> - no photoexcitation (default)
 <li><code>Exp.lightBeam = 'perpendicular'</code> - polarized light incident along the lab y direction (perpendicular to B<sub>0</sub>) with E-field along the lab x direction (also perpendicular to B<sub>0</sub>)
 <li><code>Exp.lightBeam = 'parallel'</code> - polarized light incident along the lab y direction (perpendicular to B<sub>0</sub>) with E-field along the lab z direction (parallel to B<sub>0</sub>)
-<li><code>Exp.lightBeam = 'unpolarized'</code> - unpolarized light incident along the lab y direction (perpendicular to B0) with E-field uniformly distributed in the lab xz plane
+<li><code>Exp.lightBeam = 'unpolarized'</code> - unpolarized light incident along the lab y direction (perpendicular to B<sub>0</sub>) with E-field uniformly distributed in the lab xz plane
 <li><code>Exp.lightBeam = {k alpha}</code> - light incident along propagation direction <code>k</code> with polarization given by <code>alpha</code>. There are three ways to specify <code>k</code>: (i) a letter code for the direction, e.g. <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>; (ii) a 3-element cartesian vector, e.g. <code>[0;1;0]</code> specifies the lab y axis; (iii) two angles <code>[phi_k theta_k]</code> that specify the orientation. <code>theta_k</code> is the angle between the propagation direction and the lab z axis, and <code>phi_k</code> is the angle between the lab x axis and the projection of the propagation vector onto the lab xy plane. For example, <code>[pi/2 pi/2]</code> gives the lab y axis. <code>alpha</code> is the polarization angle, in radians. To represent an unpolarized beam, set <code>alpha=NaN</code>.
 </ul>
 </div>
@@ -223,9 +223,11 @@ The structure <code>Opt</code> contains computational options. The separate fiel
 
 <p>
 The fields are different for <code>resfields</code>/<code>resfreqs_matrix</code> (matrix diagonalization function) and <code>resfields_perturb</code>/<code>resfreqs_perturb</code> (perturbation theory function).
+</p>
 
 <p>
 For <code>resfields</code> and <code>resfreqs_matrix</code>, the option fields are
+</p>
 
 <div class="optionfield"><code>Freq2Field</code>, <code>1</code> (default) or <code>0</code>
 </div>
@@ -235,7 +237,7 @@ Determines whether the frequency-to-field conversion factor is included in the l
 
 <div class="optionfield"><code>Transitions</code></div>
 <div class="optiondescr">
-<em>mx2 vector of integer</em>, or <code>'all'</code><br>
+<em>mx2 array of integers</em>, or <code>'all'</code><br>
 
 Determines the transitions (state pairs) which are used in the resonance field calculation. If given, <code>resfields</code> uses them and skips its
 automatic transition selection scheme. State pairs are specified in <code>Transitions(k,:)</code> by the level numbers which start with 1 for the
@@ -246,14 +248,14 @@ If <code>'all'</code> is given, all transitions are included.
 
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
-Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transitions are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </div>
 
 <div class="optionfield"><code>Sites</code></div>
 <div class="optiondescr">
 In crystal simulations, this gives a list of crystal sites to include in the simulation.
 
-If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g. the following set limits the simulation to sites 1 and 3 of the 4 magnetically distinct sites in crystal of space group no. 47.
+If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g., the following settings limit the simulation to sites 1 and 3 of the 4 magnetically distinct sites in a crystal of space group no. 47.
 
 <pre class="matlab">
 Exp.CrystalSymmetry = 47;  % space group Pmmm
@@ -275,15 +277,16 @@ Determines how much information is printed to the command window. If <code>Opt.V
 
 <div class="optionfield"><code>FuzzLevel</code></div>
 <div class="optiondescr">
-The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot  handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10).
+The amount of random noise to add to non-zero Hamiltonian matrix elements to break degeneracies. This is needed, since EasySpin cannot handle systems with degeneracies in an exact fashion. The default value is 1e-10. This means each non-zero Hamiltonian matrix element is multiplied by a random number between (1-1e-10) and (1+1e-10).
 </div>
 
 <p>
 For <code>resfields_perturb</code> and <code>resfreqs_perturb</code>, the option fields are
+</p>
 
 <div class="optionfield"><code>PerturbOrder</code></div>
 <div class="optiondescr">
-Determines the perturbation theory order. Can be 1 or 2.
+Determines the perturbation theory order. Can be 1 or 2. The default is 2.
 </div>
 
 <div class="optionfield"><code>Sites</code></div>
@@ -300,6 +303,7 @@ Determines how much information is printed to the command window. If <code>Opt.V
 
 <p>
 There are up to five outputs from <code>resfields</code>, <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <code>resfreqs_perturb</code>.
+</p>
 <ul>
 <li>Line positions are returned in matrix <code>Pos</code>, in units of mT for <code>resfields</code> and <code>resfields_perturb</code>, and in MHz for <code>resfreqs_matrix</code> and <code>resfreqs_perturb</code>. Each row corresponds to a transition, and each column to a separate orientation. For crystals with several magnetically distinct sites, the rows contain all transitions for the first site, followed by all transitions for the second site, etc.
 <li>The <code>Int</code> output contains the intensities, with the same layout as <code>Pos</code>.
@@ -310,11 +314,11 @@ There are up to five outputs from <code>resfields</code>, <code>resfields_pertur
 <div class="subtitle">Examples</div>
 
 <p>
-A comparison between the resonance field position obtained from <code>resfields</code> (spline modelling approach) and <code>resfields_eig</code> (exact solution) shows that differences are negligible.
+A comparison between the resonance field positions obtained from <code>resfields</code> (spline modeling approach) and <a class="esf" href="resfields_eig.html">resfields_eig</a> (exact solution) shows that differences are negligible.
 </p>
 
 <p>
-First we compute the resonance fields for an axial spin system one electron and one proton.
+First we compute the resonance fields for an axial spin system with one electron and one proton.
 </p>
 
 <pre class="matlab">
@@ -325,13 +329,13 @@ Sys.A = [10 10 500];
 Exp.mwFreq = 9.5;
 Exp.Range = [200 400];
 grid = sphgrid('Dinfh',201);
-angles = [grid.phi; grid.theta].';
+angles = [grid.phi; grid.theta; zeros(size(grid.phi))].';
 Exp.SampleFrame = angles;
 B = resfields(Sys,Exp);
 </pre>
 
 <p>
-Next we compute line positions using <code>resfields_eig</code>, which is much slower.
+Next we compute line positions using <a class="esf" href="resfields_eig.html">resfields_eig</a>, which is much slower.
 </p>
 <pre class="matlab">
 Br = resfields_eig(Sys,Exp);

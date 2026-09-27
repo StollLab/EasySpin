@@ -379,7 +379,7 @@ Exp.ModAmp = 0.2; % 0.2 mT (2 G) modulation amplitude, peak-to-peak
 
 <p>
 <span class="param">Time constant</span>. To include the effect of the time constant, apply the
-function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
+function <a class="esf" href="rcfilt.html">rcfilt</a> to the simulated spectrum.
 </p>
 -->
 
@@ -402,16 +402,7 @@ Exp.Mode = 'parallel';      % parallel mode
 </pre>
 
 <p>
-<span class="param">Temperature</span>. The polarizing effects of low sample temperatures can also be included in the
-simulation by specifying the temperature:
-</p>
-
-<pre class="matlab">
-Exp.Temperature = 4.2; % temperature in kelvin
-</pre>
-
-<p>
-With this setting, EasySpin will include the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, it is not necessary to include the temperature. However, it is important in high-spin systems with large zero-field splittings, and in coupled spin systems with exchange couplings.
+<span class="param">Temperature</span>. <code>Exp.Temperature</code> is currently ignored by cardamom.
 </p>
 
 <p>
@@ -507,8 +498,8 @@ Since <code>cardamom</code> simulates cw EPR spectra based on time-domain inform
 </p>
 
 <p>
-EasySpin can interface with MD simulation output using the function <code>mdload</code>. 
-To do this, <code>mdload</code> needs to know about the trajectory output files using <code>TrajFile</code> and the  relevant atomic information using <code>AtomInfo</code>. The output is then stored in the structure variable <code>MD</code>:
+EasySpin can interface with MD simulation output using the function <a class="esf" href="mdload.html">mdload</a>. 
+To do this, <a class="esf" href="mdload.html">mdload</a> needs to know about the trajectory output files using <code>TrajFile</code> and the  relevant atomic information using <code>AtomInfo</code>. The output is then stored in the structure variable <code>MD</code>:
 </p>
 
 <pre class="matlab">
@@ -516,10 +507,10 @@ MD = mdload(TrajFile, AtomInfo);
 </pre>
 
 <p>
-<code>TrajFile</code> can be a single trajectory output file or a list of files. <code>AtomInfo</code> tells <code>mdload</code> how to look for spin label and protein information in <code>TrajFile</code>. For more details on how to do this, please see the technical documentation <a class="esf" href="mdload.html">mdload</a>.
+<code>TrajFile</code> can be a single trajectory output file or a list of files. <code>AtomInfo</code> tells <a class="esf" href="mdload.html">mdload</a> how to look for spin label and protein information in <code>TrajFile</code>. For more details on how to do this, please see the technical documentation <a class="esf" href="mdload.html">mdload</a>.
 </p>
 
-Once the MD simulation information is successfully loaded into <code>MD</code> using <code>mdload</code>, a cw EPR spectrum can be simulated by declaring the <code>Model</code> as <code>'MD-direct'</code> and supplying the structure variable <code>MD</code> to <code>cardamom</code> using the fifth input argument:
+Once the MD simulation information is successfully loaded into <code>MD</code> using <a class="esf" href="mdload.html">mdload</a>, a cw EPR spectrum can be simulated by declaring the <code>Model</code> as <code>'MD-direct'</code> and supplying the structure variable <code>MD</code> to <code>cardamom</code> using the fifth input argument:
 
 <pre class="matlab">
 Par.Model = 'MD-direct';

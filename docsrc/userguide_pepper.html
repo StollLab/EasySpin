@@ -289,7 +289,7 @@ Exp.ModAmp = 0.2;   % 0.2 mT (2 G) modulation amplitude, peak-to-peak
 </pre>
 
 <p>
-<span class="param">Time constant</span>. To include the effect of the time constant of an RC filter, apply the function <a href="rcfilt.html">rcfilt</a> to the simulated spectrum.
+<span class="param">Time constant</span>. To include the effect of the time constant of an RC filter, apply the function <a class="esf" href="rcfilt.html">rcfilt</a> to the simulated spectrum.
 </p>
 
 <!-- ============================================================= -->
@@ -317,7 +317,7 @@ Exp.Temperature = 4.2;  % temperature, in kelvin
 </pre>
 
 <p>
-With this, EasySpin includes the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, including the temperature typically does not affect the spectral shape. However, temperature strongly affects the spectral shape for high-spin systems with large zero-field splittings, and for coupled spin systems with significant exchange couplings.
+With this, EasySpin includes the relevant polarization factors resulting from a thermal equilibrium population of the energy levels. For S=1/2 systems, including the temperature typically does not affect the spectral shape. However, temperature strongly affects the spectral shape for high-spin systems with large zero-field splittings, and for coupled spin systems with significant exchange couplings. If <code>Exp.Temperature</code> is not given, EasySpin uses the high-temperature limit.
 </p>
 
 <p>
@@ -541,14 +541,14 @@ Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
 </pre>
 
 <p>
-The EasySpin function <a href="plegendre.html">plegendre</a> returns the associated Legendre polynomial and <code>lambda</code> corresponds to the number given in <code>Exp.Ordering</code>.
+The EasySpin function <a class="esf" href="plegendre.html">plegendre</a> returns the associated Legendre polynomial and <code>lambda</code> corresponds to the number given in <code>Exp.Ordering</code>.
 </p>
 
 <!-- ============================================================= -->
 <a name="freqsweep"><div class="subtitle">Frequency-swept spectra</div></a>
 
 <p>
-<code>pepper</code>, like the other cw EPR simulation functions <code>garlic</code> and <code>chili</code>, does field sweeps by default. However, you can ask them to simulate frequency-swept spectra as well.
+<code>pepper</code>, like the other cw EPR simulation functions <a class="esf" href="garlic.html">garlic</a> and <a class="esf" href="chili.html">chili</a>, does field sweeps by default. However, you can ask them to simulate frequency-swept spectra as well.
 </p>
 
 <p>

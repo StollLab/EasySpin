@@ -36,7 +36,7 @@
 %      Harmonic            detection harmonic: 0, 1 (default), 2
 %      ModAmp              peak-to-peak modulation amplitude, in mT (field sweeps only)
 %      mwPhase             detection phase (0 = absorption, pi/2 = dispersion)
-%      Temperature         temperature, in K
+%      Temperature         temperature, in K; if omitted: high-temperature limit
 %
 %  Opt:  simulation parameters
 %      Verbosity    log level (0 none, 1 normal, 2 very verbose)
@@ -757,6 +757,14 @@ else
     Population = [1 e]/(1+e);
     Polarization = Population(1) - Population(2);
     Intensities = Intensities*Polarization;
+  elseif ~FieldSweep
+    % No temperature: high-temperature limit of the two-level polarization,
+    % tanh(DeltaE/(2kT)) ≈ DeltaE/(2kT), with kT replaced by h*nuRef/2.
+    % (Field sweeps: DeltaE = h*mwFreq = h*nuRef for all lines, so polarization is 1.)
+    nuRef = 1;  % reference frequency, GHz
+    DeltaE = Positions;  % transition energy of each line, GHz
+    Polarization = DeltaE/nuRef;
+    Intensities = Intensities.*Polarization;
   end
   
 end
