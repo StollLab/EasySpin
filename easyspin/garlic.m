@@ -330,14 +330,7 @@ end
 logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 
 % Temperature
-if ~isnan(Exp.Temperature)
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.')
-  end
-  if numel(Exp.Temperature)~=1
-    error('garlic does not support spin polarization in Exp.Temperature.');
-  end
-end
+useTemperature = p_temperature(Exp);
 
 % Modulation amplitude
 if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
@@ -747,7 +740,7 @@ else
   end
   
   % Temperature: thermal equilibrium polarization
-  if isfinite(Exp.Temperature)
+  if useTemperature
     if FieldSweep
       DeltaE = planck*Exp.mwFreq*1e9;  % Joule
     else

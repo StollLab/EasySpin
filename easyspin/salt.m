@@ -243,7 +243,7 @@ if logmsg>=1
 end
 
 nonEquiPops = false;
-if isfinite(Exp.Temperature)
+if p_temperature(Exp)
   msg = sprintf('  temperature %g K',Exp.Temperature);
 else
   msg = '  no temperature';

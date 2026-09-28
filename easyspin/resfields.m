@@ -413,6 +413,8 @@ nFull = hsdim(Sys);
 nSHFNucStates = nFull/nCore;
 
 % Temperature, non-equilibrium populations
+useTemperature = p_temperature(Exp);
+computeBoltzmannPopulations = useTemperature && ~computeNonEquiPops;
 if computeNonEquiPops
 
   initState = Sys.initState{1};
@@ -444,17 +446,6 @@ if computeNonEquiPops
     error('Sys.initState must contain either a population vector or a density matrix.');
   end
 
-  computeBoltzmannPopulations = false;
-elseif isempty(Exp.Temperature)
-  computeBoltzmannPopulations = false;
-else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.');
-  end
-  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
 end
 
 % Add slight numerical noise to non-zero elements in the Hamiltonian to break
@@ -1035,6 +1026,7 @@ for iOri = 1:nOrientations
           % Compute polarizations if temperature or zero-field populations are given.
           if computeBoltzmannPopulations
             Populations = exp(-BoltzmannPreFactor*(Energies-Energies(1)));
+            Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
             Populations = Populations/sum(Populations);
             Polarization = Populations(u(iTrans)) - Populations(v(iTrans));
             if Polarization<0

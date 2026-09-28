@@ -295,11 +295,7 @@ if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
 end
 
 % Temperature
-if ~isnan(Exp.Temperature)
-  if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
-    error('Problem with Exp.Temperature. If given, Exp.Temperature must be a positive value.')
-  end
-end
+useTemperature = p_temperature(Exp);
 
 logmsg(1,'Experiment:');
 
@@ -1434,7 +1430,7 @@ if FieldSweep
 else
   DeltaE = xAxis;  % GHz
 end
-if isfinite(Exp.Temperature)
+if useTemperature
   Polarization = tanh(planck*DeltaE*1e9/(2*boltzm*Exp.Temperature));  % two-level
 else
   % no temperature: high-temperature limit, with kT replaced by h*nuRef/2

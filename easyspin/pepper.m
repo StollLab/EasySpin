@@ -395,18 +395,14 @@ else
 end
 
 % Temperature and non-equilibrium populations
+useTemperature = p_temperature(Exp);
 nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if nonEquiPops
   msg = '  user-specified non-equilibrium state';
+elseif useTemperature
+  msg = sprintf('  temperature %g K',Exp.Temperature);
 else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isfinite(Exp.Temperature)
-    msg = sprintf('  temperature %g K',Exp.Temperature);
-  else
-    msg = '  no temperature';
-  end
+  msg = '  no temperature';
 end
 logmsg(1,msg);
 

@@ -114,10 +114,8 @@ if isfield(Exp,'mwMode')
     err = 'Parallel mode ENDOR not supported with perturbation theory. Use matrix diagonalization.';
   end
 end
-if isfield(Exp,'Temperature')
-  if Exp.Temperature<Inf
-    err = 'ENDOR temperature effects are not supported with perturbation theory. Use matrix diagonalization.';
-  end
+if p_temperature(Exp)
+  err = 'ENDOR temperature effects are not supported with perturbation theory. Use matrix diagonalization.';
 end
 error(err);
 

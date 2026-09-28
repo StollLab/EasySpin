@@ -371,6 +371,8 @@ end
 
 % Temperature, non-equilibrium populations
 computeNonEquiPops = (isfield(Sys,'initState') && ~isempty(Sys.initState));
+useTemperature = p_temperature(Exp);
+computeBoltzmannPopulations = useTemperature && ~computeNonEquiPops;
 if computeNonEquiPops
 
   initState = Sys.initState{1};
@@ -398,18 +400,7 @@ if computeNonEquiPops
       initState = kron(initState,ones(nCore/nElectronStates,1))/(nCore/nElectronStates);
     end
   end
-  
-  computeBoltzmannPopulations = false;
-elseif isempty(Exp.Temperature)
-  computeBoltzmannPopulations = false;
-else
-  if numel(Exp.Temperature)~=1
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.');
-  end
-  computeBoltzmannPopulations = ~isnan(Exp.Temperature);
+
 end
 
 % Add slight numerical noise to non-zero elements in the Hamiltonian to break

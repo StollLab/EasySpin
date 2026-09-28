@@ -183,18 +183,8 @@ mirror = any(Exp.Range<0);
 % Determine excitation mode
 [xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
-% Temperature, non-equilibrium populations
-if isfield(Exp,'Temperature')
-  if numel(Exp.Temperature)>1
-    err = 'Exp.Temperature must be a single number.';
-  end
-  if isinf(Exp.Temperature)
-    err = 'If given, Exp.Temperature must have a finite value.';
-  end
-else
-  Exp.Temperature = NaN;
-end
-error(err);
+% Temperature
+useTemperature = p_temperature(Exp);
 
 % Photoselection
 if ~isfield(Exp,'lightBeam'), Exp.lightBeam = ''; end
@@ -290,8 +280,9 @@ if immediateBinning
   spec = zeros(1,Exp.nPoints);
 end
 
-if ~isnan(Exp.Temperature)
+if useTemperature
   Populations = exp(-planck*(2*S:-1:0).'*Exp.mwFreq*1e9/boltzm/Exp.Temperature);
+  Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
   Populations = Populations/sum(Populations);
   Polarization = diff(Populations);
   Polarization = Polarization(end:-1:1);

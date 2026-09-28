@@ -106,14 +106,7 @@ if isempty(Exp.mwMode), Exp.mwMode = 'perpendicular'; end
 ParallelMode = (2==parseoption(Exp,'mwMode',{'perpendicular','parallel'}));
 
 % Thermal equilibrium populations (non-equilibrium populations not supported)
-if isempty(Exp.Temperature)
-  computeBoltzmannPopulations = false;
-else
-  if numel(Exp.Temperature)~=1 || ~isnumeric(Exp.Temperature)
-    error('If given, Exp.Temperature must be a single number.');
-  end
-  computeBoltzmannPopulations = isfinite(Exp.Temperature);
-end
+computeBoltzmannPopulations = p_temperature(Exp);
 computeNonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 if computeNonEquiPops
   error('Non-equilibrium populations (Sys.initState) not implemented.');
@@ -261,6 +254,7 @@ for iOri = 1:nOrientations
           H = H0 - EigenFields{iOri}(iVec)*muzL;
           [W,E] = eig((H+H')/2,'vector');
           Populations = exp(-BoltzmannPreFactor*(E-min(E)));
+          Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
           Populations = Populations/sum(Populations);
           rho = W*diag(Populations)*W';
           V = Vecs(:,:,iVec);

@@ -93,14 +93,7 @@ Exp = adddefaults(Exp,DefaultExp);
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 
 computeNonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
-if computeNonEquiPops
-  computeBoltzmann = false;
-else
-  if isinf(Exp.Temperature)
-    error('If given, Exp.Temperature must be a finite value.');
-  end
-  computeBoltzmann = ~isnan(Exp.Temperature);
-end
+computeBoltzmann = p_temperature(Exp) && ~computeNonEquiPops;
 
 if isfield(Exp,'ExciteWidth')
   if ~isfield(Exp,'mwFreq'), error('Par.mwFreq is missing.'); end
@@ -505,6 +498,7 @@ for iOri = 1:nOrientations
       Populations = [];
       if computeBoltzmann
         Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
+        Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
         %Polarization = (Populations(u) - Populations(v))/sum(Populations);
       elseif computeNonEquiPops
         %Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
@@ -555,6 +549,7 @@ for iOri = 1:nOrientations
     % Compute polarization if temperature or zero-field populations are given.
     if computeBoltzmann
       Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
+      Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
       NuclearPolarization = (Populations(u) - Populations(v))/sum(Populations);
     else
       NuclearPolarization = 1;

@@ -66,7 +66,7 @@
 %     Harmonic       detection harmonic: 0, 1 (default), 2
 %     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
 %     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
-%     Temperature    ignored (not supported)
+%     Temperature    not supported; must be omitted (or NaN)
 %
 %   Par: structure with simulation parameters
 %     Model      model for spin label dynamics
@@ -214,6 +214,11 @@ end
 
 logmsg(1,'Experimental settings:');
 [Exp,FieldSweep,CenterField,CenterFreq,~] = validate_exp('cardamom',Sys,Exp);
+
+% Temperature
+if p_temperature(Exp)
+  error('Exp.Temperature is not supported by cardamom.');
+end
 
 if FieldSweep
   omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1

@@ -169,14 +169,11 @@ elseif Exp.Field<0
   err = 'Exp.Field cannot be negative. Negative fields are only supported for field sweeps.';
 end
 
+error(err);
+
 [xi1,xik,nB1,nk,nB0_L,mwmode] = p_excitationgeometry(Exp.mwMode);
 
-if numel(Exp.Temperature)>1
-  err = 'Exp.Temperature must be a single number.';
-elseif isinf(Exp.Temperature)
-  err = 'If given, Exp.Temperature must have a finite value.';
-end
-error(err);
+useTemperature = p_temperature(Exp);
 
 if ~isfield(Opt,'Sites')
   Opt.Sites = [];
@@ -244,8 +241,6 @@ end
 
 B0 = Exp.Field*1e-3; % mT -> T
 
-useTemperature = ~isnan(Exp.Temperature);
-
 gg = g*g.';
 trgg = trace(gg);
 
@@ -276,6 +271,7 @@ for iOri = 1:nOrientations
   if useTemperature
     % Levels ordered from mS = S down to mS = -S
     Populations = exp(-(2*S:-1:0).'*planck*E0_*1e6/boltzm/Exp.Temperature);
+    Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
     Populations = Populations/sum(Populations);
     Polarization = diff(Populations);
   else

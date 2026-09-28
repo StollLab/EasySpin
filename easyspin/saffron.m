@@ -186,7 +186,7 @@ if ~isfield(Exp,'Sequence')
 end
 
 % Temperature
-if ~isempty(Exp.Temperature)
+if p_temperature(Exp)
   error('Exp.Temperature is not supported for pulse EPR simulations.');
 end
 
@@ -1078,10 +1078,6 @@ if fastSimulationMode
         dE = bsxfun(@minus,eE,eE.') - Exp.mwFreq*1e3; % MHz
         excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
         SyLab = SyLab.*excitationAmplitude;
-      end
-
-      if ~isempty(Exp.Temperature)
-        % make temperature aware, include Boltzmann populations
       end
 
       % Remove transitions that are not excited
