@@ -54,7 +54,7 @@ This function loads real or complex spectral data from files in common data form
 </p>
 
 <p>
-<code>FileName</code> is the filename to be loaded. If <code>FileName</code> is just a file name without a directory (<code>'mydata.DSC'</code>), <code>eprload</code> looks for it in Matlab's current directory. <code>FileName</code> can also include the full path to the file (<code>C:\mydata\sample5\mydata.DSC'</code>). If <code>FileName</code> is a directory, a file selection dialog box is displayed. If no <code>FileName</code> is given, the current directory is used as default.
+<code>FileName</code> is the filename to be loaded. If <code>FileName</code> is just a file name without a directory (<code>'mydata.DSC'</code>), <code>eprload</code> looks for it in MATLAB's current directory. <code>FileName</code> can also include the full path to the file (<code>'C:\mydata\sample5\mydata.DSC'</code>). If <code>FileName</code> is a directory, a file selection dialog box is displayed. If no <code>FileName</code> is given, the current directory is used as default.
 </p>
 
 <p>
@@ -71,7 +71,7 @@ All fields in <code>Params</code> are converted to numbers if possible. E.g., <c
 
 <p>
 Formats are identified by the extension of the file name specified in <code>FileName</code>, which can be either the data file or the
-parameter file extension. If no extension is given, <code>eprload</code> tried several extensions. The following commercial formats are supported:
+parameter file extension. If no extension is given, <code>eprload</code> tries several extensions. The following commercial formats are supported:
 </p>
 
 <table>
@@ -130,7 +130,7 @@ If <code>Scaling</code> is omitted, no scaling is performed. Currently, <code>Sc
 <div class="subtitle">Examples</div>
 
 <p>
-To load and display a one-dimensional CW EPR spectrum stored in BES<sup>3</sup>T format in the files
+To load and display a one-dimensional cw EPR spectrum stored in BES<sup>3</sup>T format in the files
 <code>myspec.DTA</code> and <code>myspec.DSC</code>, type
 </p>
 
@@ -151,7 +151,7 @@ plot(axis1,data);
 </pre>
 
 <p>
-If you want to display the data only without retrieving the data, use
+To display the data without returning them, use
 </p>
 
 <pre class="matlab">

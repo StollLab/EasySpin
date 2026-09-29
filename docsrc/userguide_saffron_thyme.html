@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.min.js"></script>
    <script src="highlight/do_highlight.js"></script>
-   <title>User guide: saffron</title>
+   <title>User guide: saffron (thyme)</title>
 </head>
 
 <body>
@@ -47,10 +47,10 @@ But it does not work if you want to do one of the following in your simulation:
 <li> Incorporation of bandwidth limiting effects from the resonator and TWT
 </ul>
 
-Instead, <a class="esf" href="saffron.html">saffron</a> then solves the Liouville-von Neumann equation by assuming step-wise time-constant Hamiltonians.
+Instead, <a class="esf" href="saffron.html">saffron</a> then solves the Liouville-von Neumann equation by assuming piecewise constant Hamiltonians.
 
 <p>
-Setting up the experiment is pretty much the same as in part I of the user guide. The biggest difference now is, that real pulses are required, which adds more fields to the pulse definition.
+Setting up the experiment is pretty much the same as in part I of the user guide. The biggest difference now is that real pulses are required, which adds more fields to the pulse definition.
 
 <p>
 In this guide, we are going to cover the following topics:
@@ -59,7 +59,7 @@ In this guide, we are going to cover the following topics:
 <li><a href = "#detection_window">The detection</a></li>
 <li><a href = "#frequency_modulated_pulses">Frequency-modulated pulses</a></li>
 <li><a href = "#indirect_dimensions">Changing pulse parameters with indirect dimensions</a></li>
-<li><a href = "#phase_cycling">Phase Cycling</a></li>
+<li><a href = "#phase_cycling">Phase cycling</a></li>
 <li><a href = "#relaxation_times">Setting up relaxation</a></li>
 <li><a href = "#tipsntricks">Tips and tricks</a></li>
 </ul>
@@ -68,9 +68,9 @@ In this guide, we are going to cover the following topics:
 <a name="calling"><div class="subtitle">Running the simulation</div></a>
 
 <p>
-Here is a simple example on how to run a manually defined three-pulse ESEEM with transient detection.
+Here is a simple example of how to run a manually defined three-pulse ESEEM with transient detection.
 The example below is the extension of what was shown at the end of this <a class="esf" href="userguide_saffron.html#userdef">section</a> in part I of the user guide.
-By now you should be familiar with how to set up a user-defined sequence so we are only going to discuss the additional fields:
+By now you should be familiar with how to set up a user-defined sequence, so we are only going to discuss the additional fields:
 </p>
 
 <pre class="matlab">
@@ -138,7 +138,7 @@ Exp.Sequence = {p90 tau p90 0 p90 tau};
 </pre>
 
 <p>
-The echo that we want to detect appears more or less centered around the end of the second &tau;-period. Hence we can set the detection window such that it is centered around that time.
+The echo that we want to detect appears more or less centered around the end of the second &tau;-period. Hence, we can set the detection window such that it is centered around that time.
 
 <pre class="matlab">
 Exp.DetWindow = [-0.1 0.1];  % µs
@@ -161,15 +161,15 @@ Exp.DetWindow = [0 tau];
 Both will give the same result. In the second one, the last event is the pulse, which means the zero time of the detection window is the end of the pulse.
 
 <p>
-<code>Exp.DetWindow</code> also allows single point detection:
+<code>Exp.DetWindow</code> also allows single-point detection:
 <pre class="matlab">
 Exp.Sequence = {p90 tau p90 0 p90 tau};
 Exp.DetWindow = 0;
 </pre>
 
 <p>
-Another field that can be specified is the down conversion frequency <code>Exp.DetFreq</code>. 
-By default <a class="esf" href="saffron.html">saffron</a> uses <code>Exp.mwFreq</code> for down conversion.
+Another field that can be specified is the down-conversion frequency <code>Exp.DetFreq</code>. 
+By default, <a class="esf" href="saffron.html">saffron</a> uses <code>Exp.mwFreq</code> for down-conversion.
 For down-conversion with a different frequency, it has to be specified in GHz:
 
 <pre class="matlab">
@@ -191,10 +191,10 @@ Something to keep in mind: The entire detection window is used. This means that 
 </a>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> not only supports monochromatic rectangular pulses, but works with all pulse shapes that are described in the <a class="esf" href="pulse.html">documentation</a> and the <a class="esf" href="userguide_shapedpulses.html">userguide</a> of pulse. 
+<a class="esf" href="saffron.html">saffron</a> not only supports monochromatic rectangular pulses, but works with all pulse shapes that are described in the <a class="esf" href="pulse.html">documentation</a> and the <a class="esf" href="userguide_shapedpulses.html">user guide</a> of pulse. 
 
 <p>
-Note, that if you work with frequency swept pulses, refocusing conditions might be slightly different from what you are used to when working with rectangular pulses, e.g. the echo position might shift slightly, or the last pulse has to have half the length of the previous pulses to ensure proper refocusing.
+Note that if you work with frequency-swept pulses, refocusing conditions might be slightly different from what you are used to when working with rectangular pulses, e.g. the echo position might shift slightly, or the last pulse has to have half the length of the previous pulses to ensure proper refocusing.
 
 <p>
 Let us create a two-pulse echo sequence with linearly-swept chirp pulses with smoothed edges.
@@ -228,11 +228,11 @@ Chirp180.trise = 0.030;
 
 <p>
 With <code>Par.Frequency</code> we define the frequency sweep, in MHz. This is defined in relation to <code>Exp.mwFreq</code> which we will add later.
-<code>Par.tp</code> is the rise time and specific to the amplitude modulation function that we chose with <code>Par.Type = 'quartersin/linear';</code>.
+<code>Par.trise</code> is the rise time and specific to the amplitude modulation function that we chose with <code>Par.Type = 'quartersin/linear';</code>.
 
 <p>
 Now the last thing to do is to set up the <code>Exp</code> structure. 
-Since we know, that the echo position depends on the interpulse delay and the length of the refocusing pulse, we slightly adapt the sequence to keep the echo centered in our detection window.
+Since we know that the echo position depends on the interpulse delay and the length of the refocusing pulse, we slightly adapt the sequence to keep the echo centered in our detection window.
  
  <pre class="matlab">
 tau = 0.5;
@@ -243,7 +243,7 @@ Exp.DetWindow = [-0.02 0.02];
 </pre>
 
 <p>
-If you run this, you will soon notice, that the echo has a negative amplitude. 
+If you run this, you will soon notice that the echo has a negative amplitude. 
 By changing the phase of the pulses, we can make it positive:
 
 <pre class="matlab">
@@ -261,7 +261,7 @@ Chirp180.Phase = pi;
 In <a class="esf" href="userguide_saffron.html#userdef">part I</a> of the guide we discussed how to change delays in any dimension, so we are not going to cover it here again.
 
 <p>
-Instead we are going to have a look at how to sweep pulse parameters. 
+Instead, we are going to have a look at how to sweep pulse parameters. 
 Every pulse parameter can be changed during the course of the experiment. 
 For more details, see <a class="esf" href="saffron.html#indirect_dimensions">here</a>.
 
@@ -354,14 +354,14 @@ Here, the explicit declaration of the empty brackets <code>[]</code> means no ph
 <p>
 It is not possible to phase cycle pulses simultaneously with <code>Exp.PhaseCycle</code>.
 However, simultaneous phase cycling can be done through an additional indirect dimension.
-If, for example, you want to phase cycle the second and third pulse together you could write:
+If, for example, you want to phase cycle the second and third pulse together, you could write:
 
 <pre class="matlab">
 Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4}
 </pre>
 
-After the simulation finished, you need to sum up the signals with the correct detection phase manually.
+After the simulation has finished, you need to sum up the signals with the correct detection phase manually.
 
 <p>
 Although <code>Exp.DimX</code> can be used for phase-cycling of single pulses as well, this is not recommended, as using <code>Exp.PhaseCycle</code> significantly improves performance.
@@ -371,12 +371,12 @@ Phase cycling in this form is not available for the <em>fast</em> method, but so
 
 <!-- ============================================================= -->
 <a name="relaxation_times">
-<div class="subtitle">Relaxation Times</div>
+<div class="subtitle">Relaxation times</div>
 </a>
 
 <p>
 The simplest way to use relaxation is to apply the same longitudinal and transverse relaxation times (in microseconds) to all transitions of the spin system.
-A 1.5 microseconds longitudinal relaxation time and a 0.5 microseconds transverse relaxation time can be assigned to all transitions in the system with
+A 1.5-microsecond longitudinal relaxation time and a 0.5-microsecond transverse relaxation time can be assigned to all transitions in the system with
 </p>
 
 <pre class="matlab">
@@ -392,8 +392,8 @@ In some cases, it might be of interest to investigate the effect of only one typ
 In systems with larger spin quantum numbers or several spins, relaxation times can differ for different types of transitions.
 If you do not want to use the same relaxation time for each transition, relaxation times can also be provided in matrices. 
 To set up the input correctly, some knowledge of the spin system and the resulting density matrices is required:
-For a single-spin system the basis functions of the operators in the Zeeman basis state are in descending order, left to right (more at <a href="sop.html">sop</a>).
-E.g., an <i>S</i> = 1 system has three states and the three pathways connecting them can be described by a 3 &times; 3 (density like) matrix:
+For a single-spin system the basis functions of the operators in the Zeeman basis states are in descending order, left to right (more at <a href="sop.html">sop</a>).
+E.g., an <i>S</i> = 1 system has three states and the three pathways connecting them can be described by a 3 &times; 3 (density-like) matrix:
 </p>
 
 <img src="img/spidyan_relaxation1.png" width="250">
@@ -446,13 +446,13 @@ Sys.T1 =
 <p>
 In case the lower triangle is not defined for <code>T1</code>, the upper triangle is used for up and down directions.
 Any transitions that are not assigned a relaxation time (matrix element 0 in the upper triangle), are automatically set to 10<sup>10</sup> microseconds, which effectively switches relaxation off on that pathway. 
-Relaxation times  in the lower triangle of <code>T2</code> are ignored.
+Relaxation times in the lower triangle of <code>T2</code> are ignored.
 </p>
 
 <p>
 Spin systems that contain several spins are assigned relaxation times analogously, but require a slightly deeper insight into ordering of the states:
 The representation of the operators is in terms of product Zeeman basis states |m<sub>1</sub>,m<sub>2</sub>,m<sub>3</sub>,..>, where m<sub>1</sub> is for the first spin, m<sub>2</sub> is for the second spin, etc.
-The basis functions are again in descending order m<sub>i</sub>, left to the right.
+The basis functions are again in descending order m<sub>i</sub>, left to right.
 E.g. for two coupled (electron) spins with <i>S</i> = 1/2, you get the following energy level scheme:
 </p>
 
@@ -467,20 +467,20 @@ E.g. for two coupled (electron) spins with <i>S</i> = 1/2, you get the following
 <p>
 The detected signal corresponds to the expectation value of &langle;<i>&Scirc;</i><sub>-</sub>&rangle;.
 This means that the signal's real part contains &langle;<i>&Scirc;</i><sub>x</sub>&rangle; and the imaginary part &langle;-<i>&Scirc;</i><sub>y</sub>&rangle;.
-Keep this in mind, if you need &langle;<i>&Scirc;</i><sub>y</sub>&rangle;.
+Keep this in mind if you need &langle;<i>&Scirc;</i><sub>y</sub>&rangle;.
 
 <p>
-In some simulations you may observe echoes in your timetrace that should not be there.
+In some simulations you may observe echoes in your time trace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum is insufficiently sampled (not enough orientations are used).
-This can easily be checked: By increasing the number of samples from your distribution the artifact echoes should move, spread further apart or vanish, while physical echoes stay in place. 
+This can easily be checked: By increasing the number of samples from your distribution, the artifact echoes should move, spread further apart or vanish, while physical echoes stay in place. 
 The number of orientations that are being used for the simulation can be controlled with <code>Opt.GridSize</code>.
-By default <a class="esf" href="saffron.html">saffron</a> assumes <code>Opt.GridSize = 31</code>.
+By default, <a class="esf" href="saffron.html">saffron</a> assumes <code>Opt.GridSize = 31</code>.
 
 <p>
-For simulations using the <em>thyme</em> method, <a class="esf" href="saffron.html">saffron</a> usually changes into a simulation frame that rotates slower than the labframe.
-By default, the simulation frame changes all electron Zeeman interaction to about <code>3</code> GHz - the exact value depends on your experiment definition.
+For simulations using the <em>thyme</em> method, <a class="esf" href="saffron.html">saffron</a> usually changes into a simulation frame that rotates slower than the lab frame.
+By default, the simulation frame changes all electron Zeeman interactions to about <code>3</code> GHz - the exact value depends on your experiment definition.
 This has the advantage that a much larger time step can be used (which speeds up the simulation).
-In most cases this will not have an effect on the outcome of the simulation.
+In most cases, this will not have an effect on the outcome of the simulation.
 However, if the off-diagonal elements in your Hamiltonian are large, this could lead to problems.
 If you suspect this is the case, you can switch the frame shift off by setting <code>Opt.SimFreq = 0</code>, or set <code>Opt.SimFreq</code> to a value you would find appropriate.
 For example: For a Q-band simulation where all pulses have frequencies between 33 and 34 GHz, <a class="esf" href="saffron.html">saffron</a> will select 31 GHz as simulation frequency.

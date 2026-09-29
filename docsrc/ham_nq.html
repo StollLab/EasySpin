@@ -47,12 +47,12 @@ Hnq = ham_nq(Sys,nucSpins,'sparse')
 <p>
 <code>ham_nq</code> calculates the Hamiltonian of
 <a href="hamiltonian.html#nqi">nuclear quadrupole interactions</a>
-(NQI) in the spin system <code>SpinSystem</code> and returns it in <code>Hnq</code>.
-If only one argument is given, the NQI of all nuclei of the system are added. If the vector <code>Nuclei</code> is given, only nuclei specified in the vector are included in the calculation. In <code>Nuclei</code>, 1 determines the first nucleus, 2 the second and so on.
+(NQI) in the spin system <code>Sys</code> and returns it in <code>Hnq</code>.
+If only one argument is given, the NQI of all nuclei of the system are added. If the vector <code>nucSpins</code> is given, only nuclei specified in the vector are included in the calculation. In <code>nucSpins</code>, 1 denotes the first nucleus, 2 the second and so on.
 </p>
 
 <p>
-See the section about <a href="spinsystem.html#Q">spin system structures</a> on how to specify NQI parameters. See the section on and <a href="hamiltonian.html#nqi">nuclear quadrupole interaction</a> for more details about the Hamiltonian.
+See the section about <a href="spinsystem.html#Q">spin system structures</a> on how to specify NQI parameters. See the section on the <a href="hamiltonian.html#nqi">nuclear quadrupole interaction</a> for more details about the Hamiltonian.
 
 <p>
 If <code>'sparse'</code> is given as third argument, the Hamiltonian matrix is returned in sparse format instead of full format.

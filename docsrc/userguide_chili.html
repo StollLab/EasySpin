@@ -51,7 +51,7 @@ This user guide contains the following topics:
 <a name="calling"><div class="subtitle">Running the simulation</div></a>
 
 <p>
-Slow-motion cw EPR spectra of S=1/2 systems are computed by the EasySpin function <a class="esf" href="chili.html">chili</a>. Just as the other simulation functions (<a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="garlic.html">garlic</a>, etc.), it is called with two or three arguments:
+Slow-motion cw EPR spectra of S=1/2 systems are computed by the EasySpin function <a class="esf" href="chili.html">chili</a>. Just like the other simulation functions (<a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="garlic.html">garlic</a>, etc.), it is called with two or three arguments:
 </p>
 
 <pre class="matlab">
@@ -119,7 +119,7 @@ The first line defines the g tensor of the spin system via its three principal v
 </p>
 
 <p>
-The field <code>Sys.Nucs</code> contains a character array giving all the magnetic nuclei in the <a href="spinsystem.html">spin system</a>, a nitrogen-14 in the above example. Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multi-nuclear systems</a> about details of the slow-motion simulation in that case.
+The field <code>Sys.Nucs</code> contains a character array giving all the magnetic nuclei in the <a href="spinsystem.html">spin system</a>, a nitrogen-14 in the above example. Use a comma-separated list of isotope labels to give more than one nucleus. E.g., <code>Sys.Nucs = '14N,1H,1H'</code> specifies one nitrogen and two different protons. See the <a href="#multinuc">section on multi-nuclear systems</a> for details of the slow-motion simulation in that case.
 </p>
 
 <p>
@@ -132,7 +132,7 @@ Sys.A = [10; 12]; % MHz
 </pre>
 
 <p>
-Remember that <code>chili</code> (and other EasySpin functions, too), take the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (millitesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="unitconvert.html">unitconvert</a>:
+Remember that <code>chili</code> (like other EasySpin functions) takes the hyperfine coupling values to be in <b>MHz</b>. Often, values for hyperfine coupling constants are given in G (gauss) or mT (millitesla), so you have to convert these values to MHz. For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz. The simplest way to convert coupling constants from magnetic-field units to MHz is to use the EasySpin function <a class="esf" href="unitconvert.html">unitconvert</a>:
 </p>
 
 <pre class="matlab">
@@ -251,11 +251,11 @@ chili(Nx,Exp);
 <a name="potential"><div class="subtitle">The orientational potential</div></a>
 
 <p>
-<code>chili</code> can also include an orientational potential-energy function in the simulation. This is used to model hindered rotational diffusion, i.e. when not all orientations of the spin center relative to its immediate environment (protein, membrane, etc) are equally accessible energetically.
+<code>chili</code> can also include an orientational potential-energy function in the simulation. This is used to model hindered rotational diffusion, i.e. when not all orientations of the spin center relative to its immediate environment (protein, membrane, etc.) are equally accessible energetically.
 </p>
 
 <p>
-The orientational potential is specified in the field <code>Sys.Potential</code> in the spin system structure. The potential is expressed as a linear combination of Wigner function, with the expansion coefficients &lambda;<sub>LMK</sub> and the function quantum numbers L, M, and K. For each expansion term, specify L, M, K, and &lambda;<sub>LMK</sub> in a row. Here are some examples:
+The orientational potential is specified in the field <code>Sys.Potential</code> in the spin system structure. The potential is expressed as a linear combination of Wigner functions, with the expansion coefficients &lambda;<sub>LMK</sub> and the function quantum numbers L, M, and K. For each expansion term, specify L, M, K, and &lambda;<sub>LMK</sub> in a row. Here are some examples:
 </p>
 
 <pre class="matlab">
@@ -264,11 +264,11 @@ Sys.Potential = [2 0 0 0.3; 2 0 2 -0.2];  % two terms
 </pre>
 
 <p>
-The orientational potential gives rise to an non-uniform orientational distribution of the spins. The simplest ordering term is &lambda;<sub>2,0,0</sub>. Its symmetry corresponds to a d<sub>z2</sub> orbital. If it is positive, it indicates preferential orientation of the molecular z axis along the external magnetic field.
+The orientational potential gives rise to a non-uniform orientational distribution of the spins. The simplest ordering term is &lambda;<sub>2,0,0</sub>. Its symmetry corresponds to a d<sub>z2</sub> orbital. If it is positive, it indicates preferential orientation of the molecular z axis along the external magnetic field.
 </p>
 
 <p>
-When an ordering potential for the spin center is present, the simulation has to take into account whether the immediate environment responsible for the ordering (protein, membrane, etc) is ordered or disordered. In the former case, a single-orientation simulation is sufficient, whereas in the latter case, an orientational average over all possible orientations of the protein or membrane is needed - see <a href="#momd">section on orientational averaging</a>.
+When an ordering potential for the spin center is present, the simulation has to take into account whether the immediate environment responsible for the ordering (protein, membrane, etc.) is ordered or disordered. In the former case, a single-orientation simulation is sufficient, whereas in the latter case, an orientational average over all possible orientations of the protein or membrane is needed - see <a href="#momd">section on orientational averaging</a>.
 </p>
 
 
@@ -302,7 +302,7 @@ If both <code>Exp.CenterSweep</code> and <code>Exp.Range</code> are omitted, Eas
 </p>
 
 <p>
-<span class="param">Points</span>. By default, <a class="esf" href="pepper.html">pepper</a> computes a 1024-point spectrum. However, you can change the number of points to a different value using
+<span class="param">Points</span>. By default, <code>chili</code> computes a 1024-point spectrum. However, you can change the number of points to a different value using
 </p>
 
 <pre class="matlab">
@@ -378,19 +378,19 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 <a name="momd"><div class="subtitle">Orientational averaging</div></a>
 
 <p>
-In a frozen solution of spin-labelled protein, the protein molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if an orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
+In a frozen solution of spin-labeled protein, the protein molecules assume all possible orientations. For slow-motion spectra, this orientational distribution has to be taken into account if an orienting potential is present. If not, it is sufficient to compute only one orientation, as the spectra from all orientations are identical.
 </p>
 
 <p>
-The summation of slow-motion spectra over all possible orientations of an immobile protein or membrane ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder average. In <code>chili</code>, the orientational average is calculated whenever you specify an orientational potential. To get a single-orientation spectra, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single protein orientation, use the field <code>Exp.SampleFrame</code> to specify the sample orientation via the Euler tilt angle (in radians) between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+The summation of slow-motion spectra over all possible orientations of an immobile protein or membrane ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder average. In <code>chili</code>, the orientational average is calculated whenever you specify an orientational potential. To get a single-orientation spectrum, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single protein orientation, use the field <code>Exp.SampleFrame</code> to specify the sample orientation via the Euler tilt angles (in radians) between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
 </p>
 
 <p>
-When <code>chili</code> performs an orientational average, it takes the number of orientations to include from <code>Opt.GridSize</code>. Often, <code>Opt.GridSize</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.GridSize</code> can be increased. Larger values of <code>Opt.GridSize</code> increases the simulation time. It might also be necessary to change the grid symmetry in <code>Opt.GridSymmetry</code> (to e.g. <code>'D2h'</code> or <code>'Ci'</code>).
+When <code>chili</code> performs an orientational average, it takes the number of orientations to include from <code>Opt.GridSize</code>. Often, <code>Opt.GridSize</code> does not have to be changed from its default setting, but if the spectrum does not appear to be smooth, <code>Opt.GridSize</code> can be increased. Larger values of <code>Opt.GridSize</code> increase the simulation time. It might also be necessary to change the grid symmetry in <code>Opt.GridSymmetry</code> (to e.g. <code>'D2h'</code> or <code>'Ci'</code>).
 </p>
 
 <p>
-<a class="esf" href="chili.html">chili</a> is not able to automatically determine values of <code>Opt.GridSize</code> and <code>Opt.GridSymmetry</code> that yield a converged spectrum. It is therefore important to increase <code>Opt.GridSize</code> until the spectrum doesn't change anymore, and to initially use the most general symmetry setting <code>Opt.GridSymmetry = 'Ci'</code> (with <code>Opt.GridFrame = [0 0 0]</code>) to assure a correct and converged spectrum.
+<a class="esf" href="chili.html">chili</a> is not able to automatically determine values of <code>Opt.GridSize</code> and <code>Opt.GridSymmetry</code> that yield a converged spectrum. It is therefore important to increase <code>Opt.GridSize</code> until the spectrum doesn't change anymore, and to initially use the most general symmetry setting <code>Opt.GridSymmetry = 'Ci'</code> (with <code>Opt.GridFrame = [0 0 0]</code>) to ensure a correct and converged spectrum.
 </p>
 
 <!-- ============================================================= -->
@@ -401,7 +401,7 @@ The third input structure, <code>Opt</code>, collects parameters related to the 
 </p>
 
 <p>
-The most important field in this structure is <code>Opt.LLMK</code>. It contains 4 numbers that determine the number N of orientational basis functions used in the simulation - the larger the numbers in <code>LLMK</code> the larger is N. N determines how accurately the rotational motion is modelled: The larger N, the more accurate the simulation. Typically, the spectrum converges as a function of N. <code>chili</code> uses preset values in <code>Opt.LLMK</code> which typically work well for X-band nitroxide spectra in the fast and intermediate motion regime without ordering. However, in the presence of ordering, for slow motions, for other spin systems, and for other spectrometer frequencies, the default settings of <code>Opt.LLMK</code> are too small. In that case, the four values in <code>Opt.LLMK</code> have to be increased, e.g.
+The most important field in this structure is <code>Opt.LLMK</code>. It contains 4 numbers that determine the number N of orientational basis functions used in the simulation - the larger the numbers in <code>LLMK</code>, the larger N. N determines how accurately the rotational motion is modeled: The larger N, the more accurate the simulation. Typically, the spectrum converges as a function of N. <code>chili</code> uses preset values in <code>Opt.LLMK</code> which typically work well for X-band nitroxide spectra in the fast and intermediate motion regime without ordering. However, in the presence of ordering, for slow motions, for other spin systems, and for other spectrometer frequencies, the default settings of <code>Opt.LLMK</code> are too small. In that case, the four values in <code>Opt.LLMK</code> have to be increased, e.g.
 </p>
 
 <pre class="matlab">
@@ -409,7 +409,7 @@ Opt.LLMK  = [24 20 10 10];  % moderately high values
 </pre>
 
 <p>
-All numbers must be positive or zero. The first number is the maximum even L, the second is the maximum odd L, and the third and fourth number are the maximum M and K, respectively. The latter two numbers cannot be larger than the maximum L.
+All numbers must be positive or zero. The first number is the maximum even L, the second is the maximum odd L, and the third and fourth numbers are the maximum M and K, respectively. The latter two numbers cannot be larger than the maximum L.
 </p>
 
 <p>
@@ -439,7 +439,7 @@ The Stochastic Liouville equation solver in <code>chili</code> is capable of sim
 </p>
 
 <p>
-There is a workaround for situations where the hyperfine coupling of one or two nuclei is significantly larger than those of all other nuclei. In that case, <code>chili</code> can be instructed via <code>Opt.PostConvNucs</code> to use an approximate procedure: The slow-motional spectrum is simulated using only the electron spin and the nuclei with the dominant hyperfine couplings, and the resulting spectrum is convoluted with the isotropic splitting pattern due to all other nuclei. This post-convolution technique often gives reasonable results very close to the exact solution.
+There is a workaround for situations where the hyperfine coupling of one or two nuclei is significantly larger than those of all other nuclei. In that case, <code>chili</code> can be instructed via <code>Opt.PostConvNucs</code> to use an approximate procedure: The slow-motional spectrum is simulated using only the electron spin and the nuclei with the dominant hyperfine couplings, and the resulting spectrum is convolved with the isotropic splitting pattern due to all other nuclei. This post-convolution technique often gives reasonable results very close to the exact solution.
 </p>
 
 <p>
@@ -495,7 +495,7 @@ By default, <code>chili</code> returns the absorption spectrum (<code>Exp.Harmon
 </p>
 
 <p>
-All other capabilities of <code>chili</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate multi-component spectra, you can use an orientational potential, you can perform orientational averaging, and you can adjust the basis size.
+All other capabilities of <code>chili</code> apply equally to frequency sweeps and to field sweeps. For example, you can simulate multi-component spectra, you can use an orientational potential, you can perform orientational averaging, and you can adjust the basis size.
 </p>
 
 <hr>

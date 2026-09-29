@@ -41,14 +41,14 @@ K = dipkernel(t,r,gAB)
 </pre>
 
 <!-- =================================================================== -->
-<div class="subtitle">Description</div>W
+<div class="subtitle">Description</div>
 
 <p>
 <code>dipkernel</code> calculates the DEER signal for two coupled electron spins-1/2 spaced a distance <code>r</code> apart. <code>t</code> is the pump pulse position time axis (in microseconds), and <code>r</code> is the distance or array of distances (in nanometers).
 </p>
 
 <p>
-If <code>r</code> is a single value, then the output <code>K</code> contains a single vector. If <code>r</code> is a vector, <code>K</code> is matrix, with <code>K(i,j)</code> corresponding to <code>K(t(i),r(j))</code>.
+If <code>r</code> is a single value, then the output <code>K</code> contains a single vector. If <code>r</code> is a vector, <code>K</code> is a matrix, with <code>K(i,j)</code> corresponding to <code>K(t(i),r(j))</code>.
 </p>
 
 <p>

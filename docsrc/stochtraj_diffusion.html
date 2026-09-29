@@ -55,7 +55,7 @@ stochtraj_diffusion(Sys,Par,Opt)
 
 <ul>
 <li><code>Sys</code>: dynamic properties
-<li><code>Par</code>: (optional) simulation parameters for monte carlo integrator and trajectories
+<li><code>Par</code>: (optional) simulation parameters for Monte Carlo integrator and trajectories
 <li><code>Opt</code>: (optional) simulation options
 </ul>
 
@@ -80,6 +80,7 @@ If no output argument is given, <code>stochtraj_diffusion</code> plots one of th
 <p>
 <code>Sys</code> is a structure containing the dynamic properties for generating the stochastic trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
 </p>
+<p>
 For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logtcorr</code>, <code>Diff</code> or <code>logDiff</code> should be given. If more than one of these is given, the first in the list <code>logtcorr</code>, <code>tcorr</code>, <code>logDiff</code>, <code>Diff</code> takes precedence over the other(s).
 </p>
 
@@ -88,7 +89,7 @@ For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logt
 <div class="optiondescr">
 Rotational correlation time, in seconds.
 <ul>
-<li>1 number: isotopic diffusion
+<li>1 number: isotropic diffusion
 <li>2 numbers <code>[txy tz]</code>: anisotropic diffusion with axial diffusion tensor
 <li>3 numbers <code>[tx ty tz]</code>: anisotropic diffusion with rhombic diffusion tensor
 </ul>
@@ -113,11 +114,11 @@ Use this instead of <code>tcorr</code> for least-squares fitting with <a class="
 
 <div class="optionfield"><code>Diff</code></div>
 <div class="optiondescr">
-Rotational diffusion rates (principal values of the rotational diffusion tensor), in seconds<sup>-1</sup>.
+Rotational diffusion rates (principal values of the rotational diffusion tensor), in s<sup>-1</sup>.
   <ul>
-  <li>one number: isotopic diffusion tensor
+  <li>one number: isotropic diffusion tensor
   <li>two numbers: input <code>[Dxy Dzz]</code> gives axial tensor <code>[Dxy Dxy Dzz]</code>
-  <li>three numbers: rhombic tensor <code>[Dxy Dxy Dzz]</code>
+  <li>three numbers: rhombic tensor <code>[Dxx Dyy Dzz]</code>
   </ul>
   <code>Diff</code> is ignored if <code>logtcorr</code>, <code>tcorr</code> or <code>logDiff</code> is given.
 </div>
@@ -131,14 +132,14 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 <div class="optionfield"><code>Potential</code></div>
 <div class="optiondescr">
 
-It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, use <code>Sys.Potential</code> and assign to it one of the following:
+It is also possible to specify an orienting potential energy function to simulate restricted rotational diffusion. <code>stochtraj_diffusion</code> accomplishes this by representing the orienting potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these features, use <code>Sys.Potential</code> and assign to it one of the following:
 
 <ul>
 <li>
 <em>2D array</em> (Wigner function expansion). An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well).
 
 <p>
-The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <code>stochtraj_diffusion</code> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to assure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
+The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <code>stochtraj_diffusion</code> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to ensure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
 
 <p>
 The full form of the orientational potential is expressed as 
@@ -174,7 +175,7 @@ Sys.Potential = Uarray;
 <li>
 <p>
 <em>Function handle</em> (functional representation). 
-A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must by vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
+A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must be vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
 
 <pre class="matlab">
 lambda200 = 0.86;
@@ -303,7 +304,7 @@ Par.nTraj = 400;     % 400 trajectories
 <p>
 For full details of the methods used here, see: 
 </p>
-D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. B 128, 165106 (2008).
+D. Sezer, J. H. Freed, and B. Roux, J. Chem. Phys. 128, 165106 (2008).
 
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>

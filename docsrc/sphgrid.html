@@ -91,11 +91,11 @@ Note that some unique surfaces have open &phi; borders. This is treated correctl
 </p>
 
 <p>
-The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>. <code>vecs</code> is a 3xn array containing the orientations as column vectors. <code>phi</code> and <code>theta</code> are the polar angles in radians. <code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weight is normalised to 4&pi;.
+The output <code>grid</code> is a structure with the fields <code>vecs</code>, <code>phi</code>, <code>theta</code>, and <code>weights</code>. <code>vecs</code> is a 3xn array containing the orientations as column vectors. <code>phi</code> and <code>theta</code> are the polar angles in radians. <code>weights</code> is a vector giving the solid angle of the surface patch that can be attributed to each knot, i.e. the (spherical) area of the Voronoi cell. The sum of all weights is normalized to 4&pi;.
 </p>
 
 <p>
-<code>tri</code> is a structure with the fields <code>idx</code> and <code>areas</code> from a Delaunay triangulation of the orientational grid. <code>idx</code> is a nx3 array containing indices for the triangles along the rows. <code>areas</code> is a vector giving the (spherical) area of each Delaunay triangle.
+<code>tri</code> is a structure with the fields <code>idx</code> and <code>areas</code> from a Delaunay triangulation of the orientational grid. <code>idx</code> is an nx3 array containing indices for the triangles along the rows. <code>areas</code> is a vector giving the (spherical) area of each Delaunay triangle.
 </p>
 
 <div class="subtitle">Examples</div>

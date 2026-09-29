@@ -32,19 +32,19 @@
 In order to integrate EasySpin into your research workflow, you need to be able to import experimental data into EasySpin for analysis and simulation, and then possibly export simulated data for further processing or plotting with other applications such as Origin, IgorPro, Excel, and Bruker Xepr.
 
 <p>
-Here, we look at how you can get your data in and out of EasySpin/Matlab.
+Here, we look at how you can get your data in and out of EasySpin/MATLAB.
 
 <!-- --------------------------------------------------------------------- -->
 <div class="subtitle">Importing data</div>
 
 <p>
-To import experimental EPR spectral data acquired on commercial spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code> supports a variety of file formats, including those used by Bruker, Active Spectrum, Magnettech, Adani, JEOL and CIQTEK spectrometers. (Thanks to these vendors for sharing their file format specifications with EasySpin!).
+To import experimental EPR spectral data acquired on commercial spectrometers, use the <a class="esf" href="eprload.html">eprload</a> function. <code>eprload</code> supports a variety of file formats, including those used by Bruker, Active Spectrum, Magnettech, Adani, JEOL and CIQTEK spectrometers. (Thanks to these vendors for sharing their file format specifications with EasySpin!)
 
 <ul>
 <li>
 <p>
 Data from modern Bruker spectrometers are stored in the BES3T format, in two separate files, a data file with extension DTA and a description
-file with extension DSC. You can load both by calling <code>easyspin</code> with either. You can even leave the extension out. The following three statements
+file with extension DSC. You can load both by calling <code>eprload</code> with either. You can even leave the extension out. The following three statements
 are all equivalent:
 
 <pre class="matlab">
@@ -93,7 +93,7 @@ parameter information. These can be skipped using
 <div class="subtitle">Exporting data</div>
 
 <p>
-There are several ways to export data from EasySpin and Matlab in file formats that can be read by other applications.
+There are several ways to export data from EasySpin and MATLAB in file formats that can be read by other applications.
 
 <ul>
 <li>

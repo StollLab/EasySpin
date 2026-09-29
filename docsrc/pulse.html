@@ -44,7 +44,7 @@ pulse(Par,Opt)
 </pre>
 
 <p>
-See also the <a href="examplesmain.html#pulse shaping">examples</a> on <code>pulse shaping</code> and the <a href="userguide_pulse.html">pulse</a> and <a href="userguide_spidyan.html">spidyan</a> userguides.
+See also the <a href="examplesmain.html#pulse shaping">examples</a> on pulse shaping and the user guides on <a href="userguide_shapedpulses.html">shaped pulses</a> and <a href="userguide_spidyan.html">spidyan</a>.
 </p>
 
 <!-- ============================================================= -->
@@ -74,7 +74,6 @@ If you don't request any output, <code>pulse</code> plots the calculated pulse s
 <p>
 The input arguments to <code>pulse</code> are <code>Par</code>, a structure containing pulse parameter definitions, and <code>Opt</code>, an optional structure containing options for the calculation.
 </p>
-</ul>
 
 <p>
 <code>Par</code> is a structure containing all parameters necessary to specify the pulse shape. The available fields are listed below.
@@ -168,12 +167,12 @@ Depending on the AM function, additional fields need to be specified:
 </ul>
 <li><code>'sinc'</code>
 <ul style="list-style-type:none;padding:2px;">
-<li><code>zerocross</code> - width between the first zero-crossing points in microseconds
+<li><code>zerocross</code> - width between the first zero-crossing points, in microseconds
 </ul>
 <li><code>'sech'</code>
 <ul style="list-style-type:none;padding:2px;">
 <li><code>beta</code> - dimensionless truncation parameter (used as <code>beta/tp</code>)
-<li><code>n</code> - exponent of the secant function argument (default = 1)
+<li><code>n</code> - exponent of the hyperbolic secant function argument (default = 1)
 <p>
 asymmetric sech pulses can be obtained by specifying two values for <code>n</code>
 <br> to get amplitude- and frequency-modulated higher-order sech pulses (HS<i>n</i>, <i>n</i>>1) with offset-independent adiabaticity, combine the <code>sech</code> AM function with the <code>uniformQ</code> FM option (see below)
@@ -206,7 +205,7 @@ If <code>Par.Type</code> is set to <code>'G3'</code>, <code>'G4'</code>, <code>'
 </ul>
 <li><code>'FourierSeries'</code></li>
 <p>
-If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'E-BURP 1'</code>, <code>'E-BURP 2'</code>, <code>'U-BURP'</code>, <code>'RE-BURP'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="https://doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a>(Table 3 for E-BURP 1, Table 4 for E-BURP 2, Table 5 for I-BURP 1, Table 6 for I-BURP 2, Table 7 for U-BURP and Table 8 for RE-BURP, <i>N</i><sub>p</sub> = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="https://doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
+If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</code>, <code>'E-BURP 1'</code>, <code>'E-BURP 2'</code>, <code>'U-BURP'</code>, <code>'RE-BURP'</code>, <code>'SNOB i2'</code> or <code>'SNOB i3'</code>, the finite Fourier series pulses are computed with the coefficients listed in Geen, H., Freeman, R., Band-selective radiofrequency pulses, <i>J. Magn. Reson.</i> 93, 93-141 (<b>1991</b>), DOI: <a href="https://doi.org/10.1016/0022-2364(91)90034-Q">10.1016/0022-2364(91)90034-Q</a> (Table 3 for E-BURP 1, Table 4 for E-BURP 2, Table 5 for I-BURP 1, Table 6 for I-BURP 2, Table 7 for U-BURP and Table 8 for RE-BURP, <i>N</i><sub>p</sub> = 256) and Kupce, E., Boyd, J., Campbell, I. D., Short Selective Pulses for Biochemical Applications, <i>J. Magn. Reson. B</i> 106, 300-303 (<b>1995</b>), DOI: <a href="https://doi.org/10.1006/jmrb.1995.1049">10.1006/jmrb.1995.1049</a> (Table 1 on p. 300 for SNOB i2 and SNOB i3). Otherwise the following parameters need to be specified:
 </p>
 <ul style="list-style-type:none;padding:2px;">
 <li><code>A0</code> - initial amplitude coefficient
@@ -214,7 +213,6 @@ If <code>Par.Type</code> is set to <code>'I-BURP 1'</code>, <code>'I-BURP 2'</co
 <li><code>Bn</code> - list of Fourier coefficients for the sine term
 </ul>
 </ul>
-</p>
 
 <p>
 For the definition of the FM functions, in all cases the frequency sweep range needs to be defined in <code>Par.Frequency</code> with start and end frequencies.
@@ -241,7 +239,7 @@ Also, depending on the FM function, the following additional fields are required
 
 <div class="optionfield"><code>I</code>, <code>Q</code> or <code>IQ</code></div>
 <div class="optiondescr">
-I and Q data describing an arbitrary pulse shape not included in the predefined options listed below. If only one component is defined, the other is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the <code>I</code> and <code>Q</code> or <code>IQ</code> vectors. All other input parameters (<code>Par.TimeStep</code>, <code>Par.Flip</code>, <code>Par.Amplitude</code>, <code>Par.Qcrit</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, <code>Par.Type</code>) are ignored.
+I and Q data describing an arbitrary pulse shape not included in the predefined options listed above. If only one component is defined, the other is set to zero. The time axis is reconstructed based on <code>Par.tp</code> and the length of the <code>I</code> and <code>Q</code> or <code>IQ</code> vectors. All other input parameters (<code>Par.TimeStep</code>, <code>Par.Flip</code>, <code>Par.Amplitude</code>, <code>Par.Qcrit</code>, <code>Par.Frequency</code>, <code>Par.Phase</code>, <code>Par.Type</code>) are ignored.
 <p>
 With this input, <code>pulse</code> can be used to apply bandwidth compensation to user-defined pulse shapes.
 </p>
@@ -268,7 +266,7 @@ If <code>FrequencyResponse</code> is given, the alternative input fields <code>R
 
 <div class="optionfield"><code>ResonatorFrequency</code> and <code>ResonatorQL</code></div>
 <div class="optiondescr">
-Resonator center frequency in GHz and loaded Q-factor for the calculation of an ideal transfer function modeling the resonator as a RLC series circuit.
+Resonator center frequency in GHz and loaded Q-factor for the calculation of an ideal transfer function modeling the resonator as an RLC series circuit.
 
 Example:
 <pre clase="mlexample">

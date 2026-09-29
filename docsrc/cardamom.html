@@ -29,7 +29,7 @@
 <div class="functitle">cardamom</div>
 
 <p>
-Simulation of slow-motion CW-EPR spectra from time-domain trajectories
+Simulation of slow-motion cw EPR spectra from time-domain trajectories
 </p>
 
 <!-- =================================================================== -->
@@ -47,8 +47,8 @@ Simulation of slow-motion CW-EPR spectra from time-domain trajectories
 <div class="subtitle">Description</div>
 
 <p>
-<code>cardamom</code> simulates a CW-EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations or molecular dynamics  (MD) simulations. If stochastic dynamics is to be used, then <code>cardamom</code> uses 
-<a class="esf" href="stochtraj_diffusion.html"><code>stochtraj_diffusion</code> </a> or <a class="esf" href="stochtraj_jump.html"><code>stochtraj_jump</code> </a>
+<code>cardamom</code> simulates a cw EPR spectrum using trajectories of orientations, which are obtained from either stochastic dynamics simulations or molecular dynamics (MD) simulations. If stochastic dynamics is to be used, then <code>cardamom</code> uses 
+<a class="esf" href="stochtraj_diffusion.html"><code>stochtraj_diffusion</code></a> or <a class="esf" href="stochtraj_jump.html"><code>stochtraj_jump</code></a>
 to simulate the orientational trajectories required to calculate a cw EPR spectrum. If MD is to be used, then <code>cardamom</code> requires that the information and processed output of the MD simulation (which can itself be done by using <a class="esf" href="mdload.html">mdload</a>) be provided, including the orientational trajectories.
 </p>
 
@@ -74,7 +74,7 @@ Up to four output arguments are returned:
 
 <ul>
 <li><code>B</code>: magnetic field axis, in mT
-<li><code>spc</code>: derivative of the CW-EPR absorption spectrum, arbitrary units
+<li><code>spc</code>: derivative of the cw EPR absorption spectrum, arbitrary units
 <li><code>TDSignal</code>: the time-domain signal, free induction decay (FID)
 <li><code>t</code>: time axis, in s
 </ul>
@@ -106,7 +106,7 @@ For the timescale(s) of motion, one of the fields <code>tcorr</code>, <code>logt
 <div class="optiondescr">
 Rotational correlation time, in seconds.
 <ul>
-<li>1 number: isotopic diffusion
+<li>1 number: isotropic diffusion
 <li>2 numbers <code>[txy tz]</code>: anisotropic diffusion with axial diffusion tensor
 <li>3 numbers <code>[tx ty tz]</code>: anisotropic diffusion with rhombic diffusion tensor
 </ul>
@@ -132,9 +132,9 @@ Use this instead of <code>tcorr</code> for least-squares fitting with <a class="
 
 <div class="optionfield"><code>Sys.Diff</code></div>
 <div class="optiondescr">
-Rotational diffusion rates (principal values of the rotational diffusion tensor), in second<sup>-1</sup>.
+Rotational diffusion rates (principal values of the rotational diffusion tensor), in s<sup>-1</sup>.
   <ul>
-  <li>one number: isotopic diffusion tensor
+  <li>one number: isotropic diffusion tensor
   <li>two numbers: input <code>[Dxy Dzz]</code> gives axial tensor <code>[Dxy Dxy Dzz]</code>
   <li>three numbers: rhombic tensor <code>[Dxx Dyy Dzz]</code>
   </ul>
@@ -150,16 +150,17 @@ Base-10 logarithm of <code>Diff</code>. If given, <code>Diff</code> is ignored.
 </div>
 
 <p>
-It is also possible to specify an orientational potential to simulate restricted diffusion. <code>cardamom</code> accomplishes this by representing the orientational potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these feature, use <code>Sys.Potential</code> and assign to it one of the following:
+It is also possible to specify an orientational potential to simulate restricted diffusion. <code>cardamom</code> accomplishes this by representing the orientational potential function using either a series of Wigner D-functions (see reference for details), a numerical 3D array, or a function handle. To take advantage of one of these features, use <code>Sys.Potential</code> and assign to it one of the following:
 </p>
 
 <ul>
 <li>
+<p>
 <em>2D array</em> (Wigner function expansion). An array of size (N,4), where each row corresponds to a term in the expansion; the first three columns contain the indices L, M, and K; and the fourth column contains the potential coefficients &lambda;<sup>L</sup><sub>M,K</sub> (the symbols c and &epsilon; are used in the literature as well).
 </p>
 
 <p>
-The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to assure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
+The ranges of allowed index values are as follows: L&ge;0; 0&le;K&le;L; if K=0, then 0&le;M&le;L; and if K&ne;0, then -L&le;M&le;L. Given the associated &lambda;<sup>L</sup><sub>M,K</sub>, <a class="esf" href="stochtraj_diffusion.html">stochtraj_diffusion</a> will automatically include appropriate &lambda;<sup>L</sup><sub>-M,-K</sub> to ensure the potential is real-valued. This also means that the input &lambda;<sup>L</sup><sub>0,0</sub> have to be real.
 </p>
 
 <p>
@@ -200,7 +201,7 @@ Sys.Potential = Uarray;
 <li>
 <p>
 <em>Function handle</em> (functional representation). 
-A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must by vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
+A user-defined function representing U(&alpha;,&beta;,&gamma;). This function must be vectorized (accept arrays as inputs) and accept three input arguments, corresponding to the Euler angles &alpha;, &beta;, and &gamma;, and yield one output.
 </p>
 
 <pre class="matlab">
@@ -209,9 +210,7 @@ U = @(a,b,c) lambda200*(3*cos(b).^2-1);
 Sys.Potential = U;
 </pre>
 
-
 </ul>
-</div>
 
 <!-- ============================================================= -->
 <p>
@@ -226,7 +225,7 @@ A jump model with a discrete number of orientational states can be used for loca
 <div class="optionfield"><code>Sys.TransRates</code></div>
 <div class="optiondescr">
 <p>
-Transition rate matrix of size (nStates,nStates), with rates in seconds<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
+Transition rate matrix of size (nStates,nStates), with rates in s<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
 <ul>
 <li> all diagonal elements must be non-positive
 <li> all off-diagonal elements must be non-negative
@@ -245,7 +244,7 @@ Transition probability matrix of size (nStates,nStates). The elements of <code>S
 
 <div class="optionfield"><code>Sys.Orientations</code></div>
 <div class="optiondescr">
-An array of Euler angles representing the orientation of each state, size (nStates,1) or (1,nStates).
+An array of Euler angles representing the orientation of each state, size (3,nStates) or (nStates,3).
 </div>
 
 <!-- ============================================================= -->
@@ -256,7 +255,7 @@ An array of Euler angles representing the orientation of each state, size (nStat
 
 <p>
 An MD model can also be employed, where MD trajectories are used to model local dynamics and obtain additional trajectories. 
-There are three types of MD model that make use of MD trajectories in different ways: 
+There are three types of MD models that make use of MD trajectories in different ways: 
 <code>Par.Model='MD-direct'</code>, where orientational trajectories are directly extracted from the MD trajectory atomic coordinate output; <code>Par.Model='MD-HBD'</code>, where the orientations and dynamics of the paramagnetic spin system are used to build and simulate trajectories from a coarse-grained, hindered Brownian dynamics (HBD) model; and <code>Par.Model='MD-HMM'</code>, where the dihedral angles of the spin label are projected onto a hidden Markov model (HMM), from which jump trajectories of time-averaged, state-dependent Hamiltonians are simulated.
 </p>
 
@@ -283,8 +282,6 @@ Specifies the motional model to use. The following are available:
 </ul>
 <p>
 If any of the MD-based models are used, an MD trajectory (processed via <a class="esf" href="mdload.html">mdload</a>) has to be provided in the fifth input, <code>MD</code>.
-
-</div>
 </div>
 
 <p>
@@ -341,7 +338,7 @@ If only one set of starting orientations <code>OriStart</code> is given and <cod
 </p>
 
 <p>
-For the lab orientations <code>Orients</code>, if these are not specified but <code>nOrients</code> is declared, then <code>nOrients</code> orientations will be chosen using a spiral grid on the unit sphere. If neither are provided, then the number of lab orientations to sum over will be set equal to <code>Par.nTraj</code> and they will be chosen from a spiral grid.
+For the lab orientations <code>Orients</code>, if these are not specified but <code>nOrients</code> is declared, then <code>nOrients</code> orientations will be chosen using a spiral grid on the unit sphere. If neither is provided, then the number of lab orientations to sum over will be set equal to <code>Par.nTraj</code> and they will be chosen from a spiral grid.
 </p>
 
 <!-- ============================================================= -->
@@ -362,11 +359,11 @@ Determines how much information <code>cardamom</code> prints to the screen. If <
 <div class="optionfield"><code>Opt.Method</code></div>
 <div class="optiondescr">
 <p>
-Determines the method with which the time-dependent spin Hamiltonian is constructed and the spin density matrix propagated. The two possible values are <code>'fast'</code> and <code>'ISTO'</code>.
+Determines the method with which the time-dependent spin Hamiltonian is constructed and the spin density matrix propagated. The two possible values are <code>'fast'</code> and <code>'ISTOs'</code>.
 <ul>
 <li>If set to <code>'fast'</code> (default for spin systems with S=1/2 and at most one nucleus), <code>cardamom</code> will construct a nuclear sub-Hamiltonian restricted to the electron spin S=-1/2 subspace and propagate it within this subspace, allowing for a very efficient analytical calculation of the propagator at each time step.
 <li>If set to <code>'ISTOs'</code>, <code>cardamom</code> will construct a spin Hamiltonian using irreducible spherical tensor operators and calculate the full propagator using a matrix exponential, which is very general but much less efficient than the specialized <code>'fast'</code> method.
-<ul>
+</ul>
 </div>
 
 <div class="optionfield"><code>Opt.specCon</code></div>
@@ -436,7 +433,7 @@ Optional HMM model parameters to be used when setting <code>Par.Model = 'MD-HMM'
 <!-- ============================================================= -->
 
 <p>
-To simulate a cw EPR spectrum of an <sup>14</sup>N nitroxide spin label with a rotational correlation time of 5 ns using a Brownian diffusion model, use
+To simulate a cw EPR spectrum of a <sup>14</sup>N nitroxide spin label with a rotational correlation time of 5 ns using a Brownian diffusion model, use
 </p>
 
 <pre class="matlab">
@@ -457,7 +454,7 @@ Par.nSteps = 250;               % number of spin propagation time steps
 </pre>
 
 <p>
-To simulate a CW EPR spectrum using very slow hindered Brownian diffusion, with an orientational potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1.0 and a 250-ns long FID, use
+To simulate a cw EPR spectrum using very slow hindered Brownian diffusion, with an orientational potential with coefficient &lambda;<sup>2</sup><sub>0,0</sub> = 1.0 and a 250-ns long FID, use
 </p>
 
 <pre class="matlab">

@@ -56,7 +56,7 @@ These two parameters must have the same time units (e.g. milliseconds).
 <p>
 <code>rcfilt</code> returns the filtered signal, which actually depends only
 on the <em>ratio</em> of <code>SampTime</code> and <code>TimeConst</code>.
-Be careful to assure that the first few points of the spectrum (usually baseline)
+Make sure that the first few points of the spectrum (usually baseline)
 are zero, otherwise an unwanted fade-in effect will appear.
 </p>
 
@@ -79,8 +79,8 @@ If <code>TimeConst</code> is zero, no RC filtering is performed.
 <div class="subtitle">Examples</div>
 
 <p>
-When recording CW EPR spectra, an RC filter is usually used to remove
-high frequency noise, thereby increasing the signal-to-noise ratio.
+When recording cw EPR spectra, an RC filter is usually used to remove
+high-frequency noise, thereby increasing the signal-to-noise ratio.
 Let's look at the effect of the RC filter on a noisy EPR spectrum.
 First we construct a mock EPR spectrum <code>spec</code> with noise.
 </p>
@@ -104,8 +104,8 @@ plot(field,spec,'r',field,spec_smooth,'k')
 <p>
 Here we have used a time constant of 20 milliseconds for a conversion
 time of 1 millisecond. The noise level decreases significantly, and
-the signal centre shifts slightly to the right. If the field sweep is
-downwards, the centre shifts slightly to the left:
+the signal center shifts slightly to the right. If the field sweep is
+downwards, the center shifts slightly to the left:
 </p>
 
 <pre class="matlab">

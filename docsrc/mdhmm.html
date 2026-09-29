@@ -80,7 +80,7 @@ Number of times to repeat the k-means clustering (only meaningful with random se
 
 
 <p>
-If no input argument is given, a short help summary is shown (same as when typing <code>help cardamom</code>).
+If no input argument is given, a short help summary is shown (same as when typing <code>help mdhmm</code>).
 </p>
 
 <p>
@@ -126,7 +126,7 @@ Trajectory of log-likelihood for the Gaussian HMM parameter values throughout mo
 
 <p>
 <code>mdhmm</code> uses k-means clustering to determine an initial set of state centers and covariance matrices, and a maximum-likelihood estimator to obtain initial estimates for the transition probability matrix and the initial distribution. It then uses these estimates as starting values to optimize them, using the Baum-Welch expectation maximization algorithm. This yields the final HMM parameters. At the end, the most likely state trajectory giving rise to the dihedral trajectory is calculated using the Viterbi algorithm, and the relaxation times of the HMM are calculated from the eigenvalues of the transition probability matrix. 
-For diagnostics purposes, the log-likelihood exhibited by the set of HMM parameter values throughout model optimization is also provided.
+For diagnostic purposes, the log-likelihood exhibited by the set of HMM parameter values throughout model optimization is also provided.
 </p>
 
 <!-- =================================================================== -->

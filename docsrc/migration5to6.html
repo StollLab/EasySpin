@@ -156,11 +156,11 @@ See the documentation for <a class="esf" href="pepper.html">pepper</a> and other
 <a name="fitting"><div class="subtitle">Least-squares fitting</div></a>
 
 <p>
-The interface to <a class="esf" href="esfit.html">esfit</a> has changed completely, with the goal of making the function more flexible and broadly applicable. See the <a href="userguide_fitting.html">userguide for least-squares fitting</a> and the <a href="esfit.html">reference page</a> for more details.
+The interface to <a class="esf" href="esfit.html">esfit</a> has changed completely, with the goal of making the function more flexible and broadly applicable. See the <a href="userguide_fitting.html">user guide for least-squares fitting</a> and the <a href="esfit.html">reference page</a> for more details.
 </p>
 
 <p>
-Two major changes are (i) the data is now provided as the first input and the model function as second, and (ii) the inputs to the EasySpin functions are grouped together in cell arrays:
+Two major changes are (i) the data is now provided as the first input and the model function as the second, and (ii) the inputs to the EasySpin functions are grouped together in cell arrays:
 </p>
 
 <pre class="matlab">
@@ -235,7 +235,7 @@ Some options have changed as well. Instead of <code>FitOpt.Scaling</code>, use <
 <a name="ham"><div class="subtitle">Hamiltonian functions</div></a>
 
 <p>
-All functions that return Hamiltonians have been renamed. The full hamiltonian function <code>sham</code> is now called <a class="esf" href="ham.html">ham</a>.
+All functions that return Hamiltonians have been renamed. The full Hamiltonian function <code>sham</code> is now called <a class="esf" href="ham.html">ham</a>.
 </p>
 
 <pre class="matlab">
@@ -314,7 +314,7 @@ The pulse EPR simulation function <a class="esf" href="saffron.html">saffron</a>
 </p>
 
 <p>
-Here is an example of the extensions. The field <code>Exp.Sequence</code> previously allowed only a few pre-defined pulse sequence. In EasySpin 6, it allows you to specify user-defined pulse sequences, including shaped pulses.
+Here is an example of the extensions. The field <code>Exp.Sequence</code> previously allowed only a few pre-defined pulse sequences. In EasySpin 6, it allows you to specify user-defined pulse sequences, including shaped pulses.
 </p>
 
 <pre class="matlab">
@@ -322,7 +322,7 @@ Exp.Sequence = {p90, tau, p180, tau};  % user-defined pulse sequence
 </pre>
 
 <p>
-For details see the user guides (<a href="userguide_saffron.html">part 1</a> and <a href="userguide_saffron_thyme.html">part 2</a>) as well as the reference page for <a class="esf" href="saffron.html">saffron</a> and the <a href="examplesmain.html">examples</a>.
+For details, see the user guides (<a href="userguide_saffron.html">part 1</a> and <a href="userguide_saffron_thyme.html">part 2</a>) as well as the reference page for <a class="esf" href="saffron.html">saffron</a> and the <a href="examplesmain.html">examples</a>.
 </p>
 
 <p>
@@ -401,7 +401,7 @@ Exp.mwMode = 'parallel';  % EasySpin 6
 </pre>
 
 <p>
-For beam experiments, <code>Exp.mwMode</code> takes the same two-element cell array as <code>Exp.Mode</code>, but the second element can be set to <code>'unpolarized'</code> etc, which previously required <code>Exp.mwPolarization</code>:
+For beam experiments, <code>Exp.mwMode</code> takes the same two-element cell array as <code>Exp.Mode</code>, but the second element can be set to <code>'unpolarized'</code> etc., which previously required <code>Exp.mwPolarization</code>:
 </p>
 
 <pre class="matlab">
@@ -426,7 +426,7 @@ Exp.mwMode = {k,'unpolarized'};  % EasySpin 6
 <li>The function <code>rescale</code> had to be renamed to <a class="esf" href="rescaledata.html">rescaledata</a> to avoid conflict with an identically named MATLAB function.
 <li>The function <code>rotplane</code> has been removed. Use <a class="esf" href="rotateframe.html">rotateframe</a> instead.
 <li>The function <code>eigfields</code> has been renamed to <a class="esf" href="resfields_eig.html">resfields_eig</a>.
-<li><code>easyspininfo</code> and <code>easyspincompile</code> are no longer supported. Use <code>easyspin info</code> and <code>easyspin compile</code> instead.  See help for the <a class="esf" href="easyspin.html">easyspin</a> command.
+<li><code>easyspininfo</code> and <code>easyspincompile</code> are no longer supported. Use <code>easyspin info</code> and <code>easyspin compile</code> instead. See help for the <a class="esf" href="easyspin.html">easyspin</a> command.
 <li>Use the very convenient <code>easyspin doc</code> to access the EasySpin documentation.
 <li>The field <code>Sys.orf</code> (orbital reduction factor) has been removed. Instead, use <code>Sys.gL</code> to specify the orbital g factor, and <code>Sys.soc</code> to specify the strength of the spin-orbit coupling.
 <li>The function <code>symm</code> has been renamed to <a class="esf" href="hamsymm.html">hamsymm</a>.

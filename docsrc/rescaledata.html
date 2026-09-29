@@ -54,16 +54,16 @@ If a second data array is given in <code>yref</code>, the data in <code>y</code>
 </p>
 
 <ul>
-<li><code>'maxabs'</code>: scales <code>y</code> such that its maximum absolute will match that of <code>yref</code> </li>
+<li><code>'maxabs'</code>: scales <code>y</code> such that its maximum absolute value matches that of <code>yref</code> </li>
 <li><code>'lsq'</code>: least-squares fits <code>y</code> to <code>yref</code> using <code>a*y</code> (scale only)</li>
 </ul>
 
 <p>
-For <code>'lsq'</code>, if the number of elements in <code>yref</code> doesn't match the number of elements in <code>y</code>, <code>yref</code> is interpolated to match the length as <code>y</code>.
+For <code>'lsq'</code>, if the number of elements in <code>yref</code> doesn't match the number of elements in <code>y</code>, <code>yref</code> is interpolated to match the length of <code>y</code>.
 </p>
 
 <p>
-In all cases, positive rescaling is enforced, i.e. the rescaled data is not inverted.
+In all cases, positive rescaling is enforced, i.e. the rescaled data are not inverted.
 </p>
 
 <p>
@@ -75,10 +75,10 @@ Without a reference data vector, the rescale options (given in <code>mode</code>
 scales <code>y</code> such that its maximum absolute value equals 1.
 </li>
 <li><code>'int'</code>:
-scales <code>y</code> such that the integral (calculated as the sum of the datapoints) equals 1.
+scales <code>y</code> such that the integral (calculated as the sum of the data points) equals 1.
 </li>
 <li><code>'dint'</code>:
-scales <code>y</code> such that the double integral (calculated as the sum of the cumulative sum of the datapoints) equals 1.
+scales <code>y</code> such that the double integral (calculated as the sum of the cumulative sum of the data points) equals 1.
 </li>
 </ul>
 

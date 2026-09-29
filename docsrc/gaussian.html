@@ -47,7 +47,7 @@ yabs = gaussian(x,x0,fwhm,diff,phase)
 
 <p>
 This function returns a <a href="lineshapes.html">Gaussian line shape</a> with center <code>x0</code> and full width at
-half height <code>fwhm</code> over the abscissa values defined in the vector <code>x</code>.
+half maximum <code>fwhm</code> over the abscissa values defined in the vector <code>x</code>.
 </p>
 
 <p>
@@ -60,7 +60,7 @@ integral with <img src="eqn/gaussian1.png" alt="[eqn]"><!--MATH$-\infty$--> as l
 </p>
 
 <p>
-If <code>phase</code> is given, the absorption and dispersion line shapes are both rotated the by the given amount (in radians). E.g., with <code>phase=pi/2<code>, <code>yabs</code> would contain the dispersion line shape.
+If <code>phase</code> is given, the absorption and dispersion line shapes are both rotated by the given amount (in radians). E.g., with <code>phase=pi/2</code>, <code>yabs</code> would contain the dispersion line shape.
 </p>
 
 <!-- ====================================================== -->
@@ -77,7 +77,7 @@ plot(x,y);
 </pre>
 
 <p>
-The Gaussian is normalised, its integral is one.
+The Gaussian is normalized; its integral is one.
 </p>
 <pre class="matlab">
 sum(y)*(x(2)-x(1))

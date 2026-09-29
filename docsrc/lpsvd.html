@@ -57,11 +57,11 @@ y(time) = amp * exp(1i*phase) * exp(time * (1i*2*pi*freq - damp) )
 </p>
 <p>
 The function requires 2-4 input parameters: the <code>spectrum</code> to be fit and 
-its corresponding <code>time</code> vector are necessary; the <code>method</code> and <code>order</code> if not 
-provided will revert to the defaults. 
+its corresponding <code>time</code> vector are necessary; the <code>method</code> and <code>order</code>, if not
+provided, revert to the defaults.
 </p>
 <p>
-The third input determines the <code>method</code> used to fit the model to the spectrum, the three possible inputs include:
+The third input determines the <code>method</code> used to fit the model to the spectrum, the three possible values are:
 </p>
 <ul>
 <li><code>'kt'</code>: Kumaresan and Tufts linear prediction and singular value decomposition algorithm 
@@ -69,14 +69,14 @@ The third input determines the <code>method</code> used to fit the model to the 
 <li><code>'tls'</code>: Hankel total least squares method
 </ul>
 <p>
-The fourth input is an initial estimate for the number of damped sinusoids present in the <code>spectrum</code>. If an integer is provided that will be used otherwise the order can be estimated via:
+The fourth input is an initial estimate for the number of damped sinusoids present in the <code>spectrum</code>. If an integer is provided, it is used. Otherwise, the order is estimated via:
 </p>
 <ul>
 <li><code>'mdl'</code>: minimum description length (default) 
-<li><code>'aic'</code>: Akaike information protocol
+<li><code>'aic'</code>: Akaike information criterion
 </ul>
 <p>
-However these two methods are known to underestimate the number of components.  
+However, these two methods are known to underestimate the number of components.  
 </p>
 
 <!-- =================================================================== -->
@@ -132,20 +132,20 @@ The methods implemented in <code>lpsvd</code> are described in
 
 <ul>
 <li>
-<a href="https://doi.org/10.1109/TASSP.1982.1163974">Kumaresan, R.;Tufts, D.W.; 
+<a href="https://doi.org/10.1109/TASSP.1982.1163974">Kumaresan, R.; Tufts, D.W.; 
 IEEE Trans. Acoust. Speech Signal ASSP-30 (1982) 833</a> 
 <li>
 <a href="https://doi.org/10.1364/JOSA.73.001799">Kung, S.Y.; Arun, K.S.; 
 Bhaskar Rao, D.V.; J. Opt. Soc. Am. 73 (1983), 1799</a>
 <li>
 <a href="https://doi.org/10.1016/0022-2364(87)90023-0">Barkhuijsen, H.; 
-De Beer, R.; Van Ormondt, D.; J. Mag. Reson. 73 (1987), 553</a>
+De Beer, R.; Van Ormondt, D.; J. Magn. Reson. 73 (1987), 553</a>
 <li>
-<a href="https://doi.org/10.1006/jmra.1994.1209">Van Huffel, S.;Chen, H.; 
-Decanniere, C.; Van Hecke, P.; J. Mag. Reson., Series A 110 (1994), 228</a>
+<a href="https://doi.org/10.1006/jmra.1994.1209">Van Huffel, S.; Chen, H.; 
+Decanniere, C.; Van Hecke, P.; J. Magn. Reson., Series A 110 (1994), 228</a>
 <li>
 <a href="https://doi.org/10.1109/TASSP.1985.1164557">Wax, M.; Kailath, T.; 
-IEEE Trans. Acoust. Speech Signal ASSP-39 387 (1985)</a>
+IEEE Trans. Acoust. Speech Signal ASSP-33 (1985) 387</a>
 </ul>
 <!-- =================================================================== -->
 <div class="subtitle">See also</div>

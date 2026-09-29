@@ -47,7 +47,7 @@ Weights = ...
 <p>
 This function calculates weights for orientation selectivity in powders
 and frozen solutions (disordered systems). At a given
-magnetic field not all, but only centres with certain orientations relative to the
+magnetic field not all, but only centers with certain orientations relative to the
 external magnetic field have transitions that are on resonance with the spectrometer
 frequency and can be excited. <code>orisel</code> determines which orientations are excited
 and how strongly.
@@ -118,8 +118,8 @@ If not specified, it is assumed to be zero.
 
 <div class="optionfield"><code>Orientations</code></div>
 <div class="optiondescr">
-2xn vector <code>[phi theta]</code> giving the polar angles that define the orientations. This is an optional field. If not given, orientations
-are computed internally using <a class="esf" href="sphgrid.html">sphgrid</a> with the values of <code>Symmetry</code> and <code>GridSize</code> given in the <code>Options</code> structure.
+2xn array <code>[phi theta]</code> giving the polar angles that define the orientations. This is an optional field. If not given, orientations
+are computed internally using <a class="esf" href="sphgrid.html">sphgrid</a> with the values of <code>GridSymmetry</code> and <code>GridSize</code> given in the <code>Opt</code> structure.
 </div>
 
 <p>
@@ -166,7 +166,7 @@ Weights = orisel(Sys,Exp);
 </pre>
 
 <p>
-The orientation selection can easily be visualised by omitting
+The orientation selection can easily be visualized by omitting
 the output argument
 </p>
 

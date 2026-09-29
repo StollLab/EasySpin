@@ -49,7 +49,7 @@ See also the <a href="userguide_blochsteady.html">user guide</a> on rapid-scan E
 <div class="subtitle">Description</div>
 
 <p>
-<code>rapidscan2spc</code> converts a rapid-scan time domain signal into the corresponding EPR spectrum.
+<code>rapidscan2spc</code> converts a rapid-scan time-domain signal into the corresponding EPR spectrum.
 </p>
 
 <p>
@@ -57,11 +57,11 @@ It takes three or four inputs:
 </p>
 
 <p>
-<code>rsSignal</code> is s a vector containing the rapid-scan time-domain signal over one period of modulation. It must be complex-valued and contain the dispersion in the real part and the absorption in the imaginary part. The number of points must be even. The underlying modulation is assumed to be cosine.
+<code>rsSignal</code> is a vector containing the rapid-scan time-domain signal over one period of modulation. It must be complex-valued and contain the dispersion in the real part and the absorption in the imaginary part. The number of points must be even. The underlying modulation is assumed to be cosine.
 </p>
 
 <p>
-<code>rsAmp</code> is the peak-to-peak modulation amplitude, in units of mT. <code>rsFreq</code> is modulation frequency, in units of kHz.
+<code>rsAmp</code> is the peak-to-peak modulation amplitude, in units of mT. <code>rsFreq</code> is the modulation frequency, in units of kHz.
 </p>
 
 <p>
@@ -69,7 +69,7 @@ It takes three or four inputs:
 </p>
 
 <p>
-The function returns the field offset in <code>dB</code> (in units of mT) and the EPR spectrum in <code>spc</code>. <code>spc</code> is complex-valued: the real part is the dispersion spectrum, and the imaginary part is the absorption spectra.
+The function returns the field offset in <code>dB</code> (in units of mT) and the EPR spectrum in <code>spc</code>. <code>spc</code> is complex-valued: the real part is the dispersion spectrum, and the imaginary part is the absorption spectrum.
 </p>
 
 <p>
@@ -117,7 +117,7 @@ plot(dB,real(spc),dB,imag(spc));
 <div class="subtitle">References</div>
 
 <ul>
-<li>M. Tseitlin, G. A. Rinard, R. W. Quine, S. S. Eaton, G. E. Eaton, J. Magn. Reson. <b>2011</b>, 208, 279-283. <a target="_blank" href="https://doi.org/10.1016/j.jmr.2010.11.015">link</a>
+<li>M. Tseitlin, G. A. Rinard, R. W. Quine, S. S. Eaton, G. R. Eaton, J. Magn. Reson. <b>2011</b>, 208, 279-283. <a target="_blank" href="https://doi.org/10.1016/j.jmr.2010.11.015">link</a>
 <li>M. Tseytlin, J. Magn. Reson. <b>2017</b>, 281, 272-278. <a target="_blank" href="https://doi.org/10.1016/j.jmr.2017.06.008">link</a>
 </ul>
 

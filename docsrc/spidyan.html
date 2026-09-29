@@ -30,7 +30,7 @@
 <div class="functitle">spidyan</div>
 
 <p>
-Simulation of spin dynamics with arbitrary wave forms
+Simulation of spin dynamics with arbitrary waveforms
 </p>
 
 <div class="subtitle">Syntax</div>
@@ -44,7 +44,7 @@ sig = spidyan(...)
 </pre>
 
 <p>
-See also the <a href="examplesmain.html#pulse spidyan">examples</a> on how to use <code>spidyan</code> and the <a href="userguide_spidyan.html">userguide</a>.
+See also the <a href="examplesmain.html#pulse spidyan">examples</a> on how to use <code>spidyan</code> and the <a href="userguide_spidyan.html">user guide</a>.
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
@@ -52,10 +52,10 @@ See also the <a href="examplesmain.html#pulse spidyan">examples</a> on how to us
 <p>
 This function simulates spin dynamics of pulse EPR experiments with arbitrary waveforms.
 The focus of <code>spidyan</code> lies on investigation of spin dynamics and on effects of non-ideal or frequency-swept pulses on the outcome of experiments.
-Hence, the outputs of <code>spidyan</code> are a time domain signal and density matrices of a single spin packet.
-For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based one the same propagation engine.
-Time-domain signals or state trajectories simulated by <code>spidyan</code> are typically further analyzed by (Matlab) software home-written by the user.
-At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition selective excitation operators,  freely-choosable detection operators,...). 
+Hence, the outputs of <code>spidyan</code> are a time-domain signal and density matrices of a single spin packet.
+For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based on the same propagation engine.
+Time-domain signals or state trajectories simulated by <code>spidyan</code> are typically further analyzed by (MATLAB) software home-written by the user.
+At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition-selective excitation operators, freely choosable detection operators,...). 
 This freedom should help you to investigate your spin dynamics problem in depth.
 </p>
 
@@ -74,7 +74,6 @@ For multidimensional simulations where the length of the trace changes, <code>t<
 <li>
 <code>out</code> contains additional output such as the final state in <code>out.FinalState</code> (or states for a multidimensional experiment) after propagation and the cell array <code>out.StateTrajectories</code> which contains state trajectories (density matrices) at each point of detection, but is available only if requested through <code>Opt.StateTrajectories</code>.
 </ul>
-</p>
 
 <p>
 A detailed discussion of the structure of the output can be found further below.
@@ -104,7 +103,7 @@ If only one is provided, the other one is set by default to a very large value (
 <div class="optionfield"><code>ZeemanFreq</code></div>
 <div class="optiondescr">
 Array with Zeeman frequencies (in GHz) of electron spins defined in <code>S</code> of the spin system structure. 
-It is possible to use  <code>ZeemanFreq</code> in combination with <code>g</code>. 
+It is possible to use <code>ZeemanFreq</code> in combination with <code>g</code>. 
 If a non-zero Zeeman frequency is found, any g-values given for this electron spin are ignored.
 </div>
 
@@ -112,8 +111,7 @@ If a non-zero Zeeman frequency is found, any g-values given for this electron sp
 <div class="optiondescr">
 Longitudinal relaxation time in microseconds. 
 If it is a scalar, the relaxation time is applied to all transitions. 
-Transition specific relaxation times can be provided in the form of a matrix.
-See section <a href="#relaxation_times">Relaxation times</a> below for more details. 
+Transition-specific relaxation times can be provided in the form of a matrix.
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
 </div>
@@ -122,8 +120,7 @@ In order for <code>spidyan</code> to simulate relaxation effects, it is necessar
 <div class="optiondescr">
 Transverse relaxation time in microseconds. 
 If it is a scalar, the relaxation time is applied to all transitions. 
-Transition specific relaxation times can be provided in the form of a matrix.
-See section <a href="#relaxation_times">Relaxation times</a> more details. 
+Transition-specific relaxation times can be provided in the form of a matrix.
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
 </div>
@@ -131,7 +128,7 @@ In order for <code>spidyan</code> to simulate relaxation effects, it is necessar
 <div class="optionfield"><code>initState</code></div>
 <div class="optiondescr">
 It is possible to run <code>spidyan</code> simulations with a custom initial state, which must be provided in matrix form.
-By default, the initial state assumes the high temperature approximation for all electron spins.
+By default, the initial state assumes the high-temperature approximation for all electron spins.
 The structure of density matrices (ordering of operators in terms of product Zeeman basis states) is explained at <a class="esf" href="sop.html">sop</a>.
 <pre class="matlab">
 Sys.S = 1/2;				% Creates an isolated spin 1/2
@@ -142,9 +139,9 @@ Sys.initState = [0 1/2; 1/2 0]; 	% Start simulation from Sx
 
 <div class="optionfield"><code>eqState</code></div>
 <div class="optiondescr">
-For simulations with relaxation it is possible to provide an equilibrium state <code>eqState</code> that the system relaxes to. 
-This state has to be a density operator matrix form.
-By default the initial state is used as equilibrium state.
+For simulations with relaxation, it is possible to provide an equilibrium state <code>eqState</code> that the system relaxes to. 
+This state has to be a density operator in matrix form.
+By default, the initial state is used as the equilibrium state.
 The equilibrium state is only used if relaxation is active, else it is ignored.
 </div>
 
@@ -164,7 +161,7 @@ If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
 <div class="optiondescr">
 A cell array that contains the pulse definition and the inter-pulse delays.
 Available pulse types and their parameters are described at <a href="pulse.html">pulse</a>. 
-For a pulse it is necessary to insert a structure containing the pulse definition, free evolution events are declared with a scalar that corresponds to their length in microsecond:
+For a pulse it is necessary to insert a structure containing the pulse definition, free evolution events are declared with a scalar that corresponds to their length in microseconds:
 <pre class="matlab">
 P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
 P90.tp = 0.032;		  	% Pulse Length in microseconds
@@ -178,7 +175,7 @@ Exp.Sequence = {P90 0.2 P180 0.4}; % Creates a two pulse (echo) sequence, with a
 				   % delay of 0.2 microseconds and a final free-evolution period 
 				   % of 0.4 microseconds
 </pre>
-The delays are defined to go from the end of one previous element in <code>Sequence</code> to the beginning of the next (unlike in Bruker spectrometers).
+The delays are defined to go from the end of the previous element in <code>Sequence</code> to the beginning of the next (unlike in Bruker spectrometers).
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -196,7 +193,7 @@ Pulse.Frequency = [-250 250];  % 500 MHz sweep
 <div class="optiondescr">
 Cell array that contains the individual phase cycles, with the indexing corresponding to the pulse indices.
 The phase cycle itself needs to be given in array form, where rows correspond to the phase cycling steps. 
-In each row the first element is the phase, and the second element the detection phase.
+In each row, the first element is the phase, and the second element the detection phase.
 <pre class="matlab">
 PC = [0, 1; pi, -1];   		% phase cycle
 Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
@@ -212,8 +209,8 @@ The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc
 <pre class="matlab">
 Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
 </pre>
-<code>mwPolarization</code> can also be used in combination with custom excitation operators (<code>Opt.ExcOperator</code>), if they have a imaginary component.
-Keep in mind, that using <code>'circular'</code> does not allow <code>spidyan</code> to use some of its speed up tricks and can lead to significantly longer simulation times.
+<code>mwPolarization</code> can also be used in combination with custom excitation operators (<code>Opt.ExcOperator</code>), if they have an imaginary component.
+Keep in mind that using <code>'circular'</code> does not allow <code>spidyan</code> to use some of its speed-up tricks and can lead to significantly longer simulation times.
 </div>
 
 <p>
@@ -230,8 +227,8 @@ The zero-time of the detection is taken as the end of the last element in <code>
 <img src="img/detection_windows.png" width="600">
 </p>
 
-To do single point detection, it is sufficient to tell <code>DetWindow</code> the time of the detection point.
-E.g. to detect at the center of the echo after a two pulse experiment:
+To do single-point detection, it is sufficient to tell <code>DetWindow</code> the time of the detection point.
+E.g. to detect at the center of the echo after a two-pulse experiment:
 <pre class="matlab">
 tau = 0.5
 Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
@@ -250,7 +247,7 @@ Exp.Sequence = {pulse90 tau pulse180 tau};   	% a two-pulse echo
 
 Exp.DetWindow = [-0.1 0.1];	% detect a from -100 ns to 100 ns centered around of the end of tau
 </pre>
-Of course, it is also possible to detect a transient anywhere after the last pulse, as long is it does not overlap with it:
+Of course, it is also possible to detect a transient anywhere after the last pulse, as long as it does not overlap with it:
 <pre class="matlab">
 Exp.DetWindow = [0 0.3];	% start detection at the end of the last event and detect for 300 ns
 Exp.DetWindow = [-0.3 -0.1];	% start detection 300 ns before the end of the last event and detect for 200 ns
@@ -294,15 +291,15 @@ If <code>Exp.DetWindow</code> is provided, any input from <code>DetSequence</cod
 <div class="optiondescr">
 The field <code>DetOperator</code> is a cell array that contains detection operators. 
 If no detection operator is defined, but detection is active, <i>&Scirc;</i><sub>+</sub> is used for all electron spins.
-Detection operators can be defined by using the same syntax as in  <code>sop</code> (see <a class="esf" href="sop.html">there</a>): 
+Detection operators can be defined by using the same syntax as in <code>sop</code> (see <a class="esf" href="sop.html">there</a>): 
 <pre class="matlab">
 Exp.DetOperator = {'+1' 'z1'};   % detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;<sub>z</sub></i> of the first electron spin
 </pre>
-Detection operators that can not be defined using the <code>sop</code> syntax, can be provided in matrix form:
+Detection operators that cannot be defined using the <code>sop</code> syntax can be provided in matrix form:
 <pre class="matlab">
 Exp.DetOperator = {[0 1; 0 0] [1/2 0; 0 -1/2]};   % the same operators as a above for <i>S</i> = 1/2 in matrix form
 </pre>
-For convenience it is possible write a single detection operator without the curly brackets:
+For convenience, it is possible to write a single detection operator without the curly brackets:
 <pre class="matlab">
 Exp.DetOperator = '+1'; % same as {'+1'}
 
@@ -322,7 +319,7 @@ But if your data processing involves the imaginary part of the signal and you en
 <div class="optiondescr">
 The signal is detected in the simulation frame, which causes all signals from detection operators that have non-zero off-diagonal elements to have an oscillating component.
 By translating/shifting the frequency it is possible to center the signal around 0 (baseband) or any other desired frequency.
-The frequency shift has to given as absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
+The frequency shift has to be given as an absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
 Indexing in <code>DetFreq</code> corresponds to the ordering in <code>DetOperator</code>:
 <pre class="matlab">
 Exp.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&Scirc;<sub>z</sub></i> of the first electron spin
@@ -344,19 +341,19 @@ Has to be specified for each detection operator separately:
 Exp.DetOperator = {'z1' '+1'};
 Exp.DetPhase = [0 pi]; 		% change detection phase of second detection operator by &pi;
 </pre>
-The default value is <code>0</code>. The phase provided in <code>DetPhase</code> is added to the signal, regardless the type of operator.
+The default value is <code>0</code>. The phase provided in <code>DetPhase</code> is added to the signal, regardless of the type of operator.
 </div>
 
 <h2 id="indirect_dimensions"></h2>
 <p>
-By defining <code>nPoints</code> and  <code>DimX</code> it is possible to vary parameters of the pulse sequence and create one or multidimensional experiments.
+By defining <code>nPoints</code> and <code>DimX</code>, it is possible to vary parameters of the pulse sequence and create one- or multidimensional experiments.
 This also changes the structure of the output compared to a single acquisition. 
 More details on how the output changes can be found below.
 </p>
 
 <div class="optionfield"><code>nPoints</code></div>
 <div class="optiondescr">
-A vector that contains the number of points in each dimension, e. g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension. 
+A vector that contains the number of points in each dimension, e.g. [10 150] corresponds to 10 points in the first and 150 points in the second dimension. 
 <pre class="matlab">
 Exp.nPoints = [10 150]; 	% 10 points along the first indirect dimension, 150 along the second
 </pre>
@@ -366,7 +363,7 @@ Exp.nPoints = [10 150]; 	% 10 points along the first indirect dimension, 150 alo
 <div class="optiondescr">
 <code>Dim1</code>, <code>Dim2</code>,... provide the fields that are to be changed along the indirect dimensions (field <code>nPoints</code>).  
 The first data point always uses the values defined initially in the experiment definition.
-All fields that appear in the pulse definition can be changed, e.g:
+All fields that appear in the pulse definition can be changed, e.g.:
 <pre class="matlab">
 Exp.Dim1 = {'p2.Flip' pi/8};        % increments the flip angle of the second pulse by pi/8 each step
 </pre>
@@ -387,7 +384,7 @@ Exp.Dim2 = {'p2.Position' 0.1};   % moves the second pulse 100 ns back each step
 </pre>
 A list of increments can be used by providing vectors with the precomputed increments.
 All increments are always applied to the initial value of the field (as defined in the <code>Exp</code>) and are not related to each other.
-Hence, if the value in the experiment definition is desired as first data point of the indirect dimension, the fist element has to be zero:
+Hence, if the value in the experiment definition is desired as first data point of the indirect dimension, the first element has to be zero:
 <pre class="matlab">
 Exp.nPoints = 4;
 
@@ -408,7 +405,7 @@ If one value is provided in <code>Exp.DimX</code>, this is going to be added to 
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' 5};   % changes both elements in Par.Frequency by 5 MHz per step
 </pre>
-An equivalent input as the above is the following, where each the increment for each field in <code>Par.Frequency</code> is given:
+An equivalent input as the above is the following, where the increment for each field in <code>Par.Frequency</code> is given:
 <pre class="matlab">
 Exp.Dim1 = {'p1.Frequency' [5 5]};   % changes both elements in Par.Frequency by 5 MHz per step
 </pre>
@@ -423,7 +420,7 @@ Exp.Dim1 = {'p1.Frequency' [0 0; 10 10; 30 30; 80 80]};  % vector increment for 
 Exp.Dim1 = {'p1.Frequency' [0 0; -10 0; 0 30; -80 80]};  % vector increment changing the excitation range of the pulse
 </pre>
 <p>
-For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relatives amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
+For other pulse parameters that are defined by a vector (e.g., the order of an asymmetric hyperbolic secant (HS) pulse <code>Pulse.n</code> or the list of relative amplitudes of a Gaussian cascade <code>Pulse.A0</code>), selected elements can be incremented by adding an index to the field name:
 <pre class="matlab">
 Exp.Dim1 = {'p1.A0(3)' 0.1; 'p1.A0(4)' -0.1};   % changes relative amplitudes of the third and fourth pulse in a Gaussian cascade
 Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbolic secant pulse by 2 each step
@@ -432,7 +429,7 @@ Exp.Dim1 = {'p1.n(2)' 2};    % increases order of the falling flank of a hyperbo
 Exp.Dim1 = {'p1.Frequency(2)' 5};    % changes only the final frequency of the pulse
 Exp.Dim1 = {'p1.Frequency' [0 5]};   % identical to the above and not a list of increments!
 </pre>
-Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that can not be achieved through the <code>Exp.PhaseCycle</code> structure):
+Adding an indirect dimension also allows for simultaneous phase cycling of two or more pulses (something that cannot be achieved through the <code>Exp.PhaseCycle</code> structure):
 <pre class="matlab">
 Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
@@ -452,7 +449,7 @@ Bandwidth limiting effects of a resonator on a pulse can be incorporated in two 
 
 <p>
 The resonator profile is defined using the resonator center frequency <code>ResonatorFrequency</code> and the loaded Q-value <code>ResonatorQL</code>.
-The resonator frequency response is then computed from the ideal transfer function for an RLC series circuit) 
+The resonator frequency response is then computed from the ideal transfer function for an RLC series circuit: 
 
 <pre class="matlab">
 Exp.ResonatorFrequency = 33.5; 	% resonator center frequency in GHz
@@ -460,7 +457,7 @@ Exp.ResonatorQL = 300;	  	% loaded Q-value
 </pre>
 
 <p>
-Or the transfer function in combination with the frequency axis are given with <code>FrequencyResponse</code>.
+Or the transfer function in combination with the frequency axis is given with <code>FrequencyResponse</code>.
 
 <pre class="matlab">
 Exp.FrequencyResponse = [Frequency; TransferFunction] 	% transfer function and its correspond frequency axis
@@ -469,11 +466,11 @@ Exp.FrequencyResponse = [Frequency; TransferFunction] 	% transfer function and i
 <p>
 By setting <code>ResonatorMode</code> it is possible to compensate for the resonator. 
 Compensation aims to provide a waveform that excites spin packets in the resonator with constant critical adiabaticity if the originally specified waveform would lead to excitation with constant critical adiabaticity in the absence of a resonator (mainly for chirp and hyperbolic secant pulses).
-For more details see <a class="esf" href="pulse.html">pulse</a> and <a class="esf" href="resonator.html">resonator</a>.
+For more details, see <a class="esf" href="pulse.html">pulse</a> and <a class="esf" href="resonator.html">resonator</a>.
 <p>
 <div class="optionfield"><code>ResonatorFrequency</code></div>
 <div class="optiondescr">
-Center frequency of resonator in GHz.
+Center frequency of the resonator in GHz.
 </div>
 <div class="optionfield"><code>ResonatorQL</code></div>
 <div class="optiondescr">
@@ -481,8 +478,8 @@ The loaded Q-value.
 </div>
 <div class="optionfield"><code>FrequencyResponse</code></div>
 <div class="optiondescr">
-This gives the frequency response of the resonator, in the form <code>Par.FrequencyResponse = [Frequency; TransferFunction]</code> with the (possibly experimental) resonator transfer function in <code>TransferFunction</code> and the corresponding frequency axis in <code>Frequency</code> (in GHz). 
-A complex transfer function input in <code>Par.FrequencyResponse</code> is used directly in the bandwidth compensation. 
+This gives the frequency response of the resonator, in the form <code>Exp.FrequencyResponse = [Frequency; TransferFunction]</code> with the (possibly experimental) resonator transfer function in <code>TransferFunction</code> and the corresponding frequency axis in <code>Frequency</code> (in GHz). 
+A complex transfer function input in <code>Exp.FrequencyResponse</code> is used directly in the bandwidth compensation. 
 A real transfer function input is assumed to correspond to the magnitude response, and the associated phase response is estimated.
 
 <p>
@@ -491,8 +488,8 @@ If <code>FrequencyResponse</code> is given, the alternative input fields <code>R
 <div class="optionfield"><code>ResonatorMode</code></div>
 <div class="optiondescr">
 Optional, can be <code>'simulate'</code> or <code>'compensate'</code>. 
-By default the effect of the resonator on the signal is simulated.
-If set to <code>'compensate'</code> the pulse shape is adapted such that it compensates for the resonator profile by using a uniform critical adiabaticity criterion.
+By default, the effect of the resonator on the signal is simulated.
+If set to <code>'compensate'</code>, the pulse shape is adapted such that it compensates for the resonator profile by using a uniform critical adiabaticity criterion.
 </div>
 
 
@@ -509,7 +506,7 @@ Opt.Relaxation = true;   	% switches on relaxation for the entire simulation
 Opt.Relaxation = [0 0 1];	% relaxation is active only during the third event
 </pre>
 If relaxation is switched on, relaxation times (<code>Sys.T1</code> and <code>Sys.T2</code>) have to be provided and the simulation is then performed in Liouville space, which slows down the simulation, for larger spin systems tremendously so.
-In order to avoid unexpected behavior, if the <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
+In order to avoid unexpected behavior, if <code>Opt.Relaxation</code> is not used to switch relaxation on/off for the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
 </div>
 
 <div class="optionfield"><code>SimFreq</code></div>
@@ -524,13 +521,13 @@ Pulse.Frequency = [-50 50]; % Pulse with bandwidth of 100 MHz, sweeps from 34.35
 
 Opt.SimFreq = 30;  	      % Changes into a rotating frame at 30 GHz
 </pre>
-To force a simulation in the labframe <code>SimFreq</code> has to be set to zero:
+To force a simulation in the lab frame, <code>SimFreq</code> has to be set to zero:
 <pre class="matlab">
 Opt.SimFreq = 0;  	      % Propagation in the labframe
 </pre>
 Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
-Keep in mind, that if a time step is provided with <code>Opt.IntTimeStep</code> it is not adapted automatically.
-To have the program adapt the time step, remove the field <code>Opt.IntTimeStep</code> .
+Keep in mind that if a time step is provided with <code>Opt.IntTimeStep</code>, it is not adapted automatically.
+To have the program adapt the time step, remove the field <code>Opt.IntTimeStep</code>.
 </div>
 
 
@@ -538,9 +535,9 @@ To have the program adapt the time step, remove the field <code>Opt.IntTimeStep<
 <div class="optiondescr">
 Integration time step in microseconds, optional. 
 If no time step is provided, the program computes a suitable time step (taking into account the highest frequency that is being used for the pulse definition <code>Exp.Frequency</code>).
-Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillation or 1/50th of the largest time step size to fulfil the Nyquist criterion.
+Accurate results are obtained for an integration time step that corresponds to about 50 data points per oscillation or 1/50th of the largest time step size to fulfill the Nyquist criterion.
 <p>
-User provided integration time steps must at least fulfil the Nyquist criterion, or an error is thrown. 
+User-provided integration time steps must at least fulfill the Nyquist criterion, or an error is thrown. 
 For integration time steps larger than the recommended ones, a warning is printed to the command line.
 </p>
 </div>
@@ -555,7 +552,7 @@ Opt.StateTrajectories = [0 0 1];	% state trajectories is active only during the 
 </pre>
 State trajectories are only fully recorded for events where detection is active. 
 Otherwise, the density matrices are stored only at the beginning and end of the event.
-In order to avoid unexpected behavior, if the <code>Opt.StateTrajectories</code> is not control the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
+In order to avoid unexpected behavior, if <code>Opt.StateTrajectories</code> does not control the entire sequence, the length of it has to match the length of <code>Exp.Sequence</code> (all events need to be defined).
 </div>
 
 
@@ -578,8 +575,8 @@ The imaginary part of a custom excitation operator is only considered if <code>C
 
 <p>
 The data type of the returned time-domain signal depends on experiment parameters. 
-If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding being the detected transient and the second dimension specified detection operators. 
-If one the specified detection operators is a ladder operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
+If you run a single experiment (no <code>Exp.nPoints</code>), the output <code>sig</code> is a two-dimensional numeric array, with the first dimension corresponding to the detected transient and the second dimension to the specified detection operators. 
+If one of the specified detection operators is a ladder operator, say <i>&Scirc;</i><sub>-</sub>, <code>sig</code> is a complex-valued vector. 
 The time axis is returned in <code>t</code> and will be a vector with the same length as <code>sig</code>.
 </p>
 
@@ -589,8 +586,8 @@ The indexing of n corresponds to how <code>Exp.nPoints</code> was defined:
 </p>
 
 <p>
-If the total length of all detected events is identical for each acquisition point, <code>sig</code> will be a (n+2) dimensional array.
-For <code>Exp.nPoints = [3 4];</code> a total of 12 data sets will be returned in a four dimensional array:
+If the total length of all detected events is identical for each acquisition point, <code>sig</code> will be an (n+2)-dimensional array.
+For <code>Exp.nPoints = [3 4];</code> a total of 12 data sets will be returned in a four-dimensional array:
 
 <pre class="matlab">
 Exp.nPoints = [3 4];
@@ -604,7 +601,7 @@ size(sig) =
 
 The first dimension of your output has a length of <code>3</code> and the second dimension <code>4</code>.
 These correspond to the indirect dimensions.
-The second-to-last dimension corresponds are the expectation values at each point of time during which was detected (the transient)  and the last dimension to the detection operators.
+The second-to-last dimension corresponds to the expectation values at each detected point in time (the transient), and the last dimension to the detection operators.
 To get the time trace that corresponds to the second point in the first dimension and the last point in the second dimension you could use: 
 <pre class="matlab">
 trace = sig(2,4,:,:);
@@ -617,14 +614,13 @@ size(t) =
 
            1 	11003
 </pre>
-If not, <code>t</code> is an (n+1) dimensional numeric array, with the same indexing for n as for <code>sig</code>.
+If not, <code>t</code> is an (n+1)-dimensional numeric array, with the same indexing for n as for <code>sig</code>.
 This can be encountered when detecting a moving echo, with a detection window that is always centered around the echo, but moves in terms of absolute time (see example on two-pulse ESEEM).
 <pre class="mloutput">
 size(t) = 
 
            3        4 	   11003
 </pre>
-</p>
 
 <p>
 When the detection length changes (e.g. if you vary the length of a pulse or a free evolution event that is being detected) between acquisition points, <code>t</code> and <code>sig</code> become n-dimensional cell arrays. 
@@ -658,14 +654,13 @@ size(t{2,4}) =
 
            2 	21003
 </pre>
-</p>
 
 <div class="subtitle2">Final States</div>
 
 <p>
 For a single acquisition, the output <code>out.FinalState</code> is the final density matrix of size n<sub>H</sub> x n<sub>H</sub>, where n<sub>H</sub> is the dimensionality of your spin system in Hilbert space.
-If a simulation with more than one acquisition point is run, <code>s</code> is an (n+2)-dimensional numeric array, with the same rules for indexing as demonstrated above for <code>sig</code>.
-E. g. to get the final state of the second data point in the first dimension and the fourth data point in the second dimension, write:
+If a simulation with more than one acquisition point is run, <code>out.FinalState</code> is an (n+2)-dimensional numeric array, with the same rules for indexing as demonstrated above for <code>sig</code>.
+E.g., to get the final state of the second data point in the first dimension and the fourth data point in the second dimension, write:
 <pre class="matlab">
 InterestingState = squeeze(out.FinalState(2,4,:,:)); % squeeze removes the singleton dimensions
 </pre>
@@ -676,15 +671,14 @@ InterestingState =
 		0.4559 - 0.1965i  -0.0592 + 0.0000i
 </pre>
 
-</p>
 
 <div class="subtitle2">State Trajectories</div>
 
 <p>
 If <code>Opt.StateTrajectories</code> is active during at least one event, <code>out.StateTrajectories</code> contains the state trajectories.
-This means, it contains the state (density matrix) of each propagation step during the events selected in <code>Opt.StateTrajectories</code>.
+This means it contains the state (density matrix) of each propagation step during the events selected in <code>Opt.StateTrajectories</code>.
 <code>out.StateTrajectories</code> is an n-dimensional cell array where the dimensions once again correspond to <code>Exp.nPoints</code>.
-To get the state trajectories for the second data point in the first dimension and for the fourth datapoint in the second dimension of the example above, write:
+To get the state trajectories for the second data point in the first dimension and for the fourth data point in the second dimension of the example above, write:
 <pre class="matlab">
 InterestingStateTrajectory = out.StateTrajectories{2,4}
 </pre>
@@ -696,8 +690,9 @@ size(InterestingStateTrajectory)
 
      1		21003
 </pre>
+<p>
 For full recording of state trajectories, detection needs to be active during those events.
-Otherwise only the states at the beginning and the end of that event are recorded.
+Otherwise, only the states at the beginning and the end of that event are recorded.
 </p>
 
 
@@ -709,7 +704,8 @@ Otherwise only the states at the beginning and the end of that event are recorde
 <a class="esf" href="resonator.html">resonator</a>,
 <a class="esf" href="signalprocessing.html">signalprocessing</a>,
 <a class="esf" href="pulse.html">pulse</a>,
-<a class="esf" href="pulse.html">sop</a>
+<a class="esf" href="sop.html">sop</a>
+</p>
 
 <hr>
 

@@ -37,7 +37,7 @@ To simulate EPR spectra, EasySpin needs to know about the relative orientations 
 <div class="subtitle"><a name="frametypes">Overview</a></div>
 
 <p>
-The figure below summarizes EasySpin's frames. There are four frame types: the <a href="#labframe">lab frame</a>, the <a href="#sampleframe">sample/crystal frame</a>, the <a href="molframe">molecular frame</a>, and a set of <a href="#tensorframes">tensor frames</a> (one for each tensor). The orientation of the sample (crystal, film, powder, frozen solution, etc.) in the lab frame is given in <code>Exp.SampleFrame</code>, the orientation of the paramagnetic molecule in the sample frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.nnFrame</code>, and <code>Sys.DiffFrame</code>.
+The figure below summarizes EasySpin's frames. There are four frame types: the <a href="#labframe">lab frame</a>, the <a href="#sampleframe">sample/crystal frame</a>, the <a href="#molframe">molecular frame</a>, and a set of <a href="#tensorframes">tensor frames</a> (one for each tensor). The orientation of the sample (crystal, film, powder, frozen solution, etc.) in the lab frame is given in <code>Exp.SampleFrame</code>, the orientation of the paramagnetic molecule in the sample frame is given in <code>Exp.MolFrame</code>, and the orientations of the various tensors in the molecular frame are given in <code>Sys.gFrame</code>, <code>Sys.AFrame</code>, <code>Sys.DFrame</code>, <code>Sys.QFrame</code>, <code>Sys.eeFrame</code>, <code>Sys.nnFrame</code>, and <code>Sys.DiffFrame</code>.
 </p>
 
 <div style="text-align:center">
@@ -45,7 +45,7 @@ The figure below summarizes EasySpin's frames. There are four frame types: the <
 </div>
 
 <p>
-This guide explains at how these frames are defined in EasySpin and shows how to specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
+This guide explains how these frames are defined in EasySpin and shows how to specify the relative orientations between them. All frames are right-handed cartesian with orthonormal axes.
 </p>
 
 <ul>
@@ -101,11 +101,11 @@ In the case of a crystal, EasySpin follows the conventions prevalent in X-ray cr
 
 <ul>
 <li>1-2 (triclinic; point groups C1, Ci=S2): xS, yS and zS are arbitrary.
-<li>3-15 (monoclinic; point groups C2, Cs=C1h, C2h): For short Hermann-Mauguin symbols (like P2, Cm, P21/m, etc), yS is along the unique axis. For full Hermann-Mauguin symbols (like P211, P121, P112, etc), the space group symbol defines the unique axis (P211: xS, P121: yS, P112: zS, etc). In all cases, the other two axes are arbitrary.
+<li>3-15 (monoclinic; point groups C2, Cs=C1h, C2h): For short Hermann-Mauguin symbols (like P2, Cm, P21/m, etc.), yS is along the unique axis. For full Hermann-Mauguin symbols (like P211, P121, P112, etc.), the space group symbol defines the unique axis (P211: xS, P121: yS, P112: zS, etc.). In all cases, the other two axes are arbitrary.
 <li>16-74 (orthorhombic; point groups D2, C2v, D2h): xS, yS and zS are along the three two-fold axes. The assignment is arbitrary.
 <li>75-88 (tetragonal; point groups C4, S4, C4h): zS is along the four-fold axis. xS and yS are arbitrary.
 <li>89-142 (tetragonal; point groups D4, C4v, D2d, D4h): zS is along the four-fold axis. xS is along one of the two-fold axes.
-<li>143-148 (tetragonal; point groups C3, C3i=S6): zS is along the three-fold axis. xS and yS are arbitrary.
+<li>143-148 (trigonal; point groups C3, C3i=S6): zS is along the three-fold axis. xS and yS are arbitrary.
 <li>149-167 (trigonal; point groups D3, C3v, D3d): zS is along the three-fold axis. xS is along one of the two-fold axes.
 <li>168-176 (hexagonal; point groups C6, C3h, C6h): zS is along the six-fold axis. xS and yS are arbitrary.
 <li>177-194 (hexagonal; point groups D6, C6v, D3h, D6h): zS is along the six-fold axis, and xS is along one of the two-fold axes.
@@ -183,7 +183,7 @@ This means that to transform the molecular frame (M) to the g tensor frame (T), 
 </p>
 
 <p>
-This works similarly for the other tensors. For hyperfine tensors, use <code>Sys.AFrame</code>, for zero-field tensors <code>Sys.DFrame</code>,  for quadrupole tensors <code>Sys.QFrame</code>, for electron-electron interaction tensors <code>Sys.eeFrame</code>, for chemical shielding tensors <code>Sys.sigmaFrame</code>, and for nucleus-nucleus interaction tensors <code>Sys.nnFrame</code>.
+This works similarly for the other tensors. For hyperfine tensors, use <code>Sys.AFrame</code>, for zero-field tensors <code>Sys.DFrame</code>, for quadrupole tensors <code>Sys.QFrame</code>, for electron-electron interaction tensors <code>Sys.eeFrame</code>, for chemical shielding tensors <code>Sys.sigmaFrame</code>, and for nucleus-nucleus interaction tensors <code>Sys.nnFrame</code>.
 </p>
 
 <p>
@@ -294,7 +294,7 @@ This indicates that the lab frame (xL,yL,zL) has to be rotated by 30 degrees aro
 </p>
 
 <p>
-In textbook and literature, it is quite common to use angles &theta; and &phi; to describe the orientation of the magnetic field relative to the sample (often directly to one of the magnetic tensors). These angles are entered in <code>Exp.SampleFrame</code> as follows, assuming <code>Exp.MolFrame = [0 0 0]</code>
+In textbooks and the literature, it is quite common to use angles &theta; and &phi; to describe the orientation of the magnetic field relative to the sample (often directly to one of the magnetic tensors). These angles are entered in <code>Exp.SampleFrame</code> as follows, assuming <code>Exp.MolFrame = [0 0 0]</code>
 </p>
 
 <pre class="matlab">

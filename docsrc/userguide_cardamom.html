@@ -163,9 +163,9 @@ Sys.A = [10 12]; % MHz
 -->
 
 <p>
-Remember that <code>cardamom</code> (and other EasySpin functions, too),
-take the hyperfine coupling values to be in <b>MHz</b>.
-Often, values for hyperfine couplings are given in G (Gauss) or mT
+Remember that <code>cardamom</code> (like other EasySpin functions)
+takes the hyperfine coupling values to be in <b>MHz</b>.
+Often, values for hyperfine couplings are given in G (gauss) or mT
 (millitesla), so you have to convert these values.
 For g = 2.00232, 1 G corresponds to 2.8025 MHz, and 1 mT corresponds to 28.025 MHz.
 The simplest way to convert coupling constants from magnetic field units to MHz is to use the EasySpin
@@ -202,7 +202,7 @@ The spin system structure also collects parameters relating to the dynamics of t
 </p>
 
 <p>
-There are two types of local dynamics models in <code>cardamom</code> that can be used to simulate a cw EPR spectrum: <code>stochastic</code>, which simulates rotational diffusion, and <code>jump</code>, which simulates jumps between a set of discrete orientations. Each of these models can be declared using the field <code>Par.Model</code>.
+There are two types of local dynamics models in <code>cardamom</code> that can be used to simulate a cw EPR spectrum: <code>'diffusion'</code>, which simulates rotational diffusion, and <code>'jump'</code>, which simulates jumps between a set of discrete orientations. Each of these models can be declared using the field <code>Par.Model</code>.
 </p>
 
 <p>
@@ -283,7 +283,7 @@ Sys.Orientations = [   0,    0, 0;
 
 <p>
 The fields <code>Sys.lwpp</code> and <code>Sys.lw</code> have the same meaning as for the other EPR simulation functions (<a class="esf" href="garlic.html">garlic</a>, <a class="esf" href="chili.html">chili</a>,
-<a class="esf" href="pepper.html">pepper</a>). You can use them to specify an additional convolution Gaussian and/or Lorentzian broadening in mT (<code>Sys.lwpp</code> for peak-to-peak, and <code>Sys.lw</code> for full width at half maximum).
+<a class="esf" href="pepper.html">pepper</a>). You can use them to specify an additional convolutional Gaussian and/or Lorentzian broadening in mT (<code>Sys.lwpp</code> for peak-to-peak, and <code>Sys.lw</code> for full width at half maximum).
 </p>
 
 <pre class="matlab">
@@ -310,7 +310,7 @@ Nx.Potential = [2, 0, 0,  0.3;
 </pre>
 
 <p>
-indicates &lambda;<sup>2</sup><sub>0,0</sub> = 0.3 in the first row and  &lambda;<sup>2</sup><sub>0,2</sub> = -0.2 in the second row.
+indicates &lambda;<sup>2</sup><sub>0,0</sub> = 0.3 in the first row and &lambda;<sup>2</sup><sub>0,2</sub> = -0.2 in the second row.
 </p>
 
 <p>
@@ -446,12 +446,12 @@ Par.Model = 'diffusion'; % simulate stochastic rotational diffusion
 </pre>
 
 <p>
-Regarding orientational grid information, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary tell <code>cardamom</code> how the orientational grids should be handled.
+Regarding orientational grid information, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary to tell <code>cardamom</code> how the orientational grids should be handled.
 </p>
 
 <!--
 <p>
-Save for the jump model, which requires a simulation time step <code>Par.dt</code> to be declared, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary tell <code>cardamom</code> specify how the time axis and orientational grids should be handled.
+Save for the jump model, which requires a simulation time step <code>Par.dt</code> to be declared, <code>cardamom</code> will try to determine the best parameters to simulate a cw EPR spectrum. However, depending on the desired model, sometimes it is necessary to tell <code>cardamom</code> specify how the time axis and orientational grids should be handled.
 </p>
 -->
 
@@ -459,7 +459,7 @@ Save for the jump model, which requires a simulation time step <code>Par.dt</cod
 <div class="subtitle"><a name="momd">Powder vs single orientation vs global diffusion</a></div>
 
 <p>
-In a frozen solution of spin-labeled protein, the protein  molecules assume all possible orientations. For slow-motion spectra, the situation is more complex. 
+In a frozen solution of spin-labeled protein, the protein molecules assume all possible orientations. For slow-motion spectra, the situation is more complex. 
 The spin label will undergo "local" rotational diffusion, which may or may not be under the influence of an orientational potential. 
 The protein itself, depending on its size and environment, might also be undergoing "global" rotational diffusion, which would couple to the local diffusion of the spin label. Otherwise, the protein might be "fixed" on the timescale of a cw EPR measurement.
 For the latter case, if the spin label is under the influence of an orientational potential, the distribution of protein orientations must be taken into account.
@@ -467,7 +467,7 @@ If there is no potential, then it is sufficient to compute only one orientation,
 </p>
 
 <p>
-The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>cardamom</code>, the powder spectrum is simulated whenever you specify an orientational potential. To get a single-crystal spectrum, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Par.Orients</code>. <code>Par.Orients</code> contains the Euler tilt angles (in radians), between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
+The summation of slow-motion spectra over all possible orientations of an immobile protein ("director") is historically called the <em>MOMD</em> (microscopic order macroscopic disorder) model. This is equivalent to a powder spectrum. In <code>cardamom</code>, the powder spectrum is simulated whenever you specify an orientational potential. To get a single-crystal spectrum, i.e. the slow-motion spectrum for the nitroxide attached to a rigid protein with a single orientation, give the crystal orientation in <code>Par.Orients</code>. <code>Par.Orients</code> contains the Euler tilt angles (in radians) between the lab frame (which is lab-fixed) and the frame of the orienting potential (which is fixed to the protein).
 </p>
 
 <p>
@@ -499,7 +499,7 @@ Since <code>cardamom</code> simulates cw EPR spectra based on time-domain inform
 
 <p>
 EasySpin can interface with MD simulation output using the function <a class="esf" href="mdload.html">mdload</a>. 
-To do this, <a class="esf" href="mdload.html">mdload</a> needs to know about the trajectory output files using <code>TrajFile</code> and the  relevant atomic information using <code>AtomInfo</code>. The output is then stored in the structure variable <code>MD</code>:
+To do this, <a class="esf" href="mdload.html">mdload</a> needs to know about the trajectory output files using <code>TrajFile</code> and the relevant atomic information using <code>AtomInfo</code>. The output is then stored in the structure variable <code>MD</code>:
 </p>
 
 <pre class="matlab">
@@ -507,7 +507,7 @@ MD = mdload(TrajFile, AtomInfo);
 </pre>
 
 <p>
-<code>TrajFile</code> can be a single trajectory output file or a list of files. <code>AtomInfo</code> tells <a class="esf" href="mdload.html">mdload</a> how to look for spin label and protein information in <code>TrajFile</code>. For more details on how to do this, please see the technical documentation <a class="esf" href="mdload.html">mdload</a>.
+<code>TrajFile</code> can be a single trajectory output file or a list of files. <code>AtomInfo</code> tells <a class="esf" href="mdload.html">mdload</a> how to look for spin label and protein information in <code>TrajFile</code>. For more details on how to do this, please see the technical documentation of <a class="esf" href="mdload.html">mdload</a>.
 </p>
 
 Once the MD simulation information is successfully loaded into <code>MD</code> using <a class="esf" href="mdload.html">mdload</a>, a cw EPR spectrum can be simulated by declaring the <code>Model</code> as <code>'MD-direct'</code> and supplying the structure variable <code>MD</code> to <code>cardamom</code> using the fifth input argument:

@@ -41,7 +41,6 @@ Pos = endorfrq(Sys,Par,Opt)
 [Pos,Int] = endorfrq(...)
 [Pos,Int,Tra] = endorfrq(...)
 </pre>
-</p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Description</div>
@@ -85,7 +84,7 @@ Magnetic field at which the ENDOR spectrum is to be computed, in mT.
 <div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
 <p>
-An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
+An Nx3 array that specifies the sample orientations for which the ENDOR frequencies should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
 </p>
 <pre class="matlab">
 Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
@@ -122,25 +121,25 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 </div>
 
 <p>
-<code>Opt</code> contains a set of optional parameters used to adjust the computation to one's needs. If a field or the entire structure is omitted, default values are used. One part of the fields concerns the automatic or manual selection of transitions to include in the ENDOR computation, the other one allows to modify the ENDOR intensity calculation.
+<code>Opt</code> contains a set of optional parameters used to adjust the computation to one's needs. If a field or the entire structure is omitted, default values are used. One part of the fields concerns the automatic or manual selection of transitions to include in the ENDOR computation, the other one allows modification of the ENDOR intensity calculation.
 </p>
 
 <div class="optionfield"><code>Verbosity</code></div>
 <div class="optiondescr">
 Level of display. <code>Opt.Verbosity=0</code> (default) means that <code>endorfrq</code>
 does not print to the command window. <code>Opt.Verbosity=1</code> prints some 
-log messages, higher values are given ever more details.
+log messages, higher values give ever more details.
 </div>
 
 <div class="optionfield"><code>Transitions</code></div>
 <div class="optiondescr">
-<em>mx2 vector of integer</em><br>
+<em>mx2 array of integers</em><br>
 Determines manually the level pairs which are used in the spectrum calculation. If given, <code>endorfrq</code> uses them and skips its automatic transition selection scheme. Level pairs are specified in <code>Transitions(k,:)</code> by the level numbers, starting with 1 for the lowest-energy state.
 </div>
 
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
-Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transitions are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </div>
 
 <div class="optionfield"><code>Nuclei</code></div>
@@ -177,7 +176,7 @@ There are three output parameters to <code>endorfrq</code>, only the first one i
 </p>
 
 <p>
-<code>Pos</code> contains the positions of the ENDOR lines (in Megahertz). One column in the output corresponds to one orientation.
+<code>Pos</code> contains the positions of the ENDOR lines (in MHz). One column in the output corresponds to one orientation.
 </p>
 
 <p>
@@ -185,7 +184,7 @@ There are three output parameters to <code>endorfrq</code>, only the first one i
 </p>
 
 <p>
-<code>Tra</code> is a list of the transitions included in the computation. It is a nx2 array containing pairs of level numbers along rows. Levels numbers relate to their energy: the lowest state in energy has number 1, the second lowest is 2, etc. See also the <code>Transitions</code> field in <code>Opt</code>.
+<code>Tra</code> is a list of the transitions included in the computation. It is a nx2 array containing pairs of level numbers along rows. Level numbers relate to their energy: the lowest state in energy has number 1, the second lowest is 2, etc. See also the <code>Transitions</code> field in <code>Opt</code>.
 </p>
 
 <div class="subtitle">Algorithm</div>
@@ -214,7 +213,7 @@ eeQq = 0.0:.1:4;
 <p>
 Next we loop over all <code>eeQq</code> values and compute the associated ENDOR
 positions and amplitudes for an arbitrary orientation. The results are
-stored along columns in the array <code>p</code> and <code>w</code>.
+stored along columns in the arrays <code>p</code> and <code>w</code>.
 </p>
 
 <pre class="matlab">

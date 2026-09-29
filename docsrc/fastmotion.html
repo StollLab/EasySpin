@@ -45,7 +45,7 @@ lw = fastmotion(Sys,B0,tcorr,domain)
 <div class="subtitle">Description</div>
 
 <p>
-Given the g, A and Q tensors in <code>Sys</code>, the magnetic field (mT) in <code>B0</code> and a rotation correlation time (seconds) in <code>tcorr</code>, <code>fastmotion</code> computes the EPR line widths resulting from rotational motion of the paramagnetic molecules. The widths depends on the anisotropies of g, A and Q. The widths are returned in <code>lw</code> (in units of mT or MHz, depending on <code>domain</code>), and the associated lines are identified by sets of m<sub>I</sub> numbers in <code>mI</code>. One row corresponds to one EPR resonance line.
+Given the g, A and Q tensors in <code>Sys</code>, the magnetic field (mT) in <code>B0</code> and a rotational correlation time (seconds) in <code>tcorr</code>, <code>fastmotion</code> computes the EPR line widths resulting from rotational motion of the paramagnetic molecules. The widths depend on the anisotropies of g, A and Q. The widths are returned in <code>lw</code> (in units of mT or MHz, depending on <code>domain</code>), and the associated lines are identified by sets of m<sub>I</sub> numbers in <code>mI</code>. One row corresponds to one EPR resonance line.
 </p>
 
 <p>
@@ -71,7 +71,7 @@ The correlation time <code>tcorr</code> and the diffusion rate <code>D</code> ar
 
 <div class="optionfield"><code>domain</code></div>
 <div class="optiondescr">
-Indicates the domain for the line widths, either <code>'field'</code> for field sweeps (units of mT) or <code>'freq'</code> for frequency sweeps (units MHz). Default is <code>'field'</code>.
+Indicates the domain for the line widths, either <code>'field'</code> for field sweeps (units of mT) or <code>'freq'</code> for frequency sweeps (units of MHz). Default is <code>'field'</code>.
 </div>
 
 <p>

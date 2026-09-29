@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.min.js"></script>
    <script src="highlight/do_highlight.js"></script>
-   <title>isto</title>
+   <title>isto2stev</title>
 </head>
 
 <body>
@@ -43,7 +43,7 @@ Ck = isto2stev(k)
 <div class="subtitle">Description</div>
 
 <p>
-This function calculates the transformation matrix <code>Ck</code> to transform an irreducible spherical tensor operator (ISTO) of rank <code>k</code>, T<sub>k</sub>, to a vector of rank-<code>k</code> extended Steven operators O<sub>k</sub> with O<sub>k</sub> = C<sub>k</sub> * T<sub>k</sub>.
+This function calculates the transformation matrix <code>Ck</code> to transform an irreducible spherical tensor operator (ISTO) of rank <code>k</code>, T<sub>k</sub>, to a vector of rank-<code>k</code> extended Stevens operators O<sub>k</sub> with O<sub>k</sub> = C<sub>k</sub> * T<sub>k</sub>.
 </p>
 
 <p>
@@ -55,7 +55,7 @@ Stevens operators with non-negative q are cosine tesseral operators, and those w
 </p>
 
 <p>
-<code>Ck</code> is the (2k+1)x(2k+1) transformation matrix. Its only non-negative elements are on the diagonal and on the antidiagonal.
+<code>Ck</code> is the (2k+1)x(2k+1) transformation matrix. Its only non-zero elements are on the diagonal and on the antidiagonal.
 </p>
 
 <p>
@@ -102,7 +102,7 @@ ans =
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="isto.html">isto</a>
+<a class="esf" href="isto.html">isto</a>,
 <a href="spinoperators.html">spin operators</a>,
 <a class="esf" href="sop.html">sop</a>,
 <a class="esf" href="stev.html">stev</a>

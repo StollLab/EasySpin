@@ -41,7 +41,7 @@ To understand the following, make sure you are familiar with the various <a href
 </p>
 
 <p>
-Everything below is applicable to all solid-state EPR simulation functions: <a class="esf" href="pepper.html">pepper</a> (for cw EPR), <a class="esf" href="salt.html">salt</a> (for ENDOR), and <a class="esf" href="saffron.html">saffron</a> (for pulse EPR). It also is applicable to functions that compute resonance frequencies and fields, such as <a class="esf" href="resfields.html">resfields</a> etc.
+Everything below is applicable to all solid-state EPR simulation functions: <a class="esf" href="pepper.html">pepper</a> (for cw EPR), <a class="esf" href="salt.html">salt</a> (for ENDOR), and <a class="esf" href="saffron.html">saffron</a> (for pulse EPR). It is also applicable to functions that compute resonance frequencies and fields, such as <a class="esf" href="resfields.html">resfields</a> etc.
 </p>
 
 <div class="subtitle"><a name="frames">Single-crystal EPR spectrum</a></div>
@@ -121,7 +121,7 @@ pepper(Sys,Exp);
 </pre>
 
 <p>
-Although this now results in four differently oriented g tensors, they still all give the same effective g value, since the crystal is oriented in the spectrometer such that the magnetic field is aligned along the z crystal symmetry axes (<code>Exp.SampleFrame</code> is still <code>[0 0 0]</code>), where the four sites give identical effective g values. Next, we tilt the crystal in the spectrometer:
+Although this now results in four differently oriented g tensors, they still all give the same effective g value, since the crystal is oriented in the spectrometer such that the magnetic field is aligned along the z crystal symmetry axis (<code>Exp.SampleFrame</code> is still <code>[0 0 0]</code>), where the four sites give identical effective g values. Next, we tilt the crystal in the spectrometer:
 </p>
 
 <pre class="matlab">
@@ -189,7 +189,7 @@ Other letter codes are <code>'y'</code>, <code>'z'</code>, <code>'xy'</code>, <c
 </p>
 
 <p>
-To simulate a series of crystal spectra that result from successive small-angle rotations around the same rotation axis, define the rotation axis, provide an array of rotation angles in <code>Exp.SampleRotation</code>. Also, ask <code>pepper</code> to return the spectra of the individual orientations separately using <code>Opt.separate</code>:
+To simulate a series of crystal spectra that result from successive small-angle rotations around the same rotation axis, define the rotation axis and provide an array of rotation angles in <code>Exp.SampleRotation</code>. Also, ask <code>pepper</code> to return the spectra of the individual orientations separately using <code>Opt.separate</code>:
 </p>
 
 <pre class="matlab">
@@ -202,7 +202,7 @@ pepper(Sys,Exp,Opt);
 </pre>
 
 <p>
-To calculate a crystal "roadmap", i.e. a plot of resonance fields as a function of crystal orientations, again use <code>Exp.SampleRotation</code> in conjuction with <code>Exp.SampleFrame</code>:
+To calculate a crystal "roadmap", i.e. a plot of resonance fields as a function of crystal orientations, again use <code>Exp.SampleRotation</code> in conjunction with <code>Exp.SampleFrame</code>:
 </p>
 
 <pre class="matlab">

@@ -57,7 +57,7 @@ See also the <a href="userguide_curry.html">user guide</a> on how to use <code>c
 <div class="subtitle2">Outputs</div>
 
 <p>
-There are up to two default output arguments (in the absence of <code>Opt.Output</code> - see below), <code>muBM</code> and <code>chimol</code>. If <code>Opt.Output</code> is given, the number and types of outputs depends on the entries in <code>Opt.Output</code>. If no output argument is requested, <code>curry</code> plots the calculated curves.
+There are up to two default output arguments (in the absence of <code>Opt.Output</code> - see below), <code>muBM</code> and <code>chimol</code>. If <code>Opt.Output</code> is given, the number and types of outputs depend on the entries in <code>Opt.Output</code>. If no output argument is requested, <code>curry</code> plots the calculated curves.
 
 <div class="optionfield"><code>muBM</code></div>
 <div class="optiondescr">
@@ -145,7 +145,7 @@ If <code>Field</code> is missing, EasySpin assumes that no field is applied (equ
 </div>
 
 <p>
-<code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and divide it by the field strength. For sufficiently small field strength this correspond to the derivative at zero field. In cases the field strength is not small, experimental results might be better reproduced by:
+<code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and dividing it by the field strength. For sufficiently small field strengths, this corresponds to the derivative at zero field. In cases where the field strength is not small, experimental results might be better reproduced by:
 </p>
 
 <pre class="matlab">
@@ -154,7 +154,6 @@ m4chi =  curry(Sys,Exp,Opt);   % magnetic moment at the field used in the experi
 chi_cgs = m4chi*avogadro*bmagn*1e2./Exp.Field(:);
 chi_si = (4*pi*1e-6) *chisim_cgs ;  % convert to SI units
 </pre>
-</p>
 
 <p>
 <code>curry</code> not only supports powder samples, but also single crystals. The following fields are needed for single-crystal calculations:
@@ -162,7 +161,7 @@ chi_si = (4*pi*1e-6) *chisim_cgs ;  % convert to SI units
 <div class="optionfield"><code>SampleFrame</code></div>
 <div class="optiondescr">
 <p>
-An Nx3 array that specifies the sample orientations for which the EPR spectrum should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
+An Nx3 array that specifies the sample orientations for which the data should be computed. Each row of <code>SampleFrame</code> contains the three Euler rotation angles that transform the <a href="frames.html">lab frame to the sample/crystal frame</a>.
 </p>
 <pre class="matlab">
 Exp.SampleFrame = [0 0 0];                   % sample/crystal frame aligned with lab frame
@@ -194,7 +193,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">
 <p>
-The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">sample/crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Exp.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame relative to those of the crystal frame while keeping the y axes aligned.
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">sample/crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Exp.MolFrame=[0,pi/4,0]</code> tilts the x and z axes of the spin system's molecular frame relative to those of the crystal frame while keeping the y axes aligned.
 </p>
 </div>
 
@@ -226,7 +225,7 @@ Opt.Units = 'CGS';      % use CGS-emu system of units
 <div class="optionfield"><code>Output</code></div>
 <div class="optiondescr">
 <p>
-Contains a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs corresponds to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
+Contains a list of keywords that specify the output <code>curry</code> should provide. Keywords should be separated by blanks. The number and order of the outputs correspond to the number and order of the keywords in <code>Opt.Output</code>. The following keywords are available:
 </p>
 <ul>
 <li><code>'mu'</code>: single-center magnetic moment (SI unit: J T<sup>-1</sup>; CGS-emu unit: erg G<sup>-1</sup>)
@@ -293,7 +292,7 @@ Opt.GridSize = 91;       % 1&deg; increments
 Specifies the calculation method used by <code>curry</code>, either <code>'operator'</code> or <code>'partitionfunction'</code>.
 </p>
 
-<p>The two methods give essentially the same results within numerical accuracy. <code>'operator'</code> is the default and the method described in the <a href="#algo">Algorithm section</a> below is used. <code>'partitionfunction'</code> is slightly faster for large spin systems, but can be slower for smaller spin systems. In this method, magnetic moments and susceptibilities are obtained as first and second numerical derivative of the thermodynamic free energy (via the natural logarithm of the partition function).
+<p>The two methods give essentially the same results within numerical accuracy. <code>'operator'</code> is the default and the method described in the <a href="#algo">Algorithm section</a> below is used. <code>'partitionfunction'</code> is slightly faster for large spin systems, but can be slower for smaller spin systems. In this method, magnetic moments and susceptibilities are obtained as first and second numerical derivatives of the thermodynamic free energy (via the natural logarithm of the partition function).
 </p>
 </div>
 

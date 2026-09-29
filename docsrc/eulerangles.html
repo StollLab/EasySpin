@@ -56,6 +56,7 @@ This is called the zyz or y convention, for obvious reasons. It is used in many 
 <li>NMR: Ernst/Bodenhausen/Wokaun, Spiess, Mehring.
 <li>EPR: Abragam/Bleaney, Schweiger/Jeschke, Atherton.
 </ul>
+<p>
 There exists also a zxz or x convention that is used in fields unrelated to EPR (e.g., classical mechanics).
 </p>
 
@@ -152,7 +153,7 @@ The <b>columns</b> of R contain the vector representations of x, y and z in the 
 </div>
 
 <p>
-More generally, each of the elements of R is the scalar product of one of the ABC vectors onto one of the xyz vectors. Taking the acos of that product gives the angle between the two respective axes. Therefore, R is sometimes also called a direction cosine matrix (DCM).
+More generally, each of the elements of R is the scalar product of one of the ABC vectors with one of the xyz vectors. Taking the acos of that product gives the angle between the two respective axes. Therefore, R is sometimes also called a direction cosine matrix (DCM).
 </p>
 
 <div class="eqn">
@@ -171,7 +172,7 @@ More generally, each of the elements of R is the scalar product of one of the AB
 
 
 <p>
-The same rotation matrix is obtained, if the rotations are carried out in reverse order around other axes: First by &gamma; around the z
+The same rotation matrix is obtained if the rotations are carried out in reverse order around other axes: First by &gamma; around the z
 axis, then by &beta; around the <em>original</em> y axis, and finally by &alpha; again around the <em>original</em> z axis. In other words
 </p>
 
@@ -285,11 +286,11 @@ to understand.
 <div class="subtitle">Choices for tensor eigenframes</div>
 
 <p>
-The labelling of the principal axes of a tensor is completely arbitrary.
+The labeling of the principal axes of a tensor is completely arbitrary.
 There are in total 24 possible xyz arrangements that describe the principal
 axes frame of a tensor. Correspondingly, there are 24 different sets of Euler
 angles. Why 24? It's easy to enumerate them: The z axis can point in any of the six
-principal axis direction of an ellipsoid, and the xy axis pair can have 4
+principal axis directions of an ellipsoid, and the xy axis pair can have 4
 possible orientations for each z orientation, giving 24 in total.
 </p>
 
@@ -304,13 +305,13 @@ coordinate systems and 8 sets of Euler angles.
 <p>
 Rotations can be active or passive. In active ("alibi") rotations, the object (vector, tensor)
 is rotated and the coordinate system is left unchanged. In passive ("alias") rotations,
-the object is left unchanged and the coordinate axes system is rotated.
+the object is left unchanged and the coordinate system is rotated.
 </p>
 
 <p>
 Here is how passive rotations can be done using the rotation matrix R as defined above:
 For a vector v_xyz defined in the xyz frame, v_ABC = R*v_xyz is the same vector as v_xyz, but represented in the ABC frame instead of the xyz frame.
-For a tensor T_xyz defined in the xyz frame, T_ABC = R*T_xyz*R<sup>T</sup> is the same tensor as T, but represented in the ABC frame instead of the xyz frame.
+For a tensor T_xyz defined in the xyz frame, T_ABC = R*T_xyz*R<sup>T</sup> is the same tensor as T_xyz, but represented in the ABC frame instead of the xyz frame.
 </p>
 
 

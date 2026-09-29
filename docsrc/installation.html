@@ -33,7 +33,7 @@
 </p>
 
 <p>
-Visit the <a target="_blank" href="http://easyspin.org">EasySpin website</a> for downloading the latest version.
+Visit the <a target="_blank" href="http://easyspin.org">EasySpin website</a> to download the latest version.
 </p>
 
 <div class="subtitle" style="margin-top:0ex;">Requirements</div>
@@ -62,10 +62,10 @@ Add the <i>EasySpin</i> subfolder <code>easyspin-x.y.z/easyspin</code> to the MA
 "Add Folder...", selecting the <code>easyspin-x.y.z/easyspin</code> subfolder from your new EasySpin directory, and clicking on "Save".
 
 <li><b>Check EasySpin</b><br>
-In MATLAB, type <code>easyspin</code> at the command prompt. This will display information about the installed version of EasySpin. Also, it might try to compile a few files from the <code>easyspin/private</code> folder. Possibly you are asked to select or install a C compiler. See below for information on how to proceed in that case.
+In MATLAB, type <code>easyspin</code> at the command prompt. This will display information about the installed version of EasySpin. Also, it might try to compile a few files from the <code>easyspin/private</code> folder. You might be asked to select or install a C compiler. See below for information on how to proceed in that case.
 
 <li><b>Documentation</b><br>
-There are several ways to access the documentation. To view the documentation of your local EasySpin installation, type <code>easyspin doc</code> in the command window, or point your web browser to <code>documentation/index.html</code> in your <i>EasySpin</i> folder and bookmark that page. Alternatively, you can go to <a href="easyspin.org">easyspin.org</a> to view the online documentation of the most recent stable version of EasySpin (which might be different from the one you installed locally).
+There are several ways to access the documentation. To view the documentation of your local EasySpin installation, type <code>easyspin doc</code> in the command window, or point your web browser to <code>documentation/index.html</code> in your <i>EasySpin</i> folder and bookmark that page. Alternatively, you can go to <a href="https://easyspin.org" target="_blank">easyspin.org</a> to view the online documentation of the most recent stable version of EasySpin (which might be different from the one you installed locally).
 </ol>
 
 <div class="subtitle">Compiling mex files</div>
@@ -84,7 +84,7 @@ easyspin compile
 </pre>
 
 <p>
-This calls <a href="https://www.mathworks.com/help/matlab/ref/mex.html">mex</a> to compile the <code>*.c</code> files in the <code>easyspin/private</code> folder and generate the associated binary files <code>*.mexa64</code> (Linux), <code>*.mexw64</code> (Windows) or <code>*.mexmaci</code> (Mac).
+This calls <a href="https://www.mathworks.com/help/matlab/ref/mex.html">mex</a> to compile the <code>*.c</code> files in the <code>easyspin/private</code> folder and generate the associated binary files <code>*.mexa64</code> (Linux), <code>*.mexw64</code> (Windows) or <code>*.mexmaci64</code>/<code>*.mexmaca64</code> (Mac).
 </p>
 
 <p>
@@ -106,7 +106,7 @@ If no compiler is configured, or the configured one is not installed, do the fol
 </ul>
 
 <p>
-You can use the <a href="https://www.mathworks.com/help/matlab/ref/mex.html">mex</a> command with <code>mex -setup</code> to change the default compiler.
+You can use <code>mex -setup</code> to change the default compiler (see the <a href="https://www.mathworks.com/help/matlab/ref/mex.html">mex</a> documentation).
 </p>
 
 <p>
@@ -120,13 +120,13 @@ easyspin compile
 <div class="subtitle">Note for use of EasySpin GUIs on Linux systems</div>
 
 <p>
-There are known issues for running newer Matlab GUIs on Linux systems that do not use the X windowing system, which also affects EasySpin's GUIs (e.g. the <code>esfit</code> GUI). Setting the display server for the Linux session to Xorg typically solves the problem.
+There are known issues for running newer MATLAB GUIs on Linux systems that do not use the X windowing system, which also affects EasySpin's GUIs (e.g. the <code>esfit</code> GUI). Setting the display server for the Linux session to Xorg typically solves the problem.
 </p>
 
 <div class="subtitle">License</div>
 
 <p>
-EasySpin is free and open source software and is published under the permissive <a href="https://opensource.org/license/mit/">MIT license</a>.
+EasySpin is free and open-source software and is published under the permissive <a href="https://opensource.org/license/mit/">MIT license</a>.
 </p>
 
 </section>

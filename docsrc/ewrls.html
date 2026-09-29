@@ -29,7 +29,7 @@
 <div class="functitle">ewrls</div>
 
 <p>
-Recursive least square adaptive filtered average.
+Recursive least-squares adaptive filtered average.
 </p>
 
 <!-- =========================================================== -->
@@ -51,7 +51,7 @@ This function computes a filtered average of the input data, using an adaptive f
 method called exponentially weighted recursive least squares (RLS or EWRLS) filtering.
 
 <p>
-It takes an 2D input array <code>data</code> containing the spectral data. Each column
+It takes a 2D input array <code>data</code> containing the spectral data. Each column
 should represent one scan, and there should be multiple scans. It returns the filtered average in <code>y</code>.
 
 <p>
@@ -109,7 +109,7 @@ ewrls(datamatrix,p,lambda,nPreAverage,delta,'fb');
 <!-- =========================================================== -->
 <div class="subtitle">References</div>
 
-The method implemented in <code>ewrl</code> is described in
+The method implemented in <code>ewrls</code> is described in
 
 <ul>
 <li>
@@ -128,8 +128,8 @@ resonance: Adaptive signal averaging versus a moving average</a>, Rev. Sci. Inst
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="addnoise.html">addnoise</a>
-<a class="esf" href="rcfilt.html">rcfilt</a>
+<a class="esf" href="addnoise.html">addnoise</a>,
+<a class="esf" href="rcfilt.html">rcfilt</a>,
 <a class="esf" href="datasmooth.html">datasmooth</a>
 </p>
 

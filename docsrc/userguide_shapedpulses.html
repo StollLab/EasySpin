@@ -29,7 +29,7 @@
 <div class="functitle">Pulse shaping</div>
 
 <p>
-This user guide explains EasySpin's capabilities regarding shaped pulses, i.e. pulses with shapes other than rectangular monochromatic. Although EasySpin does currently not have the capability to simulate pulse EPR spectra obtained with sequences containing shaped pulses, EasySpin can calculate a wide range of pulse shapes, up- and downconvert them, calculate the associated excitation profiles and adapt the frequency and amplitude modulation functions to compensate for effects of the resonator transfer function and transmitter nonlinearity. The corresponding functionality is provided by the functions <a class="esf" href="pulse.html">pulse</a>, <a class="esf" href="rfmixer.html">rfmixer</a>, <a class="esf" href="exciteprofile.html">exciteprofile</a>, <a class="esf" href="resonator.html">resonator</a>, and <a class="esf" href="transmitter.html">transmitter</a>.
+This user guide explains EasySpin's capabilities regarding shaped pulses, i.e. pulses with shapes other than rectangular monochromatic. EasySpin can calculate a wide range of pulse shapes, up- and downconvert them, calculate the associated excitation profiles and adapt the frequency and amplitude modulation functions to compensate for effects of the resonator transfer function and transmitter nonlinearity. The corresponding functionality is provided by the functions <a class="esf" href="pulse.html">pulse</a>, <a class="esf" href="rfmixer.html">rfmixer</a>, <a class="esf" href="exciteprofile.html">exciteprofile</a>, <a class="esf" href="resonator.html">resonator</a>, and <a class="esf" href="transmitter.html">transmitter</a>.
 </p>
  
 <p>
@@ -48,7 +48,7 @@ In the following, we go over the following topics:
 <a name="shapes"><div class="subtitle">Pulse shapes</div></a>
 
 <p>
-EasySpin provides a range of shaped pulses through the function <a class="esf" href="pulse.html">pulse</a>. The parameters that define the pulse shape are supplied in a structure. Here is the most basic example
+EasySpin provides a range of shaped pulses through the function <a class="esf" href="pulse.html">pulse</a>. The parameters that define the pulse shape are supplied in a structure. Here is the most basic example:
 </p>
 
 <pre class="matlab">
@@ -62,7 +62,7 @@ This will calculate the shape of a simple monochromatic rectangular pulse. <code
 </p>
 
 <p>
-<a class="esf" href="pulse.html">pulse</a> returns two things, the time axis and the IQ modulation data. The time axis is in microseconds and goes from 0 to <code>Par.tp</code>. The number of points is chosen automatically to accommodate the AM and FM without aliasing, but you can override this and specify the time step in <code>Par.TimeStep</code>. <code>IQ</code> is a complex vector that contains the in-phase (I) and quadrature (Q) signals needed to drive an IQ mixer to generate the final pulse shape at microwave frequencies. I is the real part of <code>IQ</code>, and Q is the imaginary part.
+<a class="esf" href="pulse.html">pulse</a> returns two things: the time axis and the IQ modulation data. The time axis is in microseconds and goes from 0 to <code>Par.tp</code>. The number of points is chosen automatically to accommodate the AM and FM without aliasing, but you can override this and specify the time step in <code>Par.TimeStep</code>. <code>IQ</code> is a complex vector that contains the in-phase (I) and quadrature (Q) signals needed to drive an IQ mixer to generate the final pulse shape at microwave frequencies. I is the real part of <code>IQ</code>, and Q is the imaginary part.
 </p>
 
 <p>
@@ -159,7 +159,7 @@ mwFreq = 3; % GHz
 </pre>
 
 <p>
-The last input <code>'IQmod'</code> tells the function to perform IQ modulation, that's what is needed to convert IQ data to a microwave signal. <a class="esf" href="rfmixer.html">rfmixer</a> supports many other modes, including IQ demodulation (<code>'IQdemod'</code>; modelling a quadrature mixture as typically used in a pulse EPR detector), single-sideband up- and down-conversion (<code>'USB'</code>, <code>'LSB'</code>), etc.
+The last input <code>'IQmod'</code> tells the function to perform IQ modulation, which is what is needed to convert IQ data to a microwave signal. <a class="esf" href="rfmixer.html">rfmixer</a> supports many other modes, including IQ demodulation (<code>'IQdemod'</code>; modeling a quadrature mixer as typically used in a pulse EPR detector), single-sideband up- and down-conversion (<code>'USB'</code>, <code>'LSB'</code>), etc.
 </p>
 
 <p>
@@ -227,7 +227,7 @@ The ideal pulse shapes provided by <a class="esf" href="pulse.html">pulse</a> ge
 </p>
 
 <p>
-The effect of the resonator transfer function on a pulse can be modelled using the <a class="esf" href="resonator.html">resonator</a> function with the <code>'simulate'</code> option. First, the ideal pulse shape is calculated using <a class="esf" href="pulse.html">pulse</a> and then fed into <a class="esf" href="resonator.html">resonator</a> with additional information on the resonator properties:
+The effect of the resonator transfer function on a pulse can be modeled using the <a class="esf" href="resonator.html">resonator</a> function with the <code>'simulate'</code> option. First, the ideal pulse shape is calculated using <a class="esf" href="pulse.html">pulse</a> and then fed into <a class="esf" href="resonator.html">resonator</a> with additional information on the resonator properties:
 </p>
 
 <pre class="matlab">
@@ -299,7 +299,7 @@ This will return an amplitude-compensated signal.
 </p>
 
 <p>
-Additional details can be found in the reference page of <a class="esf" href="transmitter.html">transmitter</a> and in the <a class="esf" href="examplesmain.html#pulse shaping">Examples</a>.
+Additional details can be found in the reference page of <a class="esf" href="transmitter.html">transmitter</a> and in the <a class="esf" href="examplesmain.html#pulse shaping">examples</a>.
 </p>
 
 <hr>

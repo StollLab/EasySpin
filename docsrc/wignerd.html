@@ -52,7 +52,7 @@ dm1m2 = wignerd(Jm1m2,beta,phase);
 with matrix elements, also called Wigner functions, D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) where m<sub>1</sub> and m<sub>2</sub> run from J to -J.
 
 <p>
-<code>J</code> is a positive multiple of 1/2 (0, 1/2, 1, 3/2, 2, etc). If <code>J</code> is given as the first input argument, the function computes the full rotation matrix D<sup>J</sup>(&alpha;,&beta;,&gamma;). If <code>Jm1m2 = [J m1 m2]</code> is given instead, only the matrix element D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) is calculated.
+<code>J</code> is a non-negative multiple of 1/2 (0, 1/2, 1, 3/2, 2, etc.). If <code>J</code> is given as the first input argument, the function computes the full rotation matrix D<sup>J</sup>(&alpha;,&beta;,&gamma;). If <code>Jm1m2 = [J m1 m2]</code> is given instead, only the matrix element D<sup>J</sup><sub>m1,m2</sub>(&alpha;,&beta;,&gamma;) is calculated.
 
 <p>
 <code>alpha</code>, <code>beta</code>, and <code>gamma</code> are the three Euler angles. If the matrix is requested (using <code>J</code>), these have to be single values. If a matrix element is requested (via <code>Jm1m2</code>), these can be arrays. If <code>alpha</code> and <code>gamma</code> are zero, they can be omitted, and <code>wignerd</code> will return the reduced Wigner rotation matrix or its element.

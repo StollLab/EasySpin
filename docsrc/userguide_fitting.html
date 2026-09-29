@@ -92,7 +92,7 @@ Here is what the various parameters mean:
 <ul>
 <li>
 <p>
-<code>@pepper</code> indicates that the function <a class="esf" href="pepper.html">pepper</a> is to be used. Any other EasySpin simulation function can be given here, e.g. <code>@garlic</code>, <code>@chili</code>, <code>@salt'</code>, <code>@saffron</code>, <code>@curry</code>. You can also define your own function as described <a href = "#customfunction">below</a>.
+<code>@pepper</code> indicates that the function <a class="esf" href="pepper.html">pepper</a> is to be used. Any other EasySpin simulation function can be given here, e.g. <code>@garlic</code>, <code>@chili</code>, <code>@salt</code>, <code>@saffron</code>, <code>@curry</code>. You can also define your own function as described <a href = "#customfunction">below</a>.
 </p>
 </li>
 <li>
@@ -102,7 +102,7 @@ Here is what the various parameters mean:
 </li>
 <li>
 <p>
-<code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameter values in this structure are used as starting point in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component, e.g. <code>{Sys1, Sys2}</code>.
+<code>Sys0</code> is a structure collecting magnetic parameters of the spin system. The parameter values in this structure are used as the starting point in the fitting procedure. For a multi-component fit, this is a list of spin systems, one for each component, e.g. <code>{Sys1, Sys2}</code>.
 </p>
 </li>
 <li>
@@ -147,7 +147,7 @@ The next few sections explain how to set up these input parameters so that <a cl
 <a name="load"><div class="subtitle">Loading the experimental spectrum</div></a>
 
 <p>
-Before you can fit parameters to your experimental spectrum, import the experimental data into MATLAB. There are several ways to do this, depending in which format the data are stored.
+Before you can fit parameters to your experimental spectrum, import the experimental data into MATLAB. There are several ways to do this, depending on the format in which the data are stored.
 </p>
 
 <p>
@@ -357,7 +357,7 @@ FitOpt.Method = 'grid';        % for grid search
 </pre>
 
 <p>
-and then supply this option structure as the last input  to <code>esfit</code>, for example
+and then supply this option structure as the last input to <code>esfit</code>, for example
 </p>
 
 <pre class="matlab">
@@ -375,11 +375,11 @@ Each algorithm has some internal parameters that can be used to fine-tune its pe
 <span style="font-weight:bold;">Target function</span>
 
 <p>
-The second important setting is the choice of the target function. <code>esfit</code> computes the error of the simulated spectrum using the root-mean-square-deviation (rmsd, i.e. the square root of the mean of the square of the deviations), where the deviation is the difference between the experimental and the simulated spectrum.
+The second important setting is the choice of the target function. <code>esfit</code> computes the error of the simulated spectrum using the root-mean-square deviation (rmsd, i.e. the square root of the mean of the square of the deviations), where the deviation is the difference between the experimental and the simulated spectrum.
 </p>
 
 <p>
-Fitting speed can often be significantly increased, however, if one used not the spectra directly, but their integrals or similar transforms. EasySpin supports several settings here: <code>'fcn'</code> (use data as is), <code>'int'</code> (integral), <code>'dint'</code> (double integral), <code>'diff'</code> (first derivative), <code>'fft'</code> (Fourier transform). The target function setting is simply appended to the <code>'Method'</code> field, after a space:
+Fitting speed can often be significantly increased, however, if one uses not the spectra directly, but their integrals or similar transforms. EasySpin supports several settings here: <code>'fcn'</code> (use data as is), <code>'int'</code> (integral), <code>'dint'</code> (double integral), <code>'diff'</code> (first derivative), <code>'fft'</code> (Fourier transform). The target function setting is simply appended to the <code>'Method'</code> field, after a space:
 </p>
 
 <pre class="matlab">
@@ -393,7 +393,7 @@ Usually, <code>'fcn'</code> is an excellent choice, but in the case of many line
 </p>
 
 <p>
-Automatic scaling of the simulated spectrum can be performed by setting the <code>Opt.AutoScale</code> option to <code>'lsq'</code> for least-squares fitting or to <code>'maxabs'</code> to set the maximum absolute equal between simulation and experimental data.
+Automatic scaling of the simulated spectrum can be performed by setting the <code>FitOpt.AutoScale</code> option to <code>'lsq'</code> for least-squares fitting or to <code>'maxabs'</code> to set the maximum absolute value equal between simulation and experimental data.
 <br>
 For some situations, e.g. for magnetization data, it is necessary not to scale at all. In this case, use <code>FitOpt.AutoScale = 'none'</code>.
 </p>
@@ -440,11 +440,11 @@ The simplest way to terminate a fitting is by pressing the Stop button on the UI
 </p>
 
 <p>
-Without pressing the Stop button, <code>esfit</code> stops the fitting when it thinks it has reached a minimum in the error function, when it has taken more than a given amount of time, or if the set number of simulations are reached. Let's have a look at these possibilities in turn.
+Without pressing the Stop button, <code>esfit</code> stops the fitting when it thinks it has reached a minimum in the error function, when it has taken more than a given amount of time, or if the set number of simulations is reached. Let's have a look at these possibilities in turn.
 </p>
 
 <p>
-<code>esfit</code> considers a local least-squares fit using the simplex or the Levenberg-Marquardt algorithm to be converged if the change in parameters from one simulation iteration to the next falls below a certain threshold and/or if the change in the error from iteration to iteration falls below another threshold.  Both thresholds have pre-set  values, but can be adjusted by supplying appropriate fields in the <code>FitOpt</code> structure:
+<code>esfit</code> considers a local least-squares fit using the simplex or the Levenberg-Marquardt algorithm to be converged if the change in parameters from one simulation iteration to the next falls below a certain threshold and/or if the change in the error from iteration to iteration falls below another threshold. Both thresholds have pre-set values, but can be adjusted by supplying appropriate fields in the <code>FitOpt</code> structure:
 </p>
 
 <pre class="matlab">
@@ -454,7 +454,7 @@ FitOpt.TolEdgeLength = 1e-3;   % termination tolerance for parameter step, simpl
 </pre>
 
 <p>
-The global methods terminate also if the maximum number of simulations are reached: the Monte Carlo search does only a pre-set number of simulations (<code>FitOpt.nTrials</code>), the grid search stops if all the grid points are simulated (see the option <code>FitOpt.GridSize</code>), and the genetic algorithm stops at the latest after a certain number of generations (see <code>FitOpt.PopulationSize</code> and <code>FitOpt.Generations</code>).
+The global methods also terminate if the maximum number of simulations is reached: the Monte Carlo search does only a pre-set number of simulations (<code>FitOpt.nTrials</code>), the grid search stops if all the grid points are simulated (see the option <code>FitOpt.GridSize</code>), and the genetic algorithm stops at the latest after a certain number of generations (see <code>FitOpt.PopulationSize</code> and <code>FitOpt.maxGenerations</code>).
 </p>
 
 <p>
@@ -563,7 +563,7 @@ esfit(data,@myfun,{Sys,Exp},{SysVary});
 <a name="globalfit"><div class="subtitle">Global fit of multiple data sets</div></a>
 
 <p>
-Global fitting of multiple data sets is possible by defining a custom simulation function. The different experimental data sets can be provided as a cell array, and the simulation function similarly needs to return a set of simulated data sets in a cell array. If <code>FitOpt.AutoScale</code> is used, each data set is scaled individually. Different weights to use when combining residual vectors of all data sets can be provided in <code>FitOpt.weight</code> and will apply on top of the intrinsic weight determined by the input data provided (e.g. experimental spectra with different amplitudes and different number of points).
+Global fitting of multiple data sets is possible by defining a custom simulation function. The different experimental data sets can be provided as a cell array, and the simulation function similarly needs to return a set of simulated data sets in a cell array. If <code>FitOpt.AutoScale</code> is used, each data set is scaled individually. Different weights to use when combining residual vectors of all data sets can be provided in <code>FitOpt.weight</code> and will apply on top of the intrinsic weight determined by the input data provided (e.g. experimental spectra with different amplitudes and different numbers of points).
 </p>
 
 <p>
@@ -589,7 +589,7 @@ end
 </pre>
 
 <p>
-Note that each spectrum might have a different number of data points, in which case two more custom fields would be required to specify the number of data points in each (e.g. <code>Exp.nPoints = Exp.nX</code> and  <code>Exp.nPoints = Exp.nQ</code> for the X- and Q-band spectra, respectively). See the example <a href="../examples/fitting/fit_multifreq.m">fit_multifreq</a> for more details.
+Note that each spectrum might have a different number of data points, in which case two more custom fields would be required to specify the number of data points in each (e.g. <code>Exp.nPoints = Exp.nX</code> and <code>Exp.nPoints = Exp.nQ</code> for the X- and Q-band spectra, respectively). See the example <a href="../examples/fitting/fit_multifreq.m">fit_multifreq</a> for more details.
 </p>
 
 <p>
@@ -601,7 +601,7 @@ If the x axis corresponding to each of the data sets should be displayed in the 
 </p>
 
 <p>
-<a class="esf" href="esfit.html">esfit</a> is able to handle simulation functions that do not provide the simulated data in their first output argument. If you want to use a non-conforming function, just tell <a class="esf" href="esfit.html">esfit</a> how it should be called and which output argument should be used in the fitting. This information is provided in <code>FitOpt.OutArg</code>, which should contain at least two numbers. The first number is the number of output arguments to expect, and the second number is the output argument to use in the fitting. Say, you have a function <code>myfun</code> that needs to be called with 4 output arguments (<code>[a,b,c,d] = myfun(...)</code>, and you want to use the second one for fitting, then use
+<a class="esf" href="esfit.html">esfit</a> is able to handle simulation functions that do not provide the simulated data in their first output argument. If you want to use a non-conforming function, just tell <a class="esf" href="esfit.html">esfit</a> how it should be called and which output argument should be used in the fitting. This information is provided in <code>FitOpt.OutArg</code>, which should contain at least two numbers. The first number is the number of output arguments to expect, and the second number is the output argument to use in the fitting. Say, you have a function <code>myfun</code> that needs to be called with 4 output arguments (<code>[a,b,c,d] = myfun(...)</code>), and you want to use the second one for fitting, then use
 </p>
 
 <pre class="matlab">

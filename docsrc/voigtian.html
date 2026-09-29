@@ -46,11 +46,11 @@ ya = voigtian(x,x0,fwhmGL,diff,phase)
 <div class="subtitle">Description</div>
 
 <p>
-This function returns a <a href="lineshapes.html">Voigtian line shape</a> with center <code>x0</code> and component full widths at half height <code>fwhmGL</code> over the abscissa values defined in the vector <code>x</code>. A Voigtian line shape is the convolution of a Gaussian and Lorentzian line shape.
+This function returns a <a href="lineshapes.html">Voigtian line shape</a> with center <code>x0</code> and component full widths at half maximum <code>fwhmGL</code> over the abscissa values defined in the vector <code>x</code>. A Voigtian line shape is the convolution of a Gaussian and a Lorentzian line shape.
 </p>
 
 <p>
-<code>fwhmGL</code> specifies the full width at half height for the two convolution components <code>fwhmGL = [fwhmGauss fwhmLorentz]</code>. If both are non-zero, a Voigtian line shape results. There are two limiting cases: If the first element in <code>fwhmGL</code> is zero, you get a pure Lorentzian. If the second element is zero, you get a pure Gaussian. 
+<code>fwhmGL</code> specifies the full width at half maximum for the two convolution components <code>fwhmGL = [fwhmGauss fwhmLorentz]</code>. If both are non-zero, a Voigtian line shape results. There are two limiting cases: If the first element in <code>fwhmGL</code> is zero, you get a pure Lorentzian. If the second element is zero, you get a pure Gaussian. 
 </p>
 
 <p>
@@ -62,7 +62,7 @@ The function returns the absorption line shape in <code>ya</code> and the 90-deg
 </p>
 
 <p>
-If <code>phase</code> is given, the absorption and dispersion line shapes are both rotated the by the given amount (in radians). E.g., with <code>phase=pi/2</code>, <code>ya</code> will contain the dispersion line shape.
+If <code>phase</code> is given, the absorption and dispersion line shapes are both rotated by the given amount (in radians). E.g., with <code>phase=pi/2</code>, <code>ya</code> will contain the dispersion line shape.
 </p>
 
 <p>

@@ -38,8 +38,8 @@ print D  <<QQQ;
    <link rel="icon" href="img/eslogo196.png">
    <link rel="stylesheet" type="text/css" href="style.css">
    <link rel="stylesheet" href="highlight/matlab.css">
-   <script src="highlight/highlight.pack.js"></script>
-   <script>hljs.initHighlightingOnLoad();</script>
+   <script src="highlight/highlight.min.js"></script>
+   <script src="highlight/do_highlight.js"></script>
    <title>Examples</title>
 </head>
 
@@ -76,19 +76,17 @@ The examples are organized in the following groups:
 <ul>
 <li><a href="#analysis">Data analysis</a></li>
 <li><a href="#endor">ENDOR simulations</a></li>
-<li><a href="#exchange">Chemical exchange</a></li>
-<li><a href="#fastmotion">Fast-motion cw EPR simulations</a></li>
 <li><a href="#fitting">Least-squares fitting</a></li>
-<li><a href="#isotropic">Isotropic cw EPR simulations</a></li>
+<li><a href="#liquids">Isotropic cw EPR simulations</a></li>
 <li><a href="#magnetometry">Magnetometry</a></li>
-<li><a href="#pulse evolve">Pulse EPR (evolve)</a></li>
-<li><a href="#pulse saffron">Pulse EPR (saffron)</a></li>
+<li><a href="#photoexcitation">Spin-polarized systems</a></li>
+<li><a href="#pulse evolve">Pulse EPR simulations (evolve)</a></li>
+<li><a href="#pulse saffron">Pulse EPR simulations (saffron)</a></li>
 <li><a href="#pulse shaping">Pulse shaping</a></li>
-<li><a href="#pulse spidyan">Pulse EPR (spidyan)</a></li>
+<li><a href="#pulse spidyan">Pulse EPR simulations (spidyan)</a></li>
 <li><a href="#slowmotion">Slow-motion cw EPR simulations</a></li>
-<li><a href="#trajectories">Slow-motion cw EPR simulations from molecular-dynamics trajectories</a></li>
 <li><a href="#solidstate">Solid-state cw EPR simulations</a></li>
-<li><a href="#photoexcitation">EPR simulations for photoexcited systems</a></li>
+<li><a href="#trajectories">EPR spectra from MD trajectories</a></li>
 <li><a href="#varia">Other examples</a></li>
 </ul>
 
@@ -111,12 +109,9 @@ foreach $category (@allcategories) {
 
   print D "<!-- ===================================================================== -->\n";
   print D '<a name="'.$category.'"><b>'.$Description{$category}."</b></a>\n\n";
-  print D "<table width=100%>\n";
+  print D qq(<table width=100% class="examplelist">\n);
 
-  @col = ('ffffff', 'f3f3f3');
-  $icol = 1;
   foreach $ex (@files) {
-    $thiscol = $col[$icol];
     $exfilename = $ex;
     open EX, $exfilename;
     $firstline = <EX>;
@@ -125,8 +120,7 @@ foreach $category (@allcategories) {
     $description =~ s/%\s*//;
     $description = ucfirst($description);
     $exname = substr $exfilename, 0, -2;  # remove .m
-    print D qq(<tr bgcolor="$thiscol">\n<td width=200><a href="../examples/$category/$exfilename">$exname</a></td>\n<td>$description</td></tr>\n);
-    if ($icol==1) { $icol=2; } else { $icol=1; }
+    print D qq(<tr>\n<td width=200><a href="../examples/$category/$exfilename">$exname</a></td>\n<td>$description</td></tr>\n);
   }
   print D "</table>\n<p></p>\n\n";
   chdir('..');

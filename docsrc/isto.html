@@ -49,7 +49,7 @@ This function provides matrix representations of the irreducible spherical tenso
 </p>
 
 <p>
-The parameters <code>k</code> and <code>q</code> specify the operator component. Allowed values are <code>0&lt;=k&lt;=2S</code> and <code>q=-k,...,k</code>. <code>k</code> is the rank of the operator, and <code>q</code> is the component. For a multi-spin system, both <code>k</code> and <code>q</code> need to be column vectors, with one entry for each spin in <code>S</code>. As an alternative, a third column of spin indices can be provided. In this cases, <code>k</code> and <code>q</code> are used for the spins with indices in <code>i</code>, and for all other spins it is assumed that both <code>k</code> and <code>q</code> are zero.
+The parameters <code>k</code> and <code>q</code> specify the operator component. Allowed values are <code>0&lt;=k&lt;=2S</code> and <code>q=-k,...,k</code>. <code>k</code> is the rank of the operator, and <code>q</code> is the component. For a multi-spin system, both <code>k</code> and <code>q</code> need to be column vectors, with one entry for each spin in <code>S</code>. As an alternative, a third column of spin indices can be provided. In this case, <code>k</code> and <code>q</code> are used for the spins with indices in <code>i</code>, and for all other spins it is assumed that both <code>k</code> and <code>q</code> are zero.
 </p>
 
 <p>
@@ -75,7 +75,7 @@ isto(3/2,[2 1])
 </pre>
 
 <p>
-To get an ISTO for a system of three spins-3/2 with <code>k=2</code> and <code>q=-1</code> for the third spin, and zero for all others, use one of two following ways
+To get an ISTO for a system of three spins-3/2 with <code>k=2</code> and <code>q=-1</code> for the third spin, and zero for all others, use one of the following two ways
 </p>
 
 <pre class="matlab">
@@ -90,7 +90,7 @@ isto(S,[0 0; 0 0; 2 1])
 <div class="subtitle">Algorithm</div>
 
 <p>
-The operator matrices are computed using Racah's commutation rule. See <a target="_blank" href="https://doi.org/10.1006/jmre.1999.1783">I.D.Ryabov, J.Magn.Reson. 140, 141-145 (1999)</a>.
+The operator matrices are computed using Racah's commutation rule. See <a target="_blank" href="https://doi.org/10.1006/jmre.1999.1783">I. D. Ryabov, J. Magn. Reson. 140, 141-145 (1999)</a>.
 </p>
 
 <!-- ====================================================== -->

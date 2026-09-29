@@ -46,7 +46,7 @@ fieldmod(...)
 <div class="subtitle">Description</div>
 
 <p>
-<code>fieldmod</code> computes the effect of sinusoidal field modulation on the EPR spectrum. Modulation of the external static field is standard in CW EPR spectroscopy. With field modulation and lock-in detection at the first harmonic, the recorded signal is approximately the first derivative of the spectral shape and not the absorption spectrum itself. Given an absorption spectrum <code>spc</code> over a field range <code>B</code> (in mT), <code>fieldmod</code> returns the modulated absorption spectrum in <code>spcMod</code>.
+<code>fieldmod</code> computes the effect of sinusoidal field modulation on the EPR spectrum. Modulation of the external static field is standard in cw EPR spectroscopy. With field modulation and lock-in detection at the first harmonic, the recorded signal is approximately the first derivative of the spectral shape and not the absorption spectrum itself. Given an absorption spectrum <code>spc</code> over a field range <code>B</code> (in mT), <code>fieldmod</code> returns the modulated absorption spectrum in <code>spcMod</code>.
 </p>
 
 <p>
@@ -58,7 +58,7 @@ The function returns a pseudo-modulated spectrum in the sense that it only takes
 </p>
 
 <p>
-The optional argument <code>Method</code> specifies the calculation method. It can be either <code>'fft'</code> (default) or <code>'conv'</code>. The <code>'fft'</code> method is generally more accurate, but can generate oscillating artifacts (Gibbs wiggles) in certain cases such as very narrow spectral lines or non-zero intensity at the field range edges. The <code>'conv'</code> method avoids these, but due to the approximate nature of the underlying numerical integration, it can lead to slightly inaccurate lineshapes if the number of points across the peak-to-peak modulation amplitude is small.
+The optional argument <code>Method</code> specifies the calculation method. It can be either <code>'fft'</code> (default) or <code>'conv'</code>. The <code>'fft'</code> method is generally more accurate, but can generate oscillating artifacts (Gibbs wiggles) in certain cases such as very narrow spectral lines or non-zero intensity at the field range edges. The <code>'conv'</code> method avoids these, but due to the approximate nature of the underlying numerical integration, it can lead to slightly inaccurate line shapes if the number of points across the peak-to-peak modulation amplitude is small.
 </p>
 
 <p>
@@ -99,7 +99,7 @@ The <code>'fft'</code> method (default) performs the convolution in the Fourier 
 </p>
 
 <p>
-The <code>'conv'</code> method performs the convolution of the spectrum with the modulation function directly in the field domain. Since this method can be inaccurate for small number of points, the spectrum is interpolated heavily, then convoluted, and then downsampled again.
+The <code>'conv'</code> method performs the convolution of the spectrum with the modulation function directly in the field domain. Since this method can be inaccurate for a small number of points, the spectrum is interpolated heavily, then convolved, and then downsampled again.
 </p>
 
 <!-- ====================================================== -->

@@ -64,14 +64,14 @@ There are up to three possible output arguments.
 
 <ul>
 <li>
-If  no output argument is requested, <code>pepper</code> plots the calculated spectrum.
+If no output argument is requested, <code>pepper</code> plots the calculated spectrum.
 <li>
 <code>spec</code> contains the calculated spectrum or spectra.
 <li>
 For field-swept spectra, <code>B</code> is a vector of magnetic field values over which the spectrum was calculated, in units of mT.
 For frequency-swept spectra, <code>nu</code> is a vector of microwave frequency values over which the spectrum was calculated, in units of GHz.
 <li>
-<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the spin system in ascending order, so level 1 is that with lowest energy and so on. If <code>Opt.separate = 'transitions'</code>, <code>spec</code> is a matrix and <code>spec(k,:)</code> is the spectrum of the transition <code>info.Transitions(k,:)</code>.
+<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which were included in the spectrum calculations. Level numbers refer to the energy levels of the spin system in ascending order, so level 1 is that with lowest energy and so on. If <code>Opt.separate = 'transitions'</code>, <code>spec</code> is a matrix and <code>spec(k,:)</code> is the spectrum of the transition <code>info.Transitions(k,:)</code>.
 </ul>
 
 <div class="subtitle2">Input: Spin system</div>
@@ -130,8 +130,6 @@ pol = -pi/2; % B1 along x lab axis
 For unpolarized excitation, set <code>pol='unpolarized'</code>. For circularly polarized radiation, set <code>pol='circular+'</code> or <code>pol='circular-'</code>, depending on the sense of rotation.
 </p>
 
-</ul>
-
 </div>
 
 
@@ -147,7 +145,7 @@ Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal/film frame tilted 
 Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals/films
 </pre>
 <p>
-<code>SampleFrame</code> is only used for crystals and partially ordered samples (films etc). It is ignored for disordered samples (powders and frozen solutions).
+<code>SampleFrame</code> is only used for crystals and partially ordered samples (films etc.). It is ignored for disordered samples (powders and frozen solutions).
 </p>
 </div>
 
@@ -172,7 +170,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 <div class="optionfield"><code>SampleRotation</code></div>
 <div class="optiondescr">
 <p>
-Specifies the sample rotation as <code>{nRot_L,rho}</code>. <code>nRot_L</code> fixed in the <a href="frames.html">laboratory frame</a>. The axis is represented in lab-frame coordinates, and it does not need to be normalized. <code>rho</code> is the rotation angle (in radians), or list of rotation angles, around the rotation axis. This rotation is applied to sample starting from the orientation given in <code>Exp.SampleFrame</code>.
+Specifies the sample rotation as <code>{nRot_L,rho}</code>. <code>nRot_L</code> is the rotation axis, fixed in the <a href="frames.html">laboratory frame</a>. The axis is represented in lab-frame coordinates, and it does not need to be normalized. <code>rho</code> is the rotation angle (in radians), or list of rotation angles, around the rotation axis. This rotation is applied to the sample starting from the orientation given in <code>Exp.SampleFrame</code>.
 </p>
 
 <pre class="matlab">
@@ -191,7 +189,7 @@ Exp.SampleRotation = {'x',rho};           % a series of rotations
 <div class="optionfield"><code>MolFrame</code></div>
 <div class="optiondescr">
 <p>
-The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">sample/crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Exp.MolFrame=[0,pi/4,0]</code> tilts the x and z axis of the spin system's molecular frame relative to those of the crystal frame while keeping the y axes aligned.
+The three <a href="eulerangles.html">Euler angles</a>, in radians, for the transformation of the <a href="frames.html">sample/crystal frame</a> to the <a href="frames.html">molecular frame</a>. Use this field when specifying a crystal containing spin systems that are tilted with respect to the crystal frame. E.g. <code>Exp.MolFrame=[0,pi/4,0]</code> tilts the x and z axes of the spin system's molecular frame relative to those of the crystal frame while keeping the y axes aligned.
 </p>
 </div>
 
@@ -199,7 +197,7 @@ The three <a href="eulerangles.html">Euler angles</a>, in radians, for the trans
 <em>scalar</em> (default: zero) or <em>function handle</em></div>
 <div class="optiondescr">
 <p>
-If a number of function handle is given in this field, it specifies the orientational distribution of the paramagnetic molecules in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
+If a number or function handle is given in this field, it specifies the orientational distribution of the paramagnetic molecules in the sample. If not given or set to zero, the distribution is isotropic, i.e. all orientations occur with the same probability.
 </p>
 
 <p>
@@ -252,7 +250,7 @@ Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
 </p>
 
 <p>
-When providing a function for <code>Exp.Ordering</code>, make sure that the grid symmetry used in the simulation is the same or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
+When providing a function for <code>Exp.Ordering</code>, make sure that the grid symmetry used in the simulation is the same as or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
 </p>
 
 <p>
@@ -260,7 +258,7 @@ If the orientational distribution provided via <code>Exp.Ordering</code> is very
 </p>
 
 <p>
-The distributions in <code>Exp.Ordering</code> do not have to be normalized. <code>pepper</code> normalizes it internally. If you want to calculate the normalization factor, use numerical integration with <code>integral3</code>:
+The distributions in <code>Exp.Ordering</code> do not have to be normalized. <code>pepper</code> normalizes them internally. If you want to calculate the normalization factor, use numerical integration with <code>integral3</code>:
 </p>
 
 <pre class="matlab">
@@ -279,7 +277,7 @@ ans =
 <div class="optionfield"><code>lightBeam</code></div>
 <div class="optiondescr">
 <p>
-Specifies mode of photoexcitation. If photoexcitation is present, photoselection weights will be calculated and included into the spectral line intensities. For this, the transition dipole moment direction must be provided in <code>Sys.tdm</code> (see <a href="spinsystem.html#light">here</a>). Possible settings for <code>lightBeam</code> are
+Specifies the mode of photoexcitation. If photoexcitation is present, photoselection weights will be calculated and included in the spectral line intensities. For this, the transition dipole moment direction must be provided in <code>Sys.tdm</code> (see <a href="spinsystem.html#tdm">here</a>). Possible settings for <code>lightBeam</code> are
 </p>
 <ul>
 <li><code>Exp.lightBeam = ''</code> - no photoexcitation (default)
@@ -317,7 +315,7 @@ Determines the level of theory <code>pepper</code> uses to compute the resonance
 <li>
 <code>'matrix'</code> indicates matrix diagonalization. This method is very reliable and accurate and works for spin systems with any number of spins. All interactions, including quadrupole, are included in the computation.
 <li>
-<code>'perturb1'</code> indicates first-order perturbation theory, and  <code>'perturb'</code> or <code>'perturb2'</code> indicates second-order perturbation theory. These methods are limited to spin systems with one electron spin 1/2 (and possibly some nuclei). In addition, nuclear Zeeman and nuclear quadrupole terms are neglected, and only allowed transitions are computed. For multi-nuclear spin system, cross-nuclear effects are neglected as well. The resulting spectrum is reasonably correct only for small hyperfine couplings (e.g. organic radicals).
+<code>'perturb1'</code> indicates first-order perturbation theory, and <code>'perturb'</code> or <code>'perturb2'</code> indicates second-order perturbation theory. These methods are limited to spin systems with one electron spin 1/2 (and possibly some nuclei). In addition, nuclear Zeeman and nuclear quadrupole terms are neglected, and only allowed transitions are computed. For multi-nuclear spin systems, cross-nuclear effects are neglected as well. The resulting spectrum is reasonably correct only for small hyperfine couplings (e.g. organic radicals).
 <li>
 <code>'hybrid'</code> indicates matrix diagonalization for all the electron spins, and perturbation treatment for all nuclei, using effective nuclear sub-Hamiltonians for each electron spin manifold. This method is advantageous for high-spin systems with significant zero-field splitting, but only small hyperfine couplings. If some nuclei have large hyperfine couplings that need to be treated exactly, they can be specified in the field <code>HybridCoreNuclei</code>.
 </ul>
@@ -351,7 +349,7 @@ Opt.HybridCoreNuclei = [];    % all nuclei are treated perturbationally
 <code>''</code> (default), <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code>, <code>'orientations'</code> </div>
 <div class="optiondescr">
 <p>
-Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum. If <code>'transitions'</code> is specified, transitions subspectra are returned (for powders only). If <code>'sites'</code> is specified, site subspectra are returned (for crystals only). If <code>'orientations'</code> is specified, orientation subspectra are returned (for crystals only).
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum. If <code>'transitions'</code> is specified, transition subspectra are returned (for powders only). If <code>'sites'</code> is specified, site subspectra are returned (for crystals only). If <code>'orientations'</code> is specified, orientation subspectra are returned (for crystals only).
 </p>
 </div>
 
@@ -394,7 +392,7 @@ Sets the symmetry of the orientational grid used for the powder simulation. <cod
 Euler angles (in radians) that specify the orientation of the integration grid relative to the molecular frame. If not given or <code>''</code>, it is determined automatically. If given, <code>GridSymmetry</code> must be provided as well.
 </div>
 
-<div class="optionfield"><code>Transitions</code>, <em>mx2 vector of integers</em>, or <code>'all'</code></div>
+<div class="optionfield"><code>Transitions</code>, <em>mx2 array of integers</em>, or <code>'all'</code></div>
 <div class="optiondescr">
 <p>
 Determines manually the level pairs which are used in the spectrum calculation. If given, <code>pepper</code> uses them and skips its automatic transition selection scheme. Level pairs are specified in <code>Transitions(k,:)</code> by the level numbers which start with 1 for the lowest-energy level. If <code>'all'</code> is given, then all transitions are included.
@@ -411,7 +409,7 @@ In crystal simulations, this gives a list of crystal sites to include in the sim
 </p>
 
 <p>
-If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g. the following set limits the simulation to sites 1 and 3 of the 4 magnetically distinct sites in crystal of space group no. 47.
+If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g., the following limits the simulation to sites 1 and 3 of the 4 magnetically distinct sites in a crystal of space group no. 47.
 </p>
 <pre class="matlab">
 Exp.CrystalSymmetry = 47;  % space group Pmmm
@@ -426,7 +424,7 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
 <p>
-Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transitions are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </p>
 </div>
 
@@ -435,7 +433,7 @@ Specifies the threshold for transition pre-selection. Only transitions with an e
 </div>
 <div class="optiondescr">
 <p>
-With <code>'on'</code>, transition rates, i.e. line intensities, are computed correctly. Allowed transitions will be more intense then quasi-forbidden ones. <code>'off'</code> simply sets all transition rates of all transitions to 1. Allowed and forbidden transitions will have the same intensity. Be very careful when switching this option to <code>'off'</code>! The resulting spectra are not correct.
+With <code>'on'</code>, transition rates, i.e. line intensities, are computed correctly. Allowed transitions will be more intense than quasi-forbidden ones. <code>'off'</code> simply sets all transition rates of all transitions to 1. Allowed and forbidden transitions will have the same intensity. Be very careful when switching this option to <code>'off'</code>! The resulting spectra are not correct.
 </p>
 </div>
 
@@ -470,7 +468,7 @@ Spectra are calculated over a triangular orientational grid using <a class="esf"
 </p>
 
 <p>
-This gridded data is then interpolated with cubic splines in a combined 1D/2D approach. Resampling of the spline surface gives much quicker many more position/intensity/width data than quantum-mechanical calculation.
+This gridded data is then interpolated with cubic splines in a combined 1D/2D approach. Resampling the spline surface yields many more position/intensity/width data points much more quickly than quantum-mechanical calculations.
 </p>
 
 <p>
@@ -478,7 +476,7 @@ Finally, the refined data are projected onto the magnetic field axis using a Del
 </p>
 
 <p>
-Apart from the main steps above, there is an automatic transition selection, which works along the same line as the overall algorithm, except that its results are only used for determining which level pairs possibly contribute to the spectrum.
+Apart from the main steps above, there is an automatic transition selection, which works along the same lines as the overall algorithm, except that its results are only used for determining which level pairs possibly contribute to the spectrum.
 </p>
 
 <p>

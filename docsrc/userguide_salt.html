@@ -362,8 +362,8 @@ After having computed the spectrum for a number of orientations specified
 by <code>GridSize</code>, the simulation function interpolates these spectra for
 additional orientations before summing up all spectra. This interpolative
 refinement can be configured with a second number in <code>GridSize</code>.
-<code>GridSize = [19 4]</code> means that <code>pepper</code> interpolates
-additional 4 spectra between two adjacent orientations evaluated.
+<code>GridSize = [19 4]</code> means that <code>salt</code> interpolates
+4 additional spectra between two adjacent orientations evaluated.
 </p>
 
 <pre class="matlab">
@@ -410,7 +410,7 @@ Options.Method = 'matrix';     % matrix diagonalization
 </pre>
 
 <p>
-If you have a couple of protons in an 1H ENDOR spectrum, first-order perturbation theory is orders of
+If you have a couple of protons in a 1H ENDOR spectrum, first-order perturbation theory is orders of
 magnitude faster than matrix diagonalization. Under most circumstances, the errors
 introduced are minimal. Second-order perturbation theory should be used if the hyperfine couplings
 are larger than about 2% of the microwave frequency (about 200 MHz for a microwave frequency of 10 GHz).
@@ -433,7 +433,7 @@ This tells EasySpin to classify nuclei into whether they contribute to orientati
 or not (N2), then pre-compute orientation selection data only for those in group N1. Any orientation
 that is not noticeably excited is then skipped in the subsequent ENDOR simulation. This pre-selection
 is only available with matrix diagonalization and advantageous only if there are several nuclei that
-do <code>not</code> contribute to orientational selectivity. Use it only if perturbation theory is
+do <em>not</em> contribute to orientational selectivity. Use it only if perturbation theory is
 really not an option.
 </p>
 

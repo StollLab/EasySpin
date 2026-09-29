@@ -53,12 +53,12 @@ This function calculates time traces for 1D or 2D pulse EPR experiments with up 
 <p>
 The row vector <code>IncScheme</code> specifies the incrementation scheme of the
 ESEEM experiment to simulate. It can contain only <code>1</code>, <code>-1</code>, <code>2</code> and <code>-2</code>. <code>1</code>
-symbolises the t<sub>1</sub> dimension (along columns in the output), <code>2</code> is the t<sub>2</sub> dimension
+symbolizes the t<sub>1</sub> dimension (along columns in the output), <code>2</code> is the t<sub>2</sub> dimension
 (along rows). The sign determines whether the evolution period is incremented or decremented along the given dimension.
 </p>
 
 <p>
-For example, <code>IncScheme = [1 2 -2 1]</code> indicates that the first and fourth evolution period are incremented together yielding the t<sub>1</sub> dimension, whereas the second and third period give the t<sub>2</sub> dimension with the second being incremented and the third being <em>decremented</em>.
+For example, <code>IncScheme = [1 2 -2 1]</code> indicates that the first and fourth evolution periods are incremented together yielding the t<sub>1</sub> dimension, whereas the second and third period give the t<sub>2</sub> dimension with the second being incremented and the third being <em>decremented</em>.
 </p>
 
 <p>
@@ -84,7 +84,7 @@ The following table lists all possible values for <code>IncScheme</code> with so
 <code>[1 -1]</code></td>
 <td>2</td>
 <td>1</td>
-<td>3-pulse-DEER, 4-pulse DEER, PEANUT,5-pulse RIDME</td></tr>
+<td>3-pulse DEER, 4-pulse DEER, PEANUT, 5-pulse RIDME</td></tr>
 <tr><td>
 <code>[1 2]</code></td>
 <td>2</td>
@@ -148,7 +148,7 @@ The following table lists all possible values for <code>IncScheme</code> with so
 </table>
 
 <p>
-<code>Sig</code> is the density matrix at the start of the first evolution period and doesn't have to be a thermal equilibrium density. It can be a density prepared to a non-equilibrium state by a preparation sequence.
+<code>Sig</code> is the density matrix at the start of the first evolution period and doesn't have to be a thermal equilibrium density matrix. It can be a density matrix prepared in a non-equilibrium state by a preparation sequence.
 </p>
 
 <p>
@@ -207,7 +207,7 @@ The function uses the standard equations <img src="eqn/evolve2.png" alt="[eqn]">
 = \mr{tr}\left(\hat\sigma(t)\hat{D}\right) $$--> and evaluates them
 in the eigenbasis of the propagator <img src="eqn/evolve3.png" alt="[eqn]"><!--MATH$\hat{U}(t) =
 \exp(-i2\uppi\hat{H}t)$--> after transformation to Liouville space. The
-propagation superoperator is then diagonal as well, and the density
+propagation superoperator is then diagonal as well, and the density matrix
 can be evolved by simply multiplying it with the diagonal of the
 superpropagator element-by-element. The state space trace is evaluated
 in a similar way.
@@ -217,7 +217,7 @@ in a similar way.
 <div class="subtitle">See also</div>
 
 <p>
-<a class="esf" href="nucfrq2d.html">nucfr2d</a>,
+<a class="esf" href="nucfrq2d.html">nucfrq2d</a>,
 <a class="esf" href="propint.html">propint</a>,
 <a class="esf" href="saffron.html">saffron</a>,
 <a class="esf" href="sigeq.html">sigeq</a>

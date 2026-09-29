@@ -161,7 +161,7 @@ D and E are related to the principal values of the D tensor (see reference page 
 </p>
 
 <p>
-Details about all the spin Hamilton parameters can be found on the <a href="hamiltonian.html">spin Hamiltonian reference page</a>. It is also possible to include several electron spins. Refer to the page about <a href="spinsystem.html">spin system structures</a> for details.
+Details about all the spin Hamiltonian parameters can be found on the <a href="hamiltonian.html">spin Hamiltonian reference page</a>. It is also possible to include several electron spins. Refer to the page about <a href="spinsystem.html">spin system structures</a> for details.
 </p>
 
 <!-- ============================================================= -->
@@ -173,7 +173,7 @@ line broadening models in a simulation.
 </p>
 
 <p>
-The simplest way to include line broadening is to convolute a stick spectrum with a (Gaussian or Lorentzian) line shape after the end of the simulation. Such a convolutional broadening is specified in the spin system field <code>lwpp</code>.
+The simplest way to include line broadening is to convolve a stick spectrum with a (Gaussian or Lorentzian) line shape after the end of the simulation. Such a convolutional broadening is specified in the spin system field <code>lwpp</code>.
 </p>
 
 <pre class="matlab">
@@ -183,7 +183,7 @@ Sys.lwpp = [1 2];   % Gaussian PP of 1 mT + Lorentzian PP of 2 mT
 </pre>
 
 <p>
-The line width is in mT and refers to peak-to-peak (PP) line widths in the first-harmonic EPR spectrum. FWHM (full width at half height) line widths can be provided instead in the field <code>Sys.lw</code>.
+The line width is in mT and refers to peak-to-peak (PP) line widths in the first-harmonic EPR spectrum. FWHM (full width at half maximum) line widths can be provided instead in the field <code>Sys.lw</code>.
 </p>
 
 <pre class="matlab">
@@ -197,7 +197,7 @@ PP widths, see the page on <a href="lineshapes.html">line shapes</a>.
 </p>
 
 <p>
-Physically, there are several possible origins for line broadening. Large contributions to broadening often comes from unresolved hyperfine couplings and from distributions in the various magnetic parameters like g, A and D that result from structural variations from one paramagnetic center to the next in the sample.
+Physically, there are several possible origins for line broadening. Large contributions to broadening often come from unresolved hyperfine couplings and from distributions in the various magnetic parameters like g, A and D that result from structural variations from one paramagnetic center to the next in the sample.
 </p>
 
 <p>
@@ -226,7 +226,7 @@ Distributions of the D tensor values can be given in <code>DStrain</code>, where
 </p>
 
 <p>
-All these broadening parameters can be combined. However, usually a modelling of the broadening with <code>lwpp</code> or <code>HStrain</code> is sufficient.
+All these broadening parameters can be combined. However, usually a modeling of the broadening with <code>lwpp</code> or <code>HStrain</code> is sufficient.
 </p>
 
 <!-- ============================================================= -->
@@ -237,7 +237,7 @@ The second input argument, <code>Exp</code>, collects experimental settings. Thi
 </p>
 
 <p>
-<span class="param">Microwave frequency</span>. To simulate an EPR spectrum, Easyspin needs at a minimum the spectrometer frequency. Put it into <code>Exp.mwFreq</code>, in units of GHz. 
+<span class="param">Microwave frequency</span>. To simulate an EPR spectrum, EasySpin needs at a minimum the spectrometer frequency. Put it into <code>Exp.mwFreq</code>, in units of GHz. 
 </p>
 
 <pre class="matlab">
@@ -337,7 +337,7 @@ Exp.mwPhase = 3*pi/180;          % 3 degrees dispersion admixed to absorption
 <a name="crystals"><div class="subtitle">Powders and crystals</div></a>
 
 <p>
-If not specified otherwise, <code>pepper</code> computes a powder spectrum, i.e. it assumes that the orientations of the spin centers are randomly but uniformly distributed in the sample. To simulate the spectrum for a single crystal, use the experiment structure field <code>Exp.MolFrame</code> to provide the orientation of the spin center within the crystal, <code>Exp.CrystalSymmetry</code> to provide the symmetry of the crystal, and <code>Exp.SampleFrame</code> to specify how the crystal is oriented in the spectrometer. For details see the dedicated page on <a href="crystalsim.html">crystal simulations</a>.
+If not specified otherwise, <code>pepper</code> computes a powder spectrum, i.e. it assumes that the orientations of the spin centers are randomly but uniformly distributed in the sample. To simulate the spectrum for a single crystal, use the experiment structure field <code>Exp.MolFrame</code> to provide the orientation of the spin center within the crystal, <code>Exp.CrystalSymmetry</code> to provide the symmetry of the crystal, and <code>Exp.SampleFrame</code> to specify how the crystal is oriented in the spectrometer. For details, see the dedicated page on <a href="crystalsim.html">crystal simulations</a>.
 </p>
 
 <p>
@@ -361,7 +361,7 @@ Exp.CrystalSymmetry = '2/m';     % point group, Hermann-Mauguin notation
 </pre>
 
 <p>
-With the crystal symmetry given, EasySpin includes all symmetry-related sites into the simulated spectrum.
+With the crystal symmetry given, EasySpin includes all symmetry-related sites in the simulated spectrum.
 </p>
 
 <p>
@@ -381,7 +381,7 @@ If <code>Exp.SampleFrame</code> is missing or set to <code>[]</code> (an empty a
 <a name="options"><div class="subtitle">Simulation options</div></a>
 
 <p>
-The third input argument to <code>pepper</code> contains simulation options. All of them have reasonable default values, but sometimes it might be necessary to change one of them. In the following the most important ones are presented.
+The third input argument to <code>pepper</code> contains simulation options. All of them have reasonable default values, but sometimes it might be necessary to change one of them. In the following, the most important ones are presented.
 </p>
 
 <p>
@@ -393,7 +393,7 @@ Opt.Verbosity = 1;
 </pre>
 
 <p>
-<code>Opt.Verbosity</code> tells <code>pepper</code> how much of progress information to show in the command window. 0 (the default) suppresses all output, 1 is normal information, and 2 prints more information, relevant only for debugging.
+<code>Opt.Verbosity</code> tells <code>pepper</code> how much progress information to show in the command window. 0 (the default) suppresses all output, 1 is normal information, and 2 prints more information, relevant only for debugging.
 </p>
 
 <p>
@@ -410,7 +410,7 @@ The higher <code>Opt.GridSize</code>, the finer the orientational grid. The defa
 
 <p>
 After having computed the spectrum for a number of orientations specified
-by <code>Opt.GridSize</code>, the simulation function interpolates these spectra for additional orientations before summing up all spectra. This interpolative refinement can be configured with a second number in <code>Opt.GridSize</code>. <code>Opt.GridSize = [19 4]</code> means that <code>pepper</code> interpolates additional 4 spectra between two adjacent orientations evaluated.
+by <code>Opt.GridSize</code>, the simulation function interpolates these spectra for additional orientations before summing up all spectra. This interpolative refinement can be configured with a second number in <code>Opt.GridSize</code>. <code>Opt.GridSize = [19 4]</code> means that <code>pepper</code> interpolates 4 additional spectra between two adjacent orientations evaluated.
 </p>
 
 <pre class="matlab">
@@ -458,14 +458,14 @@ pepper({Sys1,Sys2},Exp);
 </pre>
 
 <p>
-You don't have to specify <code>Sys.weight</code> - if it's absent it is assumed to be 1. These weights are absolute, i.e. a simulation with <code>Sys.weight=20</code> yields a spectrum that is 10 times more intense than the one obtained with <code>Sys.weight=2</code>. There is no limit to the number of components in a simulation.
+You don't have to specify <code>Sys.weight</code> - if it's absent, it is assumed to be 1. These weights are absolute, i.e. a simulation with <code>Sys.weight=20</code> yields a spectrum that is 10 times more intense than the one obtained with <code>Sys.weight=2</code>. There is no limit to the number of components in a simulation.
 </p>
 
 <!-- ============================================================= -->
 <a name="manynuclei"><div class="subtitle">Systems with several nuclei</div></a>
 
 <p>
-<code>pepper</code> uses matrix diagonalization as the default method for simulating spectra. For systems with several nuclei this can be very time-consuming. To accelerate such computations, <code>pepper</code> provides first- and second-order perturbation theory as an alternative methods. The relevant simulation option that tells EasySpin about is <code>Opt.Method</code>.
+<code>pepper</code> uses matrix diagonalization as the default method for simulating spectra. For systems with several nuclei this can be very time-consuming. To accelerate such computations, <code>pepper</code> provides first- and second-order perturbation theory as alternative methods. The relevant simulation option that tells EasySpin about this is <code>Opt.Method</code>.
 </p>
 
 <p>
@@ -507,7 +507,7 @@ In powders and frozen solutions (disordered systems), paramagnetic molecules are
 </p>
 
 <p>
-<a href="pepper.html" class="esf">pepper</a> can include partial ordering in the spectral simulation. Information about the ordering is provided via <code>Exp.Ordering</code>. There are two ways to specify ordering, either using a single number or by providing an anonymous function. If <code>Exp.Ordering</code>is zero or empty, no ordering is used. 
+<a href="pepper.html" class="esf">pepper</a> can include partial ordering in the spectral simulation. Information about the ordering is provided via <code>Exp.Ordering</code>. There are two ways to specify ordering, either using a single number or by providing an anonymous function. If <code>Exp.Ordering</code> is zero or empty, no ordering is used. 
 </p>
 
 <p>
@@ -533,7 +533,7 @@ pepper(Sys,Exp);
 </pre>
 
 <p>
-The second way to provide information about the orientational distribution is to write a separate function and supply to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. The function takes as input the three Euler angles that transform the sample frame to the molecular frame (in analogy to <code>Exp.MolFrame</code>). Here is an example. Written as an anonymous function, the built-in orientational distribution is
+The second way to provide information about the orientational distribution is to write a separate function and supply it to <code>pepper</code> as a function handle in <code>Exp.Ordering</code>. See the <a href="pepper.html" class="esf">pepper</a> documentation for details. The function takes as input the three Euler angles that transform the sample frame to the molecular frame (in analogy to <code>Exp.MolFrame</code>). Here is an example. Written as an anonymous function, the built-in orientational distribution is
 </p>
 
 <pre class="matlab">
@@ -581,7 +581,7 @@ By default, <code>pepper</code> returns the absorption spectrum (<code>Exp.Harmo
 </p>
 
 <p>
-All other capabilities of <code>pepper</code> apply equally to frequency sweep and to field sweeps. For example, you can simulate crystals or multi-component spectra, and you can change the excitation mode. Importantly, just like field sweeps, frequency sweeps can be simulated using different methods: matrix diagonalization (<code>Opt.Method='matrix'</code>; highly accurate but potentially slow) or perturbation theory (<code>Opt.Method='perturb'</code>, <code>Opt.Method='perturb1'</code>, <code>Opt.Method='perturb2'</code>; less accurate but much faster).
+All other capabilities of <code>pepper</code> apply equally to frequency sweeps and to field sweeps. For example, you can simulate crystals or multi-component spectra, and you can change the excitation mode. Importantly, just like field sweeps, frequency sweeps can be simulated using different methods: matrix diagonalization (<code>Opt.Method='matrix'</code>; highly accurate but potentially slow) or perturbation theory (<code>Opt.Method='perturb'</code>, <code>Opt.Method='perturb1'</code>, <code>Opt.Method='perturb2'</code>; less accurate but much faster).
 </p>
 
 <!-- ============================================================= -->

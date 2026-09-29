@@ -46,7 +46,7 @@ yabs = lorentzian(x,x0,fwhm,diff,phase)
 <div class="subtitle">Description</div>
 
 <p>
-This function returns a <a href="lineshapes.html">Lorentzian line shape</a> with center <code>x0</code> and full width at half height <code>fwhm</code> over the abscissa values defined in the vector <code>x</code>.
+This function returns a <a href="lineshapes.html">Lorentzian line shape</a> with center <code>x0</code> and full width at half maximum <code>fwhm</code> over the abscissa values defined in the vector <code>x</code>.
 </p>
 
 <p>
@@ -59,14 +59,14 @@ with <img src="eqn/lorentzian1.png" alt="[eqn]"><!--MATH $-\infty$ --> as lower 
 </p>
 
 <p>
-If <code>phase</code> is given, the absorption and dispersion line shapes are both rotated the by the given amount (in radians). E.g., with <code>phase=pi/2</code>, <code>yabs</code> would contain the dispersion line shape.
+If <code>phase</code> is given, the absorption and dispersion line shapes are both rotated by the given amount (in radians). E.g., with <code>phase=pi/2</code>, <code>yabs</code> would contain the dispersion line shape.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Examples</div>
 
 <p>
-To obtain the first derivative of a Lorentzian with centre at 2 and
+To obtain the first derivative of a Lorentzian with center at 2 and
 FWHM of 18, use
 </p>
 
@@ -77,7 +77,7 @@ plot(x,y);
 </pre>
 
 <p>
-The Lorentzian absorption shape is normalised, so the double integral of
+The Lorentzian absorption shape is normalized, so the double integral of
 <code>y</code> should give one. However, since its wings extend much beyond
 the borders of the above defined abscissa <code>x</code>, the value 1 is
 not reached.

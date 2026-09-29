@@ -88,14 +88,14 @@ A_u = C2U*A_c*C2U';   % coupled -> uncoupled
 <div class="subtitle">Examples</div>
 
 <p>
-Two spin-1/2 couple together to give a triplet (S<sub>tot</sub>=1, three states with m<sub>Stot</sub> = +1, 0, -1) and a singlet (S<sub>tot</sub>=0, one state with m<sub>Stot</sub> = 0). To calculate the representation of the triplet state |S<sub>tot</sub>,m<sub>Stot</sub>> = |1,0> in the uncoupled basis, we first define it as a vector in the coupled basis:
+Two spin-1/2 particles couple together to give a triplet (S<sub>tot</sub>=1, three states with m<sub>Stot</sub> = +1, 0, -1) and a singlet (S<sub>tot</sub>=0, one state with m<sub>Stot</sub> = 0). To calculate the representation of the triplet state |S<sub>tot</sub>,m<sub>Stot</sub>> = |1,0> in the uncoupled basis, we first define it as a vector in the coupled basis:
 
 <pre class="matlab">
 psi_c = [0;1;0;0];             % represents |1,0> in the coupled basis
 </pre>
 
 <p>
-Next, we obtain the transformation matrix using <code>cgmatrix</code> and apply it to obtain the representation of the state in the uncoupled representations:
+Next, we obtain the transformation matrix using <code>cgmatrix</code> and apply it to obtain the representation of the state in the uncoupled representation:
 
 <pre class="matlab">
 U2C = cgmatrix(1/2,1/2)        % transformation matrix from uncoupled to coupled basis

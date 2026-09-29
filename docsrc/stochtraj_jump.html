@@ -56,7 +56,7 @@ stochtraj_jump(Sys,Par,Opt)
 
 <ul>
 <li><code>Sys</code>: dynamic properties
-<li><code>Par</code>: (optional) simulation parameters for monte carlo integrator and trajectories
+<li><code>Par</code>: (optional) simulation parameters for Monte Carlo integrator and trajectories
 <li><code>Opt</code>: (optional) simulation options
 </ul>
 
@@ -65,7 +65,7 @@ If no input argument is given, a short help summary is shown (same as when typin
 </p>
 
 <p>
-Depending on the input options, up to three output arguments are returned:
+Depending on the input options, up to four output arguments are returned:
 <ul>
 <li><code>t</code>: time axis, in seconds
 <li><code>RTraj</code>: trajectories in terms of rotation matrices
@@ -82,13 +82,14 @@ If no output argument is given, <code>stochtraj_jump</code> plots one of the tra
 <p>
 <code>Sys</code> is a structure containing the dynamic properties for generating the stochastic trajectories. Many of its fields overlap with those of <code>chili</code>. This allows the user to easily simulate EPR spectra in both frequency and time domains for comparison.
 </p>
+<p>
 
 To dictate the inter- and intra-state dynamics, either <code>TransRates</code> or <code>TransProb</code> can be given, with the former taking precedence if both are given.
 </p>
 
 <div class="optionfield"><code>TransRates</code></div>
 <div class="optiondescr">
-Transition rate matrix of size (nStates,nStates), in seconds<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
+Transition rate matrix of size (nStates,nStates), in s<sup>-1</sup>. The elements of <code>Sys.TransRates</code> must satisfy the following properties:
 <ul>
 <li> all diagonal elements must be non-positive
 <li> all off-diagonal elements must be non-negative
@@ -107,7 +108,7 @@ Transition probability matrix of size (nStates,nStates). The elements of <code>S
 
 <div class="optionfield"><code>Orientations</code></div>
 <div class="optiondescr">
-An array of Euler angles representing the orientation of each state, size (nStates,1) or (1,nStates).
+An array of Euler angles representing the orientation of each state, size (3,nStates) or (nStates,3).
 </div>
 
 
@@ -166,7 +167,7 @@ If only one starting state is given and <code>nTraj</code> is greater than one, 
 <div class="optionfield"><code>statesOnly</code></div>
 <div class="optiondescr">
 0 (default), 1<br>
-If equal to 1, only return the trajectories of Markov states, in which case <code>Sys.States</code> need not be specified.
+If equal to 1, only return the trajectories of Markov states, in which case <code>Sys.Orientations</code> need not be specified.
 </div>
 
 <!--
@@ -210,7 +211,7 @@ Par.nSteps = 200;    % number of time steps
 </pre>
 
 <p>
-To simulate 400, 1-&mu;s long trajectories of Markovian jumps between 2 orientations chosen uniformly at random, with equal probability of staying in a particular state or jumping to the other state, use
+To simulate 400 1-&mu;s long trajectories of Markovian jumps between 2 orientations chosen uniformly at random, with equal probability of staying in a particular state or jumping to the other state, use
 </p>
 
 <pre class="matlab">

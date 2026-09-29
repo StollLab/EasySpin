@@ -104,7 +104,7 @@ In addition to the static spin system parameters, <code>Sys</code> should contai
 <div class="optiondescr">
 Rotational correlation time, in seconds.
 <ul>
-<li>1 number <code>txyz</code>: isotopic diffusion, corresponding to <code>[txyz txyz txyz]</code>
+<li>1 number <code>txyz</code>: isotropic diffusion, corresponding to <code>[txyz txyz txyz]</code>
 <li>2 numbers <code>[txy tz]</code>: anisotropic diffusion with axial diffusion tensor, corresponding to <code>[txy txy tz]</code>
 <li>3 numbers <code>[tx ty tz]</code>: anisotropic diffusion with rhombic diffusion tensor
 </ul>
@@ -140,9 +140,9 @@ Sys.logtcorr = -9;      % corresponds to tcorr = 1e-9 s
 <div class="optiondescr">
 Principal values of the rotational diffusion tensor, in s<sup>-1</sup> (equivalently, rad<sup>2</sup> s<sup>-1</sup>).
   <ul>
-  <li>one number <code>Dxyz</code>: isotopic diffusion tensor, corresponding to <code>[Dxyz Dxyz Dxyz]</code>
+  <li>one number <code>Dxyz</code>: isotropic diffusion tensor, corresponding to <code>[Dxyz Dxyz Dxyz]</code>
   <li>two numbers <code>[Dxy Dzz]</code>: axial tensor, corresponding to <code>[Dxy Dxy Dzz]</code>
-  <li>three numbers <code>[Dxy Dxy Dzz]</code>: rhombic tensor 
+  <li>three numbers <code>[Dxx Dyy Dzz]</code>: rhombic tensor 
   </ul>
 </div>
   
@@ -208,8 +208,8 @@ The frame of the orientational potential is assumed to be collinear with that of
 The orientational symmetry of the potential reflects the symmetry of the paramagnetic molecule and the symmetry of the nanoenvironment in which it is tumbling:
 <ul>
 <li>
-If the environment of cylindrically symmetric (e.g. in a uniaxial liquid crystal), then use a potential with M=0 terms.
-<li>If the tumbling paramagnetic molecules is cylindrically symmetric, use a potential with K=0 terms only.
+If the environment is cylindrically symmetric (e.g. in a uniaxial liquid crystal), then use a potential with M=0 terms.
+<li>If the tumbling paramagnetic molecule is cylindrically symmetric, use a potential with K=0 terms only.
 </ul>
 
 <p>
@@ -223,7 +223,7 @@ For concentrated solutions, it is possible to include Heisenberg exchange:
 <div class="optionfield"><code>Exchange</code></div>
 <div class="optiondescr">
 <p>
-Effective Heisenberg spin exchange rate, in inverse microseconds. Implements a simple contact-exchange model, see eq. (A27) from Meirovitch et al, J.Chem.Phys.77, 3915-3938. See also Freed, in: Spin Labeling (ed. L.J. Berliner), 1976, p.68.
+Effective Heisenberg spin exchange rate, in inverse microseconds. Implements a simple contact-exchange model, see eq. (A27) in Meirovitch et al., J. Chem. Phys. 77, 3915-3938 (1982). See also Freed, in: Spin Labeling (ed. L. J. Berliner), 1976, p. 68.
 </div>
 
 <!-- ------------------------------------------------------------------- -->
@@ -266,7 +266,7 @@ plot(beta*180/pi,P);
 </pre>
 
 <p>
-If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one  (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
+If <code>Exp.Ordering</code> is a function handle, <code>chili</code> calls the function to obtain the orientational distribution. The function must accept either one  (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
 </p>
 
 <pre class="matlab">
@@ -274,7 +274,7 @@ Exp.Ordering = @(beta,gamma) gaussian(beta,0,15/180*pi);
 </pre>
 
 <p>
-If the function cannot be written as a singe line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
+If the function cannot be written as a single line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
 </p>
    
 <pre class="matlab">
@@ -294,7 +294,7 @@ Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
 </p>
 
 <p>
-When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
+When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same as or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
 </p>
 
 <p>
@@ -319,7 +319,7 @@ If this field is not specified, <code>chili</code> uses a default basis. This is
 
 <div class="optionfield"><code>highField</code></div>
 <div class="optiondescr">
--1 (default) or +1<br>
+<code>false</code> (default) or <code>true</code><br>
 Determines which electron spin transitions to include in the spin basis. If set to <code>false</code>, includes all transitions with p<sub>S</sub> = m<sub>S</sub>'-m<sub>S</sub>'' = -1 and +1. This is applicable in all cases. In certain situations, one can get away with setting <code>highField</code> to <code>true</code>. This indicates the high-field approximation, and that only transitions with p<sub>S</sub> = +1 are included. This reduces the basis and speeds up simulations, but can result in incorrect spectra under certain circumstances. It is important to always check such simulations against <code>highField=false</code>.
 </div>
 
@@ -344,7 +344,7 @@ Size of orientational grid used in a powder simulation (i.e. if the protein or o
 <div class="optiondescr">
 <code>'Dinfh'</code> (default), <code>'D2h'</code>, <code>'C2h'</code> or <code>'Ci'</code>
 <br>
-Sets the symmetry of the orientational grid for powder simulations. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>'Ci'</code>, which is slower, but correct for any situation. If <code>GridSymmetry</code> is given, <code>GridFrame</code> must be provided as well.
+Sets the symmetry of the orientational grid for powder simulations. <code>'Dinfh'</code> corresponds to a line from &theta;=0&deg; to &theta;=90&deg; (with &phi;=0&deg;), <code>'D2h'</code> to one octant, <code>'C2h'</code> to two octants, and <code>'Ci'</code> to one hemisphere (four octants). The default <code>'Dinfh'</code> is correct only for high-symmetry spin systems in high-symmetry potentials. In general, it is advised to run a simulation with <code>'Ci'</code>, which is slower, but correct for any situation. If <code>GridSymmetry</code> is given, <code>GridFrame</code> must be provided as well.
 </div>
 
 <div class="optionfield"><code>GridFrame</code></div>
@@ -354,12 +354,12 @@ Euler angles (in radians) that specify the orientation of the integration grid r
 
 <div class="optionfield"><code>LiouvMethod</code></div>
 <div class="optiondescr">
-This specifies which method is use to construct the Liouville matrix (i.e. the Hamiltonian and the relaxation superoperator). The two possible values are <code>'fast'</code> and <code>'general'</code>. The fast method is very fast, but limited to one electron spin with S=1/2 coupled to up to two nuclei and to orientational potentials with even L&le;4, zero M, even K &le;2, and real coefficients. On the other hand, the general method works for any spin system and any form of potential, but is significantly slower. By default, <code>chili</code> uses the fast method if applicable and falls back to the general method otherwise.
+This specifies which method is used to construct the Liouville matrix (i.e. the Hamiltonian and the relaxation superoperator). The two possible values are <code>'fast'</code> and <code>'general'</code>. The fast method is very fast, but limited to one electron spin with S=1/2 coupled to up to two nuclei and to orientational potentials with even L&le;4, zero M, even K &le;2, and real coefficients. On the other hand, the general method works for any spin system and any form of potential, but is significantly slower. By default, <code>chili</code> uses the fast method if applicable and falls back to the general method otherwise.
 </div>
 
 <div class="optionfield"><code>FieldSweepMethod</code></div>
 <div class="optiondescr">
-Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit`</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
+Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit'</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
 </div>
 
 <div class="optionfield"><code>separate</code>
@@ -372,9 +372,9 @@ Determines whether to return the total spectrum or a list of subspectra. If set 
 
 <div class="optionfield"><code>PostConvNucs</code></div>
 <div class="optiondescr">
-This specifies which nuclei should be excluded from the Stochastic Liouville equation (SLE) simulation and only included in the final spectrum perturbationally, via post-convolution of the SLE-simulated spectrum with an isotropic stick spectrum of the nuclei marked for post-convolution. E.g. If <code>Sys.Nucs = '14N,1H,1H,1H'</code> and <code>Opt.PostConvNucs = [2 3 4]</code>, the only the nitrogen is used in the SLE simulation, and all the protons are included via post-convolution.
+This specifies which nuclei should be excluded from the Stochastic Liouville equation (SLE) simulation and only included in the final spectrum perturbationally, via post-convolution of the SLE-simulated spectrum with an isotropic stick spectrum of the nuclei marked for post-convolution. E.g., if <code>Sys.Nucs = '14N,1H,1H,1H'</code> and <code>Opt.PostConvNucs = [2 3 4]</code>, then only the nitrogen is used in the SLE simulation, and all the protons are included via post-convolution.
 <p>
-Post-convolution is useful for including the effect of nuclei with small hyperfine couplings in spin systems with many nuclei that are too large to be handled by the SLE solver. Nuclei with large hyperfine couplings should never be treated via post-convolution. Only nuclei should be treated by post-convolution for which the hyperfine couplings (and anisotropies) are small enough to put them in the fast-motion regime, close to the isotropic limit, for the given rotational correlation time in <code>Sys.tcorr</code> etc.
+Post-convolution is useful for including the effect of nuclei with small hyperfine couplings in spin systems with many nuclei that are too large to be handled by the SLE solver. Nuclei with large hyperfine couplings should never be treated via post-convolution. Only nuclei whose hyperfine couplings (and anisotropies) are small enough to put them in the fast-motion regime, close to the isotropic limit, for the given rotational correlation time (<code>Sys.tcorr</code> etc.) should be treated by post-convolution.
 </div>
 
 <div class="optionfield"><code>Solver</code></div>
@@ -425,7 +425,7 @@ chili(Sys,Exp);
 </p>
 
 <p>
-If the spin system has S=1/2 and contains no more than two nuclei, <code>chili</code> by default uses a fast method to construct the Liouvillian matrix that uses code based on the software from the Freed lab at Cornell (<code>Opt.Method='fast'</code>). For all other cases, a general code is used to construct the Liouvillian matrix.
+If the spin system has S=1/2 and contains no more than two nuclei, <code>chili</code> by default uses a fast method to construct the Liouvillian matrix that uses code based on the software from the Freed lab at Cornell (<code>Opt.LiouvMethod='fast'</code>). For all other cases, a general code is used to construct the Liouvillian matrix.
 </p>
 
 <p>

@@ -45,13 +45,13 @@ Digital up- or downconversion.
 <div class="subtitle">Description</div>
 
 <p>
-This function mixes the input signal (<code>signalIn</code> as a function of the time axis <code>tIn</code> in microseconds) with the LO frequency specified in the field <code>mwFreq</code>. Depending on the mixer type is specified in <code>type</code>, the function acts as a double-sideband (DSB) mixer, single-sideband (SSB) mixer or performs IQ modulation, demodulation or frequency shifting.
+This function mixes the input signal (<code>signalIn</code> as a function of the time axis <code>tIn</code> in microseconds) with the LO frequency specified in the field <code>mwFreq</code>. Depending on the mixer type specified in <code>type</code>, the function acts as a double-sideband (DSB) mixer, single-sideband (SSB) mixer or performs IQ modulation, demodulation or frequency shifting.
 </p>
 
 <p>
 The output contains the time axis data in <code>tOut</code> (in microseconds) and the output signal in <code>signalOut</code>. 
 For up- or downconversion with a digital double-sideband (DSB) mixer, single-sideband (SSB) mixer or IQ modulation, only the in-phase component of the output is returned.
-For IQ demodulation or frequency shift, the in-phase and quadrature parts of the up- or downconverted signal are contained in the real and imaginary part of <code>signalOut</code>.
+For IQ demodulation or frequency shift, the in-phase and quadrature parts of the up- or downconverted signal are contained in the real and imaginary parts of <code>signalOut</code>.
 </p>
 
 <p>
@@ -72,7 +72,7 @@ Time axis vector for the input signal, in microseconds.
 
 <div class="optionfield"><code>signalIn</code></div>
 <div class="optiondescr">
-Input signal. In-phase (real) signal for up/downconversion (IF or RF) for DSB or SSB mixer or IQ demodulation; in-phase and quadrature components in the real and imaginary part of <code>signalIn</code> for IQ modulation or IQ frequency shift.
+Input signal. In-phase (real) signal for up/downconversion (IF or RF) for DSB or SSB mixer or IQ demodulation; in-phase and quadrature components in the real and imaginary parts of <code>signalIn</code> for IQ modulation or IQ frequency shift.
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
@@ -109,12 +109,12 @@ If no time step for resampling is given and the input time step is too large, a 
 
 <div class="optionfield"><code>OverSampleFactor</code></div>
 <div class="optiondescr">
-Factor for the determination of the new time step in signal resampling (default = 1.25), relative to Nyquist-required time step to avoid aliasing of the highest frequency in the signal.
+Factor for the determination of the new time step in signal resampling (default = 1.25), relative to the Nyquist-required time step to avoid aliasing of the highest frequency in the signal.
 </div>
 
 <div class="optionfield"><code>InterpolationMethod</code></div>
 <div class="optiondescr">
-Interpolation method for signal resampling with Matlab's built-in function <code>interp1</code> (default = <code>'spline'</code>).
+Interpolation method for signal resampling with MATLAB's built-in function <code>interp1</code> (default = <code>'spline'</code>).
 </div>
 
 <div class="optionfield"><code>BandwidthThreshold</code></div>
@@ -152,53 +152,41 @@ For single-sideband up/downconversion and IQ demodulation, the quadrature signal
 
 <p> The different options available in <code>rfmixer</code> are listed below with schematic block diagrams of the corresponding types of mixers and a simple example of operation.
 <ul>
-<li>Double sideband mixer (<code>'DSB'</code>)
+<li>Double-sideband mixer (<code>'DSB'</code>)
 
-<p>
 <div>
 <img src="img/rfmixer_DSB.png" width="330">
 </div>
-</p>
 
-<li>Single sideband mixer with selection of the lower sideband (<code>'LSB'</code>)
+<li>Single-sideband mixer with selection of the lower sideband (<code>'LSB'</code>)
 
-<p>
 <div>
 <img src="img/rfmixer_LSB.png" width="330">
 </div>
-</p>
 
-<li>Single sideband mixer with selection of the upper sideband (<code>'USB'</code>)
+<li>Single-sideband mixer with selection of the upper sideband (<code>'USB'</code>)
 
-<p>
 <div>
 <img src="img/rfmixer_USB.png" width="330">
 </div>
-</p>
 
 <li>IQ modulator (<code>'IQmod'</code>)
 
-<p>
 <div>
 <img src="img/rfmixer_IQmod.png" width="330">
 </div>
-</p>
 
 <li>IQ demodulator (<code>'IQdemod'</code>)
 
-<p>
 <div>
 <img src="img/rfmixer_IQdemod.png" width="330">
 </div>
-</p>
 
 <li>IQ frequency shifter (<code>'IQshift'</code>)
 
-<p>
 <div>
 <img src="img/rfmixer_IQshift.png" width="330">
 </div>
-</p>
 
 </ul>
 

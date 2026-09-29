@@ -175,7 +175,7 @@ Sys.Nucs = 'F,C';         % 100% 19F, plus a mixture of 99% 12C and 1% 13C
 </pre>
 
 <p>
-EasySpin will automatically simulate the spectra of all possible isotopologues (isotopes combinations) and combine them with the appropriate weights. Hyperfine constants and quadrupole couplings are automatically converted between isotopes. The values given in the spin system are taken to apply for the most abundant isotope with an appropriate spin (e.g. Cu: 63Cu for both gn and quadrupole moment; H: 1H for g value, 2H for quadrupole moment; N: 14N for both; Sn: 119Sn for both; the only three cases where the reference isotopes for gn and quadrupole moment differ are H, Xe and Hg, for all others either the most abundant isotope has spin 1 or larger [N], or there is no isotope with spin 1 or larger [C]).
+EasySpin will automatically simulate the spectra of all possible isotopologues (isotope combinations) and combine them with the appropriate weights. Hyperfine constants and quadrupole couplings are automatically converted between isotopes. The values given in the spin system are taken to apply for the most abundant isotope with an appropriate spin (e.g. Cu: 63Cu for both gn and quadrupole moment; H: 1H for g value, 2H for quadrupole moment; N: 14N for both; Sn: 119Sn for both; the only three cases where the reference isotopes for gn and quadrupole moment differ are H, Xe and Hg, for all others either the most abundant isotope has spin 1 or larger [N], or there is no isotope with spin 1 or larger [C]).
 </p>
 
 <p>
@@ -200,7 +200,7 @@ Sys.Abund = {1,[0.1,0.9]};     % 100% 63Cu, 10% 32S and 90% 33S
 </pre>
 
 <p>
-Custom and natural abundance mixtures and single isotopes can be all used at the same time. Any entry for a natural-abundance atom or for a single isotope in <code>Abund</code> is ignored.
+Custom and natural abundance mixtures and single isotopes can all be used at the same time. Any entry for a natural-abundance atom or for a single isotope in <code>Abund</code> is ignored.
 </p>
 
 <pre class="matlab">
@@ -218,7 +218,7 @@ Specify abundances for custom isotope mixtures. See <code>Nucs</code> above.
 
 <div class="optionfield"><code>n</code></div>
 <div class="optiondescr">
-Vector of number of equivalent nuclei, e.g.
+Vector of numbers of equivalent nuclei, e.g.
 
 <pre class="matlab">
 Sys.Nucs = '1H,13C';  % one class of 1H and one class of 13C
@@ -330,7 +330,7 @@ Sys.gFrame = [0 0 0; 0 pi/4 0; 0 -pi/4 0];   % three electron spins
 </pre>
 
 <p>
-With these angles, EasySpin can transform a g tensor from its diagonal eigenframe representation to the molecular frame representation. Here is an explicit example how this is done:
+With these angles, EasySpin can transform a g tensor from its diagonal eigenframe representation to the molecular frame representation. Here is an explicit example of how this is done:
 </p>
 
 <pre class="matlab">
@@ -366,7 +366,7 @@ g_M =
 The rows of the transformation matrix <code>R_M2g</code> correspond to the g tensor principal axes in molecular frame coordinates. The columns, on the other hand, correspond to the molecular axes in g frame coordinates. See the page on <a href="frames.html">frames</a> for more details.
 
 <p>
-If a 3x3 transformation matrix <code>Rg</code> is given, e.g. from literature, then the corresponding Euler angles can be obtained by
+If a 3x3 transformation matrix <code>Rg</code> is given, e.g. from the literature, then the corresponding Euler angles can be obtained by
 
 <pre class="matlab">
 gFrame = eulang(Rg);
@@ -508,8 +508,8 @@ To convert old <code>Apa</code> values to <code>AFrame</code>, invert the order 
 
 
 <p>
-For each nucleus spin, a <a href="hamiltonian.html#nqi">nuclear quadrupole</a> coupling tensor Q can be given,
-using the fields <code>Q</code> (for the parameters e<sup>2</sup>qQ/h and &eta;, the principal values, or the full matrix) and <code>QFrame</code> (for the orientation).
+For each nuclear spin, a <a href="hamiltonian.html#nqi">nuclear quadrupole</a> coupling tensor Q can be given,
+using the fields <code>Q</code> (for the parameters e<sup>2</sup>Qq/h and &eta;, the principal values, or the full matrix) and <code>QFrame</code> (for the orientation).
 </p>
 
 <div class="optionfield"><code>Q</code></div>
@@ -587,6 +587,7 @@ In the case where the associated nucleus is a natural or custom isotope mixture,
 
 <div class="optionfield"><code>QFrame</code></div>
 <div class="optiondescr">
+<p>
 <a href="eulerangles.html">Euler angles</a> (in radians) describing the orientations of the Q tensors in the molecular frame, analogous to <code>gFrame</code> and <code>AFrame</code>. <code>QFrame</code> should include one row of three angles for each nucleus. The angles are in units of radians, not degrees.
 </p>
 
@@ -627,6 +628,7 @@ For each electron spin, a zero-field splitting can be specified in the fields <c
 
 <div class="optionfield"><code>D</code></div>
 <div class="optiondescr">
+<p>
 <code>D</code> gives the <a href="hamiltonian.html#zfi">zero-field splitting tensors</a> for the electron spins in the spin system. It should be in units of MHz (1 cm<sup>-1</sup> = 29979 MHz). It can be specified in several different ways.
 </p>
 
@@ -695,6 +697,7 @@ Include zeros for any electron spin with S = 1/2.
 </div>
 <div class="optionfield"><code>D_</code></div>
 <div class="optiondescr">
+<p>
 <code>D_</code> gives the <a href="hamiltonian.html#zfi">zero-field splitting tensors</a> for the electron spins in the spin system defined in terms of D and the ratio E/D. D should be in units of MHz (1 cm<sup>-1</sup> = 29979 MHz), E/D is unitless. 
 </p>
 
@@ -706,6 +709,7 @@ Sys.D_ = [200 0.05; 300 0.3];    % 2 electron spins, D and E/D value for each sp
 </div>
 <div class="optionfield"><code>DFrame</code></div>
 <div class="optiondescr">
+<p>
 nx3 array of <a href="eulerangles.html">Euler angles</a> describing the orientation of the D tensors, completely analogous to <code>gFrame</code> and <code>QFrame</code>. If absent, it is assumed to be all zeros.
 </p>
 
@@ -784,7 +788,7 @@ Sys.B2 = [B20a; B20b];                 % abbreviated form for two spins: two row
 </pre>
 
 <p>
-To include tilt angles for <code>Sys.B1</code>, <code>Sys.B2</code>, etc, use the fields <code>Sys.B1Frame</code>, <code>Sys.B2Frame</code>, etc. See below.
+To include tilt angles for <code>Sys.B1</code>, <code>Sys.B2</code>, etc., use the fields <code>Sys.B1Frame</code>, <code>Sys.B2Frame</code>, etc. See below.
 </p>
 
 <p>
@@ -802,7 +806,7 @@ Sys2.B2Frame = ang;
 </pre>
 
 <p>
-In the special case of high-spin 3d<sup>5</sup> ions such as Fe(III), Mn(II), and Cr(I) in axially distorted cubic environments, the fourth-order terms are often written in terms of the traditional a and F parameters instead of B<sub>4</sub>. For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>. EasySpin versions prior to 6 had a dedicated field <code>Sys.aF</code> for these. Since EasySpin 6, this is no longer supported. Instead, the fourth-order terms should be specified using <code>Sys.B4</code> and <code>Sys.B4Frame</code>. Pay attention that the frames for the a and the F term are different.
+In the special case of high-spin 3d<sup>5</sup> ions such as Fe(III), Mn(II), and Cr(I) in axially distorted cubic environments, the fourth-order terms are often written in terms of the traditional a and F parameters instead of B<sub>4</sub>. For their definition, see the reference page on <a href="stevensoperators.html">high-order operators</a>. EasySpin versions prior to 6 had a dedicated field <code>Sys.aF</code> for these. Since EasySpin 6, this is no longer supported. Instead, the fourth-order terms should be specified using <code>Sys.B4</code> and <code>Sys.B4Frame</code>. Note that the frames for the a and the F term are different.
 </p>
 
 </div>
@@ -849,7 +853,7 @@ In addition, it is also possible to specify an isotropic biquadratic exchange co
 <div class="optionfield"><code>J</code></div>
 <div class="optiondescr">
 <em>
-1xN array of real
+1xN array of real numbers
 </em>
 <p>
 List of isotropic exchange coupling constants (in MHz), one for each pair of electron spins. The associated <a href="hamiltonian.html#eei">spin Hamiltonian</a> is +J S<sub>1</sub>S<sub>2</sub> (not -2J S<sub>1</sub>S<sub>2</sub>). Here is an example for a two-spin system:
@@ -876,13 +880,12 @@ J_MHz = unitconvert(J_cm,'cm^-1->MHz');            % cm^-1 to MHz conversion
 <p>
 You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
 </div>
-</div>
 
 
 <div class="optionfield"><code>dip</code></div>
 <div class="optiondescr">
 <em>
-Nx1, Nx2, or Nx3 array of real
+Nx1, Nx2, or Nx3 array of real numbers
 </em>
 <p>
 List of values that describe the symmetric part of the coupling between two electron spins (dipolar interaction), in units of MHz. Each row corresponds to one electron-electron pair. It can contain 1, 2, or 3 numbers.
@@ -939,12 +942,11 @@ You can use either <code>Sys.dip</code> (together with <code>Sys.J</code> and <c
 </p>
 
 </div>
-</div>
 
 <div class="optionfield"><code>dvec</code></div>
 <div class="optiondescr">
 <em>
-Nx3 array of real
+Nx3 array of real numbers
 </em>
 <p>
 List of vectors (one per row, in units of MHz) that describe the antisymmetric part of the coupling between two electron spins (Dzyaloshinskii-Moriya interaction). The associated <a href="hamiltonian.html#eei">spin Hamiltonian</a> is d<sub>12</sub>.(S<sub>1</sub>xS<sub>2</sub>), where d<sub>12</sub> is the interaction vector. 
@@ -972,15 +974,14 @@ Sys.dvec = [d12;d13;d23];  % three interaction vectors, one per row
 You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <code>Sys.dvec</code> if needed) or <code>Sys.ee</code> (with <code>Sys.eeFrame</code>), but not both at the same time.
 </p>
 </div>
-</div>
 
 <div class="optionfield"><code>ee</code></div>
 <div class="optiondescr">
 <em>
-Nx3 or 3Nx3 array of real
+Nx3 or 3Nx3 array of real numbers
 </em>
 <p>
-Principal value of the <a href="hamiltonian.html#eei">electron-electron interaction</a> matrices, in MHz.
+Principal values of the <a href="hamiltonian.html#eei">electron-electron interaction</a> matrices, in MHz.
 Each row corresponds to the diagonal of an interaction matrix (in its eigenframe). For two electron spins, <code>ee</code> contains one row only. 
 
 <pre class="matlab">
@@ -1081,7 +1082,7 @@ In EPR spectroscopy practice, the typically very small deviations of the shieldi
 <div class="optionfield"><code>sigma</code></div>
 <div class="optiondescr">
 <em>
-Nx3 or 3Nx3 array of real
+Nx3 or 3Nx3 array of real numbers
 </em>
 <p>
 Principal values of the CS tensors, or full CS tensors. When providing principal values, each row contains the three principal values of one CS tensor. 
@@ -1096,7 +1097,7 @@ Sys.sigma = 1-[4 5 9]*1e-6;  % principal values of shielding tensor
 <div class="optionfield"><code>sigmaFrame</code></div>
 <div class="optiondescr">
 <em>
-Nx3 array of real
+Nx3 array of real numbers
 </em>
 <p>
 Array containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the chemical shielding tensors (specified in <code>sigma</code>) in the molecular frame. Each row contains the three Euler angles for the corresponding row in <code>sigma</code>.
@@ -1120,7 +1121,7 @@ In practice, this term is essentially always too small to be of any relevance fo
 <div class="optionfield"><code>nn</code></div>
 <div class="optiondescr">
 <em>
-Nx3 or 3Nx3 array of real
+Nx3 or 3Nx3 array of real numbers
 </em>
 <p>
 Principal values of the nucleus-nucleus interaction matrices, or full interaction matrices, in MHz. For providing principal values, each row contains the three principal values of one interaction matrix. For two nuclear spins, <code>nn</code> contains one row only. 
@@ -1176,7 +1177,7 @@ Sys.nn = [nn12; nn13; nn23];          % three coupling matrices, MHz
 <div class="optionfield"><code>nnFrame</code></div>
 <div class="optiondescr">
 <em>
-Nx3 array of real
+Nx3 array of real numbers
 </em>
 <p>
 Array containing the <a href="eulerangles.html">Euler angles</a> describing the orientation of the nucleus-nucleus interaction matrices (specified in <code>nn</code>) in the molecular frame. Each row contains the three Euler angles for the corresponding row in <code>nn</code>.
@@ -1212,7 +1213,7 @@ Sys.L = [0 1];
 </div>
 <div class="optionfield"><code>CF0, CF2, CF4, CF6, CF8, CF10, CF12</code></div>
 <div class="optiondescr">
-The crystal field of the orbital angular momentum L is in EasySpin described by the coefficients CF(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> (see also the function <a class="esf" href="stev.html">stev</a>). They are analog to the coefficients B(k,q) for the electron spin (see <a href = "#B">Higher-order operators</a>), but acting on the orbital angular momentum.
+The crystal field of the orbital angular momentum L is in EasySpin described by the coefficients CF(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> (see also the function <a class="esf" href="stev.html">stev</a>). They are analogous to the coefficients B(k,q) for the electron spin (see <a href = "#B">Higher-order operators</a>), but acting on the orbital angular momentum.
 All coefficients should be real, and are understood in units of MHz. The number in the field name indicates the order k of the operator. E.g. <code>CF2</code> is for k = 2, and <code>CF4</code> is k = 4. If any of these fields is not given, it is treated as zero. <code>L</code> must be given, otherwise the CF are ignored.
 
 <p>
@@ -1251,7 +1252,7 @@ Sys.CF2 = [CF20a; CF20b];                 % abbreviated form for two orbital ang
 </pre>
 
 <p>
-Currently, it is not possible to include tilt angles for the principal frames of these crystal field interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc), this limitation can be partially circumvented. Still, all the crystal-field interactions are collinear. Alternatively, you can use <code>wignerd</code> to compute a Wigner rotation matrix that can be used to tilt the tensors explicitly.
+Currently, it is not possible to include tilt angles for the principal frames of these crystal field interaction tensors. All of them are assumed to be collinear with the molecular frame. By changing the molecular frame, i.e. by tilting all other tensors (g, A, etc.), this limitation can be partially circumvented. Still, all the crystal-field interactions are collinear. Alternatively, you can use <code>wignerd</code> to compute a Wigner rotation matrix that can be used to tilt the tensors explicitly.
 </p>
 
 <pre class="matlab">
@@ -1266,7 +1267,7 @@ Sys.CF2 = CF2.';
 
 <div class="optionfield"><code>gL</code></div>  
 <div class="optiondescr">
-Orbital g values entering in the Zeeman Hamiltonian, one for each orbital angular momentum in <code>L</code>. <code>gL</code> is an optional field, if omitted it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>gL</code> must match the number of elements in <code>L</code>.
+Orbital g values entering in the Zeeman Hamiltonian, one for each orbital angular momentum in <code>L</code>. <code>gL</code> is an optional field; if omitted, it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>gL</code> must match the number of elements in <code>L</code>.
 
 <pre class="matlab">
 Sys.gL = 3/2;          % gL for a single orbital angular momentum
@@ -1294,7 +1295,7 @@ Sys.soc = unitconvert([200; 100],'cm^-1->MHz');
 
 <a name="Ham"><div class="subtitle">General parameters for spin Hamiltonian expanded in magnetic field and electron spin</div></a>
 <p>
-The Spin-Hamiltonian is in general a polynomial of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameters are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
+The spin Hamiltonian is in general a polynomial of the magnetic field and the spin operator. This general expansion is implemented for electron spins (not for nuclei). Currently, general parameters are supported by the simulation functions <a class="esf" href="pepper.html">pepper</a> (solid-state EPR) and <a class="esf" href="curry.html">curry</a>. The coefficients can be provided in the following way:
 </p>
 <div class="optionfield"><code>Ham</code></div>  
 <div class="optiondescr">
@@ -1316,11 +1317,11 @@ Sys.Ham110 = -bmagn/planck*1e-9*sqrt(3)*g;
 <a name="lw"><div class="subtitle">Line broadenings and strains</div></a>
 
 <p>
-There is a number of fields by which line broadenings can be specified. <code>lw</code> and <code>lwEndor</code> are line widths (FWHM) which are used for convolution of the simulated spectrum. All others are so-called strains and describe Gaussian distributions in the associated spin Hamiltonian parameters.
+There are a number of fields by which line broadenings can be specified. <code>lw</code> and <code>lwEndor</code> are line widths (FWHM) which are used for convolution of the simulated spectrum. All others are so-called strains and describe Gaussian distributions in the associated spin Hamiltonian parameters.
 </p>
 
 <p>
-For a full documentation of the line broadening fields in the spin system structure, see the <a href="broadenings.html">page on line broadenings</a>.
+For full documentation of the line broadening fields in the spin system structure, see the <a href="broadenings.html">page on line broadenings</a>.
 </p>
 
 <a name="pop"><div class="subtitle">Non-equilibrium populations</div></a>
@@ -1362,6 +1363,7 @@ The <code>'xyz'</code> basis is for triplet states only and takes the population
   En(2) = (1/3)*D + E; % Ty
   En(3) = -(2/3)*D;    % Tz
 </pre>
+<p>
 For a triplet state, the <code>'xyz'</code> and <code>'zerofield'</code> bases are therefore equivalent, except for the ordering of the populations in the input vector.
 </p>
 
@@ -1385,7 +1387,7 @@ Populations of the eigenstates of the spin Hamiltonian at zero field, in order o
 <pre class="matlab">
 Sys.initState = {[p1 p2 p3],'zerofield'};
 </pre>
-E.g., if <code>Sys.initState = {[0.85 0.95 1.2],'zerofield'}</code> for a triplet system (S=1), the population of the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
+E.g., if <code>Sys.initState = {[0.85 0.95 1.2],'zerofield'}</code> for a triplet system (S=1), the lowest-energy zero-field state has a population of 0.85, the middle one has 0.95, and the highest-energy zero-field state has a population of 1.2. If there are coupled nuclei, the populations of all nuclear sublevels within each electron spin manifold are assumed to be equal.
 
 <li> Populations of the eigenstates of the full spin Hamiltonian, in order of increasing energy
 <pre class="matlab">
@@ -1397,8 +1399,8 @@ E.g. <code>Sys.initState = {[0 1 0],'eigen'}</code> for a triplet system (S=1) c
 <pre class="matlab">
 Sys.initState = {[pTp pT0 pTm pS],'coupled'}; % for two coupled S = 1/2
 </pre>
+<p>
 E.g. <code>Sys.initState = {[1/3 1/3 1/3 0],'coupled'}</code> for two coupled spins S = 1/2 corresponds to a spin-correlated radical pair originating from a thermalized triplet precursor (equal population of the triplet levels).
-</p>
 </p>
 </ul>
 
@@ -1411,7 +1413,7 @@ Sys.initState = {sigma,'uncoupled'};
 Sys.initState = sigma;
 </pre>
 If no basis is given, the uncoupled basis, i.e. ordering of operators in terms of product Zeeman basis states as explained in <a class="esf" href="sop.html">sop</a>, is assumed.
-For example, for a spin-correlated radical pair with singlet-precursor the initial density matrix can be defined based on the state vector for the singlet state as
+For example, for a spin-correlated radical pair with singlet precursor, the initial density matrix can be defined based on the state vector for the singlet state as
 <pre class="matlab">
 S = 1/sqrt(2)*[0; 1; -1; 0]; % alternatively, S = cgmatrix(1/2,1/2,0).';
 sigma = S*S';
@@ -1425,7 +1427,6 @@ Sys.initState = {Sigma,'coupled'};
 </pre> 
 </li>
 </ul>
-</p>
 
 <li>String shorthand specifying the initial state. The available shorthands are:
 
@@ -1434,21 +1435,20 @@ Sys.initState = {Sigma,'coupled'};
 <pre class="matlab">
 Sys.initState = 'singlet';   % only possible if Sys.S = [1/2 1/2]
 </pre> 
-</p>
 <li> Spin polarization arising from population of the T<sub>0</sub> sublevel in a triplet state (e.g. for a triplet formed by recombination from a spin-correlated radical pair state)
 <pre class="matlab">
 Sys.initState = 'T0';
 </pre> 
 </ul>
-</p>
+</ul>
 
 <p>
 For a spin system with <code>N</code> electron states (e.g. 4 for a biradical, 3 for a triplet state), the population vector must contain <code>N</code> elements and the density matrix must contain <code>N*N</code> elements.
-In the presence of coupled nuclei, individual nuclear populations can also be specified in <code>Sys.initState</code> (with <code>Nelectron*Nnuclear</code> elements), if not, it is assumed that the populations of the nuclear sublevels corresponding to the same electron sublevel are equal.
+In the presence of coupled nuclei, individual nuclear populations can also be specified in <code>Sys.initState</code> (with <code>Nelectron*Nnuclear</code> elements); if not, it is assumed that the populations of the nuclear sublevels corresponding to the same electron sublevel are equal.
 </p>
 
 <p>
-In the presence of degenerate energy levels at zero field, the states for the <code>'zerofield'</code> basis are not uniquely defined, preventing unambiguous assignment of the provided energy-ordered populations to basis states within EasySpin. In order to simulate spectra for these cases, the full non-equilibrium density matrix should be provided in the uncoupled basis (see <a href="../examples/photoexcitation/triplet_axialZFS_spinpolarized.m">triplet_axialZFS_spinpolarized.m</a> for an example illustrating this for a triplet state with axial ZFS).
+In the presence of degenerate energy levels at zero field, the states for the <code>'zerofield'</code> basis are not uniquely defined, preventing unambiguous assignment of the provided energy-ordered populations to basis states within EasySpin. In order to simulate spectra for these cases, the full non-equilibrium density matrix should be provided in the uncoupled basis (see <a href="../examples/photoexcitation/triplet_zerofieldbasis_axialzfs.m">triplet_zerofieldbasis_axialzfs.m</a> for an example illustrating this for a triplet state with axial ZFS).
 </p>
 
 <p>
@@ -1469,7 +1469,6 @@ To simulate the EPR spectra of photo-generated paramagnetic species, it might be
 <li>Give a vector, e.g. <code>Sys.tdm = [0;1;0]</code> specifies that the tdm is along the molecular y axis.</li>
 <li>Give two polar angles, phi and theta (in radians), for the orientation of the tdm in the molecular frame. E.g. <code>Sys.tdm = [pi/2 pi/2]</code> specifies that the tdm is along the molecular y axis.</li>
 </ul>
-</p>
 
 <hr>
 

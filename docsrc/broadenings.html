@@ -47,10 +47,10 @@ The two types of broadening models built into EasySpin are:
 <ul>
 <li>
 <a href="#convol">Isotropic convolutional broadenings</a>:
-A convolutional spectral broadening is computed by convolving the final simulated field-swept or frequency-swept stick spectrum with a Gaussian or Lorentzian line shape of a given width. This broadening method is the simplest possible: it is isotropic and is not based on any physical model causing the broadening. It can be used to visually adjust the broadening of a simulated spectrum to match the one of an experimental one. Since this broadening method does not assume a physical reason for the broadening, it is often called "phenomenological". It should only be applied to S=1/2 systems with small g anisotropy. It works OK for high-spin systems with small zero-field splittings such as organic triplets.
+A convolutional spectral broadening is computed by convolving the final simulated field-swept or frequency-swept stick spectrum with a Gaussian or Lorentzian line shape of a given width. This broadening method is the simplest possible: it is isotropic and is not based on any physical model causing the broadening. It can be used to visually adjust the broadening of a simulated spectrum to match that of an experimental one. Since this broadening method does not assume a physical reason for the broadening, it is often called "phenomenological". It should only be applied to S=1/2 systems with small g anisotropy. It works OK for high-spin systems with small zero-field splittings such as organic triplets.
 
 <li>
-<a href="#aniso">Anisotropic broadenings</a>: Often, the spectral broadening depends on the orientation of the spin center relative to the external magnetic field. Such broadenings are taken into account in the simulation by adding to the simulated spectrum a Gaussian for each resonance line during the simulation. Physical origins for anisotropic broadenings are unresolved hyperfine splittings and so-called strains. A strain is a distribution in a spin hamiltonian parameter due to small structural variations among the paramagnetic centers in the sample. For example, g strain describes a distribution of g principal values.
+<a href="#aniso">Anisotropic broadenings</a>: Often, the spectral broadening depends on the orientation of the spin center relative to the external magnetic field. Such broadenings are taken into account in the simulation by adding to the simulated spectrum a Gaussian for each resonance line during the simulation. Physical origins for anisotropic broadenings are unresolved hyperfine splittings and so-called strains. A strain is a distribution in a spin Hamiltonian parameter due to small structural variations among the paramagnetic centers in the sample. For example, g strain describes a distribution of g principal values.
 </ul>
 
 <p>
@@ -61,7 +61,7 @@ Broadenings are treated differently in the simulation of slow-motion cw EPR spec
 </p>
 
 <p>
-All broadenings are understood to be FWHM (full width at half height) or PP (peak-to-peak), independent of the simulation function, the line shape or the detection
+All broadenings are understood to be FWHM (full width at half maximum) or PP (peak-to-peak), independent of the simulation function, the line shape or the detection
 harmonic. For the conversion to and from peak-to-peak line widths, see the <a href="lineshapes.html">reference page on line shapes</a>.
 </p>
 
@@ -143,7 +143,7 @@ This approximation, which corresponds to the first term in a Taylor expansion or
 <div class="optiondescr">
 <code>[FWHM_x FWHM_y FWHM_z]</code>
 <br>
-Anisotropic residual line width (full width at half height, FWHM), in MHz, describing broadening due to unresolved hyperfine couplings or other transition-independent effects. The three components are the Gaussian line widths in the x, y and z direction of the molecular frame.
+Anisotropic residual line width (full width at half maximum, FWHM), in MHz, describing broadening due to unresolved hyperfine couplings or other transition-independent effects. The three components are the Gaussian line widths in the x, y and z direction of the molecular frame.
 
 <pre class="matlab">
 Sys.HStrain = [10 10 10];        % 10 MHz Gaussian FWHM broadening in all directions
@@ -193,7 +193,7 @@ To set the correlation between <code>gStrain</code> and <code>AStrain</code>, us
 <div class="optiondescr">
 <code>+1</code> (default) or <code>-1</code>
 <br>
-Sets the correlation between <code>gStrain</code> and <code>AStrain</code>. <code>+1</code> indicates that positive change in gx is correlated with a positive change in Ax etc, whereas <code>-1</code> indicates anticorrelation. 
+Sets the correlation between <code>gStrain</code> and <code>AStrain</code>. <code>+1</code> indicates that a positive change in gx is correlated with a positive change in Ax, etc., whereas <code>-1</code> indicates anticorrelation. 
 </div>
 
 <div class="optionfield"><code>DStrain</code></div>
@@ -221,7 +221,7 @@ Examples:
 <div class="optiondescr">
 number between <code>-1</code> and <code>+1</code> (default <code>0</code>)
 <br>
-Sets the correlation coefficient between <code>D</code> and <code>E</code>, which can be between -1 and +1. <code>+1</code> indicates that positive change in D is correlated with a positive change in E, whereas <code>-1</code> indicates anticorrelation. Any value between -1 and +1 is possible. If not given, it defaults to 0, and the distributions in D and E are uncorrelated.
+Sets the correlation coefficient between <code>D</code> and <code>E</code>, which can be between -1 and +1. <code>+1</code> indicates that a positive change in D is correlated with a positive change in E, whereas <code>-1</code> indicates anticorrelation. Any value between -1 and +1 is possible. If not given, it defaults to 0, and the distributions in D and E are uncorrelated.
 
 <p>
 If the spin system has more than one electron spin, give one correlation coefficient per electron spin.

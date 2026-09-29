@@ -29,7 +29,7 @@
 <div class="functitle">eprsave</div>
 
 <p>
-Save 1D spectral data in Bruker BES<sup>3</sup>T format.
+Save 1D or 2D spectral data in Bruker BES<sup>3</sup>T format.
 </p>
 
 <!-- ================================================================ -->
@@ -45,7 +45,7 @@ eprsave(FileName,x,data,Title,mwFreq)
 <div class="subtitle">Description</div>
 
 <p>
-This function saves one- or two-dimensional data given by <code>x</code> (abscissa values) and <code>data</code> (data values) in a set of .DTA and .DSC files than can be read by Bruker software (Xepr, Xenon). The .DTA data file contains the data in binary format, and the .DSC description file contains information about the dataset in a readable text format.
+This function saves one- or two-dimensional data given by <code>x</code> (abscissa values) and <code>data</code> (data values) in a set of .DTA and .DSC files that can be read by Bruker software (Xepr, Xenon). The .DTA data file contains the data in binary format, and the .DSC description file contains information about the dataset in a readable text format.
 <code>FileName</code> is the base filename without the extension, e.g. <code>FileName = 'peter'</code> would result in files <code>peter.DTA</code> and <code>peter.DSC</code>.
 </p>
 
@@ -54,7 +54,7 @@ This function saves one- or two-dimensional data given by <code>x</code> (abscis
 </p>
 
 <p>
-Any character array provided in the optional <code>Title</code> will be stored along the data and read by the Bruker software as the <em>display title</em> of the dataset.
+Any character array provided in the optional <code>Title</code> will be stored along with the data and read by the Bruker software as the <em>display title</em> of the dataset.
 </p>
 
 <p>

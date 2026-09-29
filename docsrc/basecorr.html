@@ -62,7 +62,7 @@ For <code>dim=[]</code>, a single two-dimensional baseline is fit.
 </p>
 
 <p>
-<code>n</code> gives the polynomials order.
+<code>n</code> gives the polynomial order.
 For 1D fits (<code>dim=1</code> or <code>2</code>), provide a single number between 0 (constant offset) and 6 (sixth-order polynomial).
 For a 2D fit (<code>dim=[]</code>), provide 2 numbers in <code>n</code>, one for each dimension.
 </p>
@@ -116,7 +116,7 @@ datac = basecorr(data,[],[3 3]);
 <div class="subtitle">Algorithm</div>
 
 <p>
-1D and 2D polynomial least-square fits are computed by constructing the Vandermonde matrix associated with the problem and using MATLAB's <code>\</code> operator to solve the resulting system of linear equations.
+1D and 2D polynomial least-squares fits are computed by constructing the Vandermonde matrix associated with the problem and using MATLAB's <code>\</code> operator to solve the resulting system of linear equations.
 </p>
 
 <!-- =========================================================== -->

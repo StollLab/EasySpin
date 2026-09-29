@@ -45,7 +45,7 @@ xf = fdaxis(xt)
 
 <p>
 This function returns a vector <code>xf</code> of the frequencies of the FFT
-of a <code>N</code>-point time-domain signal with time step <code>dT</code>.
+of an <code>N</code>-point time-domain signal with time step <code>dT</code>.
 <code>dT</code>
 can have any unit, the unit of <code>xf</code> is simply its inverse. So for
 <code>dT</code> in &mu;s, <code>xf</code> is in plain MHz (or Mc in old
@@ -59,7 +59,7 @@ abscissa as input parameter. E.g., <code>xt = (0:10)*0.1</code> corresponds to
 </p>
 
 <p>
-The DC component of the FFT abscissa <code>xf</code> is always in the centre.
+The DC component of the FFT abscissa <code>xf</code> is always in the center.
 The output of MATLAB's <code>fft</code> returns the DC component as the first
 element. So be sure that you either apply <code>fftshift</code> to your data
 after <code>fft</code> or to <code>xf</code> in order to get correct results.

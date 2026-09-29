@@ -38,14 +38,14 @@ This user guide explains how to simulate a variety of pulse EPR spectra, using E
 
 <p>
 Others can be simulated using <a class="esf" href="saffron.html">saffron</a>'s interface for custom user-defined pulse sequences.
-For this <a class="esf" href="saffron.html">saffron</a> employs two different algorithms to simulate pulse experiments:
+For this, <a class="esf" href="saffron.html">saffron</a> employs two different algorithms to simulate pulse experiments:
 </p>
 
 <p>
 The <code>fast</code> algorithm can accommodate a single electron spin (S=1/2 or S>1/2) coupled to an arbitrary number of magnetic nuclei.
 It is also limited to experiments with rectangular pulses and a single microwave carrier frequency. 
 Relaxation is limited to T<sub>1</sub> and T<sub>2</sub>.
-The <em>fast</em> algorithm also does not work with transient detection and more than two indirect dimensions or the modification of a pulse parameter along one of the indirect dimensions.
+The <em>fast</em> algorithm also does not work with transient detection, more than two indirect dimensions, or the modification of a pulse parameter along one of the indirect dimensions.
 </p>
 
 <p>
@@ -61,7 +61,7 @@ In the following, we go over the following topics:
 <li><a href = "#exp">Experimental parameters</a></li>
 <li><a href = "#orisel">Orientation selection</a></li>
 <li><a href = "#userdef">Fast user-defined experiments</a></li>
-<li><a href = "#crystals">Single crystals</a></li>
+<li><a href = "#crystal">Single crystals</a></li>
 <li><a href = "#options">Options</a></li>
 <li><a href = "#relaxation">Adding relaxation</a></li>
 </ul>
@@ -144,7 +144,7 @@ Exp.Sequence = 'MimsENDOR';
 </pre>
 
 <p>
-In these pre-defined pulse sequence, all microwave pulses are treated as ideal (infinitely short, infinite bandwidth). The RF pulse in Mims ENDOR is assumed to have infinitely narrow excitation bandwidth. Each of these pre-defined pulse experiments needs additional parameters. If you run any of the ESEEM/HYSCORE experiments, then you need to provide a time increment interval in <code>Exp.dt</code>. Note that the units are microseconds, not nanoseconds.
+In these pre-defined pulse sequences, all microwave pulses are treated as ideal (infinitely short, infinite bandwidth). The RF pulse in Mims ENDOR is assumed to have infinitely narrow excitation bandwidth. Each of these pre-defined pulse experiments needs additional parameters. If you run any of the ESEEM/HYSCORE experiments, then you need to provide a time increment interval in <code>Exp.dt</code>. Note that the units are microseconds, not nanoseconds.
 </p>
 
 <pre class="matlab">
@@ -226,7 +226,7 @@ Both <code>Exp.ExciteWidth</code> and <code>Exp.mwFreq</code> are necessary to o
 </a>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> allows you specify your own custom pulse sequence. For this, you need to provide full details about pulses, delays and incrementation. 
+<a class="esf" href="saffron.html">saffron</a> allows you to specify your own custom pulse sequence. For this, you need to provide full details about pulses, delays and incrementation. 
 A pulse experiment is specified in two parts: the pulse sequence and the indirect dimensions. Together, they fully specify the pulse experiment.
 </p>
 
@@ -272,7 +272,7 @@ Omitting <code>Par.tp</code> or setting it to zero corresponds to a zero-length 
 </p>
 
 <p>
-If you have pulses with different phases, specify the phases in <code>Par.Phase</code>. Again, give it in radians;
+If you have pulses with different phases, specify the phases in <code>Par.Phase</code>. Again, give it in radians:
 </p>
 <pre class="matlab">
 p90.Phase = pi/2 % set phase to +y
@@ -282,7 +282,7 @@ p180real.Phase = pi; % set phase to -x
 <p>
 This defines the pulse sequence. Next, we need to define the incrementation scheme. 
 This includes specifying which pulse intervals are incremented or decremented, and which dimension in the data the incrementation should count for. 
-The <em>fast</em> algorithm only supports in/ or decrementation of delays along a maximum of two indirect dimensions.
+The <em>fast</em> algorithm only supports incrementation or decrementation of delays along a maximum of two indirect dimensions.
 How to change pulse parameters or run experiments with more than two indirect dimensions is discussed <a class="esf" href="userguide_saffron_thyme.html">here</a>.
 </p>
 
@@ -315,7 +315,7 @@ Exp.Dim1 = {'d1' 0.01; 'd2' 0.03 };
 </pre>
 
 <p>
-If you want to decrement an interval instead of incrementing it, use negative signs. For, example, the following gives a one-dimensional incrementation scheme where the second interval is incremented and the third one is decremented at the same time. This gives a fixed-length pulse experiment.
+If you want to decrement an interval instead of incrementing it, use negative signs. For example, the following gives a one-dimensional incrementation scheme where the second interval is incremented and the third one is decremented at the same time. This gives a fixed-length pulse experiment.
 </p>
 
 <pre class="matlab">
@@ -323,12 +323,12 @@ Exp.Dim1 = {'d2' 0.01;'d3' -0.01};    % combination of increment and decrement
 </pre>
 
 <p>
-Keep in mind, the starting values (the first data points) are always the ones given in <code>Exp.Sequence</code>.
+Keep in mind that the starting values (the first data points) are always the ones given in <code>Exp.Sequence</code>.
 </p>
 
 <p>
 The last thing that is missing is to tell <a class="esf" href="saffron.html">saffron</a> the number of data points along each indirect dimension.
-This is done with <code>Exp.nPoints</code>. For a two-dimensional experiment the points of both dimensions must be specified:
+This is done with <code>Exp.nPoints</code>. For a two-dimensional experiment, the points of both dimensions must be specified:
 </p>
 
 <pre class="matlab">
@@ -413,7 +413,7 @@ Opt.ProductRule = 1;    % use product rule approximation
 </pre>
 
 <p>
-For other settings, included settings for data processing and display, see the reference page on <a class="esf" href="saffron.html">saffron</a>.
+For other settings, including settings for data processing and display, see the reference page on <a class="esf" href="saffron.html">saffron</a>.
 </p>
 
 <!-- ============================================================= -->

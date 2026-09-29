@@ -49,12 +49,12 @@ This user guide covers the basics of how to simulate EPR spectra of spin-polariz
 </ul>
 
 <p>
-Although the following sections focus on triplets and radical pairs, the methods can easily be extended to spin-polarized states of spins with higher multiplicity. For related <a href="examplesmain.html#photoexcitation">examples</a> see the section on 'EPR simulations for photoexcited systems'.
+Although the following sections focus on triplets and radical pairs, the methods can easily be extended to spin-polarized states of spins with higher multiplicity. For related examples, see the <a href="examplesmain.html#photoexcitation">examples on spin-polarized systems</a>.
 </p>
 
 
 <!-- ----------------------------------------------------------------------------- -->
-<div class="subtitle"><a name="isc">Specifying non-equilibrium populations</a></div>
+<div class="subtitle"><a name="initstate">Specifying non-equilibrium populations</a></div>
 
 <p>
 The non-equilibrium state of the spin system depends on the mechanism of spin polarization and is specified using the field <code>Sys.initState</code>:
@@ -83,7 +83,7 @@ Sys.initState = 'T0';        % T0 state (for recombination triplets)
 
 <p>
 In the next few sections, we demonstrate some basic usage of <code>Sys.initState</code> for common spin-polarized systems.
-For more details see the section on non-equilibrium populations in the <a href="spinsystem.html#pop">spin system</a> documentation.
+For more details, see the section on non-equilibrium populations in the <a href="spinsystem.html#pop">spin system</a> documentation.
 </p>
 
 <!-- ----------------------------------------------------------------------------- -->
@@ -148,7 +148,7 @@ Be careful in determining the energy order of the zero-field triplet states corr
 </p>
 
 <p>
-The shape of the EPR spectrum only depends on the <em>polarizations</em> of the transitions, i.e. only on the <em>differences</em> of the populations in <code>Sys.initState</code>. Therefore, adding any constant to all three numbers will not affect the shape of the spectrum. It will, however, affect the overall intensity of the simulated spectrum, since EasySpin does not normalize the populations nor the spectrum.
+The shape of the EPR spectrum only depends on the <em>polarizations</em> of the transitions, i.e. only on the <em>differences</em> of the populations in <code>Sys.initState</code>. Therefore, adding any constant to all three numbers will not affect the shape of the spectrum. It will, however, affect the overall intensity of the simulated spectrum, since EasySpin normalizes neither the populations nor the spectrum.
 </p>
 
 <p>
@@ -281,7 +281,7 @@ Sys.initState = 1/3*(Tp*Tp' + T0*T0' + Tm*Tm');
 </pre>
 
 <p>
-For detailed information on how to specify electron-electron spin-spin couplings see the documentation for the <a href="spinsystem.html#ee">spin system definition</a>. Note that different conventions regarding the signs and magnitudes of exchange and dipolar coupling parameters exist in the literature. Therefore, make sure to convert J and D values correctly when using literature values in EasySpin.
+For detailed information on how to specify electron-electron spin-spin couplings, see the documentation for the <a href="spinsystem.html#ee">spin system definition</a>. Note that different conventions regarding the signs and magnitudes of exchange and dipolar coupling parameters exist in the literature. Therefore, make sure to convert J and D values correctly when using literature values in EasySpin.
 </p>
 
 <p>

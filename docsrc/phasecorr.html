@@ -46,7 +46,7 @@ phasecorr(...)
 <div class="subtitle">Description</div>
 
 <p>
-This function phase corrects the input data <code>V</code> by minimizing the imaginary part by applying a phase angle <code>ph</code> (in radians) via <code>Vph = V.*exp(1i*ph)</code>. There are two types of minimizations: if <code>ignoreOffset</code> is set to <code>false</code>, the second moment of the imaginary part is minimized, and if <code>ignoreOffset</code> is set to <code>true</code>, then the second central moment is minimized.
+This function phase-corrects the input data <code>V</code> by minimizing the imaginary part by applying a phase angle <code>ph</code> (in radians) via <code>Vph = V.*exp(1i*ph)</code>. There are two types of minimizations: if <code>ignoreOffset</code> is set to <code>false</code>, the second moment of the imaginary part is minimized, and if <code>ignoreOffset</code> is set to <code>true</code>, then the second central moment is minimized.
 </p>
 
 <p>
@@ -58,7 +58,7 @@ This function phase corrects the input data <code>V</code> by minimizing the ima
 </p>
 
 <p>
-<code>ph</code> is applied phase, in radians.
+<code>ph</code> is the applied phase, in radians.
 </p>
 
 <p>
@@ -85,7 +85,7 @@ datac = phasecorr(data);
 </pre>
 
 <p>
-To apply a phase-correction separately along each row, and return both phase-corrected data and phase angles, use
+To apply a phase correction separately along each row, and return both phase-corrected data and phase angles, use
 </p>
 
 <pre class="matlab">

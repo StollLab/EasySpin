@@ -54,11 +54,12 @@ For photo-generated paramagnetic centers (such as photo-excited triplet states),
 <li> via a 3-element unit vector, such as <code>[0;1;0]</code>; 
 <li> as an array of the two polar angles (in radians) <code>[phi_tdm, theta_tdm]</code>.
 </ul>
-For example, <code>'y'</code>, <code>[0;1;0]</code> and </code><code>[pi/2 pi/2]</code> all represents a transition dipole moment along the molecular y axis.
+<p>
+For example, <code>'y'</code>, <code>[0;1;0]</code> and <code>[pi/2 pi/2]</code> all represent a transition dipole moment along the molecular y axis.
 </p>
 
 <p>
-<code>ori</code> gives the three <a href="eulerangles.html">Euler angles</a> (in radians) <code>[phi theta chi]</code> that describe the orientation of the <a href="frames.html#;labframe">lab frame</a> relative to the <a href="frames.html#molframe">molecular frame</a>. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), and <code>chi</code> additionally determines the directions of the lab x and y axes (xL and yL). To get the vectors of xL, yL and zL represented in the molecular frame, use <code>[xL,yL,zL] = erot(ori,'rows')</code>. To get the molecular-frame vectors of xM, yM and zM represented in the lab frame, use <code>[xM,yM,zM] = erot(ori,'cols')</code>. See <a class="esf" href="erot.html">erot</a> and the documentation on <a href="eulerangles.html">Euler angles</a> for more details.
+<code>ori</code> gives the three <a href="eulerangles.html">Euler angles</a> (in radians) <code>[phi theta chi]</code> that describe the orientation of the <a href="frames.html#labframe">lab frame</a> relative to the <a href="frames.html#molframe">molecular frame</a>. <code>phi</code> and <code>theta</code> determine the direction of the lab z axis (zL, aligned with the static magnetic field), and <code>chi</code> additionally determines the directions of the lab x and y axes (xL and yL). To get the vectors of xL, yL and zL represented in the molecular frame, use <code>[xL,yL,zL] = erot(ori,'rows')</code>. To get the molecular-frame vectors of xM, yM and zM represented in the lab frame, use <code>[xM,yM,zM] = erot(ori,'cols')</code>. See <a class="esf" href="erot.html">erot</a> and the documentation on <a href="eulerangles.html">Euler angles</a> for more details.
 </p>
 
 <p>
@@ -74,15 +75,15 @@ If the third angle <code>chi</code> is omitted in <code>ori</code>, <code>photos
 </p>
 
 <p>
-For the common case of <code>k='y'</code>, <code>alpha=pi/2</code> or <code>-pi/2</code> put the E-field along the laboratory x axis (perpendicular to the magnetic field), and <code>alpha=0</code> or <code>pi</code> put the E-field along laboratory z axis (parallel to the magnetic field).
+For the common case of <code>k='y'</code>, <code>alpha=pi/2</code> or <code>-pi/2</code> put the E-field along the laboratory x axis (perpendicular to the magnetic field), and <code>alpha=0</code> or <code>pi</code> put the E-field along the laboratory z axis (parallel to the magnetic field).
 </p>
 
 <p>
-To obtain the photoexcitation probability for an unpolarized beam (i.e. a beam with a uniform distribution of E-field directions in the plane perpendicular to its propagation direction), set <code>alpha=NaN</code>. An unpolarized beam is often generated from a polarized beam using a depolarizer. Note that excitation with an unpolarized beam is different from a fully isotropic excitation, where the E-field is uniformly distributed in all directions. With isotropic excitation, molecular with all orientations are equally excited, whereas with an unpolarized beam, molecules with transition dipole moment close to parallel to the propagation direction are not excited.
+To obtain the photoexcitation probability for an unpolarized beam (i.e. a beam with a uniform distribution of E-field directions in the plane perpendicular to its propagation direction), set <code>alpha=NaN</code>. An unpolarized beam is often generated from a polarized beam using a depolarizer. Note that excitation with an unpolarized beam is different from a fully isotropic excitation, where the E-field is uniformly distributed in all directions. With isotropic excitation, molecules with all orientations are equally excited, whereas with an unpolarized beam, molecules with transition dipole moment close to parallel to the propagation direction are not excited.
 </p>
 
 <p>
-This function is called by <a class="esf" href="pepper">pepper</a> and other functions that support photoselection via the experiment parameter <code>Exp.lightBeam</code>.
+This function is called by <a class="esf" href="pepper.html">pepper</a> and other functions that support photoselection via the experiment parameter <code>Exp.lightBeam</code>.
 </p>
 
 <!-- ============================================================= -->
@@ -141,8 +142,8 @@ w_total =
 <p>
 <a class="esf" href="pepper.html">pepper</a>,
 <a class="esf" href="resfields.html">resfields</a>,
-<a class="esf" href="resfreqs_matrix.html">resfreqs_matrix</a>,
-<a class="esf" href="resfreqs_perturb.html">resfreqs_perturb</a>,
+<a class="esf" href="resfields.html">resfreqs_matrix</a>,
+<a class="esf" href="resfields.html">resfreqs_perturb</a>,
 <a class="esf" href="spinpolarization.html">spin-polarized systems</a>
 </p>
 

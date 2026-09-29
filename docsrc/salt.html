@@ -48,7 +48,7 @@ spec = salt(...)
 
 <p>
 This function calculates powder and single-crystal ENDOR spectra. Its calling syntax
-is identical to that of <a class="esf" href="pepper.html">pepper</a>, many of its options
+is identical to that of <a class="esf" href="pepper.html">pepper</a>; many of its options
 are equal to those of <a class="esf" href="endorfrq.html">endorfrq</a>, which is used by
 <code>salt</code> to compute line positions and amplitudes.
 </p>
@@ -68,7 +68,7 @@ the ENDOR spectrum or spectra.
 If <code>spec</code> is a matrix, the subspectra (various
 transitions or various orientations) are along rows.
 <li>
-<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which where included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending energy order, so level 1 has lowest energy and so on.
+<code>info</code> is a structure that contains details about the calculations. <code>info.Transitions</code> is a list of level number pairs indicating the transitions which were included in the spectrum calculations. Level numbers refer to the energy levels of the Hamiltonian in ascending energy order, so level 1 has lowest energy and so on.
 </ul>
 
 <p>
@@ -150,7 +150,7 @@ EPR spectrometer frequency in GHz. Only needed if orientation selection should b
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
 <p>
-The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM (full width at half maximum). The default is <code>Inf</code> (infinity). To obtain the full excitation with for a given orientation, <code>ExciteWidth</code> is combined with <code>HStrain</code> from the spin system structure.
+The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM (full width at half maximum). The default is <code>Inf</code> (infinity). To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>HStrain</code> from the spin system structure.
 </p>
 </div>
 
@@ -173,7 +173,7 @@ Exp.SampleFrame = [0 pi/2 pi/4];             % sample/crystal frame tilted relat
 Exp.SampleFrame = [0 0 0; 0 pi/2 pi/4];      % two samples/crystals
 </pre>
 <p>
-<code>SampleFrame</code> is only used for crystals and partially ordered samples (films etc). It is ignored for disordered samples (powders and frozen solutions).
+<code>SampleFrame</code> is only used for crystals and partially ordered samples (films etc.). It is ignored for disordered samples (powders and frozen solutions).
 </p>
 </div>
 
@@ -224,7 +224,7 @@ plot(beta*180/pi,P);
 </pre>
 
 <p>
-If <code>Exp.Ordering</code> is a function handle, <code>pepper</code> calls the function to obtain the orientational distribution. The function must accept either one  (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
+If <code>Exp.Ordering</code> is a function handle, <code>salt</code> calls the function to obtain the orientational distribution. The function must accept either one (<code>beta</code>) or two input arguments (<code>beta</code> and <code>gamma</code>), in radians. The function must accept vector arguments and return a vector <code>P</code> containing probabilities for each orientation, that is <code>P(k)</code> is the probability of finding the spin centers with orientation (relative to the sample frame) specified by <code>beta(k)</code> and <code>gamma(k)</code>. Here is an example with an anonymous function:
 </p>
 
 <pre class="matlab">
@@ -232,7 +232,7 @@ Exp.Ordering = @(beta,gamma) gaussian(beta,0,15/180*pi);
 </pre>
 
 <p>
-If the function cannot be written as a singe line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
+If the function cannot be written as a single line, define a separate function and provide it via its function handle. For example, here is a function <code>oridist</code> defining a von Mises-Fisher distribution
 </p>
    
 <pre class="matlab">
@@ -252,7 +252,7 @@ Include this in the simulation via <code>Exp.Ordering = @oridist</code>.
 </p>
 
 <p>
-When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
+When providing a function for <code>Exp.Ordering</code>, make sure that the symmetry used in the simulation is the same as or lower than the symmetry of the distribution. Otherwise, incorrect spectra are obtained. In cases of doubt, set <code>Opt.GridSymmetry='C1'</code>. This always gives correct results.
 </p>
 
 <p>
@@ -266,7 +266,7 @@ There are defaults for all fields except <code>Field</code>, which has to be spe
 </p>
 
 <p>
-The structure <code>Opt</code> collects a number of parameters allowing to tune speed and accuracy of the simulation. <code>Opt</code> is optional, if it is omitted, pre-set values for the parameters are used. The field names and their possible values are
+The structure <code>Opt</code> collects a number of parameters for tuning the speed and accuracy of the simulation. <code>Opt</code> is optional; if it is omitted, pre-set values for the parameters are used. The field names and their possible values are
 </p>
 
 <div class="optionfield"><code>Method</code></div>
@@ -293,7 +293,7 @@ Opt.Method = 'matrix';      % matrix diagonalization
 <p>
 List of nuclei to include in the computation. <code>Nuclei</code> is a list
 of indices selecting those nuclei for which ENDOR peaks should be computed. 1
-is the first nucleus, etc. E.g. the following specifies ENDOR of only the protons only in a copper complex.
+is the first nucleus, etc. E.g. the following specifies ENDOR of only the protons in a copper complex.
 </p>
 <pre class="matlab">
 Sys.Nucs = '63Cu,1H,1H';
@@ -360,7 +360,7 @@ In crystal simulations, this gives a list of crystal sites to include in the sim
 </p>
 
 <p>
-If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g. the following set limits the simulation to sites 1 and 3 of the 4 magnetically distinct sites in crystal of space group no. 47.
+If <code>Opt.Sites</code> is empty or not given, all sites are included. If given, it must be a list of site numbers. The number of sites depends on the space group given in <code>Exp.CrystalSymmetry</code>. E.g., the following limits the simulation to sites 1 and 3 of the 4 magnetically distinct sites in a crystal of space group no. 47.
 </p>
 
 <pre class="matlab">
@@ -378,7 +378,7 @@ In powder simulations, <code>Opt.Sites</code> is ignored.
 <code>''</code> (default), <code>'components'</code>, <code>'transitions'</code>, <code>'sites'</code>, <code>'orientations'</code> </div>
 <div class="optiondescr">
 <p>
-Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum. If <code>'transitions'</code> is specified, transitions subspectra are returned (for powders only). If <code>'sites'</code> is specified, site subspectra are returned (for crystals only). If <code>'orientations'</code> is specified, orientation subspectra are returned (for crystals only).
+Determines whether to return the total spectrum or a list of subspectra. If set to <code>''</code>, the total spectrum is returned. If set to <code>'components'</code>, <code>spec</code> is a matrix with the subspectra of all components (including isotopologues). Each row in <code>spec</code> is one subspectrum. If <code>'transitions'</code> is specified, transition subspectra are returned (for powders only). If <code>'sites'</code> is specified, site subspectra are returned (for crystals only). If <code>'orientations'</code> is specified, orientation subspectra are returned (for crystals only).
 </p>
 </div>
 
@@ -390,7 +390,7 @@ but not for perturbation theory (<code>Opt.Method='perturb1'</code> or <code>'pe
 <div class="optionfield"><code>Transitions</code></div>
 <div class="optiondescr">
 <p>
-Determine manually the level pairs (transitions) which are used in
+Determines manually the level pairs (transitions) which are used in
 the spectrum calculation. If given, <code>salt</code> uses them and skips its
 automatic transition selection scheme. Level pairs are specified in
 <code>Transitions(k,:)</code> by the level numbers which start with 1 for the
@@ -422,7 +422,7 @@ Switches all intensity computations on or off. Intensity computations include th
 <div class="optionfield"><code>Threshold</code></div>
 <div class="optiondescr">
 <p>
-Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transition are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
+Specifies the threshold for transition pre-selection. Only transitions with an estimated relative average intensity larger than this number are included. The relative average intensity of the strongest transition is set to 1. The default value for the threshold is <code>1e-4</code>. The pre-selection is an approximate procedure, and it might miss transitions for complicated spin systems. In these cases, setting it to zero will include all transitions in the simulation. After the intensities of all included transitions are computed, the transitions are screened again against this threshold in a post-selection step. If transitions are specified manually in <code>Opt.Transitions</code>, <code>Opt.Threshold</code> is ignored.
 </p>
 </div>
 
@@ -431,8 +431,8 @@ Specifies the threshold for transition pre-selection. Only transitions with an e
 0 or 1 (default)<br>
 <p>
 Specifies whether <code>salt</code> uses automatic orientational pre-selection
-to speed-up simulations. This speed-up is most noticeable for large spin
-systems and field/frequency settings that lead to single-crystal like spectra.
+to speed up simulations. This speed-up is most noticeable for large spin
+systems and field/frequency settings that lead to single-crystal-like spectra.
 </p>
 </div>
 
@@ -443,11 +443,11 @@ systems and field/frequency settings that lead to single-crystal like spectra.
 </p>
 
 <p>
-The matrix diagonalization approach used in <code>salt</code> is identical to that of <code>pepper</code>, with the obvious exception of the calculation of line intensities, which is similar to that used in MAGRES (Keijzers et al, J.Chem.Soc. Faraday Trans. 1 83, 3493-3503, 1984).
+The matrix diagonalization approach used in <code>salt</code> is identical to that of <code>pepper</code>, with the obvious exception of the calculation of line intensities, which is similar to that used in MAGRES (Keijzers et al., J. Chem. Soc. Faraday Trans. 1 83, 3493-3503, 1987).
 </p>
 
 <p>
-First- and second-order perturbation theory is based on expressions by Iwasaki (J.Magn.Reson. 16, 417-423, 1974). It includes pseudosecular contributions. No transition moments are computed, that is, the intensities of all resonances are equal. Currently, the perturbation-theory algorithm is limited to systems with one electron spin S=1/2 (but an arbitrary number of nuclei with arbitrary spins).
+First- and second-order perturbation theory is based on expressions by Iwasaki (J. Magn. Reson. 16, 417-423, 1974). It includes pseudosecular contributions. No transition moments are computed, that is, the intensities of all resonances are equal. Currently, the perturbation-theory algorithm is limited to systems with one electron spin S=1/2 (but an arbitrary number of nuclei with arbitrary spins).
 </p>
 
 <p>

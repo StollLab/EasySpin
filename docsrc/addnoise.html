@@ -44,7 +44,7 @@ yn = addnoise(y,SNR,NoiseModel)
 <div class="subtitle">Description</div>
 
 <p>
-This functions adds noise to a given signal <code>y</code> to give the noisy signal <code>yn</code>. The target signal-to-noise ratio is specified in <code>SNR</code>.
+This function adds noise to a given signal <code>y</code> to give the noisy signal <code>yn</code>. The target signal-to-noise ratio is specified in <code>SNR</code>.
 </p>
 
 <p>
@@ -55,10 +55,9 @@ The signal amplitude is estimated from the difference of the maximum and the min
 The model for the noise is given in <code>NoiseModel</code>. Possible values are:
 <ul>
 <li><code>'f'</code>, a simple 1/f noise model,
-<li><code>'u'</code> a uniform distribution,
+<li><code>'u'</code>, a uniform distribution,
 <li><code>'n'</code>, a normal (Gaussian) distribution.
 </ul>
-</p>
 
 <p>
 <code>addnoise</code> works on 1D and 2D data sets.

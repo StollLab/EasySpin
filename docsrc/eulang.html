@@ -60,7 +60,7 @@ The rotation matrix must be a 3x3 real matrix with determinant +1 to within 0.01
 </p>
 
 <p>
-Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) describe the same rotation, there is more than one set of Euler angles that give the same rotation matrix. <code>eulang</code> returns the one with positive &beta;. In the special cases &beta;=0 and &beta;=&pi;, the rotation axes for &alpha; and &gamma; coincide, and the two angles cannot be distinguished. In this case <code>eulang</code> sets &gamma; to zero and describes the entire z rotation by  &alpha;.
+Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) describe the same rotation, there is more than one set of Euler angles that give the same rotation matrix. <code>eulang</code> returns the one with positive &beta;. In the special cases &beta;=0 and &beta;=&pi;, the rotation axes for &alpha; and &gamma; coincide, and the two angles cannot be distinguished. In this case <code>eulang</code> sets &gamma; to zero and describes the entire z rotation by &alpha;.
 </p>
 
 <!-- ============================================================= -->
