@@ -1,14 +1,32 @@
-% isotopes   Graphical interface for nuclear isotope data 
+% isotopes   Graphical interface for nuclear isotope data
 %
-%   Displays a periodic table of the elements with
-%   a table of nuclear isotopes.
+%   isotopes
 %
+%   Opens a window with a periodic table of the elements and a table of
+%   nuclear isotope data: natural abundance, spin, nuclear g factor,
+%   gyromagnetic ratio, electric quadrupole moment, and NMR frequency at
+%   a given magnetic field.
+%
+%   Click an element to list its isotopes, or "all" to list all isotopes.
+%   Checkboxes control whether unstable and nonmagnetic isotopes are shown.
+%   The magnetic field can be entered directly or set to typical X-, Q-,
+%   or W-band values using the buttons next to it.
+%
+%   Requires MATLAB R2021b or later.
 
 function isotopes()
 
+% Check MATLAB version (isMATLABReleaseOlderThan was introduced in R2020b)
+if ~exist('isMATLABReleaseOlderThan','file') || isMATLABReleaseOlderThan("R2021b")
+  error('isotopes requires MATLAB R2021b or later.');
+end
+
 % Settings
 figTag = 'isotopesfig';
-Field = 340;  % mT
+XbandField = 340;  % mT
+QbandField = 1200;  % mT
+WbandField = 3400;  % mT
+Field = XbandField;
 buttonFontSize = 14;
 
 % Check for existing figure and raise
@@ -22,7 +40,6 @@ end
 data = readIsotopeDataFile;
 
 figdata.fullData = data;
-figdata.DefaultField = Field;
 
 % GUI dimensions (pixels)
 elementWidth = 36;
@@ -32,26 +49,20 @@ spacing = 5;
 xSpacing = elementWidth+spacing;
 ySpacing = elementHeight+spacing;
 classSpacing = 5;
-labelHeight = 15;
+tableSpacing = 8;  % extra space above table
 tableHeight = 200;
 bottomHeight = 30;
+brightenFactor = 0.6;  % fraction of blending with white for selected element button
 
-% Calculate and set window size
-screensize = get(0, 'ScreenSize');
-screenWidth = screensize(3);
-screenHeight = screensize(4);
-windowWidth = border + 18*xSpacing + 2*classSpacing + border;
+% Calculate window size
+windowWidth = border + 17*xSpacing + elementWidth + 2*classSpacing + border;
 windowHeight = border + 7*ySpacing + border + 2*ySpacing + border + ...
-  + labelHeight/2 + tableHeight + border + bottomHeight;
-figPos(1) = (screenWidth-windowWidth)/2;
-figPos(2) = (screenHeight-windowHeight)/2;
-figPos(3) = windowWidth;
-figPos(4) = windowHeight;
+  tableSpacing + tableHeight + border + bottomHeight;
 
-% Initialize figure window
-hFig = uifigure();
+% Initialize figure window (hidden until fully built)
+hFig = uifigure('Visible','off');
 set(hFig,...
-  'Position',figPos,...
+  'Position',[1 1 windowWidth windowHeight],...
   'Tag',figTag,...
   'Name','Nuclear isotopes',...
   'Toolbar','none',...
@@ -61,7 +72,7 @@ set(hFig,...
 
 % Add element buttons
 ordNumber = 0;
-yOff = figPos(4)-elementHeight-border;
+yOff = windowHeight-elementHeight-border;
 xOff = border;
 for k = 1:numel(data.gn)
   if data.Z(k)<=ordNumber, continue; end
@@ -82,13 +93,11 @@ for k = 1:numel(data.gn)
     'Position',p,...
     'ButtonPushedFcn',@elementButtonPushedCallback,...
     'Text',data.element{k},...
-    'FontSize',buttonFontSize);
-  if ~verLessThan('matlab','9.5')  % R2018b = 9.5
-    set(hButton,'Tooltip',[' ' data.name{k} ' ']);
-  end
+    'FontSize',buttonFontSize,...
+    'Tooltip',[' ' data.name{k} ' ']);
   switch cl
     case 0
-      if group<3     
+      if group<3
         bgcol = [99 154 255]/255;
       else
         bgcol = [255 207 0]/255;
@@ -99,9 +108,12 @@ for k = 1:numel(data.gn)
       bgcol = [0 207 49]/255;
   end
   if data.N(k)<=0
-    bgcol = get(hButton,'BackgroundColor');
+    % No isotope data: keep default color and disable
+    hButton.Enable = 'off';
+  else
+    hButton.BackgroundColor = bgcol;
   end
-  hButton.BackgroundColor = bgcol;
+  hButton.UserData = hButton.BackgroundColor;  % unselected color
 end
 
 % Add selection button for all elements
@@ -113,11 +125,15 @@ set(hAll,...
   'Text','all',...
   'BackgroundColor',[1 1 1]*0.9,...
   'ButtonPushedFcn',@elementButtonPushedCallback,...
-  'FontSize',buttonFontSize);
+  'FontSize',buttonFontSize,...
+  'Tooltip','all elements');
+hAll.UserData = hAll.BackgroundColor;  % unselected color
 
-if ~verLessThan('Matlab','9.5')  % R2018b = 9.5
-  set(hAll,'Tooltip','all elements');
-end
+% Mark "all" as selected initially
+hAll.BackgroundColor = hAll.UserData + (1-hAll.UserData)*brightenFactor;
+hAll.FontWeight = 'bold';
+figdata.hSelectedButton = hAll;
+figdata.brightenFactor = brightenFactor;
 
 % Add checkbox for unstable isotopes
 xpos = xOff;
@@ -126,7 +142,7 @@ set(hUnstableCheckbox,...
   'Position',[xpos border 160 22],...
   'Text','Show unstable isotopes',...
   'Value',0,...
-  'ValueChangedFcn',@(~,~)updateTable);
+  'ValueChangedFcn',@(~,~)updateTable(hFig));
 figdata.hUnstableCheckbox = hUnstableCheckbox;
 
 % Add checkbox for nonmagnetic isotopes
@@ -136,22 +152,25 @@ set(hNonmagneticCheckbox,...
   'Position',[xpos border 180 22],...
   'Text','Show nonmagnetic isotopes',...
   'Value',1,...
-  'ValueChangedFcn',@(~,~)updateTable);
+  'ValueChangedFcn',@(~,~)updateTable(hFig));
 figdata.hNonmagneticCheckbox = hNonmagneticCheckbox;
 
-% Magnetic field edit box with label
-xpos = xpos+255;
+% Magnetic field edit box with label (right-aligned with band buttons)
+fieldControlsWidth = 110 + 10 + 100 + 5 + 3*30 + 2*5;  % label, edit box, band buttons
+xpos = windowWidth - border - fieldControlsWidth;
 uilabel(hFig,...
   'Text','Magnetic field (mT)',...
-  'Position',[xpos border 110 19]);
+  'VerticalAlignment','center',...
+  'Position',[xpos border 110 22]);
 hFieldEdit = uieditfield(hFig,'numeric');
 xpos = xpos+120;
 set(hFieldEdit,...
   'BackgroundColor','white',...
   'Position',[xpos border 100 22],...
   'Value',Field,...
+  'Limits',[0 Inf],...
   'HorizontalAlignment','left',...
-  'ValueChangedFcn',@(~,~)updateTable);
+  'ValueChangedFcn',@(~,~)updateTable(hFig));
 figdata.hFieldEdit = hFieldEdit;
 
 % Add convenience buttons for X, Q and W band fields
@@ -160,24 +179,24 @@ hXbandButton = uibutton(hFig);
 set(hXbandButton,...
   'Position',[xpos border 30 22],...
   'Text','X',...
-  'ButtonPushedFcn',@XbandButtonPushedFcn);
+  'ButtonPushedFcn',@(~,~)setField(hFieldEdit,XbandField));
 xpos = xpos + 35;
 hQbandButton = uibutton(hFig);
 set(hQbandButton,...
   'Position',[xpos border 30 22],...
   'Text','Q',...
-  'ButtonPushedFcn',@QbandButtonPushedFcn);
+  'ButtonPushedFcn',@(~,~)setField(hFieldEdit,QbandField));
 xpos = xpos + 35;
 hWbandButton = uibutton(hFig);
 set(hWbandButton,...
   'Position',[xpos border 30 22],...
   'Text','W',...
-  'ButtonPushedFcn',@WbandButtonPushedFcn);
+  'ButtonPushedFcn',@(~,~)setField(hFieldEdit,WbandField));
 
 % Table of isotope data
 hTable = uitable(hFig);
 set(hTable,...
-  'Position',[xOff border+bottomHeight figPos(3)-2*border tableHeight]);
+  'Position',[xOff border+bottomHeight windowWidth-2*border tableHeight]);
 figdata.hTable = hTable;
 
 tabledata = data(:,{'isotope','abundance','spin','gn','gamma','qm'});
@@ -185,21 +204,19 @@ tabledata.NMRfreq = zeros(height(tabledata),1);
 
 hTable.Data = tabledata;
 hTable.ColumnWidth = 'auto';
-if ~verLessThan('matlab','9.11')  % 9.11 = R2021b
-  hTable.SelectionType = 'row';
-end
+hTable.SelectionType = 'row';
 hTable.ColumnName = {'Isotope','Abundance (%)','Spin',...
   'gn value','γ/2π (MHz/T)','Q (barn)','Frequency (MHz)'};
-
-if ~verLessThan('matlab','9.7')  % 9.7 = R2019b
-  hTable.ColumnSortable = true;
-end
+hTable.ColumnSortable = true;
 
 figdata.Element = '';
 figdata.tableData = tabledata;
 
 guidata(hFig,figdata);
-updateTable;
+updateTable(hFig);
+
+movegui(hFig,'center');
+hFig.Visible = 'on';
 
 end
 
@@ -212,16 +229,23 @@ data = guidata(hFig);
 
 if Element=="all", Element = ''; end
 data.Element = Element;
+
+% Highlight selected button, restore previously selected one
+data.hSelectedButton.BackgroundColor = data.hSelectedButton.UserData;
+data.hSelectedButton.FontWeight = 'normal';
+src.BackgroundColor = src.UserData + (1-src.UserData)*data.brightenFactor;
+src.FontWeight = 'bold';
+data.hSelectedButton = src;
+
 guidata(hFig,data);
 
-updateTable;
+updateTable(hFig);
 
 end
 
 
 %-------------------------------------------------------------------------------
-function updateTable()
-hFig = findall(0,'Type','figure','Tag','isotopesfig');
+function updateTable(hFig)
 data = guidata(hFig);
 hTable = data.hTable;
 
@@ -229,11 +253,6 @@ element = data.Element;
 
 % Update NMR frequencies
 B0 = data.hFieldEdit.Value;
-if isempty(B0)
-  errordlg('Invalid magnetic field value!');
-  B0 = data.DefaultField;
-  data.hFieldEdit.Value = data.DefaultField;
-end
 data.tableData.NMRfreq = B0*1e-3*nmagn*data.tableData.gn/planck/1e6;
 
 % Filter table by element
@@ -271,15 +290,16 @@ function data = readIsotopeDataFile
 % Determine full data file name
 esPath = fileparts(which(mfilename));
 DataFile = [esPath filesep 'private' filesep 'isotopedata.txt'];
-if ~exist(DataFile,'file')
-  error('Could not open nuclear isotopes data file %s',DataFile);
-end
 
 % Load data
 fh = fopen(DataFile);
+if fh<0
+  error('Could not open nuclear isotopes data file %s',DataFile);
+end
 C = textscan(fh,'%f %f %s %s %s %f %f %f %f','commentstyle','%');
+fclose(fh);
 
-% Calculate gyromagnetic ratioes (MHz/T)
+% Calculate gyromagnetic ratios (MHz/T)
 magmom = C{7};
 % Nuclear g factors: Infer from the 1H entry whether gn or gn*I is listed in
 % the data file. If gn*I is listed, then divide out I.
@@ -299,12 +319,12 @@ radioactive = C{3};
 for k = numel(N):-1:1
   isostr = sprintf('%d%s',N(k),element{k});
   if radioactive{k}=='*'
-    isotopes{k} = [isostr '*'];
+    isoSymbols{k} = [isostr '*'];
   else
-    isotopes{k} = isostr;
+    isoSymbols{k} = isostr;
   end
 end
-C{11} = isotopes(:);
+C{11} = isoSymbols(:);
 
 % Construct table
 vnames = {'Z','N','radioactive','element','name','spin',...
@@ -359,39 +379,10 @@ end
 
 
 %-------------------------------------------------------------------------------
-function XbandButtonPushedFcn(~,~)
+function setField(hFieldEdit,Field)
 
-hFig = findall(0,'Type','figure','Tag','isotopesfig');
-data = guidata(hFig);
+hFieldEdit.Value = Field;  % mT
 
-data.hFieldEdit.Value = 340;  % mT
-
-updateTable;
-
-end
-
-
-%-------------------------------------------------------------------------------
-function QbandButtonPushedFcn(~,~)
-
-hFig = findall(0,'Type','figure','Tag','isotopesfig');
-data = guidata(hFig);
-
-data.hFieldEdit.Value = 1200;  % mT
-
-updateTable;
-
-end
-
-
-%-------------------------------------------------------------------------------
-function WbandButtonPushedFcn(~,~)
-
-hFig = findall(0,'Type','figure','Tag','isotopesfig');
-data = guidata(hFig);
-
-data.hFieldEdit.Value = 3400;  % mT
-
-updateTable;
+updateTable(ancestor(hFieldEdit,'figure'));
 
 end

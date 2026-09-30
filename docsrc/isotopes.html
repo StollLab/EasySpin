@@ -44,7 +44,7 @@ isotopes
 
 <p>
 This graphical interface provides an interactive periodic table of the elements with a list of nuclear
-isotope data, including spin, nuclear g factor, gyromagnetic ratio, electric quadrupole moment and resonance frequency.
+isotope data, including natural abundance, spin, nuclear g factor, gyromagnetic ratio, electric quadrupole moment and NMR frequency.
 </p>
 
 <div style="text-align:center">
@@ -52,7 +52,23 @@ isotope data, including spin, nuclear g factor, gyromagnetic ratio, electric qua
 </div>
 
 <p>
+Click on an element to list its isotopes, or on <code>all</code> to list the isotopes of all elements. The selected button is shown in a lighter color with bold text. Elements without isotope data in EasySpin's database are grayed out. The columns of the table can be sorted by clicking on the column headers.
+</p>
+
+<p>
+By default, only stable isotopes are listed. To include radioactive isotopes (marked with an asterisk, e.g. <code>3H*</code>), check <code>Show unstable isotopes</code>. To hide isotopes with spin zero, uncheck <code>Show nonmagnetic isotopes</code>.
+</p>
+
+<p>
+The NMR frequency column gives the nuclear Larmor frequency at the magnetic field entered in the <code>Magnetic field (mT)</code> box. The buttons <code>X</code>, <code>Q</code> and <code>W</code> set the field to 340 mT, 1200 mT and 3400 mT, typical for EPR at X, Q and W band, respectively. The frequency is negative for nuclei with a negative g factor.
+</p>
+
+<p>
 EasySpin's <a href="isotopetable.html">nuclear isotope database</a> includes all stable isotopes plus the most important radioactive ones.
+</p>
+
+<p>
+<code>isotopes</code> requires MATLAB R2021b or later.
 </p>
 
 
@@ -61,8 +77,12 @@ EasySpin's <a href="isotopetable.html">nuclear isotope database</a> includes all
 
 <p>
 <a class="esf" href="eprconvert.html">eprconvert</a>,
+<a class="esf" href="gamman.html">gamman</a>,
+<a class="esf" href="larmorfrq.html">larmorfrq</a>,
+<a class="esf" href="nucabund.html">nucabund</a>,
 <a class="esf" href="nucdata.html">nucdata</a>,
 <a class="esf" href="nucgval.html">nucgval</a>,
+<a class="esf" href="nucqmom.html">nucqmom</a>,
 <a class="esf" href="nucspin.html">nucspin</a>
 </p>
 
