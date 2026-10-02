@@ -36,15 +36,15 @@ Get Euler angles from rotation matrix.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-angles = eulang(Rp)
-[alpha,beta,gamma] = eulang(Rp)
+angles = eulang(R)
+[alpha,beta,gamma] = eulang(R)
 </pre>
 
 <!-- ============================================================= -->
 <div class="subtitle">Description</div>
 
 <p>
-Given a <a href="eulerangles.html">rotation matrix</a> <code>Rp</code>, the function <code>eulang</code> computes the <a href="eulerangles.html">Euler angles</a> defining the same rotation and returns them separately or as a 3-element vector <code>angles = [alpha, beta, gamma]</code>. The angles are in radians.
+Given a <a href="eulerangles.html">rotation matrix</a> <code>R</code>, the function <code>eulang</code> computes the <a href="eulerangles.html">Euler angles</a> defining the same rotation and returns them separately or as a 3-element vector <code>angles = [alpha, beta, gamma]</code>. The angles are in radians.
 </p>
 
 <p>
@@ -56,22 +56,22 @@ For details about Euler angles and rotation matrices, see the page on <a href="e
 </p>
 
 <p>
-The rotation matrix must be a 3x3 real matrix with determinant +1 to within 0.01, otherwise the function errors. For smaller deviations, a warning is issued.
+The rotation matrix must be a real orthogonal 3x3 matrix with determinant +1. If the matrix is only slightly non-orthogonal, for example because its elements are rounded, <code>eulang</code> prints a message and replaces it by the closest orthogonal matrix (see below). If the matrix is far from orthogonal, or if its determinant is negative, <code>eulang</code> errors.
 </p>
 
 <p>
-Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) describe the same rotation, there is more than one set of Euler angles that give the same rotation matrix. <code>eulang</code> returns the one with positive &beta;. In the special cases &beta;=0 and &beta;=&pi;, the rotation axes for &alpha; and &gamma; coincide, and the two angles cannot be distinguished. In this case <code>eulang</code> sets &gamma; to zero and describes the entire z rotation by &alpha;.
+Since (&alpha;,&beta;,&gamma;) and (&alpha;+/-&pi;,-&beta;,&gamma;+/-&pi;) describe the same rotation, and since adding multiples of 2&pi; to any angle does not change the rotation, there is more than one set of Euler angles that give the same rotation matrix. <code>eulang</code> returns the set with &alpha; and &gamma; in the range [0,2&pi;) and &beta; in the range [0,&pi;]. In the special cases &beta;=0 and &beta;=&pi;, the rotation axes for &alpha; and &gamma; coincide, and the two angles cannot be distinguished. In this case <code>eulang</code> sets &gamma; to zero and describes the entire z rotation by &alpha;. For &beta;=0, the returned &alpha; is &alpha;+&gamma;, and for &beta;=&pi;, it is &alpha;-&gamma; (both shifted into [0,2&pi;)).
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Algorithm</div>
 
 <p>
-<code>eulang</code> first checks if the input matrix is orthogonal and then determines the Euler angles analytically from the matrix elements. If the input matrix is close to orthogonal, <code>eulang</code> replaces it by its closest orthogonal neighbor using singular-value decomposition. If the matrix is too far from orthogonal, <code>eulang</code> errors.
+<code>eulang</code> first checks if the input matrix is orthogonal, using the deviation <code>norm(R.'*R-eye(3))</code> of <code>R.'*R</code> from the identity matrix. If the deviation is above 10<sup>-2</sup>, <code>eulang</code> errors. If it is between 10<sup>-6</sup> and 10<sup>-2</sup>, <code>eulang</code> replaces the matrix by its closest orthogonal neighbor using singular-value decomposition (SVD). Then, <code>eulang</code> determines the Euler angles analytically from the matrix elements.
 </p>
 
 <p>
-You can manually use SVD to orthogonalize a matrix using
+For a matrix that is too far from orthogonal for <code>eulang</code> to accept, you can use SVD yourself to orthogonalize it:
 </p>
 
 <pre class="matlab">
@@ -99,7 +99,7 @@ R =
 </pre>
 
 <p>
-Now, feeding this rotation matrix into <code>eulang</code>, we get back the three original angles.
+Now, feeding this rotation matrix into <code>eulang</code>, we get back the original angles.
 </p>
 
 <pre class="matlab">
@@ -108,39 +108,96 @@ eulang(R)*180/pi
 
 <pre class="mloutput">
 ans =
-   34.0000   72.0000 -143.0000
+   34.0000   72.0000  217.0000
 </pre>
 
 <p>
-If the elements of a rotation matrix are not known to sufficient precision, the matrix might not be orthogonal:
+Since <code>eulang</code> returns &gamma; in the range [0,2&pi;), the original &gamma; = -143&deg; is returned as the equivalent 217&deg; = -143&deg; + 360&deg;.
+</p>
+
+<p>
+For &beta;=0 and &beta;=&pi;, &alpha; and &gamma; cannot be separated. <code>eulang</code> returns the combined z rotation in &alpha; and sets &gamma; to zero:
 </p>
 
 <pre class="matlab">
-R_approx = [-0.04    0.99   -0.11
-            -0.77    0.04    0.63
-             0.63    0.11    0.77];
-det(R_approx)
+eulang(erot([30 0 20]*pi/180))*180/pi
+eulang(erot([30 180 20]*pi/180))*180/pi
 </pre>
 
 <pre class="mloutput">
 ans =
-    0.9935
+   50.0000         0         0
+ans =
+   10.0000  180.0000         0
 </pre>
 
 <p>
-and <code>eulang</code> will refuse to calculate Euler angles. To orthogonalize the matrix, use
+For &beta;=0, &alpha; = 30&deg;+20&deg; = 50&deg;, and for &beta;=&pi;, &alpha; = 30&deg;-20&deg; = 10&deg;.
+</p>
+
+<p>
+If the elements of a rotation matrix are rounded, the matrix is slightly non-orthogonal. If the deviation is small, <code>eulang</code> orthogonalizes the matrix automatically. Here, the rotation matrix from above is rounded to three decimals:
 </p>
 
 <pre class="matlab">
-[U,~,V] = svd(R_approx)
+R_rounded = round(erot(ang)*1e3)/1e3;
+eulang(R_rounded)*180/pi
+</pre>
+
+<pre class="mloutput">
+eulang: Rotation matrix is not orthogonal, deviation is 0.00079683.
+eulang: Orthogonalizing using singular-value decomposition (SVD).
+ans =
+   34.0235   71.9955  216.9808
+</pre>
+
+<p>
+The resulting angles are close to the original ones.
+</p>
+
+<p>
+If the elements are rounded more coarsely, the deviation can be too large. Here is a rotation matrix with its elements rounded to one decimal:
+</p>
+
+<pre class="matlab">
+R_approx = [ 0.0   1.0  -0.1
+            -0.8   0.0   0.6
+             0.6   0.1   0.8];
+norm(R_approx.'*R_approx - eye(3))
+</pre>
+
+<pre class="mloutput">
+ans =
+    0.0690
+</pre>
+
+<p>
+The deviation from orthogonality is too large, and <code>eulang</code> errors:
+</p>
+
+<pre class="matlab">
+eulang(R_approx)
+</pre>
+
+<pre class="mloutput">
+Error using eulang
+eulang: Rotation matrix is not orthogonal, deviation is 0.0689752.
+</pre>
+
+<p>
+To orthogonalize the matrix, use
+</p>
+
+<pre class="matlab">
+[U,~,V] = svd(R_approx);
 R = U*V.'
 </pre>
 
 <pre class="mloutput">
 R =
-   -0.0394    0.9931   -0.1103
-   -0.7747    0.0394    0.6311
-    0.6311    0.1103    0.7678
+   -0.0298    0.9955   -0.0896
+   -0.8013    0.0298    0.5975
+    0.5975    0.0896    0.7969
 </pre>
 
 <p><code>eulang</code> now works:</p>
@@ -151,7 +208,7 @@ eulang(R)
 
 <pre class="mloutput">
 ans =
-    0.1730    0.6954    1.3978
+    0.1489    0.6487    1.4219
 </pre>
    
 <!-- ============================================================= -->
@@ -160,6 +217,8 @@ ans =
 <p>
 <a class="esf" href="ang2vec.html">ang2vec</a>,
 <a class="esf" href="erot.html">erot</a>,
+<a class="esf" href="rotaxi2mat.html">rotaxi2mat</a>,
+<a class="esf" href="rotmat2axi.html">rotmat2axi</a>,
 <a class="esf" href="vec2ang.html">vec2ang</a>
 </p>
 

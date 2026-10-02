@@ -1,10 +1,12 @@
 function ok = test()
 
-an = rand(1,3);
-R = erot(an);
+% Test whether eulang works with all supported output syntaxes
+
+angles = deg2rad([68 39 213]);
+R = erot(angles);
 
 eulang(R);
-[a,b,c] = eulang(R);
-aa = eulang(R);
+[~,~,~] = eulang(R);
+[~] = eulang(R);
 
 ok = true;
