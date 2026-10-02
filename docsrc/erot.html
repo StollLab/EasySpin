@@ -55,7 +55,7 @@ For a detailed description of the associated rotation, the convention used, and 
 </p>
 
 <p>
-Basically, <code>erot</code> provides a transformation matrix for vectors and matrices. If the Euler angles describe the transformation of the coordinate frame 1 to the coordinate frame 2, then you can use <code>Rp</code> to transform a vector <code>v</code> or tensor <code>A</code> from coordinates 1 to coordinates 2.
+<code>erot</code> provides a transformation matrix for vectors and matrices. If the Euler angles describe the transformation of the coordinate frame 1 to the coordinate frame 2, then you can use <code>Rp</code> to transform a vector <code>v</code> or tensor <code>A</code> from coordinates 1 to coordinates 2.
 </p>
 
 <pre class="matlab">
@@ -68,11 +68,11 @@ This does not rotate the vector or matrix, but transforms them from one coordina
 </p>
 
 <p>
-<code>Ra = Rp.'</code> is the corresponding active transformation. The active rotation is also a composition of three rotations: first by <code>-gamma</code> around z, then by <code>-beta</code> around y, and last by <code>-alpha</code> around z. In this case it is the vector or matrix rather than the coordinate system which changes orientation.
+<code>Ra = Rp.'</code> is the corresponding active transformation. The active rotation is also a composition of three counterclockwise rotations around the fixed axes: first by <code>gamma</code> around z, then by <code>beta</code> around y, and last by <code>alpha</code> around z. Equivalently, it rotates by <code>alpha</code> around z, then by <code>beta</code> around the new y axis, and last by <code>gamma</code> around the new z axis. In this case it is the vector or matrix rather than the coordinate system which changes orientation.
 </p>
 
 <p>
-If the argument <code>'cols'</code> is given, <code>erot</code> returns the three columns of the rotation matrix separately. The three vectors and the rotation matrix are related by <code>Rp = [xc yc zc]</code>. Similarly, if the argument <code>'rows'</code> is given, <code>erot</code> returns the three rows of the rotation matrix separately. However, they are returned not as rows but as column vectors. These three vectors and the rotation matrix are related by <code>Rp = [xr.'; yr.'; zr.']</code>. 
+If the argument <code>'cols'</code> is given, <code>erot</code> returns the three columns of the rotation matrix separately. The three vectors and the rotation matrix are related by <code>Rp = [xc yc zc]</code>. Similarly, if the argument <code>'rows'</code> is given, <code>erot</code> returns the three rows of the rotation matrix separately. However, they are returned not as rows but as column vectors. These three vectors and the rotation matrix are related by <code>Rp = [xr.'; yr.'; zr.']</code>. With <code>'cols'</code> or <code>'rows'</code>, <code>erot</code> requires exactly three output arguments.
 </p>
 
 <p>
@@ -83,13 +83,13 @@ The inverse of <code>erot</code>, i.e. calculating the Euler angles from a given
 <div class="subtitle">Examples</div>
 
 <p>
-To rotate the basis of the matrix <code>A</code> so that the final Z axis is along -z, and (X,Y) = (-y,-x), type
+To transform the matrix <code>A</code> into a frame whose Z axis is along -z and whose X and Y axes are along -y and -x, respectively, type
 </p>
 
 <pre class="matlab">
 A = [1 2 3; 4 5 6; 7 8 9];
 Rp = erot(pi/2,pi,0);
-A1= Rp*A*Rp.'
+A1 = Rp*A*Rp.'
 </pre>
 <pre class="mloutput">
 A1 =
@@ -100,7 +100,7 @@ A1 =
 
 <p>
 To rotate a magnetic field vector from the z direction to a direction
-in the first quadrant specified by the polar angles <code>theta</code> (down from z axis, elevation complement) and <code>phi</code> (counterclockwise around z from x, azimuth), use an active rotation.
+in the first octant specified by the polar angle <code>theta</code> (measured from the z axis) and the azimuthal angle <code>phi</code> (measured counterclockwise from the x axis), use an active rotation. The resulting direction is the same as the one given by <code>ang2vec(phi*pi/180,theta*pi/180)</code>.
 </p>
 
 <pre class="matlab">
@@ -165,6 +165,8 @@ See <a href="eulerangles.html">relative orientations</a> and <a href="frames.htm
 <p>
 <a class="esf" href="ang2vec.html">ang2vec</a>,
 <a class="esf" href="eulang.html">eulang</a>,
+<a class="esf" href="euler2quat.html">euler2quat</a>,
+<a class="esf" href="quat2euler.html">quat2euler</a>,
 <a class="esf" href="rotaxi2mat.html">rotaxi2mat</a>,
 <a class="esf" href="rotmat2axi.html">rotmat2axi</a>,
 <a class="esf" href="vec2ang.html">vec2ang</a>

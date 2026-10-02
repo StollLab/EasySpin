@@ -5,16 +5,16 @@
 %   [xc,yc,zc] = erot(...,'cols')
 %   [xr,yr,zr] = erot(...,'rows')
 %
-%   Computes a 3x3 rotation/transformation matrix Rp from
-%   a vector of 3 Euler angles.
+%   Computes a 3x3 rotation/transformation matrix Rp from 3 Euler angles,
+%   given either as a 3-element vector or as three separate arguments.
 %
 %   Input
 %   - Angles: vector containing the three Euler angles (in radians) that define
 %     the rotation. [alpha, beta, gamma] rotate the coordinate system around
-%     [z,y',z''] counterclockwise in in that order.
+%     [z,y',z''] counterclockwise in that order.
 %   - alpha, beta, gamma: the three Euler angles as defined above.
-%   - 'cols', 'rows': tells erot to return either the three rows or the three
-%     columns of the rotation matrix separately
+%   - 'cols', 'rows': tells erot to return either the three columns or the
+%     three rows of the rotation matrix separately
 %
 %   Output
 %   - Rp: matrix for the passive rotation/coordinate transformation
@@ -55,8 +55,11 @@ switch nargin
     error('Wrong number of input arguments!');
 end
 
+if isstring(option)
+  option = char(option);
+end
 if ~ischar(option)
-    error('Last argument must be a string, either ''rows'' or ''cols''.')
+  error('Last argument must be either ''rows'' or ''cols''.')
 end
 
 switch option
@@ -67,24 +70,24 @@ switch option
   case 'cols'
     returnRows = false;
   otherwise
-    error('Last argument must be a string, either ''rows'' or ''cols''.')
+    error('Last argument must be either ''rows'' or ''cols''.')
 end
 
-if nargout==3 && isempty(option)
-  error('Please specify whether erot() should return the 3 columns or the 3 rows of the matrix.');
-end
-
-if ~isempty(option) && nargout~=3
+% Check number of outputs
+if isempty(option)
+  if nargout==3
+    error('Please specify whether erot() should return the 3 columns or the 3 rows of the matrix.');
+  elseif nargout>1
+    error('Wrong number of outputs!');
+  end
+elseif nargout~=3
   error('3 outputs required if you specify ''rows'' or ''cols''.');
 end
 
-if ~any(nargout==[0 1 3])
-  error('Wrong number of outputs!');
-end
-
 % Check angles
-if isnan(alpha) || isnan(beta) || isnan(gamma)
-  error('At least one of the angles is NaN. Angles must be numbers.');
+isValidAngle = @(a) isnumeric(a) && isscalar(a) && isreal(a) && isfinite(a);
+if ~all(cellfun(isValidAngle,{alpha,beta,gamma}))
+  error('Euler angles must be three finite real numbers.');
 end
 
 % Precalculate trigonometric functions of angles
