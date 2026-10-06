@@ -76,18 +76,12 @@ function result = esfit(data,fcn,p0,varargin)
 
 if nargin==0, help(mfilename); return; end
 
-% Start legacy version if GUI is requested with Matlab <R2021b
-if verLessThan('Matlab','9.11') && nargout==0
-  warning('Your Matlab version (<R2021b) does not support the newest version of the esfit GUI. Switching to legacy version.')
-  esfit_legacy(data,fcn,p0,varargin{:})
-  return;
-end
 % Check for display server used on Linux and display warning
 if isunix
   [~,output] = system('echo "$XDG_SESSION_TYPE"');
   if ~strcmp(output(1),'x')
-    warning(['There are known issues with new Matlab GUIs on Linux systems with display servers other than Xorg.' ...
-             'To avoid issues change the display server to Xorg or switch to the legacy version of the esfit GUI using esfit_legacy().'])
+    warning(['There are known issues with new Matlab GUIs on Linux systems with display servers other than Xorg. ' ...
+             'To avoid issues change the display server to Xorg.'])
   end
 end
 
