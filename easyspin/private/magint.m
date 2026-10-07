@@ -170,7 +170,7 @@ if nElSpins>1
       if any(System.eeFrame(iCoupling,:))
         R_M2ee = erot(System.eeFrame(iCoupling,:)); % mol frame -> ee frame
         R_ee2M = R_M2ee.';  % ee frame -> mol frame
-        J_ = R_ee2M*diag(System.ee(iCoupling,:))*R_ee2M.';
+        J_ = R_ee2M*J_*R_ee2M.';
       end
       if generalLiouvillian
         [T0{iInt},T1(iInt,:),T2(iInt,:)] = istotensor(SpinOps(iEl1,:),SpinOps(iEl2,:));

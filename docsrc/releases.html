@@ -71,6 +71,8 @@ $ReleaseID$
 <li>Fixed an incorrect sign in the calculation of the nuclear Zeeman Hamiltonian in <code>ham_nz(Sys,B)</code>.</li>
 <li>Without <code>Exp.Temperature</code>, intensities now follow the high-temperature limit. Previously, relative intensities were wrong between spin systems with different spin or number of electrons, and between lines in frequency sweeps.</li>
 <li><a class="esf" href="chili.html">chili</a> intensities now match <a class="esf" href="pepper.html">pepper</a> in the rigid limit also for S&gt;1/2 and several electrons.</li>
+<li><a class="esf" href="nucspinadd.html">nucspinadd</a>: Fixed wrong orientation of existing tilted A and Q tensors when adding a nucleus with full matrices.</li>
+<li><a class="esf" href="chili.html">chili</a>: Fixed the electron-electron coupling with <code>Sys.eeFrame</code> when <code>Sys.dvec</code> is given.</li>
 </ul>
 
 <p>Incompatible changes</p>
@@ -80,6 +82,7 @@ $ReleaseID$
 <li><a class="esf" href="addnoise.html">addnoise</a> now sets the noise level for complex-valued signals based on the real and imaginary parts separately, changing the noise realizations for complex-valued input compared to earlier releases.</li>
 <li>Without <code>Exp.Temperature</code>, simulated intensities have changed for systems with S&gt;1/2 or more than one electron, and for all frequency sweeps. Intensities for S=1/2 field sweeps are unchanged.</li>
 <li>The obsolete EasySpin 5 Hamiltonian functions <code>sham</code>, <code>zeeman</code>, <code>zeemanho</code>, <code>zfield</code>, <code>hfine</code>, <code>nquad</code>, <code>eeint</code>, <code>nnint</code>, <code>soint</code>, and <code>crystalfield</code> have been removed. Use <a class="esf" href="ham.html">ham</a> and the <code>ham_*</code> functions instead.</li>
+<li>Full interaction matrices (in <code>Sys.g</code>, <code>Sys.D</code>, <code>Sys.ee</code>, <code>Sys.A</code>, <code>Sys.Q</code>, <code>Sys.sigma</code>, <code>Sys.nn</code>) can no longer be combined with nonzero Euler angles in the corresponding <code>Frame</code> field, and give an error. Previously, the angles were applied by some functions and ignored by others.</li>
 </ul>
 
 <div class="subtitle">

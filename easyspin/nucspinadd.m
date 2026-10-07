@@ -12,7 +12,8 @@
 %    QFrame. Any missing parameter is assumed to be [0 0 0].
 %
 %    Alternatively, full 3x3 hyperfine and quadrupole
-%    matrices can be specified in Afull and Qfull.
+%    matrices can be specified in Afull and Qfull. AFrame and
+%    QFrame must then be empty or zero.
 %
 %    Examples:
 %     Sys = struct('S',1/2,'g',[2 2 2.2]);
@@ -72,6 +73,13 @@ if numel(QFrame)~=3
   error('Wrong size of QFrame (6th input argument).');
 end
 
+if numel(A)==9 && any(AFrame(:))
+  error('A full hyperfine matrix cannot be combined with nonzero AFrame.');
+end
+if numel(Q)==9 && any(QFrame(:))
+  error('A full quadrupole matrix cannot be combined with nonzero QFrame.');
+end
+
 % Determine number of nuclei
 if isfield(Sys,'Nucs')
   Nucs = nucstring2list(Sys.Nucs);
@@ -113,8 +121,10 @@ end
 
 % Append A and AFrame
 NewSys.A = appendtensor(NewSys.A,NewSys.AFrame,A,AFrame,nNuclei,'A');
-fullA = numel(A)==9 || size(Sys.A,1)==3*nNuclei;
-if ~fullA
+fullA = size(NewSys.A,1)==3*iNuc;
+if fullA
+  NewSys.AFrame = [];  % frames are already included in the full matrices
+else
   NewSys.AFrame(iNuc,:) = AFrame;
 end
 
@@ -122,8 +132,10 @@ end
 if isfield(Sys,'Q') || any(Q(:)~=0)
   I = quadrupolespins([Nucs {Nuc}]);
   NewSys.Q = appendtensor(NewSys.Q,NewSys.QFrame,Q,QFrame,nNuclei,'Q',I);
-  fullQ = numel(Q)==9 || size(NewSys.Q,1)==3*nNuclei;
-  if ~fullQ
+  fullQ = size(NewSys.Q,1)==3*iNuc;
+  if fullQ
+    NewSys.QFrame = [];  % frames are already included in the full matrices
+  else
     NewSys.QFrame(iNuc,:) = QFrame;
   end
 end
@@ -163,7 +175,7 @@ if isempty(AFrame) || all(AFrame==0)
   return
 end
 
-R_T2M = erot(AFrame); % tensor frame -> molecular frame
+R_T2M = erot(AFrame).'; % tensor frame -> molecular frame
 Afull = R_T2M*diag(A)*R_T2M.';
 
 end
@@ -190,7 +202,7 @@ if isempty(QFrame) || all(QFrame==0)
   return
 end
 
-R_T2M = erot(QFrame); % tensor frame -> molecular frame
+R_T2M = erot(QFrame).'; % tensor frame -> molecular frame
 Qfull = R_T2M*diag(Qpv)*R_T2M.';
 
 end

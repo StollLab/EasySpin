@@ -124,6 +124,10 @@ All interaction matrices and tensors can have arbitrary orientations with respec
 </p>
 
 <p>
+Interaction matrices can be given either as principal values together with Euler angles (in <code>gFrame</code>, <code>AFrame</code>, etc.), or as full 3x3 matrices in the molecular frame. Full matrices cannot be combined with nonzero Euler angles: if <code>g</code>, <code>D</code>, <code>ee</code>, <code>A</code>, <code>Q</code>, <code>sigma</code>, or <code>nn</code> contains full matrices, the corresponding <code>Frame</code> field must be absent or all zero.
+</p>
+
+<p>
 Below we list and describe all possible spin system structure fields containing <a href="hamiltonian.html">spin Hamiltonian</a>
 parameters.
 </p>
@@ -313,7 +317,7 @@ Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0; 0 0 2.1];
 </pre>
 
 <p>
-If you give full g tensors, EasySpin uses them as provided, i.e. the tensors are not symmetrized, and the Euler angles in <code>gFrame</code> are ignored.
+If you give full g tensors, EasySpin uses them as provided, i.e. the tensors are not symmetrized. Full g tensors cannot be combined with nonzero Euler angles in <code>gFrame</code>.
 </p>
 
 </div>
@@ -414,7 +418,7 @@ Sys.A = [10 10 -20 30 40 50; 1 1 -2 3 4 5];  % 2 electrons and 2 nuclei
 </pre>
 
 <p>
-It is possible to specify full A matrices in <code>A</code>. The 3x3 matrices have to be combined like the 1x3 vectors used when only principal values are defined: For different electrons, put the 3x3 matrices side by side, for different nuclei, on top of each other. If full matrices are given in <code>A</code>, <code>AFrame</code> is ignored.
+It is possible to specify full A matrices in <code>A</code>. The 3x3 matrices have to be combined like the 1x3 vectors used when only principal values are defined: For different electrons, put the 3x3 matrices side by side, for different nuclei, on top of each other. If full matrices are given in <code>A</code>, <code>AFrame</code> must be absent or all zero.
 
 <pre class="matlab">
 Sys.A = [5 0 0; 0 5 0; 0 0 5]                          % 1 electron and 1 nucleus

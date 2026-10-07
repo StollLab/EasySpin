@@ -191,6 +191,10 @@ if ~isfield(Sys,'gFrame') || isempty(Sys.gFrame)
 end
 err = sizecheck(Sys,'gFrame',[nElectrons 3]);
 if ~isempty(err); return; end
+if Sys.fullg
+  err = fullframecheck(Sys,'g');
+  if ~isempty(err); return; end
+end
 
 
 % Zero-field splittings (Sys.D, Sys.D_, Sys.DFrame)
@@ -242,6 +246,10 @@ if ~isfield(Sys,'DFrame') || isempty(Sys.DFrame)
 end
 err = sizecheck(Sys,'DFrame',[nElectrons 3]);
 if ~isempty(err); return; end
+if Sys.fullD
+  err = fullframecheck(Sys,'D');
+  if ~isempty(err); return; end
+end
 
 
 % High-order zero-field terms (Sys.B*)
@@ -414,6 +422,10 @@ if nElectrons>1 && ~reprocessing
   if ~isfield(Sys,'eeFrame'), Sys.eeFrame = zeros(nElPairs,3); end
   err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
   if ~isempty(err), return; end
+  if eeMatrix && Sys.fullee
+    err = fullframecheck(Sys,'ee');
+    if ~isempty(err), return; end
+  end
 
 end
 
@@ -517,6 +529,10 @@ if ~isfield(Sys,'sigmaFrame') || isempty(Sys.sigmaFrame)
 end
 err = sizecheck(Sys,'sigmaFrame',[nNuclei 3]);
 if ~isempty(err); return; end
+if Sys.fullsigma
+  err = fullframecheck(Sys,'sigma');
+  if ~isempty(err); return; end
+end
 
 
 % Hyperfine couplings (Sys.A, Sys.A_, Sys.AFrame)
@@ -626,6 +642,10 @@ if nNuclei>0
   end
   err = sizecheck(Sys,'AFrame',[nNuclei,3*nElectrons]);
   if ~isempty(err), return; end
+  if Sys.fullA
+    err = fullframecheck(Sys,'A');
+    if ~isempty(err), return; end
+  end
   
 end
 
@@ -688,6 +708,10 @@ if nNuclei>0
   end
   err = sizecheck(Sys,'QFrame',[nNuclei 3]);
   if ~isempty(err); return; end
+  if Sys.fullQ
+    err = fullframecheck(Sys,'Q');
+    if ~isempty(err); return; end
+  end
   
 end
 
@@ -731,6 +755,10 @@ else
   if ~isfield(Sys,'nnFrame'), Sys.nnFrame = zeros(nNucPairs,3); end
   err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
   if ~isempty(err), return; end
+  if Sys.fullnn
+    err = fullframecheck(Sys,'nn');
+    if ~isempty(err), return; end
+  end
   
 end
 
@@ -1238,6 +1266,17 @@ if ok
   msg = '';
 else
   msg = sprintf('Spin system field %s has wrong size for the given spins.',FieldName);
+end
+end
+
+%-------------------------------------------------------------------------------
+% Full matrices are taken as given, so tilt angles are not allowed with them
+function err = fullframecheck(Sys,Field)
+FrameField = [Field 'Frame'];
+if any(Sys.(FrameField)(:))
+  err = sprintf('Sys.%s contains full matrices, which cannot be combined with nonzero Sys.%s. Either give principal values in Sys.%s, or remove Sys.%s.',Field,FrameField,Field,FrameField);
+else
+  err = '';
 end
 end
 
