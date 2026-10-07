@@ -35,5 +35,9 @@ Sys.g = [gfree gfree gfree];
 Sys.g = diag([gfree gfree gfree]);
 [~, signal4] = spidyan(Sys,Exp,Opt);
 
-ok = all([isequal(signal1,signal2) isequal(signal1,signal3) isequal(signal1,signal4)]);
+% symmetric tensor [xx yy zz xy xz yz]
+Sys.g = [gfree gfree gfree 0 0 0];
+[~, signal5] = spidyan(Sys,Exp,Opt);
+
+ok = all([isequal(signal1,signal2) isequal(signal1,signal3) isequal(signal1,signal4) isequal(signal1,signal5)]);
 

@@ -192,6 +192,7 @@ if SysInput
     end
     Aaxial = isequal(size(Sys.A),[nNucs 2*nElectrons]);
     Arhombic = isequal(size(Sys.A),[nNucs 3*nElectrons]);
+    Asym = isequal(size(Sys.A),[nNucs 6*nElectrons]);
     Afull = isequal(size(Sys.A),[3*nNucs 3*nElectrons]);
     Aexchange = size(Sys.A,1)==nNucs; % for compatiblity with chem. exchange program
   end
@@ -212,6 +213,7 @@ if SysInput
     end
     Qrhombic = isequal(size(Sys.Q),[nNucs 2]);
     Qpvalues = isequal(size(Sys.Q),[nNucs 3]);
+    Qsym = isequal(size(Sys.Q),[nNucs 6]);
     Qfull = isequal(size(Sys.Q),[3*nNucs 3]);
   end
 end
@@ -322,7 +324,7 @@ for iNuc = 1:nNucs
     % A - isotropic; axial; rhombic; full
     if isempty(gnref) || gnref==0, gnref = 1; end
     if isfield(Sys,'A')
-      if Aisotropic || Aaxial || Arhombic || Aexchange
+      if Aisotropic || Aaxial || Arhombic || Asym || Aexchange
         for k = 1:numel(gn)
           Groups(iNuc).A{k} = Sys.A(iNuc,:)/gnref*gn(k);
         end
@@ -359,7 +361,7 @@ for iNuc = 1:nNucs
         for k = 1:numel(qm)
           Groups(iNuc).Q{k} = Sys.Q(iNuc)/qmref*qm(k);
         end
-      elseif Qrhombic || Qpvalues
+      elseif Qrhombic || Qpvalues || Qsym
         for k = 1:numel(gn)
           Groups(iNuc).Q{k} = Sys.Q(iNuc,:)/qmref*qm(k);
         end
@@ -502,7 +504,7 @@ for k = 1:nIsotopologues
         if isfield(Sys,'A')
           if Aisotropic
             A = [A; gr.A{iIso}];
-          elseif Aaxial || Arhombic || Aexchange || Afull
+          elseif Aaxial || Arhombic || Asym || Aexchange || Afull
             A = [A; gr.A{iIso}];
           end
         end
@@ -514,7 +516,7 @@ for k = 1:nIsotopologues
           end
         end
         if isfield(Sys,'Q')
-          if Qaxial || Qrhombic || Qpvalues || Qfull
+          if Qaxial || Qrhombic || Qpvalues || Qsym || Qfull
             Q = [Q; gr.Q{iIso}];
           end
         end

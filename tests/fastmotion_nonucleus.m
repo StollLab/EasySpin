@@ -11,4 +11,13 @@ lw = fastmotion(Sys,Field,tcorr);
 
 lw_correct = 0.41832353;
 
-ok = areequal(lw,lw_correct,1e-5,'rel');
+ok(1) = areequal(lw,lw_correct,1e-5,'rel');
+
+% isotropic g without nuclei gives an informative error
+Sys.g = 2;
+try
+  fastmotion(Sys,Field,tcorr);
+  ok(2) = false;
+catch e
+  ok(2) = contains(e.message,'anisotropic');
+end

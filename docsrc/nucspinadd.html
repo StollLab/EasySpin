@@ -47,8 +47,12 @@ NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q,QFrame)
 <div class="subtitle">Description</div>
 
 <p>
-This function adds the nucleus specified in <code>Nuc</code> to the spin system structure given in <code>Sys</code> and returns the spin system structure with this additional nucleus. <code>A</code> is an array containing the isotropic hyperfine coupling, the hyperfine principal values, or the full hyperfine tensor. Similarly, <code>Q</code>
-contains the quadrupole principal values or the full quadrupole tensor. <code>AFrame</code> and <code>QFrame</code> contain the Euler tilt angles for the respective tensors. They must be empty or zero for full tensors. See the page on <a href="spinsystem.html">spin system structures</a> for details on how to specify <code>A</code>, <code>Q</code>, <code>AFrame</code>, and <code>QFrame</code>.
+This function adds the nucleus specified in <code>Nuc</code> to the spin system structure given in <code>Sys</code> and returns the spin system structure with this additional nucleus. <code>A</code> is an array containing the isotropic hyperfine coupling, the hyperfine principal values, the 6 unique elements <code>[xx yy zz xy xz yz]</code> of a symmetric hyperfine tensor, or the full hyperfine tensor. Similarly, <code>Q</code>
+contains the quadrupole principal values, the 6 unique elements of a symmetric quadrupole tensor, or the full quadrupole tensor. <code>AFrame</code> and <code>QFrame</code> contain the Euler tilt angles for the respective tensors. They must be empty or zero for symmetric and full tensors.
+</p>
+
+<p>
+If the tensors of the existing nuclei and of the added nucleus are given in different forms, all tensors are converted to the most general form present: principal values (with Euler angles) &lt; symmetric matrices &lt; full matrices. Euler angles of existing nuclei are then included in the converted tensors, and <code>AFrame</code> and <code>QFrame</code> are removed. See the page on <a href="spinsystem.html">spin system structures</a> for details on how to specify <code>A</code>, <code>Q</code>, <code>AFrame</code>, and <code>QFrame</code>.
 </p>
 
 <p>

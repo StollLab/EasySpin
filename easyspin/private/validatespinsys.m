@@ -143,6 +143,10 @@ if isfield(Sys,'g')
     Sys.g = Sys.g(:,[1 1 2]);
   elseif issize(Sys.g,[nElectrons 3])
     % orthorhombic tensors
+  elseif issize(Sys.g,[nElectrons 6])
+    % symmetric tensors [xx yy zz xy xz yz]
+    Sys.g = sym2full(Sys.g);
+    Sys.fullg = true;
   else
     err = 'Sys.g has wrong size.';
     return
@@ -217,6 +221,10 @@ if isfield(Sys,'D')
     Sys.D = Sys.D(:,1)*[-1/3,-1/3,+2/3] + Sys.D(:,2)*[+1,-1,0];
   elseif issize(Sys.D,[nElectrons 3])
     % D principal values
+  elseif issize(Sys.D,[nElectrons 6])
+    % symmetric D tensors [xx yy zz xy xz yz]
+    Sys.D = sym2full(Sys.D);
+    Sys.fullD = true;
   else
     err = ('Sys.D has wrong size.');
     return
@@ -337,7 +345,12 @@ if nElectrons>1 && ~reprocessing
     if numel(Sys.ee)==nElPairs
       Sys.ee = Sys.ee(:)*[1 1 1];
     end
-    
+
+    % Expand symmetric matrices [xx yy zz xy xz yz] to full matrices
+    if issize(Sys.ee,[nElPairs 6])
+      Sys.ee = sym2full(Sys.ee);
+    end
+
     fullee = issize(Sys.ee,[3*nElPairs,3]);
     Sys.fullee = fullee;
     if ~fullee
@@ -511,6 +524,10 @@ if isfield(Sys,'sigma')
     Sys.sigma = Sys.sigma(:,[1 1 2]);
   elseif issize(Sys.sigma,[nNuclei 3])
     % orthorhombic tensors
+  elseif issize(Sys.sigma,[nNuclei 6])
+    % symmetric CS tensors [xx yy zz xy xz yz]
+    Sys.sigma = sym2full(Sys.sigma);
+    Sys.fullsigma = true;
   else
     err = 'Sys.sigma has wrong size.';
     return
@@ -627,6 +644,10 @@ if nNuclei>0
       Sys.A = Sys.A(:,idx);
     elseif issize(Sys.A,[nNuclei,3*nElectrons])
       % Three principal values for each A tensor given
+    elseif issize(Sys.A,[nNuclei,6*nElectrons])
+      % Symmetric A matrices [xx yy zz xy xz yz]
+      Sys.A = sym2full(Sys.A);
+      Sys.fullA = true;
     else
       err = sprintf('Size of Sys.A (%dx%d) is inconsistent with number of nuclei (%d) and electrons (%d).',size(Sys.A,1),size(Sys.A,2),nNuclei,nElectrons);
       if ~isempty(err), return; end
@@ -662,6 +683,10 @@ if nNuclei>0
     
   else
     
+    if issize(Sys.Q,[nNuclei 6])
+      % Expand symmetric Q matrices [xx yy zz xy xz yz] to full matrices
+      Sys.Q = sym2full(Sys.Q);
+    end
     Sys.fullQ = issize(Sys.Q,[3*nNuclei 3]);
     if ~Sys.fullQ
       % Supplement eta=0 if not given
@@ -738,6 +763,11 @@ else
       Sys.nn = Sys.nn(:)*[1 1 1];
     end
     
+    % Expand symmetric matrices [xx yy zz xy xz yz] to full matrices
+    if issize(Sys.nn,[nNucPairs 6])
+      Sys.nn = sym2full(Sys.nn);
+    end
+
     % Size checks for Sys.nn
     Sys.fullnn = issize(Sys.nn,[3*nNucPairs,3]);
     if ~Sys.fullnn
@@ -775,23 +805,63 @@ if any(rmv)
   Sys.nNuclei = numel(Sys.gn);
   Sys.gnscale(rmv) = [];
   Sys.n(rmv) = [];
-  
+  if isfield(Sys,'NucsIdx') && numel(Sys.NucsIdx)==numel(rmv)
+    Sys.NucsIdx(rmv) = [];
+  end
+
+  % A strain refers to the first nucleus; drop it if that nucleus is removed
+  if rmv(1) && isfield(Sys,'AStrain')
+    Sys.AStrain = [];
+  end
+
   if Sys.fullA
     rmvfull = logical(kron(rmv(:),true(3,1)));
     Sys.A(rmvfull,:) = [];
   else
     Sys.A(rmv,:) = [];
-    Sys.AFrame(rmv,:) = [];
   end
-    
+  Sys.AFrame(rmv,:) = [];
+
   if Sys.fullQ
     rmvfull = logical(kron(rmv(:),true(3,1)));
     Sys.Q(rmvfull,:) = [];
   else
     Sys.Q(rmv,:) = [];
-    Sys.QFrame(rmv,:) = [];
   end
-  
+  Sys.QFrame(rmv,:) = [];
+
+  if Sys.fullsigma
+    rmvfull = logical(kron(rmv(:),true(3,1)));
+    Sys.sigma(rmvfull,:) = [];
+  else
+    Sys.sigma(rmv,:) = [];
+  end
+  Sys.sigmaFrame(rmv,:) = [];
+
+  % Remove all nucleus-nucleus couplings involving a removed nucleus
+  % (pairs are ordered lexicographically, as given by nchoosek)
+  if nNuclei>=2
+    pairs = nchoosek(1:nNuclei,2);
+    rmvPair = rmv(pairs(:,1)) | rmv(pairs(:,2));
+    if Sys.fullnn
+      rmvfull = logical(kron(rmvPair(:),true(3,1)));
+      Sys.nn(rmvfull,:) = [];
+    else
+      Sys.nn(rmvPair,:) = [];
+    end
+    Sys.nnFrame(rmvPair,:) = [];
+  end
+
+  % Reset full-matrix flags if no tensors are left
+  if Sys.nNuclei==0
+    Sys.fullA = false;
+    Sys.fullQ = false;
+    Sys.fullsigma = false;
+  end
+  if Sys.nNuclei<2
+    Sys.fullnn = false;
+  end
+
 end
 
 
@@ -1277,6 +1347,22 @@ if any(Sys.(FrameField)(:))
   err = sprintf('Sys.%s contains full matrices, which cannot be combined with nonzero Sys.%s. Either give principal values in Sys.%s, or remove Sys.%s.',Field,FrameField,Field,FrameField);
 else
   err = '';
+end
+end
+
+%-------------------------------------------------------------------------------
+% Convert symmetric matrices given as [xx yy zz xy xz yz] to full 3x3 matrices.
+% V is r x 6k, M is 3r x 3k: each 6-element block is expanded to a 3x3 block.
+function M = sym2full(V)
+nRows = size(V,1);
+nBlocks = size(V,2)/6;
+M = zeros(3*nRows,3*nBlocks);
+for r = 1:nRows
+  for b = 1:nBlocks
+    v = V(r,6*(b-1)+(1:6));
+    M(3*(r-1)+(1:3),3*(b-1)+(1:3)) = ...
+      [v(1) v(4) v(5); v(4) v(2) v(6); v(5) v(6) v(3)];
+  end
 end
 end
 

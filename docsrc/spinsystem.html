@@ -124,7 +124,7 @@ All interaction matrices and tensors can have arbitrary orientations with respec
 </p>
 
 <p>
-Interaction matrices can be given either as principal values together with Euler angles (in <code>gFrame</code>, <code>AFrame</code>, etc.), or as full 3x3 matrices in the molecular frame. Full matrices cannot be combined with nonzero Euler angles: if <code>g</code>, <code>D</code>, <code>ee</code>, <code>A</code>, <code>Q</code>, <code>sigma</code>, or <code>nn</code> contains full matrices, the corresponding <code>Frame</code> field must be absent or all zero.
+Interaction matrices can be given either as principal values together with Euler angles (in <code>gFrame</code>, <code>AFrame</code>, etc.), as full 3x3 matrices in the molecular frame, or as symmetric matrices in the molecular frame, given by their 6 unique elements <code>[xx yy zz xy xz yz]</code> in a row. Full and symmetric matrices cannot be combined with nonzero Euler angles: if <code>g</code>, <code>D</code>, <code>ee</code>, <code>A</code>, <code>Q</code>, <code>sigma</code>, or <code>nn</code> contains full or symmetric matrices, the corresponding <code>Frame</code> field must be absent or all zero.
 </p>
 
 <p>
@@ -320,6 +320,15 @@ Sys.g = [2 0 0; 0 2 0; 0 0 2; 2.1 0 0; 0 2.1 0; 0 0 2.1];
 If you give full g tensors, EasySpin uses them as provided, i.e. the tensors are not symmetrized. Full g tensors cannot be combined with nonzero Euler angles in <code>gFrame</code>.
 </p>
 
+<p>
+A symmetric g tensor can also be given by its 6 unique elements <code>[gxx gyy gzz gxy gxz gyz]</code>, one row per electron spin. This form cannot be combined with nonzero Euler angles in <code>gFrame</code> either.
+</p>
+
+<pre class="matlab">
+Sys.g = [2.0034 2.0030 2.0022 -0.0004 0 0];   % one electron spin
+Sys.g = [2 2 2 0 0 0; 2.1 2.1 2.1 0 0 0];     % two electron spins
+</pre>
+
 </div>
 
 <div class="optionfield"><code>gFrame</code></div>
@@ -425,6 +434,20 @@ Sys.A = [5 0 0; 0 5 0; 0 0 5]                          % 1 electron and 1 nucleu
 Sys.A = [[5 0 0; 0 5 0; 0 0 5]; [10 0 0; 0 10 0; 0 0 10]]     % 1 electron and 2 nuclei
 Sys.A = [[5 0 0; 0 5 0; 0 0 5], [10 0 0; 0 10 0; 0 0 10]]     % 2 electrons and 1 nucleus
 </pre>
+
+<p>
+Symmetric A matrices can also be given by their 6 unique elements <code>[Axx Ayy Azz Axy Axz Ayz]</code>. These rows of 6 are combined like the principal values: for different electrons side by side, for different nuclei on top of each other. If symmetric matrices are given in <code>A</code>, <code>AFrame</code> must be absent or all zero.
+</p>
+
+<pre class="matlab">
+Sys.A = [5 6 10 1 0 0]                     % 1 electron and 1 nucleus
+Sys.A = [5 6 10 1 0 0; 2 2 4 0 0.5 0]      % 1 electron and 2 nuclei
+Sys.A = [5 6 10 1 0 0, 2 2 4 0 0.5 0]      % 2 electrons and 1 nucleus
+</pre>
+
+<p>
+EasySpin determines how to interpret <code>A</code> from its size and the number of electron and nuclear spins. Therefore, the same array can mean different things for different spin systems. For example, a row with 6 elements contains a symmetric matrix for 1 electron, but principal values for 2 electrons.
+</p>
 
 <p>
 In the case where the associated nucleus is a natural or custom isotope mixture, the given hyperfine value refers to the I>=1/2 isotope with the highest abundance. See the description under <code>Sys.Nucs</code>.
@@ -552,6 +575,12 @@ Sys.Q = [0.125 -0.6495 -1.299; -0.6495 -0.625 0.75; -1.299 0.75 0.5]; % general,
 Q1 = [-0.9 0 0; 0 -1.1 0; 0 0 2]*0.15;
 Q2 = [-0.7 0 0; 0 -1.3 0; 0 0 2]*0.31;
 Sys.Q = [Q1; Q2]; % for two nuclei
+</pre>
+
+<li>
+You can also give a symmetric Q tensor by its 6 unique elements <code>[Qxx Qyy Qzz Qxy Qxz Qyz]</code> in MHz, one row per nucleus. Note that these are the elements of the Q matrix, and not e<sup>2</sup>Qq/h and &eta;.
+<pre class="matlab">
+Sys.Q = [0.125 -0.625 0.5 -0.6495 -1.299 0.75]; % same as general full Q above
 </pre>
 </ul>
 
@@ -691,6 +720,15 @@ Sys.D =  [-33.8  -24.1 -122.1; -24.1 -91.2 44.4; -122.1 44.4 125];
 <p>
 It is possible to provide a non-traceless D tensor.
 </p>
+
+<li>
+<p>
+Symmetric matrix: You can also give the 6 unique elements <code>[Dxx Dyy Dzz Dxy Dxz Dyz]</code> of the D matrix, one row per electron spin. Note that these are matrix elements, and not D and E. The same matrix as above is
+</p>
+
+<pre class="matlab">
+Sys.D =  [-33.8 -91.2 125 -24.1 -122.1 44.4];
+</pre>
 
 </ul>
 
@@ -982,7 +1020,7 @@ You can use either <code>Sys.J</code> (together with <code>Sys.dip</code> and <c
 <div class="optionfield"><code>ee</code></div>
 <div class="optiondescr">
 <em>
-Nx3 or 3Nx3 array of real numbers
+Nx3, Nx6, or 3Nx3 array of real numbers
 </em>
 <p>
 Principal values of the <a href="hamiltonian.html#eei">electron-electron interaction</a> matrices, in MHz.
@@ -1028,6 +1066,15 @@ ee12 = [80 0 0; 0 80 0; 0 0 20];
 ee13 = diag([10 10 -30]);
 ee23 = zeros(3);
 Sys.ee = [ee12; ee13; ee23];             % three coupling matrices
+</pre>
+
+<p>
+Symmetric interaction matrices can also be given by their 6 unique elements <code>[xx yy zz xy xz yz]</code>, one row per electron pair. This form cannot represent antisymmetric exchange.
+</p>
+
+<pre class="matlab">
+Sys.S = [1/2 1/2];
+Sys.ee = [80 80 20 5 0 0];   % one symmetric coupling matrix, MHz
 </pre>
 
 <p>
@@ -1086,7 +1133,7 @@ In EPR spectroscopy practice, the typically very small deviations of the shieldi
 <div class="optionfield"><code>sigma</code></div>
 <div class="optiondescr">
 <em>
-Nx3 or 3Nx3 array of real numbers
+Nx3, Nx6, or 3Nx3 array of real numbers
 </em>
 <p>
 Principal values of the CS tensors, or full CS tensors. When providing principal values, each row contains the three principal values of one CS tensor. 
@@ -1095,6 +1142,14 @@ Principal values of the CS tensors, or full CS tensors. When providing principal
 <pre class="matlab">
 Sys.Nucs = '1H';             % one nuclear spin
 Sys.sigma = 1-[4 5 9]*1e-6;  % principal values of shielding tensor
+</pre>
+
+<p>
+Symmetric CS tensors can also be given by their 6 unique elements <code>[xx yy zz xy xz yz]</code>, one row per nucleus.
+</p>
+
+<pre class="matlab">
+Sys.sigma = 1-[4 5 9 1 0 0]*1e-6;  % symmetric shielding tensor
 </pre>
 </div>
 
@@ -1125,7 +1180,7 @@ In practice, this term is essentially always too small to be of any relevance fo
 <div class="optionfield"><code>nn</code></div>
 <div class="optiondescr">
 <em>
-Nx3 or 3Nx3 array of real numbers
+Nx3, Nx6, or 3Nx3 array of real numbers
 </em>
 <p>
 Principal values of the nucleus-nucleus interaction matrices, or full interaction matrices, in MHz. For providing principal values, each row contains the three principal values of one interaction matrix. For two nuclear spins, <code>nn</code> contains one row only. 
@@ -1174,6 +1229,15 @@ nn12 = [50 0 0; 0 50 0; 0 0 100]*1e-6;
 nn13 = diag([10 10 -30])*1e-6;
 nn23 = zeros(3);
 Sys.nn = [nn12; nn13; nn23];          % three coupling matrices, MHz
+</pre>
+
+<p>
+Symmetric interaction matrices can also be given by their 6 unique elements <code>[xx yy zz xy xz yz]</code>, one row per nuclear pair.
+</p>
+
+<pre class="matlab">
+Sys.Nucs = '1H,1H';
+Sys.nn = [10 20 30 5 0 0]*1e-6;   % one symmetric coupling matrix, MHz
 </pre>
 
 </div>

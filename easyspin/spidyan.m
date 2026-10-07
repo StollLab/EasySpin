@@ -132,9 +132,13 @@ if isfield(Sys,'g')
   gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
   
   fullg = isequal(size(Sys.g),[3*nElectrons 3]);
+  symg = isequal(size(Sys.g),[nElectrons 6]);
   if fullg
     gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
     Sys.g = Sys.g - gshiftmat;
+  elseif symg
+    % symmetric g matrices [xx yy zz xy xz yz]: shift diagonal elements only
+    Sys.g(:,1:3) = Sys.g(:,1:3) - gshift;
   else
     Sys.g = Sys.g - gshift;
   end
@@ -146,14 +150,27 @@ if isfield(Sys,'ZeemanFreq')
   Sys.ZeemanFreq = Sys.ZeemanFreq*1000; % GHz -> MHz
   if isfield(Sys,'g')
     [~, dgTensor] = size(Sys.g);
+    if isfield(Sys,'S')
+      nElectrons = numel(Sys.S);
+    else
+      nElectrons = 1;
+    end
+    fullg = isequal(size(Sys.g),[3*nElectrons 3]);
   else
-    dgTensor = 1; 
+    dgTensor = 1;
+    fullg = false;
   end
   % Recalculates the g value
   for ieSpin = 1 : length(Sys.ZeemanFreq)
     if Sys.ZeemanFreq(ieSpin) ~= 0
       g = (Sys.ZeemanFreq(ieSpin)*1e6)*planck/bmagn/(Exp.Field*1e-3);
-      Sys.g(ieSpin,1:dgTensor) = g;
+      if dgTensor==6
+        Sys.g(ieSpin,:) = [g g g 0 0 0];  % symmetric g matrix
+      elseif fullg
+        Sys.g(3*ieSpin-2:3*ieSpin,:) = g*eye(3);  % full g matrix
+      else
+        Sys.g(ieSpin,1:dgTensor) = g;
+      end
     end
   end
 end

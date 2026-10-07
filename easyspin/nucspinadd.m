@@ -12,13 +12,21 @@
 %    QFrame. Any missing parameter is assumed to be [0 0 0].
 %
 %    Alternatively, full 3x3 hyperfine and quadrupole
-%    matrices can be specified in Afull and Qfull. AFrame and
-%    QFrame must then be empty or zero.
+%    matrices can be specified in A and Q, or symmetric matrices
+%    as 6 elements [xx yy zz xy xz yz]. AFrame and QFrame must
+%    then be empty or zero.
+%
+%    If the existing and the added tensors are given in different
+%    forms, all tensors are converted to the most general form
+%    present: principal values < symmetric matrices (6 elements)
+%    < full matrices. AFrame and QFrame are then absorbed into the
+%    matrices and removed.
 %
 %    Examples:
 %     Sys = struct('S',1/2,'g',[2 2 2.2]);
 %     Sys = nucspinadd(Sys,'Cu',[50 50 520]);
 %     Sys = nucspinadd(Sys,'14N',[20 0 0; 0 30 0; 0 0 50]);
+%     Sys = nucspinadd(Sys,'1H',[3 4 5 0.5 0 0]);
 
 function NewSys = nucspinadd(Sys,Nuc,A,AFrame,Q,QFrame)
 
@@ -57,7 +65,7 @@ if isempty(AFrame), AFrame = [0 0 0]; end
 if isempty(QFrame), QFrame = [0 0 0]; end
 
 % Check A, AFrame, Q, QFrame
-if ~any(numel(A)==[1 2 3 9])
+if ~any(numel(A)==[1 2 3 6 9])
   error('Wrong size of hyperfine tensor (3rd input argument).');
 end
 
@@ -65,7 +73,7 @@ if numel(AFrame)~=3
   error('Wrong size of AFrame (4th input argument).');
 end
 
-if ~isempty(Q) && ~any(numel(Q)==[1 2 3 9])
+if ~isempty(Q) && ~any(numel(Q)==[1 2 3 6 9])
   error('Wrong size of quadrupole tensor (5th input argument).');
 end
 
@@ -78,6 +86,26 @@ if numel(A)==9 && any(AFrame(:))
 end
 if numel(Q)==9 && any(QFrame(:))
   error('A full quadrupole matrix cannot be combined with nonzero QFrame.');
+end
+if numel(A)==6 && any(AFrame(:))
+  error('A symmetric hyperfine matrix cannot be combined with nonzero AFrame.');
+end
+if numel(Q)==6 && any(QFrame(:))
+  error('A symmetric quadrupole matrix cannot be combined with nonzero QFrame.');
+end
+
+% Symmetric matrices [xx yy zz xy xz yz] are stored as rows
+if numel(A)==6
+  if ~isvector(A)
+    error('A symmetric hyperfine matrix must be given as a 6-element vector [xx yy zz xy xz yz].');
+  end
+  A = A(:).';
+end
+if numel(Q)==6
+  if ~isvector(Q)
+    error('A symmetric quadrupole matrix must be given as a 6-element vector [xx yy zz xy xz yz].');
+  end
+  Q = Q(:).';
 end
 
 % Determine number of nuclei
@@ -122,8 +150,9 @@ end
 % Append A and AFrame
 NewSys.A = appendtensor(NewSys.A,NewSys.AFrame,A,AFrame,nNuclei,'A');
 fullA = size(NewSys.A,1)==3*iNuc;
-if fullA
-  NewSys.AFrame = [];  % frames are already included in the full matrices
+symA = size(NewSys.A,2)==6;
+if fullA || symA
+  NewSys.AFrame = [];  % frames are already included in the matrices
 else
   NewSys.AFrame(iNuc,:) = AFrame;
 end
@@ -133,8 +162,9 @@ if isfield(Sys,'Q') || any(Q(:)~=0)
   I = quadrupolespins([Nucs {Nuc}]);
   NewSys.Q = appendtensor(NewSys.Q,NewSys.QFrame,Q,QFrame,nNuclei,'Q',I);
   fullQ = size(NewSys.Q,1)==3*iNuc;
-  if fullQ
-    NewSys.QFrame = [];  % frames are already included in the full matrices
+  symQ = size(NewSys.Q,2)==6;
+  if fullQ || symQ
+    NewSys.QFrame = [];  % frames are already included in the matrices
   else
     NewSys.QFrame(iNuc,:) = QFrame;
   end
@@ -208,6 +238,24 @@ Qfull = R_T2M*diag(Qpv)*R_T2M.';
 end
 
 %-------------------------------------------------------------------------------
+% Convert symmetric matrices given as rows [xx yy zz xy xz yz] (n x 6) to
+% stacked full 3x3 matrices (3n x 3).
+function M = sym2full(V)
+n = size(V,1);
+M = zeros(3*n,3);
+for k = 1:n
+  v = V(k,:);
+  M(3*k-2:3*k,:) = [v(1) v(4) v(5); v(4) v(2) v(6); v(5) v(6) v(3)];
+end
+end
+
+%-------------------------------------------------------------------------------
+% Convert a symmetric 3x3 matrix to a row [xx yy zz xy xz yz].
+function v = full2sym(M)
+v = [M(1,1) M(2,2) M(3,3) M(1,2) M(1,3) M(2,3)];
+end
+
+%-------------------------------------------------------------------------------
 function Tnew = appendtensor(T0,T0Frame,T,TFrame,nNuclei,AQ,I)
 
 Atensor = AQ=='A';
@@ -224,22 +272,30 @@ elseif size(T0,2)==2
   nT0 = 2;
 elseif size(T0,2)==3
   nT0 = 3;
+elseif size(T0,2)==6
+  nT0 = 6;
+else
+  error('Size of existing %s is inconsistent with the number of nuclei.',AQ);
 end
 fullT0 = nT0==9;
+symT0 = nT0==6;
 
 nT = numel(T);
 fullT = nT==9;
+symT = nT==6;
 
 if Atensor
   one2two = @(T,I)T(:,[1 1]);
   one2three = @(T,I)T(:,[1 1 1]);
   two2three = @(T,I)T(:,[1 1 2]);
-  I0 = [];
-  Inew = [];
+  fullify = @(T,TFrame,I)fullifyA(T,TFrame);
+  I0 = zeros(1,nNuclei);  % not used for A
+  Inew = 0;
 else
   one2two = @(T,I)[T(:) zeros(size(T(:)))];
   one2three = @(T,I)T(:).*qprefactor(I(:)) .* [-1 -1 2];
   two2three = @(T,I)T(:,1).*qprefactor(I(:)) .* [-1+T(:,2) -1-T(:,2) 2*ones(size(T,1),1)];
+  fullify = @(T,TFrame,I)fullifyQ(T,TFrame,I);
   I0 = I(1:nNuclei);  % spins of existing nuclei
   Inew = I(end);  % spin of added nucleus
 end
@@ -247,36 +303,53 @@ end
 Tnew = T0;
 newNuc = nNuclei+1;
 
-% Append T
+% Full matrices of existing nuclei given as principal values and Euler angles
+if isempty(T0Frame)
+  T0Frame = zeros(nNuclei,3);
+end
+if nT0==1
+  T0pv = T0(:);  % isotropic values can be given as row or column
+else
+  T0pv = T0;
+end
+pv2full = @(k)fullify(T0pv(k,:),T0Frame(k,:),I0(k));
+
+% Append T, using the most general representation present:
+% principal values < symmetric matrices [xx yy zz xy xz yz] < full matrices
 if fullT0 || fullT
-  if ~fullT0
-    T0temp = zeros(3*nNuclei,3);
-    iList = 1:3:3*(nNuclei-1)+1;
-    if isempty(T0Frame)
-      T0FrameTemp = zeros(nNuclei, 3);
-    else
-      T0FrameTemp = T0Frame;
-    end
-    if Atensor
-      for iNuc0 = 1:nNuclei
-        T0temp(iList(iNuc0):iList(iNuc0)+2,:) = fullifyA(T0(iNuc0,:),T0FrameTemp(iNuc0,:));
-      end
-      Tnew = [T0temp; T];
-    else
-      for iNuc0 = 1:nNuclei
-        T0temp(iList(iNuc0):iList(iNuc0)+2,:) = fullifyQ(T0(iNuc0,:),T0FrameTemp(iNuc0,:),I0(iNuc0));
-      end
-      Tnew = [T0temp; T];
-    end
-  elseif ~fullT
-    if Atensor
-      Tnew = [T0; fullifyA(T,TFrame)];
-    else
-      Tnew = [T0; fullifyQ(T,TFrame,Inew)];
-    end
+  if fullT0
+    T0full = T0;
+  elseif symT0
+    T0full = sym2full(T0);
   else
-    Tnew = [T0; T];
+    T0full = zeros(3*nNuclei,3);
+    for k = 1:nNuclei
+      T0full(3*k-2:3*k,:) = pv2full(k);
+    end
   end
+  if fullT
+    Tfull = T;
+  elseif symT
+    Tfull = sym2full(T);
+  else
+    Tfull = fullify(T,TFrame,Inew);
+  end
+  Tnew = [T0full; Tfull];
+elseif symT0 || symT
+  if symT0
+    T0sym = T0;
+  else
+    T0sym = zeros(nNuclei,6);
+    for k = 1:nNuclei
+      T0sym(k,:) = full2sym(pv2full(k));
+    end
+  end
+  if symT
+    Tsym = T;
+  else
+    Tsym = full2sym(fullify(T,TFrame,Inew));
+  end
+  Tnew = [T0sym; Tsym];
 else
   if nT==1
     if nT0==1

@@ -15,6 +15,15 @@ Sys{end+1} = struct('S',1/2,'Nucs','1H','A',[1 1 1],'sigma',eye(3)+M*1e-3);
 Sys{end+1} = struct('S',1/2,'Nucs','1H,1H','A',[1 1 1;2 2 2],'nn',M);
 Fields = {'g','D','ee','A','Q','sigma','nn'};
 
+% same with symmetric matrices given as [xx yy zz xy xz yz]
+mat2sym = @(M)[M(1,1) M(2,2) M(3,3) M(1,2) M(1,3) M(2,3)];
+for k = 1:numel(Fields)
+  Sys_ = Sys{k};
+  Sys_.(Fields{k}) = mat2sym(Sys_.(Fields{k}));
+  Sys{end+1} = Sys_; %#ok<AGROW>
+end
+Fields = [Fields Fields];
+
 for k = 1:numel(Sys)
   FrameField = [Fields{k} 'Frame'];
 

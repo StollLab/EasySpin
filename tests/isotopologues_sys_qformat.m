@@ -7,6 +7,7 @@ Qlist{1} = [1];  % axial
 Qlist{2} = [1 2]; % rhombic
 Qlist{3} = [1 2 4]; % principal values
 Qlist{4} = [3 1 2; 4 5 6; 7 4 3]; % full tensor
+Qlist{5} = [1 2 -3 0.4 0.5 0.6]; % symmetric matrix [xx yy zz xy xz yz]
 
 for k = 1:numel(Qlist)
   Q_63Cu = Qlist{k};

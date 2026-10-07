@@ -72,20 +72,23 @@ if isfield(System,'S')
   end
 end
 
+if numel(System.g)==6
+  error('Symmetric g matrices [xx yy zz xy xz yz] are not supported. Give principal values in Sys.g and Euler angles in Sys.gFrame, or the full 3x3 g matrix.');
+end
 anisotropic_g = max(System.g(:))~=min(System.g(:));
 
+anisotropic_A = false;
 if nNucs>0
-  switch size(System.A,1)
-    case nNucs
-      anisotropic_A = any(max(System.A,[],2)~=min(System.A,[],2));
-    case 3*nNucs
-      anisotropic_A = false;
-      for iNuc = 1:nNucs
-        diagA = diag(System.A(1+(iNuc-1)*3,:));
-        anisotropic_A = anisotropic_A || max(diagA)~=min(diagA);
-      end
-    otherwise
-      error('System.A has incorrect size.');
+  issize = @(M,siz) isequal(size(M),siz);
+  if issize(System.A,[3*nNucs 3]) || issize(System.A,[nNucs 6])
+    error('Full or symmetric A matrices are not supported. Give principal values in Sys.A and Euler angles in Sys.AFrame.');
+  end
+  if size(System.A,1)~=nNucs
+    error('System.A has incorrect size.');
+  end
+  anisotropic_A = any(max(System.A,[],2)~=min(System.A,[],2));
+  if isfield(System,'Q') && (issize(System.Q,[3*nNucs 3]) || issize(System.Q,[nNucs 6]))
+    error('Full or symmetric Q matrices are not supported. Give principal values in Sys.Q.');
   end
 end
 
