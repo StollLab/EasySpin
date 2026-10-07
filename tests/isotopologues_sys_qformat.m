@@ -4,14 +4,19 @@ function ok = test()
 
 % axial Q
 Qlist{1} = [1];  % axial
-Qlist{2} = [1 2]; % rhombic
+Qlist{2} = [1 0.3]; % rhombic [eeqQ/h eta]
 Qlist{3} = [1 2 4]; % principal values
 Qlist{4} = [3 1 2; 4 5 6; 7 4 3]; % full tensor
 Qlist{5} = [1 2 -3 0.4 0.5 0.6]; % symmetric matrix [xx yy zz xy xz yz]
 
+qmratio = nucqmom('65Cu')/nucqmom('63Cu');
 for k = 1:numel(Qlist)
   Q_63Cu = Qlist{k};
-  Q_65Cu = Q_63Cu*nucqmom('65Cu')/nucqmom('63Cu');
+  if numel(Q_63Cu)==2
+    Q_65Cu = [Q_63Cu(1)*qmratio Q_63Cu(2)];  % eta is not scaled
+  else
+    Q_65Cu = Q_63Cu*qmratio;
+  end
   Sys.Nucs = 'Cu';
   Sys.Q = Q_63Cu;
   Iso = isotopologues(Sys);

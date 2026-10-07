@@ -361,8 +361,13 @@ for iNuc = 1:nNucs
         for k = 1:numel(qm)
           Groups(iNuc).Q{k} = Sys.Q(iNuc)/qmref*qm(k);
         end
-      elseif Qrhombic || Qpvalues || Qsym
-        for k = 1:numel(gn)
+      elseif Qrhombic
+        % scale only eeqQ/h, not eta
+        for k = 1:numel(qm)
+          Groups(iNuc).Q{k} = [Sys.Q(iNuc,1)/qmref*qm(k) Sys.Q(iNuc,2)];
+        end
+      elseif Qpvalues || Qsym
+        for k = 1:numel(qm)
           Groups(iNuc).Q{k} = Sys.Q(iNuc,:)/qmref*qm(k);
         end
       elseif Qfull
