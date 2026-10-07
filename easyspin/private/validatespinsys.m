@@ -863,7 +863,7 @@ end
 % D and E strain (Sys.DStrain, Sys.DStrainCorr)
 %-------------------------------------------------------------------------------
 if ~isfield(Sys,'DStrain') || isempty(Sys.DStrain)
-  Sys.DStrain = zeros(nElectrons,3);
+  Sys.DStrain = zeros(nElectrons,2);
 end
 if ~isfield(Sys,'DStrainCorr')
   Sys.DStrainCorr = zeros(1,nElectrons);
@@ -877,11 +877,11 @@ if n1~=nElectrons
 end
 
 switch n2
-  case 1, Sys.DStrain = [Sys.DStrain zeros(nElectrons,2)];
-  case 2, Sys.DStrain = [Sys.DStrain zeros(nElectrons,1)];
-  case 3 % ok
+  case 1, Sys.DStrain = [Sys.DStrain zeros(nElectrons,1)];
+  case 2 % ok
   otherwise
-  err = sprintf('Sys.DStrain must have 1, 2, or 3 columns!');
+    err = 'Sys.DStrain must have 1 or 2 columns ([FWHM_D FWHM_E]). For D-E correlation, use Sys.DStrainCorr.';
+    return
 end
 
 if numel(Sys.DStrainCorr)~=nElectrons

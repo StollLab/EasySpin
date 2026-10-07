@@ -1,7 +1,7 @@
 function ok = test()
 
-% D strain (correlated and uncorrelated) with hyperfine coupling, compared
-% with resfreqs_matrix
+% D strain (correlated and uncorrelated, aligned and tilted D) with hyperfine
+% coupling, compared with resfreqs_matrix
 
 Sys.S = 1;
 Sys.g = [2 2.01 2.02];
@@ -14,9 +14,11 @@ Exp.Field = 3350;
 Exp.SampleFrame = [0.3 0.7 0.2; 1 0.4 2];
 
 Opt.Threshold = 1e-3;
-rDE = [0 0.5];
+rDE = [0 0.5 0.5];
+DFrame = [0 0 0; 0 0 0; 0.4 0.9 -0.3];
 for k = 1:numel(rDE)
   Sys.DStrainCorr = rDE(k);
+  Sys.DFrame = DFrame(k,:);
   [Pos_m,Int_m,Wid_m] = resfreqs_matrix(Sys,Exp,Opt);
   [Pos_p,~,Wid_p] = resfreqs_perturb(Sys,Exp);
   [dPos,dWid] = compare(Pos_m,Int_m,Wid_m,Pos_p,Wid_p);

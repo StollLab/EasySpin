@@ -78,9 +78,6 @@ end
 if highSpin && any(Sys.DStrain(:)) && any(mod(Sys.S,1))
   err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
 end
-if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
-  err = 'D strain cannot be used with tilted D tensors.';
-end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
 end
@@ -542,12 +539,12 @@ else
   end
 
   if any(Sys.DStrain(:))
-    if any(Sys.DFrame(:))
-      error('Cannot use D/E strain with tilted D tensor.');
-    end
-    x = vecs(1,:);
-    y = vecs(2,:);
-    z = vecs(3,:);
+    % Field direction in D frame
+    R_M2D = erot(Sys.DFrame);  % molecular frame -> D frame
+    vecsD = R_M2D*vecs;
+    x = vecsD(1,:);
+    y = vecsD(2,:);
+    z = vecsD(3,:);
     mS = (S:-1:-S).';
     mSS = mS.^2-S*(S+1)/3;
     % Calculate derivatives of energy w.r.t. D and E

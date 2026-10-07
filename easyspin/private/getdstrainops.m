@@ -1,9 +1,8 @@
 % Calculate Hamiltonian derivatives with respect to D and E, taking into
 % account correlation if present), premultipy with strains.
 
-% Sys.DStrain: nElectrons x 2 or nElectrons x 3 array
-% with [FWHM_D FWHM_E rDE] on each row. rDE is the correlation coefficient
-% between D and E.
+% Sys.DStrain: nElectrons x 2 array with [FWHM_D FWHM_E] on each row.
+% Sys.DStrainCorr: 1 x nElectrons array of D-E correlation coefficients.
 
 function [useDStrain,dHdD,dHdE] = getdstrainops(Sys)
 
@@ -62,8 +61,8 @@ for iEl = 1:Sys.nElectrons
     CovMatrix = [DeltaD^2 R12; R12 DeltaE^2];
     [V,L] = eig(CovMatrix);
     L = sqrt(diag(L));
-    dHdD{iEl} = L(1)*(V(1,1)*dHdD_ + V(1,2)*dHdE_);
-    dHdE{iEl} = L(2)*(V(2,1)*dHdD_ + V(2,2)*dHdE_);
+    dHdD{iEl} = L(1)*(V(1,1)*dHdD_ + V(2,1)*dHdE_);
+    dHdE{iEl} = L(2)*(V(1,2)*dHdD_ + V(2,2)*dHdE_);
   else
     dHdD{iEl} = DeltaD*dHdD_;
     dHdE{iEl} = DeltaE*dHdE_;

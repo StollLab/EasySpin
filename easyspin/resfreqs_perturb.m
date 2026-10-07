@@ -68,9 +68,6 @@ end
 if any(Sys.L(:))
   err = sprintf('Perturbation theory not available for electron spin coupled to orbital angular momentum!');
 end
-if any(Sys.DStrain(:)) && any(Sys.DFrame(:))
-  err = 'D strain cannot be used with tilted D tensors.';
-end
 if any(strncmp(fieldnames(Sys),'Ham',3))
   err = 'Perturbation theory not available for higher order terms';
 end
@@ -452,9 +449,12 @@ end
 
 % D strain
 if any(Sys.DStrain(:))
-  x = vecs(1,:);
-  y = vecs(2,:);
-  z = vecs(3,:);
+  % Field direction in D frame
+  R_M2D = erot(Sys.DFrame);  % molecular frame -> D frame
+  vecsD = R_M2D*vecs;
+  x = vecsD(1,:);
+  y = vecsD(2,:);
+  z = vecsD(3,:);
   mS_ = (S:-1:-S).';
   mSS = mS_.^2-S*(S+1)/3;
   % Calculate derivatives of energy w.r.t. D and E
