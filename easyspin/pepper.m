@@ -41,7 +41,7 @@
 %      GridSize            grid size;  N1, [N1 Ninterp]
 %      Transitions, Threshold
 %      GridSymmetry, GridFrame,
-%      Intensity, Freq2Field, Sites
+%      Intensity, Sites
 %
 %   Output:
 %    x        field axis (in mT) or frequency axis (in GHz)
@@ -423,7 +423,6 @@ crystalSample = Opt.crystalSample;
 %DefaultOpt.Transitions = []; % resfields 
 %DefaultOpt.Threshold = 1e-3; % resfields
 %DefaultOpt.Intensity = 1; % resfields
-%DefaultOpt.Freq2Field = 1; % resfields
 
 % Obsolete fields, pepper
 obsoleteOptions = {'Convolution','Width'};
@@ -433,6 +432,9 @@ for k = 1:numel(obsoleteOptions)
   end
 end
 
+if isfield(Opt,'Freq2Field')
+  error('Options.Freq2Field is not supported by pepper. To compute line intensities without the 1/g factor, use resfields.');
+end
 if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
 end
