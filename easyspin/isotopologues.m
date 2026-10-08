@@ -176,6 +176,7 @@ end
 
 % Determine format of hyperfine and quadrupole fields
 if SysInput
+  SysRaw = Sys; % as given by the user, for strain parameter references
   if isfield(Sys,'S')
     nElectrons = numel(Sys.S);
   else
@@ -204,7 +205,6 @@ if SysInput
     end
     A_axial = isequal(size(Sys.A_),[nNucs 2*nElectrons]);
     A_rhombic = isequal(size(Sys.A_),[nNucs 3*nElectrons]);
-    A_exchange = size(Sys.A_,1)==nNucs; % for compatiblity with chem. exchange program
   end
   if isfield(Sys,'Q')
     Qaxial = numel(Sys.Q)==nNucs;
@@ -215,6 +215,23 @@ if SysInput
     Qpvalues = isequal(size(Sys.Q),[nNucs 3]);
     Qsym = isequal(size(Sys.Q),[nNucs 6]);
     Qfull = isequal(size(Sys.Q),[3*nNucs 3]);
+  end
+  % Chemical shielding: one row (or one 3x3 block) per nucleus
+  sigmaFull = false;
+  nnFull = false;
+  if isfield(Sys,'sigma') && ~isempty(Sys.sigma)
+    sigmaFull = isequal(size(Sys.sigma),[3*nNucs 3]);
+    if ~sigmaFull && numel(Sys.sigma)==nNucs
+      Sys.sigma = Sys.sigma(:);
+    end
+  end
+  % Nuclear-nuclear couplings: one row (or one 3x3 block) per nucleus pair
+  nNucPairs = nNucs*(nNucs-1)/2;
+  if isfield(Sys,'nn') && ~isempty(Sys.nn)
+    if numel(Sys.nn)==nNucPairs
+      Sys.nn = Sys.nn(:);
+    end
+    nnFull = ~isequal(size(Sys.nn),[nNucPairs 6]) && isequal(size(Sys.nn),[3*nNucPairs 3]);
   end
 end
 
@@ -323,6 +340,7 @@ for iNuc = 1:nNucs
     %------------------------------------------------------------
     % A - isotropic; axial; rhombic; full
     if isempty(gnref) || gnref==0, gnref = 1; end
+    Groups(iNuc).Ascale = gn/gnref; % used for scaling strains
     if isfield(Sys,'A')
       if Aisotropic || Aaxial || Arhombic || Asym || Aexchange
         for k = 1:numel(gn)
@@ -356,6 +374,7 @@ for iNuc = 1:nNucs
     
     % Q - Q alone; Q and eta; three principal values; full?
     if isempty(qmref) || qmref==0, qmref = 1; end
+    Groups(iNuc).Qscale = qm/qmref; % used for scaling strains
     if isfield(Sys,'Q')
       if Qaxial
         for k = 1:numel(qm)
@@ -483,6 +502,19 @@ end
 % Compile isotopologue list
 %===============================================================================
 % make Nucs string with comma-separated isotope symbols
+% Strains on nuclear parameters: converted to Sys.StrainPars/Sys.StrainModes
+% and rewritten for each isotopologue below
+nucStrains = false;
+if SysInput && isfield(Sys,'StrainPars') && ~isempty(Sys.StrainPars)
+  strainRefs = strains_parse(SysRaw.StrainPars,SysRaw,nElectrons,nNucs);
+  nucStrains = any(ismember({strainRefs.FieldName},nuclearStrainFields));
+  if nucStrains
+    strainModes = strains_modes(SysRaw,numel(strainRefs)).';
+    Sys = rmfield(Sys,intersect(fieldnames(Sys),{'StrainFWHM','StrainCorr'}));
+    Sys.StrainModes = strainModes;
+  end
+end
+
 if SysInput
   for k = nIsotopologues:-1:1
     isotopologue(k) = Sys;
@@ -497,6 +529,7 @@ for k = 1:nIsotopologues
   Q = [];
   AFrame = [];
   QFrame = [];
+  rowInfo = zeros(0,3); % [group isotope nEquiv] for each nucleus in the isotopologue
   for iNuc = 1:nNucs
     idx = IsoListIdx(k,iNuc);
     nz = find(nEquivList{iNuc}{idx}~=0);
@@ -505,6 +538,7 @@ for k = 1:nIsotopologues
       if gr.I(iIso)==0, continue; end
       Nucs_ = [Nucs_ Nucs{iNuc}{idx}(iIso)];
       n = [n nEquivList{iNuc}{idx}(iIso)];
+      rowInfo(end+1,:) = [iNuc iIso nEquivList{iNuc}{idx}(iIso)];
       if SysInput
         if isfield(Sys,'A')
           if Aisotropic
@@ -560,8 +594,17 @@ for k = 1:nIsotopologues
     isotopologue(k).QFrame = QFrame;
   end
   
+  if SysInput
+    isotopologue(k) = rebuildsigmann(isotopologue(k),Sys,rowInfo,Groups,sigmaFull,nnFull);
+  end
+
+  if nucStrains
+    [isotopologue(k).StrainPars,isotopologue(k).StrainModes] = ...
+      isotopologuestrains(strainRefs,strainModes,Groups,rowInfo);
+  end
+
   if isempty(isotopologue(k).Nucs)
-    nucFields = {'A','A_','Q','AFrame','QFrame'};
+    nucFields = {'A','A_','Q','AFrame','QFrame','sigma','sigmaFrame','nn','nnFrame'};
     for iF = 1:numel(nucFields)
       if isfield(isotopologue(k),nucFields{iF})
         isotopologue(k).(nucFields{iF}) = [];
@@ -608,6 +651,161 @@ if nargout==0
     nIsotopologues,prod(nIsotopes),relAbundanceThreshold);
 else
   varargout = {isotopologue};
+end
+
+end
+
+%-------------------------------------------------------------------------------
+% Rebuild Sys.sigma, Sys.sigmaFrame, Sys.nn and Sys.nnFrame for the nuclei of one
+% isotopologue. rowInfo(:,1:2) gives the group and isotope of each nucleus. nn
+% couplings scale with the gn ratios of both nuclei. Couplings between nuclei of
+% the same group of equivalent nuclei are not defined in Sys and are set to zero.
+function Iso = rebuildsigmann(Iso,Sys,rowInfo,Groups,sigmaFull,nnFull)
+
+grp = rowInfo(:,1);
+nRows = numel(grp);
+
+if isfield(Sys,'sigma') && ~isempty(Sys.sigma)
+  if sigmaFull
+    rows = reshape((3*(grp-1)+(1:3)).',[],1);
+    Iso.sigma = Sys.sigma(rows,:);
+  else
+    Iso.sigma = Sys.sigma(grp,:);
+  end
+end
+if isfield(Sys,'sigmaFrame') && ~isempty(Sys.sigmaFrame)
+  Iso.sigmaFrame = Sys.sigmaFrame(grp,:);
+end
+
+hasnn = isfield(Sys,'nn') && ~isempty(Sys.nn);
+hasnnFrame = isfield(Sys,'nnFrame') && ~isempty(Sys.nnFrame);
+if ~hasnn && ~hasnnFrame, return; end
+if nRows<2
+  if hasnn, Iso.nn = []; end
+  if hasnnFrame, Iso.nnFrame = []; end
+  return
+end
+
+rawPairs = zeros(0,2);
+if numel(Groups)>1, rawPairs = nchoosek(1:numel(Groups),2); end
+pairs = nchoosek(1:nRows,2);
+nn = [];
+nnFrame = [];
+for p = 1:size(pairs,1)
+  r1 = pairs(p,1);
+  r2 = pairs(p,2);
+  sameGroup = grp(r1)==grp(r2);
+  if ~sameGroup
+    q = find(rawPairs(:,1)==grp(r1) & rawPairs(:,2)==grp(r2));
+  end
+  if hasnn
+    if sameGroup
+      if nnFull, blk = zeros(3); else, blk = zeros(1,size(Sys.nn,2)); end
+    else
+      if nnFull, blk = Sys.nn(3*(q-1)+(1:3),:); else, blk = Sys.nn(q,:); end
+    end
+    scale = Groups(grp(r1)).Ascale(rowInfo(r1,2))*Groups(grp(r2)).Ascale(rowInfo(r2,2));
+    nn = [nn; scale*blk];
+  end
+  if hasnnFrame
+    if sameGroup
+      nnFrame = [nnFrame; 0 0 0];
+    else
+      nnFrame = [nnFrame; Sys.nnFrame(q,:)];
+    end
+  end
+end
+if hasnn, Iso.nn = nn; end
+if hasnnFrame, Iso.nnFrame = nnFrame; end
+
+end
+
+%-------------------------------------------------------------------------------
+% Rewrite strain parameters of one isotopologue: references to nuclear fields
+% (A, Q, sigma, nn and their frames) are mapped to the rows of the
+% isotopologue, and the mode vectors are scaled by the same factors as the
+% parameter values.
+% If no strain parameter is left, both outputs are empty, and the empty fields
+% are removed by compisoloop.
+function [names,V] = isotopologuestrains(refs,V,Groups,rowInfo)
+
+keep = true(1,numel(refs));
+names = {refs.Name};
+for p = 1:numel(refs)
+  ref = refs(p);
+  if ~any(strcmp(ref.FieldName,nuclearStrainFields)), continue; end
+  r = ref.Subscripts(1);
+  c = ref.Subscripts(2);
+
+  % Nucleus pairs (nn, nnFrame)
+  if any(strcmp(ref.FieldName,{'nn','nnFrame'}))
+    if strcmp(ref.Form,'iso'), rawPair = ref.Index; newCol = 1; else, rawPair = r; newCol = c; end
+    rawPairs = nchoosek(1:numel(Groups),2);
+    g = rawPairs(rawPair,:);
+    row1 = find(rowInfo(:,1)==g(1));
+    row2 = find(rowInfo(:,1)==g(2));
+    if isempty(row1) || isempty(row2)
+      keep(p) = false; % pair involves a spin-0 isotope
+      continue
+    end
+    if numel(row1)>1 || numel(row2)>1 || rowInfo(row1,3)>1 || rowInfo(row2,3)>1
+      error('Strains on nuclei with Sys.n>1 are not supported.');
+    end
+    if strcmp(ref.FieldName,'nn')
+      scale = Groups(g(1)).Ascale(rowInfo(row1,2))*Groups(g(2)).Ascale(rowInfo(row2,2));
+      V(:,p) = scale*V(:,p);
+    end
+    pairs = nchoosek(1:size(rowInfo,1),2);
+    newPair = find(pairs(:,1)==row1 & pairs(:,2)==row2);
+    names{p} = sprintf('%s(%d,%d)',ref.FieldName,newPair,newCol);
+    continue
+  end
+
+  % Nucleus group referenced, and column in the isotopologue field
+  if strcmp(ref.FieldName,'sigma') && strcmp(ref.Form,'iso')
+    iNuc = ref.Index; newCol = 1;
+  else
+    switch ref.Form
+      case 'iso1', iNuc = c; newCol = 1;
+      case 'eeqQ', iNuc = ref.Index; newCol = 1;
+      otherwise, iNuc = r; newCol = c;
+    end
+  end
+  row = find(rowInfo(:,1)==iNuc);
+  if isempty(row)
+    keep(p) = false; % only spin-0 isotopes
+    continue
+  end
+  if numel(row)>1 || rowInfo(row,3)>1
+    error('Strains on nuclei with Sys.n>1 are not supported.');
+  end
+  iIso = rowInfo(row,2);
+
+  % Scaling factor for this isotope (same as for the parameter value)
+  scale = 1;
+  switch ref.FieldName
+    case 'A'
+      scale = Groups(iNuc).Ascale(iIso);
+    case {'Q','QFrame'}
+      if Groups(iNuc).I(iIso)<1
+        keep(p) = false; % no quadrupole interaction for I<1
+        continue
+      end
+      isEta = strcmp(ref.Form,'eeqQeta') && c==2;
+      if strcmp(ref.FieldName,'Q') && ~isEta
+        scale = Groups(iNuc).Qscale(iIso);
+      end
+  end
+  V(:,p) = scale*V(:,p);
+  names{p} = sprintf('%s(%d,%d)',ref.FieldName,row,newCol);
+end
+
+V = V(:,keep);
+V = V(any(V,2),:);
+names = names(keep);
+if isempty(names) || isempty(V)
+  names = {};
+  V = [];
 end
 
 end
@@ -771,4 +969,10 @@ while iNuc>=1
 end
 IsoListAbund = IsoListAbund.';
 
+end
+
+%-------------------------------------------------------------------------------
+% Spin system fields with strain parameters that refer to nuclei
+function f = nuclearStrainFields()
+f = {'A','AFrame','Q','QFrame','sigma','sigmaFrame','nn','nnFrame'};
 end

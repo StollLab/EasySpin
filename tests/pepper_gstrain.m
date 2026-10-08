@@ -2,7 +2,9 @@ function [ok,data] = test(opt,olddata)
 
 % g strain
 
-Sys = struct('S',1/2,'g',[2 2.1 2.2],'gStrain',[1 2 3]*0.01);
+Sys = struct('S',1/2,'g',[2 2.1 2.2]);
+Sys.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys.StrainFWHM = [1 2 3]*0.01;
 Exp = struct('mwFreq',9.5,'Range',[290 350]);
 [x,y] = pepper(Sys,Exp);
 

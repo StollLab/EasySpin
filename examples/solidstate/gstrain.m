@@ -4,13 +4,13 @@ clear, clf
 
 % Spin system, experiment parameters and options
 %------------------------------------------------------------
-gStrain = [0.001 0.0008 0.0005];
+gFWHM = [0.001 0.0008 0.0005];  % FWHM of g distributions
 Sys.g = [2.0104 2.0074 2.0026];
 Exp.Harmonic = 0;
 
 % Frequencies [GHz] and associated magnetic field ranges [mT]
 %------------------------------------------------------------
-Freqs = [3 9.5 35 95 350];
+Freqs = [3 9.5 35 95 263];
 Ranges = [102 112; 334 344; 1240 1255; 3372 3395; 12425 12505];
 nFreqs = numel(Freqs);
 
@@ -20,10 +20,11 @@ for k = 1:nFreqs
   Exp.mwFreq = Freqs(k);
   Exp.Range = Ranges(k,:);
   
-  Sys.gStrain = [0 0 0];
   [B{k},spc1{k}] = pepper(Sys,Exp);
-  Sys.gStrain = gStrain;
-  [B{k},spc2{k}] = pepper(Sys,Exp);
+  SysStrain = Sys;
+  SysStrain.StrainPars = {'g(1)','g(2)','g(3)'};
+  SysStrain.StrainFWHM = gFWHM;
+  [B{k},spc2{k}] = pepper(SysStrain,Exp);
 end
 
 % Graphical rendering of the results

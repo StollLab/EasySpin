@@ -25,16 +25,18 @@ Sys.HStrain = [0 0 1];
 [p,i,w] = resfreqs_matrix(Sys,Exp);
 ok(3) = areequal(w,abs(R(3,3)),1e-5,'abs');
 
-% DStrain
+% D strain
 %-------------------------------------------------------------------------------
 clear Sys Exp
 Sys.S = 3/2;
 Sys.D = rand*1000;
-Sys.DStrain = rand*Sys.D;
+DS = rand*Sys.D;
+Sys.StrainPars = {'D'};
+Sys.StrainFWHM = DS;
 Exp.Field = rand*1000;
 [p,i,w] = resfreqs_matrix(Sys,Exp);
-ok(4) = ~isempty(find(w==0));
-ok(5) = ~isempty(find(w==(2*Sys.DStrain)));
+ok(4) = any(abs(w)<1e-8*DS);
+ok(5) = any(abs(w-2*DS)<1e-8*DS);
 
 
 

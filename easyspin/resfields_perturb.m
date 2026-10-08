@@ -75,11 +75,8 @@ end
 if any(Sys.L(:))
     err = sprintf('Perturbation theory not available for electron spin combined with orbital angular momentum!');
 end
-if any(Sys.AStrain)
-%  err = ('A strain (Sys.AStrain) not supported with perturbation theory. Use matrix diagonalization or remove Sys.AStrain.');
-end
-if highSpin && any(Sys.DStrain(:)) && any(mod(Sys.S,1))
-  err = ('D strain not supported for half-integer spins with perturbation theory. Use matrix diagonalization or remove Sys.DStrain.');
+if ~isempty(Sys.StrainData.Q)
+  err = 'Strains (Sys.StrainPars) are not supported by perturbation theory. Use matrix diagonalization (Opt.Method=''matrix'').';
 end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
@@ -88,12 +85,6 @@ if ~isempty(Sys.initState)
   err = 'Sys.initState is not supported by resfields_perturb.';
 end
 error(err);
-
-if ~isfield(Sys,'gAStrainCorr')
-  Sys.gAStrainCorr = +1;
-else
-  Sys.gAStrainCorr = sign(Sys.gAStrainCorr(1));
-end
 
 if Sys.fullg
   g = Sys.g;
@@ -513,81 +504,6 @@ else
     Wid = 0;
   end
   
-  if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
-    
-    if any(Sys.gStrain(:))
-      gStrainMatrix = diag(Sys.gStrain(1,:)./Sys.g(1,:))*Exp.mwFreq*1e3;  % -> MHz
-      if any(Sys.gFrame(:))
-        R_g2M = erot(Sys.gFrame(1,:)).';  % g frame -> molecular frame
-        gStrainMatrix = R_g2M*gStrainMatrix*R_g2M.';
-      end
-    else
-      gStrainMatrix = zeros(3);
-    end
-    
-    if any(Sys.AStrain) && Sys.nNuclei>0
-      AStrainMatrix = diag(Sys.AStrain);
-      if any(Sys.AFrame(1,:))
-        Rp = erot(Sys.AFrame(1,:)).'; % A frame -> molecular frame
-        AStrainMatrix = Rp*AStrainMatrix*Rp.';
-      end
-      corr = Sys.gAStrainCorr;
-      mI1 = -Sys.I(1):+Sys.I(1);
-      lw2 = zeros(numel(mI1),nOrientations);
-      for idx = 1:numel(mI1)
-        StrainMatrix = gStrainMatrix + corr*(mI1(idx))*AStrainMatrix;
-        lw2(idx,:) = sum(vecs.*(StrainMatrix^2*vecs),1);
-      end
-      Wid_gA = sqrt(lw2);
-      % mS outer, nuclear sublevels inner; first nucleus varies slowest
-      idx = repmat(repelem(1:numel(mI1),nNucTrans/numel(mI1)),1,2*S);
-      Wid = sqrt(Wid_gA(idx,:).^2 + Wid.^2);
-    else
-      lw2 = sum(vecs.*(gStrainMatrix^2*vecs),1);
-      Wid_gA = sqrt(lw2);
-      Wid = sqrt(repmat(Wid_gA.^2,2*S*nNucTrans,1)+Wid.^2);
-    end
-
-  end
-
-  if any(Sys.DStrain(:))
-    % Field direction in D frame
-    R_M2D = erot(Sys.DFrame);  % molecular frame -> D frame
-    vecsD = R_M2D*vecs;
-    x = vecsD(1,:);
-    y = vecsD(2,:);
-    z = vecsD(3,:);
-    mS = (S:-1:-S).';
-    mSS = mS.^2-S*(S+1)/3;
-    % Calculate derivatives of energy w.r.t. D and E
-    dHdD_ = mSS*((3*z.^2-1)/2);
-    dHdE_ = mSS*(3/2*(x.^2-y.^2));
-    
-    % Compute energy derivatives, pre-multiply with strain FWHMs.
-    DeltaD = Sys.DStrain(1);
-    DeltaE = Sys.DStrain(2);
-    rDE = Sys.DStrainCorr; % correlation coefficient between D and E
-    if rDE~=0
-      % Transform correlated D-E strain to uncorrelated coordinates
-      % Construct and diagonalize D-E covariance matrix
-      R12 = rDE*DeltaD*DeltaE;
-      CovMatrix = [DeltaD^2 R12; R12 DeltaE^2];
-      [V,L] = eig(CovMatrix);
-      L = sqrt(diag(L));
-      dH1 = L(1)*(V(1,1)*dHdD_ + V(2,1)*dHdE_);
-      dH2 = L(2)*(V(1,2)*dHdD_ + V(2,2)*dHdE_);
-    else
-      dH1 = dHdD_*DeltaD;
-      dH2 = dHdE_*DeltaE;
-    end
-
-    % Calculate freq-domain linewidths, one row per mS <-> mS-1 transition
-    lw1 = diff(dH1,1,1);
-    lw2 = diff(dH2,1,1);
-    Wid2_DE = repelem(lw1.^2+lw2.^2,nNucTrans,1);
-    Wid = sqrt(Wid2_DE + Wid.^2);
-  end
-
   if ~any(Wid(:))
     Wid = [];
   elseif computeFreq2Field

@@ -3,7 +3,7 @@
 % This script illustrates that the relative intensity of the half-field
 % transition and the wings of the allowed transitions in the simulated EPR
 % spectrum of a spin triplet is very sensitive to the line broadening model
-% included (DStrain, HStrain, lwpp).
+% included (D strain, HStrain, lwpp).
 
 clear, clc, clf
 
@@ -17,14 +17,15 @@ Opt.GridSize = 90;
 
 Triplet.S = 1;
 Triplet.D = D0;
-Triplet.DStrain = Dfwhm;
 Triplet.HStrain = 50;  % MHz
 
-% (1) Simulate spectrum using build-in DStrain to model D distribution
-[B,spc_DStrain] = pepper(Triplet,Exp,Opt);
+% (1) Simulate spectrum using built-in D strain to model D distribution
+TripletStrain = Triplet;
+TripletStrain.StrainPars = {'D'};
+TripletStrain.StrainFWHM = Dfwhm;
+[B,spc_DStrain] = pepper(TripletStrain,Exp,Opt);
 
 % (2) Simulate spectrum using explicit loop over D distribution
-Triplet.DStrain = 0;
 D = linspace(-1,1,51)*2*Dfwhm + D0;
 weights = gaussian(D,D0,Dfwhm);
 weights = weights/sum(weights);
@@ -36,7 +37,6 @@ end
 
 % (3) Simulate spectrum using HStrain only
 Triplet.D = D0;
-Triplet.DStrain = 0;
 Triplet.HStrain = 280;
 [B,spc_HStrain] = pepper(Triplet,Exp,Opt);
 
@@ -50,6 +50,6 @@ spc_HStrain = normalize(spc_HStrain);
 plot(B,spc_DStrain,B,spc_Dloop,B,spc_HStrain);
 grid on
 axis tight
-legend('DStrain','loop over D distribution','HStrain only','location','best');
+legend('D strain','loop over D distribution','HStrain only','location','best');
 xlabel('magnetic field  (mT)');
 ylabel('d\chi''''/dB  (arb.u.)');

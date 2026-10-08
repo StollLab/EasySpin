@@ -69,7 +69,7 @@ This function computes all possible isotopologues of a given list of nuclei or e
 </p>
 
 <p>
-Instead of <code>NucList</code>, <code>nEquiv</code> and <code>Abundances</code>, a spin system structure <code>Sys</code> with fields <code>Nucs</code>, <code>n</code> and <code>Abund</code> can be given directly. If <code>Sys</code> also contains hyperfine and/or quadrupole fields (<code>A</code>, <code>A_</code>, <code>Q</code>, <code>AFrame</code>, <code>QFrame</code>), these are included in the output and rescaled for each isotope combination according to its nuclear g values and quadrupole moments.
+Instead of <code>NucList</code>, <code>nEquiv</code> and <code>Abundances</code>, a spin system structure <code>Sys</code> with fields <code>Nucs</code>, <code>n</code> and <code>Abund</code> can be given directly. If <code>Sys</code> also contains hyperfine and/or quadrupole fields (<code>A</code>, <code>A_</code>, <code>Q</code>, <code>AFrame</code>, <code>QFrame</code>), these are included in the output and rescaled for each isotope combination according to its nuclear g values and quadrupole moments. Chemical shielding (<code>sigma</code>, <code>sigmaFrame</code>) and nuclear-nuclear couplings (<code>nn</code>, <code>nnFrame</code>) are adapted to the nuclei of each isotopologue as well, with <code>nn</code> rescaled according to the nuclear g values of both nuclei. Strains on nuclear parameters (see <a href="broadenings.html#strains">strains</a>) are adapted the same way. In this case, the output contains <code>StrainModes</code> instead of <code>StrainFWHM</code> and <code>StrainCorr</code>.
 </p>
 
 <p>
@@ -83,7 +83,7 @@ out(k).weight   absolute abundance (statistical weight) of this isotopologue
 </pre>
 
 <p>
-plus, if <code>Sys</code> was given, the corresponding rescaled <code>A</code>, <code>A_</code>, <code>Q</code>, <code>AFrame</code> and <code>QFrame</code> fields.
+plus, if <code>Sys</code> was given, the corresponding rescaled <code>A</code>, <code>A_</code>, <code>Q</code>, <code>AFrame</code>, <code>QFrame</code>, <code>sigma</code>, <code>sigmaFrame</code>, <code>nn</code> and <code>nnFrame</code> fields.
 </p>
 
 <p>

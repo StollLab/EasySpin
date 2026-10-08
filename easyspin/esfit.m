@@ -223,7 +223,7 @@ if cellInputs
     pvec_lb = pvec_0 - pvec_vary;
     pvec_ub = pvec_0 + pvec_vary;
     % Set lower bound to zero for parameters not allowing negative values
-    nonnegFieldNames = {'lw','lwpp','HStrain','gStrain','DStrain','AStrain','weight','initState'};
+    nonnegFieldNames = {'lw','lwpp','HStrain','StrainFWHM','weight','initState'};
     ind = ismember({pinfo.FieldName}.',nonnegFieldNames) & pvec_lb<0;
     pvec_lb(ind) = 0;    
   else

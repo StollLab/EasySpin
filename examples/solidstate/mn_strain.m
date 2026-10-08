@@ -20,7 +20,8 @@ Sys.A = 253;  % MHz
 Sys.lw = 1;  % mT
 
 Sys.D = 170;  % D, in MHz
-Sys.DStrain = 120; % FWHM of Gaussian distribution of D, in MHz
+Sys.StrainPars = {'D'};
+Sys.StrainFWHM = 120; % FWHM of Gaussian distribution of D, in MHz
 
 % Simulation of absorption spectrum
 [B,spec0] = pepper(Sys,Exp);

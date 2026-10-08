@@ -10,7 +10,8 @@ clear, clc, clf
 Gd.S = 7/2;
 Gd.g = 1.992;
 Gd.D = [1200 0];  % D and E, in MHz
-Gd.DStrain = 200;  % FWHM of Gaussian distribution of D, in MHz
+Gd.StrainPars = {'D(1)'};
+Gd.StrainFWHM = 200;  % FWHM of Gaussian distribution of D, in MHz
 Gd.lwpp = 2;  % mT
 
 % Experimental parameters

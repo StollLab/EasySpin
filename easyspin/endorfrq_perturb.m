@@ -32,11 +32,8 @@ end
 if Sys.S~=1/2
 %  err = 'Perturbation theory available only for systems with S=1/2.';
 end
-if any(Sys.AStrain)
-  err = 'A strain not supported with perturbation theory. Use matrix diagonalization.';
-end
-if any(Sys.DStrain)
-  err = 'D strain not supported with perturbation theory. Use matrix diagonalization.';
+if ~isempty(Sys.StrainData.Q)
+  err = 'Strains (Sys.StrainPars) are not supported by perturbation theory. Use matrix diagonalization.';
 end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Nuclear-nuclear couplings not supported with perturbation theory. Use matrix diagonalization.';

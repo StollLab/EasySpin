@@ -220,8 +220,8 @@ switch program
       else
         error('Exp.Ordering must be a single number or a function handle.');
       end
-      if any(Sys.gStrain) || any(Sys.AStrain) || any(Sys.DStrain) || any(Sys.HStrain)
-        error('Exp.Ordering and g/A/D/H strains cannot be used simultaneously.');
+      if any(Sys.HStrain) || ~isempty(Sys.StrainData.Q)
+        error('Exp.Ordering and strains (Sys.HStrain, Sys.StrainPars) cannot be used simultaneously.');
       end
     end
 

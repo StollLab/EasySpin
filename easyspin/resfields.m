@@ -74,35 +74,8 @@ error(err);
 
 DefaultSys.lw = 0;
 DefaultSys.HStrain = [0 0 0];
-DefaultSys.gStrain = [0 0 0];
-DefaultSys.AStrain = [0 0 0];
-DefaultSys.DStrain = 0;
-DefaultSys.gAStrainCorr = +1;
 
 Sys = adddefaults(Sys,DefaultSys);
-
-if numel(Sys.gAStrainCorr)~=1 || ~isnumeric(Sys.gAStrainCorr) || ...
-    Sys.gAStrainCorr==0 || ~isfinite(Sys.gAStrainCorr)
-  error('Sys.gAStrainCorr must be a single number, either +1 or -1.');
-end
-Sys.gAStrainCorr = sign(Sys.gAStrainCorr);
-
-if Sys.nElectrons>1
-  if any(Sys.AStrain(:))
-    error('AStrain is not supported in spin systems with more than one electron spin.');
-  end
-end
-
-if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
-  gFull = size(Sys.g,1)==3*numel(Sys.S);
-  %aFull = size(System.A,1)==3*(1+sum(System.Nucs==','));
-  if gFull
-    error('gStrain and AStrain are not supported when full g matrices are given!');
-  end
-  if any(Sys.DStrain)
-    error('D strain and g/A strain cannot be used at the same time.');
-  end
-end
 
 higherOrder = any(strncmp(fieldnames(Sys),'Ham',3));
 
@@ -270,7 +243,7 @@ if Opt.Freq2Field~=1 && Opt.Freq2Field~=0
 end
 computeFreq2Field = Opt.Freq2Field;
 
-StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
+StrainsPresent = any(Sys.HStrain(:)) || ~isempty(Sys.StrainData.Q);
 computeStrains = StrainsPresent && (nargout>2);
 
 computeGradient = (computeStrains || (nargout>4)) && GradientSwitch;
@@ -313,6 +286,14 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
   end
   perturbNuclei = ones(1,CoreSys.nNuclei);
   perturbNuclei(Opt.HybridCoreNuclei) = 0;
+  % Nuclei with strains must be in the core
+  if computeStrains
+    strainNuclei = strainednuclei(Sys);
+    if any(perturbNuclei(strainNuclei))
+      logmsg(1,'  adding nuclei with strains to core: %s',sprintf('%d ',strainNuclei(perturbNuclei(strainNuclei)==1)));
+    end
+    perturbNuclei(strainNuclei) = 0;
+  end
   
   idx = find(perturbNuclei);
   %idx = idx & (HFIStrength<Opt.HybridHFIThreshold);
@@ -390,8 +371,11 @@ if CoreSys.nNuclei>=1 && Opt.Hybrid
     S(iEl).z = sop(CoreSys,[iEl,3]);
   end
 
+  coreNuclei = find(~perturbNuclei);
+
 else
   nPerturbNuclei = 0;
+  coreNuclei = 1:Sys.nNuclei;
 end
 
 % Hamiltonian components for the core system.
@@ -578,90 +562,17 @@ end
 % Line width preparations
 %=======================================================================
 logmsg(1,'- Broadenings');
-simplegStrain = true;
-usegStrain = false;
-useAStrain = false;
 if computeStrains
   logmsg(1,'  using strains');
-  
   % Frequency-domain residual width tensor
-  %-----------------------------------------------
   HStrain2 = CoreSys.HStrain.^2;
-  
-  % D strain
-  %-----------------------------------------------
-  [useDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
-  
-  % g-A strain
-  %-------------------------------------------------
-  % g strain tensor is taken to be aligned with the g tensor
-  % A strain tensor is taken to be aligned with the A tensor
-  % g strain can be specified for each electron spin
-  % A strain is limited to the first electron and first nuclear spin
-  usegStrain = any(CoreSys.gStrain(:));
-  if usegStrain
-    logmsg(1,'  g strain present');
-    simplegStrain = CoreSys.nElectrons==1;
-    for iEl = CoreSys.nElectrons:-1:1
-      gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:))*mwFreq; % MHz
-      if any(CoreSys.gFrame(iEl,:))
-        R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
-        gStrainMatrix{iEl} = R_g2M*gStrainMatrix{iEl}*R_g2M.';
-      end
-    end
-    if ~simplegStrain
-      logmsg(1,'  multiple g strains present');
-      for iEl = CoreSys.nElectrons:-1:1
-        kSxM{iEl} = sop(CoreSys,[iEl,1]);
-        kSyM{iEl} = sop(CoreSys,[iEl,2]);
-        kSzM{iEl} = sop(CoreSys,[iEl,3]);
-      end
-    end
-  else
-    for e = CoreSys.nElectrons:-1:1
-      gStrainMatrix{e} = zeros(3);
-    end
-  end
-  
-  useAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain);
-  if useAStrain
-    % Transform A strain matrix to molecular frame.
-    AStrainMatrix = diag(CoreSys.AStrain);
-    if isfield(CoreSys,'AFrame')
-      R_A2M = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
-      AStrainMatrix = R_A2M*AStrainMatrix*R_A2M.';
-    end
-    % Diagonalize Hamiltonian at center field.
-    centerB = mean(searchRange);
-    [Vecs,E] = eig(kH0 - centerB*kmuzM);
-    [~,idx] = sort(real(diag(E)));
-    Vecs = Vecs(:,idx);
-    % Calculate effective mI of nucleus 1 for all eigenstates.
-    mI = real(diag(Vecs'*sop(CoreSys,[2,3])*Vecs));
-    mITr = mean(mI(Transitions),2);
-    % compute A strain array
-    AStrainMatrix = reshape(mITr(:,ones(1,9)).',[3,3,nTransitions]).*...
-      repmat(AStrainMatrix,[1,1,nTransitions]);
-    corr = Sys.gAStrainCorr;
-    for e = Sys.nElectrons:-1:1
-      gAslw2{e} = (repmat(gStrainMatrix{e},[1,1,nTransitions])+corr*AStrainMatrix).^2;
-    end
-    clear AStrainMatrix Vecs E idx mI mITr
-  else
-    for e = Sys.nElectrons:-1:1
-      gAslw2{e} = repmat(gStrainMatrix{e}.^2,[1,1,nTransitions]);
-    end
-  end
-  clear gslw
-  % gAslw2 = a (cell array of) 3D array with 3x3 strain line-width matrices
-  % for each transition piled up along the third dimension.
-  
   if any(HStrain2), logmsg(2,'  ## using H strain'); end
-  if usegStrain || useAStrain, logmsg(2,'  ## using g/A strain'); end
-  if useDStrain, logmsg(2,'  ## using D strain'); end
-  
+  % Strain mode operators
+  [G0,Gmu] = strains_ops(Sys,CoreSys,coreNuclei,Opt.Sparse);
+  nModes = numel(G0);
+  if nModes>0, logmsg(2,'  ## using %d strain modes',nModes); end
 else
-  logmsg(1,'  no strains specified',nTransitions);
+  logmsg(1,'  no strains specified');
 end
 
 
@@ -787,11 +698,6 @@ for iOri = 1:nOrientations
     % yLab axis: needed for gradient calculation
     % and the integration over all mw field orientations
     kmuyL = yLab_M(1)*kmuxM + yLab_M(2)*kmuyM + yLab_M(3)*kmuzM;
-    if usegStrain && ~simplegStrain
-      for e = Sys.nElectrons:-1:1
-        kSzL{e} = zLab_M(1)*kSxM{e} + zLab_M(2)*kSyM{e} + zLab_M(3)*kSzM{e};
-      end
-    end
   else
     sp = '';
     if Opt.Sparse, sp = 'sparse'; end
@@ -811,6 +717,10 @@ for iOri = 1:nOrientations
 
   if computeStrains
     LineWidthSquared = HStrain2*zLab_M.^2;
+    % Strain mode operators along zLab
+    for k = nModes:-1:1
+      GzL{k} = zLab_M(1)*Gmu{1,k} + zLab_M(2)*Gmu{2,k} + zLab_M(3)*Gmu{3,k};
+    end
   end
   
   % Pre-calculate photoselection weight if needed
@@ -1085,29 +995,12 @@ for iOri = 1:nOrientations
           %m = @(Op) real(V'*Op*V) - real(U'*Op*U);
           m = @(Op) real((V'-U')*Op*(V+U)); % equivalent to prev. line
 
-          % H strain
-          LineWidth2 = LineWidthSquared;
-          
-          % D strain
-          if useDStrain
-            for iEl = 1:CoreSys.nElectrons
-              LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
-              LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
-            end
+          % Strains: derivatives of transition energy along strain modes
+          dE = zeros(1,nModes);
+          for k = 1:nModes
+            dE(k) = m(G0{k}) - resonanceFields(iReson)*m(GzL{k});
           end
-          
-          % g and A strain
-          if usegStrain || useAStrain
-            if simplegStrain
-              gA2 = gAslw2{1}(:,:,iTrans);
-            else
-              gA2 = 0;
-              for iEl = 1:Sys.nElectrons
-                gA2 = gA2 + abs(m(kSzL{iEl}))*gAslw2{iEl}(:,:,iTrans);
-              end
-            end
-            LineWidth2 = LineWidth2 + zLab_M.'*gA2*zLab_M;
-          end
+          LineWidth2 = LineWidthSquared + sum(dE.^2);
           
           % Convert to field value and save
           % (dBdE proportionality not valid near looping field coalescences!)
@@ -1704,4 +1597,19 @@ Trans = upTRidx;  % single-number transition indices
 
 logmsg(1,'  %d transitions pre-selected',nTransitions);
 
+end
+
+
+%-------------------------------------------------------------------------------
+% Indices of nuclei that have strain parameters
+function idx = strainednuclei(Sys)
+idx = [];
+D = Sys.StrainData.Deriv;
+for i = 1:numel(D)
+  switch D(i).type
+    case 'A', idx = [idx D(i).idx(2)]; %#ok<AGROW>
+    case {'Q','sigma','nn'}, idx = [idx D(i).idx]; %#ok<AGROW>
+  end
+end
+idx = unique(idx);
 end

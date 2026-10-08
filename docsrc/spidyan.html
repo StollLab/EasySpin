@@ -94,7 +94,7 @@ The three input arguments to <code>spidyan</code> are
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. 
 Most of the regular fields of <code>Sys</code> can be used for the construction of the spin Hamiltonian. 
-Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>gStrain</code>, etc.) are ignored.
+Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>StrainPars</code>, etc.) are ignored.
 Some additional fields can be used with <code>spidyan</code>: To facilitate working with frequency-swept pulses, the field <code>ZeemanFreq</code> is available.
 For simulations with relaxation, at least generic relaxation times <code>T1</code> or <code>T2</code> should be provided.
 If only one is provided, the other one is set by default to a very large value (10<sup>10</sup> microseconds), essentially switching that type of relaxation off.

@@ -31,6 +31,9 @@ if isfield(Sys,'processed')
   end
 end
 
+% Keep the unmodified input (used for strain parameter references)
+SysIn = Sys;
+
 % Mex compilation check
 %-------------------------------------------------------------------------------
 fileName = 'cubicsolve';
@@ -44,12 +47,12 @@ end
 % Spell check field names (capitalization)
 %-------------------------------------------------------------------------------
 correctFields = {'S','Nucs','Abund','n',...
-  'g','g_','gFrame','gStrain',...
-  'D','D_','DFrame','DStrain',...
+  'g','g_','gFrame',...
+  'D','D_','DFrame',...
   'ee','J','dip','dvec','ee2','eeFrame',...
-  'A','A_','AFrame','AStrain',...
+  'A','A_','AFrame',...
   'Q','QFrame',...
-  'HStrain',...
+  'HStrain','StrainPars','StrainFWHM','StrainCorr','StrainModes',...
   'L', 'soc', 'gL',...
   'initState',...
   'tdm',...
@@ -78,6 +81,10 @@ for f = 1:numel(givenFields)
     end
   end
 end
+
+% Obsolete strain fields
+err = strains_obsoletemsg(Sys);
+if ~isempty(err), return; end
 
 for ind = find((strncmpi(givenFields,'Ham',3)))
   if isempty(ind), break; end
@@ -809,11 +816,6 @@ if any(rmv)
     Sys.NucsIdx(rmv) = [];
   end
 
-  % A strain refers to the first nucleus; drop it if that nucleus is removed
-  if rmv(1) && isfield(Sys,'AStrain')
-    Sys.AStrain = [];
-  end
-
   if Sys.fullA
     rmvfull = logical(kron(rmv(:),true(3,1)));
     Sys.A(rmvfull,:) = [];
@@ -903,98 +905,23 @@ if any(Sys.lwpp)
 end
 
 
-% g strain (Sys.gStrain)
+% Sys.HStrain
 %-------------------------------------------------------------------------------
-if ~isfield(Sys,'gStrain') || isempty(Sys.gStrain)
-  Sys.gStrain = zeros(nElectrons,3);
+if ~isfield(Sys,'HStrain') || isempty(Sys.HStrain)
+  Sys.HStrain = zeros(1,3);
 end
-
-[n1,n2] = size(Sys.gStrain);
-
-if n1~=nElectrons
-  err = sprintf('Sys.gStrain must have %d rows, one per electron spin!',nElectrons);
+p = Sys.HStrain;
+if isscalar(p), p = p([1 1 1]); end
+if numel(p)==2, p = p([1 1 2]); end
+if numel(p)~=3
+  err = 'Sys.HStrain must have 3 elements!';
   return
 end
-
-switch n2
-  case 1, Sys.gStrain = Sys.gStrain(:,[1 1 1]);
-  case 2, Sys.gStrain = Sys.gStrain(:,[1 1 2]);
-  case 3 % ok
-  otherwise
-  err = sprintf('Sys.gStrain must have 1, 2, or 3 columns!');
-end
-
-if any(Sys.gStrain(:)<0)
-  err = 'Sys.gStrain must contain nonnegative values!';
+if any(p(:)<0)
+  err = 'Sys.HStrain must contain nonnegative values!';
   return
 end
-
-
-% D and E strain (Sys.DStrain, Sys.DStrainCorr)
-%-------------------------------------------------------------------------------
-if ~isfield(Sys,'DStrain') || isempty(Sys.DStrain)
-  Sys.DStrain = zeros(nElectrons,2);
-end
-if ~isfield(Sys,'DStrainCorr')
-  Sys.DStrainCorr = zeros(1,nElectrons);
-end
-
-[n1,n2] = size(Sys.DStrain);
-
-if n1~=nElectrons
-  err = sprintf('Sys.DStrain must have %d rows, one per electron spin!',nElectrons);
-  return
-end
-
-switch n2
-  case 1, Sys.DStrain = [Sys.DStrain zeros(nElectrons,1)];
-  case 2 % ok
-  otherwise
-    err = 'Sys.DStrain must have 1 or 2 columns ([FWHM_D FWHM_E]). For D-E correlation, use Sys.DStrainCorr.';
-    return
-end
-
-if numel(Sys.DStrainCorr)~=nElectrons
-  err = sprintf('Sys.DStrainCorr must contain %d elements, since you have %d electron spins',...
-    nElectrons,nElectrons);
-end
-
-if any(Sys.DStrain(:)<0)
-  err = 'Sys.DStrain must contain nonnegative values!';
-  return
-end
-
-if any(Sys.DStrainCorr<-1) || any(Sys.DStrainCorr>1)
-  err = 'D-E strain correlation coefficient in Sys.DStrainCorr must be between -1 and +1.';
-  return
-end
-
-
-% Sys.HStrain, Sys.AStrain
-%-------------------------------------------------------------------------------
-BroadeningType = {'HStrain','AStrain'};
-Elements = [3,3,2];
-for k = 1:numel(BroadeningType)
-  fld = BroadeningType{k};
-  if ~isfield(Sys,fld) || isempty(Sys.(fld))
-    Sys.(fld) = zeros(1,Elements(k));
-    continue
-  end
-  p = Sys.(fld);
-  if Elements(k)==3
-    if isscalar(p), p = p([1 1 1]); end
-    if numel(p)==2, p = p([1 1 2]); end
-  end
-  if numel(p)~=Elements(k)
-    err = sprintf('Sys.%s must have %d elements!',fld,Elements(k));
-    if ~isempty(err), return; end
-  end
-  if any(p(:)<0)
-    err = sprintf('Sys.%s must contain nonnegative values!',fld);
-    if ~isempty(err), return; end
-  end
-  Sys.(fld) = p;    
-end
+Sys.HStrain = p(:).';
 
 
 % Non-equilibrium state (Sys.initState)
@@ -1316,6 +1243,15 @@ Sys.nL = numel(Sys.L);
 %-------------------------------------------------------------------------------
 Sys.Spins = [Sys.S(:); Sys.I(:); Sys.L(:)].';
 Sys.nStates = hsdim(Sys.Spins);
+
+
+% Strains (Sys.StrainPars, Sys.StrainFWHM, Sys.StrainCorr, Sys.StrainModes)
+%===============================================================================
+% When reprocessing (after removal of nuclei), the strain data is kept.
+if ~reprocessing || ~isfield(Sys,'StrainData')
+  [Sys.StrainData,err] = strains_setup(SysIn,Sys);
+  if ~isempty(err), return; end
+end
 
 FullSys = Sys;
 FullSys.processed = true;

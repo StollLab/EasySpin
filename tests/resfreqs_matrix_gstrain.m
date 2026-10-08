@@ -1,11 +1,12 @@
 function [ok,data] = test(opt,olddata)
 
-% Check whether resfreqs_matrix handlex gStrain correctly.
+% Check whether resfreqs_matrix handles g strain correctly.
 
 
 Sys.S = 1/2;
 Sys.g = 2;
-Sys.gStrain = 0.01;
+Sys.StrainPars = {'g'};
+Sys.StrainFWHM = 0.01;
 
 Exp.Field = 350;
 Exp.mwRange = [9.4 10];

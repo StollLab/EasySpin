@@ -23,16 +23,17 @@ Sys.HStrain = [0 0 0];        % MHz
 % (3) g strain: Gaussian distribution of g principal values
 Sys.lw = 0;
 Sys.HStrain = [0 0 0];       % MHz
-Sys.gStrain = [0.05, 0.01, 0.01];
+Sys.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys.StrainFWHM = [0.05, 0.01, 0.01];
 [B,spc3] = pepper(Sys,Exp);
 
 % Plotting, normalizing all spectra to their integral
 subplot(2,1,1);
 plot(B,spc1,B,spc2,B,spc3);
 title('Different broadening models');
-legend('HStrain','lw','gStrain');
+legend('HStrain','lw','g strain');
 
 subplot(2,1,2);
 plot(B,deriv(spc1),B,deriv(spc2),B,deriv(spc3));
-legend('HStrain','lw','gStrain');
+legend('HStrain','lw','g strain');
 xlabel('magnetic field (mT)');

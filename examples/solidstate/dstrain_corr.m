@@ -5,18 +5,19 @@ clear, clf
 
 Sys.S = 1;
 Sys.D = [800 80];
-Sys.DStrain = [100 33];
+Sys.StrainPars = {'D(1)','D(2)'};  % D and E
+Sys.StrainFWHM = [100 33];  % MHz
 Sys.lwpp = 1;
 
 Exp.mwFreq = 9.5;
 Exp.CenterSweep = [340 100];
 
 % Varying the correlation coefficient
-Sys.DStrainCorr = 0; % no correlation
+Sys.StrainCorr = 0; % no correlation
 [B,spc0] = pepper(Sys,Exp);
-Sys.DStrainCorr = +1; % perfect correlation
+Sys.StrainCorr = +1; % perfect correlation
 [B,spcp] = pepper(Sys,Exp);
-Sys.DStrainCorr = -1; % anticorrelation
+Sys.StrainCorr = -1; % anticorrelation
 [B,spcm] = pepper(Sys,Exp);
 
 % Plotting

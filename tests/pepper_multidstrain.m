@@ -5,7 +5,7 @@ function [ok,data] = test(opt,olddata)
 
 Sys.S = [1 1];
 Sys.g = [2 2.5];
-Sys.D = [400 700];
+Sys.D = [400 0; 700 0];
 Sys.ee = 1;
 Sys.lwpp = 1;
 
@@ -14,7 +14,8 @@ Exp.Range = [200 400];
 
 Ds1 = [30 10];
 Ds2 = [100 20];
-Sys.DStrain = [Ds1; Ds2];
+Sys.StrainPars = {'D(1,1)','D(1,2)','D(2,1)','D(2,2)'};
+Sys.StrainFWHM = [Ds1 Ds2];
 [x,spc] = pepper(Sys,Exp);
 
 if (opt.Display)

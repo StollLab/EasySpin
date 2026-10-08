@@ -32,64 +32,66 @@
 <div class="subtitle">Overview</div>
 
 <p>
-EPR spectra do not consist of a discrete set of infinitely sharp lines. Lines are broadened by dynamic effects (relaxation, tumbling, chemical exchange) or static effects (orientational disorder, unresolved hyperfine splittings, distributions in magnetic properties such as g, A, and D values).
-
-<p>
-EasySpin takes orientational disorder into account explicitly for solid-state spectra. It allows you to include some forms of additional broadening in most spectral simulations (solid-state cw EPR with
-<a class="esf" href="pepper.html">pepper</a>, liquid EPR with
-<a class="esf" href="garlic.html">garlic</a>, ENDOR with
-<a class="esf" href="salt.html">salt</a>). In addition, any static broadening model can be implemented using <a href="#explicit">explicit averaging</a>.
+EPR spectra do not consist of a discrete set of infinitely sharp lines. Lines are broadened by dynamic effects (relaxation, tumbling, chemical exchange) or static effects (orientational disorder, unresolved hyperfine or dipolar splittings, distributions in magnetic properties such as g, A, and D values, magnetic-field inhomogeneity).
 </p>
 
 <p>
-The two types of broadening models built into EasySpin are:
+EasySpin takes orientational disorder into account explicitly for solid-state spectra. You can include some forms of additional broadening in most spectral simulations (solid-state cw EPR with
+<a class="esf" href="pepper.html">pepper</a>, liquid EPR with
+<a class="esf" href="garlic.html">garlic</a>, ENDOR with
+<a class="esf" href="salt.html">salt</a>). In addition, any static broadening model can be implemented using explicit averaging.
+</p>
+
+<p>
+This page covers the following broadening models:
+</p>
 
 <ul>
-<li>
-<a href="#convol">Isotropic convolutional broadenings</a>:
-A convolutional spectral broadening is computed by convolving the final simulated field-swept or frequency-swept stick spectrum with a Gaussian or Lorentzian line shape of a given width. This broadening method is the simplest possible: it is isotropic and is not based on any physical model causing the broadening. It can be used to visually adjust the broadening of a simulated spectrum to match that of an experimental one. Since this broadening method does not assume a physical reason for the broadening, it is often called "phenomenological". It should only be applied to S=1/2 systems with small g anisotropy. It works OK for high-spin systems with small zero-field splittings such as organic triplets.
-
-<li>
-<a href="#aniso">Anisotropic broadenings</a>: Often, the spectral broadening depends on the orientation of the spin center relative to the external magnetic field. Such broadenings are taken into account in the simulation by adding to the simulated spectrum a Gaussian for each resonance line during the simulation. Physical origins for anisotropic broadenings are unresolved hyperfine splittings and so-called strains. A strain is a distribution in a spin Hamiltonian parameter due to small structural variations among the paramagnetic centers in the sample. For example, g strain describes a distribution of g principal values.
+<li><a href="#convol">Isotropic convolutional broadening</a> (<code>lw</code>, <code>lwpp</code>, <code>lwEndor</code>)</li>
+<li><a href="#hstrain">Anisotropic residual line width</a> (<code>HStrain</code>)</li>
+<li><a href="#strains">Strains</a> (<code>StrainPars</code>, <code>StrainFWHM</code>, <code>StrainCorr</code>, <code>StrainModes</code>)</li>
+<li><a href="#explicit">Explicit averaging over distributions</a></li>
 </ul>
 
 <p>
+The first three are built into EasySpin. Convolutional broadening is isotropic: every line in the spectrum gets the same width and shape. The anisotropic residual line width and strains are anisotropic: each resonance line gets its own Gaussian width, which depends on the orientation of the spin center relative to the magnetic field and, for strains, also on the transition. Explicit averaging is not built in. You write a loop over a parameter distribution yourself, which works for any distribution and any parameter.
+</p>
+
+<p>
 The broadenings are given in fields of the <a href="spinsystem.html">spin system structure</a>, which contains the spin system and all associated spin Hamiltonian parameters. Not all types of broadenings are supported by all simulation functions.
-
-<p>
-Broadenings are treated differently in the simulation of slow-motion cw EPR spectra using <code>chili</code>. See the documentation of <a class="esf" href="chili.html">chili</a>.
+For instance, broadenings are treated differently in the simulation of slow-motion cw EPR spectra using <code>chili</code>. See the documentation of <a class="esf" href="chili.html">chili</a>.
 </p>
 
 <p>
-All broadenings are understood to be FWHM (full width at half maximum) or PP (peak-to-peak), independent of the simulation function, the line shape or the detection
-harmonic. For the conversion to and from peak-to-peak line widths, see the <a href="lineshapes.html">reference page on line shapes</a>.
+All broadenings are understood to be FWHM (full width at half maximum) or PP (peak-to-peak), independent of the simulation function, the line shape or the detection harmonic. For the conversion to and from peak-to-peak line widths, see the <a href="lineshapes.html">reference page on line shapes</a>.
 </p>
 
 <p>
-Use only broadenings of one type at a time.
+Use either convolutional or anisotropic broadening (<code>HStrain</code> and strains), but not both at the same time.
+</p>
 
 <!-- ----------------------------------------------------------------------------------------->
-<div class="subtitle"><a name="convol">Isotropic convolutional broadenings</a></div>
+<div class="subtitle"><a name="convol">Isotropic convolutional broadening</a></div>
 
 <p>
-This type of broadening is applied by convolving a stick spectrum with a single line shape. Therefore, it applies the same line width and line shape to each transition and orientation.
+This type of broadening is applied by convolving the final simulated field-swept or frequency-swept stick spectrum with a single Gaussian, Lorentzian or Voigtian line shape. Therefore, it applies the same line width and line shape to each transition and orientation. It is the simplest broadening model and is not based on any physical cause of the broadening, which is why it is often called "phenomenological". It can be used to visually adjust the broadening of a simulated spectrum to match that of an experimental one.
 </p>
 
 <p>
-Isotropic convolutional broadening should only be used for S=1/2 systems with very small g anisotropy, and for S>1/2 systems with small zero-field splittings. For systems with substantial g anisotropy, or higher electron spin with substantial zero-field splitting, it will lead to incorrect results. The reason is that in those cases, distributions in g and D are almost always dominant, and a simple convolutional broadening is inappropriate.
+Isotropic convolutional broadening should only be used for S=1/2 systems with very small g anisotropy, and for S&gt;1/2 systems with small zero-field splittings. For systems with substantial g anisotropy, or systems with higher electron spin and substantial zero-field splitting, it will lead to incorrect results. The reason is that in those cases, distributions in g and D are almost always dominant, and a simple convolutional broadening is inappropriate.
 </p>
 
 <p>
-The following fields in the spin system structure specify convolutional broadenings.
+The following fields in the spin system structure specify convolutional broadening:
 </p>
 
-<p>
 <div class="optionfield"><code>lwpp</code></div>
 <div class="optiondescr">
 Line width for isotropic broadening (PP, peak-to-peak), used for convolution of a field-swept or frequency-swept liquid or solid-state cw EPR spectrum. Peak-to-peak refers to the horizontal distance between the maximum and the minimum of a first-derivative line shape.
 
 <p>
 For field-swept spectra, the unit of <code>lwpp</code> is mT. For frequency-swept spectra, the unit is MHz.
+</p>
 
 <ul>
 <li>1 element: <code>Gaussian</code></li>
@@ -102,9 +104,9 @@ Sys.lwpp = [0 12];   % Lorentzian broadening
 Sys.lwpp = [10 12];  % Voigtian broadening (Gaussian + Lorentzian)
 </pre>
 
-
 <p>
 For conversion between FWHM and PP line widths, see the reference page on <a href="lineshapes.html">line shapes</a>.
+</p>
 </div>
 
 <div class="optionfield"><code>lw</code></div>
@@ -118,26 +120,11 @@ Line widths (FWHM, Gaussian and Lorentzian) for convolutional broadening of ENDO
 </div>
 
 <!-- ----------------------------------------------------------------------------------------->
-<div class="subtitle"><a name="aniso">Anisotropic broadenings</a></div>
-
-
-<p>
-To model anisotropic broadenings in solid-state cw EPR spectra, use fields depending on the physical origin of the broadening:
-<ul>
-<li>For unresolved hyperfine splittings, use <code>HStrain</code>.
-<li>For strains, i.e. distributions in spin Hamiltonian parameters: use <code>gStrain</code>, <code>AStrain</code> and/or <code>DStrain</code>.
-</ul>
+<div class="subtitle"><a name="hstrain">Anisotropic residual line width</a></div>
 
 <p>
-More than one of these broadenings can be specified simultaneously. The total broadening for a given orientation is the combination of all individual broadenings.
+In solid-state spectra, the line width often depends on the orientation of the spin center relative to the magnetic field. To model broadening from unresolved hyperfine or dipolar splittings and other nonspecific effects, use <code>HStrain</code>. For broadening from distributions of specific spin Hamiltonian parameters, use <a href="#strains">strains</a> instead. <code>HStrain</code> and strains can be used together. Then, for each orientation and transition, EasySpin adds a Gaussian line whose width combines both contributions.
 </p>
-
-<p>
-The broadenings resulting from the various strains are computed in an approximate way. For example, for <code>gStrain</code>, the derivative with respect to g of the resonance field of a given transition is computed, and then the magnitude of this derivative is multiplied by the value from <code>gStrain</code> to give the actual line width. A Gaussian with this line width is then added to the spectrum. A similar procedure is used for all other strains.
-
-<p>
-This approximation, which corresponds to the first term in a Taylor expansion or to first-order perturbation theory, is valid only as long as the strain distribution width is much smaller than the parameter itself, e.g. a <code>gStrain</code> of 0.02 for a <code>g</code> of 2. If the distribution is wider, an explicit loop should be used, see <a href="#explicit">below</a>.
-
 
 <div class="optionfield"><code>HStrain</code></div>
 <div class="optiondescr">
@@ -166,107 +153,191 @@ are the three elements of <code>HStrain</code>.
 
 </div>
 
-<p>
-If the spin system contains only one electron spin, it is possible to specify combined g and A strain or D strain.
-</p>
-
-<div class="optionfield"><code>gStrain</code></div>
-<div class="optiondescr">
-<code>[FWHM_gx FWHM_gy FWHM_gz]</code>
-<br>
-Defines the g strain for the electron spin. It specifies the FWHM widths of the Gaussian distributions of the g principal values (gx, gy and gz). The distributions are assumed to be completely uncorrelated.
-
-<p>If the spin system contains more than one electron spin, <code>gStrain</code> should contain one row for each electron spin.
-
-</div>
-
-<div class="optionfield"><code>AStrain</code></div>
-<div class="optiondescr">
-<code>[FWHM_Ax FWHM_Ay FWHM_Az]</code>, in MHz
-<br>
-Vector of FWHM widths (in MHz) of the Gaussian distributions of the corresponding principal values in <code>A</code> (Ax, Ay, Az) of the first nucleus in the spin system. The distributions are completely uncorrelated. AStrain is not supported for systems with more than one electron spin, and it is only available for the first nucleus.
-
-To set the correlation between <code>gStrain</code> and <code>AStrain</code>, use the field <code>gAStrainCorr</code>.
-</div>
-
-<div class="optionfield"><code>gAStrainCorr</code></div>
-<div class="optiondescr">
-<code>+1</code> (default) or <code>-1</code>
-<br>
-Sets the correlation between <code>gStrain</code> and <code>AStrain</code>. <code>+1</code> indicates that a positive change in gx is correlated with a positive change in Ax, etc., whereas <code>-1</code> indicates anticorrelation. 
-</div>
-
-<div class="optionfield"><code>DStrain</code></div>
-<div class="optiondescr">
-<code>FWHM_D</code> or <code>[FWHM_D FWHM_E]</code>
-<br>
-Widths (FWHM) in MHz of the Gaussian distributions of the scalar parameters D and E that specify the D matrix of the <a href="hamiltonian.html#zfi">zero-field interaction</a>. If <code>FWHM_E</code> is omitted, it defaults to zero.
+<!-- ----------------------------------------------------------------------------------------->
+<div class="subtitle"><a name="strains">Strains</a></div>
 
 <p>
-The distributions in D and in E are treated as uncorrelated, unless <code>DStrainCorr</code> is provided.
+A strain is a distribution of spin Hamiltonian parameters due to small structural variations among the paramagnetic centers in a sample. EasySpin models strains as Gaussian distributions of one or more parameters around the values given in the spin system structure. The distributions of different parameters can be correlated. For example, the distributions of g<sub>x</sub>, g<sub>y</sub> and g<sub>z</sub> are often correlated, since they depend on the same structural variation. Another example is the correlation between g and A values.
 </p>
 
-<p>If the spin system contains more than one electron spin, <code>DStrain</code> should contain one row for each electron spin.
+<p>
+For each orientation and each transition, EasySpin computes how fast the transition frequency changes with each strained parameter, and from this the (frequency-domain) width of the resulting Gaussian line. If a parameter has a large effect on the transition frequency, its distribution gives a broad line. If it has no effect, it gives no broadening. Correlated parameters can broaden or narrow the lines, depending on whether their effects add or cancel. For field sweeps, the frequency-domain width is converted to a field width. If <code>HStrain</code> is given as well, the two widths are combined as the square root of the sum of their squares.
 </p>
 
-<p>If the distribution is very broad, or if there is no resonance field with the central value of <code>D</code>, but for other values in the distribution, <code>DStrain</code> will give incorrect results, and <a href="#explicit">explicit averaging</a> as described below must be used.</p>
+<p>
+As a consequence, some lines can have zero width. For example, if only g<sub>z</sub> is strained, the lines with the magnetic field perpendicular to the z axis do not depend on g<sub>z</sub> and are not broadened at all. Such lines appear as very sharp spikes in the simulated spectrum. To avoid this, add a small <code>HStrain</code>, which gives every line a minimum width.
+</p>
+
+<p>
+Strains are specified with four fields:
+</p>
+
+<div class="optionfield"><code>StrainPars</code></div>
+<div class="optiondescr">
+cell array of character arrays, e.g. <code>{'g(1)','A(1,3)'}</code>
+<br>
+List of strained parameters. Each entry refers to one element of a spin system field, using MATLAB indexing as for the field itself: <code>'g(3)'</code> is the third element of <code>Sys.g</code>, and <code>'A(2,3)'</code> is the element in row 2 and column 3 of <code>Sys.A</code>. A field name alone, e.g. <code>'D'</code>, can be used if the field has only one element. The parameters refer to the fields as you give them. For example, with <code>Sys.D = [D E]</code>, <code>'D(1)'</code> is D and <code>'D(2)'</code> is E. With axial <code>Sys.g = [gperp gpar]</code>, <code>'g(1)'</code> varies g<sub>x</sub> and g<sub>y</sub> together.
+
+<p>
+The following fields can be strained: <code>g</code>, <code>A</code>, <code>D</code>, <code>Q</code>, <code>ee</code>, <code>J</code>, <code>dip</code>, <code>dvec</code>, <code>nn</code>, <code>sigma</code>, and the Euler angles in <code>gFrame</code>, <code>AFrame</code>, <code>DFrame</code>, <code>QFrame</code>, <code>eeFrame</code>, <code>nnFrame</code>, and <code>sigmaFrame</code> (in radians). For a tensor given as a full 3x3 matrix, the elements cannot be strained. Instead, give the tensor as <code>[xx yy zz xy xz yz]</code>, whose elements can be strained. The frame angles of such tensors cannot be strained, since the six elements already include the orientation.
+</p>
+
+<p>
+Strains are not possible for nuclei in groups of equivalent nuclei (<code>Sys.n</code> larger than 1). A strained parameter that has no effect on the spectrum gives an error, for example a strain of <code>D</code> for an electron spin 1/2 or of <code>Q</code> for a nucleus with spin 1/2. If a nucleus is given as an element, e.g. <code>'Cu'</code>, the strains of its hyperfine and quadrupole values are scaled for each isotope in the same way as the values themselves.
+</p>
+
+<pre class="matlab">
+Sys.StrainPars = {'g(3)'};                % gz, with Sys.g = [gx gy gz]
+Sys.StrainPars = {'g(1)','g(2)','g(3)'};  % all three g principal values
+Sys.StrainPars = {'A(2,3)'};              % Az of the second nucleus
+Sys.StrainPars = {'g(3)','A(3)'};         % gz and Az
+Sys.StrainPars = {'D(1)','D(2)'};         % D and E, with Sys.D = [D E]
+Sys.StrainPars = {'J'};                   % exchange coupling between two electrons
+Sys.StrainPars = {'gFrame(2)'};           % second Euler angle of the g tensor
+</pre>
+</div>
+
+<div class="optionfield"><code>StrainFWHM</code></div>
+<div class="optiondescr">
+array with one element per entry in <code>StrainPars</code>
+<br>
+Widths (FWHM) of the Gaussian distributions of the parameters, in the same order as in <code>StrainPars</code> and in the units of the parameters (e.g. MHz for <code>A</code> and <code>D</code>, radians for frame angles).
+
+<pre class="matlab">
+Sys.StrainFWHM = 0.01;               % one parameter
+Sys.StrainFWHM = [0.01 0.02 0.005];  % three parameters
+Sys.StrainFWHM = [100 30];           % D and E, in MHz
+Sys.StrainFWHM = 5*pi/180;           % frame angle, 5 degrees
+</pre>
+</div>
+
+<div class="optionfield"><code>StrainCorr</code></div>
+<div class="optiondescr">
+correlation matrix, or its upper triangle
+<br>
+Correlation coefficients between the parameter distributions, between -1 and +1. Give either the full symmetric matrix with ones on the diagonal, or only the elements above the diagonal in the order 1-2, 1-3, ..., 2-3, ... For two parameters, this is a single number. If <code>StrainCorr</code> is not given, the distributions are uncorrelated. <code>StrainCorr</code> can only be used together with <code>StrainFWHM</code>. <code>StrainCorr</code> is not well suited for fitting, since fitted values can combine into an invalid correlation matrix, which gives an error. For fitting correlations, use <code>StrainModes</code>.
+
+<pre class="matlab">
+Sys.StrainCorr = -1;                             % two parameters, fully anticorrelated
+Sys.StrainCorr = [0.5 0 0.3];                    % three parameters: 1-2, 1-3, 2-3
+Sys.StrainCorr = [1 0.5 0; 0.5 1 0.3; 0 0.3 1];  % the same as a full matrix
+Sys.StrainCorr = eye(4);                         % four parameters, uncorrelated
+</pre>
+</div>
+
+<div class="optionfield"><code>StrainModes</code></div>
+<div class="optiondescr">
+array with one row per mode and one column per entry in <code>StrainPars</code>
+<br>
+Alternative to <code>StrainFWHM</code> and <code>StrainCorr</code>. Each row describes one independent source of variation (a "mode") and lists, for each parameter, the FWHM by which it changes along this mode. The sign indicates whether the parameters change in the same or opposite direction. For example, <code>StrainModes = [0.01 -20]</code> for <code>StrainPars = {'g(3)','A(3)'}</code> describes a single mode where g<sub>z</sub> varies with a FWHM of 0.01 and A<sub>z</sub> with a FWHM of 20 MHz, in opposite directions (fully anticorrelated). The overall sign of a row does not matter. Several rows describe several independent modes. The modes do not need to be orthogonal or normalized. Only the overall distribution they describe matters, so different sets of modes that describe the same distribution give the same spectrum. This form is convenient for fitting correlated strains with <a class="esf" href="esfit.html">esfit</a>, since it always describes a valid distribution.
+
+<pre class="matlab">
+Sys.StrainModes = [0.01 -20];          % one mode, two parameters, anticorrelated
+Sys.StrainModes = [100 0; 0 30];       % two independent modes, same as StrainFWHM = [100 30]
+Sys.StrainModes = [100 16.5; 0 28.58]; % two modes, correlated D and E
+</pre>
+</div>
 
 <p>
 Examples:
-<code>DStrain = [10, 5]</code> specifies a Gaussian distribution of D with a FWHM of 10 MHz and a Gaussian distribution of E with a FWHM of 5 MHz. <code>DStrain = [100 33]</code> specifies a Gaussian distribution of D with a FWHM of 100 MHz and a Gaussian distribution of E with a FWHM of 33 MHz. For two electron spins, <code>DStrain = [10 5; 100 20]</code> specifies <code>[10 5]</code> for the first electron spin and <code>[100 20]</code> for the second.
-
-</div>
-
-<div class="optionfield"><code>DStrainCorr</code></div>
-<div class="optiondescr">
-number between <code>-1</code> and <code>+1</code> (default <code>0</code>)
-<br>
-Sets the correlation coefficient between <code>D</code> and <code>E</code>, which can be between -1 and +1. <code>+1</code> indicates that a positive change in D is correlated with a positive change in E, whereas <code>-1</code> indicates anticorrelation. Any value between -1 and +1 is possible. If not given, it defaults to 0, and the distributions in D and E are uncorrelated.
-
-<p>
-If the spin system has more than one electron spin, give one correlation coefficient per electron spin.
-</div>
-
-<div class="subtitle"><a name="explicit">Broadening via explicit averaging over distributions</a></div>
-
-<p>
-You can model any arbitrary form of inhomogeneous broadening. For this, run explicit loops over distributions of spin Hamiltonian parameters, simulate the associated spectra and sum them up (including weights of the distribution function) to obtain a broadened spectrum.
 </p>
-
-<p>
-This approach is necessary if the distributions are so broad as to render the built-in perturbational treatment invalid, or if you want to average over non-Gaussian distributions, or correlated distributions, or distributions over parameters other than g, A, and D.
-</p>
-
-<p>
-Here is a basic example for a broad Gaussian distribution of D:
 
 <pre class="matlab">
-% Set up distribution of D
-D0 = 1000;                      % center of distribution, MHz
-Dfwhm = 500;                    % FWHM of distribution, MHz
-D = linspace(0,2*D0,401);       % range of D values, MHz
-weights = gaussian(D,D0,Dfwhm); % associated weights
+% Uncorrelated g strain along the three principal axes
+Sys.g = [2.0 2.1 2.2];
+Sys.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys.StrainFWHM = [0.01 0.02 0.03];
 
-% Spin system
+% Fully correlated g strain: gx and gy change together, gz in the opposite direction
+Sys.g = [2.0 2.1 2.2];
+Sys.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys.StrainModes = [+0.01 +0.02 -0.005];
+
+% Anticorrelated gz/Az strain for a Cu(II) complex
+Sys.g = [2.05 2.25];
+Sys.Nucs = '63Cu';
+Sys.A = [50 500];  % MHz
+Sys.StrainPars = {'g(2)','A(2)'};
+Sys.StrainFWHM = [0.02 30];
+Sys.StrainCorr = -0.8;
+
+% Correlated D and E strain for a triplet
 Sys.S = 1;
-Sys.lwpp = 1; % mT
+Sys.D = [800 80];  % MHz
+Sys.StrainPars = {'D(1)','D(2)'};
+Sys.StrainFWHM = [100 33];
+Sys.StrainCorr = 0.5;
+</pre>
 
-% Experiment
-Exp.mwFreq = 9.5; % GHz
-Exp.Range = 330+ [-1 1]*100; % mT
+<p>
+Keep strain models simple. A model with many strained parameters and many correlation coefficients can reproduce almost any line shape, so there is a danger of overfitting: the fit to an experimental spectrum improves, but the strain parameters are poorly determined and lose their physical meaning. Typically, a strain model contains only a few parameters, which are either fully correlated (+1), fully anticorrelated (-1), or uncorrelated (0).
+</p>
 
-% Explicit averaging loop over D distribution
-spec = 0;
-for iD = 1:numel(D)
-  Sys.D = D(iD);
-  [B,spec_] = pepper(Sys,Exp);
-  spec = spec + weights(iD)*spec_;
+<p>
+The strain model is a first-order approximation. It works best when the strains are small, so that the transition frequencies change approximately linearly over the range of parameter values. Some guidelines:
+</p>
+<ul>
+<li>Keep the center of each distribution at least about 1.3 FWHM away from special values, such as D = 0, E/D = 1/3, a level crossing, or a sign change.</li>
+<li>Angle strains should be small, a few degrees rather than tens of degrees.</li>
+<li>Lines whose position is independent of a parameter to first order come out too narrow. An example is the central transition of half-integer spins S&gt;1/2 with D strain, such as Mn(II) or Gd(III).</li>
+<li>For degenerate energy levels, the widths depend on the choice of eigenvectors and are not reliable.</li>
+</ul>
+
+<p>
+If in doubt, compare with an explicit average over the parameter distribution, as described <a href="#explicit">below</a>.
+</p>
+
+<p>
+Strains are supported by <a class="esf" href="pepper.html">pepper</a> (with <code>Opt.Method='matrix'</code> or <code>'hybrid'</code>), <a class="esf" href="resfields.html">resfields</a>, and <a class="esf" href="resfields.html">resfreqs_matrix</a>. They are currently not supported by the perturbation-theory functions <a class="esf" href="resfields.html">resfields_perturb</a> and <a class="esf" href="resfields.html">resfreqs_perturb</a>, nor by <a class="esf" href="chili.html">chili</a> and <a class="esf" href="saffron.html">saffron</a>. <a class="esf" href="salt.html">salt</a> ignores them.
+</p>
+
+<!-- ----------------------------------------------------------------------------------------->
+<div class="subtitle"><a name="explicit">Explicit averaging over distributions</a></div>
+
+<p>
+You can model any form of inhomogeneous broadening. For this, run explicit loops over distributions of spin Hamiltonian parameters, simulate the associated spectra, and add them up, weighted by the distribution, to obtain a broadened spectrum.
+</p>
+
+<p>
+This approach is necessary if the distributions are so broad as to render the built-in strain treatment invalid, or if you want to average over non-Gaussian distributions or over parameters that cannot be strained.
+</p>
+
+<p>
+Here is an example for a broad Gaussian distribution of D:
+</p>
+
+<pre class="matlab">
+% Distribution of D
+D0 = 1000;                           % center of distribution, MHz
+Dfwhm = 500;                         % FWHM of distribution, MHz
+D = D0 + linspace(-2,2,101)*Dfwhm;   % D values, covering +-2 FWHM around D0
+weights = gaussian(D,D0,Dfwhm);
+weights = weights/sum(weights);      % normalize weights to sum 1
+
+% Spin system and experiment
+Sys.S = 1;
+Sys.HStrain = [30 30 30];            % MHz
+Exp.mwFreq = 9.5;                    % GHz
+Exp.Range = [230 430];               % mT
+
+% Explicit average over the D distribution
+spc = 0;
+for k = 1:numel(D)
+  Sys.D = D(k);
+  [B,spc_] = pepper(Sys,Exp);
+  spc = spc + weights(k)*spc_;
 end
 
 % Plotting
-subplot(2,1,1); plot(D,weights); axis tight
-subplot(2,1,2); plot(B,spec); axis tight
+subplot(2,1,1);
+plot(D,weights); axis tight; xlabel('D (MHz)');
+subplot(2,1,2);
+plot(B,spc); axis tight; xlabel('magnetic field (mT)');
 </pre>
+
+<p>
+Use enough parameter values: increase their number until the averaged spectrum no longer changes. As a rule of thumb, the lines of neighboring spectra in the loop should be shifted by less than the line width relative to each other.
+</p>
 
 <p>
 If more than one parameter is distributed, then nested loops over a multi-dimensional distribution are needed.

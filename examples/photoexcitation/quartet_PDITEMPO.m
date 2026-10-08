@@ -16,7 +16,8 @@ Sys.g = [2.0043 2.0043 2.0027;  % PDI
 
 % ZFS interaction of PDI triplet
 Sys.D = [990 -300; 0 0];
-Sys.DStrain = [100 100; 0 0];
+Sys.StrainPars = {'D(1,1)','D(1,2)'};  % strains of D and E of PDI triplet
+Sys.StrainFWHM = [100 100];  % MHz
 
 % Coupling between triplet and doublet states
 Sys.J = -1.2e3;  % MHz

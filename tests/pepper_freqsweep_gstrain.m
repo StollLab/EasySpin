@@ -3,7 +3,8 @@ function [ok,data] = test(opt,olddata)
 % Frequency sweep with pepper, g strain
 clear Sys Exp
 Sys.g = [2.05 2 1.95];
-Sys.gStrain = [0.02 0.01 0.003];
+Sys.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys.StrainFWHM = [0.02 0.01 0.003];
 
 Exp.Field = 340; % mT
 Exp.mwRange = [9 10]; % GHz

@@ -17,9 +17,9 @@ Cu.Nucs = 'Cu';
 Cu.A = [20 380];  % MHz
 
 % Define g and A strains, along || direction only
-Cu.gStrain = [0 0.020];
-Cu.AStrain = [0 50];  % MHz
-Cu.gAStrainCorr = -1;  % g-A correlation coefficient, -1 or 1
+Cu.StrainPars = {'g(2)','A(2)'};
+Cu.StrainFWHM = [0.020 50];  % A in MHz
+Cu.StrainCorr = -1;  % g-A correlation coefficient, between -1 and 1
 
 % Add additional anisotropic broadening (from unresolved hyperfine etc.)
 Cu.HStrain = [90 60];

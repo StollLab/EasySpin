@@ -67,6 +67,10 @@ The usage of <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing all parameters of the spin system.
 </p>
 
+<p>
+<code>resfields_perturb</code> and <code>resfreqs_perturb</code> do not support <a href="broadenings.html#strains">strains</a> (<code>Sys.StrainPars</code>) and give an error. Use <code>resfields</code> or <code>resfreqs_matrix</code> instead.
+</p>
+
 <div class="subtitle2">Input: Parameters</div>
 <p>
 <code>Exp</code> is a structure containing the following experimental parameters.

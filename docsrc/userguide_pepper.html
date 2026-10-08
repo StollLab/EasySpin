@@ -209,20 +209,19 @@ Sys.HStrain = [50 50 87];   % [along x, along y, along z], in MHz
 </pre>
 
 <p>
-Distributions in magnetic parameters are called <em>strains</em>. g and A strains are given in similar fields:
+Distributions in magnetic parameters are called <em>strains</em>. List the distributed parameters in <code>Sys.StrainPars</code> and the widths (FWHM) of their Gaussian distributions in <code>Sys.StrainFWHM</code>:
 </p>
 
 <pre class="matlab">
-Sys.gStrain = [0.01 0.02 0.005];
-Sys.AStrain = [10 10 30];  % in MHz
+Sys.g = [2.0 2.1 2.2];
+Sys.Nucs = '63Cu';
+Sys.A = [50 50 500];  % in MHz
+Sys.StrainPars = {'g(1)','g(2)','g(3)','A(3)'};
+Sys.StrainFWHM = [0.01 0.02 0.005 30];
 </pre>
 
 <p>
-The three values in <code>gStrain</code> are the FWHM for uncorrelated Gaussian distributions of the respective g principal values given in <code>Sys.g</code>. <code>AStrain</code> is the same for the A tensor. The g and A strains can be set to be correlated using <code>Sys.gAStrainCorr</code>.
-</p>
-
-<p>
-Distributions of the D tensor values can be given in <code>DStrain</code>, where the first value is the FWHM of a Gaussian distribution of D, and the second is the width for a Gaussian distribution of E.
+Each entry in <code>StrainPars</code> refers to an element of a spin system field, here the three g principal values and the third A principal value. Correlations between the distributions can be given in <code>Sys.StrainCorr</code>. For example, <code>Sys.StrainPars = {'g(3)','A(3)'}</code> with <code>Sys.StrainCorr = -1</code> gives anticorrelated gz and Az distributions. Distributions of D and E are given the same way, e.g. <code>Sys.StrainPars = {'D(1)','D(2)'}</code> with <code>Sys.D = [D E]</code>. See the page on <a href="broadenings.html#strains">strains</a> for details.
 </p>
 
 <p>

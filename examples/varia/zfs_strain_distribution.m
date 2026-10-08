@@ -1,17 +1,18 @@
-% Plot of (D,E) distribution given by D, DStrain and DStainCorr
+% Plot of (D,E) distribution given by D and correlated D/E strains
 %===============================================================================
 clear, clc
 
 % This script plots the Gaussian distribution over zero-field splitting
 % parameter D and E that EasySpin models based on the spin system fields
-% Sys.D, Sys.DStrain and Sys.DStrainCorr.
+% Sys.D and the strain fields Sys.StrainPars, Sys.StrainFWHM and Sys.StrainCorr.
 
 % Relevant spin system parameters
 % (Change these parameters to see how they affect the distribution)
 % (The correlation coefficient should be between -1 and 1.)
 Sys.D = [1 0.1]; % D and E, in MHz
-Sys.DStrain = [0.2 0.2]; % FWHM of D and E Gaussian distributions, MHz
-Sys.DStrainCorr = -0.9; % correlation coefficient between D and E
+Sys.StrainPars = {'D(1)','D(2)'}; % strains of D and E
+Sys.StrainFWHM = [0.2 0.2]; % FWHM of D and E Gaussian distributions, MHz
+Sys.StrainCorr = -0.9; % correlation coefficient between D and E
 
 % Get center of (D,E) distribution
 Dcenter = Sys.D(1);
@@ -19,13 +20,13 @@ Ecenter = Sys.D(2);
 mu = [Dcenter Ecenter];
 
 % Get widths (fwhm) of (D,E) distribution and convert to standard deviations
-Dfwhm = Sys.DStrain(1); % FWHM of Gaussian distribution of D
-Efwhm = Sys.DStrain(2); % FWHM of Gaussian distribution of E
+Dfwhm = Sys.StrainFWHM(1); % FWHM of Gaussian distribution of D
+Efwhm = Sys.StrainFWHM(2); % FWHM of Gaussian distribution of E
 Dsigma = Dfwhm/sqrt(2*log(2))/2; % convert FWHM to standard deviation
 Esigma = Efwhm/sqrt(2*log(2))/2; % convert FWHM to standard deviation
 
 % Get the correlation coefficient between D and E
-rDE = Sys.DStrainCorr;
+rDE = Sys.StrainCorr;
 
 % Build the covariance matrix
 R12 = rDE*Dsigma*Esigma; % off-diagonal element of covariance matrix
@@ -49,7 +50,7 @@ grid on
 xlabel('D (MHz)');
 ylabel('E (MHz)');
 colorbar
-title(sprintf('Gaussian (D,E) distribution, correlation coefficient %g',Sys.DStrainCorr));
+title(sprintf('Gaussian (D,E) distribution, correlation coefficient %g',Sys.StrainCorr));
 
 % Function that calculates a two-dimensional Gaussian distribution over
 % x1 and x2 centered at mu and with covariance matrix Sigma

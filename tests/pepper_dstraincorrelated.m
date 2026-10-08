@@ -4,7 +4,8 @@ function [ok,data] = test(opt,olddata)
 
 Sys.S = 1;
 Sys.D = [800 80];
-Sys.DStrain = [100 33];
+Sys.StrainPars = {'D(1)','D(2)'};
+Sys.StrainFWHM = [100 33];
 Sys.lwpp = 1;
 
 Exp.mwFreq = 9.5;
@@ -12,9 +13,9 @@ Exp.CenterSweep = [340 100];
 
 Opt.GridSize = 15;
 
-Sys.DStrainCorr =  0; [x,y0] = pepper(Sys,Exp,Opt);
-Sys.DStrainCorr = +1; [x,yp] = pepper(Sys,Exp,Opt);
-Sys.DStrainCorr = -1; [x,ym] = pepper(Sys,Exp,Opt);
+Sys.StrainCorr =  0; [x,y0] = pepper(Sys,Exp,Opt);
+Sys.StrainCorr = +1; [x,yp] = pepper(Sys,Exp,Opt);
+Sys.StrainCorr = -1; [x,ym] = pepper(Sys,Exp,Opt);
 
 if (opt.Display)
   if isempty(olddata)

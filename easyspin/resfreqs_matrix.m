@@ -84,35 +84,8 @@ error(err);
 
 DefaultSystem.lw = 0;
 DefaultSystem.A=0;
-DefaultSystem.HStrain = [0 0 0];
-DefaultSystem.gStrain = [0 0 0];
-DefaultSystem.AStrain = [0 0 0];
-DefaultSystem.DStrain = 0;
-DefaultSystem.gAStrainCorr = +1;
 
 Sys = adddefaults(Sys,DefaultSystem);
-
-if (numel(Sys.gAStrainCorr)~=1) || ~isnumeric(Sys.gAStrainCorr) || ...
-    (Sys.gAStrainCorr==0) || ~isfinite(Sys.gAStrainCorr)
-  error('Sys.gAStrainCorr must be a single number, either +1 or -1.');
-end
-Sys.gAStrainCorr = sign(Sys.gAStrainCorr);
-
-if Sys.nElectrons>1
-  if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
-    error('Cannot use D or g/A strain in spin system with more than one electron spin.');
-  end
-end
-
-if any(Sys.gStrain(:)) || any(Sys.AStrain(:))
-  gFull = size(Sys.g,1)==3*numel(Sys.S);
-  if gFull
-    error('gStrain and AStrain are not allowed when full g matrices are given!');
-  end
-  if any(Sys.DStrain)
-    error('D strain and g/A strain cannot be used at the same time.');
-  end
-end
 
 if any(strncmp(fieldnames(Sys),'Ham',3))
   higherOrder = 1;
@@ -239,7 +212,7 @@ else
   postSelectionThreshold = Opt.Threshold(2);
 end
 
-StrainsPresent = any([Sys.HStrain(:); Sys.DStrain(:); Sys.gStrain(:); Sys.AStrain(:)]);
+StrainsPresent = any(Sys.HStrain(:)) || ~isempty(Sys.StrainData.Q);
 computeStrains = StrainsPresent && (nargout>2);
 computeIntensities = ((nargout>1) & Opt.Intensity);
 
@@ -265,7 +238,15 @@ if Sys.nNuclei>=1 && Opt.Hybrid
   end
 
   perturbNuclei = true(1,Sys.nNuclei);
-  perturbNuclei(Opt.HybridCoreNuclei) = false;  
+  perturbNuclei(Opt.HybridCoreNuclei) = false;
+  % Nuclei with strains must be in the core
+  if computeStrains
+    strainNuclei = strainednuclei(Sys);
+    if any(perturbNuclei(strainNuclei))
+      logmsg(1,'  adding nuclei with strains to core: %s',sprintf('%d ',strainNuclei(perturbNuclei(strainNuclei))));
+    end
+    perturbNuclei(strainNuclei) = false;
+  end
   idxPerturbNuclei = find(perturbNuclei);
   % :TODO: Allow 1st-order PT only if (2nd-order) error smaller than field increment.
   nPerturbNuclei = numel(idxPerturbNuclei);
@@ -341,9 +322,12 @@ if Sys.nNuclei>=1 && Opt.Hybrid
     S(iEl).z = sop(CoreSys,[iEl,3]);
   end
   
+  coreNuclei = find(~perturbNuclei);
+
 else
   nPerturbNuclei = 0;
   CoreSys = Sys;
+  coreNuclei = 1:Sys.nNuclei;
 end
 
 % Hamiltonian components for the core system.
@@ -509,68 +493,14 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 logmsg(1,'- Broadenings');
 if computeStrains
   logmsg(1,'  using strains');
-  
-  % D strain
-  %-----------------------------------------------
-  [useDStrain,dHdD,dHdE] = getdstrainops(CoreSys);
-  
-  % g-A strain
-  %-------------------------------------------------
-  % g strain tensor is taken to be along the g tensor itself.
-  usegStrain = any(CoreSys.gStrain(:));
-  simplegStrain = CoreSys.nElectrons==1;
-  if usegStrain
-    logmsg(1,'  g strain present');
-    for iEl = CoreSys.nElectrons:-1:1
-      gStrainMatrix{iEl} = diag(CoreSys.gStrain(iEl,:)./CoreSys.g(iEl,:));
-      if any(CoreSys.gFrame(iEl,:))
-        R_g2M = erot(CoreSys.gFrame(iEl,:)).'; % g frame -> molecular frame
-        gStrainMatrix{iEl} = R_g2M*gStrainMatrix{iEl}*R_g2M.';
-      end
-    end
-    if ~simplegStrain
-      logmsg(1,'  multiple g strains present');
-      for iEl = CoreSys.nElectrons:-1:1
-        kSxM{iEl} = sop(CoreSys,[iEl,1]);
-        kSyM{iEl} = sop(CoreSys,[iEl,2]);
-        kSzM{iEl} = sop(CoreSys,[iEl,3]);
-      end
-    end
-  else
-    for iEl = CoreSys.nElectrons:-1:1
-      gStrainMatrix{iEl} = 0;
-    end
-  end
-  
-  useAStrain = (CoreSys.nNuclei>0) && any(CoreSys.AStrain(:));
-  if useAStrain
-    if isfield(CoreSys,'AFrame')
-      R = erot(CoreSys.AFrame(1,:)).'; % A frame -> molecular frame
-    else
-      R = eye(3);
-    end
-    
-    Ix_ = R(1,1)*sop(CoreSys,[2,1])+R(2,1)*sop(CoreSys,[2,2])+R(3,1)*sop(CoreSys,[2,3]);
-    Iy_ = R(1,2)*sop(CoreSys,[2,1])+R(2,2)*sop(CoreSys,[2,2])+R(3,2)*sop(CoreSys,[2,3]);
-    Iz_ = R(1,3)*sop(CoreSys,[2,1])+R(2,3)*sop(CoreSys,[2,2])+R(3,3)*sop(CoreSys,[2,3]);
-    
-    Sx_ = R(1,1)*sop(CoreSys,[1,1])+R(1,2)*sop(CoreSys,[1,2])+R(1,3)*sop(CoreSys,[1,3]);
-    Sy_ = R(2,1)*sop(CoreSys,[1,1])+R(2,2)*sop(CoreSys,[1,2])+R(2,3)*sop(CoreSys,[1,3]);
-    Sz_ = R(3,1)*sop(CoreSys,[1,1])+R(3,2)*sop(CoreSys,[1,2])+R(3,3)*sop(CoreSys,[1,3]);
-    
-    dHdAx = CoreSys.AStrain(1)*Ix_*Sx_;
-    dHdAy = CoreSys.AStrain(2)*Iy_*Sy_;
-    dHdAz = CoreSys.AStrain(3)*Iz_*Sz_;
-    
-    clear Ix_ Iy_ Iz_ Sx_ Sy_ Sz_
-  end
-  if any(CoreSys.HStrain), logmsg(2,'  ## using H strain'); end
-  if usegStrain, logmsg(2, ' ## using g strain'); end
-  if useAStrain, logmsg(2,'  ## using A strain'); end
-  if useDStrain, logmsg(2,'  ## using D strain'); end
-  
+  HStrain2 = CoreSys.HStrain.^2;
+  if any(HStrain2), logmsg(2,'  ## using H strain'); end
+  % Strain mode operators
+  [G0,Gmu] = strains_ops(Sys,CoreSys,coreNuclei,Opt.Sparse);
+  nModes = numel(G0);
+  if nModes>0, logmsg(2,'  ## using %d strain modes',nModes); end
 else
-  logmsg(1,'  no strains specified',nTransitions);
+  logmsg(1,'  no strains specified');
 end
 
 
@@ -755,34 +685,19 @@ for iOri = 1:nOrientations
   % Calculate width if requested.
   %--------------------------------------------------
   if computeStrains
-    LineWidthSquared = CoreSys.HStrain.^2*zLab.^2;
-    for iTrans = 1:nTransitions
-      m = @(Op)Vs(:,v(iTrans))'*Op*Vs(:,v(iTrans)) - Vs(:,u(iTrans))'*Op*Vs(:,u(iTrans));
-            
-      % H strain: Frequency-domain residual width tensor
-      LineWidth2 = LineWidthSquared;
-      
-      % D strain
-      if useDStrain
-        for iEl = 1:CoreSys.nElectrons
-          LineWidth2 = LineWidth2 + abs(m(dHdD{iEl}))^2;
-          LineWidth2 = LineWidth2 + abs(m(dHdE{iEl}))^2;
-        end
+    LineWidthSquared = HStrain2*zLab.^2; % MHz^2
+    if nModes>0
+      % Derivatives of all level energies along each strain mode
+      d = zeros(size(Vs,2),nModes);
+      for k = 1:nModes
+        GzL = zLab(1)*Gmu{1,k} + zLab(2)*Gmu{2,k} + zLab(3)*Gmu{3,k};
+        Gk = G0{k} - Exp.Field*GzL;
+        d(:,k) = real(sum(conj(Vs).*(Gk*Vs),1)).';
       end
-      
-      % A strain
-      if useAStrain
-        LineWidth2 = LineWidth2 + abs(m(dHdAx))^2;
-        LineWidth2 = LineWidth2 + abs(m(dHdAy))^2;
-        LineWidth2 = LineWidth2 + abs(m(dHdAz))^2;
-      end
-      
-      % g strain
-      if usegStrain
-        dg2 = (m(kmuzL)*Exp.Field*zLab.'*gStrainMatrix{1}*zLab)^2;
-        LineWidth2 = LineWidth2 + abs(dg2);
-      end
-      Wdat(iTrans,iOri) = sqrt(LineWidth2);
+      dE = d(v,:) - d(u,:);
+      Wdat(:,iOri) = sqrt(LineWidthSquared + sum(dE.^2,2));
+    else
+      Wdat(:,iOri) = sqrt(LineWidthSquared);
     end
   end
   
@@ -989,7 +904,7 @@ if computeIntensities
   logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
 end
 if computeStrains && numel(Wdat)>0
-  logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
+  logmsg(2,'  ## widths min %g MHz, max %g MHz',min(Wdat(:)),max(Wdat(:)));
 end
 
 % Reshape arrays in the case of crystals with multiple sites
@@ -1019,4 +934,19 @@ if ~isempty(Wdat), Wdat = Wdat(idx,:); end
 Output = {Pdat,Idat,Wdat,Transitions};
 varargout = Output(1:max(nargout,1));
 
+end
+
+
+%-------------------------------------------------------------------------------
+% Indices of nuclei that have strain parameters
+function idx = strainednuclei(Sys)
+idx = [];
+D = Sys.StrainData.Deriv;
+for i = 1:numel(D)
+  switch D(i).type
+    case 'A', idx = [idx D(i).idx(2)]; %#ok<AGROW>
+    case {'Q','sigma','nn'}, idx = [idx D(i).idx]; %#ok<AGROW>
+  end
+end
+idx = unique(idx);
 end

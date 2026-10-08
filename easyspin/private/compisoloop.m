@@ -81,6 +81,11 @@ for iComponent = 1:nComponents
     % Simulate single-isotopologue spectrum
     Sys_ = SysList{iComponent}(iIsotopologue);
     Sys_.singleiso = true;
+    % Remove strain fields emptied by isotopologues (no strains left)
+    if isfield(Sys_,'StrainPars') && isempty(Sys_.StrainPars) && ...
+        isfield(Sys_,'StrainModes') && isempty(Sys_.StrainModes)
+      Sys_ = rmfield(Sys_,{'StrainPars','StrainModes'});
+    end
     [x,spec_,info_] = simfcn(Sys_,Exp,Opt);
     fdProvided = isfield(info_,'fd');
 

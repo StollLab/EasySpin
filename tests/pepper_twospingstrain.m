@@ -7,8 +7,8 @@ function ok = test(opt)
 % parameters
 S1 = 1/2;
 S2 = 1/2;
-g1 = [2 2.01];
-g2 = [2.03 2.04];
+g1 = [2 2 2.01];
+g2 = [2.03 2.03 2.04];
 gs1 = 4*[1 1 1]*0.0005;
 gs2 = 1*[1 1 1]*0.0005;
 
@@ -16,17 +16,20 @@ gs2 = 1*[1 1 1]*0.0005;
 Sys.S = [S1 S2];
 Sys.g = [g1; g2];
 Sys.ee = 1e-4;
-Sys.gStrain = [gs1; gs2];
+Sys.StrainPars = {'g(1,1)','g(1,2)','g(1,3)','g(2,1)','g(2,2)','g(2,3)'};
+Sys.StrainFWHM = [gs1 gs2];
 
 % system 1
 Sys1.S = S1;
 Sys1.g = g1;
-Sys1.gStrain = gs1;
+Sys1.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys1.StrainFWHM = gs1;
 
 % system 2
 Sys2.S = S2;
 Sys2.g = g2;
-Sys2.gStrain = gs2;
+Sys2.StrainPars = {'g(1)','g(2)','g(3)'};
+Sys2.StrainFWHM = gs2;
 
 Exp.mwFreq = 9.5;
 Exp.Harmonic = 0;

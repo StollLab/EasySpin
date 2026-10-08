@@ -1,6 +1,6 @@
 function ok = test(opt)
 
-% Test whether correlated g/A strain + H strain work equally
+% Test whether H strain works equally
 % with matrix diagonalization and perturbation theory
 %-------------------------------------------------------------
 
@@ -9,10 +9,7 @@ Exp.Range = [200 400];
 Sys.Nucs = '1H';
 Sys.g = [2 2.3 2.7];
 Sys.A = [350 400];
-Sys.HStrain = [20 40 70];
-Sys.gStrain = [0.04 0.02];
-Sys.AStrain = [90 10];
-Sys.gAStrainCorr = -1;
+Sys.HStrain = [200 250 300];
 Opt.Method = 'matrix';
 [x,y0] = pepper(Sys,Exp,Opt);
 Opt.Method = 'perturb2';
