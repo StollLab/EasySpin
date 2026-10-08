@@ -26,11 +26,14 @@
 %      Verbosity           level of detail of printing; 0, 1, 2
 %      PerturbOrder        perturbation order; 1 or 2
 %      Sites               list of crystal sites to include (default []: all)
+%      Freq2Field          1 (default) or 0, include or omit the frequency-to-field
+%                            conversion factor (1/g) in intensities and widths
 %
 %   Output:
 %    Pos     line positions (in mT)
 %    Int     line intensities
 %    Wid     Gaussian line widths, full width half maximum (FWHM), in mT
+%              (in MHz if Opt.Freq2Field is 0)
 %    Trans   list of transitions (level indices; nuclear sublevel indices are approximate)
 
 function varargout = resfields_perturb(Sys,Exp,Opt)
@@ -241,6 +244,12 @@ else
 end
 
 if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
+
+if ~isfield(Opt,'Freq2Field'), Opt.Freq2Field = true; end
+if ~isscalar(Opt.Freq2Field) || (Opt.Freq2Field~=1 && Opt.Freq2Field~=0)
+  error('Opt.Freq2Field must be 1 or 0.');
+end
+computeFreq2Field = Opt.Freq2Field;
 %---------------------------------------------------------------------
 
 
@@ -310,6 +319,7 @@ for iOri = nOrientations:-1:1
   
   % frequency to field conversion factor
   preOri = 1e6*planck/(geff(iOri)*bmagn);
+  dBdE(iOri) = (planck/bmagn*1e9)/geff(iOri); % mT/MHz
   
   % Compute intensities
   %----------------------------------------------------------------
@@ -360,12 +370,15 @@ for iOri = nOrientations:-1:1
     TransitionRateMirror = TransitionRate(:,iOri);
   end
 
-  % Compute Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
-  dBdE = (planck/bmagn*1e9)/geff(iOri);
-  
   % Combine all factors into overall line intensity
-  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*dBdE*photoWeight;
-  IntensityMirror(:,iOri) = Polarization.*TransitionRateMirror*dBdE*photoWeight;
+  Intensity(:,iOri) = Polarization.*TransitionRate(:,iOri)*photoWeight;
+  IntensityMirror(:,iOri) = Polarization.*TransitionRateMirror*photoWeight;
+
+  % Include Aasa-Vänngård 1/g factor (frequency-to-field conversion factor)
+  if computeFreq2Field
+    Intensity(:,iOri) = Intensity(:,iOri)*dBdE(iOri);
+    IntensityMirror(:,iOri) = IntensityMirror(:,iOri)*dBdE(iOri);
+  end
   
   if highSpin
     Du = D*u;
@@ -491,12 +504,11 @@ else
   Int = repelem(Intensity,nNucSublevels,1)/nNucSublevels;
   Int = flipud(Int);
   
-  % Widths
+  % Widths (in MHz, converted to mT further down)
   %-------------------------------------------------------------------
   if any(Sys.HStrain)
     lw2 = sum(Sys.HStrain.^2*vecs.^2,1); % MHz^2
-    lw = sqrt(lw2)*1e6*planck./geff/bmagn*1e3; % mT
-    Wid = repmat(lw,nNucTrans*2*S,1);
+    Wid = repmat(sqrt(lw2),nNucTrans*2*S,1);
   else
     Wid = 0;
   end
@@ -526,13 +538,13 @@ else
         StrainMatrix = gStrainMatrix + corr*(mI1(idx))*AStrainMatrix;
         lw2(idx,:) = sum(vecs.*(StrainMatrix^2*vecs),1);
       end
-      Wid_gA = sqrt(lw2)*planck*1e6./repmat(geff,numel(mI1),1)/bmagn*1e3; % MHz -> mT
+      Wid_gA = sqrt(lw2);
       % mS outer, nuclear sublevels inner; first nucleus varies slowest
       idx = repmat(repelem(1:numel(mI1),nNucTrans/numel(mI1)),1,2*S);
       Wid = sqrt(Wid_gA(idx,:).^2 + Wid.^2);
     else
       lw2 = sum(vecs.*(gStrainMatrix^2*vecs),1);
-      Wid_gA = sqrt(lw2)*planck*1e6./geff/bmagn*1e3; % MHz -> mT
+      Wid_gA = sqrt(lw2);
       Wid = sqrt(repmat(Wid_gA.^2,2*S*nNucTrans,1)+Wid.^2);
     end
 
@@ -572,16 +584,14 @@ else
     % Calculate freq-domain linewidths, one row per mS <-> mS-1 transition
     lw1 = diff(dH1,1,1);
     lw2 = diff(dH2,1,1);
-    % convert from MHz to mT
-    MHz2mT = (planck/bmagn*1e9)./geff;
-    lw1 = lw1.*MHz2mT;
-    lw2 = lw2.*MHz2mT;
     Wid2_DE = repelem(lw1.^2+lw2.^2,nNucTrans,1);
     Wid = sqrt(Wid2_DE + Wid.^2);
   end
 
   if ~any(Wid(:))
     Wid = [];
+  elseif computeFreq2Field
+    Wid = Wid.*dBdE; % MHz -> mT
   end
 
   % Transitions
