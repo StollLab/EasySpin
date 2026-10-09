@@ -47,7 +47,7 @@ mS = -S:1:S;
 mS2 = mS.^2;
 
 if Sys.fullg
-  g = Sys.g;
+  g = Sys.g.'; % Iwasaki's S.g.B vs EasySpin's B.g.S: transpose
 else
   R_g2M = erot(Sys.gFrame).'; % g frame -> molecular frame
   g = R_g2M*diag(Sys.g)*R_g2M.';
@@ -70,7 +70,7 @@ for iNuc = nNuclei:-1:1
   mI{iNuc} = -I(iNuc):I(iNuc);
 
   if Sys.fullA
-    A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
+    A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:).'; % Iwasaki's I.A.S vs EasySpin's S.A.I: transpose
   else
     R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
     A_ = diag(Sys.A(iNuc,:));

@@ -126,7 +126,8 @@ end
 
 for iNuc = nNuclei:-1:1
   if Sys.fullA
-    A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:);
+    % Iwasaki's Hamiltonian is I.A.S, EasySpin's is S.A.I, so transpose
+    A{iNuc} = Sys.A((iNuc-1)*3+(1:3),:).';
   else
     R_A2M = erot(Sys.AFrame(iNuc,:)).'; % A frame -> molecular frame
     A_ = diag(Sys.A(iNuc,:));
