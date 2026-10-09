@@ -1,17 +1,28 @@
-% effect of g strain at various mw frequencies
+% Tyrosyl radical: effect of g strain at various mw frequencies
 %==========================================================================
+% The tyrosyl radical Y122 of E. coli ribonucleotide reductase has a small
+% g anisotropy. A distribution of g values (g strain), largest for gx due
+% to variations in hydrogen bonding, broadens the spectrum proportionally
+% to the microwave frequency, so its effect becomes visible only at high
+% frequencies. The hyperfine couplings are modeled as a frequency-independent
+% Gaussian broadening (HStrain), which dominates at low frequencies.
+%
+% g values: Gerfen et al., J. Am. Chem. Soc. 115, 6420 (1993),
+%   https://doi.org/10.1021/ja00067a071
+
 clear, clf
 
 % Spin system, experiment parameters and options
 %------------------------------------------------------------
-gFWHM = [0.001 0.0008 0.0005];  % FWHM of g distributions
-Sys.g = [2.0104 2.0074 2.0026];
+gFWHM = [0.001 0.0005 0.0003];  % FWHM of g distributions
+Sys.g = [2.0091 2.0046 2.0022];
+Sys.HStrain = [1 1 1]*40;  % MHz, unresolved hyperfine couplings
 Exp.Harmonic = 0;
 
 % Frequencies [GHz] and associated magnetic field ranges [mT]
 %------------------------------------------------------------
 Freqs = [3 9.5 35 95 263];
-Ranges = [102 112; 334 344; 1240 1255; 3372 3395; 12425 12505];
+Ranges = [104 110; 335 342; 1242 1252; 3374 3394; 9345 9395];
 nFreqs = numel(Freqs);
 
 % Simulating all spectra with and without g strain

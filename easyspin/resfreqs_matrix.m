@@ -241,7 +241,7 @@ if Sys.nNuclei>=1 && Opt.Hybrid
   perturbNuclei(Opt.HybridCoreNuclei) = false;
   % Nuclei with strains must be in the core
   if computeStrains
-    strainNuclei = strainednuclei(Sys);
+    strainNuclei = Sys.StrainData.Nuclei;
     if any(perturbNuclei(strainNuclei))
       logmsg(1,'  adding nuclei with strains to core: %s',sprintf('%d ',strainNuclei(perturbNuclei(strainNuclei))));
     end
@@ -936,17 +936,3 @@ varargout = Output(1:max(nargout,1));
 
 end
 
-
-%-------------------------------------------------------------------------------
-% Indices of nuclei that have strain parameters
-function idx = strainednuclei(Sys)
-idx = [];
-D = Sys.StrainData.Deriv;
-for i = 1:numel(D)
-  switch D(i).type
-    case 'A', idx = [idx D(i).idx(2)]; %#ok<AGROW>
-    case {'Q','sigma','nn'}, idx = [idx D(i).idx]; %#ok<AGROW>
-  end
-end
-idx = unique(idx);
-end

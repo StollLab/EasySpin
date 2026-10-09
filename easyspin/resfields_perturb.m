@@ -7,7 +7,8 @@
 %   [Pos,Int,Wid,Trans] = resfields_perturb(...)
 %
 %   Computes cw EPR line positions, intensities and widths using
-%   perturbation theory.
+%   perturbation theory. Widths include Sys.HStrain and strains of g, A and D
+%   (Sys.StrainPars).
 %
 %   Input:
 %    Sys: spin system structure
@@ -75,8 +76,8 @@ end
 if any(Sys.L(:))
     err = sprintf('Perturbation theory not available for electron spin combined with orbital angular momentum!');
 end
-if ~isempty(Sys.StrainData.Q)
-  err = 'Strains (Sys.StrainPars) are not supported by perturbation theory. Use matrix diagonalization (Opt.Method=''matrix'').';
+if any(ismember({Sys.StrainData.Tensors.type},{'Q','sigma'}))
+  err = 'Sys.StrainPars: strains of Sys.Q/Sys.sigma are not supported by perturbation theory, which omits nuclear quadrupole and nuclear Zeeman terms. Use matrix diagonalization (Opt.Method=''matrix'').';
 end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   err = 'Perturbation theory not available for nuclear-nuclear couplings (Sys.nn).';
@@ -240,6 +241,11 @@ if secondOrder && Sys.nNuclei>0 && S==round(S)
 end
 
 if ~isfield(Opt,'ImmediateBinning'), Opt.ImmediateBinning = 0; end
+
+computeStrains = ~isempty(Sys.StrainData.Tensors) && nargout>2;
+if computeStrains && Opt.ImmediateBinning
+  error('Strains (Sys.StrainPars) cannot be used with Opt.ImmediateBinning.');
+end
 
 if ~isfield(Opt,'Freq2Field'), Opt.Freq2Field = true; end
 if ~isscalar(Opt.Freq2Field) || (Opt.Freq2Field~=1 && Opt.Freq2Field~=0)
@@ -492,6 +498,9 @@ else
   % Positions
   %-------------------------------------------------------------------
   B = [Bfinal{:}].';
+  if computeStrains
+    EZ = B.*geff*bmagn/planck/1e6; % electron Zeeman energy at resonance, MHz
+  end
   B = B*1e3;  % T -> mT
   
   % Intensities
@@ -502,12 +511,11 @@ else
   
   % Widths (in MHz, converted to mT further down)
   %-------------------------------------------------------------------
-  if any(Sys.HStrain)
-    lw2 = sum(Sys.HStrain.^2*vecs.^2,1); % MHz^2
-    Wid = repmat(sqrt(lw2),nNucTrans*2*S,1);
-  else
-    Wid = 0;
+  Wid2 = Sys.HStrain.^2*vecs.^2; % 1 x nOri, MHz^2
+  if computeStrains
+    Wid2 = Wid2 + strains_perturb(Sys,vecs,E0,EZ,secondOrder);
   end
+  Wid = sqrt(Wid2.*ones(nNucTrans*2*S,1));
   
   if ~any(Wid(:))
     Wid = [];

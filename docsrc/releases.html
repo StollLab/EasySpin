@@ -87,7 +87,7 @@ $ReleaseID$
 <li>Full interaction matrices (in <code>Sys.g</code>, <code>Sys.D</code>, <code>Sys.ee</code>, <code>Sys.A</code>, <code>Sys.Q</code>, <code>Sys.sigma</code>, <code>Sys.nn</code>) can no longer be combined with nonzero Euler angles in the corresponding <code>Frame</code> field, and give an error. Previously, the angles were applied by some functions and ignored by others.</li>
 <li><a class="esf" href="pepper.html">pepper</a> no longer supports <code>Opt.Freq2Field</code>. Use <a class="esf" href="resfields.html">resfields</a> instead.</li>
 <li>The strain fields <code>Sys.gStrain</code>, <code>Sys.AStrain</code>, <code>Sys.gAStrainCorr</code>, <code>Sys.DStrain</code> and <code>Sys.DStrainCorr</code> have been removed and give an error that shows the replacement in the new strain syntax.</li>
-<li>Strains are no longer supported by perturbation theory (<a class="esf" href="resfields.html">resfields_perturb</a>, <code>resfreqs_perturb</code>, <code>Opt.Method='perturb'</code> in <a class="esf" href="pepper.html">pepper</a>). Use matrix diagonalization.</li>
+<li>Perturbation theory (<a class="esf" href="resfields.html">resfields_perturb</a>, <code>resfreqs_perturb</code>, <code>Opt.Method='perturb'</code> in <a class="esf" href="pepper.html">pepper</a>) supports strains of g, A and D and their frames, but not strains of Q and sigma.</li>
 </ul>
 
 <div class="subtitle">

@@ -18,20 +18,14 @@
 
 function [G0,Gmu] = strains_ops(Sys,CoreSys,coreNuclei,sparseFlag)
 
-Q = Sys.StrainData.Q;
-Deriv = Sys.StrainData.Deriv;
-nModes = size(Q,2);
+Tensors = Sys.StrainData.Tensors;
+nModes = size(Sys.StrainData.Q,2);
 nStates = hsdim(CoreSys);
 nEl = CoreSys.nElectrons;
 
 % Map nucleus indices from Sys to CoreSys
 nucMap = zeros(1,Sys.nNuclei);
 nucMap(coreNuclei) = 1:numel(coreNuclei);
-
-% Group strain parameters acting on the same tensor
-keys = arrayfun(@(d)sprintf('%s%s',d.type,sprintf('_%d',d.idx)),Deriv,'UniformOutput',false);
-[~,~,group] = unique(keys,'stable');
-nGroups = max([group(:); 0]);
 
 G0 = cell(1,nModes);
 Gmu = cell(3,nModes);
@@ -43,9 +37,8 @@ for k = nModes:-1:1
 end
 
 pre_e = -bmagn/planck/1e9; % MHz/mT
-for iGroup = 1:nGroups
-  members = find(group==iGroup);
-  d = Deriv(members(1));
+for iTensor = 1:numel(Tensors)
+  d = Tensors(iTensor);
   idx = d.idx;
 
   % Spin indices in CoreSys
@@ -70,10 +63,7 @@ for iGroup = 1:nGroups
 
   for k = 1:nModes
     % Derivative of the tensor along mode k
-    M = zeros(3);
-    for i = members(:).'
-      M = M + Q(i,k)*Deriv(i).dT;
-    end
+    M = d.M(:,:,k);
     if ~any(M(:)), continue; end
 
     switch d.type

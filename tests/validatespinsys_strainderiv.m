@@ -54,8 +54,38 @@ for k = 1:c
     dT = (moltensor(Sp,D.type,D.idx) - moltensor(Sm,D.type,D.idx))/(2*h);
     ok(k) = ok(k) && areequal(D.dT,dT,1e-6*max(1,norm(dT)),'abs');
   end
+  ok(k) = ok(k) && checktensors(Sys_.StrainData);
 end
 
+end
+
+%-------------------------------------------------------------------------------
+% Check mode tensors M(:,:,k) = sum_i Q(i,k)*dT_i and strained nuclei
+function ok = checktensors(StrainData)
+Q = StrainData.Q;
+Deriv = StrainData.Deriv;
+Tensors = StrainData.Tensors;
+key = @(d) sprintf('%s%s',d.type,sprintf('_%d',d.idx));
+derivKeys = arrayfun(key,Deriv,'UniformOutput',false);
+ok = numel(Tensors)==numel(unique(derivKeys));
+for t = Tensors
+  members = find(strcmp(derivKeys,key(t)));
+  for k = 1:size(Q,2)
+    M = zeros(3);
+    for i = members
+      M = M + Q(i,k)*Deriv(i).dT;
+    end
+    ok = ok && areequal(t.M(:,:,k),M,1e-12,'abs');
+  end
+end
+nuc = [];
+for i = 1:numel(Deriv)
+  switch Deriv(i).type
+    case 'A', nuc = [nuc Deriv(i).idx(2)]; %#ok<AGROW>
+    case {'Q','sigma','nn'}, nuc = [nuc Deriv(i).idx]; %#ok<AGROW>
+  end
+end
+ok = ok && isequal(StrainData.Nuclei,unique(nuc));
 end
 
 %-------------------------------------------------------------------------------

@@ -5,13 +5,15 @@ clear, clc
 % This script plots the Gaussian distribution over zero-field splitting
 % parameter D and E that EasySpin models based on the spin system fields
 % Sys.D and the strain fields Sys.StrainPars, Sys.StrainFWHM and Sys.StrainCorr.
+% The values are typical of a spin triplet (S = 1) such as an organic triplet
+% or biradical.
 
 % Relevant spin system parameters
 % (Change these parameters to see how they affect the distribution)
 % (The correlation coefficient should be between -1 and 1.)
-Sys.D = [1 0.1]; % D and E, in MHz
+Sys.D = [1500 150]; % D and E, in MHz
 Sys.StrainPars = {'D(1)','D(2)'}; % strains of D and E
-Sys.StrainFWHM = [0.2 0.2]; % FWHM of D and E Gaussian distributions, MHz
+Sys.StrainFWHM = [200 50]; % FWHM of D and E Gaussian distributions, MHz
 Sys.StrainCorr = -0.9; % correlation coefficient between D and E
 
 % Get center of (D,E) distribution

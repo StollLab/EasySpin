@@ -8,6 +8,7 @@
 %
 %   Computes frequency-domain EPR line positions, intensities and widths using
 %   perturbation theory. Only systems with one electron spin are supported.
+%   Widths include Sys.HStrain and strains of g, A and D (Sys.StrainPars).
 %
 %   Input:
 %    Sys: spin system structure
@@ -77,10 +78,12 @@ end
 if ~isempty(Sys.initState)
   err = 'Sys.initState is not supported by resfreqs_perturb.';
 end
-if ~isempty(Sys.StrainData.Q)
-  err = 'Strains (Sys.StrainPars) are not supported by perturbation theory. Use matrix diagonalization (Opt.Method=''matrix'').';
+if any(ismember({Sys.StrainData.Tensors.type},{'Q','sigma'}))
+  err = 'Sys.StrainPars: strains of Sys.Q/Sys.sigma are not supported by perturbation theory, which omits nuclear quadrupole and nuclear Zeeman terms. Use matrix diagonalization (Opt.Method=''matrix'').';
 end
 error(err);
+
+computeStrains = ~isempty(Sys.StrainData.Tensors) && nargout>2;
 
 if Sys.fullg
   g = Sys.g;
@@ -251,6 +254,10 @@ c2 = c.^2;
 
 nRows = nTransitions*nNucSublevels;
 nu = zeros(nRows,nOrientations);
+if computeStrains
+  E0all = zeros(1,nOrientations);
+  EZ = zeros(nRows,nOrientations);
+end
 Intensity = zeros(nTransitions,nOrientations);
 vecs = zeros(3,nOrientations);
 
@@ -262,6 +269,7 @@ for iOri = 1:nOrientations
 
   geff = norm(g.'*n0);
   E0_ = bmagn*geff*B0/planck/1e6; % MHz
+  if computeStrains, E0all(iOri) = E0_; end
   u = g.'*n0/geff; % molecular frame representation
 
   % Thermal polarization, using Zeeman level spacing
@@ -372,23 +380,29 @@ for iOri = 1:nOrientations
     end
 
     % second order
+    E2 = 0;
     if secondOrder
       if highSpin
         x = D1sq*(4*S*(S+1)-3*(8*mS^2-8*mS+3))...
           - D2sq/4*(2*S*(S+1)-3*(2*mS^2-2*mS+1));
-        dE = dE - x/(2*E0_);
+        E2 = E2 - x/(2*E0_);
       end
       if nNuclei>0
         x = mIc.^2*A1sq - (1-2*mS)*mIc*A2 + (II1-mIc.^2)*A3/2;
-        dE = dE + x/(2*E0_);
+        E2 = E2 + x/(2*E0_);
         if highSpin
           y = (3-6*mS)*mIc*DA;
-          dE = dE - y/E0_;
+          E2 = E2 - y/E0_;
         end
       end
     end
+    dE = dE + E2;
 
-    nu((imS-1)*nNucSublevels+(1:nNucSublevels),iOri) = dE;
+    rows = (imS-1)*nNucSublevels+(1:nNucSublevels);
+    nu(rows,iOri) = dE;
+    if computeStrains
+      EZ(rows,iOri) = E0_ - E2;
+    end
 
   end
 
@@ -405,6 +419,11 @@ Wid2 = zeros(nRows,nOrientations);  % squared FWHM, MHz^2
 % H strain
 if any(Sys.HStrain)
   Wid2 = Wid2 + Sys.HStrain.^2*vecs.^2;
+end
+
+% g, A and D strains
+if computeStrains
+  Wid2 = Wid2 + strains_perturb(Sys,vecs,E0all,EZ,secondOrder);
 end
 
 if any(Wid2(:))

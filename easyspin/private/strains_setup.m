@@ -15,11 +15,21 @@
 %                         idx   electron (g, D), [electron nucleus] (A),
 %                               nucleus (Q, sigma), [e1 e2] (ee), [n1 n2] (nn)
 %                         dT    3x3 derivative of the tensor in the molecular frame
+%     StrainData.Tensors  struct array, one element per strained tensor, with fields
+%                         type  as in Deriv
+%                         idx   as in Deriv
+%                         M     3x3xm derivatives of the tensor along the modes,
+%                               M(:,:,k) = sum_i Q(i,k)*Deriv(i).dT
+%                         Tensors that are zero along all modes are omitted.
+%     StrainData.Nuclei   indices of the nuclei that have strain parameters
 %     err               error message, empty if no error
 
 function [StrainData,err] = strains_setup(SysIn,Sys)
 
-StrainData = struct('Q',[],'Deriv',[]);
+StrainData.Q = [];
+StrainData.Deriv = [];
+StrainData.Tensors = struct('type',{},'idx',{},'M',{});
+StrainData.Nuclei = [];
 err = '';
 
 strainFields = {'StrainFWHM','StrainCorr','StrainModes'};
@@ -37,8 +47,50 @@ try
   [StrainData.Q,StrainData.Deriv] = setup(SysIn,Sys);
 catch ME
   err = ME.message;
+  return
+end
+StrainData.Tensors = modetensors(StrainData.Q,StrainData.Deriv);
+StrainData.Nuclei = strainednuclei(StrainData.Deriv);
+
 end
 
+
+%-------------------------------------------------------------------------------
+% Derivatives of each strained tensor along the strain modes
+function Tensors = modetensors(Q,Deriv)
+
+keys = arrayfun(@(d)sprintf('%s%s',d.type,sprintf('_%d',d.idx)),Deriv,'UniformOutput',false);
+[~,first,group] = unique(keys,'stable');
+nModes = size(Q,2);
+
+Tensors = struct('type',{},'idx',{},'M',{});
+for iGroup = 1:numel(first)
+  members = find(group==iGroup);
+  M = zeros(3,3,nModes);
+  for k = 1:nModes
+    for i = members(:).'
+      M(:,:,k) = M(:,:,k) + Q(i,k)*Deriv(i).dT;
+    end
+  end
+  if ~any(M(:)), continue; end
+  d = Deriv(first(iGroup));
+  Tensors(end+1) = struct('type',d.type,'idx',d.idx,'M',M); %#ok<AGROW>
+end
+
+end
+
+
+%-------------------------------------------------------------------------------
+% Indices of nuclei that have strain parameters
+function idx = strainednuclei(Deriv)
+idx = [];
+for i = 1:numel(Deriv)
+  switch Deriv(i).type
+    case 'A', idx = [idx Deriv(i).idx(2)]; %#ok<AGROW>
+    case {'Q','sigma','nn'}, idx = [idx Deriv(i).idx]; %#ok<AGROW>
+  end
+end
+idx = unique(idx);
 end
 
 
