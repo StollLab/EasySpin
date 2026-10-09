@@ -54,8 +54,8 @@ if numel(Sys.S)~=2
 end
 
 [Sys_,err] = validatespinsys(Sys);
-nNuclei = Sys_.nNuclei;
 error(err);
+nNuclei = Sys_.nNuclei;
 
 if isfield(Sys_,'ee2') && Sys_.ee2~=0
   error('Cannot compute spin ladder with Sys.ee2 present.');

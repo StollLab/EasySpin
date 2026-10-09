@@ -5,7 +5,8 @@
 
 function subSys = anisosubsys(Sys,lw)
 
-subSys = validatespinsys(Sys);
+[subSys,err] = validatespinsys(Sys);
+error(err);
 
 if (nargin==1)
   if isfield(Sys,'HStrain')
@@ -30,6 +31,7 @@ subSys.HStrain = sqrt(lw.^2 + sum(splitting.^2));
 subSys = nucspinrmv(subSys,find(rmv));
 
 subSys.processed = 0;
-subSys = validatespinsys(subSys);
+[subSys,err] = validatespinsys(subSys);
+error(err);
 
 end
