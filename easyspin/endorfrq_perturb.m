@@ -29,8 +29,14 @@ error(err);
 if Sys.nElectrons~=1
   err = 'Perturbation theory available only for systems with 1 electron.';
 end
-if Sys.S~=1/2
-%  err = 'Perturbation theory available only for systems with S=1/2.';
+if any(Sys.L(:))
+  err = 'Perturbation theory not available for electron spin coupled to orbital angular momentum.';
+end
+if any(strncmp(fieldnames(Sys),'Ham',3))
+  err = 'Perturbation theory not available for higher order terms.';
+end
+if ~isempty(Sys.initState)
+  err = 'Sys.initState is not supported by endorfrq_perturb.';
 end
 if ~isempty(Sys.StrainData.Q)
   err = 'Strains (Sys.StrainPars) are not supported by perturbation theory. Use matrix diagonalization.';
@@ -54,11 +60,14 @@ else
 end
 
 if highSpin
-  if isfield(Sys,'D')
+  if Sys.fullD
+    D = Sys.D;
+  else
     R_D2M = erot(Sys.DFrame).'; % D frame -> molecular frame
-    D = diag(Sys.D);
-    D = R_D2M*D*R_D2M.';
+    D = R_D2M*diag(Sys.D)*R_D2M.';
   end
+  % make D traceless (required for Iwasaki expressions)
+  D = D - eye(3)*trace(D)/3;
 end
 
 I = Sys.I;
@@ -168,7 +177,12 @@ hasQuadrupole = (Sys.I>1/2);
 for iNuc = nNuclei:-1:1
   A_ = A{iNuc};
   detA(iNuc) = det(A_);
-  invA{iNuc} = inv(A_);
+  if secondOrder
+    if detA(iNuc)==0
+      error('All hyperfine principal values must be non-zero for second-order perturbation theory.');
+    end
+    invA{iNuc} = inv(A_);
+  end
   trAA(iNuc) = trace(A_'*A_);
 end
 II1 = I.*(I+1);
