@@ -71,6 +71,10 @@ Hovering with the mouse pointer over an energy level displays its number, and ho
 </p>
 
 <p>
+If <code>Sys.initState</code> (a spin-polarized state, see <a href="spinpolarization.html">spin polarization</a>) is given, the populations of the two levels involved in each transition are shown as markers at the ends of the transition line. The area of a marker is proportional to the population of the level. Hovering over a marker displays the level number, the field, and the population.
+</p>
+
+<p>
 By default, <code>levelsplot</code> replaces the content of the current axes. If <code>hold</code> is on, the diagram is added to the current axes instead. This makes it possible to compare, e.g., different orientations in one plot. Each added diagram is drawn in the next color of the axes color order, and its orientation label is placed below the previous ones. With <code>Opt.StickSpectrum</code>, <code>hold</code> needs to be on in both subplots.
 </p>
 
@@ -110,6 +114,13 @@ Transitions with relative intensity below this value will not be plotted.
 <div class="optiondescr">
 <p>
 <code>true</code> or <code>false</code>. If <code>true</code>, a stick spectrum is plotted beneath the energy level diagram.
+</p>
+</div>
+
+<div class="optionfield"><code>Populations</code></div>
+<div class="optiondescr">
+<p>
+<code>true</code> or <code>false</code>. Determines whether level populations are shown as markers. The default is <code>true</code> for spin-polarized systems (<code>Sys.initState</code> given) and <code>false</code> otherwise. To show thermal populations, set <code>Opt.Populations = true</code> and give <code>Exp.Temperature</code>.
 </p>
 </div>
 
@@ -153,6 +164,17 @@ Sys.D = [3000 500];  % MHz
 Exp.mwFreq = 9.5;  % GHz
 Exp.mwMode = 'parallel';
 levelsplot(Sys,'z',[0 600],Exp);
+</pre>
+
+<p>
+To show the level populations of a spin-polarized triplet, give its zero-field populations in <code>Sys.initState</code>:
+</p>
+
+<pre class="matlab">
+Sys.S = 1;
+Sys.D = [1500 300];  % MHz
+Sys.initState = {[0.2 0.3 0.5],'zerofield'};
+levelsplot(Sys,'xy',[0 500],9.5);
 </pre>
 
 <!-- ====================================================== -->

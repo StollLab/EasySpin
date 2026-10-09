@@ -34,9 +34,18 @@
 %      LineWidth       Line width for the Zeeman lines (as plotted, no hover)
 %      TransLineWidth  Line width for the transition lines (as plotted no hover)
 %      Offset          Apply vertical offset to all energies (in MHz).
+%      Populations     true/false. Show level populations as markers at the
+%                      ends of the transition lines. Default is true if
+%                      Sys.initState is given (spin-polarized), and false
+%                      otherwise. With Opt.Populations = true, thermal
+%                      populations are shown if Exp.Temperature is given.
 %  If mwFreq is given, resonances are drawn. Red lines indicate allowed
 %  transitions, gray lines forbidden ones. Hovering with the cursor over
 %  the lines displays intensity information.
+%
+%  If, in addition, Sys.initState is given, the populations of the two levels
+%  of each transition are shown as markers with area proportional to the
+%  population. Hovering over a marker displays the population.
 %
 %  If hold is on, the diagram is added to the current axes instead of
 %  replacing its content, e.g. to compare different orientations.
@@ -297,14 +306,31 @@ if computeResonances
     Transitions = Transitions(idx,:);
     intensity = intensity(idx);
 
+    % Set up level populations (spin-polarized or thermal)
+    popInfo = [];
+    if ~isfield(Opt,'Populations') || Opt.Populations
+      popInfo = populationsetup(Sys,ExpUser);
+    end
+    if ~isfield(Opt,'Populations')
+      % default: show populations for spin-polarized, not for thermal systems
+      Opt.Populations = ~isempty(popInfo) && isempty(popInfo.Temperature);
+    end
+    showPopulations = Opt.Populations && ~isempty(popInfo);
+
     % compute and plot lower and upper energy levels of transitions
     zL = ang2vec(phi,theta);  % lab z direction in molecular frame representation
     [H0,muzL] = ham(Sys,zL);
+    popData = zeros(0,4);  % [level B E population]
     for iF = numel(resonFields):-1:1
       if absintensity(iF)<Opt.PlotThreshold, continue; end
 
       H = H0 - muzL*resonFields(iF);
-      E_MHz = sort(eig(H));
+      [V,E_MHz] = eig(H,'vector');
+      [E_MHz,idx] = sort(real(E_MHz));
+      V = V(:,idx);
+      if showPopulations
+        pop = levelpopulations(popInfo,V,E_MHz);
+      end
       E_MHz = E_MHz - Opt.Offset;
       E = unit_convert(E_MHz,Opt.Units);
 
@@ -314,6 +340,26 @@ if computeResonances
       h.Color = transitionColor;
       h.ButtonDownFcn = @(src,~)fprintf('transition %d-%d:  %g mT, relative intensity = %0.4g\n',...
         Transitions(iF,1),Transitions(iF,2),resonFields(iF),absintensity(iF));
+
+      if showPopulations
+        iLevels = Transitions(iF,:).';
+        popData = [popData; iLevels, resonFields(iF)*[1;1], Escale*E(iLevels), pop(iLevels)]; %#ok<AGROW>
+      end
+    end
+
+    % Plot level populations as markers, with area proportional to population
+    if showPopulations && ~isempty(popData)
+      maxMarkerSize = 12;  % points
+      popMax = max(popData(:,4));
+      for k = 1:size(popData,1)
+        relPop = max(popData(k,4),0)/popMax;
+        markerSize = max(maxMarkerSize*sqrt(relPop),1);
+        h = line(hLevelsAxes,popData(k,2)*Bscale,popData(k,3),'Tag','population',...
+          'LineStyle','none','Marker','o','MarkerSize',markerSize,...
+          'MarkerFaceColor',linecolor,'MarkerEdgeColor',linecolor,'LineWidth',0.5);
+        h.UserData = popData(k,[1 2 4]);
+        h.ButtonDownFcn = @(src,~)fprintf('level %d at %g mT:  population = %0.4g\n',src.UserData);
+      end
     end
 
     if Opt.StickSpectrum
@@ -449,6 +495,11 @@ try
         hObj.UserData(1),hObj.UserData(2),hObj.UserData(3),hObj.UserData(4));
       hObj.LineWidth = hoverLineWidth;
       hPrevLine = hObj;
+    case 'population'
+      infostr = sprintf(' level %d at %0.2f mT: population %0.4f ',...
+        hObj.UserData(1),hObj.UserData(2),hObj.UserData(3));
+      hObj.LineWidth = hoverLineWidth;
+      hPrevLine = hObj;
     otherwise
       % Remove information if not over a relevant object
       infostr = '';
@@ -481,6 +532,87 @@ switch toUnit
   case 'eV', Eout = unitconvert(E_MHz,'MHz->eV');
   otherwise
     error('Unsupported unit ''%s'' in Opt.Units.',toUnit);
+end
+
+end
+
+
+%-------------------------------------------------------------------------------
+% Set up the information needed to compute level populations, either from the
+% non-equilibrium state in Sys.initState or from Exp.Temperature. Returns empty
+% if neither is given (high-temperature limit, all levels equally populated).
+function popInfo = populationsetup(Sys,Exp)
+
+popInfo = [];
+
+[Sys_,err] = validatespinsys(Sys);
+error(err);
+
+if ~isempty(Sys_.initState)
+  rho = Sys_.initState{1};
+  basis = Sys_.initState{2};
+  nStates = hsdim(Sys);
+  nElStates = prod(2*Sys_.S+1);
+  if isvector(rho) && size(rho,1)~=size(rho,2)
+    rho = diag(rho);
+  end
+  if size(rho,1)~=nElStates && size(rho,1)~=nStates
+    error('The state in Sys.initState must have dimension %d or %d.',nElStates,nStates);
+  end
+
+  % Transform zero-field basis to uncoupled basis
+  if strcmp(basis,'zerofield')
+    SysZF = Sys;
+    if size(rho,1)==nElStates && Sys_.nNuclei>0
+      SysZF = nucspinrmv(Sys,1:Sys_.nNuclei);
+    end
+    [ZFStates,ZFEnergies] = eig(ham(SysZF,zeros(1,3)),'vector');
+    [ZFEnergies,idx] = sort(real(ZFEnergies));
+    ZFStates = ZFStates(:,idx);
+    if numel(uniquetol(ZFEnergies,1e-10))~=numel(ZFEnergies)
+      error(['Degenerate energy levels detected at zero-field. This prevents unambiguous assignment of ' ...
+        'the provided sublevel populations to the zero-field states. Please provide the non-equilibrium ' ...
+        'state using the full density matrix.']);
+    end
+    rho = ZFStates*rho*ZFStates';
+    basis = 'uncoupled';
+  end
+
+  % Expand electron-only state to full state space
+  if size(rho,1)~=nStates
+    nNucStates = nStates/nElStates;
+    rho = kron(rho,eye(nNucStates))/nNucStates;
+  end
+
+  popInfo.rho = rho;
+  popInfo.basis = basis;
+  popInfo.Temperature = [];
+
+elseif p_temperature(Exp)
+  popInfo.rho = [];
+  popInfo.basis = '';
+  popInfo.Temperature = Exp.Temperature;
+end
+
+end
+
+
+%-------------------------------------------------------------------------------
+% Compute populations of the energy levels with eigenvectors V (columns) and
+% energies E (in MHz, ascending).
+function pop = levelpopulations(popInfo,V,E)
+
+if isempty(popInfo.Temperature)
+  if strcmp(popInfo.basis,'eigen')
+    pop = real(diag(popInfo.rho));
+  else
+    pop = real(sum(conj(V).*(popInfo.rho*V),1)).';
+  end
+else
+  BoltzmannPreFactor = 1e6*planck/boltzm/popInfo.Temperature;  % MHz^-1
+  pop = exp(-BoltzmannPreFactor*(E-E(1)));
+  pop(isnan(pop)) = 1;  % T = 0: Inf*0 for ground state
+  pop = pop/sum(pop);
 end
 
 end
