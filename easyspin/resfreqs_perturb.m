@@ -228,6 +228,10 @@ else
   logmsg(1,'1st order perturbation theory');
 end
 
+if secondOrder && Sys.nNuclei>0 && S==round(S)
+  warning('Second-order perturbation theory is unreliable for transitions involving mS=0 in integer-spin systems with nuclei (nuclear Zeeman is neglected, so the mS=0 nuclear sublevels are degenerate). Use matrix diagonalization (Opt.Method=''matrix'' or ''hybrid'').');
+end
+
 if isfield(Opt,'ImmediateBinning') && Opt.ImmediateBinning
   error('Opt.ImmediateBinning is not supported for frequency-swept spectra.');
 end

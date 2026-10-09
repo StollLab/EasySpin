@@ -62,6 +62,10 @@ The usage of <code>resfields_perturb</code>, <code>resfreqs_matrix</code>, and <
 <code>resfields_perturb</code> and <code>resfreqs_perturb</code> assume that the electron Zeeman interaction dominates. If this assumption is not fulfilled, perturbation theory is not valid, and the functions should not be used.
 </p>
 
+<p>
+Nuclear Zeeman and nuclear quadrupole interactions are neglected. For electron spins with integer S and nuclei, this leaves the nuclear sublevels in the mS=0 manifold degenerate, and second-order perturbation theory is unreliable for transitions involving mS=0. The functions issue a warning in this case. Use <code>resfields</code> or <code>resfreqs_matrix</code> instead.
+</p>
+
 <div class="subtitle2">Input: Spin system</div>
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> containing all parameters of the spin system.
