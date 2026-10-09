@@ -29,14 +29,14 @@
 <div class="functitle">equivsplit</div>
 
 <p>
-Splitting pattern of equivalent spins.
+Splitting pattern for equivalent spins.
 </p>
 
 <!-- ============================================================= -->
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-Ampl = equivsplit(I,n)
+Intensity = equivsplit(I,n)
 </pre>
 
 <!-- ============================================================= -->
@@ -44,6 +44,10 @@ Ampl = equivsplit(I,n)
 
 <p>
 Computes the line intensity pattern of an EPR spectrum due to an electron spin-1/2 coupled to n equivalent nuclear spins with quantum number I. First-order perturbations are assumed.
+</p>
+
+<p>
+<code>Intensity</code> is a row vector of line intensities, from highest to lowest total nuclear quantum number. The intensities are not normalized: they sum to (2I+1)<sup>n</sup>, the total number of nuclear states.
 </p>
    
 <!-- ============================================================= -->
@@ -54,11 +58,11 @@ Five spins-1/2 give a first-order splitting pattern given by
 </p>
 
 <pre class="matlab">
-Ampl = equivsplit(1/2,5)
+Intensity = equivsplit(1/2,5)
 </pre>
 
 <pre class="mloutput">
-Ampl =
+Intensity =
      1     5    10    10     5     1
 </pre>
 
@@ -71,7 +75,7 @@ The 5 spins-1/2 give rise to 6 lines with intensity ratio 1:5:10:10:5:1.
 
 <p>
 5 spins-1/2 give rise to a first-order splitting
-pattern <code>Ampl = [1 5 10 10 5 1]</code> according to the Pascal triangle
+pattern <code>Intensity = [1 5 10 10 5 1]</code> according to the Pascal triangle
 </p>
 
 <pre>

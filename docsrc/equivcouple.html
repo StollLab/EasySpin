@@ -36,7 +36,7 @@ Coupling of equivalent spins.
 <div class="subtitle">Syntax</div>
 
 <pre class="matlab">
-[K,N] = equivcouple(I,n)
+[F,N] = equivcouple(I,n)
 </pre>
 
 <!-- ====================================================== -->
@@ -45,8 +45,12 @@ Coupling of equivalent spins.
 <p>
 The states due to <code>n</code> spins with quantum number <code>I</code>
 can be coupled to give a set of independent subspins. Their quantum numbers
-are returned in <code>F</code>, their respective abundance
+are returned in <code>F</code>, their respective abundances
 in <code>N</code>.
+</p>
+
+<p>
+The abundances are counts, not fractions. Together, the coupled spins have as many states as the original <code>n</code> spins: the sum of <code>(2*F+1).*N</code> is (2I+1)<sup>n</sup>.
 </p>
 
 <!-- ====================================================== -->
@@ -67,6 +71,7 @@ N =
 <p>
 This means that the coupling of the five spins-1/2 gives 1 spin-5/2, 4 spins-3/2
 and 5 spins-1/2.
+</p>
 
 <!-- ====================================================== -->
 <div class="subtitle">Algorithm</div>
@@ -88,7 +93,10 @@ spin-5/2, four spins-3/2 and five spins-1/2 according to
     ------------------
      1  5 10 10  5  1    sum
 </pre>
+
+<p>
 so <code>F = [2.5 1.5 0.5]</code> and <code>N = [1 4 5]</code>.
+</p>
 
 <!-- ====================================================== -->
 <div class="subtitle">See also</div>

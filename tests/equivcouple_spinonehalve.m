@@ -1,6 +1,6 @@
 function ok = test()
 
-;% Multiple spins-1/2
+% Multiple spins-1/2
 
 test(1).n = 2;
 test(1).F = [1 0];

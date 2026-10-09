@@ -968,7 +968,7 @@
           "numeric",
           "real",
           "scalar",
-          "positive"
+          ">=0"
         ],
         "purpose": "spin quantum number"
       },
@@ -979,7 +979,7 @@
           "numeric",
           "real",
           "scalar",
-          "positive",
+          ">=0",
           "integer"
         ],
         "purpose": "number of spins"
@@ -996,7 +996,7 @@
           "numeric",
           "real",
           "scalar",
-          "positive"
+          ">=0"
         ],
         "purpose": "spin quantum number"
       },

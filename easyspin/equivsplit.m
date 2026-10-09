@@ -1,11 +1,20 @@
-% equivsplit   Equivalent nuclei: EPR splitting pattern 
+% equivsplit   Splitting pattern for equivalent spins
 %
-%  Ampl = equivsplit(I,n)
+%  Intensity = equivsplit(I,n)
 %
 %  Computes the line intensity pattern of an EPR
 %  spectrum due to an S=1/2 and n equivalent nuclear spins
 %  with quantum number I. First-order perturbations
 %  are assumed.
+%
+%  Input:
+%    I          spin quantum number of the equivalent spins (0, 1/2, 1, ...)
+%    n          number of equivalent spins (1, 2, 3, ...)
+%
+%  Output:
+%    Intensity  row vector of line intensities, from highest to lowest
+%               total nuclear quantum number M. The intensities are not
+%               normalized, they sum to (2*I+1)^n.
 %
 %  Example:
 %
@@ -36,7 +45,7 @@ if n<1 || mod(n,1)
 end
 
 if numel(I)~=1 || ~isreal(I) || mod(I,0.5) || I<0
-  error('The spin quantum number I (first input argument) must be a positive multiple of 1/2.');
+  error('The spin quantum number I (first input argument) must be a nonnegative multiple of 1/2.');
 end
 
 % Construct amplitude pattern
