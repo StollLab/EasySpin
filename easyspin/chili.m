@@ -512,6 +512,7 @@ end
 % Undocumented
 if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
 if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
+if ~isfield(Opt,'LanczosBreakdownTol'), Opt.LanczosBreakdownTol = 1e-5; end
 if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
 if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
 if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
@@ -694,6 +695,8 @@ switch Opt.Solver
     else
       SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
     end
+  case 'A'
+    SolverString = 'Arnoldi iteration';
   case '\'
     SolverString = 'backslash';
   case 'E'
@@ -703,7 +706,7 @@ switch Opt.Solver
   case 'B'
     SolverString = 'biconjugate gradients, stabilized';
   otherwise
-    error('Unknown method in Options.Solver. Must be ''L'', ''\'', ''E'', ''C'', or ''B''.');
+    error('Unknown method in Options.Solver. Must be ''L'', ''A'', ''\'', ''E'', ''C'', or ''B''.');
 end
 logmsg(1,'  solver: %s = %s',Opt.Solver,SolverString);
 
@@ -1252,14 +1255,39 @@ for iOri = 1:nOrientations
             error('L is not complex symmetric - cannot use Lanczos method.');
           end
         end
-        [thisspec,converged,dspec] = chili_lanczos(L,StartVector,-1i*omega,Opt);
+        [thisspec,converged,~,nSteps,breakdown] = chili_lanczos(L,StartVector,-1i*omega,Opt);
         if converged
-          logmsg(2,'  converged to within %g at iteration %d/%d',...
-            Opt.Threshold,numel(dspec),BasisSize);
+          logmsg(2,'  Lanczos converged to within %g at iteration %d/%d',...
+            Opt.Threshold,nSteps,BasisSize);
+        else
+          % Fall back to Arnoldi, which does not break down
+          if breakdown
+            logmsg(1,'  Lanczos broke down at iteration %d/%d, switching to Arnoldi',...
+              nSteps,BasisSize);
+          else
+            logmsg(1,'  Lanczos did not converge to within %g after %d iterations, switching to Arnoldi',...
+              Opt.Threshold,nSteps);
+          end
+          [thisspec,converged,~,nSteps] = chili_arnoldi(L,StartVector,-1i*omega,Opt);
+          if converged
+            logmsg(2,'  Arnoldi converged to within %g at iteration %d/%d',...
+              Opt.Threshold,nSteps,BasisSize);
+          else
+            thisspec = ones(size(omega));
+            logmsg(0,'  Arnoldi iteration did not converge to within %g after %d iterations!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
+              Opt.Threshold,nSteps,Opt.LLMK');
+          end
+        end
+
+      case 'A' % Arnoldi method
+        [thisspec,converged,~,nSteps] = chili_arnoldi(L,StartVector,-1i*omega,Opt);
+        if converged
+          logmsg(2,'  Arnoldi converged to within %g at iteration %d/%d',...
+            Opt.Threshold,nSteps,BasisSize);
         else
           thisspec = ones(size(omega));
-          logmsg(0,'  Tridiagonalization did not converge to within %g after %d steps!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
-            Opt.Threshold,BasisSize,Opt.LLMK');
+          logmsg(0,'  Arnoldi iteration did not converge to within %g after %d iterations!\n  Increase Options.LLMK (current settings [%d,%d,%d,%d])',...
+            Opt.Threshold,nSteps,Opt.LLMK');
         end
         
       case '\' % MATLAB backslash solver for sparse linear system

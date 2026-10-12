@@ -1,9 +1,9 @@
 % chili_lanczos   Computes spectrum via Lanczos tridiagonalization
 %
-% [spec,converged,specchange] = chili_lanczos(A,b,z,Opt)
+% [spec,converged,specchange,nSteps,breakdown] = chili_lanczos(A,b,z,Opt)
 %
 % Inputs:
-%   A           complex symmetrix square NxN matrix
+%   A           complex symmetric square NxN matrix
 %   b           Nx1 starting vector
 %   z           variable vector over which to evaluate the spectral function
 %   Opt         structure with fields
@@ -11,17 +11,21 @@
 %               continued fraction expansion
 %    .Threshold termination threshold for iteration-to-iteration change in
 %               spectrum
+%    .LanczosBreakdownTol  threshold for detecting a (near) serious breakdown,
+%               i.e. a vector y with |y.'*y| << y'*y
 %
 % Outputs:
 %   spec        calculated spectrum
 %   converged   whether spectrum is converged or not
-%   specchange  array if iteration-to-iteration spectral changes
+%   specchange  array of iteration-to-iteration spectral changes
+%   nSteps      number of Lanczos steps performed
+%   breakdown   true if the iteration stopped due to a (near) serious breakdown
 
 % The modified Lentz method is implemented from
 %    W. H. Press et al, Numerical Recipes in C, 2nd edition
 %    section 5.2, p.171
 
-function [spec,converged,specchange] = chili_lanczos(A,b,z,Opt)
+function [spec,converged,specchange,nSteps,breakdown] = chili_lanczos(A,b,z,Opt)
 
 N = length(b);
 alpha = zeros(1,N);
@@ -45,6 +49,7 @@ else
 end
 
 converged = false;
+breakdown = false;
 
 % Lanczos iterations
 q = b/sqrt(b.'*b); % important: pseudonorm/rectanorm b.'*b instead of b'*b
@@ -53,12 +58,23 @@ for k = 1:N
   
   % Lanczos step
   y = A*q;
-  alpha(k) = q.'*y; 
+  normAq = norm(y);
+  alpha(k) = q.'*y;
   y = y - alpha(k)*q - bq;
-  beta(k) = sqrt(y.'*y);
-  
-  bq = beta(k)*q;
-  q = y/beta(k);
+  pseudonorm2 = y.'*y;
+  norm2 = real(y'*y);
+
+  % Detect termination: y is negligible, so the Krylov space is invariant and
+  % the continued fraction up to step k is exact (the tolerance allows for
+  % rounding errors amplified by the non-unitary Lanczos vectors)
+  terminated = sqrt(norm2)<=1e-8*normAq;
+
+  % Detect (near) serious breakdown: y is not small, but its pseudonorm is.
+  % The tridiagonalization is then unstable and the spectrum unreliable.
+  if ~terminated && k<N && abs(pseudonorm2)<Opt.LanczosBreakdownTol*norm2
+    breakdown = true;
+    break
+  end
 
   % Continued fraction: next convergent
   if useLentzMethod
@@ -78,13 +94,13 @@ for k = 1:N
     D = 1./D;
     Delta = C.*D;
     spec = specold.*Delta;
-    if ~mod(k,errorRecomputationInterval)
+    if ~mod(k,errorRecomputationInterval) || k==N
       specchange(k) = norm(Delta-1,Inf);
       converged = specchange(k)<Opt.Threshold;
       %fprintf('%3d: %g\n',k,specchange(k));
     end
   else
-    if ~mod(k,errorRecomputationInterval)
+    if ~mod(k,errorRecomputationInterval) || k==N
       spec = chili_contfracspec(zTest,alpha,beta,k);
       respec = real(spec);
       specchange(k) = max(abs(respec-oldspec))/max(respec);
@@ -92,17 +108,23 @@ for k = 1:N
       oldspec = respec;
     end
   end
-  
-  if converged, break; end
-  
-  if beta(k)==0
-    specchange(k) = 0;
-    break
+
+  if terminated
+    converged = true;
   end
-  
+  if converged, break; end
+
+  beta(k) = sqrt(pseudonorm2);
+  bq = beta(k)*q;
+  q = y/beta(k);
+
 end
 
 % Organize output
+if ~useLentzMethod
+  spec = chili_contfracspec(z,alpha,beta,k);
+end
+nSteps = k;
 specchange = specchange(1:k);
 specchange(isnan(specchange)) = [];
 

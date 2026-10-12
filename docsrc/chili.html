@@ -380,12 +380,13 @@ Post-convolution is useful for including the effect of nuclei with small hyperfi
 <div class="optionfield"><code>Solver</code></div>
 <div class="optiondescr">
 <code>'L'</code>,
+<code>'A'</code>,
 <code>'\'</code>,
 <code>'E'</code>,
 <code>'B'</code>, or
 <code>'C'</code>
 <br>
-Optionally, specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion). If not given, a solver is selected automatically.
+Optionally, specifies the linear solver to use. Possible values are <code>'L'</code> (Lanczos tridiagonalization with continued-fraction expansion), <code>'A'</code> (Arnoldi iteration), <code>'\'</code> (MATLAB's backslash solver), <code>'E'</code> (via eigenvalues), <code>'B'</code> (biconjugate gradient stabilized method), and <code>'C'</code> (conjugate gradient tridiagonalization with continued-fraction expansion). If not given, a solver is selected automatically. If the Lanczos solver fails, chili automatically switches to the Arnoldi solver, which is more robust but slower.
 </div>
 
 <div class="optionfield"><code>Verbosity</code></div>

@@ -76,6 +76,7 @@ $ReleaseID$
 <li><a class="esf" href="chili.html">chili</a> intensities now match <a class="esf" href="pepper.html">pepper</a> in the rigid limit also for S&gt;1/2 and several electrons.</li>
 <li><a class="esf" href="nucspinadd.html">nucspinadd</a>: Fixed wrong orientation of existing tilted A and Q tensors when adding a nucleus with full matrices.</li>
 <li><a class="esf" href="chili.html">chili</a>: Fixed the electron-electron coupling with <code>Sys.eeFrame</code> when <code>Sys.dvec</code> is given.</li>
+<li><a class="esf" href="chili.html">chili</a>: Fixed flat spectra returned for some spin systems when the Lanczos solver failed. chili now switches automatically to the new Arnoldi solver (<code>Opt.Solver='A'</code>) in such cases.</li>
 </ul>
 
 <p>Incompatible changes</p>

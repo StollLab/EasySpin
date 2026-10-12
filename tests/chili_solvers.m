@@ -11,7 +11,7 @@ Exp.nPoints = 100;
 
 Opt.LLMK = [8 0 2 0];
 
-Solvers = {'L','\','E','C','B'};
+Solvers = {'L','A','\','E','C','B'};
 for s = 1:numel(Solvers)
   Opt.Solver = Solvers{s};
   [nu,spc(s,:)] = chili(Sys,Exp,Opt);
