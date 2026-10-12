@@ -41,6 +41,6 @@ Exp.DetPhase = pi;             % rad, for proper phasing of the signal
 
 % Use grid resolution sufficient to get converged echo tails
 Opt.GridSize = 30;
-Opt.Verbosity = true;
+Opt.Verbosity = 1;
 
 saffron(Sys,Exp,Opt);

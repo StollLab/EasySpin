@@ -19,6 +19,7 @@ Exp.Range = [280 400];  % mT
 Exp.Harmonic = 0;  % for transient EPR, turn off field modulation
 
 Opt.GridSymmetry = 'D2h';
+Opt.GridFrame = [0 0 0];
 
 % Simulate spectra under various forms of photoexcitation
 Exp.lightBeam = '';

@@ -29,6 +29,6 @@ Exp.PhaseCycle{1} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
 Exp.PhaseCycle{3} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
 
 Opt.GridSize = 10;
-Opt.Verbosity = true; 
+Opt.Verbosity = 1; 
 
 saffron(Sys,Exp,Opt);

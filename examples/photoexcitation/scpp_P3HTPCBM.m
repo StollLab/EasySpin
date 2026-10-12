@@ -21,7 +21,7 @@ Sys.StrainFWHM = [0.0006 0.0006 0.0006 0.0001 0.0001 0.0012];
 Sys.J = -3; % MHz
 Sys.dip = -0.5; % MHz
 
-Sys.lwpp = 0.2; % mT
+Sys.HStrain = 5; % MHz
 
 % Specify singlet-born radical pair
 Sys.initState = 'singlet';

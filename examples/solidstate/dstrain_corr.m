@@ -14,13 +14,15 @@ Sys.lwpp = 1;
 Exp.mwFreq = 9.5;
 Exp.CenterSweep = [340 160];
 
+Opt.GridSize = 50;
+
 % Varying the correlation coefficient
 Sys.StrainCorr = 0; % no correlation
-[B,spc0] = pepper(Sys,Exp);
+[B,spc0] = pepper(Sys,Exp,Opt);
 Sys.StrainCorr = +1; % perfect correlation
-[B,spcp] = pepper(Sys,Exp);
+[B,spcp] = pepper(Sys,Exp,Opt);
 Sys.StrainCorr = -1; % anticorrelation
-[B,spcm] = pepper(Sys,Exp);
+[B,spcm] = pepper(Sys,Exp,Opt);
 
 % Plotting
 plot(B,spc0,B,spcp,B,spcm);

@@ -39,6 +39,7 @@
 %                      Sys.initState is given (spin-polarized), and false
 %                      otherwise. With Opt.Populations = true, thermal
 %                      populations are shown if Exp.Temperature is given.
+%      PopMarkerSize   Reference marker size for the population markers
 %  If mwFreq is given, resonances are drawn. Red lines indicate allowed
 %  transitions, gray lines forbidden ones. Hovering with the cursor over
 %  the lines displays intensity information.
@@ -120,6 +121,9 @@ if ~isfield(Opt,'LineWidth')
 end
 if ~isfield(Opt,'TransLineWidth')
   Opt.TransLineWidth = 0.5;
+end
+if ~isfield(Opt,'PopMarkerSize')
+  Opt.PopMarkerSize = 6;
 end
 if ~isfield(Opt,'Offset')
   Opt.Offset = 0;
@@ -330,6 +334,7 @@ if computeResonances
       V = V(:,idx);
       if showPopulations
         pop = levelpopulations(popInfo,V,E_MHz);
+        popMax = sum(pop);
       end
       E_MHz = E_MHz - Opt.Offset;
       E = unit_convert(E_MHz,Opt.Units);
@@ -349,8 +354,7 @@ if computeResonances
 
     % Plot level populations as markers, with area proportional to population
     if showPopulations && ~isempty(popData)
-      maxMarkerSize = 12;  % points
-      popMax = max(popData(:,4));
+      maxMarkerSize = Opt.PopMarkerSize;  % points
       for k = 1:size(popData,1)
         relPop = max(popData(k,4),0)/popMax;
         markerSize = max(maxMarkerSize*sqrt(relPop),1);

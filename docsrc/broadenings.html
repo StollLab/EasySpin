@@ -123,7 +123,7 @@ Line widths (FWHM, Gaussian and Lorentzian) for convolutional broadening of ENDO
 <div class="subtitle"><a name="hstrain">Anisotropic residual line width</a></div>
 
 <p>
-In solid-state spectra, the line width often depends on the orientation of the spin center relative to the magnetic field. To model broadening from unresolved hyperfine or dipolar splittings and other nonspecific effects, use <code>HStrain</code>. For broadening from distributions of specific spin Hamiltonian parameters, use <a href="#strains">strains</a> instead. <code>HStrain</code> and strains can be used together. Then, for each orientation and transition, EasySpin adds a Gaussian line whose width combines both contributions.
+In solid-state spectra, the line width often depends on the orientation of the spin center relative to the magnetic field. To model broadening from unresolved hyperfine or dipolar splittings and other nonspecific effects, use <code>HStrain</code>. For broadening from distributions of specific spin Hamiltonian parameters, model the corresponding parameter distributions using <a href="#strains">strains</a> instead. <code>HStrain</code> and strains for specific spin Hamiltonian parameters can be used together. Then, for each orientation and transition, EasySpin adds a Gaussian line whose width combines both contributions.
 </p>
 
 <div class="optionfield"><code>HStrain</code></div>
@@ -169,7 +169,7 @@ As a consequence, some lines can have zero width. For example, if only g<sub>z</
 </p>
 
 <p>
-Strains are specified with four fields:
+Strains can be specified using the following fields:
 </p>
 
 <div class="optionfield"><code>StrainPars</code></div>

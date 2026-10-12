@@ -26,7 +26,7 @@ Sys.dip = -66;%[-65 -65 130];  % MHz
 Sys.Nucs = '14N';
 Sys.A = [0 0 19 96];  % MHz
 
-Sys.lw = 0.65;  % mT
+Sys.HStrain = 18; % MHz
 
 % High-field state populations (different populations of nuclear sublevels)
 Pop = [0 0 0 0.50 0.63 0.77 0.13 0.00 0.80 0.85 0.54 0.48 0.04 0.96 0.04 0 0 0];

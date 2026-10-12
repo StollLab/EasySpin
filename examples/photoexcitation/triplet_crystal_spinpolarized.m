@@ -68,5 +68,7 @@ for k = 1:3
   h = plot(B,spc_powder/max(spc_powder)*max(spc_crystal{k}),B,spc_crystal{k});
   h(2).Color = h(1).Color;
   h(1).Color = [1 1 1]*0.7;
+  xlim(Exp.Range)
+  ylim([-1 1]*1.5*max(spc_crystal{k}))
   xlabel('magnetic field (mT)')
 end

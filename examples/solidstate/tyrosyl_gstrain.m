@@ -32,6 +32,7 @@ for k = 1:nFreqs
   Exp.Range = Ranges(k,:);
   
   [B{k},spc1{k}] = pepper(Sys,Exp);
+
   SysStrain = Sys;
   SysStrain.StrainPars = {'g(1)','g(2)','g(3)'};
   SysStrain.StrainFWHM = gFWHM;
@@ -47,4 +48,5 @@ for k = 1:nFreqs
   xx = xlim;
   text(xx(1),0.8,sprintf('  %g GHz',Freqs(k)),'FontSize',8);
 end
+legend('HStrain','HStrain + g strain')
 xlabel('magnetic field (mT)');
