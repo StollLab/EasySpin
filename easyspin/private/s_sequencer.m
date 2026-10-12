@@ -452,13 +452,11 @@ else
   end
   
   % Have at least 2 GHz difference to the lowest frequency (for the frame shift)
+  % Only shift down, not up - if lab frame frequencies exist that are < 2 GHz,
+  % simulate in the lab frame
   limFreq = 2;  % GHz
-  frameShift = floor(minFreq-limFreq);
-
-  % Only shift down, not up - if lab frame frequencies exist that are < 2 GHz
-  if frameShift>0
-    freqShift = freqShift - frameShift;
-  end
+  frameShift = max(floor(minFreq-limFreq),0);
+  freqShift = freqShift - frameShift;
 end
 
 % Store in Opt output structure
