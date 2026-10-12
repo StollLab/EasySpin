@@ -682,8 +682,8 @@ if fastSimulationMode
     end
   end
 
-  if isfield(Exp,'HStrain')
-    error('You gave Exp.HStrain, but it should be Sys.HStrain (in the system, not the experiment structure).');
+  if isfield(Exp,'lwAnisoG') || isfield(Exp,'HStrain')
+    error('Use Sys.lwAnisoG (in the spin system, not the experiment structure).');
   end
 
   %===================================================================
@@ -928,9 +928,9 @@ if fastSimulationMode
   orientationPreSelection = OrientationSelection && twoElectronManifolds;
   if orientationPreSelection
     logmsg(1,'pre-computing orientation selecton from g tensor alone...');
-    logmsg(1,'  S=1/2: using simple g tensor/HStrain model');
+    logmsg(1,'  S=1/2: using simple g tensor/lwAnisoG model');
     logmsg(1,'  excitation width (MHz): %g',Exp.ExciteWidth);
-    logmsg(1,'  HStrain (MHz): %g %g %g',Sys.HStrain(1),Sys.HStrain(2),Sys.HStrain(3));
+    logmsg(1,'  lwAnisoG (MHz): %g %g %g',Sys.lwAnisoG(1),Sys.lwAnisoG(2),Sys.lwAnisoG(3));
     % g values for all orientations
     zLab = ang2vec(Orientations(:,1),Orientations(:,2));
     if Sys.fullg
@@ -942,7 +942,7 @@ if fastSimulationMode
     % resonance frequencies for all orientations
     nu = geff*bmagn*Exp.Field/1e3/planck/1e6; % MHz
     % line widths for all orientations
-    lw = diag(Sys.HStrain)*zLab;
+    lw = diag(Sys.lwAnisoG)*zLab;
     lw2 = (sum(lw.^2,1)) + Exp.ExciteWidth^2;
     gOriSelWeight = exp(-(nu-1000*Exp.mwFreq).^2./lw2);
   end

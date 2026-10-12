@@ -1,11 +1,11 @@
 function [ok,data] = test(opt,olddata)
 
-% Check whether resfreqs_matrix handles HStrain correctly.
+% Check whether resfreqs_matrix handles lwAnisoG correctly.
 
 clear Sys Exp
 Sys.S = 1/2;
 Sys.g = [2 2.05 2.1];
-Sys.HStrain = [10 40 100];
+Sys.lwAnisoG = [10 40 100];
 
 Exp.Field = 350;
 Exp.mwRange = [9.5 10.5];

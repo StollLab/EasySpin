@@ -4,7 +4,7 @@ function [ok,data] = test(opt,olddata)
 %------------------------------------------------------
 
 % two-electron system, both electrons with orthorhombic g
-Sys = struct('S',[1/2 1/2],'g',[2 2.05 2.1; 2.2 2.25 2.3],'HStrain',[1 1 1]*30);
+Sys = struct('S',[1/2 1/2],'g',[2 2.05 2.1; 2.2 2.25 2.3],'lwAnisoG',[1 1 1]*30);
 Sys.ee = [1 1 -2]*100; % electron-electron coupling in MHz
 
 % X band conditions

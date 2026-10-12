@@ -20,9 +20,9 @@ for order = 1:2
     pars = Sys.StrainPars;
     Sys = rmfield(Sys,intersect(fieldnames(Sys),{'StrainPars','StrainFWHM','StrainCorr','StrainModes'}));
 
-    % HStrain contribution, added in quadrature
+    % lwAnisoG contribution, added in quadrature
     wH2 = 0;
-    if isfield(Sys,'HStrain')
+    if isfield(Sys,'lwAnisoG')
       [~,~,WH] = resfields_perturb(Sys,Exp,Opt);
       wH2 = WH.^2;
     end
@@ -47,10 +47,10 @@ ok = ok(:).';
 % Widths without the frequency-to-field conversion, in MHz
 Sys = S{2};
 [~,~,W1] = resfields_perturb(Sys,Exp);
-[~,~,WH1] = resfields_perturb(struct('g',Sys.g,'gFrame',Sys.gFrame,'HStrain',[1 1 1]),Exp);
+[~,~,WH1] = resfields_perturb(struct('g',Sys.g,'gFrame',Sys.gFrame,'lwAnisoG',[1 1 1]),Exp);
 Opt = struct('Freq2Field',0);
 [~,~,W0] = resfields_perturb(Sys,Exp,Opt);
-[~,~,WH0] = resfields_perturb(struct('g',Sys.g,'gFrame',Sys.gFrame,'HStrain',[1 1 1]),Exp,Opt);
+[~,~,WH0] = resfields_perturb(struct('g',Sys.g,'gFrame',Sys.gFrame,'lwAnisoG',[1 1 1]),Exp,Opt);
 ok(end+1) = areequal(W0,W1./(WH1(1,:)./WH0(1,:)),1e-10,'rel');
 
 % Negative fields: mirrored resonances have the same widths

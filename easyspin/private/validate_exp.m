@@ -220,8 +220,8 @@ switch program
       else
         error('Exp.Ordering must be a single number or a function handle.');
       end
-      if any(Sys.HStrain) || ~isempty(Sys.StrainData.Q)
-        error('Exp.Ordering and strains (Sys.HStrain, Sys.StrainPars) cannot be used simultaneously.');
+      if any(Sys.lwAnisoG) || ~isempty(Sys.StrainData.Q)
+        error('Exp.Ordering cannot be used with anisotropic line widths (Sys.lwAnisoG) or strains (Sys.StrainPars).');
       end
     end
 

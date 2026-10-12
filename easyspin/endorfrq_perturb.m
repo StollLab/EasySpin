@@ -328,7 +328,7 @@ for iOri = nOrientations:-1:1
     EPRfreq = diff(TotalEnergy,1,2);
     
     % compute excitation factors for EPR transitions
-    lw2 = sum((Sys.HStrain.*h.').^2) + lwExcite2;
+    lw2 = sum((Sys.lwAnisoG.*h.').^2) + lwExcite2;
     offsetFreq = EPRfreq - Exp.mwFreq*1e3;
     exciteFactor = exp(-2/lw2*offsetFreq.^2);
 

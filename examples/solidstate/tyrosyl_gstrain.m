@@ -5,7 +5,7 @@
 % to variations in hydrogen bonding, broadens the spectrum proportionally
 % to the microwave frequency, so its effect becomes visible only at high
 % frequencies. The hyperfine couplings are modeled as a frequency-independent
-% Gaussian broadening (HStrain), which dominates at low frequencies.
+% Gaussian broadening (lwAnisoG), which dominates at low frequencies.
 %
 % g values: Gerfen et al., J. Am. Chem. Soc. 115, 6420 (1993),
 %   https://doi.org/10.1021/ja00067a071
@@ -16,7 +16,7 @@ clear, clf
 %------------------------------------------------------------
 gFWHM = [0.001 0.0005 0.0003];  % FWHM of g distributions
 Sys.g = [2.0091 2.0046 2.0022];
-Sys.HStrain = [1 1 1]*40;  % MHz, unresolved hyperfine couplings
+Sys.lwAnisoG = [1 1 1]*40;  % MHz, unresolved hyperfine couplings
 Exp.Harmonic = 0;
 
 % Frequencies [GHz] and associated magnetic field ranges [mT]
@@ -48,5 +48,5 @@ for k = 1:nFreqs
   xx = xlim;
   text(xx(1),0.8,sprintf('  %g GHz',Freqs(k)),'FontSize',8);
 end
-legend('HStrain','HStrain + g strain')
+legend('lwAnisoG','lwAnisoG + g strain')
 xlabel('magnetic field (mT)');

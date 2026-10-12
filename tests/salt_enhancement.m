@@ -3,7 +3,7 @@ function [ok,data] = test(opt,olddata)
 % Options: Intensity, Hyperfine enhancement
   
 Sy = struct('Nucs','14N','g',[2.25 2.25 2],...
-  'A',[44,49,54],'Q',[1 1 -2]*0.84,'HStrain',[1 1 1]*100,'lwEndor',0);
+  'A',[44,49,54],'Q',[1 1 -2]*0.84,'lwAnisoG',[1 1 1]*100,'lwEndor',0);
 Ex = struct('Range',[16 65],'Field',326.5,'nPoints',2001,'mwFreq',9.7);
 Si = struct('Threshold',1e-4,'GridSize',[31 12],'Verbosity',opt.Verbosity);
 

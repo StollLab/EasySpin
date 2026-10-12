@@ -14,7 +14,7 @@ OptST.PerturbOrder=2;
 MnBsp.g = 1.96;
 MnBsp.Nucs = '63Cu';
 MnBsp.A = [250];
-MnBsp.HStrain=10;
+MnBsp.lwAnisoG=10;
 
 Endor.Field=1234.5;
 Endor.Range=[100 150];

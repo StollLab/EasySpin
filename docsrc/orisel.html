@@ -87,7 +87,7 @@ weights are plotted as a function of orientation.
 
 <p>
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>.
-Be sure to include the EPR line width in the field <code>HStrain</code>,
+Be sure to include the EPR line width in the field <code>lwAnisoG</code>,
 since it is used in the selectivity computation.
 </p>
 
@@ -142,7 +142,7 @@ Euler angles (in radians) that specify the orientation of the integration grid r
 </div>
 
 <p>
-The total effective excitation bandwidth is the combination of <code>Par.ExciteWidth</code> and the anisotropic EPR line width <code>Sys.HStrain</code>. Strains (<code>StrainPars</code> etc.) are not included in the computation.
+The total effective excitation bandwidth is the combination of <code>Par.ExciteWidth</code> and the anisotropic EPR line width <code>Sys.lwAnisoG</code>. Strains (<code>StrainPars</code> etc.) are not included in the computation.
 </p>
 
 <div class="subtitle">Examples</div>
@@ -152,7 +152,7 @@ Orientation selection in the spin system
 </p>
 
 <pre class="matlab">
-Sys = struct('S',1/2,'g',[2.1 2.2 2],'HStrain',[10 10 10]);
+Sys = struct('S',1/2,'g',[2.1 2.2 2],'lwAnisoG',[10 10 10]);
 Sys = nucspinadd(Sys,'1H',[5 4 6]*1e2);
 </pre>
 

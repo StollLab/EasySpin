@@ -201,11 +201,11 @@ Physically, there are several possible origins for line broadening. Large contri
 </p>
 
 <p>
-To include effects from unresolved hyperfine couplings, an orientation-dependent phenomenological broadening can be specified in <code>HStrain</code>:
+To include effects from unresolved hyperfine couplings, an orientation-dependent phenomenological Gaussian line width can be specified in <code>lwAnisoG</code>:
 </p>
 
 <pre class="matlab">
-Sys.HStrain = [50 50 87];   % [along x, along y, along z], in MHz
+Sys.lwAnisoG = [50 50 87];   % [along x, along y, along z], in MHz
 </pre>
 
 <p>
@@ -225,7 +225,7 @@ Each entry in <code>StrainPars</code> refers to an element of a spin system fiel
 </p>
 
 <p>
-All these broadening parameters can be combined. However, usually a modeling of the broadening with <code>lwpp</code> or <code>HStrain</code> is sufficient.
+All these broadening parameters can be combined. However, usually a modeling of the broadening with <code>lwpp</code> or <code>lwAnisoG</code> is sufficient.
 </p>
 
 <!-- ============================================================= -->

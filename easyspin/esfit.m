@@ -210,6 +210,25 @@ if isstruct(p0)
     'EasySpin function) or an array of initial parameter values (when using a custom function).']);
 end
 
+% Rename Sys.HStrain to Sys.lwAnisoG once here, so that the warning in
+% validatespinsys is not repeated in every simulation during the fit
+if EasySpinFunction && cellInputs
+  [p0,renamed] = renameHStrain(p0);
+  if varyProvided
+    [pvary,renamedVary] = renameHStrain(pvary);
+    renamed = renamed || renamedVary;
+  else
+    [lb,renamedLb] = renameHStrain(lb);
+    [ub,renamedUb] = renameHStrain(ub);
+    renamed = renamed || renamedLb || renamedUb;
+  end
+  if renamed
+    warning('EasySpin:HStrainRenamed',...
+      ['Sys.HStrain has been renamed to Sys.lwAnisoG, and its value is used as Sys.lwAnisoG. ',...
+       'Sys.HStrain will be removed in a future release. Use Sys.lwAnisoG instead.']);
+  end
+end
+
 % Determine parameter intervals, either from p0 and pvary, or from lower/upper bounds
 if cellInputs
   argspar.validargs(p0);
@@ -223,7 +242,7 @@ if cellInputs
     pvec_lb = pvec_0 - pvec_vary;
     pvec_ub = pvec_0 + pvec_vary;
     % Set lower bound to zero for parameters not allowing negative values
-    nonnegFieldNames = {'lw','lwpp','HStrain','StrainFWHM','weight','initState'};
+    nonnegFieldNames = {'lw','lwpp','lwAnisoG','StrainFWHM','weight','initState'};
     ind = ismember({pinfo.FieldName}.',nonnegFieldNames) & pvec_lb<0;
     pvec_lb(ind) = 0;    
   else
@@ -3663,6 +3682,34 @@ for k = 1:numel(str)
   end
 end
 str(rmv) = [];
+end
+%===============================================================================
+
+%===============================================================================
+% Rename the field HStrain to lwAnisoG in the spin system(s), i.e. in the first
+% element of the argument cell array (initial values, Vary, lower or upper bounds)
+function [args,renamed] = renameHStrain(args)
+renamed = false;
+if ~iscell(args) || isempty(args), return; end
+Sys = args{1};
+if isstruct(Sys)
+  Sys = {Sys};
+  noCell = true;
+elseif iscell(Sys)
+  noCell = false;
+else
+  return
+end
+for c = 1:numel(Sys)
+  % leave it to validatespinsys to complain if both fields are given
+  if isstruct(Sys{c}) && isfield(Sys{c},'HStrain') && ~isfield(Sys{c},'lwAnisoG')
+    Sys{c}.lwAnisoG = Sys{c}.HStrain;
+    Sys{c} = rmfield(Sys{c},'HStrain');
+    renamed = true;
+  end
+end
+if noCell, Sys = Sys{1}; end
+args{1} = Sys;
 end
 %===============================================================================
 

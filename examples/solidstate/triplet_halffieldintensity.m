@@ -3,7 +3,7 @@
 % This script illustrates that the relative intensity of the half-field
 % transition and the wings of the allowed transitions in the simulated EPR
 % spectrum of a spin triplet is very sensitive to the line broadening model
-% included (D strain, HStrain, lwpp).
+% included (D strain, lwAnisoG, lwpp).
 %
 % The spin system is trimethylenemethane (TMM), a non-Kekule diradical with a
 % thermally populated triplet ground state, observed in frozen matrices at
@@ -23,7 +23,7 @@ Opt.GridSize = 90;
 Triplet.S = 1;
 Triplet.g = 2.0023;
 Triplet.D = D0;
-Triplet.HStrain = 50;  % MHz, unresolved proton hyperfine couplings
+Triplet.lwAnisoG = 50;  % MHz, unresolved proton hyperfine couplings
 
 % (1) Simulate spectrum using built-in D strain to model D distribution
 TripletStrain = Triplet;
@@ -41,21 +41,21 @@ for k = 1:numel(weights)
   spc_Dloop = spc_Dloop + weights(k)*pepper(Triplet,Exp,Opt);
 end
 
-% (3) Simulate spectrum using HStrain only
+% (3) Simulate spectrum using lwAnisoG only
 Triplet.D = D0;
-Triplet.HStrain = 90;  % MHz
-[B,spc_HStrain] = pepper(Triplet,Exp,Opt);
+Triplet.lwAnisoG = 90;  % MHz
+[B,spc_lwAnisoG] = pepper(Triplet,Exp,Opt);
 
 % Normalize all spectra
 normalize = @(y)y/max(y);
 spc_DStrain = normalize(spc_DStrain);
 spc_Dloop = normalize(spc_Dloop);
-spc_HStrain = normalize(spc_HStrain);
+spc_lwAnisoG = normalize(spc_lwAnisoG);
 
 % Plotting
-plot(B,spc_DStrain,B,spc_Dloop,'--',B,spc_HStrain);
+plot(B,spc_DStrain,B,spc_Dloop,'--',B,spc_lwAnisoG);
 grid on
 axis tight
-legend('D strain','loop over D distribution','HStrain only','location','best');
+legend('D strain','loop over D distribution','lwAnisoG only','location','best');
 xlabel('magnetic field  (mT)');
 ylabel('d\chi''''/dB  (arb.u.)');

@@ -488,7 +488,7 @@ $$
  
 <p>
 where <img src="eqn/pepper2.png" alt="[eqn]"><!--MATH$\varGamma_\mr{res}$--> is the residual line width
-specified in <code>Sys.HStrain</code>, and <img src="eqn/pepper3.png" alt="[eqn]"><!--MATH$\varGamma_\mr{strain}$--> is
+specified in <code>Sys.lwAnisoG</code>, and <img src="eqn/pepper3.png" alt="[eqn]"><!--MATH$\varGamma_\mr{strain}$--> is
 the line width due to strains (<code>Sys.StrainPars</code> etc.), see
 <a href="broadenings.html#strains">strains</a>.
 </p>
@@ -528,7 +528,7 @@ Next we compute spectra for some combinations of broadening parameters.
 Sys.lw = 2;
 y2 = pepper(Sys,Exp,Opt);
 Sys.lw = 0;
-Sys.HStrain = [170 40 50];
+Sys.lwAnisoG = [170 40 50];
 y3 = pepper(Sys,Exp,Opt);
 </pre>
 
@@ -538,7 +538,7 @@ The final plot reveals the differences between the spectra.
 
 <pre class="matlab">
 plot(x,y1/sum(y1),x,y2/sum(y2),x,y3/sum(y3));
-legend('no broadening','convolution broadening','H strain');
+legend('no broadening','convolution broadening','anisotropic line width');
 </pre>
 
 <!-- ============================================================= -->

@@ -48,7 +48,7 @@ This page covers the following broadening models:
 
 <ul>
 <li><a href="#convol">Isotropic convolutional broadening</a> (<code>lw</code>, <code>lwpp</code>, <code>lwEndor</code>)</li>
-<li><a href="#hstrain">Anisotropic residual line width</a> (<code>HStrain</code>)</li>
+<li><a href="#lwanisog">Anisotropic residual line width</a> (<code>lwAnisoG</code>)</li>
 <li><a href="#strains">Strains</a> (<code>StrainPars</code>, <code>StrainFWHM</code>, <code>StrainCorr</code>, <code>StrainModes</code>)</li>
 <li><a href="#explicit">Explicit averaging over distributions</a></li>
 </ul>
@@ -67,7 +67,7 @@ All broadenings are understood to be FWHM (full width at half maximum) or PP (pe
 </p>
 
 <p>
-Use either convolutional or anisotropic broadening (<code>HStrain</code> and strains), but not both at the same time.
+Use either convolutional or anisotropic broadening (<code>lwAnisoG</code> and strains), but not both at the same time.
 </p>
 
 <!-- ----------------------------------------------------------------------------------------->
@@ -120,21 +120,26 @@ Line widths (FWHM, Gaussian and Lorentzian) for convolutional broadening of ENDO
 </div>
 
 <!-- ----------------------------------------------------------------------------------------->
-<div class="subtitle"><a name="hstrain">Anisotropic residual line width</a></div>
+<div class="subtitle"><a name="lwanisog">Anisotropic residual line width</a></div>
 
 <p>
-In solid-state spectra, the line width often depends on the orientation of the spin center relative to the magnetic field. To model broadening from unresolved hyperfine or dipolar splittings and other nonspecific effects, use <code>HStrain</code>. For broadening from distributions of specific spin Hamiltonian parameters, model the corresponding parameter distributions using <a href="#strains">strains</a> instead. <code>HStrain</code> and strains for specific spin Hamiltonian parameters can be used together. Then, for each orientation and transition, EasySpin adds a Gaussian line whose width combines both contributions.
+In solid-state spectra, the line width often depends on the orientation of the spin center relative to the magnetic field. <code>lwAnisoG</code> is a phenomenological, orientation-dependent Gaussian line width. For each orientation, every resonance line gets a Gaussian line shape with this width. The width is not derived from any spin Hamiltonian parameter. It is the same for all transitions at a given orientation.
 </p>
 
-<div class="optionfield"><code>HStrain</code></div>
+<p>
+<code>lwAnisoG</code> can model broadening from unresolved hyperfine and superhyperfine splittings, unresolved dipolar couplings, and other nonspecific inhomogeneous broadening. It cannot model broadening that differs between transitions, for example from a distribution of D in a high-spin system, and it cannot model Lorentzian broadening. For broadening from distributions of specific spin Hamiltonian parameters such as g, A or D, use <a href="#strains">strains</a> instead. <code>lwAnisoG</code> and strains can be used together. Then, for each orientation and transition, EasySpin adds a Gaussian line whose width combines both contributions.
+</p>
+
+<div class="optionfield"><code>lwAnisoG</code></div>
 <div class="optiondescr">
-<code>[FWHM_x FWHM_y FWHM_z]</code>
+<code>[FWHM_x FWHM_y FWHM_z]</code>, <code>[FWHM_xy FWHM_z]</code>, or <code>FWHM</code>
 <br>
-Anisotropic residual line width (full width at half maximum, FWHM), in MHz, describing broadening due to unresolved hyperfine couplings or other transition-independent effects. The three components are the Gaussian line widths in the x, y and z direction of the molecular frame.
+Gaussian line widths (full width at half maximum, FWHM), in MHz, for the magnetic field along the x, y and z axes of the molecular frame. Two values give an axial width (x and y equal), and one value gives the same width for all orientations. In field sweeps, the width is converted to a field width for each line. The older name of this field, <code>HStrain</code>, still works but gives a warning. It will be removed in a future release.
 
 <pre class="matlab">
-Sys.HStrain = [10 10 10];        % 10 MHz Gaussian FWHM broadening in all directions
-Sys.HStrain = [10 10 50];        % broadening along the molecular z axis larger than along x and y
+Sys.lwAnisoG = 10;               % 10 MHz Gaussian FWHM broadening for all orientations
+Sys.lwAnisoG = [10 50];          % 10 MHz along x and y, 50 MHz along z
+Sys.lwAnisoG = [10 20 50];       % different widths along x, y and z
 </pre>
 
 <p>
@@ -148,7 +153,7 @@ $$
 $$
 -->
 where <img src="eqn/broadenings3.png" alt="[eqn]"><!--MATH $\varGamma_x$-->, <img src="eqn/broadenings4.png" alt="[eqn]"><!--MATH $\varGamma_y$--> and <img src="eqn/broadenings5.png" alt="[eqn]"><!--MATH $\varGamma_z$-->
-are the three elements of <code>HStrain</code>.
+are the three elements of <code>lwAnisoG</code>, and <img src="eqn/broadenings6.png" alt="[eqn]"><!--MATH $n_x$-->, <img src="eqn/broadenings7.png" alt="[eqn]"><!--MATH $n_y$--> and <img src="eqn/broadenings8.png" alt="[eqn]"><!--MATH $n_z$--> are the components of the field direction along the x, y and z axes of the molecular frame.
 </p>
 
 </div>
@@ -161,11 +166,11 @@ A strain is a distribution of spin Hamiltonian parameters due to small structura
 </p>
 
 <p>
-For each orientation and each transition, EasySpin computes how fast the transition frequency changes with each strained parameter, and from this the (frequency-domain) width of the resulting Gaussian line. If a parameter has a large effect on the transition frequency, its distribution gives a broad line. If it has no effect, it gives no broadening. Correlated parameters can broaden or narrow the lines, depending on whether their effects add or cancel. For field sweeps, the frequency-domain width is converted to a field width. If <code>HStrain</code> is given as well, the two widths are combined as the square root of the sum of their squares.
+For each orientation and each transition, EasySpin computes how fast the transition frequency changes with each strained parameter, and from this the (frequency-domain) width of the resulting Gaussian line. If a parameter has a large effect on the transition frequency, its distribution gives a broad line. If it has no effect, it gives no broadening. Correlated parameters can broaden or narrow the lines, depending on whether their effects add or cancel. For field sweeps, the frequency-domain width is converted to a field width. If <code>lwAnisoG</code> is given as well, the two widths are combined as the square root of the sum of their squares.
 </p>
 
 <p>
-As a consequence, some lines can have zero width. For example, if only g<sub>z</sub> is strained, the lines with the magnetic field perpendicular to the z axis do not depend on g<sub>z</sub> and are not broadened at all. Such lines appear as very sharp spikes in the simulated spectrum. To avoid this, add a small <code>HStrain</code>, which gives every line a minimum width.
+As a consequence, some lines can have zero width. For example, if only g<sub>z</sub> is strained, the lines with the magnetic field perpendicular to the z axis do not depend on g<sub>z</sub> and are not broadened at all. Such lines appear as very sharp spikes in the simulated spectrum. To avoid this, add a small <code>lwAnisoG</code>, which gives every line a minimum width.
 </p>
 
 <p>
@@ -316,7 +321,7 @@ weights = weights/sum(weights);      % normalize weights to sum 1
 
 % Spin system and experiment
 Sys.S = 1;
-Sys.HStrain = [30 30 30];            % MHz
+Sys.lwAnisoG = 30;                   % MHz
 Exp.mwFreq = 9.5;                    % GHz
 Exp.Range = [230 430];               % mT
 

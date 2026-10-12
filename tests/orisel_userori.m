@@ -3,7 +3,7 @@ function ok = test()
 % User-supplied orientations
 
 Sys = struct('S',1/2,'g',[2 2 2.2]);
-Sys.HStrain = [1 1 1]*50;
+Sys.lwAnisoG = [1 1 1]*50;
 Exp = struct('mwFreq',9.5,'Field',320);
 Exp.ExciteWidth = 100;
 N = 265;

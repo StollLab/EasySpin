@@ -212,7 +212,7 @@ else
   postSelectionThreshold = Opt.Threshold(2);
 end
 
-StrainsPresent = any(Sys.HStrain(:)) || ~isempty(Sys.StrainData.Q);
+StrainsPresent = any(Sys.lwAnisoG(:)) || ~isempty(Sys.StrainData.Q);
 computeStrains = StrainsPresent && (nargout>2);
 computeIntensities = ((nargout>1) & Opt.Intensity);
 
@@ -493,8 +493,8 @@ logmsg(1,'  %d transitions pre-selected',nTransitions);
 logmsg(1,'- Broadenings');
 if computeStrains
   logmsg(1,'  using strains');
-  HStrain2 = CoreSys.HStrain.^2;
-  if any(HStrain2), logmsg(2,'  ## using H strain'); end
+  lwAnisoG2 = CoreSys.lwAnisoG.^2;
+  if any(lwAnisoG2), logmsg(2,'  ## using anisotropic line width'); end
   % Strain mode operators
   [G0,Gmu] = strains_ops(Sys,CoreSys,coreNuclei,Opt.Sparse);
   nModes = numel(G0);
@@ -685,7 +685,7 @@ for iOri = 1:nOrientations
   % Calculate width if requested.
   %--------------------------------------------------
   if computeStrains
-    LineWidthSquared = HStrain2*zLab.^2; % MHz^2
+    LineWidthSquared = lwAnisoG2*zLab.^2; % MHz^2
     if nModes>0
       % Derivatives of all level energies along each strain mode
       d = zeros(size(Vs,2),nModes);

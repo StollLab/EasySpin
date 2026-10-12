@@ -160,8 +160,8 @@ if any(Sys.L(:)), error('chili does not support Sys.L.'); end
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
   error('chili does not support nuclear-nuclear couplings (Sys.nn).');
 end
-if any(Sys.HStrain(:)) || ~isempty(Sys.StrainData.Q)
-  error('chili does not support strains (Sys.HStrain, Sys.StrainPars).');
+if any(Sys.lwAnisoG(:)) || ~isempty(Sys.StrainData.Q)
+  error('chili does not support anisotropic line widths (Sys.lwAnisoG) or strains (Sys.StrainPars).');
 end
 
 % Convolution with Gaussian only. Lorentzian broadening is 

@@ -39,8 +39,6 @@ if nargin<3, Options = struct; end
 %----------------------------------------------------------------------
 [Sys,err] = validatespinsys(Sys);
 error(err);
-if ~isfield(Sys,'HStrain'), Sys.HStrain = [0 0 0]; end
-if isscalar(Sys.HStrain), Sys.HStrain = [1 1 1]*Sys.HStrain; end
 
 % Process Parameters.
 %----------------------------------------------------------------------
@@ -55,8 +53,8 @@ if ~isfield(Exp,'ExciteWidth'), error('Exp.ExciteWidth is missing!'); end
 
 Exp = adddefaults(Exp,DefaultExp);
 
-if any(Sys.HStrain+Exp.ExciteWidth<=0)
-  error('Sys.HStrain or Exp.ExciteWidth must be positive!');
+if any(Sys.lwAnisoG+Exp.ExciteWidth<=0)
+  error('Sys.lwAnisoG or Exp.ExciteWidth must be positive!');
 end
 
 mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
@@ -125,10 +123,10 @@ if isfinite(Exp.ExciteWidth)
   Weights = zeros(nOrientations,nTransitions);
   % Pre-calculate width info
   exc2 = Exp.ExciteWidth^2;
-  HStrain2 = Sys.HStrain.^2;
+  lwAnisoG2 = Sys.lwAnisoG.^2;
   one = ones(1,nOrientations);
   vec = ang2vec(Orientations(1,:),Orientations(2,:)).';
-  GammaWidth = fac*sqrt(sum(vec.^2.*HStrain2(one,:),2) + exc2(one,1));
+  GammaWidth = fac*sqrt(sum(vec.^2.*lwAnisoG2(one,:),2) + exc2(one,1));
   
   % Calculate weights for all orientations and all transitions
   for iOri = 1:nOrientations

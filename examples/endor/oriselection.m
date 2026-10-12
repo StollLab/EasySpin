@@ -6,7 +6,7 @@ clear, clf
 Sys.S = 1/2;
 Sys.g = [2.3 2.1 2];
 Sys = nucspinadd(Sys,'1H',[3,6,2]);
-Sys.HStrain = [1 1 1]*220;     % MHz
+Sys.lwAnisoG = [1 1 1]*220;     % MHz
 Sys.lwEndor = 0.2;    % MHz
 
 % ENDOR experiment settings

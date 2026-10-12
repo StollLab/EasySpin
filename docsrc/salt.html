@@ -86,7 +86,7 @@ The three input arguments to the function are
 Fields available in <code>Sys</code> include all needed
 for the construction of a Hamiltonian and the ENDOR <a href="broadenings.html">line width parameter</a>
 <code>lwEndor</code>. If <code>lwEndor</code> is not given, it is assumed to be zero,
-and stick spectra are returned. The field <code>HStrain</code> is included in
+and stick spectra are returned. The field <code>lwAnisoG</code> is included in
 excitation window computations (see <code>Exp.ExciteWidth</code>).
 </p>
 
@@ -150,7 +150,7 @@ EPR spectrometer frequency in GHz. Only needed if orientation selection should b
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
 <p>
-The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM (full width at half maximum). The default is <code>Inf</code> (infinity). To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>HStrain</code> from the spin system structure.
+The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM (full width at half maximum). The default is <code>Inf</code> (infinity). To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>lwAnisoG</code> from the spin system structure.
 </p>
 </div>
 

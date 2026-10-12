@@ -73,7 +73,6 @@ logmsg(Opt.Verbosity);
 error(err);
 
 DefaultSys.lw = 0;
-DefaultSys.HStrain = [0 0 0];
 
 Sys = adddefaults(Sys,DefaultSys);
 
@@ -243,7 +242,7 @@ if Opt.Freq2Field~=1 && Opt.Freq2Field~=0
 end
 computeFreq2Field = Opt.Freq2Field;
 
-StrainsPresent = any(Sys.HStrain(:)) || ~isempty(Sys.StrainData.Q);
+StrainsPresent = any(Sys.lwAnisoG(:)) || ~isempty(Sys.StrainData.Q);
 computeStrains = StrainsPresent && (nargout>2);
 
 computeGradient = (computeStrains || (nargout>4)) && GradientSwitch;
@@ -565,8 +564,8 @@ logmsg(1,'- Broadenings');
 if computeStrains
   logmsg(1,'  using strains');
   % Frequency-domain residual width tensor
-  HStrain2 = CoreSys.HStrain.^2;
-  if any(HStrain2), logmsg(2,'  ## using H strain'); end
+  lwAnisoG2 = CoreSys.lwAnisoG.^2;
+  if any(lwAnisoG2), logmsg(2,'  ## using anisotropic line width'); end
   % Strain mode operators
   [G0,Gmu] = strains_ops(Sys,CoreSys,coreNuclei,Opt.Sparse);
   nModes = numel(G0);
@@ -716,7 +715,7 @@ for iOri = 1:nOrientations
   end
 
   if computeStrains
-    LineWidthSquared = HStrain2*zLab_M.^2;
+    LineWidthSquared = lwAnisoG2*zLab_M.^2;
     % Strain mode operators along zLab
     for k = nModes:-1:1
       GzL{k} = zLab_M(1)*Gmu{1,k} + zLab_M(2)*Gmu{2,k} + zLab_M(3)*Gmu{3,k};

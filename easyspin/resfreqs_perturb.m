@@ -8,7 +8,7 @@
 %
 %   Computes frequency-domain EPR line positions, intensities and widths using
 %   perturbation theory. Only systems with one electron spin are supported.
-%   Widths include Sys.HStrain and strains of g, A and D (Sys.StrainPars).
+%   Widths include Sys.lwAnisoG and strains of g, A and D (Sys.StrainPars).
 %
 %   Input:
 %    Sys: spin system structure
@@ -417,8 +417,8 @@ Int = repelem(Intensity,nNucSublevels,1)/nNucSublevels;
 Wid2 = zeros(nRows,nOrientations);  % squared FWHM, MHz^2
 
 % H strain
-if any(Sys.HStrain)
-  Wid2 = Wid2 + Sys.HStrain.^2*vecs.^2;
+if any(Sys.lwAnisoG)
+  Wid2 = Wid2 + Sys.lwAnisoG.^2*vecs.^2;
 end
 
 % g, A and D strains

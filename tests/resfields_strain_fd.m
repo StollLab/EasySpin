@@ -9,7 +9,7 @@ function ok = test()
 ang = [0.3 0.7 1.1];
 c = 0;
 c=c+1; S{c} = struct('g',[2 2.1 2.2],'gFrame',ang,'StrainPars',{{'g(1)','g(3)','gFrame(2)'}},'StrainFWHM',[0.01 0.02 0.05],'StrainCorr',[0.6 0 0]);
-c=c+1; S{c} = struct('Nucs','63Cu','g',[2.05 2.25],'A',[60 500],'StrainPars',{{'g(2)','A(2)'}},'StrainFWHM',[0.02 30],'StrainCorr',-0.8,'HStrain',[10 10 20]);
+c=c+1; S{c} = struct('Nucs','63Cu','g',[2.05 2.25],'A',[60 500],'StrainPars',{{'g(2)','A(2)'}},'StrainFWHM',[0.02 30],'StrainCorr',-0.8,'lwAnisoG',[10 10 20]);
 c=c+1; S{c} = struct('S',1,'D',[1000 200],'DFrame',ang,'StrainPars',{{'D(1)','D(2)','DFrame(3)'}},'StrainModes',[50 20 0; 0 0 0.05]);
 c=c+1; S{c} = struct('S',[1/2 1/2],'g',[2 2.1],'J',100,'dip',20,'StrainPars',{{'g(2)','J'}},'StrainFWHM',[0.01 5]);
 
@@ -27,9 +27,9 @@ for k = 1:c
   pars = Sys.StrainPars;
   Sys = rmfield(Sys,intersect(fieldnames(Sys),{'StrainPars','StrainFWHM','StrainCorr','StrainModes'}));
 
-  % HStrain contribution, added in quadrature
+  % lwAnisoG contribution, added in quadrature
   wH2 = 0;
-  if isfield(Sys,'HStrain')
+  if isfield(Sys,'lwAnisoG')
     [~,~,WH] = resfields(Sys,Exp,Opt);
     wH2 = WH.^2;
   end

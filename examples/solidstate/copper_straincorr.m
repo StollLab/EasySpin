@@ -22,7 +22,7 @@ Cu.StrainFWHM = [0.020 50];  % A in MHz
 Cu.StrainCorr = -1;  % g-A correlation coefficient, between -1 and 1
 
 % Add additional anisotropic broadening (from unresolved hyperfine etc.)
-Cu.HStrain = [90 60];
+Cu.lwAnisoG = [90 60];
 
 Exp.mwFreq = 9.6;  % GHz
 Exp.Range = [260 350];  % mT

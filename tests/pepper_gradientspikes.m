@@ -2,7 +2,7 @@ function ok = test(opt)
 
 % Check for gradient smoothing spikes
 
-Sys = struct('S',1/2,'g',[2 2 3],'HStrain',[1 1 2]*0.001);
+Sys = struct('S',1/2,'g',[2 2 3],'lwAnisoG',[1 1 2]*0.001);
 Exp = struct('mwFreq',9.5,'Range',[200 400],'Harmonic',0);
 Opt = struct('Verbosity',opt.Verbosity,'GridSize',[10 0]);
 

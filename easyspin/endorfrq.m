@@ -67,7 +67,6 @@ if Sys.nNuclei==0
 end
 
 DefaultSys.lw = 0;
-DefaultSys.HStrain = [0 0 0];
 
 Sys = adddefaults(Sys,DefaultSys);
 
@@ -488,7 +487,7 @@ for iOri = 1:nOrientations
     
     % Compute excitation factor
     if OrientationSelection
-      lw2 = sum((Sys.HStrain(:).*zLab).^2) + lwExcite2;
+      lw2 = sum((Sys.lwAnisoG(:).*zLab).^2) + lwExcite2;
       
       % weighting with EPR line width and excitation band width
       dE = E0(:,ones(1,nStates));

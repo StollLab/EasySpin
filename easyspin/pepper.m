@@ -13,7 +13,7 @@
 %      S, g, Nucs, A, Q, D, ee,
 %      gFrame, AFrame, QFrame, DFrame, eeFrame
 %      lw, lwpp
-%      HStrain
+%      lwAnisoG
 %      StrainPars, StrainFWHM, StrainCorr, StrainModes
 %      B2, B4, B6 etc.
 %    Exp: experimental parameters
@@ -162,7 +162,7 @@ if any(Sys.n>1)
   error('pepper does not support sets of equivalent nuclei (Sys.n>1).');
 end
 
-StrainWidths = any(Sys.HStrain(:)>0) || ~isempty(Sys.StrainData.Q);
+StrainWidths = any(Sys.lwAnisoG(:)>0) || ~isempty(Sys.StrainData.Q);
 ConvolutionBroadening = any(Sys.lw>0);
 
 logmsg(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));

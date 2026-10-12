@@ -10,7 +10,7 @@ clear, clf
 Sys.g = [2,2,2.2];
 Sys = nucspinadd(Sys,'63Cu',[40 40 400]);
 Sys = nucspinadd(Sys,'1H',[2,3,10]);
-Sys.HStrain = [1 1 1]*80;     % MHz
+Sys.lwAnisoG = [1 1 1]*80;     % MHz
 Sys.lwEndor = 0.1;    % MHz
 
 % ENDOR simulations

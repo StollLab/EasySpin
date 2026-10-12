@@ -6,7 +6,7 @@ function ok = test()
 Sys.g = [2 2.1 2.2];
 Sys.Nucs = '1H';
 Sys.A = [10 20 30];  % MHz
-Sys.HStrain = [5 6 7];  % MHz
+Sys.lwAnisoG = [5 6 7];  % MHz
 
 Exp.Field = 350;
 Exp.SampleFrame = [0 0 0; 0.1 0.2 0.3];

@@ -7,7 +7,7 @@
 %   [Pos,Int,Wid,Trans] = resfields_perturb(...)
 %
 %   Computes cw EPR line positions, intensities and widths using
-%   perturbation theory. Widths include Sys.HStrain and strains of g, A and D
+%   perturbation theory. Widths include Sys.lwAnisoG and strains of g, A and D
 %   (Sys.StrainPars).
 %
 %   Input:
@@ -511,7 +511,7 @@ else
   
   % Widths (in MHz, converted to mT further down)
   %-------------------------------------------------------------------
-  Wid2 = Sys.HStrain.^2*vecs.^2; % 1 x nOri, MHz^2
+  Wid2 = Sys.lwAnisoG.^2*vecs.^2; % 1 x nOri, MHz^2
   if computeStrains
     Wid2 = Wid2 + strains_perturb(Sys,vecs,E0,EZ,secondOrder);
   end

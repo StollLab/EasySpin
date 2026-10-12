@@ -10,7 +10,7 @@ Exp.nPoints = 1e4;
 
 lw = [1 3 10 30 100 300];
 for k=1:numel(lw)
-  Sys.HStrain = [1 1 1]*lw(k);
+  Sys.lwAnisoG = [1 1 1]*lw(k);
   [x,y(k,:)] = pepper(Sys,Exp,Opt);
 end
 

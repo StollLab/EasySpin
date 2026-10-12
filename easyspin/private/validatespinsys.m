@@ -62,7 +62,7 @@ correctFields = {'S','Nucs','Abund','n','gnscale',...
   'Q','QFrame',...
   'nn','nnFrame',...
   'sigma','sigmaFrame',...
-  'HStrain','StrainPars','StrainFWHM','StrainCorr','StrainModes',...
+  'lwAnisoG','HStrain','StrainPars','StrainFWHM','StrainCorr','StrainModes',...
   'lw','lwpp','lwEndor',...
   'L', 'soc', 'gL',...
   'initState',...
@@ -1025,23 +1025,34 @@ if any(Sys.lwpp)
 end
 
 
-% H strain (Sys.HStrain)
+% Anisotropic Gaussian line width (Sys.lwAnisoG, older name Sys.HStrain)
 %-------------------------------------------------------------------------------
-if ~isfield(Sys,'HStrain') || isempty(Sys.HStrain)
-  Sys.HStrain = zeros(1,3);
+if isfield(Sys,'HStrain')
+  if isfield(Sys,'lwAnisoG')
+    err = 'Sys.lwAnisoG and Sys.HStrain cannot be used simultaneously. Use Sys.lwAnisoG only.';
+    return
+  end
+  warning('EasySpin:HStrainRenamed',...
+    ['Sys.HStrain has been renamed to Sys.lwAnisoG, and its value is used as Sys.lwAnisoG. ',...
+     'Sys.HStrain will be removed in a future release. Use Sys.lwAnisoG instead.']);
+  Sys.lwAnisoG = Sys.HStrain;
+  Sys = rmfield(Sys,'HStrain');
 end
-p = Sys.HStrain;
+if ~isfield(Sys,'lwAnisoG') || isempty(Sys.lwAnisoG)
+  Sys.lwAnisoG = zeros(1,3);
+end
+p = Sys.lwAnisoG;
+if ~isnumeric(p) || ~isreal(p) || ~isrow(p) || numel(p)>3
+  err = 'Sys.lwAnisoG must be a scalar or a row vector with 2 or 3 elements.';
+  return
+end
+if any(p<0)
+  err = 'Sys.lwAnisoG must contain nonnegative values.';
+  return
+end
 if isscalar(p), p = p([1 1 1]); end
 if numel(p)==2, p = p([1 1 2]); end
-if numel(p)~=3
-  err = 'Sys.HStrain must have 3 elements!';
-  return
-end
-if any(p(:)<0)
-  err = 'Sys.HStrain must contain nonnegative values!';
-  return
-end
-Sys.HStrain = p(:).';
+Sys.lwAnisoG = p;
 
 
 % Strains (Sys.StrainPars, Sys.StrainFWHM, Sys.StrainCorr, Sys.StrainModes)

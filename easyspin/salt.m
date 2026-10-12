@@ -256,8 +256,8 @@ if Exp.Harmonic>0 && all(Sys.lwEndor==0)
   Exp.Harmonic = 0;
 end
 
-if isfield(Exp,'HStrain')
-  error('You gave Exp.HStrain, but it should be Sys.HStrain. Please correct.');
+if isfield(Exp,'lwAnisoG') || isfield(Exp,'HStrain')
+  error('Use Sys.lwAnisoG (in the spin system, not the experiment structure).');
 end
 
 %==========================================================================

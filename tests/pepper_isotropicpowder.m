@@ -2,7 +2,7 @@ function ok = test(opt)
 
 % Simulation of isotropic powder spectrum
 
-Sys = struct('S',1/2,'g',[2 2 2],'Nucs','63Cu','A',[40 40 40],'HStrain',[1 1 1]*10);
+Sys = struct('S',1/2,'g',[2 2 2],'Nucs','63Cu','A',[40 40 40],'lwAnisoG',[1 1 1]*10);
 Exp = struct('mwFreq',9.7979,'Range',[340 360],'nPoints',10000);
 Opt = struct('Verbosity',0,'GridSize',[30 1]);
 

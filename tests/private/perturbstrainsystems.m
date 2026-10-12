@@ -7,9 +7,9 @@ ang = [0.3 0.7 1.1];
 c = 0;
 % g principal values and frame, no nuclei
 c=c+1; S{c} = struct('g',[2 2.1 2.2],'gFrame',ang,'StrainPars',{{'g(1)','g(3)','gFrame(2)'}},'StrainFWHM',[0.01 0.02 0.05]);
-% correlated g and A strains, A frame, HStrain
+% correlated g and A strains, A frame, lwAnisoG
 c=c+1; S{c} = struct('Nucs','63Cu','g',[2.05 2.1 2.25],'gFrame',ang,'A',[60 80 500],'AFrame',[0.5 0.2 0.1], ...
-  'StrainPars',{{'g(3)','A(3)','AFrame(3)'}},'StrainFWHM',[0.02 30 0.1],'StrainCorr',[-0.8 0 0],'HStrain',[10 10 20]);
+  'StrainPars',{{'g(3)','A(3)','AFrame(3)'}},'StrainFWHM',[0.02 30 0.1],'StrainCorr',[-0.8 0 0],'lwAnisoG',[10 10 20]);
 % axial, isotropic and symmetric A
 c=c+1; S{c} = struct('Nucs','1H,1H','A',[5 8; 3 9],'StrainPars',{{'A(3)','A(2)'}},'StrainFWHM',[2 1]);
 c=c+1; S{c} = struct('Nucs','1H,14N','A',[10 30],'StrainPars',{{'A(2)'}},'StrainFWHM',5);
@@ -29,5 +29,5 @@ c=c+1; S{c} = struct('S',3/2,'D',[800 100],'StrainPars',{{'D(1)'}},'StrainFWHM',
 c=c+1; S{c} = struct('S',3/2,'D',[500 50],'DFrame',ang,'Nucs','1H','A',[20 30 40],'StrainPars',{{'D(1)','A(2)'}},'StrainFWHM',[60 5]);
 % strain modes
 c=c+1; S{c} = struct('Nucs','1H','g',[2 2.1 2.2],'A',[10 20 30],'StrainPars',{{'g(1)','A(3)'}},'StrainModes',[0.01 5; 0 3]);
-% all strain FWHM zero (including Q), with HStrain
-c=c+1; S{c} = struct('Nucs','14N','g',2,'A',[10 20 30],'Q',1,'StrainPars',{{'g','Q'}},'StrainFWHM',[0 0],'HStrain',[5 5 8]);
+% all strain FWHM zero (including Q), with lwAnisoG
+c=c+1; S{c} = struct('Nucs','14N','g',2,'A',[10 20 30],'Q',1,'StrainPars',{{'g','Q'}},'StrainFWHM',[0 0],'lwAnisoG',[5 5 8]);

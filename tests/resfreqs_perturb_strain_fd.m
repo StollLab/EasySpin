@@ -19,9 +19,9 @@ for order = 1:2
     pars = Sys.StrainPars;
     Sys = rmfield(Sys,intersect(fieldnames(Sys),{'StrainPars','StrainFWHM','StrainCorr','StrainModes'}));
 
-    % HStrain contribution, added in quadrature
+    % lwAnisoG contribution, added in quadrature
     wH2 = 0;
-    if isfield(Sys,'HStrain')
+    if isfield(Sys,'lwAnisoG')
       [~,~,WH] = resfreqs_perturb(Sys,Exp,Opt);
       wH2 = WH.^2;
     end

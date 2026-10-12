@@ -1,10 +1,10 @@
 function ok = test(opt)
 
-% Compare HStrain-broadened spectra for 'matrix' and 'perturb' methods
+% Compare lwAnisoG-broadened spectra for 'matrix' and 'perturb' methods
 
 clear Sys Exp
 Sys.g = [2.0 2.1 2.2];
-Sys.HStrain = [1 1 1]*200;
+Sys.lwAnisoG = [1 1 1]*200;
 
 Exp.mwFreq = 35;
 Exp.Range = [1000 1300];

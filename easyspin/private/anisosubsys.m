@@ -8,12 +8,8 @@ function subSys = anisosubsys(Sys,lw)
 [subSys,err] = validatespinsys(Sys);
 error(err);
 
-if (nargin==1)
-  if isfield(Sys,'HStrain')
-    lw = Sys.HStrain;
-  else
-    lw = [0 0 0];
-  end
+if nargin==1
+  lw = subSys.lwAnisoG;
 end
 
 nNuclei = subSys.nNuclei;
@@ -22,11 +18,11 @@ if (nNuclei==0), return; end
 splitting = 2*subSys.I.*max(abs(subSys.A),[],2).';
 rmv = (splitting<min(lw));
 
-% Increase HStrain for each nucleus deleted
+% Increase lwAnisoG for each nucleus deleted
 % to account for the additional broadening
 % caused by this nucleus.
 splitting(~rmv) = 0;
-subSys.HStrain = sqrt(lw.^2 + sum(splitting.^2));
+subSys.lwAnisoG = sqrt(lw.^2 + sum(splitting.^2));
 
 subSys = nucspinrmv(subSys,find(rmv));
 

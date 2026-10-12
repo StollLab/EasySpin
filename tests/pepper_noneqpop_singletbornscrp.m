@@ -4,7 +4,7 @@ function ok = test(opt)
 %==========================================================
 
 % Spin system
-Sys = struct('S',[1/2 1/2],'g',[2.00 1.99],'HStrain',1);
+Sys = struct('S',[1/2 1/2],'g',[2.00 1.99],'lwAnisoG',1);
 Sys.J = -3; % exchange coupling in MHz
 Sys.dip = [1 1 -2]*5; % electron-electron coupling in MHz
 

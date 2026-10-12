@@ -15,7 +15,7 @@ Sys = nucspinadd(Sys,'1H',[3,6,2]);
 Sys = nucspinadd(Sys,'1H',[5,3,1]);
 Sys = nucspinadd(Sys,'1H',[8,6,-4]);
 Sys = nucspinadd(Sys,'1H',[1,-1,1.6]);
-Sys.HStrain = [1 1 1]*200;     % MHz
+Sys.lwAnisoG = [1 1 1]*200;     % MHz
 Sys.lwEndor = 0.1;    % MHz
 
 % ENDOR parameters
