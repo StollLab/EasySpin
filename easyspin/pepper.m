@@ -517,7 +517,7 @@ else
     error(sprintf('\nCannot return separate transitions for crystal spectra (Opt.separate=''transitions'').\n  Use other setting for Opt.separate.\n'));
   end
 end
-if Opt.ImmediateBinning && ~summedSpectra
+if Opt.ImmediateBinning && ~summedOutput
   error('When using Opt.ImmediateBinning, only Opt.separate='''' is possible');
 end
 

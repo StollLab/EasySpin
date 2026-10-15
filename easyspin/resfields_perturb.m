@@ -166,6 +166,7 @@ if isnan(Exp.mwFreq), error('Experiment.mwFreq is missing!'); end
 
 % Sweep range from CenterSweep or Range (CenterSweep has precedence)
 Exp.Range = p_sweeprange(Exp,false,true);
+sweepRange = Exp.Range;  % field axis for Opt.ImmediateBinning
 if isfield(Exp,'SearchRange'), Exp.Range = Exp.SearchRange; end
 if isempty(Exp.Range), error('Exp.Range/Exp.CenterSweep is missing!'); end
 
@@ -283,7 +284,7 @@ end
 
 if immediateBinning
   E1A = zeros(max(nNucStates),nNuclei);
-  Baxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);
+  Baxis = linspace(sweepRange(1),sweepRange(2),Exp.nPoints);
   dB = Baxis(2)-Baxis(1);
   spec = zeros(1,Exp.nPoints);
 end
