@@ -53,6 +53,10 @@ This GUI provides an interactive display of Euler angles and their associated fr
 Euler angles can be varied in the GUI. Provide initial values either via one 3-element input <code>angles = [alpha,beta,gamma]</code>, or three separate inputs <code>alpha</code>, <code>beta</code>, and <code>gamma</code>; alternatively, a 3x3 rotation matrix, <code>R</code>, can be supplied. The angles must be in radians.
 </p>
 
+<p>
+A rotation matrix from the workspace can be imported while the GUI is open. Select it in the <code>import R</code> menu and click <code>Import</code>. The menu lists all real 3x3 rotation matrices (orthogonal, with determinant +1) in the workspace. After defining a new one in the command window, e.g. with <code>R = erot(...)</code>, click <code>Refresh</code> to add it to the menu. <code>Import</code> always uses the current value of the variable.
+</p>
+
 <div style="text-align:center">
 <img src="img/snap_rotview.png">
 </div>
