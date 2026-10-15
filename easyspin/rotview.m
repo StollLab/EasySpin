@@ -8,7 +8,8 @@
 % Plots two frames and allows adjustment of their relative orientation.
 % Euler angles and the rotation matrix are shown. The matrix elements can
 % also be shown as angles between axis pairs. If inputs are given, they are
-% used as the starting Euler angles.
+% used as the starting Euler angles. The "all zero" and "random" buttons set all
+% Euler angles to zero or to a random orientation, respectively.
 %
 % A rotation matrix from the workspace can be imported by selecting it in the
 % "import R" menu and clicking "Import". The menu lists all real 3x3 rotation
@@ -47,7 +48,6 @@ angles = min(max(angles*180/pi,minAngle),maxAngle);
 
 showTensor = true;
 showAngles = false;
-labelID = 1;
 
 % Quantities derived from the Euler angles, calculated in calculateframes()
 xA = 0; yA = 0; zA = 0; xB = 0; yB = 0; zB = 0;
@@ -56,117 +56,131 @@ R = [];
 calculateframes();
 
 
-% UI setup
+% Figure and layout
 %-------------------------------------------------------------------------------
-figSize = [1000 600];
-screenSize = get(0,'ScreenSize');
-scaleFactor = min([0.9*screenSize(3:4)./figSize 1]);
-figSize = figSize*scaleFactor;
-xPos = ceil((screenSize(3)-figSize(1))/2); % center the figure on the screen
-yPos = ceil((screenSize(4)-figSize(2))/2);
-hFig = figure(443123);
-clf(hFig)
-set(hFig,'Units','pixels','Position',[xPos yPos figSize],'Resize','on',...
-  'Name','Rotation viewer','NumberTitle','off','WindowStyle','normal',...
-  'MenuBar','none','Color','w');
+% Close an existing rotview window, so there is only one
+delete(findall(groot,'Type','figure','Tag','rotviewFigure'));
 
-x0 = 10;
-y0 = 10;
+figSize = [1000 600];
+screenSize = get(groot,'ScreenSize');
+figSize = figSize*min([0.9*screenSize(3:4)./figSize 1]);
+figPos = [ceil((screenSize(3:4)-figSize)/2) figSize]; % centered on the screen
+hFig = uifigure('Tag','rotviewFigure','Name','Rotation viewer',...
+  'Position',figPos);
+
+% Fixed-width control panel on the left, plot panel filling the rest
+controlWidth = 300;
+mainGrid = uigridlayout(hFig,[1 2],'ColumnWidth',{controlWidth,'1x'},...
+  'Padding',[5 5 5 5],'ColumnSpacing',5);
+controlPanel = uipanel(mainGrid);
+plotPanel = uipanel(mainGrid,'BackgroundColor','w');
+
+% Controls, stacked from the top
+%-------------------------------------------------------------------------------
+rowHeight = 22;
+nRows = 9;
+controlGrid = uigridlayout(controlPanel,[nRows+1 3],...
+  'RowHeight',[num2cell(repmat(rowHeight,1,nRows)) {'1x'}],...
+  'ColumnWidth',{75,'1x',70});
+controlGrid.RowHeight{8} = 5*rowHeight;  % rotation matrix display
 
 % Euler angle sliders and edit fields
 angleNames = {'alpha','beta','gamma'};
 hSlider = gobjects(1,3);
 hEdit = gobjects(1,3);
 for iAngle = 1:3
-  yi = y0+(3-iAngle)*20;
-  uicontrol('Style','text','Position',[x0 yi 50 15],...
-    'String',[angleNames{iAngle} ' (deg)'],'HorizontalAlignment','left',...
-    'Background','w','ForegroundColor','k');
-  hSlider(iAngle) = uicontrol('Style','slider',...
-    'Position',[x0+50 yi 120 15],...
-    'Min',minAngle,'Max',maxAngle,'Value',angles(iAngle),...
-    'SliderStep',[1 10]/(maxAngle-minAngle),...
-    'Callback',@(src,~) rotview_updateangle(iAngle,src));
-  hEdit(iAngle) = uicontrol('Style','edit',...
-    'Position',[x0+180 yi 50 15],...
-    'String','','HorizontalAlignment','left',...
-    'Callback',@(src,~) rotview_updateangle(iAngle,src));
+  hl = uilabel(controlGrid,'Text',[angleNames{iAngle} ' (deg)']);
+  hl.Layout.Row = iAngle;
+  hl.Layout.Column = 1;
+  hSlider(iAngle) = uislider(controlGrid,...
+    'Limits',[minAngle maxAngle],'MajorTicks',[],'MinorTicks',[],...
+    'ValueChangingFcn',@(~,evt) rotview_setangle(iAngle,evt.Value),...
+    'ValueChangedFcn',@(src,~) rotview_setangle(iAngle,src.Value));
+  hSlider(iAngle).Layout.Row = iAngle;
+  hSlider(iAngle).Layout.Column = 2;
+  hEdit(iAngle) = uieditfield(controlGrid,'numeric',...
+    'Limits',[minAngle maxAngle],'ValueDisplayFormat','%.3f',...
+    'ValueChangedFcn',@(src,~) rotview_setangle(iAngle,src.Value));
+  hEdit(iAngle).Layout.Row = iAngle;
+  hEdit(iAngle).Layout.Column = 3;
 end
+
+% Buttons for zero and random Euler angles
+buttonGrid = uigridlayout(controlGrid,[1 2],'Padding',[0 0 0 0]);
+buttonGrid.Layout.Row = 4;
+buttonGrid.Layout.Column = [2 3];
+uibutton(buttonGrid,'Text','all zero','ButtonPushedFcn',@(~,~) rotview_setangles([0 0 0]));
+uibutton(buttonGrid,'Text','random','ButtonPushedFcn',@(~,~) rotview_randomangles());
 
 % Frame labeling
 labelStrings = {'general (A->B)','Sys.gFrame (M->g)','Sys.AFrame (M->A)',...
   'Sys.DFrame (M->D)','Sys.QFrame (M->Q)','Sys.eeFrame (M->ee)',...
   'Sys.DiffFrame (M->Diff)','Exp.MolFrame (C->M)','Exp.SampleFrame (L->C)'};
-uicontrol('Style','text','Position',[x0 y0+65 50 15],...
-  'String','labeling','HorizontalAlignment','left',...
-  'Background','w','ForegroundColor','k');
-uicontrol('Style','popupmenu',...
-  'Position',[x0+50 y0+70 180 15],...
-  'String',labelStrings,'Value',labelID,...
-  'Callback',@rotview_labelpopupmenu);
+hl = uilabel(controlGrid,'Text','labeling');
+hl.Layout.Row = 5;
+hl.Layout.Column = 1;
+hLabelMenu = uidropdown(controlGrid,'Items',labelStrings,...
+  'ItemsData',1:numel(labelStrings),'Value',1,...
+  'ValueChangedFcn',@(~,~) updateplot());
+hLabelMenu.Layout.Row = 5;
+hLabelMenu.Layout.Column = [2 3];
 
-% Ellipsoid display and matrix display mode
-uicontrol('Style','text','Position',[x0 y0+90 50 15],...
-  'String','ellipsoid','HorizontalAlignment','left',...
-  'Background','w','ForegroundColor','k');
-uicontrol('Style','checkbox',...
-  'Position',[x0+50 y0+90 20 15],...
-  'Value',showTensor,'Background','w',...
-  'Callback',@rotview_toggletensor);
-uicontrol('Style','togglebutton',...
-  'Position',[x0+130 y0+88 100 19],...
-  'String','show angles (deg)','Value',showAngles,...
-  'Callback',@rotview_toggleangles);
+% Ellipsoid display
+hc = uicheckbox(controlGrid,'Text','show ellipsoid','Value',showTensor,...
+  'ValueChangedFcn',@rotview_toggletensor);
+hc.Layout.Row = 6;
+hc.Layout.Column = [1 3];
 
-% Rotation matrix display
-%-------------------------------------------------------------------------------
-xR0 = x0+50;
-yR0 = y0+110;
-dx = 50;
-dy = 20;
-% Row and column labels are text objects in an invisible axes, since text
-% uicontrols do not support TeX subscripts
-hLabelAxes = axes(hFig,'Units','pixels','Position',[xR0-dx yR0 4*dx 4*dy],...
-  'XLim',[0 4*dx],'YLim',[0 4*dy],'Visible','off','HitTest','off');
+% Matrix display mode
+hb = uibutton(controlGrid,'state','Text','show angles (deg)','Value',showAngles,...
+  'ValueChangedFcn',@rotview_toggleangles);
+hb.Layout.Row = 7;
+hb.Layout.Column = [1 3];
+
+% Rotation matrix display, with row and column labels
+matrixGrid = uigridlayout(controlGrid,[4 4],'Padding',[0 0 0 0],...
+  'RowHeight',{'1x','1x','1x','1x'},'ColumnWidth',{40,'1x','1x','1x'},...
+  'RowSpacing',0);
+matrixGrid.Layout.Row = 8;
+matrixGrid.Layout.Column = [1 3];
 hRowLabel = gobjects(1,3);
 hColLabel = gobjects(1,3);
-for k = 1:3
-  hRowLabel(k) = text(hLabelAxes,dx-4,(3-k+0.5)*dy,'');
-  hColLabel(k) = text(hLabelAxes,(k+1)*dx-4,3.5*dy,'');
-end
-set([hRowLabel hColLabel],'HorizontalAlignment','right','Color','k',...
-  'FontSize',get(0,'DefaultUicontrolFontSize')+1,'HitTest','off');
-
 hMatrixElement = gobjects(3,3);
+for k = 1:3
+  hColLabel(k) = uilabel(matrixGrid,'Interpreter','tex');
+  hColLabel(k).Layout.Row = 1;
+  hColLabel(k).Layout.Column = k+1;
+  hRowLabel(k) = uilabel(matrixGrid,'Interpreter','tex');
+  hRowLabel(k).Layout.Row = k+1;
+  hRowLabel(k).Layout.Column = 1;
+end
+set([hRowLabel hColLabel],'HorizontalAlignment','right');
 for iRow = 1:3
   for iCol = 1:3
-    hMatrixElement(iRow,iCol) = uicontrol('Style','text',...
-      'Position',[xR0+(iCol-1)*dx yR0+(3-iRow)*dy dx dy],...
-      'HorizontalAlignment','right','Background','w','ForegroundColor','k');
+    hMatrixElement(iRow,iCol) = uilabel(matrixGrid,'HorizontalAlignment','right');
+    hMatrixElement(iRow,iCol).Layout.Row = iRow+1;
+    hMatrixElement(iRow,iCol).Layout.Column = iCol+1;
   end
 end
 
 % Import of rotation matrix from workspace
-%-------------------------------------------------------------------------------
-uicontrol('Style','text','Position',[x0 y0+215 50 15],...
-  'String','import R','HorizontalAlignment','left',...
-  'Background','w','ForegroundColor','k');
-hImportMenu = uicontrol('Style','popupmenu',...
-  'Position',[x0+50 y0+220 100 15],...
-  'String',{''});
-hImportButton = uicontrol('Style','pushbutton',...
-  'Position',[x0+155 y0+217 40 20],...
-  'String','Import',...
-  'Callback',@rotview_importmatrix);
-uicontrol('Style','pushbutton',...
-  'Position',[x0+200 y0+217 45 20],...
-  'String','Refresh',...
-  'Callback',@(~,~) rotview_refreshlist());
+importGrid = uigridlayout(controlGrid,[1 4],'Padding',[0 0 0 0],...
+  'ColumnWidth',{75,'1x',55,60});
+importGrid.Layout.Row = 9;
+importGrid.Layout.Column = [1 3];
+uilabel(importGrid,'Text','import R');
+hImportMenu = uidropdown(importGrid,'Items',{''});
+hImportButton = uibutton(importGrid,'Text','Import',...
+  'ButtonPushedFcn',@(~,~) rotview_importmatrix());
+uibutton(importGrid,'Text','Refresh','ButtonPushedFcn',@(~,~) rotview_refreshlist());
 rotview_refreshlist();
 
 % Plotting
 %-------------------------------------------------------------------------------
-hAx = axes(hFig);
+plotGrid = uigridlayout(plotPanel,[1 1],'Padding',[0 0 0 0],'BackgroundColor','w');
+hAx = uiaxes(plotGrid);
+hAx.Toolbar.Visible = 'off';
+hAx.Interactions = rotateInteraction;
 
 % Frame axes: A dashed, B solid, plus nodal line etc. in black
 axisColors = {'r',[0 0.6 0],'b'};
@@ -195,7 +209,6 @@ hTensor = surface(hAx,cTensor(1)*xTensor,cTensor(2)*yTensor,cTensor(3)*zTensor,.
 % Enclosing sphere
 surface(hAx,xTensor,yTensor,zTensor,...
   'EdgeColor','none','FaceColor',[1 1 1]*0.95,'FaceAlpha',0.05);
-light(hAx);
 
 % Planes
 hzzPlane = patch(hAx,'FaceColor','none');
@@ -208,20 +221,22 @@ axis(hAx,'equal');
 axis(hAx,[-1 1 -1 1 -1 1]);
 axis(hAx,'off');
 set(hAx,'CameraViewAngleMode','manual','CameraViewAngle',8);
-% Controls stay fixed at the bottom left, the plot fills the rest of the window
-hFig.SizeChangedFcn = @(~,~) rotview_resize();
-rotview_resize();
 view(hAx,[167 16]);
-hRotate = rotate3d(hFig);
-setAllowAxesRotate(hRotate,hLabelAxes,false);
-hRotate.Enable = 'on';
+
+% Light fixed relative to the viewer: reposition it whenever the view changes
+hLight = camlight(hAx,'right');
+addlistener(hAx,'View','PostSet',@(~,~) camlight(hLight,'right'));
+
+% Low-level graphics functions (line, surface, patch) do not enable the
+% mouse interactions, so enable them explicitly
+enableDefaultInteractivity(hAx);
 
 updateplot();
 
   function updateplot()
 
     for iAng = 1:3
-      hEdit(iAng).String = sprintf('%2.3f',angles(iAng));
+      hEdit(iAng).Value = angles(iAng);
       hSlider(iAng).Value = angles(iAng);
     end
 
@@ -236,7 +251,7 @@ updateplot();
       fmt = '%5.4f';
     end
     for iElement = 1:9
-      hMatrixElement(iElement).String = sprintf(fmt,values(iElement));
+      hMatrixElement(iElement).Text = sprintf(fmt,values(iElement));
     end
 
     % Tensor ellipsoid, with principal axes along the axes of frame B
@@ -262,77 +277,64 @@ updateplot();
     set(hxyBPlane,'XData',xyBPlane(1,:),'YData',xyBPlane(2,:),'ZData',xyBPlane(3,:));
   end
 
-  function rotview_updateangle(iAng,src)
-    if strcmp(src.Style,'slider')
-      newValue = src.Value;
-    else
-      newValue = str2double(src.String);
-    end
-    if ~isnan(newValue)
-      angles(iAng) = min(max(newValue,minAngle),maxAngle);
-      calculateframes();
-    end
-    updateplot(); % also restores the edit field after invalid input
-  end
-
-  function rotview_resize()
-    plotLeft = 200; % pixels
-    figPos = getpixelposition(hFig);
-    hAx.Units = 'pixels';
-    hAx.Position = [plotLeft 0 max(figPos(3)-plotLeft,1) max(figPos(4),1)];
-  end
-
-  function rotview_labelpopupmenu(src,~)
-    labelID = src.Value;
+  function rotview_setangle(iAng,newValue)
+    angles(iAng) = min(max(newValue,minAngle),maxAngle);
+    calculateframes();
     updateplot();
   end
 
+  function rotview_setangles(newAngles)
+    angles = newAngles;
+    calculateframes();
+    updateplot();
+  end
+
+  function rotview_randomangles()
+    % Uniformly distributed random orientation: cos(beta) is uniform in [-1,1]
+    rotview_setangles([360*rand acosd(2*rand-1) 360*rand]);
+  end
+
   function rotview_toggletensor(src,~)
-    showTensor = logical(src.Value);
+    showTensor = src.Value;
     updateplot();
   end
 
   function rotview_toggleangles(src,~)
-    showAngles = logical(src.Value);
+    showAngles = src.Value;
     if showAngles
-      src.String = 'show elements';
+      src.Text = 'show elements';
     else
-      src.String = 'show angles (deg)';
+      src.Text = 'show angles (deg)';
     end
     updateplot();
   end
 
   function rotview_refreshlist()
     % Keep the currently selected matrix selected if it is still available
-    oldNames = cellstr(hImportMenu.String);
-    oldName = oldNames{hImportMenu.Value};
+    oldName = hImportMenu.Value;
     names = findrotmatrices();
     if isempty(names)
-      hImportMenu.String = {'(none found)'};
-      hImportMenu.Value = 1;
+      hImportMenu.Items = {'(none found)'};
       hImportButton.Enable = 'off';
     else
-      idx = find(strcmp(names,oldName),1);
-      if isempty(idx), idx = 1; end
-      hImportMenu.String = names;
-      hImportMenu.Value = idx;
+      hImportMenu.Items = names;
+      if any(strcmp(names,oldName))
+        hImportMenu.Value = oldName;
+      end
       hImportButton.Enable = 'on';
     end
   end
 
-  function rotview_importmatrix(~,~)
-    names = cellstr(hImportMenu.String);
-    name = names{hImportMenu.Value};
+  function rotview_importmatrix()
+    name = hImportMenu.Value;
     % Re-check the variable, since it might have changed since the last refresh
     if ~any(strcmp(findrotmatrices(),name))
       rotview_refreshlist();
-      warndlg(sprintf('''%s'' is no longer a rotation matrix in the workspace.',name),...
-        'Rotation viewer','modal');
+      uialert(hFig,sprintf('''%s'' is no longer a rotation matrix in the workspace.',name),...
+        'Rotation viewer','Icon','warning');
       return
     end
-    angles = eulang(double(evalin('base',name)))*180/pi;
-    calculateframes();
-    updateplot();
+    rotview_setangles(eulang(double(evalin('base',name)))*180/pi);
   end
 
   function names = findrotmatrices()
@@ -369,7 +371,7 @@ updateplot();
   end
 
   function setaxislabels()
-    switch labelID
+    switch hLabelMenu.Value
       case 1, frameA = 'A'; frameB = 'B';
       case 2, frameA = 'M'; frameB = 'g';
       case 3, frameA = 'M'; frameB = 'A';
@@ -386,8 +388,8 @@ updateplot();
       labelB = ['{\it' xyz(iAxis) '}_{' frameB '}'];
       hAxisLabel(iAxis).String = labelA;
       hAxisLabel(iAxis+3).String = labelB;
-      hColLabel(iAxis).String = labelA;
-      hRowLabel(iAxis).String = labelB;
+      hColLabel(iAxis).Text = labelA;
+      hRowLabel(iAxis).Text = labelB;
     end
   end
 
