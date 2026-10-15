@@ -63,12 +63,6 @@ function varargout = garlic(Sys,Exp,Opt)
 varargout = cell(1,nargout);
 if nargin==0, help(mfilename); return; end
 
-% Check expiry date
-error(eschecker('internal'));
-
-% Check Matlab version.
-warning(chkmlver);
-
 switch nargin
   case 1, error('Experimental parameters (2nd input) are missing!');
   case 2, Opt = [];
@@ -133,7 +127,11 @@ end
 
 singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
 if ~singleIsotopologue
-  
+
+  % Check expiry date and MATLAB version (only in top-level call)
+  error(eschecker('internal'));
+  warning(chkmlver);
+
   thirdOutput = nargout>=3;
   [xAxis,spec,info] = compisoloop(@garlic,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
   
