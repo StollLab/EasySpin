@@ -1,4 +1,4 @@
-% rotview    Display rotation between two frame
+% rotview    Display rotation between two frames
 %
 %    rotview()
 %    rotview([a b c])
@@ -374,7 +374,7 @@ updateplot;
 
   function settensor()
     sz = size(xTensor);
-    vecT = R*[cTensor(1)*xTensor(:) cTensor(2)*yTensor(:) cTensor(3)*zTensor(:)].';
+    vecT = R.'*[cTensor(1)*xTensor(:) cTensor(2)*yTensor(:) cTensor(3)*zTensor(:)].';
     x_ = reshape(vecT(1,:),sz);
     y_ = reshape(vecT(2,:),sz);
     z_ = reshape(vecT(3,:),sz);
