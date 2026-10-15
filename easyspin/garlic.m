@@ -183,7 +183,7 @@ if FastMotionRegime
   if ~isreal(Sys.tcorr)
     error('Problem with System.tcorr: must be a number!');
   end
-  if numel(Sys.tcorr)~=1
+  if ~isscalar(Sys.tcorr)
     error('Problem with System.tcorr: must be a single number!');
   end
   if Sys.tcorr<=0
@@ -256,12 +256,12 @@ else
 end
 
 if FieldSweep
-  if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
+  if ~isscalar(Exp.mwFreq) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
     error('Uninterpretable microwave frequency in Exp.mwFreq.');
   end
   logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
 else
-  if (numel(Exp.Field)~=1) || ~isreal(Exp.Field)
+  if ~isscalar(Exp.Field) || ~isreal(Exp.Field)
     error('Uninterpretable magnetic field in Exp.Field.');
   end
   if Exp.Field<0
@@ -294,7 +294,7 @@ if SweepAutoRange
 end
 
 % Number of points
-if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
+if any(~isreal(Exp.nPoints)) || ~isscalar(Exp.nPoints) || (Exp.nPoints<2)
   error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
 end
 
@@ -333,7 +333,7 @@ logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
 useTemperature = p_temperature(Exp);
 
 % Modulation amplitude
-if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
+if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || ~isscalar(Exp.ModAmp)
   error('Exp.ModAmp must be either a single positive number or zero.');
 end
 if Exp.ModAmp>0
@@ -639,6 +639,12 @@ for iNucGrp = 1:Sys.nNuclei
     end
 
   end
+  % Positions were computed with |a|, so for a<0 the mI order is reversed.
+  % Flip to match the mI order of the fast-motion linewidths.
+  if a_all(iNucGrp)<0
+    Positions = fliplr(Positions);
+    Intensities = fliplr(Intensities);
+  end
   Shifts{iNucGrp} = Positions - CentralResonance; % field sweep: mT; freq sweep: Hz
   Amplitudes{iNucGrp} = Intensities;
   
@@ -712,7 +718,7 @@ if FieldSweep && Exp.Range(1)<0
   if Exp.Range(2)>0
     Positions = [Positions(:); -Positions(:)];
     Intensities = [Intensities(:); Intensities(:)];
-    if numel(LorentzianLw)>1
+    if ~isscalar(LorentzianLw)
       LorentzianLw = [LorentzianLw(:); LorentzianLw(:)];
     end
   else
@@ -783,7 +789,7 @@ switch Opt.AccumMethod
     logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
   
     if LorentzianLw==0
-      error('Cannot use templated linshape accumulation with zero Lorentzian linewidth.');
+      error('Cannot use templated lineshape accumulation with zero Lorentzian linewidth.');
     end
     if Exp.mwPhase~=0
       error('Cannot use templated lineshape accumulation with non-zero Exp.mwPhase.');
@@ -798,7 +804,7 @@ switch Opt.AccumMethod
     wT = x0T/20; % 0.0025 at borders for Harmonic = -1
     xT = 0:2*x0T-1;
     Template = lorentzian(xT,x0T,wT,Exp.Harmonic-1);
-    if numel(LorentzianLw)==1
+    if isscalar(LorentzianLw)
       LorentzianLw = LorentzianLw*ones(size(Positions));
     end
     spec = lisum1i(Template,x0T,wT,Positions,Intensities,LorentzianLw,xAxisFine);
@@ -810,7 +816,7 @@ switch Opt.AccumMethod
     
     logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
     if LorentzianLw==0
-      error('Cannot use axplicit accumulation with zero Lorentzian linewidth.');
+      error('Cannot use explicit accumulation with zero Lorentzian linewidth.');
     end
     
     dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
@@ -819,7 +825,7 @@ switch Opt.AccumMethod
     dxFine = xAxisFine(2) - xAxisFine(1);
     
     spec = 0;
-    if numel(LorentzianLw)==1
+    if isscalar(LorentzianLw)
       for iLine = 1:numel(Positions)
         spec = spec + Intensities(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Exp.ConvHarmonic,Exp.mwPhase);
       end
