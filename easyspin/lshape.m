@@ -68,24 +68,14 @@ end
 
 % compute Gaussian component, if demanded
 if alphaGauss~=0
-  [GaussAbs,GaussDisp] = gaussian(x,x0,fwhmG,diff);
-  if (phase~=0)
-    Gauss = GaussAbs*cos(phase) +  GaussDisp*sin(phase);
-  else
-    Gauss = GaussAbs;
-  end
+  Gauss = gaussian(x,x0,fwhmG,diff,phase);
 else
   Gauss = 0;
 end
 
 % compute Lorentzian component, if demanded
 if alphaGauss~=1
-  [LorentzAbs,LorentzDisp] = lorentzian(x,x0,fwhmL,diff);
-  if phase~=0
-    Lorentz = LorentzAbs*cos(phase) +  LorentzDisp*sin(phase);
-  else
-    Lorentz = LorentzAbs;
-  end
+  Lorentz = lorentzian(x,x0,fwhmL,diff,phase);
 else
   Lorentz = 0;
 end
