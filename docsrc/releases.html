@@ -35,7 +35,7 @@ $ReleaseID$
 <p>Major new features</p>
 <ul>
 <li>The documentation now includes a reference page on <a href="resonators_ref.html">resonators</a>.</li>
-<li>The new function <a class="esf" href="dipbackground.html">dipbackground</a> calculates background decays for dipolar EPR (DEER etc.)</li>
+<li>The new function <a class="esf" href="dipbackground.html">dipbackground</a> calculates background decays for dipolar EPR (DEER etc.).</li>
 <li><a class="esf" href="eprload.html">eprload</a> can now import 1D and 2D files from CIQTEK spectrometers (file extension <code>.epr</code>).</li>
 <li>The new function <a class="esf" href="gamman.html">gamman</a> provides nuclear gyromagnetic ratios.</li>
 <li>The new function <a class="esf" href="isto2stev.html">isto2stev</a> provides the transformation matrix between irreducible spherical tensor operators and Stevens operators.</li>
@@ -81,7 +81,7 @@ $ReleaseID$
 
 <p>Incompatible changes</p>
 <ul>
-<li> The definition of <code>GridFrame</code>, the second output of <a class="esf" href="hamsymm.html">hamsymm</a>, has changed. Previously, it provided the transformation matrix from the grid frame to the molecular frame, now it provides the transformation matrix from the molecular frame to the grid frame. Similarly, the meaning of <code>Opt.GridFrame</code>, as used in <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="salt.html">salt</a>, <a class="esf" href="saffron.html">saffron</a> etc. has changed.</li>
+<li> The definition of <code>GridFrame</code>, the second output of <a class="esf" href="hamsymm.html">hamsymm</a>, has changed. Previously, it provided the transformation matrix from the grid frame to the molecular frame; now it provides the transformation matrix from the molecular frame to the grid frame. Similarly, the meaning of <code>Opt.GridFrame</code>, as used in <a class="esf" href="pepper.html">pepper</a>, <a class="esf" href="salt.html">salt</a>, <a class="esf" href="saffron.html">saffron</a> etc. has changed.</li>
 <li>The syntax of <a class="esf" href="propint.html">propint</a> has changed: the number-of-integration-steps input <code>n</code> has been replaced by an options structure <code>Opt</code> with fields <code>Opt.n</code> and <code>Opt.Method</code>.</li>
 <li><a class="esf" href="addnoise.html">addnoise</a> now sets the noise level for complex-valued signals based on the real and imaginary parts separately, changing the noise realizations for complex-valued input compared to earlier releases.</li>
 <li>Without <code>Exp.Temperature</code>, simulated intensities have changed for systems with S&gt;1/2 or more than one electron, and for all frequency sweeps. Intensities for S=1/2 field sweeps are unchanged.</li>
@@ -111,7 +111,7 @@ $ReleaseID$
 <li><a class="esf" href="pepper.html">pepper</a> and <a class="esf" href="salt.html">salt</a> now support spin systems with nucleus-nucleus couplings, given via the spin system field <code>Sys.nn</code>.</li>
 <li>The new function <a class="esf" href="diptensor.html">diptensor</a> calculates electron-electron, electron-nucleus and nucleus-nucleus dipolar coupling tensors. It supports anisotropic g tensors.</li>
 <li><a class="esf" href="isto.html">isto</a> provides matrix representations of irreducible spherical tensor operators.</li>
-<li><a class="esf" href="spinsystem.html">Spin systems</a> now support tilted Stevens tensor operators via fields such as <code>Sys.B2Frame</code></li>
+<li><a class="esf" href="spinsystem.html">Spin systems</a> now support tilted Stevens tensor operators via fields such as <code>Sys.B2Frame</code>.</li>
 <li><a class="esf" href="spinsystem.html">Spin systems</a> now support nuclear chemical shielding tensors via the fields <code>Sys.sigma</code> and <code>Sys.sigmaFrame</code>.</li>
 <li>The field <code>Sys.aF</code> in <a class="esf" href="spinsystem.html">spin systems</a> is no longer supported. Use <code>Sys.B4</code> and <code>Sys.B4Frame</code> instead.</li>
 <li>Interconvert between spherical and cartesian tensors with the new functions <a class="esf" href="tensor_cart2sph.html">tensor_cart2sph</a> and <a class="esf" href="tensor_sph2cart.html">tensor_sph2cart</a>.</li>
@@ -225,14 +225,14 @@ $ReleaseID$
 <ul>
 <li><a class="esf" href="saffron.html">saffron</a>: Several bug fixes, including multi-nuclear Mims ENDOR.
 <li><a class="esf" href="orca2easyspin.html">orca2easyspin</a>: Several bug fixes.
-<li><a class="esf" href="eprload.html">eprload</a>: Fixed problems with Specman import.
+<li><a class="esf" href="eprload.html">eprload</a>: Fixed problems with SpecMan import.
 <li><a class="esf" href="curry.html">curry</a>: Susceptibility is now correctly in SI units.
 <li>Compatibility with MATLAB R2015b.
-<li><a class="esf" href="chili.html">chili</a>: Critical bugfix for systems with more than two nuclei or with S>1/2.
-<li><a class="esf" href="chili.html">chili</a>: Several other bugfixes.
+<li><a class="esf" href="chili.html">chili</a>: Critical bug fix for systems with more than two nuclei or with S>1/2.
+<li><a class="esf" href="chili.html">chili</a>: Several other bug fixes.
 <li><a class="esf" href="chili.html">chili</a>: Support for multiple electron spins fixed.
 <li>Fix bug in biquadratic exchange term (<code>Sys.ee2</code>).
-<li>Several bugfixes in <a class="esf" href="orca2easyspin.html">orca2easyspin</a>.
+<li>Several bug fixes in <a class="esf" href="orca2easyspin.html">orca2easyspin</a>.
 </ul>
 
 <div class="subtitle">
@@ -412,7 +412,7 @@ to match the intensity of spectra returned by <a class="esf" href="pepper.html">
 <li><a class="esf" href="garlic.html">garlic</a> supports different levels of theory: <code>Opt.Method = 'exact'</code>, <code>'perturb1'</code>, <code>'perturb2'</code>.
 </ul>
 
-<p>Major bugfixes</p>
+<p>Major bug fixes</p>
 <ul>
 <li><a class="esf" href="voigtian.html">voigtian</a> gave wrong line positions.
 <li>Compilation problems on 64-bit Mac computers.
@@ -423,7 +423,7 @@ to match the intensity of spectra returned by <a class="esf" href="pepper.html">
 <p>Changes</p>
 <ul>
 <li>MATLAB versions prior to 7.0 are not supported anymore.
-<li><code>Opt.Perturb</code> has been discontinued, use <code>Opt.Method = 'hybrid'</code> instead.
+<li><code>Opt.Perturb</code> has been discontinued; use <code>Opt.Method = 'hybrid'</code> instead.
 <li><code>Exp.Detection</code> has been renamed to <code>Exp.Mode</code>.
 <li><a class="esf" href="chili.html">chili</a>: Exchange units changed from Hz to MHz.
 </ul>
@@ -438,7 +438,7 @@ to match the intensity of spectra returned by <a class="esf" href="pepper.html">
 now support absorption/dispersion admixture in the simulation via <code>Exp.mwPhase</code>.
 </ul>
 
-<p>Major bugfixes</p>
+<p>Major bug fixes</p>
 <ul>
 <li><a class="esf" href="salt.html">salt</a> spectra gave wrong ENDOR intensities in some cases when using perturbation theory and orientation selection.
 </ul>
@@ -453,7 +453,7 @@ now support absorption/dispersion admixture in the simulation via <code>Exp.mwPh
 can now include field modulation in the simulation via <code>Exp.ModAmp</code>.
 </ul>
 
-<p>Major bugfixes</p>
+<p>Major bug fixes</p>
 <ul>
 <li><a class="esf" href="pepper.html">pepper</a> gave incorrect first-order perturbation intensities for large anisotropic g tensors.
 <li><a class="esf" href="garlic.html">garlic</a> spectra gave double integrals that depended on the number of lines.
@@ -484,7 +484,7 @@ Several bug fixes in <a class="esf" href="saffron.html">saffron</a>, <a class="e
 3.1.3
 </div>
 
-<p>Major bugfixes</p>
+<p>Major bug fixes</p>
 <ul>
 <li><a class="esf" href="eprload.html">eprload</a> could not read data acquired on very recent Bruker spectrometers.
 <li><a class="esf" href="garlic.html">garlic</a> gave wrong relative intensities in some isotope mixtures.
@@ -512,13 +512,13 @@ Many small bug fixes.
 
 <p>Major new features</p>
 <ul>
-<li><a class="esf" href="saffron.html">saffron</a> is not restricted to HYSCORE, two-pulse and three-pulse ESEEM. It can now simulate user-defined pulse sequences.
+<li><a class="esf" href="saffron.html">saffron</a> is no longer restricted to HYSCORE, two-pulse and three-pulse ESEEM. It can now simulate user-defined pulse sequences.
 <li><a class="esf" href="saffron.html">saffron</a> now supports the product rule, resulting in great speed-ups.
 <li><a class="esf" href="saffron.html">saffron</a> now supports spin systems with high electron spin S>1/2.
 <li><a class="esf" href="salt.html">salt</a> can now simulate ENDOR spectra using either matrix diagonalization, first-order or second-order perturbation theory.
 </ul>
 
-<p>Major changes and bugfixes</p>
+<p>Major changes and bug fixes</p>
 <ul>
 <li><a class="esf" href="pepper.html">pepper</a> normalizes spectra in a way that the double integral
 is independent of the number of nuclei included.
@@ -602,7 +602,7 @@ New function <a class="esf" href="degree.html">degree</a> to convert between rad
 <a class="esf" href="rcfilt.html">rcfilt</a> can now handle both upwards and downwards field sweeps.
 </ul>
 
-<p>Major changes and bugfixes</p>
+<p>Major changes and bug fixes</p>
 
 <ul>
 <li>
@@ -621,7 +621,7 @@ large angular momenta.
 2.6.1
 </div>
 
-<p>Major changes and bugfixes</p>
+<p>Major changes and bug fixes</p>
 
 <ul>
 <li>
@@ -663,13 +663,13 @@ peak-to-peak line widths (<code>lwpp</code>).
 <li>
 Extended support for partially ordered systems in <a class="esf" href="pepper.html">pepper</a>
 and <a class="esf" href="salt.html">salt</a> with the new field <code>Exp.Ordering</code>.
-A simple orienting potential is built-in, a custom arbitrary orienting potential can be specified.
+A simple orienting potential is built in; a custom arbitrary orienting potential can be specified.
 <li>
 Nuclear quadrupole line width contribution for fast-motion simulations with 
 <a class="esf" href="garlic.html">garlic</a>.
 </ul>
 
-<p>Major changes and bugfixes</p>
+<p>Major changes and bug fixes</p>
 <ul>
 <li>
 <i>EasySpin</i> now runs on 64-bit platforms, too.
@@ -683,7 +683,7 @@ Support for MATLAB 6.1 (R12.1) is discontinued.
 2.5.1
 </div>
 
-<p>Major changes and bugfixes</p>
+<p>Major changes and bug fixes</p>
 <ul>
 <li>Speed-up for <a class="esf" href="chili.html">chili</a>.
 <li>Bug fixes in <a class="esf" href="chili.html">chili</a>
@@ -735,7 +735,7 @@ Two new functions to convert between mT and MHz:
 </li>
 </ul>
 
-<p>Major changes and bugfixes</p>
+<p>Major changes and bug fixes</p>
 
 <ul>
 <li>

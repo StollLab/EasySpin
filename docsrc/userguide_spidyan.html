@@ -52,7 +52,7 @@ This guide covers the following topics:
 <li><a href = "#spinecho_nitroxide">Spin echo of a nitroxide</a></li>
 <li><a href = "#spinecho_gaussian">Spin echo of a Gaussian line</a></li>
 <li><a href = "#simultaneousirradiation">Simultaneous irradiation at two frequencies</a></li>
-<li><a href = "#tipsntricks">Tips and Tricks</a></li>
+<li><a href = "#tipsntricks">Tips and tricks</a></li>
 </ul>
 
 Look at the list of <a href="examplesmain.html#pulse spidyan">examples</a> for more examples on how to use <a class="esf" href="spidyan.html">spidyan</a>.
@@ -72,7 +72,7 @@ Here, we already encounter the first difference between <a class="esf" href="spi
 While <a class="esf" href="spidyan.html">spidyan</a> still accepts <code>Sys.g</code>, it can be more convenient to define the Zeeman frequency <code>Sys.ZeemanFreq</code> of the investigated spin packet.
 
 <p>
-After the spin system follows the experiment. Here we are creating a two-pulse sequence:
+After the spin system comes the experiment. Here we are creating a two-pulse sequence:
 <pre class="matlab">
 p90.Flip = pi/2; % flip angle in rad
 p90.tp = 0.02; % pulse length in &mu;s
@@ -168,7 +168,7 @@ ylim([-1 1])
 plot(TimeAxis*1000,real(Signal));
 </pre>
 
-The plot will show you the trajectory of the spin during the pulse, ending up at <code><<i>&Scirc;<sub>z</sub></i>> = 1</code>, as you would expect from a &pi; pulse.
+The plot will show you the trajectory of the spin during the pulse, ending up at <code>&lang;<i>&Scirc;<sub>z</sub></i>&rang; = 1</code>, as you would expect from a &pi; pulse.
 
 
 <div class="subtitle2">Linear chirp with smoothed edges</div>
@@ -231,7 +231,7 @@ Although the trajectory is slightly different, both adiabatic pulses end up in t
 <p>
 The quality of adiabatic pulses is in general described by a parameter called critical adiabaticity <code>Q<sub>crit</sub></code>, which measures the ability of the pulse to invert the spin and depends on the amplitude and the sweep rate.
 The flip angle and <code>Q<sub>crit</sub></code> are related through the Landau-Zener-Stückelberg-Majorana equation, e.g., a <code>Q<sub>crit</sub></code> of 5 corresponds to a &pi; pulse and a <code>Q<sub>crit</sub></code> of about 0.7 to a &pi;/2 pulse.
-Hence, it is not only possible to define the pulses with <code>Pulse.Flip</code>, but instead you can provide <code>Pulse.Amplitude</code> or <code>Pulse.Qcrit</code> for frequency-swept pulses.
+Hence, instead of <code>Pulse.Flip</code>, you can also provide <code>Pulse.Amplitude</code> or <code>Pulse.Qcrit</code> for frequency-swept pulses.
 
 <p>
 Adiabatic pulses have the big advantage that they invert all spins within their excitation band equally.
@@ -298,7 +298,7 @@ legend(Exp.DetOperator)
 </pre>
 
 <p>
-In order to get a three-dimensional plot, we need to use the real and imaginary parts of  <code><<i>&Scirc;<sub>y</sub></i>></code>:
+In order to get a three-dimensional plot, we need to use the real and imaginary parts of <code>&lang;<i>&Scirc;<sub>+</sub></i>&rang;</code>:
 
 <pre class="matlab">
 figure(2)
@@ -342,7 +342,7 @@ The first topic concerns detection operators.
 By default, if <code>Exp.DetOperator</code> is omitted, <i>&Scirc;<sub>+</sub></i> of all electrons is detected.
 
 <p>
-But using <code>Exp.DetOperator</code> it is not only possible to use several operators at once, you can even specify <a href="#excitation_and_detection_operators">spin</a> and <a href="#bulldozer">transition-selective</a> operators, using the extended <a class="esf" href="sop.html">sop syntax</a>.
+But using <code>Exp.DetOperator</code> you can not only use several operators at once, but also specify <a href="#excitation_and_detection_operators">spin-</a> and <a href="#bulldozer">transition-selective</a> operators, using the extended <a class="esf" href="sop.html">sop syntax</a>.
 The detection operators are specified in a cell array, e.g.
 
 <pre class="matlab">
@@ -404,7 +404,7 @@ Hence, if you run a big simulation with a lot of indirect dimensions and data po
 <a name="bulldozer"><div class="subtitle">Enhancement of the central transition of a high-spin system</div></a>
 
 <p>
-This example is going over the enhancement of the central transition of a <code>S = 3/2</code> system for a single spin packet.
+This example goes through the enhancement of the central transition of a <code>S = 3/2</code> system for a single spin packet.
 For this we are going to use two frequency-swept pulses that will transfer magnetization from the outer transitions to the central transition. 
 We can follow the polarization enhancement by using transition-selective operators.
 
@@ -615,7 +615,7 @@ Exp.DetWindow = 0; % position of the detection window in &mu;s
 </pre>
 
 <p>
-Since we are not providing an interval for the detection window, we are going to do single point detection.
+Since we are not providing an interval for the detection window, we are going to do single-point detection.
 The value <code>0</code> corresponds to the time in &mu;s <em>after</em> the end of the last element in <code>Exp.Sequence</code>.
 For more information on how to use <code>Exp.DetWindow</code>, see the <a class="esf" href="spidyan.html#detection">documentation</a>.
 
@@ -836,7 +836,7 @@ ylim([0 1])
 
 <p>
 Simultaneous irradiation (e.g. cross-polarization or decoupling) at two different frequencies is not implemented at this point, but can still be achieved:
-The trick is to use <code>Exp.mwPolarization </code> in combination with custom excitation operators. 
+The trick is to use <code>Exp.mwPolarization</code> in combination with custom excitation operators. 
 This allows us to assign the real part of the wave to an excitation operator that acts on one spin or subset of spins (frequency) and the imaginary part to a second spin or subset of spins (frequency).
 Look at the following example:
 
@@ -888,7 +888,7 @@ But if your data processing involves the imaginary part of the signal and you en
 In some simulations you may observe echoes in your time trace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the nitroxide spectrum in the example above) is insufficiently sampled.
 This can easily be checked: By increasing the number of samples from your distribution, the artifact echoes should move, spread further apart or vanish, while physical echoes stay in place. You can also compute the required increment for the spin packet distribution in the frequency domain by an inverse Nyquist criterion. 
-If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise, use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages with increasing number of trials.  
+If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise, use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages out with increasing number of trials.  
 
 <p>
 If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 

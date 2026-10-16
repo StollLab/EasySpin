@@ -1,4 +1,4 @@
-% Photo-excited triplet state of naphthalene
+% Photoexcited triplet state of naphthalene
 %==========================================================================
 % see
 %  - Hutchison et al, J.Chem.Phys. 34, 908-922 (1961)

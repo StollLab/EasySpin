@@ -280,7 +280,7 @@ If set to <code>'maxabs'</code>, the simulated data are scaled to the maximum ab
 <div class="optionfield"><code>FitOpt.BaseLine</code></div>
 <div class="optiondescr">
 <p>
-Polynomial order for the baseline added to the simulated data to match the experimental data (0, 1, 2 or 3), set this to <code>[]</code> if no baseline should be included. For global fitting of multiple data sets, different polynomial order baselines can be used for the different data sets by specifying an array. The baseline used is returned in <code>fit.baseline</code>.
+Polynomial order for the baseline added to the simulated data to match the experimental data (0, 1, 2 or 3). Set this to <code>[]</code> if no baseline should be included. For global fitting of multiple data sets, different polynomial order baselines can be used for the different data sets by specifying an array. The baseline used is returned in <code>fit.baseline</code>.
 </p>
 </div>
 
@@ -389,7 +389,7 @@ An array of four elements <code>[rho chi psi sigma]</code>, where <code>rho</cod
 
 <div class="optionfield"><code>FitOpt.ScaleParams</code></div>
 <div class="optiondescr">
-Rescale fitting parameters to within [-1,1] interval. Default is false.
+Rescale fitting parameters to within the [-1,1] interval. Default is false.
 </div>
 
 <div class="optionfield"><code>FitOpt.RandomStart</code></div>
@@ -423,7 +423,7 @@ Step size for computing the finite-difference approximation of the Jacobian. Def
 
 <div class="optionfield"><code>FitOpt.ScaleParams</code></div>
 <div class="optiondescr">
-Rescale fitting parameters to within [-1,1] interval. Default is false. In some cases, better fits are obtained when setting this option to true.
+Rescale fitting parameters to within the [-1,1] interval. Default is false. In some cases, better fits are obtained when setting this option to true.
 </div>
 
 <div class="optionfield"><code>FitOpt.RandomStart</code></div>
@@ -451,7 +451,7 @@ Parameters for the <span style="font-weight:bold;">genetic algorithm</span>:
 <div class="optionfield"><code>FitOpt.PopulationSize</code></div>
 <div class="optiondescr">
 A number giving the size of the population, that is the number of parameter sets and simulations
-in one generation. The default value is 20, but for fittings with many parameters, this value
+in one generation. The default value is 20, but for fits with many parameters, this value
 should be increased.
 </div>
 
@@ -464,7 +464,7 @@ A number specifying the number of individuals (ordered in terms of decreasing sc
 <div class="optiondescr">
 A number specifying the maximum number of generations the algorithm should run. After this number
 has been reached, the algorithm terminates, no matter how good or bad the best fit so far is. The
-default value is 10000. A large value is appropriate for fittings with many parameters; if only very few parameters
+default value is 10000. A large value is appropriate for fits with many parameters; if only very few parameters
 are fitted, <code>maxGenerations</code> can be decreased.
 </div>
 

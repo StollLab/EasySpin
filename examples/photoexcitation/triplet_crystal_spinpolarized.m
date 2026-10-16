@@ -1,4 +1,4 @@
-% Single-crystal spectra of inter-system crossing spin-polarized triplet
+% Single-crystal spectra of intersystem-crossing spin-polarized triplet
 %==========================================================================
 clear, clf, clc
   

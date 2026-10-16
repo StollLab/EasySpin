@@ -250,7 +250,7 @@ The g matrices/tensors for all electron spins in the system are supplied in two 
 </ul>
 
 <p>
-See also the reference page on the <a href="hamiltonian.html#ezi">Electron Zeeman interaction</a> and the EasySpin function <a class="esf" href="ham_ez.html">ham_ez</a>.
+See also the reference page on the <a href="hamiltonian.html#ezi">electron Zeeman interaction</a> and the EasySpin function <a class="esf" href="ham_ez.html">ham_ez</a>.
 </p>
 
 <div class="optionfield"><code>g</code></div>
@@ -1281,7 +1281,7 @@ Sys.L = [0 1];
 </div>
 <div class="optionfield"><code>CF0, CF2, CF4, CF6, CF8, CF10, CF12</code></div>
 <div class="optiondescr">
-The crystal field of the orbital angular momentum L is in EasySpin described by the coefficients CF(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> (see also the function <a class="esf" href="stev.html">stev</a>). They are analogous to the coefficients B(k,q) for the electron spin (see <a href = "#B">Higher-order operators</a>), but acting on the orbital angular momentum.
+The crystal field of the orbital angular momentum L is described in EasySpin by the coefficients CF(k,q) for the <a href="stevensoperators.html">extended Stevens operators</a> (see also the function <a class="esf" href="stev.html">stev</a>). They are analogous to the coefficients B(k,q) for the electron spin (see <a href = "#B">Higher-order operators</a>), but acting on the orbital angular momentum.
 All coefficients should be real, and are understood in units of MHz. The number in the field name indicates the order k of the operator. E.g. <code>CF2</code> is for k = 2, and <code>CF4</code> is k = 4. If any of these fields is not given, it is treated as zero. <code>L</code> must be given, otherwise the CF are ignored.
 
 <p>
@@ -1335,7 +1335,7 @@ Sys.CF2 = CF2.';
 
 <div class="optionfield"><code>gL</code></div>  
 <div class="optiondescr">
-Orbital g values entering in the Zeeman Hamiltonian, one for each orbital angular momentum in <code>L</code>. <code>gL</code> is an optional field; if omitted, it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>gL</code> must match the number of elements in <code>L</code>.
+Orbital g values entering the Zeeman Hamiltonian, one for each orbital angular momentum in <code>L</code>. <code>gL</code> is an optional field; if omitted, it is assumed equal to 1 for all orbital angular momenta. The number of elements in <code>gL</code> must match the number of elements in <code>L</code>.
 
 <pre class="matlab">
 Sys.gL = 3/2;          % gL for a single orbital angular momentum
@@ -1530,7 +1530,7 @@ For examples of spin-polarized systems (ISC triplets, recombination triplets, sp
 <a name="tdm"><div class="subtitle">Optical transition dipole moment</div></a>
 
 <p>
-To simulate the EPR spectra of photo-generated paramagnetic species, it might be necessary to take into account photoselection, i.e. the dependence of excitation yield on the polarization direction of the incident light beam relative to the electric transition dipole moment (tdm) of the excited optical transition. For this, the spin system has a field <code>Sys.tdm</code> that allows you to specify the orientation of the tdm in the molecular frame. There are three ways to do this:
+To simulate the EPR spectra of photogenerated paramagnetic species, it might be necessary to take into account photoselection, i.e. the dependence of excitation yield on the polarization direction of the incident light beam relative to the electric transition dipole moment (tdm) of the excited optical transition. For this, the spin system has a field <code>Sys.tdm</code> that allows you to specify the orientation of the tdm in the molecular frame. There are three ways to do this:
 </p>
 <ul>
 <li>Give a letter code for the direction, e.g. <code>Sys.tdm = 'y'</code> specifies that the tdm is along the molecular y axis.</li>

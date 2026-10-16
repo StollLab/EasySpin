@@ -1,4 +1,4 @@
-% Ground-state triplet of triphenylbenzene di-anion
+% Ground-state triplet of triphenylbenzene dianion
 %----------------------------------------------------------
 % see
 % - Weil/Bolton, chapter 6.3.3, Fig. 6.6

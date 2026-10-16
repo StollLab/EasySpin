@@ -74,7 +74,7 @@ Up to three output arguments are returned:
 </p>
 <ul>
 <li><code>B</code> or <code>nu</code>: magnetic field axis, in mT, or frequency axis, in GHz
-<li><code>spc</code>: calculated spectrum
+<li><code>spec</code>: calculated spectrum
 <li><code>info</code>: structure containing details about the calculation
 </ul>
 
@@ -359,7 +359,7 @@ This specifies which method is used to construct the Liouville matrix (i.e. the 
 
 <div class="optionfield"><code>FieldSweepMethod</code></div>
 <div class="optiondescr">
-Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit'</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum, in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
+Specifies how to calculate the field sweep. There are three possible settings: <code>'explicit'</code>, <code>'approxinv'</code>, and <code>'approxlin'</code>. <code>'explicit'</code> indicates that the spectral intensity should be calculated separately and explicitly for each field value. This is the accurate method. In many cases, using <code>'approxlin'</code> or <code>'approxinv'</code> results in much faster simulations. For these settings, a frequency-swept spectrum is calculated first and then converted to the field domain. This procedure is only approximate. <code>'approxinv'</code> works best if the g anisotropy dominates the spectrum; in all other cases (e.g. dominant hyperfine or zero-field splittings), <code>'approxlin'</code> is preferable.
 </div>
 
 <div class="optionfield"><code>separate</code>

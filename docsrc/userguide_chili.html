@@ -93,7 +93,7 @@ chili(Sys,Exp);
 <p>
 The first few lines define the spin system, a nitroxide radical with anisotropic g and A tensors. Then the rotational correlation time of the
 radical is set. Finally, experimental parameters are defined, here just the microwave frequency (the magnetic field range is chosen automatically).
-The last line calls the simulation function, which plots the result. Copy and paste the code above to your MATLAB command window to see the result.
+The last line calls the simulation function, which plots the result. Copy and paste the code above into your MATLAB command window to see the result.
 </p>
 
 <p>
@@ -276,7 +276,7 @@ When an ordering potential for the spin center is present, the simulation has to
 <a name="expparams"><div class="subtitle">Basic experimental settings</div></a>
 
 <p>
-The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+The second input argument, <code>Exp</code>, collects all experimental settings. Just like the spin system, <code>Exp</code> is a structure containing several fields.
 </p>
 
 <p>
@@ -469,7 +469,7 @@ For this, all you need to do is the following:
 </p>
 
 <ul>
-<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>, otherwise EasySpin does not know what to do.
+<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>; otherwise, EasySpin does not know what to do.
 <li>Give a frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. For <code>chili</code>, one of these is required.
 <li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in units of MHz. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>

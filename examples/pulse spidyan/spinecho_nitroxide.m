@@ -1,4 +1,4 @@
-% Spin echo of a nitroxide using spidyan (spidyan)
+% Spin echo of a nitroxide (spidyan)
 %==========================================================================
 % This example demonstrates how to simulate the spin echo of a nitroxide with
 % shaped pulses, using spidyan() and an explicit powder average.

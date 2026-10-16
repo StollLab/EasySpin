@@ -133,7 +133,7 @@ In versions of EasySpin prior to 6, the sample frame was called crystal frame, a
 <div class="subtitle"><a name="molframe">Molecular frame</a></div>
 
 <p>
-The <em>molecular frame</em> M is a reference frame that is fixed in the molecule or paramagnetic center. Its three unit axes are denoted xM, yM, and zM. You are free to choose the orientation of the molecular frame within the molecule, but it is best to follow existing conventions or align it with the local molecular symmetry. For example, put the zM axis along the plane normal of an aromatic radical or a planar transition metal complex. For a nitroxide radical, xM is conventionally along the N-O bond, and zM is perpendicular to the C-NO-C plane.
+The <em>molecular frame</em> M is a reference frame that is fixed in the molecule or paramagnetic center. Its three unit vectors are denoted xM, yM, and zM. You are free to choose the orientation of the molecular frame within the molecule, but it is best to follow existing conventions or align it with the local molecular symmetry. For example, put the zM axis along the plane normal of an aromatic radical or a planar transition metal complex. For a nitroxide radical, xM is conventionally along the N-O bond, and zM is perpendicular to the C-NO-C plane.
 
 <p>
 If you import data from quantum chemistry programs like ORCA, then you can take the frame from those calculations as the molecular frame. All imported atom coordinates and calculated tensors will be defined in this frame. EasySpin can <a href="orca.html">import ORCA calculation results</a>.
@@ -224,7 +224,7 @@ zM_T = R_M2T(:,3);
 </pre>
 
 <!-- ======================================================================================= -->
-<div class="subtitle"><a name="MC">Molecule orientation within a crystal</a></div>
+<div class="subtitle"><a name="MC">Molecule orientation within the sample</a></div>
 
 <p>
 In many crystals, the spin centers do not align with the crystal axes. In these situations, it is necessary to specify a tilt between the sample frame (S), which is fixed relative to the crystal, and the molecular frame (M), which is fixed relative to the spin center. Use <code>Exp.MolFrame</code> for this. This field takes an array of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>sample/crystal frame to the molecular frame</em> (S&rarr;M).
@@ -275,7 +275,7 @@ zM_S = R_S2M(3,:).';
 
 <!-- ======================================================================================= -->
 
-<div class="subtitle"><a name="CL">Sample orientation in the spectrometer</a></div>
+<div class="subtitle"><a name="CL">Sample orientation within the spectrometer</a></div>
 
 <p>
 To describe the orientation of a sample (crystal, film, etc.) in the spectrometer, you need to provide the relative orientation between the lab frame and the sample frame. For this, use the field <code>Exp.SampleFrame</code>. This field takes a set of three values that specify the <a href="eulerangles.html">Euler angles</a> (in radians) for the transformation of the <em>lab frame to the sample frame</em> (L&rarr;S).

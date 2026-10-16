@@ -32,7 +32,7 @@
 <!-- ============================================================= -->
 
 <p>
-This user guide explains how to extract magnetic parameters from experimental EPR spectra by fitting an EasySpin simulation result to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">esfit</a> contains all the necessary machinery. The function can also be used for least-squares fitting arbitrary models to arbitrary data. <a class="esf" href="esfit.html">esfit</a> calculates uncertainties (error bars) for the fitted parameters.
+This user guide explains how to extract magnetic parameters from experimental EPR spectra by fitting an EasySpin simulation result to the experimental spectra using least-squares fitting techniques. EasySpin's function <a class="esf" href="esfit.html">esfit</a> contains all the necessary machinery. The function can also be used for least-squares fitting of arbitrary models to arbitrary data. <a class="esf" href="esfit.html">esfit</a> calculates uncertainties (error bars) for the fitted parameters.
 </p>
 
 <p>
@@ -124,7 +124,7 @@ Here is what the various parameters mean:
 </ul>
 
 <p>
-The following two parameters are optional
+The following two parameters are optional:
 </p>
 <ul>
 <li>
@@ -406,7 +406,7 @@ A polynomial baseline correction can be performed in addition to scaling - see t
 <a name="hybrid"><div class="subtitle">Hybrid methods</div></a>
 
 <p>
-With EasySpin it is easily possible to perform so-called hybrid least-squares fittings, where one optimization algorithm is used to locate a potential minimum, and another one is used to refine the parameters at that minimum. The first of these two steps often employs algorithms that are able to locate minima globally and do not get stuck easily in a local minimum. The disadvantage of these methods is that they are often slow. The second step closes in on the minimum by using a much faster local method. There are two ways to perform such a two-stage fitting: using the UI, or writing your own code.
+With EasySpin it is easily possible to perform so-called hybrid least-squares fits, where one optimization algorithm is used to locate a potential minimum, and another one is used to refine the parameters at that minimum. The first of these two steps often employs algorithms that are able to locate minima globally and do not get stuck easily in a local minimum. The disadvantage of these methods is that they are often slow. The second step closes in on the minimum by using a much faster local method. There are two ways to perform such a two-stage fitting: using the UI, or writing your own code.
 </p>
 
 <p>
@@ -414,7 +414,7 @@ If you use the UI, you have complete control over when a fitting algorithm termi
 </p>
 
 <p>
-Alternatively, you can write code that does two- or multistage fitting. Let's look at an example with a two-stage fitting using genetic algorithm followed by Levenberg-Marquardt. This can be set up by calling <code>esfit</code> twice with different settings in <code>FitOpt</code>.
+Alternatively, you can write code that does two- or multistage fitting. Let's look at an example with a two-stage fitting using a genetic algorithm followed by Levenberg-Marquardt. This can be set up by calling <code>esfit</code> twice with different settings in <code>FitOpt</code>.
 </p>
 
 <pre class="matlab">
@@ -458,7 +458,7 @@ The global methods also terminate if the maximum number of simulations is reache
 </p>
 
 <p>
-In a field <code>FitOpt.maxTime</code>, the fitting function can be told to terminate after a given amount of time, even if the fitting did not converge in terms of <code>TolStep</code> and <code>TolFun</code>. This can be useful when running several fittings overnight from a script.
+In a field <code>FitOpt.maxTime</code>, the fitting function can be told to terminate after a given amount of time, even if the fitting did not converge in terms of <code>TolStep</code> and <code>TolFun</code>. This can be useful when running several fits overnight from a script.
 </p>
 
 <pre class="matlab">
@@ -601,7 +601,7 @@ If the x axis corresponding to each of the data sets should be displayed in the 
 </p>
 
 <p>
-<a class="esf" href="esfit.html">esfit</a> is able to handle simulation functions that do not provide the simulated data in their first output argument. If you want to use a non-conforming function, just tell <a class="esf" href="esfit.html">esfit</a> how it should be called and which output argument should be used in the fitting. This information is provided in <code>FitOpt.OutArg</code>, which should contain at least two numbers. The first number is the number of output arguments to expect, and the second number is the output argument to use in the fitting. Say, you have a function <code>myfun</code> that needs to be called with 4 output arguments (<code>[a,b,c,d] = myfun(...)</code>), and you want to use the second one for fitting, then use
+<a class="esf" href="esfit.html">esfit</a> is able to handle simulation functions that do not provide the simulated data in their first output argument. If you want to use a non-conforming function, just tell <a class="esf" href="esfit.html">esfit</a> how it should be called and which output argument should be used in the fitting. This information is provided in <code>FitOpt.OutArg</code>, which should contain at least two numbers. The first number is the number of output arguments to expect, and the second number is the output argument to use in the fitting. Say you have a function <code>myfun</code> that needs to be called with 4 output arguments (<code>[a,b,c,d] = myfun(...)</code>), and you want to use the second one for fitting, then use
 </p>
 
 <pre class="matlab">

@@ -90,7 +90,7 @@ chimol_CGS = chimol_SI/(4*pi*1e-6);   % SI unit -> CGS unit
 <div class="subtitle2">Input: Spin system</div>
 
 <p>
-There are three inputs to the function, the last one is optional.
+There are three inputs to the function; the last one is optional.
 </p>
 
 <p>
@@ -145,7 +145,7 @@ If <code>Field</code> is missing, EasySpin assumes that no field is applied (equ
 </div>
 
 <p>
-<code>curry</code> calculates magnetic susceptibility as numeric derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and dividing it by the field strength. For sufficiently small field strengths, this corresponds to the derivative at zero field. In cases where the field strength is not small, experimental results might be better reproduced by:
+<code>curry</code> calculates magnetic susceptibility as the numerical derivative of the magnetic moment at the given field value. However, the experimental data is often obtained by measuring the magnetization at a given field value and dividing it by the field strength. For sufficiently small field strengths, this corresponds to the derivative at zero field. In cases where the field strength is not small, experimental results might be better reproduced by:
 </p>
 
 <pre class="matlab">

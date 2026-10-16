@@ -55,7 +55,7 @@ The focus of <code>spidyan</code> lies on investigation of spin dynamics and on 
 Hence, the outputs of <code>spidyan</code> are a time-domain signal and density matrices of a single spin packet.
 For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based on the same propagation engine.
 Time-domain signals or state trajectories simulated by <code>spidyan</code> are typically further analyzed by (MATLAB) software home-written by the user.
-At the expense of requiring more knowledge on spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition-selective excitation operators, freely choosable detection operators,...). 
+At the expense of requiring more knowledge of spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition-selective excitation operators, freely selectable detection operators,...). 
 This freedom should help you to investigate your spin dynamics problem in depth.
 </p>
 
@@ -104,7 +104,7 @@ If only one is provided, the other one is set by default to a very large value (
 <div class="optiondescr">
 Array with Zeeman frequencies (in GHz) of electron spins defined in <code>S</code> of the spin system structure. 
 It is possible to use <code>ZeemanFreq</code> in combination with <code>g</code>. 
-If a non-zero Zeeman frequency is found, any g-values given for this electron spin are ignored.
+If a non-zero Zeeman frequency is found, any g values given for this electron spin are ignored.
 </div>
 
 <div class="optionfield"><code>T1</code></div>
@@ -142,7 +142,7 @@ Sys.initState = [0 1/2; 1/2 0]; 	% Start simulation from Sx
 For simulations with relaxation, it is possible to provide an equilibrium state <code>eqState</code> that the system relaxes to. 
 This state has to be a density operator in matrix form.
 By default, the initial state is used as the equilibrium state.
-The equilibrium state is only used if relaxation is active, else it is ignored.
+The equilibrium state is only used if relaxation is active; otherwise, it is ignored.
 </div>
 
 
@@ -153,7 +153,7 @@ The equilibrium state is only used if relaxation is active, else it is ignored.
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
-Magnetic field (in mT) at which the experiment is performed, needs to be provided only if the spin system is defined with <code>Sys.g</code>.
+Magnetic field (in mT) at which the experiment is performed; it needs to be provided only if the spin system is defined with <code>Sys.g</code>.
 If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
 </div>
 
@@ -161,7 +161,7 @@ If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
 <div class="optiondescr">
 A cell array that contains the pulse definition and the inter-pulse delays.
 Available pulse types and their parameters are described at <a href="pulse.html">pulse</a>. 
-For a pulse it is necessary to insert a structure containing the pulse definition, free evolution events are declared with a scalar that corresponds to their length in microseconds:
+For a pulse it is necessary to insert a structure containing the pulse definition; free evolution events are declared with a scalar that corresponds to their length in microseconds:
 <pre class="matlab">
 P90.Type = 'rectangular';  	% Define Pulse, see examples for more details
 P90.tp = 0.032;		  	% Pulse Length in microseconds

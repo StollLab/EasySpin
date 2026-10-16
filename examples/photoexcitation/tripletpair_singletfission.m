@@ -1,7 +1,7 @@
-% Triplet state and pair of strongly-exchange coupled 
+% Triplet state and pair of strongly exchange-coupled 
 % triplet states formed from singlet fission
 %===========================================================
-% Simulation of the EPR spectra of triplet states and strongly-exchange coupled
+% Simulation of the EPR spectra of triplet states and strongly exchange-coupled
 % pairs of triplet states (quintet state) formed from singlet fission
 % 
 % see

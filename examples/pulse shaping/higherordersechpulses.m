@@ -1,4 +1,4 @@
-% First order sech/tanh and higher order sech inversion pulses
+% First-order sech/tanh and higher-order sech inversion pulses
 %==========================================================================
 % In this example, offset-independent adiabaticity inversion pulses with
 % amplitude modulation functions determined by sech of different order are

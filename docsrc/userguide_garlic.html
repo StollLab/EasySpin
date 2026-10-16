@@ -96,7 +96,7 @@ garlic(Sys,Exp);
 The first line clears the workspace. The next 6 lines define the spin system (a radical with an unpaired electron spin
 and two equivalent <sup>1</sup>H) and the experimental parameters (X-band spectrometer frequency). The details will be explained below.
 The last line calls the simulation function, which plots the result.
-Copy and paste the code above to your MATLAB command window to see the plot.
+Copy and paste the code above into your MATLAB command window to see the plot.
 </p>
 
 <p>
@@ -194,7 +194,7 @@ section about line broadenings.
 <a name="expparams"><div class="subtitle">Basic experimental settings</div></a>
 
 <p>
-The second input argument, <code>Exp</code>, collects all experimental information about the sample and the spectrometer. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+The second input argument, <code>Exp</code>, collects all experimental information about the sample and the spectrometer. Just like the spin system, <code>Exp</code> is a structure containing several fields.
 </p>
 
 <p>
@@ -335,8 +335,8 @@ the appropriate weight (depending on spin concentration) to the total spectrum.
 
 <p>
 This can be done all in one go with <code>garlic</code>. Just provide the component spin systems
-with their weights as a cell list (in curly braces) to <code>garlic</code>. For example, here
-is the simulation of a very simple two-component mixture with 2:1 ratio of spin concentrations.
+with their weights as a cell array (in curly braces) to <code>garlic</code>. For example, here
+is the simulation of a very simple two-component mixture with a 2:1 ratio of spin concentrations.
 </p>
 
 <pre class="matlab">
@@ -426,7 +426,7 @@ Remember that for fast-motion simulations of systems with more than one nucleus,
 </p>
 
 <p>
-In conclusion, an illustrative example of a nitroxide radical in the fast-motion regime
+Finally, here is an illustrative example of a nitroxide radical in the fast-motion regime
 </p>
 
 <pre class="matlab">
@@ -453,8 +453,8 @@ simulate frequency-swept spectra as well.
 For this, all you need to do is the following
 </p>
 <ul>
-<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>,
-otherwise EasySpin does not know what to do.
+<li>Give a static magnetic field (in mT) in <code>Exp.Field</code>. Make sure you do not set <code>Exp.mwFreq</code>;
+otherwise, EasySpin does not know what to do.
 <li>Give a frequency range (in GHz) in <code>Exp.mwRange</code> or <code>Exp.mwCenterSweep</code>. You can also omit these, in which case <code>garlic</code> determines an adequate range automatically.
 <li>If you use <code>Sys.lw</code> or <code>Sys.lwpp</code>, make sure they are in MHz units. For a frequency sweep, these convolutional line width parameters are understood to be in MHz (and not in mT, as they are for field sweeps).
 </ul>

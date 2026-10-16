@@ -1,4 +1,4 @@
-% High-spin Fe(III), X band CW EPR
+% High-spin Fe(III), X-band cw EPR
 %==========================================================================
 clear, clc
 

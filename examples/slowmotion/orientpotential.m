@@ -1,4 +1,4 @@
-% Effect of orientational potential on slow-motion an rigid-limit EPR spectra
+% Effect of orientational potential on slow-motion and rigid-limit EPR spectra
 %===============================================================================
 % This example illustrates how the orientational potential input works and how an
 % orientational potential affects a simple EPR spectrum, both in the rigid limit and

@@ -1,4 +1,4 @@
-% Comparison between fast- and slow-motion simulation algorithms
+% Effect of rhombic rotational diffusion on slow-motion spectra
 %===============================================================================
 % This example shows how diffusion around particular axes of a spin system
 % affects the EPR spectrum. For this, we use a rhmobic rotational diffusion

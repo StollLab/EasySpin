@@ -197,7 +197,7 @@ Something to keep in mind: The entire detection window is used. This means that 
 Note that if you work with frequency-swept pulses, refocusing conditions might be slightly different from what you are used to when working with rectangular pulses, e.g. the echo position might shift slightly, or the last pulse has to have half the length of the previous pulses to ensure proper refocusing.
 
 <p>
-Let us create a two-pulse echo sequence with linearly-swept chirp pulses with smoothed edges.
+Let us create a two-pulse echo sequence with linearly swept chirp pulses with smoothed edges.
 
 First, we start with the spin system:
 <pre class="matlab">
@@ -445,14 +445,14 @@ Sys.T1 =
 
 <p>
 In case the lower triangle is not defined for <code>T1</code>, the upper triangle is used for up and down directions.
-Any transitions that are not assigned a relaxation time (matrix element 0 in the upper triangle), are automatically set to 10<sup>10</sup> microseconds, which effectively switches relaxation off on that pathway. 
+Any transitions that are not assigned a relaxation time (matrix element 0 in the upper triangle) are automatically set to 10<sup>10</sup> microseconds, which effectively switches relaxation off on that pathway. 
 Relaxation times in the lower triangle of <code>T2</code> are ignored.
 </p>
 
 <p>
 Spin systems that contain several spins are assigned relaxation times analogously, but require a slightly deeper insight into ordering of the states:
 The representation of the operators is in terms of product Zeeman basis states |m<sub>1</sub>,m<sub>2</sub>,m<sub>3</sub>,..>, where m<sub>1</sub> is for the first spin, m<sub>2</sub> is for the second spin, etc.
-The basis functions are again in descending order m<sub>i</sub>, left to right.
+The basis functions are again in descending order of m<sub>i</sub>, left to right.
 E.g. for two coupled (electron) spins with <i>S</i> = 1/2, you get the following energy level scheme:
 </p>
 
@@ -461,7 +461,7 @@ E.g. for two coupled (electron) spins with <i>S</i> = 1/2, you get the following
 
 <!-- ============================================================= -->
 <a name="tipsntricks">
-<div class="subtitle">Tips and Tricks</div>
+<div class="subtitle">Tips and tricks</div>
 </a>
 
 <p>

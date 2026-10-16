@@ -1,4 +1,4 @@
-% Compute a set orientations in a plane
+% Compute a set of orientations in a plane
 %======================================================
 % Computes N vectors in a plane normal to a given direction Z.
 

@@ -1,4 +1,4 @@
-% Temperature-dependence of magnetization
+% Temperature dependence of magnetization
 %===============================================================
 
 clear, clc, clf

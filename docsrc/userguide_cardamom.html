@@ -108,11 +108,11 @@ cardamom(Sys,Exp,Par);
 The first line defines the spin system, a nitroxide radical with anisotropic
 g and A tensors. 
 The second line gives the rotational correlation time of the radical. 
-The third line specifies experimental parameters, here only the microwave frequency is needed (the
+The third line specifies experimental parameters; here, only the microwave frequency is needed (the
 magnetic field range is chosen automatically).
 The fourth line defines the simulation parameters and trajectory properties.
 The fifth line calls the simulation function, which plots the result.
-Copy and paste the code above to your MATLAB command window to see the graph.
+Copy and paste the code above into your MATLAB command window to see the graph.
 </p>
 
 <p>
@@ -301,7 +301,7 @@ For the reliability of the simulation algorithm we recommend adding a small resi
 <p>
 <code>cardamom</code> can also include an orientational potential in the simulation.
 It is specified in the field <code>Potential</code> in the spin system structure.
-A Wigner D-function expansion can be used to specify the orientational potential by giving the L, M, and K values in the first three columns and the coefficient in the fourth column. Each term in the expansion then corresponds to each row in the matrix. For example:
+A Wigner D-function expansion can be used to specify the orientational potential by giving the L, M, and K values in the first three columns and the coefficient in the fourth column. Each row in the matrix corresponds to one term in the expansion. For example:
 </p>
 
 <pre class="matlab">
@@ -321,7 +321,7 @@ Note that an orientational potential can only be used for a stochastic rotationa
 <div class="subtitle"><a name="expparams">Basic experimental settings</a></div>
 
 <p>
-The second input argument, <code>Exp</code>, collects all experimental settings. Just as the spin system, <code>Exp</code> is a structure containing several fields.
+The second input argument, <code>Exp</code>, collects all experimental settings. Just like the spin system, <code>Exp</code> is a structure containing several fields.
 </p>
 
 <p>

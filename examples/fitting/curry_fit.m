@@ -1,4 +1,4 @@
-% Fitting magnetic susceptibility curve
+% Fitting a magnetic susceptibility curve
 %===============================================================================
 
 clear, clc
