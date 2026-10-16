@@ -1853,6 +1853,24 @@ else  % if fastSimulationMode
   end
   %----------------------------------------------------------------------
 
+  % User-provided initial state (Sys.initState), set up for each orientation
+  % (variables used in the parfor loop are defined in all cases)
+  userInitState = ~isempty(Sys.initState);
+  initStateBasis = '';
+  HframeShift = 0;
+  if userInitState
+    initStateBasis = Sys.initState{2};
+    if strcmp(initStateBasis,'uncoupled')
+      error('Sys.initState in the uncoupled basis is not yet supported in saffron (requires rotation to the lab frame).');
+    end
+    if strcmp(initStateBasis,'eigen')
+      % frame shift applied to g, as a lab-frame Hamiltonian term (MHz)
+      for iSpin = 1:Sys.nElectrons
+        HframeShift = HframeShift - Opt.FrameShift*1e3*sop(Sys.Spins,[iSpin,3]);
+      end
+    end
+  end
+
   rawSignals = cell(1,nOrientations);
   timeAxis = cell(1,nOrientations);
 
@@ -1871,15 +1889,30 @@ else  % if fastSimulationMode
 
     Ham = ham(Sys_L,Field*[0 0 1]);  % lab frame
 
+    % Initial state in the lab frame
+    Sigma_ = Sigma;
+    if userInitState
+      if strcmp(initStateBasis,'eigen')
+        % eigenstates of the lab-frame Hamiltonian without the frame shift
+        Sigma_ = initstate(Sys_L,Ham - HframeShift);
+      else
+        % zero-field states of the rotated spin system are in the lab frame
+        Sigma_ = initstate(Sys_L);
+      end
+    end
+
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)
       logmsg(1,'  adapting relaxation superoperator to system frame');
       [U,~] = eig(Ham);
       R = kron(transpose(U),U');
       Relaxation_.Gamma = R'*Relaxation_.Gamma*R;
+      if isempty(Relaxation_.equilibriumState)
+        Relaxation_.equilibriumState = Sigma_;
+      end
     end
 
-    [timeAxis{iOrientation}, rawSignals{iOrientation}] = s_thyme(Sigma, Ham, DetOps, Events, Relaxation_, Vary);
+    [timeAxis{iOrientation}, rawSignals{iOrientation}] = s_thyme(Sigma_, Ham, DetOps, Events, Relaxation_, Vary);
   end
 
   timeAxis = timeAxis{1};

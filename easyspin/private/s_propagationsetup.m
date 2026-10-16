@@ -72,21 +72,15 @@ end
 % --------------------------------------------------------------------------------------
 logmsg(1,'  setting up the initial state');
 
-% Build or load initial state
-if isfield(Sys,'initState') && ~isempty(Sys.initState)
-  % if some initial state was provided, this checks if the dimensions are
-  % correct
-  if ~strcmp(Sys.initState{2},'uncoupled')
-    error('spidyan only accepts a density matrix in the uncoupled basis in Sys.initState.')
-  end
-  [a, b] = size(Sys.initState{1});
-  if Sys.nStates ~= a || Sys.nStates ~= b
-    error('Initial state has to be a density matrix.')
-  end
-  Sigma0 = Sys.initState{1};
-else
-  % builds initial state, all electrons are -Sz, nuclei are not defined
+% Build initial state
+if isempty(Sys.initState)
+  % all electrons are -Sz, nuclei are not defined
   Sigma0 = -totSpinOps{3};
+else
+  % A user-provided initial state can depend on the Hamiltonian (and therefore
+  % on the orientation and the simulation frame), so the caller sets it up
+  % via initstate. Sigma0 is empty here, and so is the default equilibrium state.
+  Sigma0 = [];
 end
 
 % Set up relaxation superoperator and equilibrium state
@@ -110,7 +104,8 @@ else
     end
     Relaxation.equilibriumState = Sys.eqState;
   else
-    % initial state is copied from initial state
+    % equilibrium state is copied from initial state (empty if the caller sets
+    % up the initial state, in which case the caller also sets this)
     Relaxation.equilibriumState  = Sigma0;
   end
 end
@@ -143,7 +138,7 @@ for iEvent = 1: length(Events)
       % current event ...
       if ischar(Opt.ExcOperator{iPulse})
         Events{iEvent}.xOp = sop(Sys.Spins,Opt.ExcOperator{iPulse});
-      elseif any(size(Opt.ExcOperator{iPulse}) ~= size(Sigma0))
+      elseif any(size(Opt.ExcOperator{iPulse}) ~= size(totSpinOps{1}))
         message = ['The excitation operator that you provided for pulse no. ' num2str(iPulse) ' does not have the same size as the density matrix.'];
         error(message)
       else

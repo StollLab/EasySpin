@@ -205,9 +205,38 @@ logmsg(1,'  parsing the Sys structure...');
 
 [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
+% For now, only density matrices in the uncoupled basis are supported in Sys.initState
+if ~isempty(Sys.initState)
+  if ~strcmp(Sys.initState{2},'uncoupled')
+    error('spidyan only accepts a density matrix in the uncoupled basis in Sys.initState.')
+  end
+  if ~isequal(size(Sys.initState{1}),[Sys.nStates Sys.nStates])
+    error('Initial state has to be a density matrix.')
+  end
+end
+
 % Get Hamiltonian
 logmsg(1,'  computing lab frame Hamiltonian');
 H = ham(Sys,Exp.Field*[0 0 1]);
+
+% Set up user-provided initial state
+if ~isempty(Sys.initState)
+  logmsg(1,'  setting up the initial state from Sys.initState');
+  if strcmp(Sys.initState{2},'eigen')
+    % Eigenstates are those of the lab-frame Hamiltonian without the frame
+    % shift applied to g above
+    HframeShift = 0;
+    for iSpin = 1:Sys.nElectrons
+      HframeShift = HframeShift - Opt.FrameShift*1e3*sop(Sys.Spins,[iSpin,3]);
+    end
+    Sigma = initstate(Sys,H - HframeShift);
+  else
+    Sigma = initstate(Sys);
+  end
+  if ~isempty(Relaxation) && isempty(Relaxation.equilibriumState)
+    Relaxation.equilibriumState = Sigma;
+  end
+end
 
 % Propagation
 %-------------------------------------------------------------------------------
