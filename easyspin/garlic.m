@@ -801,7 +801,7 @@ switch Opt.AccumMethod
     x0T = 1e5;
     wT = x0T/20; % 0.0025 at borders for Harmonic = -1
     xT = 0:2*x0T-1;
-    Template = lorentzian(xT,x0T,wT,Exp.Harmonic-1);
+    Template = lorentzian(xT,x0T,wT,Exp.ConvHarmonic-1);
     if isscalar(LorentzianLw)
       LorentzianLw = LorentzianLw*ones(size(Positions));
     end
