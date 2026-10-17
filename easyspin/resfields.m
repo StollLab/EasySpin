@@ -399,36 +399,9 @@ nSHFNucStates = nFull/nCore;
 useTemperature = p_temperature(Exp);
 computeBoltzmannPopulations = useTemperature && ~computeNonEquiPops;
 if computeNonEquiPops
-
-  initState = Sys.initState{1};
-  initStateBasis = Sys.initState{2};
-
-  % Check and adapt input dimensions
-  nElectronStates = prod(2*Sys.S+1);
-
-  [sz1,sz2] = size(initState);
-  if sz1==sz2
-    % Density matrix
-    if sz1~=nElectronStates && sz1~=nCore
-      error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nCore)
-    end
-    if numel(initState)==nElectronStates^2 && nCore>nElectronStates
-      initState = kron(initState,eye(nCore/nElectronStates))/(nCore/nElectronStates);
-    end
-  elseif isvector(initState)
-    % Vector of populations
-    if numel(initState)~=nElectronStates && numel(initState)~=nCore
-      error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nCore);
-    end
-    initState = initState(:);
-    if numel(initState)==nElectronStates && numel(initState)~=nCore
-      initState = kron(initState,ones(nCore/nElectronStates,1))/(nCore/nElectronStates);
-    end
-    initState = diag(initState);
-  else
-    error('Sys.initState must contain either a population vector or a density matrix.');
-  end
-
+  % Density matrix in the uncoupled basis of the core system, or in the
+  % eigenbasis (initStateBasis = 'eigen')
+  [initState,initStateBasis] = initstate(CoreSys);
 end
 
 % Add slight numerical noise to non-zero elements in the Hamiltonian to break
@@ -453,42 +426,16 @@ else
   end
 end
 
-% Spin-polarized systems: precompute zero-field energies, states, populations
-if computeNonEquiPops && strcmp(initStateBasis,'zerofield')
-    
-  % Pre-compute zero-field energies and eigenstates
-  if higherOrder
-    [ZFStates,ZFEnergies] =  eig(ham(CoreSys,zeros(1,3)));
-  else
-    if Opt.Sparse
-      [ZFStates,ZFEnergies] = eigs(kH0,length(kH0));
-    else
-      [ZFStates,ZFEnergies] = eig(kH0);
-    end
-  end
-  [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
-  ZFStates = ZFStates(:,idx);
-  % Check for degeneracies and issue error
-  if numel(unique(ZFEnergies))~=numel(ZFEnergies)
-    error(['Degenerate energy levels detected at zero-field. This prevents unambiguous assignment of ' ...
-           'the provided sublevel populations to the zero-field states. Please provide the non-equilibrium ' ...
-           'state using the full density matrix. See documentation for details.'])
-  end
-  
-  % Convert density matrix in zero-field basis to uncoupled basis
-  initState = ZFStates*initState*ZFStates';
-  
+% Zero-field energies
+if higherOrder
+  ZFEnergies = eig(ham(CoreSys,zeros(1,3)));
+  ZFEnergies = sort(real(ZFEnergies));
 else
-  if higherOrder
-    ZFEnergies = eig(ham(CoreSys,zeros(1,3)));
-    ZFEnergies = sort(real(ZFEnergies));
+  if issparse(kH0)
+    ZFEnergies(1) = eigs(kH0,1,-2*max(abs(kH0(:))));
+    ZFEnergies(2) = eigs(kH0,1,+2*max(abs(kH0(:))));
   else
-    if issparse(kH0)
-      ZFEnergies(1) = eigs(kH0,1,-2*max(abs(kH0(:))));
-      ZFEnergies(2) = eigs(kH0,1,+2*max(abs(kH0(:))));
-    else
-      ZFEnergies = sort(real(eig(kH0)));
-    end
+    ZFEnergies = sort(real(eig(kH0)));
   end
 end
 

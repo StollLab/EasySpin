@@ -168,66 +168,9 @@ end
 [H0,muxM,muyM,muzM] = ham(Sys);
 
 
-% For polarized systems, pre-compute ZF eigenstates.
+% Non-equilibrium state
 if computeNonEquiPops
-
-  initState = Sys.initState{1};
-  initStateBasis = Sys.initState{2};
-
-  % Check and adapt input dimensions
-  nElectronStates = prod(2*Sys.S+1);
-  nNucStates = prod(Sys.I*2+1);
-  nStates = nElectronStates*nNucStates;
-
-  [sz1,sz2] = size(initState);
-  if sz1==sz2
-    % Density matrix
-    if nElectronStates~=sz1 && nStates~=sz1
-      error('The density matrix in Sys.initState must have dimensions of nxn with n = %d or %d.',nElectronStates,nStates)
-    end
-    if numel(initState)==nElectronStates^2 && numel(initState)~=nStates^2
-      initState = kron(initState,eye(nStates/nElectronStates));
-    end
-    initState = initState/trace(initState);
-  else
-    % Vector of populations
-    if numel(initState)~=nElectronStates && numel(initState)~=nStates
-      error('The population vector in Sys.initState must have %d or %d elements.',nElectronStates,nStates);
-    end
-    initState = initState(:);
-    if numel(initState)==nElectronStates && numel(initState)~=nStates
-      initState = kron(initState,ones(nStates/nElectronStates,1));
-    end
-    initState = initState/sum(initState);
-    % Convert population vector to density matrix for populations provided in eigenbasis
-    if strcmp(initStateBasis,'eigen')
-      initState = diag(initState);
-    end
-  end
-
-  if strcmp(initStateBasis,'zerofield')
-    % Pre-compute zero-field energies and eigenstates
-    [ZFStates,ZFEnergies] = eig(H0);
-    [ZFEnergies,idx] = sort(real(diag(ZFEnergies)));
-    ZFStates = ZFStates(:,idx);
-    % Check for degeneracies and issue error
-    if numel(unique(ZFEnergies))~=numel(ZFEnergies)
-      error(['Degenerate energy levels detected at zero-field. This prevents unambiguous assignment of ' ...
-             'the provided sublevel populations to the zero-field states. Please provide the non-equilibrium' ...
-             'state using the full density matrix. See documentation for details.'])
-    end
-
-    if isvector(initState)
-      % Convert population vector to density matrix
-      initState = ZFStates*diag(initState)*ZFStates';
-    else
-      % Convert density matrix in zero-field basis to uncoupled basis
-      initState = ZFStates*initState*ZFStates';
-    end
-  end
-
-else
-%   ZFEnergies = sort(real(eig(F)));
+  [initState,initStateBasis] = initstate(Sys);
 end
 
 % Intensities are computed if option settings are positive and
