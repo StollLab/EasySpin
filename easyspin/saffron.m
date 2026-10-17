@@ -2270,6 +2270,7 @@ tensors2rotate = tensors(isfield(Sys_M,tensors));
 for t = 1:numel(tensors2rotate)
   tFrame_ = [tensors2rotate{t} 'Frame'];
   ang_M2T = Sys_M.(tFrame_);
+  ang_L2T = zeros(size(ang_M2T));
   for iRow = 1:size(ang_M2T,1)
     for iCol = 1:size(ang_M2T,2)/3
       colidx = 3*(iCol-1)+1:3*iCol;
