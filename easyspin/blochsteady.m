@@ -297,8 +297,6 @@ logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
 
   function plotresults()
 
-    xlineAvailable = ~verLessThan('matlab','9.5');  % R2018b
-
     tx1 = acos(-DeltaB0*2/modAmp)/omegam*1e6;
     tx2 = 1/modFreq*1e6 - tx1;
     reflineColor = [1 1 1]*0.7;
@@ -310,9 +308,7 @@ logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
     ylabel('absorption signal');
     title(sprintf('T_1 = %g µs, T_2 = %g µs, modAmp = %g mT, modFreq =  %g kHz, B_1 = %g mT, \\DeltaB = %g mT',...
       T1*1e6,T2*1e6,modAmp*1e3,modFreq/1e3,B1*1e3,DeltaB0*1e3));
-    if xlineAvailable
-      xline([tx1 tx2],'Color',reflineColor);
-    end
+    xline([tx1 tx2],'Color',reflineColor);
 
     subplot(3,1,3);
     Bmod = modAmp/2*1e3*cos(omegam*t*1e-6);
@@ -320,10 +316,8 @@ logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
     axis tight
     xlabel('time (µs)');
     ylabel('modulation field (mT)');
-    if xlineAvailable
-      yline(-DeltaB0*1e3,'Color',reflineColor,'Label','-\DeltaB0');
-      xline([tx1 tx2],'Color',reflineColor);
-    end
+    yline(-DeltaB0*1e3,'Color',reflineColor,'Label','-\DeltaB0');
+    xline([tx1 tx2],'Color',reflineColor);
   end
 
 end

@@ -11,15 +11,8 @@
 %   Checkboxes control whether unstable and nonmagnetic isotopes are shown.
 %   The magnetic field can be entered directly or set to typical X-, Q-,
 %   or W-band values using the buttons next to it.
-%
-%   Requires MATLAB R2021b or later.
 
 function isotopes()
-
-% Check MATLAB version (isMATLABReleaseOlderThan was introduced in R2020b)
-if ~exist('isMATLABReleaseOlderThan','file') || isMATLABReleaseOlderThan("R2021b")
-  error('isotopes requires MATLAB R2021b or later.');
-end
 
 % Settings
 figTag = 'isotopesfig';

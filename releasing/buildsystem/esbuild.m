@@ -143,7 +143,7 @@ fprintf(' ok\n');
 % We use Pcode format version R2007b-R2021b
 fprintf('  P-coding all m-files...');
 MatlabVersion = sscanf(version,'%d.%d',2);
-addPcodeVersionFlag = MatlabVersion(1)>9 || (MatlabVersion(1)==0 && MatlabVersion(2)>=12);  % 9.12 = R2022a
+addPcodeVersionFlag = MatlabVersion(1)>9 || (MatlabVersion(1)==9 &&MatlabVersion(2)>=12);  % 9.12 = R2022a
 curdir = pwd;
 cd(tbxDir);
 if addPcodeVersionFlag

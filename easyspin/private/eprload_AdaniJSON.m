@@ -3,12 +3,6 @@ function [Data,Abscissa,Parameters] = eprload_AdaniJSON(FileName)
 % JSON format of Adani spectrometers SPINSCAN etc. (e-Spinoza software)
 %--------------------------------------------------------------------------
 % (implementation based on official documentation from Adani)
-% This does not work prior to R2016b because of jsondecode().
-
-% Matlab version check
-if verLessThan('matlab','9.1.0')
-  error('Reading Adani e-Spinoza JSON files requires Matlab R2016b (9.1.0) or later.');
-end
 
 % Read JSON string from file
 fid = fopen(FileName);

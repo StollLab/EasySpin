@@ -284,13 +284,7 @@ err = [];
 
 if exist(PARFileName,'file')
   fh = fopen(PARFileName);
-  MatlabVersion = sscanf(version,'%f',1);
-  if MatlabVersion<8.6 % prior to R2015b
-    warning('off','MATLAB:textscan:BufSizeDeprecation');
-    allLines = textscan(fh,'%s','whitespace','','delimiter','\n','bufsize',500000); %#ok<BUFSIZE>
-  else
-    allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
-  end
+  allLines = textscan(fh,'%s','whitespace','','delimiter','\n');
   allLines = allLines{1};
   fclose(fh);
 else

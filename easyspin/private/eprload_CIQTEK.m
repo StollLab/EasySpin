@@ -3,12 +3,6 @@ function [data,abscissa,parameters] = eprload_CIQTEK(fileName)
 % JSON format of CIQTEK spectrometers
 %--------------------------------------------------------------------------
 % (implementation based on example files from the EasySpin user forum)
-% This does not work prior to R2016b because of jsondecode().
-
-% Matlab version check
-if verLessThan('matlab','9.1.0')
-  error('Reading CIQTEK files requires Matlab R2016b (9.1.0) or later.');
-end
 
 % Read JSON string from file
 fid = fopen(fileName);

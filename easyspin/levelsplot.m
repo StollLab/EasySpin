@@ -268,13 +268,9 @@ for iLevel = 1:nLevels
   hLevels(iLevel).UserData = iLevel;
 end
 
-try
-  % Adjust axes interactivity and axes toolbar
-  hLevelsAxes.Interactions = [];
-  axtoolbar(hLevelsAxes,{'export','pan','zoomin','zoomout','restoreview'});
-catch
-  % pre-R2018b
-end
+% Adjust axes interactivity and axes toolbar
+hLevelsAxes.Interactions = [];
+axtoolbar(hLevelsAxes,{'export','pan','zoomin','zoomout','restoreview'});
 
 box(hLevelsAxes,'on');
 axis(hLevelsAxes,'tight');

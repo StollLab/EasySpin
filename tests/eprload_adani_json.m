@@ -4,13 +4,6 @@ function ok = test(opt)
 %-------------------------------------------------------------------------------
 % JSON format from e-Spinoza software
 
-% Skip test if Matlab version is older than R2016b
-% Before that, the Matlab-internal JSON parser does not work.
-if verLessThan('matlab','9.1')
-  ok = false;
-  return
-end
-
 BaseDir = 'eprfiles/adani/';
 Files{1} = '1d.json';
 Files{2} = '2d.json';

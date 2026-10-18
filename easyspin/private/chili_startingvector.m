@@ -14,7 +14,6 @@ nBasis = numel(Basis.L);
 stvec = zeros(nBasis,1);
   
 absTol = 1e-8; % for numerical integration
-useOldIntegrator = verLessThan('matlab','7.14'); % use quadl() instead of integral()
 
 cacheval = NaN;
 cacheLK = [NaN NaN];
@@ -42,11 +41,7 @@ for b = 1:nBasis
       value = cacheval;
     else
       fun  = @(z)orifun(z,L,K,lambda);
-      if useOldIntegrator
-        value = quadl(fun,0,1,absTol); %#ok<DQUADL>
-      else
-        value = integral(fun,0,1,'AbsTol',absTol);
-      end
+      value = integral(fun,0,1,'AbsTol',absTol);
       value = value * sqrt((2*L+1)/prod(L-K+1:L+K));
       if K==0
         value = value/sqrt(2);

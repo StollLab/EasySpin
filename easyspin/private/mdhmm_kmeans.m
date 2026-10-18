@@ -60,9 +60,6 @@ idxClustersAll = {1,nRepeats};
 centroidsAll = {1,nRepeats};
 sumdist2 = zeros(1,nRepeats);
 
-% Use implicit singleton expansion if available, i.e. in R2016b (9.1) or later
-implicitSingletonExpansion = ~verLessThan('matlab','9.1');
-
 for iRepeat = 1:nRepeats
   
   centroids = zeros(nClusters,nDims);
@@ -96,7 +93,7 @@ for iRepeat = 1:nRepeats
       
       while ~allClustersAssigned
         % calculate distances to centroids
-        distances2 = calcdistances(data, centroids, implicitSingletonExpansion);
+        distances2 = calcdistances(data, centroids);
         % assignment step
         [minDistances2, idxClusters] = min(distances2,[],2);
         clustersAssigned(unique(idxClusters)) = true;
@@ -112,7 +109,7 @@ for iRepeat = 1:nRepeats
       
     else
       % calculate distances to centroids
-      distances2 = calcdistances(data, centroids, implicitSingletonExpansion);
+      distances2 = calcdistances(data, centroids);
       % assignment step
       [minDistances2, idxClusters] = min(distances2,[],2);
       
@@ -181,18 +178,14 @@ end
 
 end
 
-function distances2 = calcdistances(data, centroids, implicitSingletonExpansion)
+function distances2 = calcdistances(data, centroids)
 
 nPoints = size(data, 1);
 nClusters = size(centroids, 1);
 
 distances2 = zeros(nPoints,nClusters);
 for k = 1:nClusters
-  if implicitSingletonExpansion
-    differences = pi - abs(pi - abs(data-centroids(k,:))); % R2016b and later
-  else
-    differences = pi - abs(pi - abs(bsxfun(@minus,data,centroids(k,:)))); % pre-R2016b
-  end
+  differences = pi - abs(pi - abs(data-centroids(k,:)));
   distances2(:,k) = sum(differences.^2, 2);
 
 end
