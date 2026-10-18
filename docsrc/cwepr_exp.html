@@ -121,16 +121,19 @@ Number of points along the horizontal axis (magnetic field for field sweeps, mic
 
 <div class="optionfield"><code>Harmonic</code></div>
 <div class="optiondescr">
-<code>0</code>, <code>1</code> (default) or <code>2</code><br>
+<code>0</code>, <code>1</code> or <code>2</code><br>
 <p>
 Harmonic of the detection. <code>1</code> and <code>2</code> specify the first and the second harmonic of the absorption spectrum, detected using field modulation. <code>0</code> returns the absorption/dispersion spectrum directly. To explicitly include the effect of field modulation, use <code>Exp.ModAmp</code>.
+</p>
+<p>
+The default is <code>1</code> for field sweeps and <code>0</code> for frequency sweeps. Without any line broadening, the default is <code>0</code>, and <code>1</code> and <code>2</code> give an error. Field modulation (<code>Exp.ModAmp</code>) counts as line broadening.
 </p>
 </div>
 
 <div class="optionfield"><code>ModAmp</code></div>
 <div class="optiondescr">
 <p>
-Modulation amplitude (peak-to-peak), in mT. If not given or set to zero, harmonics are calculated using simple differentiation. This setting is only used for field sweeps. It is not available for frequency sweeps.
+Modulation amplitude (peak-to-peak), in mT. If not given or set to zero, harmonics are calculated as derivatives of the absorption spectrum, without modulation broadening. This setting is only used for field sweeps. It is not available for frequency sweeps.
 </p>
 </div>
 
@@ -138,6 +141,9 @@ Modulation amplitude (peak-to-peak), in mT. If not given or set to zero, harmoni
 <div class="optiondescr">
 <p>
 The reference microwave phase, in radians. 0 is pure absorption (default value), and <code>pi/2</code> is pure dispersion. <code>mwPhase</code> allows you to include absorption/dispersion admixture in the simulation.
+</p>
+<p>
+With <code>pepper</code> and <code>garlic</code>, a non-zero <code>mwPhase</code> needs line broadening: a line width (<code>Sys.lw</code>) of at least 2 points of the sweep axis, or strains. In some cases, for example with strains only, the dispersion is computed from the absorption spectrum within the sweep range. Then, make sure the spectrum lies well inside the sweep range, since lines that extend beyond its ends give small deviations near the ends.
 </p>
 </div>
 

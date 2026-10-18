@@ -164,10 +164,6 @@ if any(Sys.lwAnisoG(:)) || ~isempty(Sys.StrainData.Q)
   error('chili does not support anisotropic line widths (Sys.lwAnisoG) or strains (Sys.StrainPars).');
 end
 
-% Convolution with Gaussian only. Lorentzian broadening is 
-% included in the slow-motion simulation via T2.
-ConvolutionBroadening = any(Sys.lw(1)>0);
-
 % Dynamics
 %-------------------------------------------------------------------------------
 % Add defaults
@@ -387,44 +383,9 @@ else
     Exp.mwRange(1),Exp.mwRange(2),CenterFreq,SweepWidth);
 end
 
-% Detection harmonic
-if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
-  if FieldSweep
-    Exp.Harmonic = 1;
-  else
-    Exp.Harmonic = 0;
-  end
-end
-if ~any(Exp.Harmonic==[-1,0,1,2])
-  error('Exp.Harmonic must be 0, 1 or 2.');
-end
-
-% Modulation amplitude
-if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-  error('Exp.ModAmp must be either a single positive number or zero.');
-end
-if Exp.ModAmp>0
-  if FieldSweep
-    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-    if Exp.Harmonic<1
-      error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-    end
-    Exp.ModHarmonic = Exp.Harmonic;
-    Exp.ConvHarmonic = 0;
-    Exp.DerivHarmonic = 0;
-  else
-    error('Exp.ModAmp cannot be used with frequency sweeps.');
-  end
-else
-  Exp.ModHarmonic = 0;
-  if ConvolutionBroadening
-    Exp.ConvHarmonic = Exp.Harmonic;
-    Exp.DerivHarmonic = 0;
-  else
-    Exp.ConvHarmonic = 0;
-    Exp.DerivHarmonic = Exp.Harmonic;
-  end
-end
+% Detection harmonic and field modulation amplitude
+% (T2 relaxation always broadens the slow-motion spectrum)
+[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,true);
 
 % Resonator mode
 switch Exp.mwMode
@@ -432,7 +393,7 @@ switch Exp.mwMode
   case 'parallel', ParallelMode = true;
   otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+logmsg(1,'  %s mode',Exp.mwMode);
 if ParallelMode
   error('chili does not support parallel-mode spectra.');
 end
@@ -1469,62 +1430,18 @@ spec = spec.*Polarization;
 
 
 %===============================================================================
-% Convolutional broadening
+% Convolutional broadening, derivatives, field modulation
 %===============================================================================
-% Convolution with Gaussian only. Lorentzian broadening is already
-% included in the slow-motion simulation via T2.
+% Convolution with Gaussian only. Lorentzian broadening is already included
+% in the slow-motion simulation via T2, and the phase was applied above.
 fwhmG = Sys.lw(1);
-if fwhmG>0 && ConvolutionBroadening
-  if FieldSweep
-    unitstr = 'mT';
-  else
-    unitstr = 'MHz';
-    fwhmG = fwhmG/1e3; % MHz -> GHz
-  end
-  dx = xAxis(2) - xAxis(1);
-  alwaysConvolve = true;
-  if alwaysConvolve%(fwhmG/dx>2)
-    logmsg(1,'Convoluting with Gaussian (FWHM %g %s)...',fwhmG,unitstr);
-    spec = convspec(spec,dx,fwhmG,Exp.ConvHarmonic,1);
-    Exp.ConvHarmonic = 0;
-  else
-    % Skip convolution, since it has no noticeable effect if the linewidth is
-    % smaller than about 2*dx.
-    Exp.ConvHarmonic = 0;
-  end
-end
-
-outspec = spec;
-
-
-%===============================================================================
-% Field modulation, or derivatives
-%===============================================================================
-logmsg(1,'Modulation');
-
-% Pseudo field modulation
 if FieldSweep
-  if Exp.ModAmp>0
-    logmsg(1,'  pseudo field modulation with %g mT, harmonic %d',Exp.ModAmp,Exp.ModHarmonic);
-    outspec = fieldmod(xAxis,outspec,Exp.ModAmp,Exp.ModHarmonic);
-  else
-    logmsg(1,'  no pseudo field modulation');
-  end
+  unitstr = 'mT';
 else
-  logmsg(1,'  no modulation');
+  unitstr = 'GHz';
+  fwhmG = fwhmG/1e3; % MHz -> GHz
 end
-
-% Derivatives
-if Exp.DerivHarmonic>0
-  logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
-  dx = xAxis(2)-xAxis(1);
-  for h = 1:Exp.DerivHarmonic
-    dspec = diff(outspec,[],2)/dx;
-    outspec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
-  end
-else
-  logmsg(1,'  no derivative');
-end
+outspec = p_lineshape(xAxis,spec,[fwhmG 0],derivsLeft,0,Exp,unitstr,0,true);
 
 
 %===============================================================================

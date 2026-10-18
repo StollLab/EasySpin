@@ -276,6 +276,7 @@ if ~FieldSweep
   % flip dispersion lineshape depending on field or freq sweep
   Exp.mwPhase = -Exp.mwPhase;
 end
+mwPhaseLeft = Exp.mwPhase;
 
 % Sweep range from CenterSweep or Range (CenterSweep has precedence)
 if FieldSweep
@@ -296,26 +297,8 @@ if any(~isreal(Exp.nPoints)) || ~isscalar(Exp.nPoints) || (Exp.nPoints<2)
   error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
 end
 
-% Detection harmonic
-autoHarmonic = ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic);
-noBroadening = ~FastMotionRegime && all(Sys.lw==0) && all(Sys.lwpp==0);
-if autoHarmonic
-  if FieldSweep && ~noBroadening
-    if noBroadening
-      Exp.Harmonic = 0;
-    else
-      Exp.Harmonic = 1;
-    end
-  else
-    Exp.Harmonic = 0;
-  end
-end
-if ~any(Exp.Harmonic==[-1,0,1,2])
-  error('Exp.Harmonic must be either 0, 1 or 2.');
-end
-if noBroadening && (Exp.Harmonic~=0)
-  error('\n  No broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n',Exp.Harmonic);
-end
+% Detection harmonic and field modulation amplitude
+[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,ConvolutionBroadening);
 
 % Resonator mode
 if strcmp(Exp.mwMode,'perpendicular')
@@ -325,37 +308,10 @@ elseif strcmp(Exp.mwMode,'parallel')
 else
   error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+logmsg(1,'  %s mode',Exp.mwMode);
 
 % Temperature
 useTemperature = p_temperature(Exp);
-
-% Modulation amplitude
-if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || ~isscalar(Exp.ModAmp)
-  error('Exp.ModAmp must be either a single positive number or zero.');
-end
-if Exp.ModAmp>0
-  if FieldSweep
-    logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-    if Exp.Harmonic<1
-      error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-    end
-    Exp.ModHarmonic = Exp.Harmonic;
-    Exp.ConvHarmonic = 0;
-    Exp.DerivHarmonic = 0;
-  else
-    error('Exp.ModAmp cannot be used with frequency sweeps.');
-  end
-else
-  Exp.ModHarmonic = 0;
-  if ConvolutionBroadening
-    Exp.ConvHarmonic = Exp.Harmonic;
-    Exp.DerivHarmonic = 0;
-  else
-    Exp.ConvHarmonic = 0;
-    Exp.DerivHarmonic = Exp.Harmonic;
-  end
-end
 
 
 % Complain if fields only valid in pepper() are given
@@ -423,6 +379,9 @@ if ~isfield(Opt,'AccumMethod') || isempty(Opt.AccumMethod)
     Opt.AccumMethod = 'binning';
   end
 end
+if FastMotionRegime && strcmp(Opt.AccumMethod,'binning')
+  error('Cannot use delta binning (Options.AccumMethod=''binning'') in the fast-motion regime.');
+end
 
 %-------------------------------------------------------------------------
 
@@ -442,7 +401,7 @@ if FastMotionRegime
   if FieldSweep
     FastMotionLw = fastmotion(Sys,CentralResonance,Sys.tcorr,'field'); % mT
   else
-    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr,'freq')/1e3; % MHz -> GHz
+    FastMotionLw = fastmotion(Sys,Exp.Field,Sys.tcorr,'freq'); % MHz
   end
   if all(FastMotionLw==0)
     error('All calculated fast-motion linewidths for rotational diffusion are zero. Please provide full tensors, and not just isotropic averages.');
@@ -662,11 +621,12 @@ end
 logmsg(1,'  total %d lines',nPeaks);
 
 
+% Line widths: mT for field sweeps, MHz for frequency sweeps
 if FastMotionRegime
   % Add Lorentzian
   LorentzianLw = FastMotionLw + Sys.lw(2);
   Sys.lw(2) = 0;
-  maxLw = max(max(FastMotionLw),Sys.lw(1));
+  maxLw = max(max(LorentzianLw),Sys.lw(1));
 else
   LorentzianLw = Sys.lw(2);
   maxLw = max(Sys.lw);
@@ -684,7 +644,7 @@ if SweepAutoRange
   else
     posrange = (posmax-posmin)*Opt.Stretch; % Hz
     minrange = 1e6; % Hz
-    Exp.mwRange = [posmin,posmax] + [-1 1]*max([5*maxLw/1e3,posrange,minrange]);
+    Exp.mwRange = [posmin,posmax] + [-1 1]*max([5*maxLw*1e6,posrange,minrange]);
     Exp.mwRange(1) = max(Exp.mwRange(1),0);
     Exp.mwRange = Exp.mwRange/1e9; % Hz -> GHz
     logmsg(1,'  automatic frequency range from %g GHz to %g GHz',Exp.mwRange(1),Exp.mwRange(2));
@@ -773,163 +733,29 @@ end
 
 % (1) Initial spectrum construction
 %-------------------------------------------------------------------
+fwhmG = Sys.lw(1);
 if FieldSweep
   SweepRange = Exp.Range;
+  unitstr = 'mT';
 else
   SweepRange = Exp.mwRange;
+  unitstr = 'GHz';
+  fwhmG = fwhmG/1e3; % MHz -> GHz
+  LorentzianLw = LorentzianLw/1e3; % MHz -> GHz
 end
 xAxis = linspace(SweepRange(1),SweepRange(2),Exp.nPoints);
 
-switch Opt.AccumMethod
-  case 'template'
-    % Accumulate spectrum by interpolating from a pre-computed template lineshape
-    
-    logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
-  
-    if LorentzianLw==0
-      error('Cannot use templated lineshape accumulation with zero Lorentzian linewidth.');
-    end
-    if Exp.mwPhase~=0
-      error('Cannot use templated lineshape accumulation with non-zero Exp.mwPhase.');
-    end
-    
-    dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
-    nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
-    xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
-    dxFine = xAxisFine(2) - xAxisFine(1);
-    
-    x0T = 1e5;
-    wT = x0T/20; % 0.0025 at borders for Harmonic = -1
-    xT = 0:2*x0T-1;
-    Template = lorentzian(xT,x0T,wT,Exp.ConvHarmonic-1);
-    if isscalar(LorentzianLw)
-      LorentzianLw = LorentzianLw*ones(size(Positions));
-    end
-    spec = lisum1i(Template,x0T,wT,Positions,Intensities,LorentzianLw,xAxisFine);
-    Exp.ConvHarmonic = 0;
-    LorentzianLw = 0;
+[xAxisFine,spec,LorentzianLw,derivsLeft,mwPhaseLeft] = ...
+  accumulatelines(xAxis,Positions,Intensities,LorentzianLw,Opt.AccumMethod,derivsLeft,mwPhaseLeft);
 
-  case 'explicit'
-    % Accumulate spectrum by explicit evaluation of lineshape function
-    
-    logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
-    if LorentzianLw==0
-      error('Cannot use explicit accumulation with zero Lorentzian linewidth.');
-    end
-    
-    dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
-    nPointsFine = round((SweepRange(2)-SweepRange(1))/dxFine+1);
-    xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
-    dxFine = xAxisFine(2) - xAxisFine(1);
-    
-    spec = 0;
-    if isscalar(LorentzianLw)
-      for iLine = 1:numel(Positions)
-        spec = spec + Intensities(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw,Exp.ConvHarmonic,Exp.mwPhase);
-      end
-    else
-      for iLine = 1:numel(Positions)
-        spec = spec + Intensities(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),Exp.ConvHarmonic,Exp.mwPhase);
-      end
-    end
-    Exp.mwPhase = 0;
-    Exp.ConvHarmonic = 0;
-    LorentzianLw = 0;
-    
-  case 'binning'
-    % Accumulate spectrum by binning of delta peaks
-    
-    logmsg(1,'Constructing stick spectrum using binning...');
-    
-    if FastMotionRegime
-      error('Cannot use delta binning (Options.AccumMethod=''binning'' in the fast-motion regime.');
-    end
-    
-    expandFactor = 1;
-    nPointsFine = (Exp.nPoints-1)*expandFactor + 1;
-    xAxisFine = linspace(SweepRange(1),SweepRange(2),nPointsFine);
-    dxFine = xAxisFine(2) - xAxisFine(1);
-    
-    spec = constructstickspectrum(Positions,Intensities,SweepRange,nPointsFine);
-    spec = spec/dxFine;
-    
-  otherwise
-    error('\n  Unknown method ''%s'' in Options.AccumMethod.\n',Opt.AccumMethod);
-
-end
-
-% (2) Convolutional broadening
+% (2) Convolutional broadening, derivatives, field modulation
 %-------------------------------------------------------------------
-if ConvolutionBroadening
-  
-  fwhmL = LorentzianLw;
-  fwhmG = Sys.lw(1);
-  if fwhmL>0
-    HarmonicL = Exp.ConvHarmonic;
-    mwPhaseL = Exp.mwPhase;
-    HarmonicG = 0;
-    mwPhaseG = 0;
-  else
-    HarmonicL = 0;
-    mwPhaseL = 0;
-    HarmonicG = Exp.ConvHarmonic;
-    mwPhaseG = Exp.mwPhase;
-  end
-  
-  if FieldSweep
-    unitstr = 'mT';
-  else
-    fwhmL = fwhmL/1e3; % MHz -> GHz
-    fwhmG = fwhmG/1e3; % MHz -> GHz
-    unitstr = 'GHz';
-  end
-  
-  % Convolution with Lorentzian
-  if fwhmL~=0
-    if fwhmL>2*dxFine
-      logmsg(1,'Convoluting with Lorentzian (FWHM %g %s, derivative %d)...',fwhmL,unitstr,HarmonicL);
-      spec = convspec(spec,dxFine,fwhmL,HarmonicL,0,mwPhaseL);
-    else
-      if HarmonicL==0
-        % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
-      else
-        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmL,unitstr,dxFine,2*dxFine,unitstr);
-      end
-    end
-  end
-  
-  % Convolution with Gaussian
-  if fwhmG~=0
-    if fwhmG>2*dxFine
-      logmsg(1,'Convoluting with Gaussian (FWHM %g %s, derivative %d)...',fwhmG,unitstr,HarmonicG);
-      spec = convspec(spec,dxFine,fwhmG,HarmonicG,1,mwPhaseG);
-    else
-      if HarmonicG==0
-        % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
-      else
-        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth or decrease increment.',fwhmG,unitstr,dxFine,2*dxFine,unitstr);
-      end
-    end
-  end
-  
-end
+isBroadened = ~strcmp(Opt.AccumMethod,'binning');
+spec = p_lineshape(xAxisFine,spec,[fwhmG LorentzianLw],derivsLeft,mwPhaseLeft,Exp,unitstr,0,isBroadened);
 
 if numel(xAxisFine)~=numel(xAxis)
   logmsg(1,'Re-interpolation (%d -> %d points)...',numel(xAxisFine),numel(xAxis));
   spec = interp1(xAxisFine,spec,xAxis);
-end
-
-% (3) Field modulation
-%-------------------------------------------------------------------
-if FieldSweep
-  if Exp.ModAmp>0
-    logmsg(1,'Applying field modulation (%g mT amplitude)...',Exp.ModAmp);
-    spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
-  else
-    % derivatives already included in the convolution
-  end
-else
-  % frequency sweeps: modulation not available
 end
 
 %===================================================================
@@ -970,3 +796,74 @@ end
 Spectrum = full(sparse(1,idxPositions(inRange),Amplitudes(inRange),1,nPoints));
 
 end
+
+
+%===================================================================
+% Accumulate the line spectrum on a sweep axis that is fine enough for the
+% Lorentzian width. The template and explicit methods include the Lorentzian
+% broadening and the derivatives (explicit: also the phase; template: the
+% phase is left to p_lineshape); binning returns a stick spectrum.
+function [xAxisFine,spec,fwhmL,derivsLeft,mwPhaseLeft] = accumulatelines(xAxis,Positions,Intensities,LorentzianLw,method,derivsLeft,mwPhaseLeft)
+
+SweepRange = xAxis([1 end]);
+fwhmL = LorentzianLw;
+
+switch method
+  case 'template'
+    % Accumulate spectrum by interpolating from a pre-computed template lineshape
+    logmsg(1,'Constructing spectrum using Lorentzian lineshape template...');
+    if LorentzianLw==0
+      error('Cannot use templated lineshape accumulation with zero Lorentzian linewidth.');
+    end
+
+    dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
+    xAxisFine = linspace(SweepRange(1),SweepRange(2),round(diff(SweepRange)/dxFine+1));
+    x0T = 1e5;
+    wT = x0T/20; % 0.0025 at borders for the integral
+    xT = 0:2*x0T-1;
+    Template = lorentzian(xT,x0T,wT,derivsLeft-1);  % lisum1i differentiates once
+    if isscalar(LorentzianLw)
+      LorentzianLw = LorentzianLw*ones(size(Positions));
+    end
+    % lisum1i scales amplitudes for an integral template only; each derivative
+    % of the template needs an additional factor wT/lw
+    Intensities = Intensities(:).*(wT./LorentzianLw(:)).^derivsLeft;
+    spec = lisum1i(Template,x0T,wT,Positions,Intensities,LorentzianLw,xAxisFine);
+    fwhmL = 0;
+    derivsLeft = 0;
+
+  case 'explicit'
+    % Accumulate spectrum by explicit evaluation of lineshape function
+    logmsg(1,'Constructing spectrum with explicit Lorentzian lineshapes...');
+    if LorentzianLw==0
+      error('Cannot use explicit accumulation with zero Lorentzian linewidth.');
+    end
+
+    dxFine = min(xAxis(2)-xAxis(1),min(LorentzianLw)/5);
+    xAxisFine = linspace(SweepRange(1),SweepRange(2),round(diff(SweepRange)/dxFine+1));
+    if isscalar(LorentzianLw)
+      LorentzianLw = LorentzianLw*ones(size(Positions));
+    end
+    spec = 0;
+    for iLine = 1:numel(Positions)
+      spec = spec + Intensities(iLine)*lorentzian(xAxisFine,Positions(iLine),LorentzianLw(iLine),derivsLeft,mwPhaseLeft);
+    end
+    fwhmL = 0;
+    derivsLeft = 0;
+    mwPhaseLeft = 0;
+
+  case 'binning'
+    % Accumulate spectrum by binning of delta peaks
+    logmsg(1,'Constructing stick spectrum using binning...');
+    xAxisFine = xAxis;
+    dx = xAxis(2) - xAxis(1);
+    spec = constructstickspectrum(Positions,Intensities,SweepRange,numel(xAxis));
+    spec = spec/dx;
+
+  otherwise
+    error('\n  Unknown method ''%s'' in Options.AccumMethod.\n',method);
+
+end
+
+end
+

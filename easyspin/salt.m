@@ -176,7 +176,6 @@ DefaultExp.SampleFrame = [];
 DefaultExp.CrystalSymmetry = '';
 DefaultExp.MolFrame = [];
 
-% Undocumented and unused fields
 DefaultExp.Harmonic = 0;
 
 % Make user-given fields case-insensitive.
@@ -250,11 +249,11 @@ else
 end
 logmsg(1,msg);
 
-if Exp.Harmonic>0 && all(Sys.lwEndor==0)
-  logmsg(-Inf,'WARNING: Cannot compute derivative of a stick spectrum! Returning absorption spectrum.');
-  logmsg(-Inf,'WARNING:   Add a line width (strain or convolution) or set Harmonic=0.');
-  Exp.Harmonic = 0;
+% Detection harmonic (no field modulation in ENDOR)
+if isfield(Exp,'ModAmp') && ~isempty(Exp.ModAmp) && any(Exp.ModAmp(:)~=0)
+  error('salt does not support field modulation (Exp.ModAmp).');
 end
+[Exp,derivsLeft] = p_harmonic(Exp,false,ConvolutionBroadening);
 
 if isfield(Exp,'lwAnisoG') || isfield(Exp,'HStrain')
   error('Use Sys.lwAnisoG (in the spin system, not the experiment structure).');
@@ -535,7 +534,7 @@ if ~BruteForceSum
   else
     msg = 'summation';
     Template.x = 5e4;
-    Template.lw = Template.x/2.5; %<1e-8 at borders for Harmonic = -1
+    Template.lw = Template.x/2.5; %<1e-8 at borders for the integral
     Template.y = gaussian(0:2*Template.x-1,Template.x,Template.lw,-1);
   end
   logmsg(1,'  %s',msg);
@@ -821,98 +820,9 @@ end
 %=======================================================================
 logmsg(1,'-final-------------------------------------------------');
 
-% Convolution with line shape.
+% Convolution with line shape, derivatives
 %-----------------------------------------------------------------------
-logmsg(1,'  harmonic %d',Exp.Harmonic);
-if ConvolutionBroadening
-  fwhmG = Sys.lwEndor(1);
-  fwhmL = Sys.lwEndor(2);
-  if fwhmL>0
-    HarmonicL = Exp.Harmonic;
-    HarmonicG = 0;
-  else
-    HarmonicL = 0;
-    HarmonicG = Exp.Harmonic;
-  end
-
-  % Add padding to left and right of spectral range
-  % to reduce convolution artifacts
-  RangePadding = true;
-  if RangePadding
-    exceedsLowerLimit = any(spec(:,1)~=0);
-    exceedsHigherLimit = any(spec(:,end)~=0);
-    if exceedsLowerLimit
-      if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower and upper frequency limits possible.');
-      else
-        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at lower frequency limit possible.');
-      end
-    else
-      if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds frequency range. Artifacts at upper frequency limit possible.');
-      end
-    end
-    if  exceedsLowerLimit || exceedsHigherLimit
-      nPad = round(max([fwhmG fwhmL])/Exp.deltaX*Opt.PaddingMultiplier);
-      spec = [repmat(spec(:,1),1,nPad) spec]; % left padding
-      spec = [spec repmat(spec(:,end),1,nPad)]; % right padding
-    else
-      nPad = 0;
-    end
-  end
-
-  % Lorentzian broadening
-  if fwhmL~=0
-    if fwhmL>2*Exp.deltaX
-      logmsg(1,'  convoluting with Lorentzian, FWHM %g MHz, derivative %d',fwhmL,HarmonicL);
-      if min(size(spec))==1, fwhm = [fwhmL 0]; else, fwhm = [0 fwhmL]; end
-      spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0);
-    else
-      if HarmonicL==0
-        % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
-      else
-        error('Lorentzian linewidth is smaller than increment - cannot perform convolution.');
-      end
-    end
-  end
-  
-  % Gaussian broadening
-  if fwhmG~=0
-    if fwhmG>2*Exp.deltaX
-      logmsg(1,'  convoluting with Gaussian, FWHM %g MHz, derivative %d',fwhmG,HarmonicG);
-      if min(size(spec))==1, fwhm = [fwhmG 0]; else, fwhm = [0 fwhmG]; end
-      spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1);
-    else
-      if HarmonicG==0
-        % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
-      else
-        error('Gaussian linewidth is smaller than increment - cannot perform convolution.');
-      end
-    end
-  end
-
-  % Remove padding
-  if RangePadding
-    if nPad>0
-      spec(:,1:nPad) = [];
-      spec(:,Exp.nPoints+1:end) = [];
-    end
-  end
-
-else
-  logmsg(1,'  no linewidth given: returning stick spectrum');
-  
-  if Exp.Harmonic>0
-    logmsg(1,'  harmonic %d: using differentiation',Exp.Harmonic);
-    for h = 1:Exp.Harmonic
-      dspec = diff(spec,[],2)/Exp.deltaX;
-      spec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
-    end
-  else
-    logmsg(1,'  harmonic 0: returning absorption spectrum');
-  end
-
-end
+spec = p_lineshape(xAxis,spec,Sys.lwEndor,derivsLeft,0,Exp,'MHz',Opt.PaddingMultiplier,false);
 
 % Assign output.
 %-----------------------------------------------------------------------

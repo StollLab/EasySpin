@@ -329,59 +329,12 @@ else
   end
 end
 
-% Detection harmonic
-autoHarmonic = ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic);
-noBroadening = ~StrainWidths && ~ConvolutionBroadening;
-if autoHarmonic
-  if FieldSweep && ~noBroadening
-    if noBroadening
-      Exp.Harmonic = 0;
-    else
-      Exp.Harmonic = 1;
-    end
-  else
-    Exp.Harmonic = 0;
-  end
-end
-if ~any(Exp.Harmonic==[-1,0,1,2])
-  error('Exp.Harmonic must be either 0, 1 or 2.');
-end
-if noBroadening && (Exp.Harmonic~=0)
-  error('\n  No broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n',Exp.Harmonic);
-end
-
-% Field modulation amplitude
-if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-  error('Exp.ModAmp must be either a single positive number or zero.');
-end
-if Exp.ModAmp>0
-  if ~FieldSweep
-    error('Exp.ModAmp cannot be used with frequency sweeps.');
-  end
-  if Exp.Harmonic<1
-    error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-  end
-  Exp.ModHarmonic = Exp.Harmonic;
-  Exp.ConvHarmonic = 0;
-  Exp.DerivHarmonic = 0;
-  logmsg(1,'  explicit field modulation, amplitude %g mT, harmonic %d',Exp.ModAmp,Exp.Harmonic);
-else
-  Exp.ModHarmonic = 0;
-  if ConvolutionBroadening
-    Exp.ConvHarmonic = Exp.Harmonic;
-    Exp.DerivHarmonic = 0;
-  else
-    Exp.ConvHarmonic = 0;
-    Exp.DerivHarmonic = Exp.Harmonic;
-  end
-  logmsg(1,'  no explicit field modulation, derivative %d',Exp.Harmonic);
-end
-
 % Microwave phase
 if ~FieldSweep
   % flip dispersion lineshape depending on field or freq sweep
   Exp.mwPhase = -Exp.mwPhase;
 end
+mwPhaseLeft = Exp.mwPhase;
 
 % Resonator mode
 if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
@@ -496,6 +449,12 @@ end
 if usePerturbationTheory && nonEquiPops
   error('Perturbation theory not available for systems with non-equilibrium populations.');
 end
+
+% Detection harmonic and field modulation amplitude
+% (strains are ignored by the eigenfield method, the stick summation and the
+% immediate binning)
+strainsUsed = StrainWidths && ~useEigenFields && ~Opt.BruteForce && ~Opt.ImmediateBinning;
+[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,strainsUsed||ConvolutionBroadening);
 
 if Opt.GridSize(1)<Opt.GridSizeMinimum
   error('Options.GridSize must not be less than %d.',Opt.GridSizeMinimum);
@@ -756,10 +715,15 @@ BruteForceSum = useEigenFields | Opt.BruteForce;
 axialGrid = Opt.nOctants==0;
 anisotropicSpectrum = Opt.nOctants>=0;
 
+% Line broadening present before convolution (otherwise stick spectrum)
+isBroadened = anisotropicWidths;
+
 if Opt.ImmediateBinning
 
-  % Lines have already been binned into the spectral vector on the fly during calculation
-  
+  % Lines have already been binned into the spectral vector on the fly during
+  % calculation (without anisotropic widths, which gives a stick spectrum)
+  isBroadened = false;
+
 elseif ~BruteForceSum
   
   % Preparations for interpolation
@@ -801,24 +765,23 @@ elseif ~BruteForceSum
   if doSummation
     useGaussianTemplate = true;
     if ~anisotropicWidths
-      if Sys.lw(1)>0
+      % Widths narrower than 2 increments are not resolved. They stay in
+      % Sys.lw and are handled by p_lineshape as for convolution.
+      if Sys.lw(1)>2*Exp.deltaX
         % Gaussian broadening: use Gaussian template
         thisWid = Sys.lw(1);
         Sys.lw(1) = 0;
-        % In the absence of additional Lorentzian convolutional broadening,
-        % use derivative to calculate harmonic
-        ConvolutionBroadening = Sys.lw(2)>0;
-      else
+      elseif Sys.lw(2)>2*Exp.deltaX
         % Lorentzian broadening only: use Lorentzian template
         useGaussianTemplate = false;
         thisWid = Sys.lw(2);
         Sys.lw(2) = 0;
-        ConvolutionBroadening = false;  % use derivative to calculate harmonic
+      else
+        % No resolved broadening: delta-like lines
+        useGaussianTemplate = false;
+        thisWid = 0;
       end
-      if ~ConvolutionBroadening
-        Exp.DerivHarmonic = Exp.DerivHarmonic+Exp.ConvHarmonic;
-        Exp.ConvHarmonic = 0;
-      end
+      isBroadened = thisWid>0;
       if crystalSample
         thisWid = repmat(thisWid,nTransitions,1);
       end
@@ -827,22 +790,7 @@ elseif ~BruteForceSum
     end
 
     % Construct lineshape template
-    if useGaussianTemplate
-      % Gaussian template
-      x0T = 5e4;  % center
-      wT = x0T/2.5;  % width; results in <2e-9 at borders for mwPhase==0
-      xT = 0:2*x0T-1;  % needs to be zero-based and with increment 1 (for lisum1i)
-      if Exp.mwPhase~=0 && Sys.lw(2)==0
-        error('Dispersion spectrum with Gaussian-only broadening is not implemented. Add a Lorentzian component.')
-      end
-      Template = gaussian(xT,x0T,wT,-1);
-    else
-      % Lorentzian template
-      x0T = 1e5;
-      wT = x0T/20;  % 0.0025 at borders for Harmonic==-1 and mwPhase==0
-      xT = 0:2*x0T-1;
-      Template = lorentzian(xT,x0T,wT,-1,Exp.mwPhase);
-    end
+    [Template,x0T,wT,mwPhaseLeft] = linetemplate(useGaussianTemplate,mwPhaseLeft,isBroadened);
   end
 
   if doProjection
@@ -1098,6 +1046,7 @@ elseif ~BruteForceSum
 else % if Opt.ImmediateBinning elseif ~BruteForceSum ...
   
   logmsg(1,'  constructing stick spectrum (no interpolation)');
+  isBroadened = false;  % anisotropic widths are not used here
   logmsg(1,'  summation over %d orientations',nOrientations);
 
   if ~isempty(Opt.separate)
@@ -1158,125 +1107,10 @@ if FieldSweep && ~crystalSample
 end
 
 
-% Convolution with line shape
+% Convolution with line shape, derivatives, field modulation
 %-----------------------------------------------------------------------
-if ConvolutionBroadening
-  logmsg(1,'  harmonic %d: using convolution',Exp.ConvHarmonic);
-  fwhmG = Sys.lw(1);
-  fwhmL = Sys.lw(2);
-  if fwhmL>0
-    HarmonicL = Exp.ConvHarmonic;
-    mwPhaseL = Exp.mwPhase;
-    HarmonicG = 0;
-    mwPhaseG = 0;
-  else
-    HarmonicL = 0;
-    mwPhaseL = 0;
-    HarmonicG = Exp.ConvHarmonic;
-    mwPhaseG = Exp.mwPhase;
-  end
-  if FieldSweep
-    unitstr = 'mT';
-  else
-    unitstr = 'GHz';
-  end
-  
-  % Add padding to left and right of spectral range to reduce convolution artifacts
-  RangePadding = true;
-  if RangePadding
-    exceedsLowerLimit = any(spec(:,1)~=0);
-    exceedsHigherLimit = any(spec(:,end)~=0);
-    if exceedsLowerLimit
-      if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower and upper limits possible.');
-      else
-        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at lower limit possible.');
-      end
-    else
-      if exceedsHigherLimit
-        logmsg(0,'** Spectrum exceeds sweep range. Artifacts at upper limit possible.');
-      end
-    end
-    if  exceedsLowerLimit || exceedsHigherLimit
-      nPad = round(max([fwhmG fwhmL])/Exp.deltaX*Opt.PaddingMultiplier);
-      spec = [repmat(spec(:,1),1,nPad) spec]; % left padding
-      spec = [spec repmat(spec(:,end),1,nPad)]; % right padding
-    else
-      nPad = 0;
-    end
-  end
-
-  % Convolution with Lorentzian
-  if fwhmL~=0
-    if fwhmL>2*Exp.deltaX
-      logmsg(1,'  convoluting with Lorentzian, FWHM %g %s, derivative %d',fwhmL,unitstr,HarmonicL);
-      if size(spec,1)>1, fwhm = [0 fwhmL]; else, fwhm = fwhmL; end
-      spec = convspec(spec,Exp.deltaX,fwhm,HarmonicL,0,mwPhaseL);
-    else
-      if HarmonicL==0
-        % Skip convolution, since it has no effect with such a narrow delta-like Lorentzian.
-      else
-        error('Lorentzian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth, or increment number of points in Exp.nPoints.',fwhmL,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
-      end
-    end
-  end
-  
-  % Convolution with Gaussian
-  if fwhmG~=0
-    if fwhmG>2*Exp.deltaX
-      logmsg(1,'  convoluting with Gaussian, FWHM %g %s, derivative %d',fwhmG,unitstr,HarmonicG);
-      if size(spec,1)>1, fwhm = [0 fwhmG]; else, fwhm = fwhmG; end
-      spec = convspec(spec,Exp.deltaX,fwhm,HarmonicG,1,mwPhaseG);
-    else
-      if HarmonicG==0
-        % Skip convolution, since it has no effect with such a narrow delta-like Gaussian.
-      else
-        error('Gaussian linewidth (FWHM %g %s) is smaller than 2 increments (2x%g = %g %s) - cannot do convolution.\nIncrease linewidth, increment number of points in Exp.nPoints.',fwhmG,unitstr,Exp.deltaX,2*Exp.deltaX,unitstr);
-      end
-    end
-  end
-
-  % Remove padding
-  if RangePadding
-    if nPad>0
-      spec(:,1:nPad) = [];
-      spec(:,Exp.nPoints+1:end) = [];
-    end
-  end
-
-else
-  
-  if Exp.DerivHarmonic>0
-    logmsg(1,'  harmonic %d: using differentiation',Exp.DerivHarmonic);
-    for h = 1:Exp.DerivHarmonic
-      dspec = diff(spec,[],2)/Exp.deltaX;
-      spec = (dspec(:,[1 1:end]) + dspec(:,[1:end end]))/2;
-    end
-  else
-    logmsg(1,'  harmonic 0: no differentiation');
-  end
-
-end
-
-
-% Field modulation
-%-----------------------------------------------------------------------
-if FieldSweep
-  if Exp.ModAmp>0
-    logmsg(1,'  applying field modulation');
-    if summedOutput
-      spec = fieldmod(xAxis,spec,Exp.ModAmp,Exp.ModHarmonic);
-    else
-      for iSpec = 1:size(spec,1)
-        spec(iSpec,:) = fieldmod(xAxis,spec(iSpec,:),Exp.ModAmp,Exp.ModHarmonic);
-      end
-    end
-  else
-    % derivatives already included in convolutions etc.
-  end
-else
-  % frequency sweeps: not available
-end
+if FieldSweep, unitstr = 'mT'; else, unitstr = 'GHz'; end
+spec = p_lineshape(xAxis,spec,Sys.lw,derivsLeft,mwPhaseLeft,Exp,unitstr,Opt.PaddingMultiplier,isBroadened);
 
 % Assign output
 %-----------------------------------------------------------------------
@@ -1299,4 +1133,29 @@ logmsg(1,'pepper took %s',hmsString);
 
 logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
 
+end
+
+
+%===============================================================================
+% Line shape integral template for lisum1i. The Lorentzian template includes
+% the phase if the lines have a width. The Gaussian template does not; there,
+% p_lineshape applies the phase by convolution or Hilbert transform.
+function [Template,x0T,wT,mwPhaseLeft] = linetemplate(useGaussianTemplate,mwPhaseLeft,isBroadened)
+if useGaussianTemplate
+  x0T = 5e4;  % center
+  wT = x0T/2.5;  % width; results in <2e-9 at borders
+  xT = 0:2*x0T-1;  % needs to be zero-based and with increment 1 (for lisum1i)
+  Template = gaussian(xT,x0T,wT,-1);
+else
+  x0T = 1e5;
+  wT = x0T/20;  % 0.0025 at borders for the integral and mwPhase==0
+  xT = 0:2*x0T-1;
+  if isBroadened
+    Template = lorentzian(xT,x0T,wT,-1,mwPhaseLeft);
+    mwPhaseLeft = 0;
+  else
+    % Delta-like lines: leave the phase to p_lineshape, which rejects it
+    Template = lorentzian(xT,x0T,wT,-1);
+  end
+end
 end

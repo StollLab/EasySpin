@@ -142,53 +142,9 @@ switch program
       end
     end
 
-    % Detection harmonic
-    autoHarmonic = ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic);
-    noBroadening = (~StrainWidths) && (~ConvolutionBroadening);
-    if autoHarmonic
-      if FieldSweep && ~noBroadening
-        if noBroadening
-          Exp.Harmonic = 0;
-        else
-          Exp.Harmonic = 1;
-        end
-      else
-        Exp.Harmonic = 0;
-      end
-    end
-    if ~any(Exp.Harmonic==[-1,0,1,2])
-      error('Exp.Harmonic must be either 0, 1 or 2.');
-    end
-    if noBroadening && (Exp.Harmonic~=0)
-      error('\n  No broadening given. Cannot compute spectrum with Exp.Harmonic=%d.\n',Exp.Harmonic);
-    end
-
-    % Modulation amplitude
-    if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-      error('Exp.ModAmp must be either a single positive number or zero.');
-    end
-    if (Exp.ModAmp>0)
-      if FieldSweep
-        logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-        if (Exp.Harmonic<1)
-          error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-        end
-        Exp.ModHarmonic = Exp.Harmonic;
-        Exp.ConvHarmonic = 0;
-        Exp.DerivHarmonic = 0;
-      else
-        error('Exp.ModAmp cannot be used with frequency sweeps.');
-      end
-    else
-      Exp.ModHarmonic = 0;
-      if ConvolutionBroadening
-        Exp.ConvHarmonic = Exp.Harmonic;
-        Exp.DerivHarmonic = 0;
-      else
-        Exp.ConvHarmonic = 0;
-        Exp.DerivHarmonic = Exp.Harmonic;
-      end
-    end
+    % Detection harmonic and field modulation amplitude
+    hasBroadening = any(Sys.lw>0) || any(Sys.lwAnisoG(:)>0) || ~isempty(Sys.StrainData.Q);
+    Exp = p_harmonic(Exp,FieldSweep,hasBroadening);
 
     % Resonator mode
     if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
@@ -198,7 +154,7 @@ switch program
         error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
       end
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+    logmsg(1,'  %s mode',Exp.mwMode);
 
     % Powder vs. crystal simulation
     if isfield(Exp,'Orientation') || isfield(Exp,'Orientations')
@@ -368,44 +324,9 @@ switch program
         Exp.mwRange(1),Exp.mwRange(2),CenterFreq,Sweep);
     end
 
-    % Detection harmonic
-    if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
-      if FieldSweep
-        Exp.Harmonic = 1;
-      else
-        Exp.Harmonic = 0;
-      end
-    end
-    if ~any(Exp.Harmonic==[-1,0,1,2])
-      error('Exp.Harmonic must be 0, 1 or 2.');
-    end
-
-    % Modulation amplitude
-    if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-      error('Exp.ModAmp must be either a single positive number or zero.');
-    end
-    if (Exp.ModAmp>0)
-      if FieldSweep
-        logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-        if (Exp.Harmonic<1)
-          error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-        end
-        Exp.ModHarmonic = Exp.Harmonic;
-        Exp.ConvHarmonic = 0;
-        Exp.DerivHarmonic = 0;
-      else
-        error('Exp.ModAmp cannot be used with frequency sweeps.');
-      end
-    else
-      Exp.ModHarmonic = 0;
-      if ConvolutionBroadening
-        Exp.ConvHarmonic = Exp.Harmonic;
-        Exp.DerivHarmonic = 0;
-      else
-        Exp.ConvHarmonic = 0;
-        Exp.DerivHarmonic = Exp.Harmonic;
-      end
-    end
+    % Detection harmonic and field modulation amplitude
+    % (T2 relaxation always broadens the slow-motion spectrum)
+    Exp = p_harmonic(Exp,FieldSweep,true);
 
     % Resonator mode
     switch Exp.mwMode
@@ -413,7 +334,7 @@ switch program
       case 'parallel', ParallelMode = true;
       otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
     end
-    logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+    logmsg(1,'  %s mode',Exp.mwMode);
 
     % Complain if fields only valid in pepper() are given
     if isfield(Exp,'CrystalSymmetry')
@@ -570,44 +491,8 @@ switch program
         Exp.mwRange(1),Exp.mwRange(2),CenterFreq,Sweep);
     end
 
-%     % Detection harmonic  TODO implement in cardamom
-%     if ~isfield(Exp,'Harmonic') || isempty(Exp.Harmonic) || isnan(Exp.Harmonic)
-%       if FieldSweep
-%         Exp.Harmonic = 1;
-%       else
-%         Exp.Harmonic = 0;
-%       end
-%     end
-%     if ~any(Exp.Harmonic==[-1,0,1,2])
-%       error('Exp.Harmonic must be 0, 1 or 2.');
-%     end
-
-%     % Modulation amplitude  TODO implement in cardamom
-%     if any(Exp.ModAmp<0) || any(isnan(Exp.ModAmp)) || numel(Exp.ModAmp)~=1
-%       error('Exp.ModAmp must be either a single positive number or zero.');
-%     end
-%     if (Exp.ModAmp>0)
-%       if FieldSweep
-%         logmsg(1,'  field modulation, amplitude %g mT',Exp.ModAmp);
-%         if (Exp.Harmonic<1)
-%           error('With field modulation (Exp.ModAmp), Exp.Harmonic=0 does not work.');
-%         end
-%         Exp.ModHarmonic = Exp.Harmonic;
-%         Exp.ConvHarmonic = 0;
-%         Exp.DerivHarmonic = 0;
-%       else
-%         error('Exp.ModAmp cannot be used with frequency sweeps.');
-%       end
-%     else
-%       Exp.ModHarmonic = 0;
-%       if ConvolutionBroadening  % TODO perhaps put declaration in a better spot in chili
-%         Exp.ConvHarmonic = Exp.Harmonic;
-%         Exp.DerivHarmonic = 0;
-%       else
-%         Exp.ConvHarmonic = 0;
-%         Exp.DerivHarmonic = Exp.Harmonic;
-%       end
-%     end
+%     % Detection harmonic and field modulation amplitude  TODO implement in cardamom
+%     [Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,true);
 
 %     % Resonator mode  TODO implement in cardamom
 %     switch Exp.mwMode
@@ -615,7 +500,7 @@ switch program
 %       case 'parallel', ParallelMode = true;
 %       otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 %     end
-%     logmsg(1,'  harmonic %d, %s mode',Exp.Harmonic,Exp.mwMode);
+%     logmsg(1,'  %s mode',Exp.mwMode);
 % 
 %     % Complain if fields only valid in pepper() are given
 %     if isfield(Exp,'CrystalSymmetry')
