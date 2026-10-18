@@ -1,23 +1,23 @@
 # EasySpin development guide for coding agents
 
-EasySpin is a MATLAB toolbox for simulating and analyzing EPR spectra and magnetometry data. This file covers what agents need. Read [tests/README.md](tests/README.md) only when writing new tests or regression tests, and [releasing/README.md](releasing/README.md) only for build or release work. [CONTRIBUTING.md](CONTRIBUTING.md) is for human contributors and is covered here.
+EasySpin is a MATLAB toolbox for analyzing, simulating and fitting EPR spectra and magnetometry data. Read [releasing/README.md](releasing/README.md) only for build or release work. [CONTRIBUTING.md](CONTRIBUTING.md) is for human contributors and is covered here.
 
 ## Layout
 
-- `easyspin/`: public toolbox functions, one per file. `functionSignatures.json` holds tab-completion signatures for the public functions.
-- `easyspin/private/`: internal helpers that only `easyspin/*.m` can call. The release build deletes the `.m` files in this folder, keeping only p-code.
-- `tests/`: one test per file, named `<function>_<description>.m`. Regression reference data is in `tests/data/`, and test helpers such as `areequal` are in `tests/private/`.
+- `easyspin/`: public toolbox functions, one per file. `functionSignatures.json` holds tab-completion signatures for the public functions. `estest` is the test runner.
+- `easyspin/private/`: internal helpers that only `easyspin/*.m` can call.
+- `tests/`: one test per file, named `<function>_<description>.m`. Regression reference data is in `tests/data/`, and test helpers such as `areequal` are in `tests/private/`. See [Tests](#tests).
 - `docsrc/`: hand-written HTML documentation (see [Documentation](#documentation)).
 - `examples/`: example scripts grouped by topic.
-- `releasing/`: build and doc scripts (`docbuilder.pl`, `buildsystem/esbuild.m`). The build is triggered on tag by `.github/workflows/continuous_deployment.yml`.
+- `releasing/`: build and doc scripts (`docbuilder.pl`, `buildsystem/esbuild.m`).
 - `documentation/` (built docs) and `scratch/` are gitignored.
 
 ## Physics conventions
 
-- Units: couplings (`A`, `D`, `J`, `ee`, `Q`, `nn`, ...) in MHz, `Exp.mwFreq` in GHz, magnetic fields in mT, Euler angles in radians, temperatures in K.
+- Units: spin operator matrices in hbar, couplings (`A`, `D`, `J`, `ee`, `Q`, `nn`, ...) in MHz, `Exp.mwFreq` in GHz, magnetic fields in mT, Euler angles in radians, temperatures in K.
 - Microwave polarization is fixed in the lab frame.
 - Positive B points along z(Lab), negative B points along -z(Lab).
-- Spin systems can also have angular momentum, via `Sys.L`.
+- Spin systems can also have angular momentum, via `Sys.L`, but it is not fully supported throughout EasySpin.
 
 ## Code
 
@@ -26,7 +26,7 @@ EasySpin is a MATLAB toolbox for simulating and analyzing EPR spectra and magnet
 - **Target MATLAB R2021b.** Don't use newer language features. `chkmlver` enforces R2021b as the minimum, so version checks for older releases are dead code.
 - Do not use functions from toolboxes outside core MATLAB.
 - Use 2-space indentation and camelCase names. Readability matters more than performance or cleverness.
-- Cite the literature (DOI and equation number) when you implement equations from a paper.
+- Cite the literature (author, journal, DOI and equation number) when you implement equations from a paper.
 - Use analytical derivatives in toolbox code. Finite differences are only for tests, as independent checks.
 - Share code between related functions (e.g. the matrix solvers `resfields`/`resfreqs_matrix` and the perturbation solvers `*_perturb`), but keep private helpers few, with simple interfaces (e.g. pass `Sys` and arrays over all orientations). Keep few-line steps inline instead of adding one-line helpers.
 
@@ -45,10 +45,7 @@ EasySpin is a MATLAB toolbox for simulating and analyzing EPR spectra and magnet
 
 ### Writing tests
 
-- Tests return a logical scalar or array (one element per subtest). They must not plot unless `opt.Display` is true.
-- Use `areequal(a,b,tol,'rel')` for numeric comparisons.
-- Reach private helpers through `runprivate('name',args...)`.
-- Keep tests short and fast, with spin systems as small as possible.
+Before writing or changing a test, read [tests/README.md](tests/README.md). It covers test signatures, regression tests, `areequal` and conventions.
 
 ### Running tests
 
@@ -76,7 +73,7 @@ matlab -batch "addpath('easyspin'); estest resfields* pepper* eigfields*"
 
 - **Header help:** every public function starts with a help block: `% name  one-line description`, then usage, inputs and outputs.
 - **Doc pages:** `docsrc/` has one hand-written HTML page per public function (`pepper.html` etc.). `docsrc/funcsalphabet.html` and `docsrc/funcscategory.html` list all functions.
-- **Audience:** the docs are for users without advanced math. Use plain language and practical rules of thumb (e.g. "keep the FWHM below about 15°"), and leave derivations to code comments and tests.
+- **Audience:** the docs are for users without advanced math. Use nontechnical language and leave derivations to code comments and tests.
 - **Tab completion:** `easyspin/functionSignatures.json` holds the signatures of the public functions. The test `function_signatures_completeness` checks that it is complete.
 - **Release notes:** add an entry to `docsrc/releases.html` only for significant user-visible behavior changes and incompatibilities. Skip small feature extensions, latent-bug fixes and stricter validation of unusual input, and ask when unsure. Keep entries concise.
 
@@ -91,4 +88,5 @@ matlab -batch "addpath('easyspin'); estest resfields* pepper* eigfields*"
 ## Commits
 
 - Do not automatically commit anything.
-- Use short, specific, lowercase commit messages, prefixed with the affected function where that applies (`resfreqs_perturb: fix bug in g strain calculation`). Reference issues as `(closes #N)`. Keep separate lines of work in separate commits, unless changes are minimal.
+- Use short, specific, lowercase commit messages, prefixed with the affected function where that applies (`resfreqs_perturb: fix bug in g strain calculation`). Reference issues as `(closes #N)`.
+- Keep separate lines of work in separate commits, unless changes are small and don't have significant interface impact.

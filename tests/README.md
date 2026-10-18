@@ -92,12 +92,23 @@ ok = areequal(value,refvalue,1e-9,'rel');  % true if all differences are within 
 ok = areequal(value,refvalue,1e-2,'abs');  % true if all differences are within 1e-2
 ```
 
-Both inputs must be numeric arrays of the same size. If they aren't, `areequal` throws an error, and the test is reported as crashed. Prefer the relative mode (`'rel'`), because it shows how tight the test is without knowing the scale of the values.
+Both inputs must be numeric arrays of the same size. If they aren't, `areequal` throws an error, and the test is reported as crashed. Prefer the relative mode (`'rel'`), because it shows how tight the test is without knowing the scale of the values. If a test makes several comparisons, define the tolerance once at the top, for example `tol = 1e-9;`.
+
+### Calling private functions
+
+Tests can't call functions in `easyspin/private/` directly. Use `runprivate` (in `easyspin/`) instead:
+
+```matlab
+out = runprivate('name',arg1,arg2);
+```
 
 ## Tips for writing good tests
 
 - Keep tests short and simple.
 - Write many tests, so that all execution paths through a function are covered.
+- Before adding a test, look at the existing tests of the same function, and avoid duplicating what they already check.
 - Keep tests fast. If a test involves heavy calculations, reduce the number of points and similar settings. Use `estest -t` to find slow tests.
+- Use spin systems that are as small as possible.
+- If a test uses random numbers, set a seed at the start (for example `rng(1)`), so that the test gives the same result every time.
 - If a test contains several subtests, return their outcomes as a logical array rather than combining them into one value. That way `estest` can report which subtests failed.
 - Test functions must not plot anything unless `opt.Display` is `true`.
