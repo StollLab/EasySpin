@@ -51,8 +51,8 @@ if issparse(A)
   ia = (1:nI).';
   [ib,jb,sb] = find(A);
   ib = ib(:); jb = jb(:); sb = sb(:);
-  ik = bsxfun(@plus, mb*(ia-1).', ib);
-  jk = bsxfun(@plus, nb*(ia-1).', jb);
+  ik = mb*(ia-1).' + ib;
+  jk = nb*(ia-1).' + jb;
   K = sparse(ik,jk,repmat(sb,1,nI),nI*mb,nI*nb);
   
 else

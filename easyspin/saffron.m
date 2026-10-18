@@ -1075,7 +1075,7 @@ if fastSimulationMode
       maxSyy = max(SyLab(:));
 
       if OrientationSelection
-        dE = bsxfun(@minus,eE,eE.') - Exp.mwFreq*1e3; % MHz
+        dE = eE - eE.' - Exp.mwFreq*1e3; % MHz
         excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
         SyLab = SyLab.*excitationAmplitude;
       end
@@ -1321,8 +1321,8 @@ if fastSimulationMode
 
                 % Matrices of nuclear transition frequencies for both manifolds
                 % (lower triangle is positive, upper is negative, diagonal zero)
-                nu1 = abs(bsxfun(@minus,Ea,Ea.'));
-                nu2 = abs(bsxfun(@minus,Eb,Eb.'));
+                nu1 = abs(Ea - Ea.');
+                nu2 = abs(Eb - Eb.');
 
                 % Transform RF pulse Hamiltonians from Zeeman to eigenbasis
                 Iy1 = Ma'*IyLab*Ma;

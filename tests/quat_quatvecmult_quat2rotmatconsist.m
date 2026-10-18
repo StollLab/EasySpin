@@ -5,11 +5,11 @@ function ok = test()
 
 % Generate some uniformly random, normalized quaternions
 q = rand(4,5,10);
-q = bsxfun(@rdivide,q,sqrt(sum(q.*q,1)));
+q = q./sqrt(sum(q.*q,1));
 
 % Generate some uniformly random, normalized vectors
 v = rand(3,5,10);
-v = bsxfun(@rdivide,v,sqrt(sum(v.*v,1)));
+v = v./sqrt(sum(v.*v,1));
 
 
 R = quat2rotmat(q);

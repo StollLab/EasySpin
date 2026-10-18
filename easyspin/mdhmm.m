@@ -464,7 +464,7 @@ opts.maxTotalIts = 50000;
 x = reshape(x,nStates,nStates);
 
 x_i = sum(x,2);
-TPM = bsxfun(@rdivide,x,x_i);
+TPM = x./x_i;
 TPM(isnan(TPM)) = 0;
 pi_i = x_i./sum(x_i);
 
@@ -483,14 +483,14 @@ function [f, g] = myfunc_matrix(x, c, c_i)
 x_i = sum(x, 2);
 
 % F
-tmp = c .* log(bsxfun(@rdivide, x, x_i));
+tmp = c .* log(x./x_i);
 %index = ~(isnan(tmp));
 index = (x > (10*eps));
 f = - sum(tmp(index));
 
 % G
 t = c_i./x_i;
-g = (c./x) + (c'./x') - bsxfun(@plus, t, t');
+g = (c./x) + (c'./x') - (t + t');
 g((x_i < (10*eps)), :) = 0;
 index = ((x > (10*eps)) & (x' > (10*eps)));
 g(~index) = 0;

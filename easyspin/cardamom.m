@@ -785,17 +785,17 @@ while ~converged
       % Gaussian broadening
       fwhm = unitconvert(Sys.lw(1),'mT->MHz')*1e6;  % mT -> Hz
       alpha = pi^2*fwhm^2/(4*log(2));
-      TDSignal = bsxfun(@times,exp(-alpha*tLong.^2),TDSignal);
+      TDSignal = exp(-alpha*tLong.^2).*TDSignal;
     end
     if numel(Sys.lw)==2 && Sys.lw(2)>0
       % Lorentzian broadening
       TL = Dynamics.T2;
-      TDSignal = bsxfun(@times,exp(-tLong/TL),TDSignal);
+      TDSignal = exp(-tLong/TL).*TDSignal;
     end
   end
   
   % Multiply by t for differentiation and take the FFT
-  spcArray = cat(2, spcArray, imag(fftshift(fft(bsxfun(@times,TDSignal,tLong), [], 1))));
+  spcArray = cat(2, spcArray, imag(fftshift(fft(TDSignal.*tLong, [], 1))));
   spcNew = mean(spcArray,2);
   
   if checkConvergence

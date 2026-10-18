@@ -4,7 +4,7 @@ function ok = test()
 
 % Generate random axis-angle representation
 v = rand(3,4,5);
-v = bsxfun(@rdivide,v,sqrt(sum(v.*v,1)));
+v = v./sqrt(sum(v.*v,1));
 theta = 2*pi*rand(1,4,5);
 
 matIn = zeros(3,3,4,5);

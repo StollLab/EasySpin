@@ -34,7 +34,7 @@ qIndex = repmat({':'},1,ndims(q)-1);
 
 qv = zeros(qshape);
 qv(2:end, qIndex{:}) = v;
-qinv = bsxfun(@times,q,[1;-1;-1;-1]);
+qinv = q.*[1;-1;-1;-1];
 
 r = quatmult(quatmult(q, qv), qinv);
 r = r(2:end, qIndex{:});

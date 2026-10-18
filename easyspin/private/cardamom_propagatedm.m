@@ -281,7 +281,7 @@ switch PropagationMethod
         - 1i*st.*nz;
       
       % Calculate propagator, Eq. 35 in [1]
-      U = bsxfun(@times, exp(-1i*dtSpin*0.5*omega*Gp_zz), expadotI);
+      U = exp(-1i*dtSpin*0.5*omega*Gp_zz).*expadotI;
     else
       U = exp(-1i*dtSpin*0.5*omega*Gp_zz);
     end
@@ -404,7 +404,7 @@ switch PropagationMethod
     H = repmat(cacheTensors.Q0,[1,1,nSteps,nTraj]);
     for mp = 1:5
       for m = 1:5
-        H = H + bsxfun(@times, D2Traj(m,mp,1:nSteps,:), cacheTensors.Q2{mp,m});
+        H = H + D2Traj(m,mp,1:nSteps,:).*cacheTensors.Q2{mp,m};
       end
     end
     

@@ -390,7 +390,7 @@ if iscell(rawSignal)
   phasedSignal = cell(size(rawSignal));
   
   for iPoint = 1:nPoints
-    phasedSignal{iPoint} = bsxfun(@times,rawSignal{iPoint},phase');
+    phasedSignal{iPoint} = rawSignal{iPoint}.*phase';
   end
   
 else

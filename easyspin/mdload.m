@@ -318,7 +318,7 @@ logmsg(1,'Calculating label frames...');
 % Initialize big arrays here for efficient memory usage
 MD.FrameTraj = zeros(MD.nSteps,3,3,1);
 
-normalize = @(v)bsxfun(@rdivide,v,sqrt(sum(v.*v,2)));
+normalize = @(v) v./sqrt(sum(v.*v,2));
 
 switch LabelName
   case 'R1'
@@ -563,7 +563,7 @@ end
 function chi = dihedral(a1Traj,a2Traj,a3Traj,a4Traj)
 % calculate dihedral angle given 4 different atom indices and a trajectory
 
-normalize = @(v) bsxfun(@rdivide,v,sqrt(sum(v.*v, 2)));
+normalize = @(v) v./sqrt(sum(v.*v,2));
 a1 = normalize(a1Traj - a2Traj);
 a2 = normalize(a3Traj - a2Traj);
 a3 = normalize(a3Traj - a4Traj);
@@ -586,7 +586,7 @@ nAtoms = size(traj, 3);
 mass = 1;
 
 % recenter - subtract by the geometric center
-traj = bsxfun(@minus,traj,mean(traj,3));
+traj = traj - mean(traj,3);
 
 % calculate the principal axes of inertia for first snapshot
 firstStep = squeeze(traj(1,:,:));

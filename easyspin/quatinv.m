@@ -17,6 +17,6 @@ if ~isnumeric(q) || size(q,1)~=4
 end
 
 inverter = [1; -1; -1; -1];
-qinv = bsxfun(@times, inverter, q);
+qinv = inverter.*q;
 
 end

@@ -86,8 +86,8 @@ end
 
 % center the data
 if centered
-  x = bsxfun(@minus, x, mean(x, dim));
-  y = bsxfun(@minus, y, mean(y, dim));
+  x = x - mean(x, dim);
+  y = y - mean(y, dim);
 end
 
 
@@ -115,14 +115,14 @@ n = N*ones(1, N) - (1:N) + 1;
 sizen = ones(1,Dimsy);
 sizen(dim) = N;
 n = reshape(n,sizen);
-CrossCorr = bsxfun(@rdivide,CrossCorr,n);
+CrossCorr = CrossCorr./n;
 
 if normalized
   % divide by first value of the FFT dimension
   idx = cell(1, Dimsy);
   idx(:) = {':'};
   idx{dim} = 1;
-  CrossCorr = bsxfun(@rdivide,CrossCorr,CrossCorr(idx{:}));
+  CrossCorr = CrossCorr./CrossCorr(idx{:});
 end
 
 end

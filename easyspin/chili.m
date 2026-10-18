@@ -892,7 +892,7 @@ if generalLiouvillian
   if Opt.MpSymm
     M = Basis.M;
     psum = sum(pq(:,1:2:end),2);
-    keep_Mp = bsxfun(@minus,psum,M.')==1; % keep only basis states with pS+pI-M == 1
+    keep_Mp = (psum - M.')==1; % keep only basis states with pS+pI-M == 1
     keep = keep & keep_Mp(:);
     logmsg(1,'  applying M-p symmetry: keeping %d of %d functions',sum(keep),numel(keep));
   end

@@ -54,7 +54,7 @@ for iStep = startStep:nSteps
   if isEigenPot
     % use Wigner functions of quaternions to calculate torque
     torque = stochtraj_calcanistorque(LMK, lambda, qLast);
-    AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
+    AngStep = torque.*(Diff*dt) + currRandAngStep;
   elseif isNumericPot
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
@@ -63,7 +63,7 @@ for iStep = startStep:nSteps
     pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
     pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
     torque = [-pxint.'; -pyint.'; -pzint.'];
-    AngStep = bsxfun(@times,torque,Diff*dt) + currRandAngStep;
+    AngStep = torque.*(Diff*dt) + currRandAngStep;
   else
     % If there is no orienting potential, then there is no torque to
     % calculate
@@ -115,11 +115,10 @@ randns = randn(3,Sim.nTraj,Sim.nSteps);
 switch Sim.Integrator
   case 'Euler-Maruyama'
     % standard method for integrating a first order SDE
-    randAngStep = bsxfun(@times, randns, sqrt(2*Sim.Diff*Sim.dt));
+    randAngStep = randns.*sqrt(2*Sim.Diff*Sim.dt);
   case 'Leimkuhler-Matthews'
     % see Ref. [2]
-    randAngStep = bsxfun(@times, (randns(:,:,1:end-1)+randns(:,:,2:end))/2, ...
-                                     sqrt(2*Sim.Diff*Sim.dt));
+    randAngStep = (randns(:,:,1:end-1)+randns(:,:,2:end))/2 .* sqrt(2*Sim.Diff*Sim.dt);
 end
 
 end
