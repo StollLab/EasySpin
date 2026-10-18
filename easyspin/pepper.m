@@ -996,27 +996,23 @@ else % if Opt.ImmediateBinning elseif ~BruteForceSum ...
     error('Cannot return separate subspectra when constructing stick spectrum.');
   end
 
+  % Bin orientation by orientation to limit the memory footprint
   spec = zeros(1,Exp.nPoints);
-  prefactor = (Exp.nPoints-1)/(SweepRange(2)-SweepRange(1));
   for iOri = 1:nOrientations
     if iscell(Pdat)
-      thisP = Pdat{iOri};
+      Positions = Pdat{iOri};
       Amplitudes = Idat{iOri};
     else
-      thisP = Pdat(:,iOri);
+      Positions = Pdat(:,iOri);
       Amplitudes = Idat(:,iOri);
     end
-    idxPos = round(1+prefactor*(thisP-SweepRange(1)));
-    outOfRange = (idxPos<1) | (idxPos>Exp.nPoints);
-    idxPos(outOfRange) = [];
-    Amplitudes(outOfRange) = [];
-    if anisotropicIntensities
-      spec = spec + full(sparse(1,idxPos,Exp.OriWeights(iOri)*Amplitudes,1,Exp.nPoints));
-    else
-      spec = spec + full(sparse(1,idxPos,Exp.OriWeights(iOri),1,Exp.nPoints));
+    if ~anisotropicIntensities
+      Amplitudes = 1;
     end
+    [~,thisspec,~] = makespec(SweepRange,Exp.nPoints,Positions,Exp.OriWeights(iOri)*Amplitudes);
+    spec = spec + thisspec;
   end
-  
+
   spec = spec * (2*pi); % integral over chi (0..2*pi)
   
   spec = spec/Exp.deltaX;

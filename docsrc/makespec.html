@@ -38,7 +38,9 @@ Construct spectrum from peak positions and amplitudes.
 <pre class="matlab">
 spec = makespec(Range,nPoints,Pos)
 spec = makespec(Range,nPoints,Pos,Amp)
+spec = makespec(Range,nPoints,Pos,Amp,Method)
 [x,spec] = makespec(...)
+[x,spec,nOut] = makespec(...)
 </pre>
 
 <!-- ============================================================= -->
@@ -53,11 +55,20 @@ returned in <code>x</code>.
 </p>
 
 <p>
-If <code>Amp</code> is not given, all amplitudes are set to 1.
+If <code>Amp</code> is not given or empty, all amplitudes are set to 1. If <code>Amp</code> is a single number, it is used for all peaks.
 </p>
 
 <p>
-Peaks that fall outside the specified range are neglected.
+<code>Method</code> determines how each peak is assigned to the points of the abscissa <code>x</code>:
+</p>
+<ul>
+<li><code>'round'</code> (default): The peak goes to the nearest point.
+<li><code>'floor'</code>: The peak goes to the nearest point at or below the peak position.
+<li><code>'split'</code>: The peak amplitude is split between the two neighboring points. The closer point gets the larger share. This keeps the total amplitude and the average position of the peaks.
+</ul>
+
+<p>
+Peaks that fall outside the specified range are neglected, and <code>makespec</code> issues a warning. If the third output <code>nOut</code> is requested, there is no warning, and <code>nOut = [nBelow nAbove]</code> gives the number of peaks below and above the range. Peaks with position <code>NaN</code> are ignored.
 </p>
 
 

@@ -1,21 +1,20 @@
 function ok = test()
 
-% Correct binning
+% Peaks go to the nearest point ('round') or the next point below ('floor')
 
-ok = true;
+rng(1);
+nPoints = 101;
 Amp = 4;
-for k = 1:100
-  Pos = rand;
-  [x,s] = makespec([0 1],101,Pos,Amp);
-  idx = find(s>0);
-  dist = abs(s-Pos);
-  if abs(dist(idx)-min(dist))<1e-10
-    ok = false;
-    break
-  end
-  if s(idx)~=Amp
-    ok = false;
-    break
-  end
-end
+Pos = rand(1,100);
 
+ok = true(2,numel(Pos));
+for k = 1:numel(Pos)
+  [x,s] = makespec([0 1],nPoints,Pos(k),Amp);
+  [~,idxNearest] = min(abs(x-Pos(k)));
+  ok(1,k) = isequal(find(s),idxNearest) && s(idxNearest)==Amp;
+
+  s = makespec([0 1],nPoints,Pos(k),Amp,'floor');
+  idxBelow = find(x<=Pos(k),1,'last');
+  ok(2,k) = isequal(find(s),idxBelow) && s(idxBelow)==Amp;
+end
+ok = all(ok,2);

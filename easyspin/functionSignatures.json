@@ -3011,6 +3011,15 @@
           "numeric"
         ],
         "purpose": "peak amplitudes, default all set to 1"
+      },
+      {
+        "name": "Method",
+        "kind": "ordered",
+        "type": [
+          "char",
+          "choices={'round','floor','split'}"
+        ],
+        "purpose": "binning method, default 'round'"
       }
     ]
   },
