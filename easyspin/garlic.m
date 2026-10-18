@@ -85,7 +85,8 @@ logmsg(Opt.Verbosity);
 %==================================================================
 % Loop over components and isotopologues
 %==================================================================
-Exp.FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+Exp.FrequencySweep = ~(isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)) && ...
+  isfield(Exp,'Field') && ~isempty(Exp.Field);
 
 if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
@@ -217,16 +218,9 @@ DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
 
 Exp = adddefaults(Exp,DefaultExp);
 
-% Check for obsolete fields
-if isfield(Exp,'Orientations')
-  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
-end
-if isfield(Exp,'CrystalOrientation')
-  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
-end
-if isfield(Exp,'Mode')
-  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
-end
+% Field or frequency sweep, mw frequency, field, number of points
+allowZeroField = false;
+FieldSweep = p_sweeptype(Exp,allowZeroField);
 
 % Photoselection is not supported
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
@@ -236,39 +230,6 @@ end
 % Partial ordering is not supported
 if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
   error('Partial ordering (via Exp.Ordering) is not supported.')
-end
-
-% Microwave frequency
-if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
-  if ~isfield(Exp,'Field')
-    error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
-  end
-  FieldSweep = false;
-else
-  if isfield(Exp,'Field')
-    if ~isempty(Exp.Field)
-      error('Give either Exp.mwFreq (for a field sweep) or Exp.Frequency (for a frequency sweep), but not both.');
-    end
-  end
-  FieldSweep = true;
-end
-
-if FieldSweep
-  if ~isscalar(Exp.mwFreq) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-    error('Uninterpretable microwave frequency in Exp.mwFreq.');
-  end
-  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
-else
-  if ~isscalar(Exp.Field) || ~isreal(Exp.Field)
-    error('Uninterpretable magnetic field in Exp.Field.');
-  end
-  if Exp.Field<0
-    error('Exp.Field cannot be negative. Negative fields are only supported for field sweeps.');
-  end
-  if Exp.Field==0
-    error('Uninterpretable magnetic field in Exp.Field.');
-  end
-  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
 % Microwave phase
@@ -290,11 +251,6 @@ else
 end
 if SweepAutoRange
   logmsg(1,'  automatic determination of sweep range');
-end
-
-% Number of points
-if any(~isreal(Exp.nPoints)) || ~isscalar(Exp.nPoints) || (Exp.nPoints<2)
-  error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
 end
 
 % Detection harmonic and field modulation amplitude

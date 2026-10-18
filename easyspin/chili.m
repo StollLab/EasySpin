@@ -91,7 +91,8 @@ if ~singleIso
   logmsg(1,'-- slow motion regime simulation ----------------------------------');
 end
 
-Exp.FrequencySweep = ~isfield(Exp,'mwFreq') && isfield(Exp,'Field');
+Exp.FrequencySweep = ~(isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)) && ...
+  isfield(Exp,'Field') && ~isempty(Exp.Field);
 
 if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
@@ -285,45 +286,14 @@ if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
 end
 
-% Number of points
-if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
-  error('Problem with Exp.nPoints. Needs to be a number >= 2.')
-end
-
 % Temperature
 useTemperature = p_temperature(Exp);
 
 logmsg(1,'Experiment:');
 
-% Microwave frequency
-if ~isfield(Exp,'mwFreq')
-  if ~isfield(Exp,'Field')
-    error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
-  end
-  FieldSweep = false;
-else
-  if isfield(Exp,'Field')
-    error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-  end
-  FieldSweep = true;
-end
-if FieldSweep
-  if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-    error('Uninterpretable microwave frequency in Exp.mwFreq.');
-  end
-  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
-else
-  if (numel(Exp.Field)~=1) || ~isreal(Exp.Field)
-    error('Uninterpretable magnetic field in Exp.Field.');
-  end
-  if Exp.Field<0
-    error('Exp.Field cannot be negative.');
-  end
-  if Exp.Field==0
-    error('Uninterpretable magnetic field in Exp.Field.');
-  end
-  logmsg(1,'  frequency sweep, magnetic field %0.8g T',Exp.Field);
-end
+% Field or frequency sweep, mw frequency, field, number of points
+allowZeroField = false;
+FieldSweep = p_sweeptype(Exp,allowZeroField);
 
 % Sweep range from CenterSweep or Range (CenterSweep has precedence)
 if FieldSweep

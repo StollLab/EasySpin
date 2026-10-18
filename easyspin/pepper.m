@@ -95,7 +95,8 @@ logmsg(Opt.Verbosity);
 %==================================================================
 % Loop over species and isotopologues
 %==================================================================
-Exp.FrequencySweep = ~isfield(Exp,'mwFreq') & isfield(Exp,'Field');
+Exp.FrequencySweep = ~(isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)) && ...
+  isfield(Exp,'Field') && ~isempty(Exp.Field);
 
 if Exp.FrequencySweep
   SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
@@ -198,64 +199,12 @@ DefaultExp.MolFrame = [];
 
 Exp = adddefaults(Exp,DefaultExp);
 
-% Check for obsolete fields
-if isfield(Exp,'Orientations')
-  error('Exp.Orientations is no longer supported, use Exp.SampleFrame instead.');
-end
-if isfield(Exp,'CrystalOrientation')
-  error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame/Exp.MolFrame instead.');
-end
-if isfield(Exp,'Mode')
-  error('Exp.Mode is no longer supported. Use Exp.mwMode instead.');
-end
-
-% Determine field vs. frequency sweep
-if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
-  if ~isfield(Exp,'Field')
-    error('Provide either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-  end
-  FieldSweep = false;
-else
-  if isfield(Exp,'Field') && ~isempty(Exp.Field)
-    error('Provide either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-  end
-  FieldSweep = true;
-end
-
-% Error if incorrect Range/CenterSweep fields are given in Exp
-if FieldSweep
-  if isfield(Exp,'mwRange') && ~any(isnan(Exp.mwRange))
-    error('Exp.mwRange cannot be used in a field sweep (Exp.mwFreq is given).');
-  end
-  if isfield(Exp,'mwCenterSweep') && ~any(isnan(Exp.mwCenterSweep))
-    error('Exp.mwCenterSweep cannot be used in a field sweep (Exp.mwFreq is given).');
-  end
-else
-  if isfield(Exp,'Range') && ~any(isnan(Exp.Range))
-    error('Exp.Range cannot be used in a frequency sweep (Exp.Field is given).');
-  end
-  if isfield(Exp,'CenterSweep') && ~any(isnan(Exp.CenterSweep))
-    error('Exp.CenterSweep cannot be used in a frequency sweep (Exp.Field is given).');
-  end
-end
+% Field or frequency sweep, mw frequency, field, number of points
+allowZeroField = true;
+FieldSweep = p_sweeptype(Exp,allowZeroField);
 
 if ~FieldSweep
   Sys.lw = Sys.lw/1e3;  % MHz -> GHz
-end
-
-if FieldSweep
-  if numel(Exp.mwFreq)~=1 || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-    error('Uninterpretable microwave frequency in Exp.mwFreq.');
-  end
-  logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
-else
-  if numel(Exp.Field)~=1 || ~isreal(Exp.Field)
-    error('Uninterpretable magnetic field in Exp.Field.');
-  end
-  if Exp.Field<0
-    error('Exp.Field cannot be negative. Negative fields are only supported for field sweeps.');
-  end
-  logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
 end
 
 % Automatic field range determination
@@ -308,12 +257,6 @@ if FieldSweep
 else
   mwRange = p_sweeprange(Exp,true,false);
   if ~isempty(mwRange), Exp.mwRange = mwRange; end
-end
-
-
-% Number of points
-if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
-  error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
 end
 
 if FieldSweep

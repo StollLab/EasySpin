@@ -30,30 +30,9 @@ switch program
 
     Exp = adddefaults(Exp,DefaultExp);
 
-    % Check microwave frequency and static field
-    if ~isfield(Exp,'mwFreq') || isempty(Exp.mwFreq)
-      if ~isfield(Exp,'Field')
-        error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
-      end
-      FieldSweep = false;
-    else
-      if isfield(Exp,'Field') && ~isempty(Exp.Field)
-        error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-      end
-      FieldSweep = true;
-    end
-
-    if FieldSweep
-      if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-        error('Uninterpretable microwave frequency in Exp.mwFreq.');
-      end
-      logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
-    else
-      if (numel(Exp.Field)~=1) || any(Exp.Field<0) || ~isreal(Exp.Field)
-        error('Uninterpretable magnetic field in Exp.Field.');
-      end
-      logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
-    end
+    % Field or frequency sweep, mw frequency, field, number of points
+    allowZeroField = true;
+    FieldSweep = p_sweeptype(Exp,allowZeroField);
 
     % Automatic field range determination
     if FieldSweep
@@ -121,12 +100,6 @@ switch program
           error('Exp.mwRange is not valid!');
         end
       end
-    end
-
-
-    % Number of points
-    if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
-      error('Problem with Exp.nPoints. Needs to be a number not smaller than 2.')
     end
 
     if FieldSweep
@@ -213,11 +186,6 @@ switch program
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
     if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
-    % Number of points
-    if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
-      error('Problem with Exp.nPoints. Needs to be a number >= 2.')
-    end
-
     % Temperature
     if ~isnan(Exp.Temperature)
       if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
@@ -225,29 +193,9 @@ switch program
       end
     end
 
-    % Microwave frequency
-    if ~isfield(Exp,'mwFreq')
-      if ~isfield(Exp,'Field')
-        error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
-      end
-      FieldSweep = false;
-    else
-      if isfield(Exp,'Field')
-        error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-      end
-      FieldSweep = true;
-    end
-    if FieldSweep
-      if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-        error('Uninterpretable microwave frequency in Exp.mwFreq.');
-      end
-      logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
-    else
-      if (numel(Exp.Field)~=1) || any(Exp.Field<=0) || ~isreal(Exp.Field)
-        error('Uninterpretable magnetic field in Exp.Field.');
-      end
-      logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
-    end
+    % Field or frequency sweep, mw frequency, field, number of points
+    allowZeroField = false;
+    FieldSweep = p_sweeptype(Exp,allowZeroField);
 
     % Sweep range (magnetic field, or frequency)
     if FieldSweep
@@ -390,11 +338,6 @@ switch program
     if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
     if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
 
-    % Number of points
-    if any(~isreal(Exp.nPoints)) || numel(Exp.nPoints)>1 || (Exp.nPoints<2)
-      error('Problem with Exp.nPoints. Needs to be a number >= 2.')
-    end
-
 %     % Temperature  TODO implement in cardamom
 %     if ~isnan(Exp.Temperature)
 %       if (numel(Exp.Temperature)~=1) || isinf(Exp.Temperature) || (Exp.Temperature<0)
@@ -402,35 +345,9 @@ switch program
 %       end
 %     end
 
-    % Microwave frequency
-    if ~isfield(Exp,'mwFreq')
-      if ~isfield(Exp,'Field')
-        error('Please supply either the microwave frequency in Exp.mwFreq (for field sweeps) or the magnetic field in Exp.Field (for frequency sweeps).');
-      end
-      FieldSweep = false;
-    else
-      if isfield(Exp,'Field')
-        error('Give either Exp.mwFreq (for a field sweep) or Exp.Field (for a frequency sweep), but not both.');
-      end
-      FieldSweep = true;
-    end
-    if FieldSweep
-      if (numel(Exp.mwFreq)~=1) || any(Exp.mwFreq<=0) || ~isreal(Exp.mwFreq)
-        error('Uninterpretable microwave frequency in Exp.mwFreq.');
-      end
-      logmsg(1,'  field sweep, mw frequency %0.8g GHz',Exp.mwFreq);
-    else
-      if (numel(Exp.Field)~=1) || ~isreal(Exp.Field)
-        error('Uninterpretable magnetic field in Exp.Field.');
-      end
-      if Exp.Field<0
-        error('Exp.Field cannot be negative.');
-      end
-      if Exp.Field==0
-        error('Uninterpretable magnetic field in Exp.Field.');
-      end
-      logmsg(1,'  frequency sweep, magnetic field %0.8g mT',Exp.Field);
-    end
+    % Field or frequency sweep, mw frequency, field, number of points
+    allowZeroField = false;
+    FieldSweep = p_sweeptype(Exp,allowZeroField);
 
     % Sweep range from CenterSweep or Range (CenterSweep has precedence)
     if FieldSweep
