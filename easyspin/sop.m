@@ -76,6 +76,9 @@ else
   OperatorSpec = varargin;
 end
 
+% Transition/level selection for each spin (empty: none)
+Transitions = cell(1,nSpins);
+
 if isnumeric(OperatorSpec{1})
   
   % Operator specification is a numeric array
@@ -158,11 +161,11 @@ else
       
       % Initialize
       Coords = '';
-      Transitions = cell(1,nSpins);
+      TransitionsTok = cell(1,length(matched));
       spinIndexPresent = false(1,length(matched));
-      
+
       % Regexp to get tokens
-      expr = '([exyzab+-])\((\d+)\|?(\d+)?\)(\d?)';
+      expr = '([exyzab+-])\((\d+)\|?(\d+)?\)(\d*)';
 
       % Loop over all comma separated entries
       for itoken = 1:length(matched)
@@ -173,13 +176,13 @@ else
           % Case 1: string does not request a transition/level 
           
           % Get tokens
-          tokens = regexp(str,'([exyzab+-])(\d?)','tokens');
+          tokens = regexp(str,'([exyzab+-])(\d*)','tokens');
           token = tokens{1};
-          
+
           % Get operator components
           Coords(itoken) = token{1};
           % No transition information
-          Transitions{itoken} = [];
+          TransitionsTok{itoken} = [];
           
           % Store spin index...
           spinIndexPresent(itoken) = ~isempty(token{2});
@@ -215,22 +218,22 @@ else
           % Get transition/level information
           if ~isempty(token{2})
             if ~isempty(token{3})
-              Transitions{itoken} = cellfun(@str2num,token(2:3));
+              TransitionsTok{itoken} = cellfun(@str2num,token(2:3));
               % Error if xyz+- is connecting two identical levels
-              if ~isempty(regexp(token{1},'[xyz+-]','match')) && Transitions{itoken}(1) == Transitions{itoken}(2)
+              if ~isempty(regexp(token{1},'[xyz+-]','match')) && TransitionsTok{itoken}(1) == TransitionsTok{itoken}(2)
                 message = ['sop: The component ''' str ''' of your spin operator connects identical levels.'];
                 error(message);
               % Error if e is called with two different components
-              elseif ~isempty(regexp(token{1},'[e]','match')) && Transitions{itoken}(1) ~= Transitions{itoken}(2)
+              elseif ~isempty(regexp(token{1},'[e]','match')) && TransitionsTok{itoken}(1) ~= TransitionsTok{itoken}(2)
                 message = ['sop: The component ''' str ''' can not connect two different levels. Use e(L1) instead of e(L1|L2).'];
                 error(message);
               % Error if the two level indices are not in ascending order
-              elseif diff(Transitions{itoken})<0
+              elseif diff(TransitionsTok{itoken})<0
                 message = ['sop: The two levels (L1|L2) in ''' str ''' must be ascending order such that L1<=L2.'];
                 error(message);
               end
             else
-              Transitions{itoken} = str2double(token{2});
+              TransitionsTok{itoken} = str2double(token{2});
               % error if xyz+- is called with only a level
               if ~isempty(regexp(token{1},'[xyz+-]','match'))
                 message = ['sop: The component ''' str ''' of your operator must connect two (different) levels.'];
@@ -257,10 +260,12 @@ else
       if numel(unique(Spins))<numel(Spins)
         error('sop: Repeated spin index in ''%s''.',varargin{1});
       end
+      % Assign transition/level information to spins
+      Transitions(Spins) = TransitionsTok;
     end
-    
-    if any(SpinVec(Coords=='a')~=1/2) || ...
-       any(SpinVec(Coords=='b')~=1/2)
+
+    if any(SpinVec(Spins(Coords=='a'))~=1/2) || ...
+       any(SpinVec(Spins(Coords=='b'))~=1/2)
       error('''a'' and ''b'' work only for spin-1/2.');
     end
     
@@ -283,7 +288,7 @@ for iSpin = 1:nSpins
   n = 2*I+1;
   
   % Look for a transition selective operator
-  TselectiveOp = exist('Transitions','var') && ~isempty(Transitions{iSpin});
+  TselectiveOp = ~isempty(Transitions{iSpin});
   
   % Component switchyard
   %----------------------------------------
