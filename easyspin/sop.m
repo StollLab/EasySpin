@@ -11,16 +11,20 @@
 %
 %   Input:
 %    SpinSystem  vector of spin quantum numbers
-%                 or a spin system specification structure
-%    Comps       (a) string specifying the operator, in several possible ways:                 
+%                 or a spin system specification structure (spin order:
+%                 electron spins, then nuclear spins, then orbital
+%                 angular momenta)
+%    Comps       (a) string specifying the operator, in several possible ways:
 %                    - specify component 'e','x','y','z','+','-' for each spin,
-%                      indicating E,Sx,Sy,Sz,S+,S-
+%                      indicating E,Sx,Sy,Sz,S+,S-; for spin-1/2, 'a' and 'b'
+%                      indicate Salpha and Sbeta
 %                    - specify component and spin index, e.g. 'x2,z3'
 %                    - specify transition after component, e.g. 'x(1|3)' or
 %                      'x(1|3)2,z3' or '+(1|2)1,e(3)2'
 %                (b) numeric array, with each row giving [i c], with spin index
 %                    i and component index c (c=1 is 'x', 2 is 'y', 3 is 'z',
 %                    4 is '+', 5 is '-', 0 is 'e');
+%    'sparse'    if given, return sparse instead of full matrices
 %
 %   Output:
 %    Op          spin operator matrix as requested
