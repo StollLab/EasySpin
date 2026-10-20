@@ -96,7 +96,10 @@ if isnumeric(OperatorSpec{1})
   end
   Spins = a(:,1);
   Coords = a(:,2);
-  
+  if any(Spins<1) || any(Spins>nSpins) || any(mod(Spins,1))
+    error('sop: Spin indices must be integers between 1 and %d.',nSpins);
+  end
+
 else
   
   % Operator specification is a character array
@@ -260,9 +263,20 @@ else
       elseif all(~spinIndexPresent)
         Spins = 1:nSpins;
       end
+      % Assert that all spin indices are within range
+      if any(Spins<1) || any(Spins>nSpins)
+        error('sop: The spin system only contains %d spins, but you requested ''%s''.',nSpins,varargin{1});
+      end
       % Assert that no spin index occurs more than once
       if numel(unique(Spins))<numel(Spins)
         error('sop: Repeated spin index in ''%s''.',varargin{1});
+      end
+      % Assert that all levels are within range
+      for k = 1:numel(Spins)
+        nLevels = 2*SpinVec(Spins(k))+1;
+        if any(TransitionsTok{k}<1) || any(TransitionsTok{k}>nLevels)
+          error('sop: In ''%s'', spin %d has levels 1 to %d only.',matched{k}{1},Spins(k),nLevels);
+        end
       end
       % Assign transition/level information to spins
       Transitions(Spins) = TransitionsTok;
