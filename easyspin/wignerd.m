@@ -18,6 +18,8 @@
 %     Jm1m2  ... rank and two indices, [J m1 m2]; with m1,m2 = J, J-1, ..., -J
 %     alpha, beta, gamma ... Euler angles, in radians
 %             If only beta is given, alpha and gamma are assumed zero.
+%             For the full matrix (J given), the angles must be single numbers.
+%             For a single element (Jm1m2 given), they can be arrays.
 %     phase  ... sign convention for the rotation operator, '+' or '-'
 %            '-': expm(-1i*alpha*Jz)*expm(-1i*beta*Jy)*expm(-1i*gamma*Jz)
 %                (as used in Brink/Satcher, Zare, Sakurai, Varshalovich, Biedenharn/Louck, Mehring).
@@ -64,6 +66,8 @@ switch nargin
     gamma = varargin{3};
     betaonly = false;
     phase = varargin{4};
+  otherwise
+    error('Too many input arguments.');
 end
 
 switch numel(J)
@@ -78,20 +82,23 @@ switch numel(J)
     error('First input must be either J or [J m1 m2].');
 end
 
-if numel(J)~=1 || ~isreal(J) || mod(J,0.5) || J<0 || ~isnumeric(J)
+if ~isnumeric(J) || ~isreal(J) || ~isfinite(J) || mod(J,0.5)~=0 || J<0
   error('J must be one of 0, 1/2, 1, 3/2, 2, etc.');
 end
 
 if ~calculateMatrix
-  if numel(m1)~=1 || ~isreal(m1) || m1<-J || m1>J
-    error('m1 must be an integer between -J and J. Your J is %d.',J);
+  if ~isnumeric(m1) || ~isreal(m1) || m1<-J || m1>J || mod(J-m1,1)~=0
+    error('m1 must be one of J, J-1, ..., -J. Your J is %g.',J);
   end
-  if numel(m2)~=1 || ~isreal(m2) || m2<-J || m2>J
-    error('m1 must be an integer between -J and J. Your J is %d.',J);
+  if ~isnumeric(m2) || ~isreal(m2) || m2<-J || m2>J || mod(J-m2,1)~=0
+    error('m2 must be one of J, J-1, ..., -J. Your J is %g.',J);
   end
 end
 
 % Determine phase setting (convert from char to +-1)
+if isstring(phase)
+  phase = char(phase);
+end
 if ~ischar(phase) || numel(phase)~=1
   error('Last argument must be either ''+'' or ''-''.');
 end
@@ -107,6 +114,18 @@ if calculateMatrix
   
   % Calculate full Wigner D matrix
   %-----------------------------------------------------------------------------
+  if ~isscalar(beta)
+    error('beta must be a single number. Arrays of angles are only supported for single matrix elements, with [J m1 m2] as first input.');
+  end
+  if ~betaonly
+    if ~isscalar(alpha)
+      error('alpha must be a single number. Arrays of angles are only supported for single matrix elements, with [J m1 m2] as first input.');
+    end
+    if ~isscalar(gamma)
+      error('gamma must be a single number. Arrays of angles are only supported for single matrix elements, with [J m1 m2] as first input.');
+    end
+  end
+
   if ~any(beta) && (betaonly || (~any(alpha) && ~any(gamma)))
     D = eye(2*J+1);
     return
@@ -187,7 +206,7 @@ function d = littled_jacobi(J,m1,m2,beta)
 % Invert sign, since the Biedenharn/Louck equations are for expm(-1i*beta*Jy)
 beta = -beta;
 
-% Determine k, a (nonnegative), and b (nonnegative)
+% Determine k, mu (nonnegative), and nu (nonnegative)
 [k,idx] = min([J+m2,J-m2,J+m1,J-m1]);
 switch idx
   case 1, mu = m1-m2; nu = -m1-m2; lam = mu;
@@ -196,11 +215,11 @@ switch idx
   case 4, mu = m1-m2; nu =  m1+m2; lam = mu;
 end
 
-% Calculate quotient of binomial factors, nchoosek(2*J-k,k+a)/nchoose(k+b,k)
+% Calculate quotient of binomial factors, nchoosek(2*J-k,k+mu)/nchoosek(k+nu,k)
 q_enum = [2*J-k:-1:2*J-2*k-mu+1, 1:nu];
 q_denom = [1:k+mu, k+1:k+nu];
 if J > 28
-  % Sort values in order not to loose accuracy
+  % Sort values in order not to lose accuracy
   q_enum = sort(q_enum);
   q_denom = sort(q_denom);
 end

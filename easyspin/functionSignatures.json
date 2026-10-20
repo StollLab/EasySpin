@@ -5701,9 +5701,8 @@
         "name": "phase",
         "kind": "required",
         "type": [
-          "numeric",
-          "real",
-          "size=1,1"
+          "char",
+          "choices={'+', '-'}"
         ],
         "purpose": "phase ('+' or '-')"
       }
@@ -5801,9 +5800,8 @@
         "name": "phase",
         "kind": "required",
         "type": [
-          "numeric",
-          "real",
-          "size=1,1"
+          "char",
+          "choices={'+', '-'}"
         ],
         "purpose": "phase ('+' or '-')"
       }
@@ -5861,9 +5859,8 @@
         "name": "phase",
         "kind": "required",
         "type": [
-          "numeric",
-          "real",
-          "size=1,1"
+          "char",
+          "choices={'+', '-'}"
         ],
         "purpose": "phase ('+' or '-')"
       }
@@ -5921,9 +5918,8 @@
         "name": "phase",
         "kind": "required",
         "type": [
-          "numeric",
-          "real",
-          "size=1,1"
+          "char",
+          "choices={'+', '-'}"
         ],
         "purpose": "phase ('+' or '-')"
       }
