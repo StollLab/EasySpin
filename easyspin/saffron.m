@@ -137,13 +137,8 @@ if ~isempty(Sys.StrainData.Q)
 end
 
 % Error on spidyan-specific fields
-spidyanSysFields = {'initState','eqState'};
-for f = 1:numel(spidyanSysFields)
-  field_ = spidyanSysFields{f};
-  if isfield(Sys,field_) && ~isempty(Sys.(field_))
-    error('Sys.%s is specific to spidyan and cannot be used with saffron. Please remove.',...
-      field_);
-  end
+if isfield(Sys,'eqState') && ~isempty(Sys.eqState)
+  error('Sys.eqState is specific to spidyan and cannot be used with saffron. Please remove.');
 end
 
 
@@ -245,7 +240,13 @@ if Opt.GridSize<7
 end
 
 % Determine simulation mode
-if ~isfield(Opt,'SimulationMode'), Opt.SimulationMode = 'fast'; end
+if ~isfield(Opt,'SimulationMode')
+  if isempty(Sys.initState)
+    Opt.SimulationMode = 'fast';
+  else
+    Opt.SimulationMode = 'thyme';  % fast mode does not support Sys.initState
+  end
+end
 
 % Parse pulse sequence
 [Events,Vary,Opt,oldSeq] = s_sequencer(Exp,Opt);
@@ -280,6 +281,9 @@ if fastSimulationMode
   if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
     error('Fast mode does not work in the presence of nuclear-nuclear couplings.');
   end
+  if ~isempty(Sys.initState)
+    error('Sys.initState is not supported with Opt.SimulationMode = ''fast''. Use ''thyme'', or omit Opt.SimulationMode.');
+  end
 end
 
 
@@ -289,7 +293,7 @@ if ~isfield(Exp,'OriWeights')
 end
 
 % Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites] = p_crystalorientations(Exp,Opt);
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
 if numel(Exp.OriWeights)~=nOrientations
   Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
 end
@@ -1858,16 +1862,54 @@ else  % if fastSimulationMode
   userInitState = ~isempty(Sys.initState);
   initStateBasis = '';
   HframeShift = 0;
+  rho_M = [];
+  keep = true(Sys.nStates);
   if userInitState
-    initStateBasis = Sys.initState{2};
-    if strcmp(initStateBasis,'uncoupled')
-      error('Sys.initState in the uncoupled basis is not yet supported in saffron (requires rotation to the lab frame).');
+    if Opt.Relaxation
+      error('Sys.initState cannot be combined with relaxation in saffron.');
     end
-    if strcmp(initStateBasis,'eigen')
-      % frame shift applied to g, as a lab-frame Hamiltonian term (MHz)
+    initStateBasis = Sys.initState{2};
+    switch initStateBasis
+      case 'uncoupled'
+        % molecular-frame state, rotated to the lab frame for each orientation
+        rho_M = initstate(Sys);
+      case 'eigen'
+        % frame shift applied to g, as a lab-frame Hamiltonian term (MHz)
+        for iSpin = 1:Sys.nElectrons
+          HframeShift = HframeShift - Opt.FrameShift*1e3*sop(Sys.Spins,[iSpin,3]);
+        end
+    end
+
+    % The orientational grid of a powder has only two angles (phi,theta), with
+    % the third Euler angle chi (rotation of the molecule about the field) set
+    % to zero. The initial state must be averaged over chi.
+    % Rotating the molecule by chi about the lab z axis rotates the
+    % Hamiltonian and the initial state by Rz(chi) = exp(-1i*chi*Fz), where
+    % Fz is the total z spin operator (electrons and nuclei). The pulses act
+    % on the electrons only and are fixed in the lab frame. Moving Rz(chi)
+    % onto the pulses shows that the rotation is equivalent to shifting the
+    % phase of all pulses by -chi. Within the rotating-wave and high-field
+    % approximations, the Hamiltonian commutes with the total electron Sz,
+    % so a pulse phase shift is in turn equivalent to rotating the initial
+    % state and the detection operator about z by the electron rotation
+    % exp(-1i*chi*Sz) alone. The nuclear part of the rotation cancels. As a
+    % result, an element rho(i,j) of the lab-frame initial state contributes
+    % to the signal with a factor exp(1i*p*chi), where p = mS(i)-mS(j) is
+    % the electron coherence order and mS is the total electron spin
+    % projection. Averaging over chi removes all contributions with p~=0.
+    % Therefore, the chi average is obtained by zeroing these elements. This
+    % keeps populations, nuclear coherences, and electron zero-quantum
+    % coherences (e.g. S-T0 in radical pairs), and leaves -Sz unchanged. It
+    % is approximate to the extent that counter-rotating pulse components
+    % and electron non-secular terms matter in the simulation frame.
+    % For crystals, chi is defined by the sample orientation, and the full
+    % state is used.
+    if averageOverChi
+      mS = 0;
       for iSpin = 1:Sys.nElectrons
-        HframeShift = HframeShift - Opt.FrameShift*1e3*sop(Sys.Spins,[iSpin,3]);
+        mS = mS + full(diag(sop(Sys.Spins,[iSpin,3])));
       end
+      keep = abs(mS-mS.')<1e-10;
     end
   end
 
@@ -1892,13 +1934,18 @@ else  % if fastSimulationMode
     % Initial state in the lab frame
     Sigma_ = Sigma;
     if userInitState
-      if strcmp(initStateBasis,'eigen')
-        % eigenstates of the lab-frame Hamiltonian without the frame shift
-        Sigma_ = initstate(Sys_L,Ham - HframeShift);
-      else
-        % zero-field states of the rotated spin system are in the lab frame
-        Sigma_ = initstate(Sys_L);
+      switch initStateBasis
+        case 'uncoupled'
+          U = spinrotation(Sys.Spins,Orientations(iOrientation,:));
+          Sigma_ = U'*rho_M*U;
+        case 'eigen'
+          % eigenstates of the lab-frame Hamiltonian without the frame shift
+          Sigma_ = initstate(Sys_L,Ham - HframeShift);
+        case 'zerofield'
+          % zero-field states of the rotated spin system are in the lab frame
+          Sigma_ = initstate(Sys_L);
       end
+      Sigma_(~keep) = 0;
     end
 
     Relaxation_ = Relaxation;
@@ -2280,6 +2327,18 @@ for t = 1:numel(tensors2rotate)
     end
   end
   Sys_L.(tFrame_) = ang_L2T;
+end
+
+end
+
+%===============================================================================
+% Spin rotation operator for the mol->lab frame transformation, such that
+% H_L = U'*H_M*U and rho_L = U'*rho_M*U, consistent with rotatesystem
+function U = spinrotation(Spins,angles_M2L)
+
+U = 1;
+for S = Spins
+  U = kron(U,wignerd(S,angles_M2L(1),angles_M2L(2),angles_M2L(3)));
 end
 
 end

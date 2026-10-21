@@ -121,12 +121,32 @@ Relaxation times for transitions that are not defined (or 0) are automatically s
 
 <div class="optionfield"><code>T2</code></div>
 <div class="optiondescr">
-Transverse relaxation time in microseconds. 
+Transverse relaxation time in microseconds.
 For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
 For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
-If it is a scalar, the relaxation time is applied to all transitions. 
+If it is a scalar, the relaxation time is applied to all transitions.
 Transition-specific relaxation times can be provided in the form of a matrix.
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+</div>
+
+<p>
+For spin-polarized systems, you can provide a non-equilibrium initial state:
+</p>
+
+<div class="optionfield"><code>initState</code></div>
+<div class="optiondescr">
+Initial state of the spin system, e.g. populations of zero-field, high-field or coupled states, or a density matrix. All forms described on the <a href="spinsystem.html#pop">spin system page</a> are accepted. If not given, the initial state is -S<sub>z</sub> of all electron spins (high-temperature approximation).
+<p>
+<code>initState</code> is only supported with the <em>thyme</em> method. If <code>initState</code> is given and <code>Opt.SimulationMode</code> is not, <code>saffron</code> uses the <em>thyme</em> method. <code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>).
+</p>
+<p>
+A state given in the molecular frame (e.g. <code>'xyz'</code> populations or a density matrix) is rotated into the lab frame for each orientation. For powders, coherences between states with different total electron spin projection along the field are removed from the initial state, since they average out over all rotations of the molecule around the magnetic field.
+</p>
+<pre class="matlab">
+Sys.S = 1;
+Sys.D = [1000 100];                    % MHz
+Sys.initState = {[0.5 0.3 0.2],'xyz'}; % zero-field populations px, py, pz
+</pre>
 </div>
 
 <div class="subtitle2">Input: Experimental parameters</div>
@@ -541,7 +561,7 @@ A number giving the number of orientations (knots) for which spectra are explici
 <div class="optionfield"><code>SimulationMode</code></div>
 <div class="optiondescr">
 Optional, allows switching the simulation mode. Can be <code>'fast'</code> for the fast algorithm or <code>'thyme'</code> for the general approach.
-By default, <code>saffron</code> chooses <code>'fast'</code> if possible. 
+By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If <code>Sys.initState</code> is given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error.
 </div>
 
 <div class="optionfield"><code>separate</code>
