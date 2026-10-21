@@ -127,12 +127,16 @@ In order for <code>spidyan</code> to simulate relaxation effects, it is necessar
 
 <div class="optionfield"><code>initState</code></div>
 <div class="optiondescr">
-It is possible to run <code>spidyan</code> simulations with a custom initial state, which must be provided in matrix form.
-By default, the initial state assumes the high-temperature approximation for all electron spins.
+Initial state of the spin system. If not given, the initial state is -S<sub>z</sub> of all electron spins (high-temperature approximation).
+<code>initState</code> accepts all the forms described on the <a href="spinsystem.html#pop">spin system page</a>, e.g. populations of zero-field, high-field or coupled states, or a density matrix.
 The structure of density matrices (ordering of operators in terms of product Zeeman basis states) is explained at <a class="esf" href="sop.html">sop</a>.
 <pre class="matlab">
-Sys.S = 1/2;				% Creates an isolated spin 1/2
-Sys.initState = [0 1/2; 1/2 0]; 	% Start simulation from Sx
+Sys.S = 1/2;                    % isolated spin 1/2
+Sys.initState = [0 1/2; 1/2 0]; % start simulation from Sx
+
+Sys.S = 1;                      % triplet
+Sys.D = [300 30];               % MHz
+Sys.initState = {[0.5 0.3 0.2],'xyz'}; % zero-field populations px, py, pz
 </pre>
 
 </div>
