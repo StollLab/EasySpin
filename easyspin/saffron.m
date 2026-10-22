@@ -1839,29 +1839,20 @@ else  % if fastSimulationMode
 
   [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
-  % Prepare for the frame shift -----------------------------------------
-  nElectrons = length(Sys.S);
-
-  if Opt.FrameShift ~= 0
-    logmsg(1,'  adapting Sys.g to the simulation frame');
+  % Simulation frame: shift by the frame frequency along the total electron Sz
+  shiftedFrame = Opt.FrameShift~=0;
+  if shiftedFrame
+    logmsg(1,'  using secular Hamiltonian (shifted simulation frame)');
   end
-  gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
-
-  issize = @(A,siz) isequal(size(A),siz);
-  fullg = issize(Sys.g,[3*nElectrons 3]);
-  if fullg
-    gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
-    Sys.g = Sys.g - gshiftmat;
-  else
-    Sys.g = Sys.g - gshift;
+  Sz_total = 0;
+  for iSpin = 1:Sys.nElectrons
+    Sz_total = Sz_total + sop(Sys.Spins,[iSpin,3]);
   end
-  %----------------------------------------------------------------------
 
   % User-provided initial state (Sys.initState), set up for each orientation
   % (variables used in the parfor loop are defined in all cases)
   userInitState = ~isempty(Sys.initState);
   initStateBasis = '';
-  HframeShift = 0;
   rho_M = [];
   keep = true(Sys.nStates);
   if userInitState
@@ -1869,15 +1860,9 @@ else  % if fastSimulationMode
       error('Sys.initState cannot be combined with relaxation in saffron.');
     end
     initStateBasis = Sys.initState{2};
-    switch initStateBasis
-      case 'uncoupled'
-        % molecular-frame state, rotated to the lab frame for each orientation
-        rho_M = initstate(Sys);
-      case 'eigen'
-        % frame shift applied to g, as a lab-frame Hamiltonian term (MHz)
-        for iSpin = 1:Sys.nElectrons
-          HframeShift = HframeShift - Opt.FrameShift*1e3*sop(Sys.Spins,[iSpin,3]);
-        end
+    if strcmp(initStateBasis,'uncoupled')
+      % molecular-frame state, rotated to the lab frame for each orientation
+      rho_M = initstate(Sys);
     end
 
     % The orientational grid of a powder has only two angles (phi,theta), with
@@ -1888,33 +1873,32 @@ else  % if fastSimulationMode
     % Fz is the total z spin operator (electrons and nuclei). The pulses act
     % on the electrons only and are fixed in the lab frame. Moving Rz(chi)
     % onto the pulses shows that the rotation is equivalent to shifting the
-    % phase of all pulses by -chi. Within the rotating-wave and high-field
-    % approximations, the Hamiltonian commutes with the total electron Sz,
-    % so a pulse phase shift is in turn equivalent to rotating the initial
-    % state and the detection operator about z by the electron rotation
-    % exp(-1i*chi*Sz) alone. The nuclear part of the rotation cancels. As a
-    % result, an element rho(i,j) of the lab-frame initial state contributes
-    % to the signal with a factor exp(1i*p*chi), where p = mS(i)-mS(j) is
-    % the electron coherence order and mS is the total electron spin
-    % projection. Averaging over chi removes all contributions with p~=0.
+    % phase of all pulses by -chi. In a shifted simulation frame, the
+    % Hamiltonian is secular (see s_secularham) and commutes with the total
+    % electron Sz, so a pulse phase shift is in turn equivalent to rotating
+    % the initial state and the detection operator about z by the electron
+    % rotation exp(-1i*chi*Sz) alone. The nuclear part of the rotation
+    % cancels. As a result, an element rho(i,j) of the lab-frame initial
+    % state contributes to the signal with a factor exp(1i*p*chi), where
+    % p = mS(i)-mS(j) is the electron coherence order and mS is the total
+    % electron spin projection. Averaging over chi removes all contributions with p~=0.
     % Therefore, the chi average is obtained by zeroing these elements. This
     % keeps populations, nuclear coherences, and electron zero-quantum
     % coherences (e.g. S-T0 in radical pairs), and leaves -Sz unchanged. It
     % is approximate to the extent that counter-rotating pulse components
-    % and electron non-secular terms matter in the simulation frame.
+    % matter, and in the lab frame (no frame shift) also to the extent that
+    % non-secular terms matter.
     % For crystals, chi is defined by the sample orientation, and the full
     % state is used.
     if averageOverChi
-      mS = 0;
-      for iSpin = 1:Sys.nElectrons
-        mS = mS + full(diag(sop(Sys.Spins,[iSpin,3])));
-      end
+      mS = full(diag(Sz_total));
       keep = abs(mS-mS.')<1e-10;
     end
   end
 
   rawSignals = cell(1,nOrientations);
   timeAxis = cell(1,nOrientations);
+  minWeight = ones(1,nOrientations);  % smallest mS manifold weight (see s_secularham)
 
   logmsg(1,'-starting orientation loop-----------------------------');
   if Opt.Relaxation
@@ -1930,6 +1914,10 @@ else  % if fastSimulationMode
     Sys_L = rotatesystem(Sys,Orientations(iOrientation,:)); % mol->lab frame
 
     Ham = ham(Sys_L,Field*[0 0 1]);  % lab frame
+    if shiftedFrame
+      [Ham,mSweights] = s_secularham(Ham,Sys.Spins,Sys.nElectrons);  % high-field approximation
+      minWeight(iOrientation) = min(mSweights);
+    end
 
     % Initial state in the lab frame
     Sigma_ = Sigma;
@@ -1939,14 +1927,15 @@ else  % if fastSimulationMode
           U = spinrotation(Sys.Spins,Orientations(iOrientation,:));
           Sigma_ = U'*rho_M*U;
         case 'eigen'
-          % eigenstates of the lab-frame Hamiltonian without the frame shift
-          Sigma_ = initstate(Sys_L,Ham - HframeShift);
+          Sigma_ = initstate(Sys_L,Ham);
         case 'zerofield'
           % zero-field states of the rotated spin system are in the lab frame
           Sigma_ = initstate(Sys_L);
       end
       Sigma_(~keep) = 0;
     end
+
+    Ham = Ham - Opt.FrameShift*1e3*Sz_total;  % simulation frame (MHz)
 
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)
@@ -1960,6 +1949,13 @@ else  % if fastSimulationMode
     end
 
     [timeAxis{iOrientation}, rawSignals{iOrientation}] = s_thyme(Sigma_, Ham, DetOps, Events, Relaxation_, Vary);
+  end
+
+  if min(minWeight)<0.9
+    warning(['The electron spin states are strongly mixed (smallest weight in an ' ...
+      'mS manifold: %0.2f). The high-field approximation used in the shifted ' ...
+      'simulation frame can be inaccurate. Use Opt.SimFreq = 0 to simulate in ' ...
+      'the lab frame.'],min(minWeight));
   end
 
   timeAxis = timeAxis{1};

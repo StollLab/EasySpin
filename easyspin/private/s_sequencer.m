@@ -483,7 +483,7 @@ for iEvent = pulsePositions
   else
     pulseFreq = 0;
   end
-  maxFreq = max(freqShift+max(pulseFreq),maxFreq);
+  maxFreq = max(max(abs(freqShift+pulseFreq)),maxFreq);  % pulses can be below the simulation frame
 end
 
 NyquistFreq = 2*maxFreq;

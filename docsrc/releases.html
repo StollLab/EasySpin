@@ -71,6 +71,7 @@ $ReleaseID$
 <li>Fixed a bug in the calculation of orbital angular momentum contributions.</li>
 <li><a class="esf" href="eprload.html">eprload</a>: Fixed small bugs and added an informative error message if loading a Bruker companion file fails.</li>
 <li><a class="esf" href="saffron.html">saffron</a>: Fixed 2D baseline correction for HYSCORE data processing.</li>
+<li><a class="esf" href="saffron.html">saffron</a> (<code>'thyme'</code> mode) and <a class="esf" href="spidyan.html">spidyan</a>: In a shifted simulation frame (<code>Opt.SimFreq</code> not zero, the default above 3 GHz), effects of g anisotropy, zero-field splitting and other non-secular terms were strongly exaggerated, causing errors of 10% and more for anisotropic spin systems. These simulations now use the high-field approximation, with exact energy levels. To simulate in the lab frame, use <code>Opt.SimFreq = 0</code>.</li>
 <li>Fixed an incorrect sign in the calculation of the nuclear Zeeman Hamiltonian in <code>ham_nz(Sys,B)</code>.</li>
 <li>Without <code>Exp.Temperature</code>, intensities now follow the high-temperature limit. Previously, relative intensities were wrong between spin systems with different spin or number of electrons, and between lines in frequency sweeps.</li>
 <li><a class="esf" href="chili.html">chili</a> intensities now match <a class="esf" href="pepper.html">pepper</a> in the rigid limit also for S&gt;1/2 and several electrons.</li>

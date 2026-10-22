@@ -69,7 +69,7 @@ if ~isfield(Exp,'Field')
   logmsg(1,'  checking if Sys allows for running without a field...');
   if isfield(Sys,'g')
     error('Exp.Field is required for Sys.g.')
-  elseif Sys.ZeemanFreq % && (~isfield(Sys,'S') || all(Sys.S==1/2))
+  elseif isfield(Sys,'ZeemanFreq') && ~isempty(Sys.ZeemanFreq) && all(Sys.ZeemanFreq~=0) % && (~isfield(Sys,'S') || all(Sys.S==1/2))
     % if Sys.ZeemanFreq is used, it Exp.Field is not required, however the
     % program needs a reference field to correctly shift frequencies and
     % to calculate nuclear Larmor frequencies (if nuclei are given). The
@@ -104,44 +104,12 @@ if nargout == 0 && isfield(Exp,'nPoints')
   end
 end
 
-% Adapt Zeeman frequencies for the selected simulation frame
 logmsg(1,'-validating spin system--------------------------------');
 
 if ~isfield(Sys,'S')
  if isfield(Sys,'ZeemanFreq') && ~isscalar(Sys.ZeemanFreq)
   error('If you provide more than one value in Sys.ZeemanFreq, Sys.S must be specified');
  end
-end
-
-if isfield(Sys,'ZeemanFreq') && Opt.FrameShift ~= 0
-  logmsg(1,'adapting Sys.ZeemanFreq to the simulation frame');
-  Sys.ZeemanFreq =  Sys.ZeemanFreq - Opt.FrameShift;
-end
-
-% Adapt g-values for the selected simulation frame
-if isfield(Sys,'g')
-  if isfield(Sys,'S')
-    nElectrons = length(Sys.S);
-  else
-    nElectrons = 1;
-  end
-  
-  if Opt.FrameShift~=0
-    logmsg(1,'  adapting Sys.g to the simulation frame');
-  end
-  gshift = (Opt.FrameShift*1e9)*planck/bmagn/(Exp.Field(end)*1e-3);
-  
-  fullg = isequal(size(Sys.g),[3*nElectrons 3]);
-  symg = isequal(size(Sys.g),[nElectrons 6]);
-  if fullg
-    gshiftmat = repmat(gshift*eye(3),[nElectrons,1]);
-    Sys.g = Sys.g - gshiftmat;
-  elseif symg
-    % symmetric g matrices [xx yy zz xy xz yz]: shift diagonal elements only
-    Sys.g(:,1:3) = Sys.g(:,1:3) - gshift;
-  else
-    Sys.g = Sys.g - gshift;
-  end
 end
 
 % Translate Frequency to g values
@@ -208,18 +176,22 @@ logmsg(1,'  parsing the Sys structure...');
 % Get Hamiltonian
 logmsg(1,'  computing lab frame Hamiltonian');
 H = ham(Sys,Exp.Field*[0 0 1]);
+if Opt.FrameShift~=0
+  logmsg(1,'  using secular Hamiltonian (shifted simulation frame)');
+  [H,minWeight] = s_secularham(H,Sys.Spins,Sys.nElectrons);  % high-field approximation
+  if min(minWeight)<0.9
+    warning(['The electron spin states are strongly mixed (smallest weight in an ' ...
+      'mS manifold: %0.2f). The high-field approximation used in the shifted ' ...
+      'simulation frame can be inaccurate. Use Opt.SimFreq = 0 to simulate in ' ...
+      'the lab frame.'],min(minWeight));
+  end
+end
 
 % Set up user-provided initial state
 if ~isempty(Sys.initState)
   logmsg(1,'  setting up the initial state from Sys.initState');
   if strcmp(Sys.initState{2},'eigen')
-    % Eigenstates are those of the lab-frame Hamiltonian without the frame
-    % shift applied to g above
-    HframeShift = 0;
-    for iSpin = 1:Sys.nElectrons
-      HframeShift = HframeShift - Opt.FrameShift*1e3*sop(Sys.Spins,[iSpin,3]);
-    end
-    Sigma = initstate(Sys,H - HframeShift);
+    Sigma = initstate(Sys,H);
   else
     Sigma = initstate(Sys);
   end
@@ -227,6 +199,13 @@ if ~isempty(Sys.initState)
     Relaxation.equilibriumState = Sigma;
   end
 end
+
+% Simulation frame: shift by the frame frequency along the total electron Sz
+Sz_total = 0;
+for iSpin = 1:Sys.nElectrons
+  Sz_total = Sz_total + sop(Sys.Spins,[iSpin,3]);
+end
+H = H - Opt.FrameShift*1e3*Sz_total;  % MHz
 
 % Propagation
 %-------------------------------------------------------------------------------

@@ -647,9 +647,12 @@ To force a simulation in the lab frame, <code>SimFreq</code> has to be set to ze
 <pre class="matlab">
 Opt.SimFreq = 0;  	      % Propagation in the labframe
 </pre>
-Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.																											 																																										
+Changing the simulation frame allows for using a larger time step, which in turn can strongly reduce computation time.
 Keep in mind that if a time step is provided with <code>Opt.IntTimeStep</code>, it is not adapted automatically.
 To have the program adapt the time step to the simulation frequency, remove the field <code>Opt.IntTimeStep</code>.
+<p>
+In a simulation frame other than the lab frame, the high-field approximation is used: the spin Hamiltonian keeps its exact energy levels, but the small mixing between electron spin states with different m<sub>S</sub>, caused e.g. by g anisotropy or zero-field splitting, is neglected. To include this mixing, simulate in the lab frame (<code>Opt.SimFreq = 0</code>).
+</p>
 </div>
 
 <div class="optionfield"><code>IntTimeStep</code></div>
