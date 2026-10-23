@@ -95,8 +95,8 @@ mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 computeNonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 computeBoltzmann = p_temperature(Exp) && ~computeNonEquiPops;
 
-if isfield(Exp,'ExciteWidth')
-  if ~isfield(Exp,'mwFreq'), error('Par.mwFreq is missing.'); end
+if isnan(Exp.mwFreq) && isfinite(Exp.ExciteWidth) && Exp.ExciteWidth>0
+  error('Exp.mwFreq is missing. It is needed, since Exp.ExciteWidth is given.');
 end
 
 if ~isfield(Opt,'Sites')
