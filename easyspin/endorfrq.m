@@ -428,36 +428,35 @@ for iOri = 1:nOrientations
       end
     end
     
+    % Compute level populations if temperature or initial state are given.
+    Populations = [];
+    if computeBoltzmann
+      Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
+      Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
+    elseif computeNonEquiPops && OrientationSelection
+      Populations = zeros(nStates,1);
+      switch initStateBasis
+        case 'eigen'
+          for iState = 1:nStates
+            Populations(iState) = initState(iState,iState);
+          end
+        otherwise
+          for iState = 1:nStates
+            Populations(iState) = Vs(:,iState)'*initState*Vs(:,iState);
+          end
+      end
+    end
+
     % Compute excitation factor
     if OrientationSelection
       lwInh2 = sum((Sys.lwAnisoG(:).*zLab).^2);
       lw2 = lwInh2 + lwExcite2;
-      
+
       % weighting with EPR line width and excitation band width
       dE = E0(:,ones(1,nStates));
       dE = dE.' - dE; % positive in upper triangle
-      
-      % Compute polarization if temperature or zero-field populations are given.
-      Populations = [];
-      if computeBoltzmann
-        Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
-        Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
-        %Polarization = (Populations(u) - Populations(v))/sum(Populations);
-      elseif computeNonEquiPops
-        %Populations = (abs(ZFStates'*Vs).^2).'*ZFPopulations; % lower level
-        %Polarization = PopulationU - PopulationV;
-        Populations = zeros(size(dE));
-        switch initStateBasis
-          case 'eigen'
-            for iState = 1:nStates
-              Populations(iState) = initState(iState,iState);
-            end
-          otherwise
-            for iState = 1:nStates
-              Populations(iState) = Vs(:,iState)'*initState*Vs(:,iState);
-            end
-        end
-      end
+
+      % EPR transition polarizations
       if isempty(Populations)
         Polarizations = ones(size(dE));
       else
@@ -494,10 +493,8 @@ for iOri = 1:nOrientations
       ExcitationFactor = 1;
     end % if OrientationSelection else
         
-    % Compute polarization if temperature or zero-field populations are given.
+    % Nuclear polarization (thermal populations only)
     if computeBoltzmann
-      Populations = exp(BoltzmannPreFactor*(E0-E0(1)));
-      Populations(isnan(Populations)) = 1; % T = 0: Inf*0 for ground state
       NuclearPolarization = (Populations(u) - Populations(v))/sum(Populations);
     else
       NuclearPolarization = 1;
