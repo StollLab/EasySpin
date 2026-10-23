@@ -424,13 +424,6 @@ for iOri = 1:nOrientations
       end
     end
     
-    % Pulse ENDOR: include rf flip angle
-    if ~isfield(Exp,'rf'), Exp.rf = 0; end
-    pulseENDOR = Exp.rf>0;
-    if pulseENDOR
-      EndorIntensity = (1 - cos(sqrt(EndorIntensity)*Exp.rf))/2;
-    end
-    
     % Compute excitation factor
     if OrientationSelection
       lwInh2 = sum((Sys.lwAnisoG(:).*zLab).^2);
