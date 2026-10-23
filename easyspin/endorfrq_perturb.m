@@ -156,11 +156,11 @@ if Opt.PerturbOrder~=1 && Opt.PerturbOrder~=2
   error('Opt.PerturbOrder must be either 1 or 2.');
 end
 
-if ~isfield(Opt,'Enhancement'), Opt.Enhancement = 0; end
-if Opt.Enhancement
-  logmsg(1,'  skipping hyperfine enhancement.');
+if ~isfield(Opt,'Enhancement'), Opt.Enhancement = 'off'; end
+EnhancementSwitch = parseoption(Opt,'Enhancement',{'off','on'}) - 1;
+if EnhancementSwitch
+  error('Hyperfine enhancement (Opt.Enhancement=''on'') is not supported with perturbation theory. Use matrix diagonalization.');
 end
-logmsg(1,'  hyperfine enhancement: off.');
 
 if ~isfield(Opt,'Nuclei'), Opt.Nuclei = []; end
 if isempty(Opt.Nuclei), Opt.Nuclei = 1:nNuclei; end
