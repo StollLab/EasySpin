@@ -101,7 +101,7 @@ Temperature at which the experiment is performed, in K. If omitted, no temperatu
 
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
-The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM. The default is <code>Inf</code>.
+The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM. The default is <code>Inf</code>. For each orientation, <code>ExciteWidth</code> is combined with <code>Sys.lwAnisoG</code> (also a FWHM) as <code>sqrt(ExciteWidth^2+lwAnisoG^2)</code>. Orientations with broad EPR lines are weighted down, since only part of their line falls within the excitation window.
 </div>
 
 <div class="optionfield"><code>CrystalSymmetry</code></div>

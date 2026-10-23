@@ -11,7 +11,8 @@
 %      mwFreq              spectrometer frequency [GHz]
 %      Field               magnetic field [mT]
 %      Temperature         in K (optional, by default off (NaN))
-%      ExciteWidth         FWHM of excitation [MHz] (optional, default Inf)
+%      ExciteWidth         FWHM of excitation [MHz], combined with Sys.lwAnisoG
+%                          (optional, default Inf)
 %      Range               frequency range [MHz] (optional, default [])
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
@@ -334,6 +335,7 @@ if ComputeIntensities
     [ExM,EyM,EzM] = ham_ez(Sys,1);
     % pre-square line width
     lwExcite2 = Exp.ExciteWidth^2;
+    fwhm2sigma = 1/(2*sqrt(2*log(2)));
   end
   
   % Prefactor used for computing the Boltzmann population distribution.
@@ -430,7 +432,8 @@ for iOri = 1:nOrientations
     
     % Compute excitation factor
     if OrientationSelection
-      lw2 = sum((Sys.lwAnisoG(:).*zLab).^2) + lwExcite2;
+      lwInh2 = sum((Sys.lwAnisoG(:).*zLab).^2);
+      lw2 = lwInh2 + lwExcite2;
       
       % weighting with EPR line width and excitation band width
       dE = E0(:,ones(1,nStates));
@@ -464,9 +467,14 @@ for iOri = 1:nOrientations
         Polarizations = abs(P - P.');
       end
       
-      % weight EPR transition probabilities with excitation shape
-      EPRIntensity = sqrt(2/pi)*...
-        Polarizations.*EPRIntensity.*exp(-2/lw2*(mwFreq-abs(dE)).^2);
+      % weight EPR transition probabilities with the fraction of spin packets
+      % excited: Gaussian excitation window (FWHM ExciteWidth) averaged over
+      % the inhomogeneous EPR line (FWHM from lwAnisoG)
+      % (window centers in offset space are at mwFreq-|dE|)
+      sigmaInh = sqrt(lwInh2)*fwhm2sigma;
+      mu = mwFreq - abs(dE(:));
+      exciteFactor = offsetaverage(1,Exp.ExciteWidth*fwhm2sigma,mu,sigmaInh);
+      EPRIntensity = Polarizations.*EPRIntensity.*reshape(exciteFactor,nStates,nStates);
 
       % sum up tp for all transitions leading to a specific level,
       % exclude the level itself
@@ -528,4 +536,35 @@ end
 Output = {Pdat,Idat,Transitions,Info};
 varargout = Output(1:nargout);
 if nargout==0, varargout = {Pdat};end
+end
+
+%===============================================================================
+function avg = offsetaverage(A,sigma,mu,sigmaInh)
+% Average of a product of Gaussians A(j)*exp(-(delta-mu(j))^2/(2*sigma(j)^2)),
+% j = 1..n, over spin-packet offsets delta distributed as N(0,sigmaInh^2).
+% A, sigma, and mu are arrays of size [nTerms n] (or broadcastable to it),
+% one row per term. Completing the square gives
+%   <prod G> = prod(A)*sqrt(pInh/P)*exp(-S/(2*P))
+% with precisions p = 1/sigma^2, P = pInh + sum(p), and
+%   S = pInh*sum(p.*mu.^2) + sum_{j<k} p(j)*p(k)*(mu(j)-mu(k))^2
+
+p = 1./sigma.^2;
+n = size(mu,2);
+
+% No inhomogeneous broadening: evaluate the product at delta = 0
+if sigmaInh==0
+  avg = prod(A.*exp(-p.*mu.^2/2),2);
+  return
+end
+
+pInh = 1/sigmaInh^2;
+P = pInh + sum(p.*ones(size(mu)),2);
+S = pInh*sum(p.*mu.^2,2);
+for j = 1:n
+  for k = j+1:n
+    S = S + p(:,j).*p(:,k).*(mu(:,j)-mu(:,k)).^2;
+  end
+end
+avg = prod(A,2).*sqrt(pInh./P).*exp(-S./(2*P));
+
 end

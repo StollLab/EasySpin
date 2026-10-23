@@ -17,7 +17,7 @@
 %       CenterSweep   sweep range, [center sweep], in MHz
 %       nPoints       number of points
 %       Temperature   temperature of the sample, by default off (NaN)
-%       ExciteWidth   ENDOR excitation width, FWHM, in MHz
+%       ExciteWidth   ENDOR excitation width, FWHM, in MHz, combined with Sys.lwAnisoG
 %   - Opt: simulation options
 %       Verbosity           0, 1, 2
 %       Method        'matrix', 'perturb1', 'perturb2'='perturb'

@@ -12,7 +12,7 @@
 %   - Exp    experimental parameters
 %      Field         magnetic field [mT]
 %      mwFreq        spectrometer frequency [GHz]
-%      ExciteWidth   FWHM excitation bandwidth [MHz]
+%      ExciteWidth   FWHM excitation bandwidth [MHz], combined with Sys.lwAnisoG
 %      Orientations  [phi;theta]
 %   - Opt    options structure
 %      GridSize      grid dsize
@@ -146,9 +146,12 @@ if isfinite(Exp.ExciteWidth)
       TransitionRate = abs(V'*muxL*V).^2;
     end
 
-    % Orientation selectivity weights
+    % Orientation selectivity weights: Gaussian excitation window averaged
+    % over the inhomogeneous EPR line, giving the fraction of spin packets
+    % excited (ExciteWidth/lw, lw = total FWHM)
     xi = (abs(E(v)-E(u))-mwFreq)/GammaWidth(iOri);
-    Weights(iOri,:) = (TransitionRate(uv) .* exp(-2*xi.^2)).';
+    excitedFraction = fac*Exp.ExciteWidth/GammaWidth(iOri);
+    Weights(iOri,:) = (excitedFraction * TransitionRate(uv) .* exp(-2*xi.^2)).';
   end
 
 else

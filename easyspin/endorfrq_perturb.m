@@ -327,10 +327,12 @@ for iOri = nOrientations:-1:1
     end
     EPRfreq = diff(TotalEnergy,1,2);
     
-    % compute excitation factors for EPR transitions
+    % compute excitation factors for EPR transitions: Gaussian excitation
+    % window (FWHM ExciteWidth) averaged over the inhomogeneous EPR line
+    % (FWHM from lwAnisoG), giving the fraction of spin packets excited
     lw2 = sum((Sys.lwAnisoG.*h.').^2) + lwExcite2;
     offsetFreq = EPRfreq - Exp.mwFreq*1e3;
-    exciteFactor = exp(-2/lw2*offsetFreq.^2);
+    exciteFactor = Exp.ExciteWidth/sqrt(lw2)*exp(-4*log(2)/lw2*offsetFreq.^2);
 
     % collect statistics
     if min(EPRfreq(:))<minEPRfreq, minEPRfreq = min(EPRfreq(:)); end
