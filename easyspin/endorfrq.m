@@ -390,13 +390,14 @@ for iOri = 1:nOrientations
   [xLab,yLab,zLab] = erot(Orientations(iOri,:),'rows');
   
   
-  % Compute eigenstate energies and vectors.
+  % Compute eigenstate energies and vectors (eig returns energies sorted in
+  % ascending order, since H is Hermitian)
   H = H0 - Exp.Field*(zLab(1)*muxM + zLab(2)*muyM + zLab(3)*muzM);
   if ComputeVectors
     [Vs,E0] = eig(H);
-    E0 = sort(diag(E0));
+    E0 = diag(E0);
   else
-    E0 = sort(eig(H));
+    E0 = eig(H);
   end
   
   % Position data

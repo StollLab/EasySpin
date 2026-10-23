@@ -137,8 +137,6 @@ if isfinite(Exp.ExciteWidth)
     % Eigenvalues
     [V,E] = eig(H0 - Exp.Field*muzL);
     E = diag(E);
-    [E,idx] = sort(E); % because of a bug in eig() in Matlab 7.0.0 (fixed in 7.0.1)
-    V = V(idx,:);
     
     if Options.AveragedIntensity
       TransitionRate = (abs(V'*muxL*V).^2 + abs(V'*muyL*V).^2)/2;
