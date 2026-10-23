@@ -125,8 +125,12 @@ if p_temperature(Exp)
 end
 error(err);
 
-if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = Inf; end
-OrientationSelection = ~isinf(Exp.ExciteWidth);
+% Excitation width: [] or Inf means all spins are excited
+if ~isfield(Exp,'ExciteWidth'), Exp.ExciteWidth = []; end
+if ~isempty(Exp.ExciteWidth) && (~isnumeric(Exp.ExciteWidth) || ~isscalar(Exp.ExciteWidth) || ~(Exp.ExciteWidth>0))
+  error('Exp.ExciteWidth must be a positive number.');
+end
+OrientationSelection = ~isempty(Exp.ExciteWidth) && isfinite(Exp.ExciteWidth);
 lwExcite2 = Exp.ExciteWidth^2;
 
 if ~isfield(Opt,'Sites')

@@ -12,7 +12,7 @@
 %      Field               magnetic field [mT]
 %      Temperature         in K (optional, by default off (NaN))
 %      ExciteWidth         FWHM of excitation [MHz], combined with Sys.lwAnisoG
-%                          (optional, default Inf)
+%                          (optional, default [] = all spins excited)
 %      Range               frequency range [MHz] (optional, default [])
 %      SampleFrame         Nx3 array of Euler angles (in radians) for sample orientations
 %      CrystalSymmetry     crystal symmetry (space group etc.)
@@ -75,7 +75,7 @@ Sys = adddefaults(Sys,DefaultSys);
 %---------------------------------------------------------------------
 DefaultExp.mwFreq = NaN;
 DefaultExp.Temperature = NaN;
-DefaultExp.ExciteWidth = Inf;
+DefaultExp.ExciteWidth = [];
 DefaultExp.Field = NaN;
 
 DefaultExp.SampleFrame = [0 0 0];
@@ -95,7 +95,13 @@ mwFreq = Exp.mwFreq*1e3; % GHz -> MHz
 computeNonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
 computeBoltzmann = p_temperature(Exp) && ~computeNonEquiPops;
 
-if isnan(Exp.mwFreq) && isfinite(Exp.ExciteWidth) && Exp.ExciteWidth>0
+% Excitation width: [] or Inf means all spins are excited
+if ~isempty(Exp.ExciteWidth) && (~isnumeric(Exp.ExciteWidth) || ~isscalar(Exp.ExciteWidth) || ~(Exp.ExciteWidth>0))
+  error('Exp.ExciteWidth must be a positive number.');
+end
+OrientationSelection = ~isempty(Exp.ExciteWidth) && isfinite(Exp.ExciteWidth);
+
+if isnan(Exp.mwFreq) && OrientationSelection
   error('Exp.mwFreq is missing. It is needed, since Exp.ExciteWidth is given.');
 end
 
@@ -182,8 +188,6 @@ ComputeIntensities = (nargout>1) & (IntensitySwitch);
 % redundant at the moment, since only intensity computations
 % need eigenvectors.
 ComputeVectors = ComputeIntensities;
-
-OrientationSelection = isfinite(Exp.ExciteWidth) & (Exp.ExciteWidth>0);
 
 if OrientationSelection
   logmsg(2,'  including excitation width %g MHz',Exp.ExciteWidth);

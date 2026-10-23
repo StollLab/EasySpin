@@ -168,7 +168,7 @@ DefaultExp.Range = NaN;
 DefaultExp.CenterSweep = NaN;
 DefaultExp.nPoints = 1024;
 DefaultExp.Temperature = NaN;
-DefaultExp.ExciteWidth = Inf;
+DefaultExp.ExciteWidth = [];
 
 DefaultExp.Ordering = [];
 DefaultExp.SampleRotation = [];
@@ -198,10 +198,14 @@ end
 if isnan(Exp.Field), error('Experiment.Field is missing!'); end
 if any(Exp.Field<0), error('Exp.Field cannot be negative.'); end
   
-if isnan(Exp.mwFreq)
-  if ~isinf(Exp.ExciteWidth)
-    error('Experiment.mwFreq is missing! It is needed, since Exp.ExciteWidth is given.');
-  end
+% Excitation width: [] or Inf means all spins are excited
+if ~isempty(Exp.ExciteWidth) && (~isnumeric(Exp.ExciteWidth) || ~isscalar(Exp.ExciteWidth) || ~(Exp.ExciteWidth>0))
+  error('Exp.ExciteWidth must be a positive number.');
+end
+selectiveExcitation = ~isempty(Exp.ExciteWidth) && isfinite(Exp.ExciteWidth);
+
+if isnan(Exp.mwFreq) && selectiveExcitation
+  error('Experiment.mwFreq is missing! It is needed, since Exp.ExciteWidth is given.');
 end
 
 % Sweep range from CenterSweep or Range (CenterSweep has precedence)
@@ -402,8 +406,8 @@ end
 % Opt.OriThreshold, endorfrq will decide whether to compute the ENDOR
 % spectrum.
 
-Opt.DoPreSelection = ~crystalSample & Opt.OriPreSelect & ...
-  Opt.OriThreshold>0 & isempty(Opt.OriWeights);
+Opt.DoPreSelection = selectiveExcitation && ~crystalSample && any(Opt.OriPreSelect) && ...
+  Opt.OriThreshold>0 && isempty(Opt.OriWeights);
 
 if Opt.DoPreSelection
   logmsg(1,'  computing orientations which fall into excitation window');

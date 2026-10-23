@@ -150,7 +150,7 @@ EPR spectrometer frequency in GHz. Only needed if orientation selection should b
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
 <p>
-The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM (full width at half maximum). The default is <code>Inf</code> (infinity). To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>lwAnisoG</code> from the spin system structure (also a FWHM) as <code>sqrt(ExciteWidth^2+lwAnisoG^2)</code>. Orientations with broad EPR lines are weighted down, since only part of their line falls within the excitation window.
+The excitation width of the microwave in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM (full width at half maximum). If <code>ExciteWidth</code> is not given (or set to <code>Inf</code>), all spins are excited and there is no orientation selection. To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>lwAnisoG</code> from the spin system structure (also a FWHM) as <code>sqrt(ExciteWidth^2+lwAnisoG^2)</code>. Orientations with broad EPR lines are weighted down, since only part of their line falls within the excitation window.
 </p>
 </div>
 
