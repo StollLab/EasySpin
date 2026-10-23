@@ -674,7 +674,7 @@ if fastSimulationMode
   if OrientationSelection
     logmsg(1,'Microwave frequency given: orientation selection is on.');
     if ~isfield(Exp,'ExciteWidth')
-      error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to a very large number (1e6) or remove the microwave frequency.');
+      error('Orientation selection: Exp.ExciteWidth (in MHz) missing. It should be about the inverse of the first pulse length (100MHz for 10ns). If you don''t want orientation selection, set it to Inf or remove the microwave frequency.');
     end
   else
     logmsg(1,'no orientation selection (infinite bandwidth).');
@@ -945,10 +945,14 @@ if fastSimulationMode
     geff = sqrt(sum(geff.^2,1));
     % resonance frequencies for all orientations
     nu = geff*bmagn*Exp.Field/1e3/planck/1e6; % MHz
-    % line widths for all orientations
+    % line widths (FWHM) for all orientations
     lw = diag(Sys.lwAnisoG)*zLab;
-    lw2 = (sum(lw.^2,1)) + Exp.ExciteWidth^2;
-    gOriSelWeight = exp(-(nu-1000*Exp.mwFreq).^2./lw2);
+    lwInh2 = sum(lw.^2,1);
+    lw2 = lwInh2 + Exp.ExciteWidth^2;
+    % Gaussian excitation window (FWHM ExciteWidth) averaged over the
+    % inhomogeneous EPR line (FWHM from lwAnisoG): fraction of spin packets excited
+    % (prefactor ExciteWidth/sqrt(lw2), written to give 1 for ExciteWidth=Inf)
+    gOriSelWeight = exp(-4*log(2)*(nu-1000*Exp.mwFreq).^2./lw2)./sqrt(1+lwInh2/Exp.ExciteWidth^2);
   end
 
   %=====================================================================
@@ -1079,8 +1083,13 @@ if fastSimulationMode
       maxSyy = max(SyLab(:));
 
       if OrientationSelection
+        % Gaussian excitation window (FWHM ExciteWidth) averaged over the
+        % inhomogeneous EPR line (FWHM from lwAnisoG): fraction of spin packets excited
+        % (prefactor ExciteWidth/sqrt(lw2), written to give 1 for ExciteWidth=Inf)
+        lwInh2 = sum((Sys.lwAnisoG(:).*zLab_M(:)).^2);
+        lw2 = lwInh2 + Exp.ExciteWidth^2;
         dE = eE - eE.' - Exp.mwFreq*1e3; % MHz
-        excitationAmplitude = exp(-(dE/Exp.ExciteWidth).^2);
+        excitationAmplitude = exp(-4*log(2)*dE.^2/lw2)/sqrt(1+lwInh2/Exp.ExciteWidth^2);
         SyLab = SyLab.*excitationAmplitude;
       end
 

@@ -392,7 +392,7 @@ The following fields can only be used with the <em>fast</em> algorithm
 
 <div class="optionfield"><code>ExciteWidth</code></div>
 <div class="optiondescr">
-The microwave excitation bandwidth in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM. The default is infinity. To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>lwAnisoG</code> from the spin system structure.
+The microwave excitation bandwidth in MHz (responsible for orientation selection). The excitation profile is assumed to be Gaussian, and <code>ExciteWidth</code> is its FWHM. It is required when <code>Exp.mwFreq</code> is given. Set it to <code>Inf</code> to turn off orientation selection. To obtain the full excitation width for a given orientation, <code>ExciteWidth</code> is combined with <code>lwAnisoG</code> from the spin system structure (also a FWHM) as <code>sqrt(ExciteWidth^2+lwAnisoG^2)</code>. Orientations with broad EPR lines are weighted down, since only part of their line falls within the excitation window.
 </div>
 
 <div class="optionfield" id="filter"><code>Filter</code></div>

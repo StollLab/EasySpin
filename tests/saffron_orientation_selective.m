@@ -6,7 +6,7 @@ Exp.dt = 0.015;
 Exp.nPoints = 128;
 Exp.ExciteWidth = 200;
 Exp.tau = 0.001;
-Exp.Field = 350;
+Exp.Field = 323; % resonance within g range
 
 Sys.Nucs = '1H';
 Sys.A = [1 6];

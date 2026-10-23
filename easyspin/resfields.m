@@ -770,12 +770,8 @@ for iOri = 1:nOrientations
           if any(stateStability(uv,s)<Opt.RediagLimit)
             nRediags = nRediags + 1;
             if higherOrder
+              % returns sorted energies (row vector) and eigenvectors
               [Vectors_,Energies] = gethamdata_hO(resonanceFields(iReson),zLab_M,CoreSys,Opt.Sparse,Trans,nLevels);
-              if Opt.Sparse
-                [Energies,ind] = sort(diag(Energies));
-                Energies = diag(Energies);
-                Vectors_ = Vectors_(:,ind);
-              end
             else
               if issparse(kH0)
                 [Vectors_,Energies] = eigs(kH0-resonanceFields(iReson)*kmuzL,nLevels);
