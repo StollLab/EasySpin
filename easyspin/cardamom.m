@@ -243,24 +243,10 @@ if FieldSweep
   Exp.Range = p_sweeprange(Exp,false,false);
   Exp.CenterSweep = [];
   if isempty(Exp.Range)
-    if Sys.S==1/2
-      logmsg(1,'  automatic determination of sweep range');
-      I = nucspin(Sys.Nucs).';
-      if numel(I)>0
-        Amax = max(abs(Sys.A),[],2);
-        hf = sum(I.*Amax)*1e6; % MHz -> Hz
-      else
-        hf = 0;
-      end
-      gmax = max(Sys.g(:));
-      gmin = min(Sys.g(:));
-      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
-      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
-      Stretch = 1.25;
-      Exp.Range = (maxB+minB)/2 + [-1 1]/2*Stretch*max(maxB-minB,5);
-    else
-      error('Cannot automatically determine sweep range for this spin system.');
-    end
+    logmsg(1,'  automatic estimation of sweep range');
+    [minB,maxB] = p_resfieldspan(Sys,Exp.mwFreq);
+    Stretch = 1.25;
+    Exp.Range = (maxB+minB)/2 + [-1 1]/2*Stretch*max(maxB-minB,5);
   end
   CenterField = mean(Exp.Range);
   logmsg(1,'  field range (mT): min %g, max %g',Exp.Range(1),Exp.Range(2));

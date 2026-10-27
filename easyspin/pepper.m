@@ -366,41 +366,14 @@ end
 
 % Automatic field range determination
 if FieldSweep && SweepAutoRange
-  if isscalar(Sys.S) && (Sys.S==1/2) && ~any(Sys.L(:))
-    logmsg(1,'  automatic determination of sweep range');
-    I = nucspin(Sys.Nucs).';
-    if ~isempty(I)
-      if Sys.fullA
-        Amax = max(abs(Sys.A),[],2);
-        Amax = max(reshape(Amax,3,[])).';
-      else
-        Amax = max(abs(Sys.A),[],2);
-      end
-    else
-      Amax = 0;
-    end
-    hf = sum(I.*Amax)*1e6; % MHz -> Hz
-    if Sys.fullg
-      for k = 1:Sys.nElectrons
-        g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));  %#ok
-      end
-      g = g(:);
-    else
-      g = Sys.g(:);
-    end
-    gmax = max(g);
-    gmin = min(g);
-    minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3; % mT
-    maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3; % mT
-    Center = (maxB+minB)/2; % mT
-    Sweep = maxB-minB+3*max(Sys.lw); % mT
-    if Sweep==0, Sweep = 5*max(Sys.lw); end
-    if Sweep==0, Sweep = 10; end
-    Stretch = 1.25;
-    Exp.Range = Center + [-1 1]*(Stretch*Sweep)/2;
-  else
-    error(sprintf('Cannot automatically determine field range.\nPlease provide either Exp.CenterSweep or Exp.Range.'));
-  end
+  logmsg(1,'  automatic estimation of sweep range');
+  [minB,maxB] = p_resfieldspan(Sys,Exp.mwFreq);
+  Center = (maxB+minB)/2; % mT
+  Sweep = maxB-minB+3*max(Sys.lw); % mT
+  if Sweep==0, Sweep = 5*max(Sys.lw); end
+  if Sweep==0, Sweep = 10; end
+  Stretch = 1.25;
+  Exp.Range = Center + [-1 1]*(Stretch*Sweep)/2;
 else
   % Automatic range for frequency sweep is done later.
 end
