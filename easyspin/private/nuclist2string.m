@@ -2,7 +2,7 @@
 %
 %   str = nuclist2string(Nucs)
 %
-%   Generates a string containing a commma-
+%   Generates a string containing a comma-
 %   separated list of isotope symbols given
 %   in the cell array Nucs.
 

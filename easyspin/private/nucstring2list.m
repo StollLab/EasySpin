@@ -2,30 +2,26 @@
 
 % Input
 %  NucString: string or character array containing comma-separated list
-% %           of nuclear spins
+%             of nuclear spins
 %    Syntax: 'X,Y,Z' where X, Y, Z can be either
 %    - single isotopes: 13C, 14N, 1H, 63Cu
 %    - natural mixtures: C, N, H, Cu
-%    - custom isotope mistures: (63,65)Cu, (12,13)C
+%    - custom isotope mixtures: (63,65)Cu, (12,13)C
 %  ParseMode: parse mode
 %    - 's' for single isotope per list entry
 %    - 'm' for multiple isotopes per list entry
 %
-% Output: cell array of nuclear spin list
+% Output: cell array of nuclear spin list, size (1,nNuclei); empty entries
+% are dropped, and an empty or all-whitespace input gives an empty list
 %
 % Splits list of nuclei into a cell array of strings,
 % e.g. '63Cu,14N,14N,1H'  -> {'63Cu','14N','14N','1H'}
-%      '(63,65)Cu,N,35Cl' -> {'(63,54)Cu','N','35Cl'}
+%      '(63,65)Cu,N,35Cl' -> {'(63,65)Cu','N','35Cl'}
 
 function Nucs = nucstring2list(NucString,ParseMode)
 
 if iscell(NucString)
   Nucs = NucString;
-  return
-end
-
-if isempty(NucString)
-  Nucs = [];
   return
 end
 
@@ -43,7 +39,19 @@ end
 
 str = NucString;
 
-if ~ischar(str) && ~isstring(str)
+if isstring(str)
+  if numel(str)~=1
+    error('Isotope list must be a single string, not a string array with %d elements.',numel(str));
+  end
+  str = char(str);
+end
+
+if isempty(str)
+  Nucs = cell(1,0);
+  return
+end
+
+if ~ischar(str)
   error('Isotope list must be a string, not numeric.');
 end
 
@@ -55,14 +63,7 @@ if any(str==';')
   error('Use , and not ; in nuclear spin string. You gave ''%s''.',str);
 end
 
-if isstring(str)
-  str = char(str);
-end
-
 str(isspace(str)) = []; % remove whitespace
-if str(end)==','
-  str(end) = []; % remove trailing comma if present
-end 
 N = length(str);
 
 if SingleIsotopologueMode
@@ -82,6 +83,5 @@ nNuclei = numel(comma)-1;
 Nucs = cell(1,nNuclei);
 for k = 1:nNuclei
   Nucs{k} = str(comma(k)+1:comma(k+1)-1);
-  keep(k) = ~isempty(Nucs{k}); %#ok<AGROW>
 end
-Nucs = Nucs(keep);
+Nucs = Nucs(1,~cellfun('isempty',Nucs)); % drop empty entries, keep size (1,n)
