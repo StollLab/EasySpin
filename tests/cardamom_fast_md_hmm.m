@@ -1,6 +1,6 @@
 function [ok,data] = test(opt,olddata)
 % Regression test for MD trajectory-based simulation of EPR spectrum using
-% cardamom and MSM method for nitroxides
+% cardamom and a hidden Markov model (MD-HMM) for nitroxides
 
 rng(1)
 
@@ -24,7 +24,12 @@ tScale = 2.5;  % diffusion constant of TIP3P model water molecules in MD
 MD.dt = MD.dt*tScale;
 MD.removeGlobal = false;
 MD.tLag = 100e-12*tScale;
-MD.nStates = 20;
+
+% Use a fixed HMM, fitted earlier with mdhmm (20 states, lag time MD.tLag),
+% since the fit varies slightly between MATLAB versions, and the stochastic
+% jump simulation amplifies these variations
+load(['.' filesep 'mdfiles' filesep 'MTSSL_polyAla_hmm.mat'])
+MD.HMM = HMM;
 
 % Calculate spectrum using cardamom
 % -------------------------------------------------------------------------
@@ -47,7 +52,6 @@ Exp.mwFreq = 9.4;
 Opt.Verbosity = 0;
 Opt.FFTWindow = 1;
 Opt.Method = 'fast';
-Opt.nTrials = 2;
 
 [B, spc] = cardamom(Sys,Exp,Par,Opt,MD);
 spc = spc/max(spc);
@@ -55,7 +59,7 @@ spc = spc/max(spc);
 data.spc = spc;
 
 if ~isempty(olddata)
-  ok = areequal(olddata.spc,spc,1e-2,'abs');
+  ok = areequal(olddata.spc,spc,1e-10,'abs');
 else
   ok = [];
 end
