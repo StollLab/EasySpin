@@ -29,6 +29,7 @@ orthErrorLimit = 1e-2;        % orthogonality error above which eulang errors
 orthogonalizeLimit = 1e-6;    % orthogonality error above which R is orthogonalized
 degenerateCaseLimit = 1e-14;  % sin(beta) below which beta is taken as 0 or pi
 negativeAngleLimit = 1e-8;    % alpha, gamma above -negativeAngleLimit are not shifted by 2*pi
+exactGammaLimit = 1e-8;       % |sin(gamma)| below which gamma is set to 0 or pi if R(2,3) is zero
 
 if ~nocheck
 
@@ -88,14 +89,19 @@ if sinbeta<=degenerateCaseLimit
 else
   alpha = atan2(R(3,2),R(3,1));
   beta = atan2(sinbeta,R(3,3));  % always in [0,pi]
-  if R(2,3)==0
-    gamma = atan2(0,-R(1,3));  % R(2,3) = sin(gamma)*sin(beta), so gamma is exactly 0 or pi
-  elseif R(3,3)>0
+  if R(3,3)>0
     gamma = atan2(R(1,2)-R(2,1),R(1,1)+R(2,2)) - alpha;
   else
     gamma = atan2(R(1,2)+R(2,1),R(2,2)-R(1,1)) + alpha;
   end
   gamma = gamma - 2*pi*round(gamma/(2*pi));  % wrap to [-pi,pi]
+  % R(2,3) = sin(gamma)*sin(beta) is exactly zero for gamma exactly 0 or pi.
+  % Set gamma exactly then, but only if consistent with the value above: for
+  % very small sin(beta), R(2,3) can be zero by rounding, and gamma must stay
+  % tied to alpha.
+  if R(2,3)==0 && abs(sin(gamma))<exactGammaLimit
+    gamma = pi*(abs(gamma)>pi/2);
+  end
 end
 
 
