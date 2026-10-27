@@ -1,6 +1,6 @@
 % cardamom_propagatedm Propagate the density matrix of a spin system.
 %
-%   Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
+%   TDSignal = cardamom_propagatedm(Sys,Par,Opt,MD,omega,CenterField);
 %
 % Inputs:
 %   Sys: stucture with system's dynamical parameters
@@ -26,8 +26,9 @@
 %                    magnetic field, in mT
 %
 %  Output:
-%    Sprho          numeric, size = (3,3,nTraj,nSteps)
-%                   a series of density matrices
+%    TDSignal       numeric, size = (nSteps,1)
+%                   time-domain signal tr(S_{+}\rho(t)), averaged over
+%                   trajectories
 
 % Implementations based on 
 % [1] Sezer, et al., J. Chem. Phys. 128, 165106 (2008)
@@ -35,7 +36,7 @@
 % [2] Oganesyan, Phys. Chem. Chem. Phys. 13, 4724 (2011)
 %      https://doi.org/10.1039/c0cp01068e
 
-function Sprho = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
+function TDSignal = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
 persistent cacheTensors cacheD2Traj gTensorState ATensorState
 
@@ -230,9 +231,9 @@ switch PropagationMethod
     logmsg(2,'  combine local with global dynamics');
     if ~isempty(Par.RLab)
       RLabInv = permute(Par.RLab,[2,1,3,4]);
-      gTensor = multimatmult(Par.RLab, multimatmult(gTensor, RLabInv));
+      gTensor = pagemtimes(Par.RLab, pagemtimes(gTensor, RLabInv));
       if includeHF
-        ATensor = multimatmult(Par.RLab, multimatmult(ATensor, RLabInv));
+        ATensor = pagemtimes(Par.RLab, pagemtimes(ATensor, RLabInv));
       end
     end
     
@@ -286,24 +287,12 @@ switch PropagationMethod
       U = exp(-1i*dtSpin*0.5*omega*Gp_zz);
     end
     
-    % Set up starting state of density matrix after pi/2 pulse, S_x
-    %---------------------------------------------------------------------------
-    if includeHF
-      rho = zeros(3,3,nSteps,nTraj);
-      rho(:,:,1,:) = 0.5*repmat(eye(3),[1,1,nTraj]);
-    else
-      rho = zeros(1,1,nSteps,nTraj);
-      rho(:,:,1,:) = 0.5;
-    end
-    
-    % Propagate density matrix
+    % Propagate density matrix, starting from S_x after pi/2 pulse, and
+    % calculate tr(S_{+}\rho(t))
     %---------------------------------------------------------------------------
     logmsg(2,'  propagate density matrix');
-    Sprho = propagate(rho,U,nSteps,PropagationMethod);
-    
-    % Average over trajectories (4th dimension)
-    Sprho = mean(Sprho,4);
-    
+    TDSignal = propagate_fast(U,nSteps);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   case 'ISTOs'  % see Ref [2]
     
@@ -395,7 +384,7 @@ switch PropagationMethod
     %---------------------------------------------------------------------------
     if ~isempty(Par.qLab)
       D2Lab = wigD(Par.qLab);
-      D2Traj = multimatmult(D2Lab, D2Traj);
+      D2Traj = pagemtimes(D2Lab, D2Traj);
     end
         
     % Calculate Hamiltonians
@@ -437,16 +426,15 @@ switch PropagationMethod
     
     % Propagate density matrix
     %---------------------------------------------------------------------------
-    rho = propagate(rho,U,nSteps,PropagationMethod);
-    
+    rho = propagate_istos(rho,U,nSteps);
+
     % Average over trajectories (4th dimension)
     rho = mean(rho,4);
-    
-    % Multiply density matrix result by S_+ detection operator
+
+    % Calculate tr(S_{+}\rho(t))
     %---------------------------------------------------------------------------
-    % Only keep the m_S=\beta subspace part that contributes to tr(S_{+}\rho(t))
-    projector = sop(Sys.Spins,'+1');
-    Sprho = multimatmult(repmat(projector,1,1,nSteps),rho);
+    Splus = sop(Sys.Spins,'+1');
+    TDSignal = squeeze(sum(Splus.'.*rho,[1 2]));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   otherwise
@@ -461,36 +449,45 @@ end
 
 
 %-------------------------------------------------------------------------------
-% Propagate density matrix
-function rho = propagate(rho,U,nSteps,Method)
+% Propagate the m_S=-1/2 subspace density matrix, starting from rho = 1/2, and
+% return its trace averaged over trajectories. Subspace propagation only
+% requires U, but not U adjoint.
+function TDSignal = propagate_fast(U,nSteps)
 
-switch Method
-  
-  case 'fast'
-    % subspace propagation only requires U, but not U adjoint
-    if size(rho,1)==1 % S=1/2 without nuclei
-      for iStep = 2:nSteps
-        rho(1,1,iStep,:) = U(1,1,iStep-1,:).^2.*rho(1,1,iStep-1,:);
-      end
-    else
-      for iStep = 2:nSteps
-        rho(:,:,iStep,:) = ...
-          multimatmult( U(:,:,iStep-1,:),...
-          multimatmult( rho(:,:,iStep-1,:),...
-          U(:,:,iStep-1,:) ) );
-      end
-    end
-    
-  case 'ISTOs'
-    
-    Uadj = conj(permute(U,[2,1,3,4])); % adjoint of propagator
-    for iStep = 2:nSteps
-      rho(:,:,iStep,:) = ...
-        multimatmult( U(:,:,iStep-1,:),...
-        multimatmult( rho(:,:,iStep-1,:),...
-        Uadj(:,:,iStep-1,:) ) );
-    end
-    
+n = size(U,1);
+TDSignal = zeros(nSteps,1);
+
+if n==1 % S=1/2 without nuclei
+  rho = 0.5*cumprod(cat(3,ones(1,1,1,size(U,4)),U(1,1,1:nSteps-1,:).^2),3);
+  TDSignal(:) = mean(rho,4);
+  return
+end
+
+U = permute(U,[1 2 4 3]);  % -> (n,n,nTraj,nSteps), contiguous for each step
+rho = 0.5*repmat(eye(n),[1,1,size(U,3)]);
+TDSignal(1) = n/2;
+for iStep = 2:nSteps
+  U_ = U(:,:,:,iStep-1);
+  rho = pagemtimes(U_,pagemtimes(rho,U_));
+  trrho = 0;
+  for k = 1:n
+    trrho = trrho + rho(k,k,:);
+  end
+  TDSignal(iStep) = mean(trrho);
+end
+
+end
+
+%-------------------------------------------------------------------------------
+% Propagate full density matrix
+function rho = propagate_istos(rho,U,nSteps)
+
+Uadj = conj(permute(U,[2,1,3,4])); % adjoint of propagator
+for iStep = 2:nSteps
+  rho(:,:,iStep,:) = ...
+    pagemtimes( U(:,:,iStep-1,:),...
+    pagemtimes( rho(:,:,iStep-1,:),...
+    Uadj(:,:,iStep-1,:) ) );
 end
 
 end

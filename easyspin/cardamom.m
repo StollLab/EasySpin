@@ -383,7 +383,7 @@ if useMD
     
   % Check for orthogonality of rotation matrices
   RTrajInv = permute(MD.RTraj,[2,1,3,4]);
-  if ~allclose(multimatmult(MD.RTraj,RTrajInv),...
+  if ~allclose(pagemtimes(MD.RTraj,RTrajInv),...
                repmat(eye(3),1,1,size(MD.RTraj,3),size(MD.RTraj,4)),...
                1e-10)
     error('Rotation matrices in frame trajectory are not orthogonal.')
@@ -729,9 +729,9 @@ while ~converged
         [~, RTrajLocal, qTrajLocal] = stochtraj_diffusion(Sys,Par,Opt);
         if useLocalPotential
           RTrajLocal = RTrajLocal(:,:,nStepsSpatial+1:end,:);
-          qTrajLocal = qTrajLocal(:,:,nStepsSpatial+1:end,:);
+          qTrajLocal = qTrajLocal(:,nStepsSpatial+1:end,:);
         end
-        
+
       case 'jump'
         
         Par.dt = dtSpatial;
@@ -808,14 +808,8 @@ while ~converged
     Par.nSteps = nStepsSpin;
     Par.dtSpin = dtSpin;
     Par.dtSpatial = dtSpatial;
-    Sprho = cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
-    
-    % Calculate the time-domain signal, i.e. the expectation value of S_{+}
-    iTDSignal{1,iOri} = 0;
-    for k = 1:size(Sprho,1)
-      iTDSignal{1,iOri} = iTDSignal{1,iOri} + squeeze(Sprho(k,k,:));
-    end
-    iTDSignal{1,iOri} = weight(iOri)*iTDSignal{1,iOri};
+    % and calculate the time-domain signal, i.e. the expectation value of S_{+}
+    iTDSignal{1,iOri} = weight(iOri)*cardamom_propagatedm(Sys,Par,Opt,MD,omega0,CenterField);
     
     if Opt.Verbosity
       updateuser(iOri,nOrientations,true);

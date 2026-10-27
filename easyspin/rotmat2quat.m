@@ -27,8 +27,7 @@ if ismatrix(mat)
   diff = abs(eye(3)-mat*mat');
 else
   matInv = permute(mat,[2,1,3,4]);
-  diff = abs(repmat(eye(3),1,1,size(mat,3),size(mat,4))...
-             - multimatmult(mat,matInv));
+  diff = abs(eye(3) - pagemtimes(mat,matInv));
 end
 
 if any(diff(:) > 1e-10)

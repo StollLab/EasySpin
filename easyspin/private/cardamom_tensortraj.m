@@ -23,10 +23,6 @@ if size(RTraj,1)~=3 || size(RTraj,2)~=3
   error('Rotation matrix trajectory needs to have size 3x3xnTrajxnSteps.')
 end
 
-nTraj = size(RTraj,4);
-nSteps = size(RTraj,3);
-
-TTraj = multimatmult(RTraj, ...
-                     multimatmult(repmat(T,1,1,nSteps,nTraj), RTrajInv));
+TTraj = pagemtimes(RTraj, pagemtimes(T, RTrajInv));
 
 end
