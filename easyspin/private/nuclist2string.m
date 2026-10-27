@@ -15,18 +15,6 @@ if ~iscell(Nucs)
   error('Nuclear isotope list must be a cell array!');
 end
 
-if isempty(Nucs)
-  NucString = '';
-  return;
-end
-
-% Append comma to each isotope symbol
-Nucs = strcat(Nucs,',');
-
-% Concatenate
-NucString = strcat(Nucs{:});
-
-% Remove trailing comma
-NucString(end) = [];
+NucString = strjoin(Nucs,',');
 
 end
