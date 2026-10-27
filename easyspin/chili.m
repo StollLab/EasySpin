@@ -77,30 +77,260 @@ if nargout<0, error('Not enough output arguments.'); end
 if nargout>3, error('Too many output arguments.'); end
 
 if nargin<3, Opt = struct; end
+if isempty(Opt), Opt = struct; end
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0; % print level
 end
 logmsg(Opt.Verbosity);
 
-%===============================================================================
-% Loop over components and isotopologues
-%===============================================================================
-singleIso = isstruct(Sys) && isfield(Sys,'singleiso') && Sys.singleiso;
-if ~singleIso
-  logmsg(1,'-- slow motion regime simulation ----------------------------------');
+logmsg(1,'-- slow motion regime simulation ----------------------------------');
+
+% Experimental settings
+%-------------------------------------------------------------------------------
+if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
+if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
+if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
+if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
+if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
+if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
+if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
+if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
+
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
 end
 
-Exp.FrequencySweep = ~(isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)) && ...
-  isfield(Exp,'Field') && ~isempty(Exp.Field);
+% Temperature (NaN: high-temperature limit)
+if ~p_temperature(Exp)
+  Exp.Temperature = NaN;
+end
 
-if Exp.FrequencySweep
-  SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
-    (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
+logmsg(1,'Experiment:');
+
+% Field or frequency sweep, mw frequency, field, number of points
+allowZeroField = false;
+FieldSweep = p_sweeptype(Exp,allowZeroField);
+Exp.FrequencySweep = ~FieldSweep;
+
+% Sweep range from CenterSweep or Range (CenterSweep has precedence),
+% stored in Exp.Range or Exp.mwRange ([] for automatic range, which is
+% available for field sweeps only)
+if FieldSweep
+  Exp.Range = p_sweeprange(Exp,false,false);
+  Exp.CenterSweep = [];
+  SweepAutoRange = isempty(Exp.Range);
 else
-  SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-    (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+  Exp.mwRange = p_sweeprange(Exp,true,false);
+  Exp.mwCenterSweep = [];
+  if isempty(Exp.mwRange)
+    error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
+  end
+  SweepAutoRange = false;
 end
+
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
+% Resonator mode
+switch Exp.mwMode
+  case 'perpendicular', ParallelMode = false;
+  case 'parallel', ParallelMode = true;
+  otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
+end
+logmsg(1,'  %s mode',Exp.mwMode);
+if ParallelMode
+  error('chili does not support parallel-mode spectra.');
+end
+
+logmsg(1,'  %d points',Exp.nPoints);
+
+% Complain if fields only valid in pepper() are given
+if isfield(Exp,'CrystalSymmetry')
+  warning('Exp.CrystalSymmetry is not used by chili.');
+end
+
+% Ordering of director frame (partial ordering)
+if ~isempty(Exp.Ordering)
+  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
+    lambda = Exp.Ordering;
+    Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
+    logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
+  elseif isa(Exp.Ordering,'function_handle')
+    logmsg(1,'  partial director ordering (user-supplied function)');
+  else
+    error('Exp.Ordering must be either a single number or a function handle.');
+  end
+  if nargin(Exp.Ordering)==1
+    Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
+  elseif nargin(Exp.Ordering)~=3
+    logmsg(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
+  end
+else
+  logmsg(1,'  director ordering: none');
+end
+
+% Options
+%-------------------------------------------------------------------------------
+% Documented
+% (Opt.LLMK default depends on the spin system, see chili_single)
+if ~isfield(Opt,'highField'), Opt.highField = false; end
+if ~isfield(Opt,'pImax'), Opt.pImax = []; end
+if ~isfield(Opt,'pImaxall'), Opt.pImaxall = []; end
+if ~isfield(Opt,'GridSize'), Opt.GridSize = [19 0]; end
+if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
+if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
+if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
+if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
+if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
+% Opt.Verbosity
+
+% Common typo
+if isfield(Opt,'LLKM')
+  error('Opt.LLKM is not used by chili(), provide Opt.LLMK instead.');
+end
+
+% Obsolete options
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Opt.separate instead.');
+end
+
+% Undocumented
+if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
+if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
+if ~isfield(Opt,'LanczosBreakdownTol'), Opt.LanczosBreakdownTol = 1e-5; end
+if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
+if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
+if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
+if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
+if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
+if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
+if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
+if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
+if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
+if ~isfield(Opt,'evenK'), Opt.evenK = []; end
+if ~isfield(Opt,'BasisAnalysis'), Opt.BasisAnalysis = false; end
+
+if isfield(Opt,'deltaK')
+  error('Opt.deltaK is obsolete. Use Opt.evenK instead.');
+end
+
+if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
+  error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
+end
+
+if numel(Opt.GridSize)<1, Opt.GridSize(1) = 19; end
+if numel(Opt.GridSize)<2, Opt.GridSize(2) = 0; end
+if Opt.GridSize(2)~=0
+  error('chili cannot interpolate orientations. Set Opt.GridSize(2) to zero.');
+end
+
+% Basis settings
+%-------------------------------------------------------------------------------
+if isfield(Opt,'LLMK')
+  if ~isnumeric(Opt.LLMK) || numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
+    error('Opt.LLMK must be a 4-element array with non-negative integers.');
+  end
+  if mod(Opt.LLMK(1),2)
+    error('Opt.LLMK(1) must be an even number.');
+  end
+  if Opt.LLMK(2)>0 && ~mod(Opt.LLMK(2),2)
+    error('Opt.LLMK(2) must be an odd integer.');
+  end
+  maxL = max(Opt.LLMK(1:2));
+  if any(Opt.LLMK(3)>maxL)
+    error('Opt.LLMK(3)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(3),maxL);
+  end
+  if any(Opt.LLMK(4)>maxL)
+    error('Opt.LLMK(4)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(4),maxL);
+  end
+end
+
+% high-field approximation
+if isfield(Opt,'pSmin')
+  error('Opt.pSmin is not supported - use Opt.highField instead.');
+end
+
+% pImax (maximum nuclear coherence order)
+if ~isempty(Opt.pImax)
+  if any(Opt.pImax<0)
+    error('Every element in Opt.pImax must be 0 or larger.');
+  end
+end
+if ~isempty(Opt.pImaxall)
+  if numel(Opt.pImaxall)~=1
+    error('Opt.pImaxall must be a single non-negative number.');
+  end
+end
+
+% M-pS-pI symmetry (see Meirovitch J.Chem.Phys. 77 3915 (1982), eq. (A47))
+if ~isfield(Opt,'MpSymm')
+  Opt.MpSymm = false;
+end
+
+
+% Field sweep and linear solver
+%-------------------------------------------------------------------------------
+logmsg(1,'Methods:');
+
+% Field sweep method: set default
+if FieldSweep
+  if isempty(Opt.FieldSweepMethod)
+    Opt.FieldSweepMethod = 'approxlin';
+  end
+  [~,err] = parseoption(Opt,'FieldSweepMethod',{'explicit','approxinv','approxlin'});
+  error(err);
+end
+explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
+logmsg(1,'  field sweep method: %s',Opt.FieldSweepMethod);
+
+% Set solver if not given
+if isempty(Opt.Solver)
+  if strcmp(Opt.FieldSweepMethod,'explicit')
+    Opt.Solver = '\';
+  else
+    Opt.Solver = 'L';
+  end
+end
+
+if explicitFieldSweep && Opt.Solver~='\'
+  error('For an explicit field sweep, use Opt.Solver=''\''.');
+end
+
+switch Opt.Solver
+  case 'L'
+    if Opt.Lentz==1 % Lentz method
+      SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
+    else
+      SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
+    end
+  case 'A'
+    SolverString = 'Arnoldi iteration';
+  case '\'
+    SolverString = 'backslash';
+  case 'E'
+    SolverString = 'eigenvalue method, sum of Lorentzians';
+  case 'C'
+    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
+  case 'B'
+    SolverString = 'biconjugate gradients, stabilized';
+  otherwise
+    error('Unknown method in Options.Solver. Must be ''L'', ''A'', ''\'', ''E'', ''C'', or ''B''.');
+end
+logmsg(1,'  solver: %s = %s',Opt.Solver,SolverString);
+
+% Isotopologues and separate output
+%-------------------------------------------------------------------------------
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
 
 % Process Opt.separate
@@ -124,27 +354,41 @@ if separateOrientationSpectra
   error('chili does not support Opt.separate=''orientations''.')
 end
 
-singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
-if ~singleIsotopologue
-  
-  thirdOutput = nargout>=3;
-  [xAxis,spec,info] = compisoloop(@chili,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
-  
-  % Output and plotting
-  switch nargout
-    case 0
-      cwepr_plot(xAxis,spec,Exp);
-    case 1
-      varargout = {spec};
-    case 2
-      varargout = {xAxis,spec};
-    case 3
-      varargout = {xAxis,spec,info};
-  end
-  return
-end
-%===============================================================================
 
+%===============================================================================
+% Loop over components and isotopologues
+%===============================================================================
+thirdOutput = nargout>=3;
+[xAxis,spec,info] = compisoloop(@chili_single,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+
+% Output and plotting
+switch nargout
+  case 0
+    cwepr_plot(xAxis,spec,Exp);
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    varargout = {xAxis,spec,info};
+end
+
+end
+
+
+%===============================================================================
+% Single-isotopologue spectrum
+%===============================================================================
+% Exp and Opt have been parsed by chili(); Exp.Range is empty for automatic
+% range determination.
+function [xAxis,outspec,info] = chili_single(Sys,Exp,Opt)
+
+FieldSweep = ~Exp.FrequencySweep;
+useTemperature = ~isnan(Exp.Temperature);
+partiallyOrderedSample = ~isempty(Exp.Ordering);
+saveDiagnostics = ~isempty(Opt.Diagnostics);
+explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
+useLanczosSolver = Opt.Solver=='L';
 
 logmsg(1,'-- component spectrum simulation ----------------------------------');
 
@@ -270,34 +514,10 @@ if usePotential
      all(isreal(Potential.lambda));
 end
 
-% Experimental settings
+% Sweep range
 %-------------------------------------------------------------------------------
-if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
-if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
-if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
-if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
-if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
-if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
-
-% Photoselection is not supported
-if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
-  error('Photoselection (via Exp.lightBeam) is not supported.')
-end
-
-% Temperature
-useTemperature = p_temperature(Exp);
-
-logmsg(1,'Experiment:');
-
-% Field or frequency sweep, mw frequency, field, number of points
-allowZeroField = false;
-FieldSweep = p_sweeptype(Exp,allowZeroField);
-
-% Sweep range from CenterSweep or Range (CenterSweep has precedence)
 if FieldSweep
-  Range = p_sweeprange(Exp,false,false);
+  Range = Exp.Range;
   if isempty(Range)
     if (Sys.nElectrons==1) && (Sys.S==1/2)
       logmsg(1,'  automatic determination of sweep range');
@@ -311,37 +531,21 @@ if FieldSweep
       end
       gmax = max(Sys.g(:));
       gmin = min(Sys.g(:));
-      if FieldSweep
-        minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
-        maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
-        Exp.CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
-      else
-        minE = bmagn*Exp.Field*1e-3*gmin/planck - hf; % Hz
-        maxE = bmagn*Exp.Field*1e-3*gmax/planck + hf; % Hz
-        Exp.CenterSweep = [(maxE+minE)/2, Stretch*max(maxE-minE,10e6)]/1e9; % GHz
-      end
+      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
+      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
+      CenterSweep = [(maxB+minB)/2, Stretch*max(maxB-minB,5)];
+      Range = CenterSweep(1) + [-1 1]*CenterSweep(2)/2;
     else
       error('Cannot automatically determine sweep range for this spin system.');
     end
-    Range = p_sweeprange(Exp,false,false);
   end
-  Exp.CenterSweep = [mean(Range) diff(Range)];
+  CenterField = mean(Range);
+  SweepWidth = diff(Range);
+  Exp.Range = CenterField + [-1 1]/2*SweepWidth;
 else
-  mwRange = p_sweeprange(Exp,true,false);
-  if isempty(mwRange)
-    error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
-  end
-  Exp.mwCenterSweep = [mean(mwRange) diff(mwRange)];
-end
-
-if FieldSweep
-  CenterField = Exp.CenterSweep(1);
-  SweepWidth = Exp.CenterSweep(2);
-  Exp.Range = Exp.CenterSweep(1) + [-1 1]/2*SweepWidth;
-else
-  CenterFreq = Exp.mwCenterSweep(1);
-  SweepWidth = Exp.mwCenterSweep(2);
-  Exp.mwRange = Exp.mwCenterSweep(1) + [-1 1]/2*SweepWidth;
+  CenterFreq = mean(Exp.mwRange);
+  SweepWidth = diff(Exp.mwRange);
+  Exp.mwRange = CenterFreq + [-1 1]/2*SweepWidth;
   CenterField = Exp.Field;
 end
 
@@ -357,45 +561,6 @@ end
 % (T2 relaxation always broadens the slow-motion spectrum)
 [Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,true);
 
-% Resonator mode
-switch Exp.mwMode
-  case 'perpendicular', ParallelMode = false;
-  case 'parallel', ParallelMode = true;
-  otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
-end
-logmsg(1,'  %s mode',Exp.mwMode);
-if ParallelMode
-  error('chili does not support parallel-mode spectra.');
-end
-
-logmsg(1,'  %d points',Exp.nPoints);
-
-% Complain if fields only valid in pepper() are given
-if isfield(Exp,'CrystalSymmetry')
-  warning('Exp.CrystalSymmetry is not used by chili.');
-end
-
-% Ordering of director frame (partial ordering)
-if ~isempty(Exp.Ordering)
-  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
-    lambda = Exp.Ordering;
-    Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
-    logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
-  elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial director ordering (user-supplied function)');
-  else
-    error('Exp.Ordering must be either a single number or a function handle.');
-  end
-  if nargin(Exp.Ordering)==1
-    Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
-  elseif nargin(Exp.Ordering)~=3
-    logmsg(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
-  end
-else
-  logmsg(1,'  director ordering: none');
-end
-partiallyOrderedSample = ~isempty(Exp.Ordering);
-
 % Determine whether to average over an orientational grid
 % (without potential, no orientational averaging is necessary - it's identical to a
 % single-orientation sim)
@@ -403,9 +568,6 @@ integrateOverGrid = isempty(Exp.SampleFrame) && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
-if isempty(Opt), Opt = struct; end
-
-% Documented
 if ~isfield(Opt,'LLMK')
   if usePotential
     error('Sys.Potential is given. Please provide basis set information (Opt.LLMK etc).');
@@ -413,59 +575,9 @@ if ~isfield(Opt,'LLMK')
     Opt.LLMK = [14 7 2 6];
   end
 end
-if ~isfield(Opt,'highField'), Opt.highField = false; end
-if ~isfield(Opt,'pImax'), Opt.pImax = []; end
-if ~isfield(Opt,'pImaxall'), Opt.pImaxall = []; end
-if ~isfield(Opt,'GridSize'), Opt.GridSize = [19 0]; end
-if ~isfield(Opt,'LiouvMethod'), Opt.LiouvMethod = ''; end
-if ~isfield(Opt,'FieldSweepMethod'), Opt.FieldSweepMethod = []; end
-if ~isfield(Opt,'PostConvNucs'), Opt.PostConvNucs = ''; end
-if ~isfield(Opt,'Solver'), Opt.Solver = ''; end
-if ~isfield(Opt,'GridSymmetry'), Opt.GridSymmetry = 'Dinfh'; end
-% Opt.Verbosity
-
-% Common typo
-if isfield(Opt,'LLKM')
-  error('Opt.LLKM is not used by chili(), provide Opt.LLMK instead.');
-end
-
-% Obsolete options
-if isfield(Opt,'nKnots')
-  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
-end
-if isfield(Opt,'Symmetry')
-  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
-end
-if isfield(Opt,'Output')
-  error('Options.Output is obsolete. Use Opt.separate instead.');
-end
-
-% Undocumented
-if ~isfield(Opt,'Rescale'), Opt.Rescale = true; end
-if ~isfield(Opt,'Threshold'), Opt.Threshold = 1e-6; end
-if ~isfield(Opt,'LanczosBreakdownTol'), Opt.LanczosBreakdownTol = 1e-5; end
-if ~isfield(Opt,'Lentz'), Opt.Lentz = true; end
-if ~isfield(Opt,'IncludeNZI'), Opt.IncludeNZI = true; end
-if ~isfield(Opt,'pqOrder'), Opt.pqOrder = false; end
-if ~isfield(Opt,'GridFrame'), Opt.GridFrame = []; end
-if ~isfield(Opt,'Diagnostics'), Opt.Diagnostics = ''; end
-if ~isfield(Opt,'useLMKbasis'), Opt.useLMKbasis = false; end
-if ~isfield(Opt,'useStartvecSelectionRules'), Opt.useStartvecSelectionRules = true; end
-if ~isfield(Opt,'PeqTol'), Opt.PeqTol = []; end
-if ~isfield(Opt,'jKmin'), Opt.jKmin = []; end
-if ~isfield(Opt,'evenK'), Opt.evenK = []; end
-
-if isfield(Opt,'deltaK')
-  error('Opt.deltaK is obsolete. Use Opt.evenK instead.');
-end
-
-if ~ischar(Opt.Diagnostics) && ~isempty(Opt.Diagnostics) && ~isvarname(Opt.Diagnostics)
-  error('If given, Opt.Diagnosics must be a valid Matlab variable name.');
-end
-saveDiagnostics = ~isempty(Opt.Diagnostics);
 
 % Determine default method for constructing Liouvillian
-if ~isfield(Opt,'LiouvMethod') || isempty(Opt.LiouvMethod)
+if isempty(Opt.LiouvMethod)
   if (Sys.nElectrons==1) && (Sys.S==1/2) && (Sys.nNuclei<=2) && ...
       (~usePotential || oldStylePotential)
     Opt.LiouvMethod = 'fast';
@@ -521,45 +633,13 @@ if any(Sys.n~=1)
   error('chili cannot handle systems with nuclei with Sys.n > 1 only if these nuclei are treated using post-convolution (Opt.PostConvNucs).');
 end
 
-if numel(Opt.GridSize)<1, Opt.GridSize(1) = 19; end
-if numel(Opt.GridSize)<2, Opt.GridSize(2) = 0; end
-if Opt.GridSize(2)~=0
-  error('chili cannot interpolate orientations. Set Opt.GridSize(2) to zero.');
-end
-
-% Basis settings
+% Basis settings (Opt.LLMK has been validated by chili())
 %-------------------------------------------------------------------------------
-if isfield(Opt,'LLKM') % error if pre-6.0 field name is given
-  LLKM = Opt.LLKM;
-  error(['Opt.LLKM is obsolete. Use Opt.LLMK instead. Note that M and K are swapped.\n' ...
-    'To convert Opt.LLKM to Opt.LLMK, swap the third and the fourth number.\n' ...
-    'In the current case, use\n' ...
-    '  Opt.LLMK = [%d %d %d %d];'],LLKM(1),LLKM(2),LLKM(4),LLKM(3));
-end
-if ~isnumeric(Opt.LLMK) || numel(Opt.LLMK)~=4 || any(Opt.LLMK<0) || any(mod(Opt.LLMK,1))
-  error('Opt.LLMK must be a 4-element array with non-negative integers.');
-end
-if mod(Opt.LLMK(1),2)
-  error('Opt.LLMK(1) must be an even number.');
-end
-if Opt.LLMK(2)>0 && ~mod(Opt.LLMK(2),2)
-  error('Opt.LLMK(2) must be an odd integer.');
-end
-maxL = max(Opt.LLMK(1:2));
-if any(Opt.LLMK(3)>maxL)
-  error('Opt.LLMK(3)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(3),maxL);
-end
-if any(Opt.LLMK(4)>maxL)
-  error('Opt.LLMK(4)=%d, but must be smaller or equal to the maximum L (%d).',Opt.LLMK(4),maxL);
-end
 Basis.LLMK = Opt.LLMK;
 Basis.jKmin = Opt.jKmin;
 Basis.evenK = Opt.evenK;
 
 % high-field approximation
-if isfield(Opt,'pSmin')
-  error('Opt.pSmin is not supported - use Opt.highField instead.');
-end
 if Opt.highField
   Basis.pSmin = +1;
 else
@@ -571,75 +651,12 @@ if ~isempty(Opt.pImax)
   if numel(Opt.pImax)~=Sys.nNuclei && numel(Opt.pImax)~=1
     error('Opt.pImax must contain one entry for every nucleus or just a single number.');
   end
-  if any(Opt.pImax<0)
-    error('Every element in Opt.pImax must be 0 or larger.');
-  end
 end
 Basis.pImax = Opt.pImax;
-if ~isempty(Opt.pImaxall)
-  if numel(Opt.pImaxall)~=1
-    error('Opt.pImaxall must be a single non-negative number.');
-  end
-end
 Basis.pImaxall = Opt.pImaxall;
 
-% M-pS-pI symmetry (see Meirovitch J.Chem.Phys. 77 3915 (1982), eq. (A47))
-if ~isfield(Opt,'MpSymm')
-  Opt.MpSymm = false;
-end
+% M-pS-pI symmetry
 Basis.MpSymm = Opt.MpSymm;
-
-
-% Field sweep and linear solver
-%-------------------------------------------------------------------------------
-logmsg(1,'Methods:');
-
-% Field sweep method: set default
-if FieldSweep
-  if isempty(Opt.FieldSweepMethod)
-    Opt.FieldSweepMethod = 'approxlin';
-  end
-  [~,err] = parseoption(Opt,'FieldSweepMethod',{'explicit','approxinv','approxlin'});
-  error(err);
-end
-explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
-logmsg(1,'  field sweep method: %s',Opt.FieldSweepMethod);
-
-% Set solver if not given
-if isempty(Opt.Solver)
-  if strcmp(Opt.FieldSweepMethod,'explicit')
-    Opt.Solver = '\';
-  else
-    Opt.Solver = 'L';
-  end
-end
-useLanczosSolver = Opt.Solver=='L';
-
-if explicitFieldSweep && Opt.Solver~='\'
-  error('For an explicit field sweep, use Opt.Solver=''\''.');
-end
-
-switch Opt.Solver
-  case 'L'
-    if Opt.Lentz==1 % Lentz method
-      SolverString = 'Lanczos tridiagonalization, left-to-right continued fraction evaluation';
-    else
-      SolverString = 'Lanczos tridiagonalization, right-to-left continued fraction evaluation';
-    end
-  case 'A'
-    SolverString = 'Arnoldi iteration';
-  case '\'
-    SolverString = 'backslash';
-  case 'E'
-    SolverString = 'eigenvalue method, sum of Lorentzians';
-  case 'C'
-    SolverString = 'conjugate gradients tridiagonalization, right-to-left continued fraction evaluation';
-  case 'B'
-    SolverString = 'biconjugate gradients, stabilized';
-  otherwise
-    error('Unknown method in Options.Solver. Must be ''L'', ''A'', ''\'', ''E'', ''C'', or ''B''.');
-end
-logmsg(1,'  solver: %s = %s',Opt.Solver,SolverString);
 
 
 % Set allocation block size, used in chili_lm
@@ -1300,12 +1317,8 @@ end
 
 
 %===============================================================================
-% Phasing
+% Phasing (Exp.mwPhase has been flipped by chili() for frequency sweeps)
 %===============================================================================
-if ~FieldSweep
-  % flip dispersion lineshape depending on field or freq sweep
-  Exp.mwPhase = -Exp.mwPhase;
-end
 spec = real(exp(1i*Exp.mwPhase)*spec);
 
 
@@ -1353,9 +1366,6 @@ end
 %===============================================================================
 % Basis set analysis
 %===============================================================================
-if ~isfield(Opt,'BasisAnalysis')
-  Opt.BasisAnalysis = false;
-end
 if Opt.BasisAnalysis
   logmsg(1,'-------------------------------------------------------------------');
   logmsg(1,'Basis set analysis');
@@ -1417,18 +1427,7 @@ outspec = p_lineshape(xAxis,spec,[fwhmG 0],derivsLeft,0,Exp,unitstr,0,true);
 %===============================================================================
 %  Final processing
 %===============================================================================
-
-switch nargout
-  case 0
-    plotresults(xAxis,outspec,Exp,~FieldSweep);
-  case 1
-    varargout = {outspec};
-  case 2
-    varargout = {xAxis,outspec};
-  case 3
-    info = struct;  % not implemented yet
-    varargout = {xAxis,outspec,info};
-end
+info = struct;  % not implemented yet
 %===============================================================================
 
 
