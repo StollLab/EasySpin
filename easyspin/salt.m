@@ -119,7 +119,7 @@ end
 % Single-isotopologue spectrum
 %==================================================================
 
-logmsg(1,'=begin=salt=======%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=salt=======%s=================',char(datetime)); end
 logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
@@ -449,11 +449,12 @@ if nTransitions==0
     Exp.Range(1),Exp.Range(2),Exp.Field);
 end
 logmsg(1,'  %d transitions with resonances in range',nTransitions);
-logmsg(2,'  positions min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
-
 anisotropicIntensities = numel(Idat)>1;
-if anisotropicIntensities
-  logmsg(2,'  amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
+if logmsg>=2
+  logmsg(2,'  positions min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
+  if anisotropicIntensities
+    logmsg(2,'  amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
+  end
 end
 
 if suppliedOriWeights
@@ -856,7 +857,7 @@ end
 hmsString = elapsedtime(StartTime,clock);
 logmsg(1,'salt took %s',hmsString);
 
-logmsg(1,'=end=salt=========%s=================\n',char(datetime));
+if logmsg>=1, logmsg(1,'=end=salt=========%s=================\n',char(datetime)); end
 
 end
 

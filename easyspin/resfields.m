@@ -1210,13 +1210,15 @@ warning(OldWarningState);
 
 % Resonance data summary
 %---------------------------------------------------------------------
-logmsg(2,'  ## resonances min %g mT, max %g mT',min(Pdat(:)),max(Pdat(:)));
-logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
-if numel(Wdat)>0
-  logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
-end
-if numel(Gdat)>0
-  logmsg(2,'  ## gradients min %g, max %g',min(Gdat(:)),max(Gdat(:)));
+if logmsg>=2
+  logmsg(2,'  ## resonances min %g mT, max %g mT',min(Pdat(:)),max(Pdat(:)));
+  logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
+  if numel(Wdat)>0
+    logmsg(2,'  ## widths min %g mT, max %g mT',min(Wdat(:)),max(Wdat(:)));
+  end
+  if numel(Gdat)>0
+    logmsg(2,'  ## gradients min %g, max %g',min(Gdat(:)),max(Gdat(:)));
+  end
 end
 
 % Reshape arrays in the case of crystals with multiple sites

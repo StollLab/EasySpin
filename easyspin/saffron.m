@@ -115,7 +115,7 @@ end
 % Single-isotopologue simulation
 %===============================================================================
 
-logmsg(1,'=begin=saffron====%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=saffron====%s=================',char(datetime)); end
 logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
@@ -2123,7 +2123,7 @@ elapsedtime = endTime-startTime;
 elapsedtime.Format = 'hh:mm:ss.SSS';
 logmsg(1,'saffron took %s',elapsedtime);
 
-logmsg(1,'=end=saffron======%s=================\n',datetime);
+if logmsg>=1, logmsg(1,'=end=saffron======%s=================\n',datetime); end
 
 end
 %===============================================================================

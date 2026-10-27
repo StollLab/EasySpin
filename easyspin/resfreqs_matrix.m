@@ -841,12 +841,14 @@ end
 
 % Resonance data summary
 %-------------------------------------------------------------------------------
-logmsg(2,'  ## resonances min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
-if computeIntensities
-  logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
-end
-if computeStrains && numel(Wdat)>0
-  logmsg(2,'  ## widths min %g MHz, max %g MHz',min(Wdat(:)),max(Wdat(:)));
+if logmsg>=2
+  logmsg(2,'  ## resonances min %g MHz, max %g MHz',min(Pdat(:)),max(Pdat(:)));
+  if computeIntensities
+    logmsg(2,'  ## amplitudes min %g, max %g',min(Idat(:)),max(Idat(:)));
+  end
+  if computeStrains && numel(Wdat)>0
+    logmsg(2,'  ## widths min %g MHz, max %g MHz',min(Wdat(:)),max(Wdat(:)));
+  end
 end
 
 % Reshape arrays in the case of crystals with multiple sites

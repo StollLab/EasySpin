@@ -57,7 +57,7 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 logmsg(Opt.Verbosity);
 
-logmsg(1,'=begin=spidyan====%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=spidyan====%s=================',char(datetime)); end
 logmsg(2,'  log level %d',logmsg);
 
 % Preprocess Input
@@ -344,7 +344,7 @@ end
 hmsString = elapsedtime(StartTime,clock);
 logmsg(1,'spidyan took %s',hmsString);
 
-logmsg(1,'=end=spidyan======%s=================\n',char(datetime));
+if logmsg>=1, logmsg(1,'=end=spidyan======%s=================\n',char(datetime)); end
 
 end
 

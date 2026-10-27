@@ -72,7 +72,7 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 logmsg(Opt.Verbosity);
 
-logmsg(1,'=begin=curry======%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=curry======%s=================',char(datetime)); end
 
 doPlot = (nargout==0);
 
@@ -654,4 +654,4 @@ for n = numel(keywords):-1:1
   
 end
 
-logmsg(1,'=end=curry========%s=================\n',char(datetime));
+if logmsg>=1, logmsg(1,'=end=curry========%s=================\n',char(datetime)); end

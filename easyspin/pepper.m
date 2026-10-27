@@ -148,7 +148,7 @@ end
 %==================================================================
 
 % Now we can start simulating the spectrum
-logmsg(1,'=begin=pepper=====%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=pepper=====%s=================',char(datetime)); end
 logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
@@ -1070,7 +1070,7 @@ end
 hmsString = elapsedtime(StartTime,clock);
 logmsg(1,'pepper took %s',hmsString);
 
-logmsg(1,'=end=pepper=======%s=================\n',char(datetime));
+if logmsg>=1, logmsg(1,'=end=pepper=======%s=================\n',char(datetime)); end
 
 end
 

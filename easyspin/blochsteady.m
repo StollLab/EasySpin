@@ -60,7 +60,7 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 logmsg(Opt.Verbosity);
 
-logmsg(1,'=begin=blochsteady======%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=blochsteady======%s=================',char(datetime)); end
 
 if ~isfield(Opt,'nPoints')
   Opt.nPoints = [];
@@ -293,7 +293,7 @@ switch nargout
     plotresults;
 end
 
-logmsg(1,'=end=blochsteady========%s=================\n',char(datetime));
+if logmsg>=1, logmsg(1,'=end=blochsteady========%s=================\n',char(datetime)); end
 
   function plotresults()
 

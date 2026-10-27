@@ -151,7 +151,7 @@ if ~singleIsotopologue
 end
 %==================================================================
 
-logmsg(1,'=begin=garlic=====%s=================',char(datetime));
+if logmsg>=1, logmsg(1,'=begin=garlic=====%s=================',char(datetime)); end
 
 %-------------------------------------------------------------------------
 % System structure check
@@ -725,7 +725,7 @@ switch nargout
     info.resfields = Positions;
     varargout = {xAxis,spec,info};
 end
-logmsg(1,'=end=garlic=======%s=================\n',char(datetime));
+if logmsg>=1, logmsg(1,'=end=garlic=======%s=================\n',char(datetime)); end
 
 end
 
