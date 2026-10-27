@@ -57,7 +57,11 @@ end
 
 % Field names: capitalization, obsolete and unsupported fields
 %-------------------------------------------------------------------------------
-correctFields = {'S','Nucs','Abund','n','gnscale',...
+BNames = {'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12'};
+BFrameNames = {'B1Frame','B2Frame','B3Frame','B4Frame','B5Frame','B6Frame',...
+  'B7Frame','B8Frame','B9Frame','B10Frame','B11Frame','B12Frame'};
+CFNames = {'CF1','CF2','CF3','CF4','CF5','CF6','CF7','CF8','CF9','CF10','CF11','CF12'};
+correctFields = [{'S','Nucs','Abund','n','gnscale',...
   'g','g_','gFrame',...
   'D','D_','DFrame',...
   'ee','J','dip','dvec','eeFrame',...
@@ -71,11 +75,8 @@ correctFields = {'S','Nucs','Abund','n','gnscale',...
   'L', 'soc', 'gL',...
   'initState',...
   'tdm',...
-  'tcorr','logtcorr','Diff','logDiff','DiffFrame',...
-  'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12',...
-  'B1Frame','B2Frame','B3Frame','B4Frame','B5Frame','B6Frame',...
-  'B7Frame','B8Frame','B9Frame','B10Frame','B11Frame','B12Frame',...
-  'CF1','CF2','CF3','CF4','CF5','CF6','CF7','CF8','CF9','CF10','CF11','CF12'};
+  'tcorr','logtcorr','Diff','logDiff','DiffFrame'},...
+  BNames,BFrameNames,CFNames];
 
 % Capitalization
 givenFields = fieldnames(Sys);
@@ -295,9 +296,8 @@ end
 %-------------------------------------------------------------------------------
 Sys.B = [];
 D_present = any(Sys.D(:));
-for k = 1:12
-  fieldname = sprintf('B%d',k);
-  if ~isfield(Sys,fieldname), continue; end
+for k = find(ismember(BNames,givenFields))
+  fieldname = BNames{k};
   Bk = Sys.(fieldname);
 
   if k==2 && any(Bk(:)) && D_present
@@ -327,7 +327,7 @@ for k = 1:12
   Sys.(fieldname) = Bk;
   Sys.B{k} = Bk;
 
-  frameField = sprintf('B%dFrame',k);
+  frameField = BFrameNames{k};
   if isfield(Sys,frameField) && any(Sys.(frameField)(:)~=0)
     err = sizecheck(Sys,frameField,[nElectrons 3]);
     if ~isempty(err), return; end
@@ -514,9 +514,8 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
       return
     end
   end
-  for k = 1:12
-    fieldname = sprintf('CF%d',k);
-    if ~isfield(Sys,fieldname), continue; end
+  for k = find(ismember(CFNames,givenFields))
+    fieldname = CFNames{k};
     CFk = Sys.(fieldname);
 
     if size(CFk,1)~=nElectrons
@@ -541,10 +540,9 @@ else
     err = 'Sys.soc is given, but Sys.L is missing. Specify Sys.L.';
     return
   end
-  for k = 1:12
-    fn = sprintf('CF%d',k);
-    if isfield(Sys,fn) && ~isempty(Sys.(fn))
-      err = sprintf('Sys.%s is given, but Sys.L is missing. Specify Sys.L.',fn);
+  for k = find(ismember(CFNames,givenFields))
+    if ~isempty(Sys.(CFNames{k}))
+      err = sprintf('Sys.%s is given, but Sys.L is missing. Specify Sys.L.',CFNames{k});
       return
     end
   end
