@@ -334,14 +334,16 @@ switch PropagationMethod
       % isotropic Zeeman interaction, for interaction frame transformation
       cacheTensors.H0 = conj(F0(1))*T0{1};
       
-      % second rank (25 "RBOs")
-      cacheTensors.Q2 = cell(5,5);
+      % second rank (25 "RBOs"), stored as columns ordered like the elements
+      % D2(m,mp), so that all Hamiltonians are obtained with one matrix product
+      cacheTensors.Q2 = zeros(numel(T2{1}),25);
       for mp = 1:5
         for m = 1:5
-          cacheTensors.Q2{mp,m} = zeros(size(T2{1}));
+          Q2 = zeros(size(T2{1}));
           for iInt = 1:size(F2,1)
-            cacheTensors.Q2{mp,m} = cacheTensors.Q2{mp,m} + conj(F2(iInt,mp))*T2{iInt,m};
+            Q2 = Q2 + conj(F2(iInt,mp))*T2{iInt,m};
           end
+          cacheTensors.Q2(:,m+5*(mp-1)) = Q2(:);
         end
       end
       
@@ -396,20 +398,20 @@ switch PropagationMethod
         
     % Calculate Hamiltonians
     %---------------------------------------------------------------------------
+    % Only distinct orientations need Hamiltonians and propagators (e.g. for
+    % jumps among a few states, most of them are repeated)
     H0 = cacheTensors.H0;
-    H = repmat(cacheTensors.Q0,[1,1,nSteps,nTraj]);
-    for mp = 1:5
-      for m = 1:5
-        H = H + D2Traj(m,mp,1:nSteps,:).*cacheTensors.Q2{mp,m};
-      end
-    end
-    
+    D2 = reshape(D2Traj(:,:,1:nSteps,:),25,[]);
+    [~,iUnique,iAll] = unique([real(D2); imag(D2)].','rows');
+    H = cacheTensors.Q0(:) + cacheTensors.Q2*D2(:,iUnique);
+    H = reshape(H,Sys.nStates,Sys.nStates,[]);
+
     % Calculate propagators
     %---------------------------------------------------------------------------
     algo = 'eig';
     useSzonly = true;
     if useSzonly
-      % filter to eliminate Sx and Sz terms from Hamiltonians
+      % filter to eliminate Sx and Sy terms from Hamiltonians
       nStates = 2*Sys.Spins + 1;
       I(1:nStates(1)) = {ones(prod(nStates)/nStates(1))};
       SzFilter = blkdiag(I{:});
@@ -418,12 +420,10 @@ switch PropagationMethod
     end
     U0 = expm_(-1i*dtSpin*SzFilter.*H0,algo);  % interaction frame transformation operator
     U = zeros(size(H));
-    for iStep = 1:nSteps
-      for iTraj = 1:nTraj
-        U_ = expm_(1i*dtSpin*SzFilter.*H(:,:,iStep,iTraj),algo);
-        U(:,:,iStep,iTraj) = U0*U_;
-      end
+    for k = 1:size(H,3)
+      U(:,:,k) = U0*expm_(1i*dtSpin*SzFilter.*H(:,:,k),algo);
     end
+    U = reshape(U(:,:,iAll),Sys.nStates,Sys.nStates,nSteps,[]);
     
     % Set up starting state of density matrix after pi/2 pulse, S_x
     %---------------------------------------------------------------------------
