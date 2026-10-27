@@ -38,7 +38,7 @@
 
 function TDSignal = cardamom_propagatedm(Sys, Par, Opt, MD, omega, CenterField)
 
-persistent cacheTensors cacheD2Traj gTensorState ATensorState
+persistent cacheTensors cacheD2Traj cacheTensorTraj gTensorState ATensorState
 
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0;
@@ -109,120 +109,129 @@ switch PropagationMethod
         
     % Calculate tensor trajectories
     %---------------------------------------------------------------------------
-    RTrajInv = permute(Par.RTraj,[2,1,3,4]);
-    if ~isHMMfromMD
-      logmsg(2,'  calculating tensor trajectories from orientational trajectories');
-      % Calculate time-dependent tensors from orientational trajectories
-      gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
-      if includeHF
-        ATensor = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
-      end
-      
+    % For MD-direct, the local tensor trajectories are the same for all
+    % orientations, so they are calculated for the first one and then reused
+    ATensor = [];
+    if isMDdirect && ~isempty(cacheTensorTraj)
+      logmsg(2,'  using cached tensor trajectories');
+      gTensor = cacheTensorTraj.g;
+      ATensor = cacheTensorTraj.A;
     else
-      % Calculate time-dependent tensors from state trajectories
-      
-      % Calculate the average interaction tensors for each state using
-      % MD-derived frame trajectories and Viterbi state trajectories
-      if isempty(gTensorState)
+      RTrajInv = permute(Par.RTraj,[2,1,3,4]);
+      if ~isHMMfromMD
         logmsg(2,'  calculating tensor trajectories from orientational trajectories');
-        % Perform MD-derived rotations on g- and A-tensors
-        gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
+        % Calculate time-dependent tensors from orientational trajectories
+        gTensor = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
         if includeHF
-          ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+          ATensor = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
         end
+      
+      else
+        % Calculate time-dependent tensors from state trajectories
+      
+        % Calculate the average interaction tensors for each state using
+        % MD-derived frame trajectories and Viterbi state trajectories
+        if isempty(gTensorState)
+          logmsg(2,'  calculating tensor trajectories from orientational trajectories');
+          % Perform MD-derived rotations on g- and A-tensors
+          gTensorMD = cardamom_tensortraj(g,Par.RTraj,RTrajInv);
+          if includeHF
+            ATensorMD = cardamom_tensortraj(A,Par.RTraj,RTrajInv)*1e6*2*pi; % MHz (s^-1) -> Hz (rad s^-1)
+          end
         
-        % Average over time axis
-        logmsg(1,'  calculating state averages of tensors');
-        nVitTraj = size(MD.viterbiTraj,1);
-        gTensorState = zeros(3,3,MD.nStates,nVitTraj);
-        if includeHF
-          ATensorState = zeros(3,3,MD.nStates,nVitTraj);
+          % Average over time axis
+          logmsg(1,'  calculating state averages of tensors');
+          nVitTraj = size(MD.viterbiTraj,1);
+          gTensorState = zeros(3,3,MD.nStates,nVitTraj);
+          if includeHF
+            ATensorState = zeros(3,3,MD.nStates,nVitTraj);
+          end
+          for iState = 1:MD.nStates
+            for iTraj = 1:nVitTraj
+              idxState = MD.viterbiTraj(iTraj,:) == iState;
+              gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensorMD(:,:,idxState,iTraj),3));
+              if includeHF
+                ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,idxState,iTraj),3));
+              end
+            end
+          end
+        
+          % Average over trajectories
+          gTensorState = mean(gTensorState,4,'omitnan');
+          if includeHF
+            ATensorState = mean(ATensorState,4,'omitnan');
+          end
         end
+      
+        % Calculate new time-dependent tensors from state trajectories
+        % generated using optimized HMM parameters
+        logmsg(2,'  calculating tensor trajectories from state trajectories');
+        gTensor = zeros(3,3,nSteps,nTraj);
+        if includeHF
+          ATensor = zeros(3,3,nSteps,nTraj);
+        end      
         for iState = 1:MD.nStates
-          for iTraj = 1:nVitTraj
-            idxState = MD.viterbiTraj(iTraj,:) == iState;
-            gTensorState(:,:,iState,iTraj) = squeeze(mean(gTensorMD(:,:,idxState,iTraj),3));
+          for iTraj = 1:nTraj
+            idxState = Par.stateTraj(:,iTraj)==iState;
+            gTensor(:,:,idxState,iTraj) = repmat(gTensorState(:,:,iState),[1,1,sum(idxState),1]);
             if includeHF
-              ATensorState(:,:,iState,iTraj) = squeeze(mean(ATensorMD(:,:,idxState,iTraj),3));
+              ATensor(:,:,idxState,iTraj) = repmat(ATensorState(:,:,iState),[1,1,sum(idxState),1]);
             end
           end
         end
-        
-        % Average over trajectories
-        gTensorState = mean(gTensorState,4,'omitnan');
+      
+      end
+    
+      % Coarse-grain tensor trajectories by block averaging
+      %-------------------------------------------------------------------------
+      if doBlockAveraging
+        logmsg(2,'  coarse-graining with tensor averaging, block length %d frames',Par.BlockLength);
+        nBlocks = floor(size(gTensor,3)/Par.BlockLength);
+        idx = 1:nBlocks*Par.BlockLength;
+        gTensorBlock = mean(reshape(gTensor(:,:,idx,:),3,3,Par.BlockLength,nBlocks,[]),3);
+        gTensorBlock = reshape(gTensorBlock,3,3,nBlocks,[]);
         if includeHF
-          ATensorState = mean(ATensorState,4,'omitnan');
+          ATensorBlock = mean(reshape(ATensor(:,:,idx,:),3,3,Par.BlockLength,nBlocks,[]),3);
+          ATensorBlock = reshape(ATensorBlock,3,3,nBlocks,[]);
+        end
+      else
+        logmsg(2,'  no coarse-graining tensor averaging');
+        gTensorBlock = gTensor;
+        if includeHF
+          ATensorBlock = ATensor;
         end
       end
-      
-      % Calculate new time-dependent tensors from state trajectories
-      % generated using optimized HMM parameters
-      logmsg(2,'  calculating tensor trajectories from state trajectories');
-      gTensor = zeros(3,3,nSteps,nTraj);
-      if includeHF
-        ATensor = zeros(3,3,nSteps,nTraj);
-      end      
-      for iState = 1:MD.nStates
+    
+      % Sliding window processing: generate multiple trajectories from single one
+      %-------------------------------------------------------------------------
+      if doSlidingWindowProcessing
+        logmsg(2,'  sliding window processing, increment %d',Par.lag);
+        gTensor = zeros(3,3,nSteps,nTraj);
+        if includeHF
+          ATensor = zeros(3,3,nSteps,nTraj);
+        end
+        idx = 1:nSteps;
         for iTraj = 1:nTraj
-          idxState = Par.stateTraj(:,iTraj)==iState;
-          gTensor(:,:,idxState,iTraj) = repmat(gTensorState(:,:,iState),[1,1,sum(idxState),1]);
+          gTensor(:,:,:,iTraj) = gTensorBlock(:,:,idx,1);
           if includeHF
-            ATensor(:,:,idxState,iTraj) = repmat(ATensorState(:,:,iState),[1,1,sum(idxState),1]);
+            ATensor(:,:,:,iTraj) = ATensorBlock(:,:,idx,1);
+          end
+          idx = idx + Par.lag;
+          if alternatingTrajDirection
+            idx = flip(idx);
           end
         end
-      end
-      
-    end
-    
-    % Coarse-grain tensor trajectories by block averaging
-    %---------------------------------------------------------------------------
-    if doBlockAveraging
-      logmsg(2,'  coarse-graining with tensor averaging, block length %d frames',Par.BlockLength);
-      nBlocks = floor(size(gTensor,3)/Par.BlockLength);
-      gTensorBlock = zeros(3,3,nBlocks,size(gTensor,4));
-      if includeHF
-        ATensorBlock = zeros(3,3,nBlocks,size(ATensor,4));
-      end
-      idxBlock = 1:Par.BlockLength;
-      for iBlock = 1:nBlocks
-        gTensorBlock(:,:,iBlock,:) = mean(gTensor(:,:,idxBlock,:),3);
+      else
+        logmsg(2,'  no sliding window processing');
+        gTensor = gTensorBlock;
         if includeHF
-          ATensorBlock(:,:,iBlock,:) = mean(ATensor(:,:,idxBlock,:),3);
-        end
-        idxBlock = idxBlock + Par.BlockLength;
-      end
-    else
-      logmsg(2,'  no coarse-graining tensor averaging');
-      gTensorBlock = gTensor;
-      if includeHF
-        ATensorBlock = ATensor;
-      end
-    end
-    
-    % Sliding window processing: generate multiple trajectories from single one
-    %---------------------------------------------------------------------------
-    if doSlidingWindowProcessing
-      logmsg(2,'  sliding window processing, increment %d',Par.lag);
-      gTensor = zeros(3,3,nSteps,nTraj);
-      if includeHF
-        ATensor = zeros(3,3,nSteps,nTraj);
-      end
-      idx = 1:nSteps;
-      for iTraj = 1:nTraj
-        gTensor(:,:,:,iTraj) = gTensorBlock(:,:,idx,1);
-        if includeHF
-          ATensor(:,:,:,iTraj) = ATensorBlock(:,:,idx,1);
-        end
-        idx = idx + Par.lag;
-        if alternatingTrajDirection
-          idx = flip(idx);
+          ATensor = ATensorBlock;
         end
       end
-    else
-      logmsg(2,'  no sliding window processing');
-      gTensor = gTensorBlock;
-      if includeHF
-        ATensor = ATensorBlock;
+
+      if isMDdirect
+        cacheTensorTraj.g = gTensor;
+        cacheTensorTraj.A = ATensor;
       end
     end
     
@@ -349,12 +358,9 @@ switch PropagationMethod
       % Average the Wigner D-matrices over time blocks
       if doBlockAveraging
         nBlocks = floor(size(D2Traj,3)/Par.BlockLength);
-        D2BlockAvg = zeros(5,5,nBlocks,size(D2Traj,4));
-        idx = 1:Par.BlockLength;
-        for iBlock = 1:nBlocks
-          D2BlockAvg(:,:,iBlock,:) = mean(D2Traj(:,:,idx,:),3);
-          idx = idx + Par.BlockLength;
-        end
+        idx = 1:nBlocks*Par.BlockLength;
+        D2BlockAvg = mean(reshape(D2Traj(:,:,idx,:),5,5,Par.BlockLength,nBlocks,[]),3);
+        D2BlockAvg = reshape(D2BlockAvg,5,5,nBlocks,[]);
       else
         D2BlockAvg = D2Traj;
       end
@@ -374,8 +380,9 @@ switch PropagationMethod
         D2Traj = D2BlockAvg;
       end
       
-      % Cache processed trajectory if using a MD trajectory
-      if useMD
+      % Cache processed trajectory if it is the same for all orientations
+      % (MD-HBD generates new trajectories for each orientation)
+      if isMDdirect || isHMMfromMD
         cacheD2Traj = D2Traj;
       end
     end

@@ -95,6 +95,10 @@
 
 function varargout = stochtraj_diffusion(Sys,Par,Opt)
 
+% Gradient interpolant of the last numeric potential, reused when called
+% repeatedly with the same potential (e.g. by cardamom for each orientation)
+persistent cachedPotential cachedInterpGrad
+
 % Preprocessing
 %-------------------------------------------------------------------------------
 
@@ -180,15 +184,14 @@ if isUserPotFun
     PseudoPotFun = PseudoPotFun(AlphaGrid,BetaGrid,GammaGrid);
   end
   
-  % Calculate gradient
-  [dx,dy,dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
-  
-  % Set up interpolant for gradient
-  method = 'linear';
-  Gradx = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dx, method);
-  Grady = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dy, method);
-  Gradz = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, dz, method);
-  Sim.interpGrad = {Gradx, Grady, Gradz};
+  % Calculate gradient and set up interpolant for its three components
+  if ~isequal(PseudoPotFun,cachedPotential)
+    [dx,dy,dz] = gradient_euler(PseudoPotFun, alphaGrid, betaGrid, gammaGrid);
+    method = 'linear';
+    cachedInterpGrad = griddedInterpolant({alphaGrid, betaGrid, gammaGrid}, cat(4,dx,dy,dz), method);
+    cachedPotential = PseudoPotFun;
+  end
+  Sim.interpGrad = cachedInterpGrad;
   
 else
   

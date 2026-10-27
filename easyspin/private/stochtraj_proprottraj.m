@@ -59,10 +59,8 @@ for iStep = startStep:nSteps
     % use orienting pseudopotential functions of Euler angles to calculate
     % torque
     [alpha, beta, gamma] = quat2euler(qLast,'active');
-    pxint = interp3fast(interpGrad{1}, alpha, beta, gamma);
-    pyint = interp3fast(interpGrad{2}, alpha, beta, gamma);
-    pzint = interp3fast(interpGrad{3}, alpha, beta, gamma);
-    torque = [-pxint.'; -pyint.'; -pzint.'];
+    grad = interpGrad([alpha.',beta.',gamma.']);
+    torque = -reshape(grad,[],3).';
     AngStep = torque.*(Diff*dt) + currRandAngStep;
   else
     % If there is no orienting potential, then there is no torque to
@@ -120,18 +118,6 @@ switch Sim.Integrator
     % see Ref. [2]
     randAngStep = (randns(:,:,1:end-1)+randns(:,:,2:end))/2 .* sqrt(2*Sim.Diff*Sim.dt);
 end
-
-end
-
-function Vq = interp3fast(F, Xq, Yq, Zq)
-% Adapted from MATLAB's interp3 function, and makes the following
-% assumptions regarding input:
-%    Monotonic grid vectors X, Y, Z were fed to griddedInterpolant to
-%    obtain F
-%    V is ndgrid-ordered, not meshgrid-ordered (fed to griddedInterpolant)
-%interp3fast 3-D interpolation (table lookup).
-
-Vq = F([Xq.',Yq.',Zq.']);
 
 end
 
