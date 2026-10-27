@@ -65,10 +65,11 @@ if partiallyOrderedSample
   else
     error('Exp.Ordering must be either a single number or a function handle.');
   end
-  if nargin(Exp.Ordering)==1
+  nArgs = nargin(Exp.Ordering);  % negative for functions with varargin
+  if nArgs==1
     Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
-  elseif nargin(Exp.Ordering)~=3
-    logmsg(1,'  Ordering function in Exp.Ordering must take 1 input argument (beta) or 3 input arguments (alpha,beta,gamma).');
+  elseif nArgs>=0 && nArgs~=3
+    error('The function in Exp.Ordering must take 1 input argument (beta) or 3 input arguments (alpha,beta,gamma).');
   end
 end
 

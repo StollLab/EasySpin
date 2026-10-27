@@ -164,25 +164,13 @@ end
 
 logmsg(1,'  %d points',Exp.nPoints);
 
-% Ordering of director frame (partial ordering)
-if ~isempty(Exp.Ordering)
-  if isnumeric(Exp.Ordering) && numel(Exp.Ordering)==1 && isreal(Exp.Ordering)
-    lambda = Exp.Ordering;
-    Exp.Ordering = @(alpha,beta,gamma) exp(lambda*plegendre(2,0,cos(beta)));
-    logmsg(1,'  partial director ordering (built-in function, coefficient = %g)',lambda);
-  elseif isa(Exp.Ordering,'function_handle')
-    logmsg(1,'  partial director ordering (user-supplied function)');
-  else
-    error('Exp.Ordering must be either a single number or a function handle.');
-  end
-  if nargin(Exp.Ordering)==1
-    Exp.Ordering = @(alpha,beta,gamma) Exp.Ordering(beta).*ones(size(gamma));
-  elseif nargin(Exp.Ordering)~=3
-    logmsg(1,'  Ordering function in Exp.Ordering must take 3 input arguments (alpha,beta,gamma).');
-  end
-else
-  logmsg(1,'  director ordering: none');
-end
+% Director orientation: a single one given in Exp.SampleFrame (aligned
+% sample), or orientationally disordered (Exp.SampleFrame empty). This is
+% stored before p_sampletype, which sets an empty Exp.SampleFrame to [0 0 0].
+Opt.alignedSample = ~isempty(Exp.SampleFrame);
+
+% Sample type and partial ordering of the director (Exp.Ordering)
+[Exp,Opt] = p_sampletype(Exp,Opt);
 
 % Options
 %-------------------------------------------------------------------------------
@@ -395,7 +383,7 @@ function [xAxis,outspec,info] = chili_single(Sys,Exp,Opt)
 
 FieldSweep = ~Exp.FrequencySweep;
 useTemperature = ~isnan(Exp.Temperature);
-partiallyOrderedSample = ~isempty(Exp.Ordering);
+partiallyOrderedSample = Opt.partiallyOrderedSample;
 saveDiagnostics = ~isempty(Opt.Diagnostics);
 explicitFieldSweep = FieldSweep && strcmp(Opt.FieldSweepMethod,'explicit');
 useLanczosSolver = Opt.Solver=='L';
@@ -559,7 +547,7 @@ end
 % Determine whether to average over an orientational grid
 % (without potential, no orientational averaging is necessary - it's identical to a
 % single-orientation sim)
-integrateOverGrid = isempty(Exp.SampleFrame) && usePotential;
+integrateOverGrid = ~Opt.alignedSample && usePotential;
 
 % Options
 %-------------------------------------------------------------------------------
@@ -790,7 +778,7 @@ if integrateOverGrid
   end
   logmsg(1,'  grid simulation with %d orientations, grid symmetry %s (director frame relative to lab frame)',numel(phi),Opt.GridSymmetry);
 else
-  if ~isempty(Exp.SampleFrame)
+  if Opt.alignedSample
     phi = -Exp.SampleFrame(3);
     theta = -Exp.SampleFrame(2);
   else
