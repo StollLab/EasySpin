@@ -57,6 +57,10 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 logmsg(Opt.Verbosity);
 
+if logmsg>=1, logmsg(1,'=begin=saffron====%s=================',char(datetime)); end
+logmsg(2,'  log level %d',logmsg);
+logmsg(1,'-general-----------------------------------------------');
+
 % Process Opt.separate
 if ~isfield(Opt,'separate'), Opt.separate = ''; end
 [separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
@@ -78,68 +82,7 @@ if separateOrientationSpectra
   error('saffron does not support Opt.separate=''orientations''.')
 end
 
-%===============================================================================
-% Loop over species and isotopologues
-%===============================================================================
-isENDOR = ischar(Exp.Sequence) && Exp.Sequence=="MimsENDOR";
-
 if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
-
-singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
-if ~singleIsotopologue
-
-  thirdOutput = nargout>=3 | nargout==0;
-  autoRange = false;
-  [x,data,info] = compisoloop(@saffron,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra);
-
-  switch nargout
-    case 0
-      if isfield(info,'td')
-        saffron_plot(x,info,isENDOR,Sys,Exp,Opt);
-      else
-        Opt.SinglePointDetection = info.SinglePointDetection;
-        s_plotting(x,data,Exp,Opt);
-      end
-    case 1
-      varargout = {data};
-    case 2
-      varargout = {x,data};
-    case 3
-      varargout = {x,data,info};
-  end
-  return
-end
-
-
-%===============================================================================
-% Single-isotopologue simulation
-%===============================================================================
-
-if logmsg>=1, logmsg(1,'=begin=saffron====%s=================',char(datetime)); end
-logmsg(2,'  log level %d',logmsg);
-logmsg(1,'-general-----------------------------------------------');
-
-
-%===============================================================================
-% Spin system structure
-%===============================================================================
-[Sys,err] = validatespinsys(Sys);
-
-error(err);
-if Sys.MO_present
-  error('saffron does not support Sys.Ham* parameters.');
-end
-if any(Sys.L(:))
-  error('saffron does not support Sys.L.');
-end
-if ~isempty(Sys.StrainData.Q)
-  error('saffron does not support strains (Sys.StrainPars).');
-end
-
-% Error on spidyan-specific fields
-if isfield(Sys,'eqState') && ~isempty(Sys.eqState)
-  error('Sys.eqState is specific to spidyan and cannot be used with saffron. Please remove.');
-end
 
 
 %===============================================================================
@@ -179,6 +122,7 @@ end
 if ~isfield(Exp,'Sequence')
   error('Exp.Sequence is missing. Provide a pre-defined or user-defined pulse sequence.');
 end
+isENDOR = ischar(Exp.Sequence) && Exp.Sequence=="MimsENDOR";
 
 % Temperature
 if p_temperature(Exp)
@@ -190,12 +134,6 @@ end
 
 if Opt.partiallyOrderedSample
   error('Partially ordered samples are not implemented in saffron.')
-end
-
-if isfield(Exp,'nPoints')
-  nDataPoints = prod(Exp.nPoints);
-else
-  nDataPoints = 1;
 end
 
 %===============================================================================
@@ -221,12 +159,13 @@ for index = 1 : numel(spidyanOptFields)
   end
 end
 
-% Relaxation
+% Relaxation: if not given, it is on for spin systems with Sys.T1 or Sys.T2.
+% That is set for each spin system in saffron_single, here it is off.
 if isfield(Opt,'Relaxation') && length(Opt.Relaxation) > 1
   error('Opt.Relaxation has to be true or false.')
-elseif ~isfield(Opt,'Relaxation') && (isfield(Sys,'T1') || isfield(Sys,'T2'))
-  Opt.Relaxation = true;
-elseif ~isfield(Opt,'Relaxation')
+end
+Opt.relaxationFromSys = ~isfield(Opt,'Relaxation');
+if Opt.relaxationFromSys
   Opt.Relaxation = false;
 end
 
@@ -239,12 +178,15 @@ if Opt.GridSize<7
   error('Opt.GridSize must be at least 7. You gave %d.',Opt.GridSize);
 end
 
-% Determine simulation mode
+% Determine simulation mode (fast mode does not support Sys.initState, so
+% use thyme if any spin system has one)
 if ~isfield(Opt,'SimulationMode')
-  if isempty(Sys.initState)
-    Opt.SimulationMode = 'fast';
+  if iscell(Sys), SysList = Sys; else, SysList = {Sys}; end
+  hasInitState = @(S) isfield(S,'initState') && ~isempty(S.initState);
+  if any(cellfun(hasInitState,SysList))
+    Opt.SimulationMode = 'thyme';
   else
-    Opt.SimulationMode = 'thyme';  % fast mode does not support Sys.initState
+    Opt.SimulationMode = 'fast';
   end
 end
 
@@ -272,35 +214,6 @@ if ~fastSimulationMode  && ~nargout && isfield(Exp,'nPoints')
 end
 
 if fastSimulationMode
-  if Sys.nElectrons>1
-    error('Fast mode does not work for more than one electron spin.');
-  end
-  if isfield(Sys,'n') && any(Sys.n~=1)
-    error('Fast mode does not work for equivalent nuclei.');
-  end
-  if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
-    error('Fast mode does not work in the presence of nuclear-nuclear couplings.');
-  end
-  if ~isempty(Sys.initState)
-    error('Sys.initState is not supported with Opt.SimulationMode = ''fast''. Use ''thyme'', or omit Opt.SimulationMode.');
-  end
-end
-
-
-% Set up grid
-if ~isfield(Exp,'OriWeights')
-  [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
-end
-
-% Process crystal orientations, crystal symmetry, and frame transforms
-[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
-if numel(Exp.OriWeights)~=nOrientations
-  Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
-end
-
-
-
-if fastSimulationMode
 
   %===================================================================
   % Experiment structure
@@ -311,32 +224,9 @@ if fastSimulationMode
     error('Exp.DetSequence and Exp.DetOperator are specific to spidyan and can not be used with saffron. Please remove them.');
   end
 
-  % T1, T2
-  if isfield(Sys,'T1T2')
-    error('T1 and T2 should be provided in Sys.T1 and Sys.T2 and not in Sys.T1T2.');
-  end
-  Sys.T1T2 = [0 0];
-  if isfield(Sys,'T1')
-    if any(size(Sys.T1) > 1)
-      error('The fast algorithm does not support transition selective relaxation times, please provide a single value for Sys.T1.')
-    else
-      Sys.T1T2(1) = Sys.T1;
-    end
-  end
-  if isfield(Sys,'T2')
-    if any(size(Sys.T2) > 1)
-      error('The fast algorithm does not support transition selective relaxation times, please provide a single value for Sys.T2.')
-    else
-      Sys.T1T2(2) = Sys.T2;
-    end
-  end
-  Sys.T1T2(Sys.T1T2==0) = Inf;
-
-  if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
-    error('T1 and T2 in Sys.T1 and Sys.T2 must be positive, in microseconds.');
-  end
-
   % Pulse sequence
+  idxFreeL = []; idxFreeR = []; idxPulseL = []; idxPulseR = [];
+  idxIncL = []; idxIncR = [];
   predefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence) && ischar(Exp.Sequence);
   if predefinedExperiment
 
@@ -405,10 +295,6 @@ if fastSimulationMode
     logmsg(1,'User-specified pulse experiment.');
     Exp.ExperimentID = -1;
     isENDOR = false;
-
-    if any(~isinf(Sys.T1T2))
-      error('Relaxation times T1 and T2 for custom sequences not supported.');
-    end
 
     if ~isfield(Exp,'Flip')
       error('Fast sequence engine: the pulse flip angles (Exp.Flip) are missing.');
@@ -627,12 +513,6 @@ if fastSimulationMode
   end
 
   if isENDOR
-
-    if all(Sys.lwEndor==0)
-      error('Positive ENDOR line width in Sys.lwEndor needed.');
-    end
-    Sys.lwEndor = Sys.lwEndor(1);
-
     if ~isfield(Exp,'Range')
       error('Frequency range (Exp.Range) must be given for an ENDOR experiment.');
     end
@@ -640,7 +520,6 @@ if fastSimulationMode
     if ~isfield(Exp,'tprf')
       Exp.tprf = 20; % rf pulse length, µs
     end
-
   end
 
   % Relaxation time constants
@@ -693,8 +572,235 @@ if fastSimulationMode
   %===================================================================
   % Options structure
   %===================================================================
-  %
+  % (Opt.Nuclei and the Opt.EndorMethod default depend on the spin system,
+  % see saffron_single)
 
+  % ProductRule: determines whether product rule is used or not
+  if ~isfield(Opt,'ProductRule'), Opt.ProductRule = 0; end
+
+  % Expansion factor: determines size of spectral buffer
+  if ~isfield(Opt,'Expand')
+    if nDimensions==1, Opt.Expand = 4; else, Opt.Expand = 2; end
+  end
+  maxExpand = 8;
+  if numel(Opt.Expand)~=1 || Opt.Expand<0 || Opt.Expand>maxExpand || rem(Opt.Expand,1)
+    error('Opt.Expand must be an integer between 0 and %d.',maxExpand);
+  end
+
+  if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
+
+  if ~isfield(Opt,'Window')
+    Opt.Window = 'ham+';
+  end
+
+  if ~isfield(Opt,'ZeroFillFactor')
+    Opt.ZeroFillFactor = 2;
+  end
+
+  % undocumented options
+  if ~isfield(Opt,'logplot'), Opt.logplot = 0; end
+  if ~isfield(Opt,'PartialIFFT'), Opt.PartialIFFT = 1; end
+  if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
+
+  % Parsed pulse sequence, for saffron_single
+  Opt.fastSeq = struct('predefinedExperiment',predefinedExperiment,...
+    'isENDOR',isENDOR,'nIntervals',nIntervals,'nDimensions',nDimensions,...
+    'IncSchemeID',IncSchemeID,'nPathways',nPathways,...
+    'pathwayprefactor',pathwayprefactor,...
+    'idxFreeL',idxFreeL,'idxFreeR',idxFreeR,...
+    'idxPulseL',idxPulseL,'idxPulseR',idxPulseR,...
+    'idxIncL',idxIncL,'idxIncR',idxIncR,...
+    'idealPulse',idealPulse,'OrientationSelection',OrientationSelection);
+
+else
+
+  % Parsed pulse sequence, for saffron_single
+  Opt.thymeEvents = Events;
+  Opt.thymeVary = Vary;
+
+end
+
+
+%===============================================================================
+% Loop over components and isotopologues
+%===============================================================================
+thirdOutput = nargout>=3 | nargout==0;
+autoRange = false;
+includeInverseDomain = true;
+[x,data,info] = compisoloop(@saffron_single,Sys,Exp,Opt,autoRange,thirdOutput,separateComponentSpectra,includeInverseDomain);
+
+switch nargout
+  case 0
+    if isfield(info,'td')
+      saffron_plot(x,info,isENDOR,Sys,Exp,Opt);
+    else
+      Opt.SinglePointDetection = info.SinglePointDetection;
+      s_plotting(x,data,Exp,Opt);
+    end
+  case 1
+    varargout = {data};
+  case 2
+    varargout = {x,data};
+  case 3
+    varargout = {x,data,info};
+end
+
+%===============================================================
+% Report performance
+%===============================================================
+endTime = datetime;
+elapsedtime = endTime-startTime;
+elapsedtime.Format = 'hh:mm:ss.SSS';
+logmsg(1,'saffron took %s',elapsedtime);
+
+if logmsg>=1, logmsg(1,'=end=saffron======%s=================\n',datetime); end
+
+end
+
+
+%===============================================================================
+% Single-isotopologue simulation
+%===============================================================================
+% Exp and Opt have been parsed by saffron(), including the pulse sequence
+% (Opt.fastSeq for fast mode, Opt.thymeEvents and Opt.thymeVary for thyme
+% mode).
+function [x_out,y_out,info] = saffron_single(Sys,Exp,Opt)
+
+fastSimulationMode = Opt.SimulationMode=="fast";
+
+if isfield(Exp,'nPoints')
+  nDataPoints = prod(Exp.nPoints);
+else
+  nDataPoints = 1;
+end
+
+
+%===============================================================================
+% Spin system structure
+%===============================================================================
+[Sys,err] = validatespinsys(Sys);
+
+error(err);
+if Sys.MO_present
+  error('saffron does not support Sys.Ham* parameters.');
+end
+if any(Sys.L(:))
+  error('saffron does not support Sys.L.');
+end
+if ~isempty(Sys.StrainData.Q)
+  error('saffron does not support strains (Sys.StrainPars).');
+end
+
+% Error on spidyan-specific fields
+if isfield(Sys,'eqState') && ~isempty(Sys.eqState)
+  error('Sys.eqState is specific to spidyan and cannot be used with saffron. Please remove.');
+end
+
+% Parsed thyme pulse sequence (removed from Opt to keep it out of parfor)
+if ~fastSimulationMode
+  Events = Opt.thymeEvents;
+  Vary = Opt.thymeVary;
+  Opt = rmfield(Opt,{'thymeEvents','thymeVary'});
+end
+
+% Relaxation: on if not given and the spin system has relaxation times
+if Opt.relaxationFromSys
+  Opt.Relaxation = isfield(Sys,'T1') || isfield(Sys,'T2');
+  if ~fastSimulationMode
+    for iEvent = 1:numel(Events)
+      Events{iEvent}.Relaxation = Opt.Relaxation;
+    end
+  end
+end
+
+if fastSimulationMode
+  if Sys.nElectrons>1
+    error('Fast mode does not work for more than one electron spin.');
+  end
+  if isfield(Sys,'n') && any(Sys.n~=1)
+    error('Fast mode does not work for equivalent nuclei.');
+  end
+  if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
+    error('Fast mode does not work in the presence of nuclear-nuclear couplings.');
+  end
+  if ~isempty(Sys.initState)
+    error('Sys.initState is not supported with Opt.SimulationMode = ''fast''. Use ''thyme'', or omit Opt.SimulationMode.');
+  end
+end
+
+
+% Set up grid
+if ~isfield(Exp,'OriWeights')
+  [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
+end
+
+% Process crystal orientations, crystal symmetry, and frame transforms
+[Orientations,nOrientations,nSites,averageOverChi] = p_crystalorientations(Exp,Opt);
+if numel(Exp.OriWeights)~=nOrientations
+  Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
+end
+
+
+
+if fastSimulationMode
+
+  % Parsed pulse sequence
+  predefinedExperiment = Opt.fastSeq.predefinedExperiment;
+  isENDOR = Opt.fastSeq.isENDOR;
+  nIntervals = Opt.fastSeq.nIntervals;
+  nDimensions = Opt.fastSeq.nDimensions;
+  IncSchemeID = Opt.fastSeq.IncSchemeID;
+  nPathways = Opt.fastSeq.nPathways;
+  pathwayprefactor = Opt.fastSeq.pathwayprefactor;
+  idxFreeL = Opt.fastSeq.idxFreeL;
+  idxFreeR = Opt.fastSeq.idxFreeR;
+  idxPulseL = Opt.fastSeq.idxPulseL;
+  idxPulseR = Opt.fastSeq.idxPulseR;
+  idxIncL = Opt.fastSeq.idxIncL;
+  idxIncR = Opt.fastSeq.idxIncR;
+  idealPulse = Opt.fastSeq.idealPulse;
+  realPulse = ~idealPulse;
+  OrientationSelection = Opt.fastSeq.OrientationSelection;
+
+  % T1, T2
+  if isfield(Sys,'T1T2')
+    error('T1 and T2 should be provided in Sys.T1 and Sys.T2 and not in Sys.T1T2.');
+  end
+  Sys.T1T2 = [0 0];
+  if isfield(Sys,'T1')
+    if any(size(Sys.T1) > 1)
+      error('The fast algorithm does not support transition selective relaxation times, please provide a single value for Sys.T1.')
+    else
+      Sys.T1T2(1) = Sys.T1;
+    end
+  end
+  if isfield(Sys,'T2')
+    if any(size(Sys.T2) > 1)
+      error('The fast algorithm does not support transition selective relaxation times, please provide a single value for Sys.T2.')
+    else
+      Sys.T1T2(2) = Sys.T2;
+    end
+  end
+  Sys.T1T2(Sys.T1T2==0) = Inf;
+
+  if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
+    error('T1 and T2 in Sys.T1 and Sys.T2 must be positive, in microseconds.');
+  end
+
+  if ~predefinedExperiment && any(~isinf(Sys.T1T2))
+    error('Relaxation times T1 and T2 for custom sequences not supported.');
+  end
+
+  if isENDOR
+    if all(Sys.lwEndor==0)
+      error('Positive ENDOR line width in Sys.lwEndor needed.');
+    end
+    Sys.lwEndor = Sys.lwEndor(1);
+  end
+
+  %===================================================================
+  % Options structure
+  %===================================================================
   % Nuclei: which nuclei to include in the simulation
   if isfield(Opt,'Nuclei')
     if isempty(Opt.Nuclei)
@@ -725,8 +831,7 @@ if fastSimulationMode
   twoElectronManifolds = (Sys.nElectrons==1) && (Sys.S==1/2) && ...
     (numel(shfNuclei)==Sys.nNuclei);
 
-  % ProductRule: determines whether product rule is used or not
-  if ~isfield(Opt,'ProductRule'), Opt.ProductRule = 0; end
+  % ProductRule: not used for a single nucleus
   if Sys.nNuclei==1, Opt.ProductRule = 0; end
   %if isENDOR, Opt.ProductRule = 1; end
 
@@ -753,36 +858,11 @@ if fastSimulationMode
     end
   end
 
-  % Expansion factor: determines size of spectral buffer
-  if ~isfield(Opt,'Expand')
-    if nDimensions==1, Opt.Expand = 4; else, Opt.Expand = 2; end
-  end
-  maxExpand = 8;
-  if numel(Opt.Expand)~=1 || Opt.Expand<0 || Opt.Expand>maxExpand || rem(Opt.Expand,1)
-    error('Opt.Expand must be an integer between 0 and %d.',maxExpand);
-  end
-
   if any(realPulse) && Opt.ProductRule
     error('saffron: Cannot apply product rule and real pulses at the same time.');
   end
 
-  if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
-
-  if ~isfield(Opt,'Window')
-    Opt.Window = 'ham+';
-  end
-
-  if ~isfield(Opt,'ZeroFillFactor')
-    Opt.ZeroFillFactor = 2;
-  end
-
   processData = true;
-
-  % undocumented options
-  if ~isfield(Opt,'logplot'), Opt.logplot = 0; end
-  if ~isfield(Opt,'PartialIFFT'), Opt.PartialIFFT = 1; end
-  if ~isfield(Opt,'TimeDomain'), Opt.TimeDomain = 0; end
-
 
   logmsg(1,'-Hamiltonians------------------------------------------');
 
@@ -1835,12 +1915,6 @@ if fastSimulationMode
     info.fd = fd;
   end
 
-  switch nargout
-    case 1, varargout = {y_out};
-    case 2, varargout = {x_out,y_out};
-    case 3, varargout = {x_out,y_out,info};
-  end
-
   %=============================================================================
 else  % if fastSimulationMode
 
@@ -2106,24 +2180,10 @@ else  % if fastSimulationMode
   info = struct;
   info.SinglePointDetection = Opt.SinglePointDetection;
 
-  switch nargout
-    case 0, s_plotting(timeAxis,Signal,Exp,Opt);
-    case 1, varargout = {Signal};
-    case 2, varargout = {x,Signal};
-    case 3, varargout = {x,Signal,info};
-  end
+  x_out = x;
+  y_out = Signal;
 
 end
-
-%===============================================================
-% Report performance
-%===============================================================
-endTime = datetime;
-elapsedtime = endTime-startTime;
-elapsedtime.Format = 'hh:mm:ss.SSS';
-logmsg(1,'saffron took %s',elapsedtime);
-
-if logmsg>=1, logmsg(1,'=end=saffron======%s=================\n',datetime); end
 
 end
 %===============================================================================

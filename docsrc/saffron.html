@@ -561,7 +561,7 @@ A number giving the number of orientations (knots) for which spectra are explici
 <div class="optionfield"><code>SimulationMode</code></div>
 <div class="optiondescr">
 Optional, allows switching the simulation mode. Can be <code>'fast'</code> for the fast algorithm or <code>'thyme'</code> for the general approach.
-By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If <code>Sys.initState</code> is given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error.
+By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If <code>Sys.initState</code> is given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error. With several spin systems, all of them are simulated with <code>'thyme'</code> if any of them has <code>initState</code>.
 </div>
 
 <div class="optionfield"><code>separate</code>

@@ -2,22 +2,26 @@
 % simulation functions (pepper/garlic/chili/salt/saffron) need.
 %
 % Inputs:
-%   simfc               simulation function (@pepper, @garlic, etc
-%   Sys                 spin system(s)
-%   Exp                 experimental parameters
-%   Opt                 simulation options
-%   autoRange           whether the sweep range should be determined automatically
-%   thirdOutput         whether the third output argument has been requested 
-%   separateComponents  whether to return components/isotopologues separately
+%   simfcn                single-isotopologue simulation function
+%                         (@pepper_single, @garlic_single, etc), called as
+%                         [x,spec,info] = simfcn(Sys,Exp,Opt)
+%   Sys                   spin system(s)
+%   Exp                   experimental parameters
+%   Opt                   simulation options
+%   autoRange             whether the sweep range should be determined automatically
+%   thirdOutput           whether the third output argument has been requested
+%   separateComponents    whether to return components/isotopologues separately
+%   includeInverseDomain  whether to accumulate info.fd and return the
+%                         pulse EPR info fields (saffron), default false
 %
 % Outputs:
 %   x      abscissa
 %   spec   simulated spectrum or time trace
 %   info   structure with additional information
 
-function [x,spec,info] = compisoloop(simfcn,Sys,Exp,Opt,autoRange,thirdOutput,separateSpectra)
+function [x,spec,info] = compisoloop(simfcn,Sys,Exp,Opt,autoRange,thirdOutput,separateSpectra,includeInverseDomain)
 
-includeInverseDomain = isequal(simfcn,@saffron);
+if nargin<8, includeInverseDomain = false; end
 
 info = struct;
 
@@ -76,7 +80,6 @@ for iComponent = 1:nComponents
 
     % Simulate single-isotopologue spectrum
     Sys_ = SysList{iComponent}(iIsotopologue);
-    Sys_.singleiso = true;
     % Remove strain fields emptied by isotopologues (no strains left)
     if isfield(Sys_,'StrainPars') && isempty(Sys_.StrainPars) && ...
         isfield(Sys_,'StrainModes') && isempty(Sys_.StrainModes)
