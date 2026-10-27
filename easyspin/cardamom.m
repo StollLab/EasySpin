@@ -63,10 +63,11 @@
 %     mwRange        sweep range, [sweepmin sweepmax], in GHz (for frequency sweeps)
 %     mwCenterSweep  sweep range, [center sweep], in GHz (for frequency sweeps)
 %     nPoints        number of points
-%     Harmonic       detection harmonic: 0, 1 (default), 2
-%     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
-%     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
+%     Harmonic       detection harmonic: 1 for field sweeps, 0 for frequency
+%                    sweeps (other values are not supported)
 %     Temperature    not supported; must be omitted (or NaN)
+%     ModAmp, mwPhase, mwMode='parallel', lightBeam, Ordering, SampleFrame,
+%     SampleRotation, MolFrame and CrystalSymmetry are not supported
 %
 %   Par: structure with simulation parameters
 %     Model      model for spin label dynamics
@@ -218,6 +219,33 @@ logmsg(1,'Experimental settings:');
 % Temperature
 if p_temperature(Exp)
   error('Exp.Temperature is not supported by cardamom.');
+end
+
+% Detection: first harmonic for field sweeps, absorption for frequency sweeps
+if ~isempty(Exp.Harmonic) && ~all(isnan(Exp.Harmonic))
+  if FieldSweep && ~isequal(Exp.Harmonic,1)
+    error('cardamom supports only Exp.Harmonic = 1 for field sweeps.');
+  elseif ~FieldSweep && ~isequal(Exp.Harmonic,0)
+    error('cardamom supports only Exp.Harmonic = 0 for frequency sweeps.');
+  end
+end
+if ~isempty(Exp.ModAmp) && any(Exp.ModAmp~=0)
+  error('Field modulation (via Exp.ModAmp) is not supported by cardamom.');
+end
+if ~isempty(Exp.mwPhase) && any(Exp.mwPhase~=0)
+  error('Dispersion detection (via Exp.mwPhase) is not supported by cardamom.');
+end
+if ~isempty(Exp.mwMode) && ~isequal(Exp.mwMode,'perpendicular')
+  error('cardamom supports only perpendicular-mode spectra (Exp.mwMode = ''perpendicular'').');
+end
+
+% Photoselection, partial ordering, sample orientations and crystals
+unsupportedFields = {'lightBeam','Ordering','SampleFrame','SampleRotation','MolFrame','CrystalSymmetry'};
+for k = 1:numel(unsupportedFields)
+  f = unsupportedFields{k};
+  if isfield(Exp,f) && ~isempty(Exp.(f))
+    error('Exp.%s is not supported by cardamom.',f);
+  end
 end
 
 if FieldSweep

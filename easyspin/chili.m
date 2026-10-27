@@ -88,18 +88,35 @@ logmsg(1,'-- slow motion regime simulation ----------------------------------');
 
 % Experimental settings
 %-------------------------------------------------------------------------------
-if ~isfield(Exp,'nPoints'), Exp.nPoints = 1024; end
-if ~isfield(Exp,'Harmonic'), Exp.Harmonic = []; end
-if ~isfield(Exp,'mwPhase'), Exp.mwPhase = 0; end
-if ~isfield(Exp,'Temperature'), Exp.Temperature = NaN; end
-if ~isfield(Exp,'ModAmp'), Exp.ModAmp = 0; end
-if ~isfield(Exp,'mwMode'), Exp.mwMode = 'perpendicular'; end
-if ~isfield(Exp,'Ordering'), Exp.Ordering = []; end
-if ~isfield(Exp,'SampleFrame'), Exp.SampleFrame = []; end
+DefaultExp.nPoints = 1024;
+DefaultExp.Harmonic = [];
+DefaultExp.mwPhase = 0;
+DefaultExp.Temperature = NaN;  % high-temperature limit
+DefaultExp.ModAmp = 0;
+DefaultExp.mwMode = 'perpendicular';
+DefaultExp.lightBeam = '';
+DefaultExp.Ordering = [];
+DefaultExp.SampleFrame = [];
+DefaultExp.SampleRotation = [];
+DefaultExp.MolFrame = [];
+DefaultExp.CrystalSymmetry = '';
+
+Exp = adddefaults(Exp,DefaultExp);
 
 % Photoselection is not supported
-if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+if ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
+% Crystal samples and sample rotations are not supported
+if ~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry)
+  error('Crystal samples (via Exp.MolFrame and Exp.CrystalSymmetry) are not supported.');
+end
+if ~isempty(Exp.SampleRotation)
+  error('Sample rotations (via Exp.SampleRotation) are not supported.');
+end
+if ~isempty(Exp.SampleFrame) && ~isequal(size(Exp.SampleFrame),[1 3])
+  error('Exp.SampleFrame must contain a single orientation (three Euler angles).');
 end
 
 % Temperature (NaN: high-temperature limit)
@@ -148,11 +165,6 @@ if ParallelMode
 end
 
 logmsg(1,'  %d points',Exp.nPoints);
-
-% Complain if fields only valid in pepper() are given
-if isfield(Exp,'CrystalSymmetry')
-  warning('Exp.CrystalSymmetry is not used by chili.');
-end
 
 % Ordering of director frame (partial ordering)
 if ~isempty(Exp.Ordering)

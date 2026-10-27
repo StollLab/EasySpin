@@ -147,12 +147,13 @@ if ~p_temperature(Exp)
   Exp.Temperature = NaN;
 end
 
-% Complain if fields only valid in pepper() are given
-if isfield(Exp,'CrystalSymmetry')
-  warning('Exp.CrystalSymmetry is not used by garlic.');
-end
-if isfield(Exp,'SampleFrame')
-  warning('Exp.SampleFrame is not used by garlic.');
+% Sample orientation has no effect on isotropic spectra
+orientationFields = {'SampleFrame','SampleRotation','MolFrame','CrystalSymmetry'};
+for k = 1:numel(orientationFields)
+  f = orientationFields{k};
+  if isfield(Exp,f) && ~isempty(Exp.(f))
+    logmsg(1,'  Exp.%s has no effect on isotropic spectra, ignoring it',f);
+  end
 end
 %-------------------------------------------------------------------------
 
