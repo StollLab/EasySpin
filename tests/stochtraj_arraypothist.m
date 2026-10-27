@@ -51,9 +51,6 @@ Par.nTraj = 400;
 nTraj = Par.nTraj;
 nSteps = Par.nSteps;
 
-% pre-allocate array for 3D histograms
-Hist3D = zeros(na,nb,ng,nTraj);
-
 % Generate quaternion trajectories
 [~,~,qTraj] = stochtraj_diffusion(Sys,Par);
 reverse = repmat(qTraj(1,:,:)<0,[4,1,1]);
@@ -63,17 +60,18 @@ alphaBins = linspace(0, 2*pi, na);
 betaBins = linspace(0, pi, nb);
 gammaBins = linspace(0, 2*pi, ng);
 
+% accumulate 3D histogram over all trajectories
+Hist3D = zeros(na,nb,ng);
 N = round(nSteps/2);
 for iTraj = 1:nTraj
   % discard first half of each trajectory
   [alpha, beta, gamma] = quat2euler(qTraj(:,N:end,iTraj),'active');
-  
+
   % calculate 3D histogram using function obtained from Mathworks File Exchange
-  [Hist3D(:,:,:,iTraj),~] = histcnd([alpha;beta;gamma].',...
-                                    {alphaBins,betaBins,gammaBins});
+  Hist3D = Hist3D + histcnd([alpha;beta;gamma].',...
+                            {alphaBins,betaBins,gammaBins});
 end
 
-Hist3D = mean(Hist3D,4);  % average over all trajectories
 Hist3D = Hist3D/sum(Hist3D(:));  % normalize
 
 pdf = exp(-U);

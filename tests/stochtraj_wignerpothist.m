@@ -33,18 +33,17 @@ for j = 1:size(LMK,1)
   Sys.Potential = [LMK(j,:) lambda];
   [~, ~, qTraj] = stochtraj_diffusion(Sys,Par);  % extract quaternions from trajectories
   
-  % pre-allocate array for 3D histograms
-  Hist3D = zeros(nBins+1, nBins/2+1, nBins+1, nTraj);
-  
+  % accumulate 3D histogram over all trajectories
+  Hist3D = zeros(nBins+1, nBins/2+1, nBins+1);
+
   for iTraj=1:nTraj
     % discard first half of each trajectory
     [alpha, beta, gamma] = quat2euler(qTraj(:,N:end,iTraj),'active');
     % calculate 3D histogram using function obtained from Mathworks File Exchange
-    Hist3D(:,:,:,iTraj) = histcnd([alpha;beta;gamma].',...
-                                          {alphaBins,betaBins,gammaBins});
+    Hist3D = Hist3D + histcnd([alpha;beta;gamma].',...
+                              {alphaBins,betaBins,gammaBins});
   end
-  
-  Hist3D = mean(Hist3D, 4);  % average over all trajectories
+
   Hist3D = Hist3D/sum(Hist3D(:));  % normalize
   
   rmsd = calc_rmsd(Sys.Potential(1,4),Sys.Potential(1,1:3),Hist3D,...
