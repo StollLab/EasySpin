@@ -32,7 +32,7 @@ end
 % Set log level
 if nargin==1
   newLogLevel = varargin{1};
-  if isValidLogLevel(newLogLevel)
+  if isnumeric(newLogLevel) && isscalar(newLogLevel) && any(newLogLevel==0:4)
     logLevel = newLogLevel;
     return
   else
@@ -41,9 +41,8 @@ if nargin==1
 end
 
 msgLevel = varargin{1};
-args = varargin(2:end);
 
-if ~isValidLogLevel(msgLevel)
+if ~(isnumeric(msgLevel) && isscalar(msgLevel) && any(msgLevel==0:4))
   error('The message log level must be 0, 1, 2, 3 or 4.');
 end
 
@@ -53,13 +52,8 @@ if msgLevel>logLevel
 end
 
 % Print message
-printMessage(args{:});
+printMessage(varargin{2:end});
 
-end
-
-%===============================================================================
-function tf = isValidLogLevel(lev)
-tf = isnumeric(lev) && isscalar(lev) && ismember(lev,0:4);
 end
 
 %===============================================================================
