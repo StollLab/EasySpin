@@ -67,33 +67,102 @@ switch nargin
   case 1, error('Experimental parameters (2nd input) are missing!');
   case 2, Opt = [];
   case 3
-otherwise, error('Wrong number of input parameters!');
+  otherwise, error('Wrong number of input parameters!');
 end
 
 switch nargout
-case {0,1,2,3}
-otherwise, error('Wrong number of output parameters!');
+  case {0,1,2,3}
+  otherwise, error('Wrong number of output parameters!');
 end
 
+% Check MATLAB version and expiry date
+error(eschecker('internal'));
+warning(chkmlver);
+
 if ~isfield(Opt,'Verbosity')
-  Opt.Verbosity = 0; % Log level
+  Opt.Verbosity = 0;  % log level
 end
 
 logmsg(Opt.Verbosity);
 
+if logmsg>=1, logmsg(1,'=begin=garlic=====%s=================',char(datetime)); end
 
-%==================================================================
-% Loop over components and isotopologues
-%==================================================================
-Exp.FrequencySweep = ~(isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)) && ...
-  isfield(Exp,'Field') && ~isempty(Exp.Field);
 
-if Exp.FrequencySweep
-  SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
-    (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
+%-------------------------------------------------------------------------
+% Process experiment structure
+%-------------------------------------------------------------------------
+DefaultExp.Harmonic = [];
+DefaultExp.nPoints = 1024;
+DefaultExp.ModAmp = 0;
+DefaultExp.mwMode = 'perpendicular';
+DefaultExp.mwPhase = 0;
+DefaultExp.Temperature = NaN;  % high-temperature limit
+
+Exp = adddefaults(Exp,DefaultExp);
+
+% Field or frequency sweep, mw frequency, field, number of points
+allowZeroField = false;
+FieldSweep = p_sweeptype(Exp,allowZeroField);
+Exp.FrequencySweep = ~FieldSweep;
+
+% Photoselection is not supported
+if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
+% Partial ordering is not supported
+if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
+  error('Partial ordering (via Exp.Ordering) is not supported.')
+end
+
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
+% Sweep range from CenterSweep or Range (CenterSweep has precedence),
+% stored in Exp.Range or Exp.mwRange ([] for automatic range)
+if FieldSweep
+  Exp.Range = p_sweeprange(Exp,false,true);
+  Exp.CenterSweep = [];
+  SweepAutoRange = isempty(Exp.Range);
 else
-  SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-    (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
+  Exp.mwRange = p_sweeprange(Exp,true,false);
+  Exp.mwCenterSweep = [];
+  SweepAutoRange = isempty(Exp.mwRange);
+end
+if SweepAutoRange
+  logmsg(1,'  automatic determination of sweep range');
+end
+
+% Resonator mode
+if ~strcmp(Exp.mwMode,'perpendicular') && ~strcmp(Exp.mwMode,'parallel')
+  error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
+end
+logmsg(1,'  %s mode',Exp.mwMode);
+
+% Temperature (NaN: high-temperature limit)
+if ~p_temperature(Exp)
+  Exp.Temperature = NaN;
+end
+
+% Complain if fields only valid in pepper() are given
+if isfield(Exp,'CrystalSymmetry')
+  warning('Exp.CrystalSymmetry is not used by garlic.');
+end
+if isfield(Exp,'SampleFrame')
+  warning('Exp.SampleFrame is not used by garlic.');
+end
+%-------------------------------------------------------------------------
+
+
+%-------------------------------------------------------------------------
+% Process simulation options
+%-------------------------------------------------------------------------
+% Obsolete options
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Options.separate instead.');
 end
 
 if ~isfield(Opt,'IsoCutoff')
@@ -126,32 +195,86 @@ if separateOrientationSpectra
   error('garlic does not support Opt.separate=''orientations''.')
 end
 
-singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
-if ~singleIsotopologue
-
-  % Check expiry date and MATLAB version (only in top-level call)
-  error(eschecker('internal'));
-  warning(chkmlver);
-
-  thirdOutput = nargout>=3;
-  [xAxis,spec,info] = compisoloop(@garlic,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
-  
-  % Output and plotting
-  switch nargout
-    case 0
-      cwepr_plot(xAxis,spec,Exp);
-    case 1
-      varargout = {spec};
-    case 2
-      varargout = {xAxis,spec};
-    case 3
-      varargout = {xAxis,spec,info};
-  end
-  return
+% Stretch factor for automatically detected field range
+if ~isfield(Opt,'Stretch')
+  Opt.Stretch = 0.25;
 end
-%==================================================================
 
-if logmsg>=1, logmsg(1,'=begin=garlic=====%s=================',char(datetime)); end
+% Maximum number of Newton-Raphson or fixed-point iteration steps
+if ~isfield(Opt,'MaxIterations')
+  Opt.MaxIterations = 15;
+end
+
+% Relative tolerance of the iterative resonance field computation (field
+% sweeps only): if the relative iteration-to-iteration change of the
+% resonance field falls below this value, the computation is stopped.
+if isfield(Opt,'Accuracy')
+  error('Opt.Accuracy is obsolete. Use Opt.ResFieldTolerance instead.');
+end
+if ~isfield(Opt,'ResFieldTolerance')
+  Opt.ResFieldTolerance = 1e-12;
+end
+
+% Method for computation of the resonance fields
+if isfield(Opt,'PerturbOrder')
+  error('Options.PerturbOrder is obsolete. Use Options.Method = ''perturb2'' etc instead.');
+end
+if ~isfield(Opt,'Method'), Opt.Method = 'exact'; end
+switch Opt.Method
+  case 'exact',    Opt.perturbOrder = 0;  % exact calculation, Breit/Rabi
+  case 'perturb',  Opt.perturbOrder = 5;
+  case 'perturb1', Opt.perturbOrder = 1;
+  case 'perturb2', Opt.perturbOrder = 2;
+  case 'perturb3', Opt.perturbOrder = 3;
+  case 'perturb4', Opt.perturbOrder = 4;
+  case 'perturb5', Opt.perturbOrder = 5;
+  otherwise
+    error('Unknown method ''%s''.',Opt.Method);
+end
+
+%-------------------------------------------------------------------------
+
+
+%==================================================================
+% Loop over components and isotopologues
+%==================================================================
+thirdOutput = nargout>=3;
+[xAxis,spec,info] = compisoloop(@garlic_single,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+
+% Output and plotting
+switch nargout
+  case 0
+    cwepr_plot(xAxis,spec,Exp);
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    varargout = {xAxis,spec,info};
+end
+
+if logmsg>=1, logmsg(1,'=end=garlic=======%s=================\n',char(datetime)); end
+
+end
+
+
+%==================================================================
+% Single-isotopologue spectrum
+%==================================================================
+% Exp and Opt have been parsed by garlic(); Exp.Range/Exp.mwRange are
+% empty for automatic range determination.
+function [xAxis,spec,info] = garlic_single(Sys,Exp,Opt)
+
+FieldSweep = ~Exp.FrequencySweep;
+if FieldSweep
+  SweepAutoRange = isempty(Exp.Range);
+else
+  SweepAutoRange = isempty(Exp.mwRange);
+end
+mwPhaseLeft = Exp.mwPhase;
+ParallelMode = strcmp(Exp.mwMode,'parallel');
+useTemperature = ~isnan(Exp.Temperature);
+PerturbOrder = Opt.perturbOrder;
 
 %-------------------------------------------------------------------------
 % System structure check
@@ -203,129 +326,10 @@ end
 
 ConvolutionBroadening = any(Sys.lw>0) || FastMotionRegime;
 
-%-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
-% Checking experiment structure
-%-------------------------------------------------------------------------
-DefaultExp.Harmonic = [];
-DefaultExp.nPoints = 1024;
-DefaultExp.ModAmp = 0;
-DefaultExp.mwMode = 'perpendicular';
-DefaultExp.mwPhase = 0;
-DefaultExp.Temperature = NaN; % don't compute thermal equilibrium polarizations
-
-Exp = adddefaults(Exp,DefaultExp);
-
-% Field or frequency sweep, mw frequency, field, number of points
-allowZeroField = false;
-FieldSweep = p_sweeptype(Exp,allowZeroField);
-
-% Photoselection is not supported
-if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
-  error('Photoselection (via Exp.lightBeam) is not supported.')
-end
-
-% Partial ordering is not supported
-if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
-  error('Partial ordering (via Exp.Ordering) is not supported.')
-end
-
-% Microwave phase
-if ~FieldSweep
-  % flip dispersion lineshape depending on field or freq sweep
-  Exp.mwPhase = -Exp.mwPhase;
-end
-mwPhaseLeft = Exp.mwPhase;
-
-% Sweep range from CenterSweep or Range (CenterSweep has precedence)
-if FieldSweep
-  Range = p_sweeprange(Exp,false,true);
-  SweepAutoRange = isempty(Range);
-  if ~SweepAutoRange, Exp.Range = Range; end
-else
-  mwRange = p_sweeprange(Exp,true,false);
-  SweepAutoRange = isempty(mwRange);
-  if ~SweepAutoRange, Exp.mwRange = mwRange; end
-end
-if SweepAutoRange
-  logmsg(1,'  automatic determination of sweep range');
-end
-
 % Detection harmonic and field modulation amplitude
 [Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,ConvolutionBroadening);
 
-% Resonator mode
-if strcmp(Exp.mwMode,'perpendicular')
-  ParallelMode = false;
-elseif strcmp(Exp.mwMode,'parallel')
-  ParallelMode = true;
-else
-  error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
-end
-logmsg(1,'  %s mode',Exp.mwMode);
-
-% Temperature
-useTemperature = p_temperature(Exp);
-
-
-% Complain if fields only valid in pepper() are given
-if isfield(Exp,'CrystalSymmetry')
-  warning('Exp.CrystalSymmetry is not used by garlic.');
-end
-if isfield(Exp,'SampleFrame')
-  warning('Exp.SampleFrame is not used by garlic.');
-end
-
-
 %-------------------------------------------------------------------------
-
-
-%-------------------------------------------------------------------------
-% Simulation options
-%-------------------------------------------------------------------------
-% Obsolete options
-if isfield(Opt,'Output')
-  error('Options.Output is obsolete. Use Options.separate instead.');
-end
-
-% Stretch factor for automatically detected field range
-if ~isfield(Opt,'Stretch')
-  Opt.Stretch = 0.25;
-end
-
-% Maximum number of Newton-Raphson or fixed-point iteration steps
-if ~isfield(Opt,'MaxIterations')
-  Opt.MaxIterations = 15;
-end
-
-% Accuracy of resonance field computation:
-% If relative iteration-to-iteration change of resonance field
-% falls below this value, the computation is stopped.
-if ~isfield(Opt,'Accuracy')
-  Opt.Accuracy = 1e-12;
-  % Note: relative accuracy of Planck constant is 5e-8
-end
-
-%Options.AcceptLimit = 0.5; % rejection threshold for large hyperfine couplings
-
-% Method for computation of the resonance fields
-if isfield(Opt,'PerturbOrder')
-  error('Options.PerturbOrder is obsolete. Use Options.Method = ''perturb2'' etc instead.');
-end
-if ~isfield(Opt,'Method'), Opt.Method = 'exact'; end
-switch Opt.Method
-  case 'exact',    PerturbOrder = 0; % exact calculation, Breit/Rabi
-  case 'perturb',  PerturbOrder = 5;
-  case 'perturb1', PerturbOrder = 1;
-  case 'perturb2', PerturbOrder = 2;
-  case 'perturb3', PerturbOrder = 3;
-  case 'perturb4', PerturbOrder = 4;
-  case 'perturb5', PerturbOrder = 5;
-  otherwise
-    error('Unknown method ''%s''.',Opt.Method);
-end
 
 % Method for spectrum construction
 if ~isfield(Opt,'AccumMethod') || isempty(Opt.AccumMethod)
@@ -423,7 +427,7 @@ for iNucGrp = 1:Sys.nNuclei
     % Field sweep
     %-------------------------------------------------------------------
     if PerturbOrder==0
-      logmsg(1,'  Breit-Rabi solver, accuracy %g',Opt.Accuracy);
+      logmsg(1,'  Breit-Rabi solver, relative tolerance %g',Opt.ResFieldTolerance);
       maxIterationsDone = -1;
       
       % Fixed-point iteration, based on the Breit-Rabi formula
@@ -448,7 +452,7 @@ for iNucGrp = 1:Sys.nNuclei
           if B_~=0, RelChangeB = 1 - Bnew./B_; end
           B_ = Bnew;
           gamman = gn(iNucGrp)*nmagn; % re-include NZI
-          if abs(RelChangeB)<Opt.Accuracy, break; end
+          if abs(RelChangeB)<Opt.ResFieldTolerance, break; end
         end
         if iter>maxIterationsDone, maxIterationsDone = iter; end
         if iter==Opt.MaxIterations
@@ -460,7 +464,7 @@ for iNucGrp = 1:Sys.nNuclei
       logmsg(1,'  maximum %d iterations done',maxIterationsDone);
       
     else
-      logmsg(1,'  perturbation expansion, order %d, accuracy %g',PerturbOrder,Opt.Accuracy);
+      logmsg(1,'  perturbation expansion, order %d, relative tolerance %g',PerturbOrder,Opt.ResFieldTolerance);
       
       % Based on \Delta E - h nu = 0 with a 5th-order Taylor expansion in aiso of
       % the Breit-Rabi expression for \Delta E. The resulting polynomial in aiso with terms
@@ -486,7 +490,7 @@ for iNucGrp = 1:Sys.nNuclei
           Bb = -c(2)/c(1); % first-order as start guess
           dB = Bb;
           for iter = 1:Opt.MaxIterations
-            if abs(dB/Bb)<Opt.Accuracy, break; end
+            if abs(dB/Bb)<Opt.ResFieldTolerance, break; end
             dB = polyval(c,Bb)/polyval(dc,Bb);
             Bb = Bb - dB;
           end
@@ -716,16 +720,7 @@ end
 
 %===================================================================
 
-switch nargout
-  case 1
-    varargout = {spec};
-  case 2
-    varargout = {xAxis,spec};
-  case 3
-    info.resfields = Positions;
-    varargout = {xAxis,spec,info};
-end
-if logmsg>=1, logmsg(1,'=end=garlic=======%s=================\n',char(datetime)); end
+info.resfields = Positions;
 
 end
 
