@@ -36,14 +36,10 @@ nTotalComponents = sum(nIsotopologues);
 
 if autoRange
   if nTotalComponents>1
-    if isfield(Exp,'FrequencySweep')
-      if Exp.FrequencySweep
-        str = 'Exp.mwRange or Exp.mwCenterSweep';
-      else
-        str = 'Exp.Range or Exp.CenterSweep';
-      end
-    elseif isequal(simfcn,@salt)
-      str = 'Exp.Range';
+    if isfield(Exp,'FrequencySweep') && Exp.FrequencySweep
+      str = 'Exp.mwRange or Exp.mwCenterSweep';
+    else
+      str = 'Exp.Range or Exp.CenterSweep';
     end
     error('For multiple components, EasySpin cannot automatically determine a sweep range.\n Please specify sweep range manually using %s.',str);
   end

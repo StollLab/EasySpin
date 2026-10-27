@@ -73,89 +73,10 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 logmsg(Opt.Verbosity);
 
-%==================================================================
-% Loop over species and isotopologues
-%==================================================================
-SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-  (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
-
-if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
-
-% Process Opt.separate
-if ~isfield(Opt,'separate'), Opt.separate = ''; end
-[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
-error(err);
-separateComponentSpectra = separateOutput==2;
-separateTransitionSpectra = separateOutput==3;
-separateOrientationSpectra = separateOutput==4;
-separateSiteSpectra = separateOutput==5;
-if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
-  separateComponentSpectra = true;
-end
-
-singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
-if ~singleIsotopologue
-  
-  thirdOutput = nargout>=3;
-  [xAxis,spec,info] = compisoloop(@salt,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
-  
-  % Output and plotting
-  switch nargout
-    case 0
-      salt_plot(xAxis,spec,Exp);
-    case 1
-      varargout = {spec};
-    case 2
-      varargout = {xAxis,spec};
-    case 3
-      varargout = {xAxis,spec,info};
-  end
-  return
-end
-%==================================================================
-
-
-%==================================================================
-% Single-isotopologue spectrum
-%==================================================================
-
 if logmsg>=1, logmsg(1,'=begin=salt=======%s=================',char(datetime)); end
 logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
 
-
-% Processing spin system structure
-%==========================================================================
-
-[Sys,err] = validatespinsys(Sys);
-error(err);
-if Sys.MO_present, error('salt does not support Sys.Ham* parameters.'); end
-if any(Sys.L(:)), error('salt does not support Sys.L.'); end
-
-if any(Sys.n>1)
-  error('salt does not support sets of equivalent nuclei (Sys.n>1).');
-end
-
-ConvolutionBroadening = any(Sys.lwEndor>0);
-
-logmsg(1,'  system with %d electron spin(s), %d nuclear spin(s), total %d states',...
-  Sys.nElectrons,Sys.nNuclei,Sys.nStates);
-
-if isfield(Sys,'ExciteWidth')
-  error('You gave Sys.ExciteWidth, but it should be Exp.ExciteWidth. Please correct.');
-end
-%==========================================================================
-
-
-% Method: 'matrix' or 'perturb', 'perturb1', 'perturb2'
-if ~isfield(Opt,'Method'), Opt.Method = 'matrix'; end
-Method = parseoption(Opt,'Method',{'matrix','perturb','perturb1','perturb2'});
-switch Method
-  case 1, Opt.PerturbOrder = 0; Method = 1;
-  case 2, Opt.PerturbOrder = 1; Method = 2;
-  case 3, Opt.PerturbOrder = 1; Method = 2;
-  case 4, Opt.PerturbOrder = 2; Method = 2;
-end
 
 %=======================================================================
 % Experiment structure, contains experimental settings
@@ -197,7 +118,7 @@ end
 % Error if vital parameters are missing.
 if isnan(Exp.Field), error('Experiment.Field is missing!'); end
 if any(Exp.Field<0), error('Exp.Field cannot be negative.'); end
-  
+
 % Excitation width: [] or Inf means all spins are excited
 if ~isempty(Exp.ExciteWidth) && (~isnumeric(Exp.ExciteWidth) || ~isscalar(Exp.ExciteWidth) || ~(Exp.ExciteWidth>0))
   error('Exp.ExciteWidth must be a positive number.');
@@ -208,17 +129,15 @@ if isnan(Exp.mwFreq) && selectiveExcitation
   error('Experiment.mwFreq is missing! It is needed, since Exp.ExciteWidth is given.');
 end
 
-% Sweep range from CenterSweep or Range (CenterSweep has precedence)
-Range = p_sweeprange(Exp,false,false);
-AutoRange = isempty(Range);
-if ~AutoRange, Exp.Range = Range; end
-if Method==1
-%  if AutoRange, error('Cannot automatically determine rf range. Please specify Exp.Range or Exp.CenterSweep.'); end
-end
+% Sweep range from CenterSweep or Range (CenterSweep has precedence),
+% stored in Exp.Range ([] for automatic range)
+Exp.Range = p_sweeprange(Exp,false,false);
+Exp.CenterSweep = [];
+SweepAutoRange = isempty(Exp.Range);
 
-% Automatic on-resonance setting: (1) isotropic g, (2) mwFreq==0
-if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
-  Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
+% Temperature (NaN: high-temperature limit)
+if ~p_temperature(Exp)
+  Exp.Temperature = NaN;
 end
 
 % Detect sample type (disordered, partially ordered, crystal)
@@ -229,35 +148,10 @@ if Opt.partiallyOrderedSample
   error('Partially ordered samples are not implemented in salt.')
 end
 
-if logmsg>=1
-  if ~AutoRange
-    msg = sprintf('field %g mT, rf range [%g %g] MHz, %d points',...
-      Exp.Field,Exp.Range(1),Exp.Range(2),Exp.nPoints);
-  else
-    msg = sprintf('field %g mT, automatic rf range, %d points',...
-      Exp.Field,Exp.nPoints);
-  end
-  if ~isnan(Exp.mwFreq)
-    msg = sprintf('mw %g GHz, %s',Exp.mwFreq,msg);
-  else
-    msg = sprintf('mw not given, %s',msg);
-  end
-  logmsg(1,'  %s',msg);
-end
-
-nonEquiPops = false;
-if p_temperature(Exp)
-  msg = sprintf('  temperature %g K',Exp.Temperature);
-else
-  msg = '  no temperature';
-end
-logmsg(1,msg);
-
-% Detection harmonic (no field modulation in ENDOR)
+% No field modulation in ENDOR
 if isfield(Exp,'ModAmp') && ~isempty(Exp.ModAmp) && any(Exp.ModAmp(:)~=0)
   error('salt does not support field modulation (Exp.ModAmp).');
 end
-[Exp,derivsLeft] = p_harmonic(Exp,false,ConvolutionBroadening);
 
 if isfield(Exp,'lwAnisoG') || isfield(Exp,'HStrain')
   error('Use Sys.lwAnisoG (in the spin system, not the experiment structure).');
@@ -268,6 +162,62 @@ end
 
 % Processing Options structure
 %==========================================================================
+% Error if obsolete option is specified
+if isfield(Opt,'nKnots')
+  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
+end
+
+if isfield(Opt,'Symmetry')
+  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
+end
+
+if isfield(Opt,'Convolution')
+  error('Options.Convolution is obsolete! Please remove from code!');
+end
+
+if isfield(Opt,'Width')
+  error('Options.Width is obsolete! Please remove from code.');
+end
+
+if isfield(Opt,'nSpline')
+  error('Options.nSpline is obsolete. Use a second number in Options.GridSize instead, e.g. Options.GridSize = [19 5] for Options.nSpline = 5.');
+end
+
+if isfield(Opt,'LineShape')
+  error('Options.LineShape is obsolete. Use System.lwEndor instead.');
+end
+
+if isfield(Opt,'Output')
+  error('Options.Output is obsolete. Use Options.separate instead.');
+end
+
+if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-4; end
+
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
+error(err);
+separateComponentSpectra = separateOutput==2;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+if separateTransitionSpectra || separateSiteSpectra || separateOrientationSpectra
+  separateComponentSpectra = true;
+end
+
+% Method: 'matrix' or 'perturb', 'perturb1', 'perturb2', stored as an index
+% in Opt.methodID (1 matrix, 2 perturbation theory)
+if ~isfield(Opt,'Method'), Opt.Method = 'matrix'; end
+[Method,err] = parseoption(Opt,'Method',{'matrix','perturb','perturb1','perturb2'});
+error(err);
+switch Method
+  case 1, Opt.PerturbOrder = 0; Method = 1;
+  case 2, Opt.PerturbOrder = 1; Method = 2;
+  case 3, Opt.PerturbOrder = 1; Method = 2;
+  case 4, Opt.PerturbOrder = 2; Method = 2;
+end
+Opt.methodID = Method;
+
 % Documented fields, endorfrq (for defaults see there!)
 %DefaultOpt.Transitions = []; % endorfrq
 %DefaultOpt.Threshold = 5e-4; % endorfrq
@@ -283,7 +233,6 @@ else
 end
 DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
-DefaultOpt.separate = '';
 
 % Undocumented fields
 DefaultOpt.Smoothing = 2;
@@ -330,65 +279,120 @@ if any(Opt.OriPreSelect) && suppliedOriWeights
   error('You cannot use OriPreSelect and supply OriWeights simultaneously!');
 end
 
-% Error if obsolete option is specified
-if isfield(Opt,'nKnots')
-  error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
-end
-
-if isfield(Opt,'Symmetry')
-  error('Options.Symmetry is obsolete. Use Options.GridSymmetry instead, e.g. Options.GridSymmetry = ''D2h''.');
-end
-
-if isfield(Opt,'Convolution')
-  error('Options.Convolution is obsolete! Please remove from code!');
-end
-
-if isfield(Opt,'Width')
-  error('Options.Width is obsolete! Please remove from code.');
-end
-
-if isfield(Opt,'nSpline')
-  error('Options.nSpline is obsolete. Use a second number in Options.GridSize instead, e.g. Options.GridSize = [19 5] for Options.nSpline = 5.');
-end
-
-if isfield(Opt,'LineShape')
-  error('Options.LineShape is obsolete. Use System.lwEndor instead.');
-end
-
-if isfield(Opt,'Output')
-  error('Options.Output is obsolete. Use Options.separate instead.');
-end
-
 %==========================================================================
+
+
+%==================================================================
+% Loop over components and isotopologues
+%==================================================================
+thirdOutput = nargout>=3;
+[xAxis,spec,info] = compisoloop(@salt_single,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateComponentSpectra);
+
+% Output and plotting
+switch nargout
+  case 0
+    salt_plot(xAxis,spec,Exp);
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    varargout = {xAxis,spec,info};
+end
+
+% Report performance.
+hmsString = elapsedtime(StartTime,clock);
+logmsg(1,'salt took %s',hmsString);
+
+if logmsg>=1, logmsg(1,'=end=salt=========%s=================\n',char(datetime)); end
+
+end
+
+
+%==================================================================
+% Single-isotopologue spectrum
+%==================================================================
+% Exp and Opt have been parsed by salt(); Exp.Range is empty for automatic
+% range determination.
+function [xAxis,spec,info] = salt_single(Sys,Exp,Opt)
+
+SweepAutoRange = isempty(Exp.Range);
+selectiveExcitation = ~isempty(Exp.ExciteWidth) && isfinite(Exp.ExciteWidth);
+crystalSample = Opt.crystalSample;
+suppliedOriWeights = ~isempty(Opt.OriWeights);
+Method = Opt.methodID;
+
+separateOutput = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+
+% Processing spin system structure
+%==========================================================================
+
+[Sys,err] = validatespinsys(Sys);
+error(err);
+if Sys.MO_present, error('salt does not support Sys.Ham* parameters.'); end
+if any(Sys.L(:)), error('salt does not support Sys.L.'); end
+
+if any(Sys.n>1)
+  error('salt does not support sets of equivalent nuclei (Sys.n>1).');
+end
+
+ConvolutionBroadening = any(Sys.lwEndor>0);
+
+logmsg(1,'  system with %d electron spin(s), %d nuclear spin(s), total %d states',...
+  Sys.nElectrons,Sys.nNuclei,Sys.nStates);
+
+if isfield(Sys,'ExciteWidth')
+  error('You gave Sys.ExciteWidth, but it should be Exp.ExciteWidth. Please correct.');
+end
+%==========================================================================
+
+
+% Automatic on-resonance setting: (1) isotropic g, (2) mwFreq==0
+if Exp.mwFreq==0 && (all(diff(Sys.g)==0))
+  Exp.mwFreq = mean(Sys.g)*bmagn*Exp.Field*1e-3/planck/1e9;
+end
+
+if logmsg>=1
+  if ~SweepAutoRange
+    msg = sprintf('field %g mT, rf range [%g %g] MHz, %d points',...
+      Exp.Field,Exp.Range(1),Exp.Range(2),Exp.nPoints);
+  else
+    msg = sprintf('field %g mT, automatic rf range, %d points',...
+      Exp.Field,Exp.nPoints);
+  end
+  if ~isnan(Exp.mwFreq)
+    msg = sprintf('mw %g GHz, %s',Exp.mwFreq,msg);
+  else
+    msg = sprintf('mw not given, %s',msg);
+  end
+  logmsg(1,'  %s',msg);
+end
+
+nonEquiPops = false;
+if ~isnan(Exp.Temperature)
+  msg = sprintf('  temperature %g K',Exp.Temperature);
+else
+  msg = '  no temperature';
+end
+logmsg(1,msg);
+
+% Detection harmonic (no field modulation in ENDOR)
+[Exp,derivsLeft] = p_harmonic(Exp,false,ConvolutionBroadening);
 
 %====================================================================
 % Special case: no nuclei
 %--------------------------------------------------------------
 if Sys.nNuclei==0
+  if SweepAutoRange
+    error('Cannot automatically determine the rf range for a spin system without nuclei. Please specify Exp.Range or Exp.CenterSweep.');
+  end
   Exp.deltaX = diff(Exp.Range)/(Exp.nPoints-1);
   xAxis = Exp.Range(1) + (0:Exp.nPoints-1)*Exp.deltaX;
   spec = zeros(1,Exp.nPoints);
-  Transitions = [];
-  switch (nargout)
-    case 0
-      cla
-      plot(xAxis,spec);
-      axis tight
-      xlabel('frequency (MHz)');
-      ylabel('intensity (arb.u.)');
-      if ~isnan(Exp.mwFreq)
-        title(sprintf('ENDOR at %0.8g GHz and %0.8g mT',Exp.mwFreq,Exp.Field));
-      else
-        title(sprintf('ENDOR at %0.8g mT',Exp.Field));
-      end
-    case 1
-      varargout = {spec};
-    case 2
-      varargout = {xAxis,spec};
-    case 3
-      info.Transitions = Transitions;
-      varargout = {xAxis,spec,info};
-  end
+  info.Transitions = [];
   return
 end
 %====================================================================
@@ -444,9 +448,14 @@ nTransitions = size(Pdat,1);
 anisotropicWidths = false;
 
 if nTransitions==0
-  error(['No ENDOR resonances between %g and %g MHz (%g mT).\n'...
-      'Check frequency range, magnetic field and transition selection.'],...
-    Exp.Range(1),Exp.Range(2),Exp.Field);
+  if SweepAutoRange
+    error(['No ENDOR resonances found (%g mT).\n'...
+        'Check magnetic field and transition selection.'],Exp.Field);
+  else
+    error(['No ENDOR resonances between %g and %g MHz (%g mT).\n'...
+        'Check frequency range, magnetic field and transition selection.'],...
+      Exp.Range(1),Exp.Range(2),Exp.Field);
+  end
 end
 logmsg(1,'  %d transitions with resonances in range',nTransitions);
 anisotropicIntensities = numel(Idat)>1;
@@ -472,7 +481,7 @@ else
   nSites = 1;
 end
 
-if AutoRange
+if SweepAutoRange
   Range = [min(Pdat(:)) max(Pdat(:))]+[-1 1]*max(Sys.lwEndor)*2;
   Range = Range + diff(Range)*[-1 1]*0.2;
   Range(1) = max(Range(1),0); 
@@ -829,35 +838,7 @@ logmsg(1,'-final-------------------------------------------------');
 %-----------------------------------------------------------------------
 spec = p_lineshape(xAxis,spec,Sys.lwEndor,derivsLeft,0,Exp,'MHz',Opt.PaddingMultiplier,false);
 
-% Assign output.
-%-----------------------------------------------------------------------
-switch nargout
-  case 0
-    cla
-    plot(xAxis,spec);
-    axis tight
-    xlabel('frequency (MHz)');
-    ylabel('intensity (arb.u.)');
-    if ~isnan(Exp.mwFreq)
-      title(sprintf('ENDOR at %0.8g GHz and %0.8g mT',Exp.mwFreq,Exp.Field));
-    else
-      title(sprintf('ENDOR at %0.8g mT',Exp.Field));
-    end
-  case 1
-    varargout = {spec};
-  case 2
-    varargout = {xAxis,spec};
-  case 3
-    info.Transitions = Transitions;
-    varargout = {xAxis,spec,info};
-end
-
-% Report performance.
-%-----------------------------------------------------------------------
-hmsString = elapsedtime(StartTime,clock);
-logmsg(1,'salt took %s',hmsString);
-
-if logmsg>=1, logmsg(1,'=end=salt=========%s=================\n',char(datetime)); end
+info.Transitions = Transitions;
 
 end
 
