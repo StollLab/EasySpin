@@ -99,8 +99,8 @@ deriv = expandfull(deriv,nDims);
 alpha = expandfull(alpha,nDims);
 phase = expandfull(phase,nDims);
 
-NN = 2*sz + 1;       % extended range for each dimension
-mid = round(NN/2)+1; % range midpoint, for line center
+NN = 2*sz;           % extended range for each dimension (even, for fast FFTs)
+mid = NN/2 + 1;      % range midpoint, for line center
 fwhm = fwhm./steps;  % line width in terms of x-axis increments
 steps(fwhm==0) = 1;
 
