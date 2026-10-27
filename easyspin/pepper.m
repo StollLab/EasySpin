@@ -91,85 +91,9 @@ end
 if ~isfield(Opt,'Verbosity'), Opt.Verbosity = 0; end
 logmsg(Opt.Verbosity);
 
-
-%==================================================================
-% Loop over species and isotopologues
-%==================================================================
-Exp.FrequencySweep = ~(isfield(Exp,'mwFreq') && ~isempty(Exp.mwFreq)) && ...
-  isfield(Exp,'Field') && ~isempty(Exp.Field);
-
-if Exp.FrequencySweep
-  SweepAutoRange = (~isfield(Exp,'mwRange') || isempty(Exp.mwRange)) && ...
-    (~isfield(Exp,'mwCenterSweep') || isempty(Exp.mwCenterSweep));
-else
-  SweepAutoRange = (~isfield(Exp,'Range') || isempty(Exp.Range)) && ...
-    (~isfield(Exp,'CenterSweep') || isempty(Exp.CenterSweep));
-end
-
-if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-3; end
-
-
-% Process Opt.separate
-if ~isfield(Opt,'separate'), Opt.separate = ''; end
-[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
-error(err);
-
-summedOutput = separateOutput==1;
-separateComponentSpectra = separateOutput==2;
-separateTransitionSpectra = separateOutput==3;
-separateOrientationSpectra = separateOutput==4;
-separateSiteSpectra = separateOutput==5;
-separateSpectra = ~summedOutput;
-
-singleIsotopologue = isfield(Sys,'singleiso') && Sys.singleiso;
-if ~singleIsotopologue
-  
-  thirdOutput = nargout>=3;
-  [xAxis,spec,info] = compisoloop(@pepper,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateSpectra);
-
-  % Output and plotting
-  switch nargout
-    case 0
-      cwepr_plot(xAxis,spec,Exp);
-    case 1
-      varargout = {spec};
-    case 2
-      varargout = {xAxis,spec};
-    case 3
-      varargout = {xAxis,spec,info};
-  end
-  return
-end
-%==================================================================
-
-
-%==================================================================
-% Single-isotopologue spectrum
-%==================================================================
-
-% Now we can start simulating the spectrum
 if logmsg>=1, logmsg(1,'=begin=pepper=====%s=================',char(datetime)); end
 logmsg(2,'  log level %d',logmsg);
 logmsg(1,'-general-----------------------------------------------');
-
-%=======================================================================
-% Spin system structure
-%=======================================================================
-
-[Sys,err] = validatespinsys(Sys);
-error(err);
-
-if any(Sys.n>1)
-  error('pepper does not support sets of equivalent nuclei (Sys.n>1).');
-end
-
-StrainWidths = any(Sys.lwAnisoG(:)>0) || ~isempty(Sys.StrainData.Q);
-ConvolutionBroadening = any(Sys.lw>0);
-
-logmsg(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));
-if StrainWidths, logmsg(1,'  strain widths given'); end
-%=======================================================================
-
 
 
 %=======================================================================
@@ -202,74 +126,18 @@ Exp = adddefaults(Exp,DefaultExp);
 % Field or frequency sweep, mw frequency, field, number of points
 allowZeroField = true;
 FieldSweep = p_sweeptype(Exp,allowZeroField);
+Exp.FrequencySweep = ~FieldSweep;
 
-if ~FieldSweep
-  Sys.lw = Sys.lw/1e3;  % MHz -> GHz
-end
-
-% Automatic field range determination
+% Sweep range from CenterSweep or Range (CenterSweep has precedence),
+% stored in Exp.Range or Exp.mwRange ([] for automatic range)
 if FieldSweep
-  if all(isnan(Exp.CenterSweep)) && all(isnan(Exp.Range))
-    if isscalar(Sys.S) && (Sys.S==1/2) && ~any(Sys.L(:))
-      logmsg(1,'  automatic determination of sweep range');
-      I = nucspin(Sys.Nucs).';
-      if ~isempty(I)
-        if Sys.fullA
-          Amax = max(abs(Sys.A),[],2);
-          Amax = max(reshape(Amax,3,[])).';
-        else
-          Amax = max(abs(Sys.A),[],2);
-        end
-      else
-        Amax = 0;
-      end
-      hf = sum(I.*Amax)*1e6; % MHz -> Hz
-      if Sys.fullg
-        for k = 1:Sys.nElectrons
-          g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));  %#ok
-        end
-        g = g(:);
-      else
-        g = Sys.g(:);
-      end
-      gmax = max(g);
-      gmin = min(g);
-      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3; % mT
-      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3; % mT
-      Center = (maxB+minB)/2; % mT
-      Sweep = maxB-minB+3*max(Sys.lw); % mT
-      if Sweep==0, Sweep = 5*max(Sys.lw); end
-      if Sweep==0, Sweep = 10; end
-      Stretch = 1.25;
-      Exp.CenterSweep = [Center, Stretch*Sweep];
-    else
-      error(sprintf('Cannot automatically determine field range.\nPlease provide either Exp.CenterSweep or Exp.Range.'));
-    end
-  end
+  Exp.Range = p_sweeprange(Exp,false,true);
+  Exp.CenterSweep = [];
+  SweepAutoRange = isempty(Exp.Range);
 else
-  % Automatic range for frequency sweep is done later.
-end
-
-% Sweep range from CenterSweep or Range (CenterSweep has precedence)
-if FieldSweep
-  Range = p_sweeprange(Exp,false,true);
-  if ~isempty(Range), Exp.Range = Range; end
-else
-  mwRange = p_sweeprange(Exp,true,false);
-  if ~isempty(mwRange), Exp.mwRange = mwRange; end
-end
-
-if FieldSweep
-  logmsg(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
-    Exp.mwFreq,Exp.Range(1),Exp.Range(2),Exp.nPoints);
-else
-  if ~SweepAutoRange
-    logmsg(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
-      Exp.Field,Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);
-  else
-    logmsg(1,'  field %g mT, automatic frequency range, %d points',...
-      Exp.Field,Exp.nPoints);
-  end
+  Exp.mwRange = p_sweeprange(Exp,true,false);
+  Exp.mwCenterSweep = [];
+  SweepAutoRange = isempty(Exp.mwRange);
 end
 
 % Microwave phase
@@ -277,7 +145,6 @@ if ~FieldSweep
   % flip dispersion lineshape depending on field or freq sweep
   Exp.mwPhase = -Exp.mwPhase;
 end
-mwPhaseLeft = Exp.mwPhase;
 
 % Resonator mode
 if ischar(Exp.mwMode) && ~isempty(Exp.mwMode)
@@ -291,25 +158,16 @@ else
   logmsg(1,'  resonator mode: custom');
 end
 
-% Temperature and non-equilibrium populations
-useTemperature = p_temperature(Exp);
-nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
-if nonEquiPops
-  msg = '  user-specified non-equilibrium state';
-elseif useTemperature
-  msg = sprintf('  temperature %g K',Exp.Temperature);
-else
-  msg = '  no temperature';
+% Temperature (NaN: high-temperature limit)
+if ~p_temperature(Exp)
+  Exp.Temperature = NaN;
 end
-logmsg(1,msg);
 
 % Detect sample type (disordered, partially ordered, crystal)
 [Exp,Opt] = p_sampletype(Exp,Opt);
 crystalSample = Opt.crystalSample;
 
-
 %=======================================================================
-
 
 
 
@@ -317,7 +175,7 @@ crystalSample = Opt.crystalSample;
 % Options structure
 %=======================================================================
 % Documented options, resfields (for the defaults, see resfields).
-%DefaultOpt.Transitions = []; % resfields 
+%DefaultOpt.Transitions = []; % resfields
 %DefaultOpt.Threshold = 1e-3; % resfields
 %DefaultOpt.Intensity = 1; % resfields
 
@@ -348,17 +206,23 @@ if isfield(Opt,'Output')
   error('Options.Output is obsolete. Use Options.separate instead.');
 end
 
+if ~isfield(Opt,'IsoCutoff'), Opt.IsoCutoff = 1e-3; end
+
+% Process Opt.separate
+if ~isfield(Opt,'separate'), Opt.separate = ''; end
+[separateOutput,err] = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
+error(err);
+
+summedOutput = separateOutput==1;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+separateSpectra = ~summedOutput;
+
 % Documented fields, pepper
-DefaultOpt.Verbosity = 0;
 DefaultOpt.GridSymmetry = '';
 DefaultOpt.GridFrame = [];
-DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb' 
-
-if Opt.crystalSample && numel(Opt.R_L2S)>1
-  DefaultOpt.separate = 'orientations';
-else
-  DefaultOpt.separate = '';
-end
+DefaultOpt.Method = 'matrix'; % 'matrix', 'eig', 'perturb1', 'perturb2'='perturb'
 
 % Undocumented fields, pepper
 %DefaultOptions.TPSGridSize = 4;      % resfields
@@ -375,6 +239,7 @@ DefaultOpt.GridSize = [19 4];
 
 Opt = adddefaults(Opt,DefaultOpt);
 
+% Method, stored as an index in Opt.methodID (+10 for frequency sweeps)
 if FieldSweep
   [Method,err] = parseoption(Opt,'Method',{'eig','matrix','perturb','perturb1','perturb2','hybrid'});
   error(err);
@@ -383,21 +248,12 @@ else
   error(err);
   Method = Method + 10;
 end
+Opt.methodID = Method;
 
-useEigenFields = Method==1;
 usePerturbationTheory = any(Method==[3 4 5 12 13 14]);
 if Opt.ImmediateBinning && ~usePerturbationTheory
   error('Opt.ImmediateBinning works only with perturbation theory.');
 end
-if usePerturbationTheory && nonEquiPops
-  error('Perturbation theory not available for systems with non-equilibrium populations.');
-end
-
-% Detection harmonic and field modulation amplitude
-% (strains are ignored by the eigenfield method, the stick summation and the
-% immediate binning)
-strainsUsed = StrainWidths && ~useEigenFields && ~Opt.BruteForce && ~Opt.ImmediateBinning;
-[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,strainsUsed||ConvolutionBroadening);
 
 if Opt.GridSize(1)<Opt.GridSizeMinimum
   error('Options.GridSize must not be less than %d.',Opt.GridSizeMinimum);
@@ -426,6 +282,162 @@ end
 % Parse string options
 anisotropicIntensities = parseoption(Opt,'Intensity',{'off','on'}) - 1;
 Opt.Intensity = anisotropicIntensities;
+
+%=======================================================================
+
+
+%==================================================================
+% Loop over components and isotopologues
+%==================================================================
+thirdOutput = nargout>=3;
+[xAxis,spec,info] = compisoloop(@pepper_single,Sys,Exp,Opt,SweepAutoRange,thirdOutput,separateSpectra);
+
+% Output and plotting
+switch nargout
+  case 0
+    cwepr_plot(xAxis,spec,Exp);
+  case 1
+    varargout = {spec};
+  case 2
+    varargout = {xAxis,spec};
+  case 3
+    varargout = {xAxis,spec,info};
+end
+
+% Report performance
+hmsString = elapsedtime(StartTime,clock);
+logmsg(1,'pepper took %s',hmsString);
+
+if logmsg>=1, logmsg(1,'=end=pepper=======%s=================\n',char(datetime)); end
+
+end
+
+
+%==================================================================
+% Single-isotopologue spectrum
+%==================================================================
+% Exp and Opt have been parsed by pepper(); Exp.Range/Exp.mwRange are
+% empty for automatic range determination.
+function [xAxis,spec,info] = pepper_single(Sys,Exp,Opt)
+
+FieldSweep = ~Exp.FrequencySweep;
+if FieldSweep
+  SweepAutoRange = isempty(Exp.Range);
+else
+  SweepAutoRange = isempty(Exp.mwRange);
+end
+mwPhaseLeft = Exp.mwPhase;
+useTemperature = ~isnan(Exp.Temperature);
+crystalSample = Opt.crystalSample;
+anisotropicIntensities = Opt.Intensity;
+
+Method = Opt.methodID;
+useEigenFields = Method==1;
+usePerturbationTheory = any(Method==[3 4 5 12 13 14]);
+
+separateOutput = parseoption(Opt,'separate',{'','components','transitions','orientations','sites'});
+summedOutput = separateOutput==1;
+separateTransitionSpectra = separateOutput==3;
+separateOrientationSpectra = separateOutput==4;
+separateSiteSpectra = separateOutput==5;
+
+%=======================================================================
+% Spin system structure
+%=======================================================================
+
+[Sys,err] = validatespinsys(Sys);
+error(err);
+
+if any(Sys.n>1)
+  error('pepper does not support sets of equivalent nuclei (Sys.n>1).');
+end
+
+StrainWidths = any(Sys.lwAnisoG(:)>0) || ~isempty(Sys.StrainData.Q);
+ConvolutionBroadening = any(Sys.lw>0);
+
+logmsg(1,'  system with %d spin(s) and %d states',numel(spinvec(Sys)),hsdim(Sys));
+if StrainWidths, logmsg(1,'  strain widths given'); end
+
+if ~FieldSweep
+  Sys.lw = Sys.lw/1e3;  % MHz -> GHz
+end
+%=======================================================================
+
+
+% Automatic field range determination
+if FieldSweep && SweepAutoRange
+  if isscalar(Sys.S) && (Sys.S==1/2) && ~any(Sys.L(:))
+    logmsg(1,'  automatic determination of sweep range');
+    I = nucspin(Sys.Nucs).';
+    if ~isempty(I)
+      if Sys.fullA
+        Amax = max(abs(Sys.A),[],2);
+        Amax = max(reshape(Amax,3,[])).';
+      else
+        Amax = max(abs(Sys.A),[],2);
+      end
+    else
+      Amax = 0;
+    end
+    hf = sum(I.*Amax)*1e6; % MHz -> Hz
+    if Sys.fullg
+      for k = 1:Sys.nElectrons
+        g(:,k) = eig(Sys.g((1:3)+(k-1)*3,:));  %#ok
+      end
+      g = g(:);
+    else
+      g = Sys.g(:);
+    end
+    gmax = max(g);
+    gmin = min(g);
+    minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3; % mT
+    maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3; % mT
+    Center = (maxB+minB)/2; % mT
+    Sweep = maxB-minB+3*max(Sys.lw); % mT
+    if Sweep==0, Sweep = 5*max(Sys.lw); end
+    if Sweep==0, Sweep = 10; end
+    Stretch = 1.25;
+    Exp.Range = Center + [-1 1]*(Stretch*Sweep)/2;
+  else
+    error(sprintf('Cannot automatically determine field range.\nPlease provide either Exp.CenterSweep or Exp.Range.'));
+  end
+else
+  % Automatic range for frequency sweep is done later.
+end
+
+if FieldSweep
+  logmsg(1,'  frequency %g GHz, field range [%g %g] mT, %d points',...
+    Exp.mwFreq,Exp.Range(1),Exp.Range(2),Exp.nPoints);
+else
+  if ~SweepAutoRange
+    logmsg(1,'  field %g mT, frequency range [%g %g] GHz, %d points',...
+      Exp.Field,Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);
+  else
+    logmsg(1,'  field %g mT, automatic frequency range, %d points',...
+      Exp.Field,Exp.nPoints);
+  end
+end
+
+% Temperature and non-equilibrium populations
+nonEquiPops = isfield(Sys,'initState') && ~isempty(Sys.initState);
+if nonEquiPops
+  msg = '  user-specified non-equilibrium state';
+elseif useTemperature
+  msg = sprintf('  temperature %g K',Exp.Temperature);
+else
+  msg = '  no temperature';
+end
+logmsg(1,msg);
+
+if usePerturbationTheory && nonEquiPops
+  error('Perturbation theory not available for systems with non-equilibrium populations.');
+end
+
+% Detection harmonic and field modulation amplitude
+% (strains are ignored by the eigenfield method, the stick summation and the
+% immediate binning)
+strainsUsed = StrainWidths && ~useEigenFields && ~Opt.BruteForce && ~Opt.ImmediateBinning;
+[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,strainsUsed||ConvolutionBroadening);
 
 % Set up orientational grid
 [Exp,Opt,nOrientations] = p_gridsetup(Sys,Exp,Opt);
@@ -1053,24 +1065,9 @@ spec = p_lineshape(xAxis,spec,Sys.lw,derivsLeft,mwPhaseLeft,Exp,unitstr,Opt.Padd
 
 % Assign output
 %-----------------------------------------------------------------------
-switch nargout
-  case 1
-    varargout = {spec};
-  case 2
-    varargout = {xAxis,spec};
-  case 3
-    info.Transitions = Transitions;
-    info.nSites = nSites;
-    info.nOrientations = nOrientations;
-    varargout = {xAxis,spec,info};
-end
-
-% Report performance
-%-----------------------------------------------------------------------
-hmsString = elapsedtime(StartTime,clock);
-logmsg(1,'pepper took %s',hmsString);
-
-if logmsg>=1, logmsg(1,'=end=pepper=======%s=================\n',char(datetime)); end
+info.Transitions = Transitions;
+info.nSites = nSites;
+info.nOrientations = nOrientations;
 
 end
 
