@@ -108,18 +108,17 @@ DefaultExp.Range = NaN;
 DefaultExp.mwCenterSweep = NaN;
 DefaultExp.mwRange = NaN;
 DefaultExp.nPoints = 1024;
-DefaultExp.Temperature = NaN;
-DefaultExp.Harmonic = NaN;
-DefaultExp.mwMode = 'perpendicular';
+DefaultExp.Harmonic = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
+DefaultExp.mwMode = 'perpendicular';
+DefaultExp.Temperature = NaN;  % high-temperature limit
 DefaultExp.lightBeam = '';  % no photoexcitation
-
 DefaultExp.Ordering = [];
-DefaultExp.SampleRotation = [];
 DefaultExp.SampleFrame = [];
-DefaultExp.CrystalSymmetry = '';
+DefaultExp.SampleRotation = [];
 DefaultExp.MolFrame = [];
+DefaultExp.CrystalSymmetry = '';
 
 Exp = adddefaults(Exp,DefaultExp);
 

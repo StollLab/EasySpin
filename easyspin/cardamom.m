@@ -182,6 +182,10 @@ end
 if nargin<4, Opt = struct; end
 if nargin<5, MD = []; end
 
+if ~isstruct(Exp)
+  error('The second input (Exp) must be a structure.');
+end
+
 switch nargout
   case 0 % plotting
   case 1 % spc
@@ -222,7 +226,7 @@ DefaultExp.Harmonic = [];
 DefaultExp.ModAmp = 0;
 DefaultExp.mwPhase = 0;
 DefaultExp.mwMode = 'perpendicular';
-DefaultExp.Temperature = NaN;
+DefaultExp.Temperature = NaN;  % high-temperature limit
 DefaultExp.lightBeam = '';
 DefaultExp.Ordering = [];
 DefaultExp.SampleFrame = [];
@@ -270,15 +274,12 @@ end
 if ~isequal(Exp.mwMode,'perpendicular')
   error('cardamom supports only perpendicular-mode spectra (Exp.mwMode = ''perpendicular'').');
 end
+logmsg(1,'  resonator mode: %s',Exp.mwMode);
 
 % Temperature
 if p_temperature(Exp)
   error('Exp.Temperature is not supported by cardamom.');
 end
-
-% Detection harmonic and field modulation amplitude
-% (relaxation always broadens the spectrum)
-[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,true);
 
 % Photoselection, partial ordering, sample orientations and crystals
 unsupportedFields = {'lightBeam','Ordering','SampleFrame','SampleRotation','MolFrame','CrystalSymmetry'};
@@ -288,6 +289,10 @@ for k = 1:numel(unsupportedFields)
     error('Exp.%s is not supported by cardamom.',f);
   end
 end
+
+% Detection harmonic and field modulation amplitude
+% (relaxation always broadens the spectrum)
+[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,true);
 
 if FieldSweep
   omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1

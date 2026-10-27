@@ -76,6 +76,10 @@ if nargin<2 || nargin>3, error('Wrong number of input arguments!'); end
 if nargout<0, error('Not enough output arguments.'); end
 if nargout>3, error('Too many output arguments.'); end
 
+if ~isstruct(Exp)
+  error('The second input (Exp) must be a structure.');
+end
+
 if nargin<3, Opt = struct; end
 if isempty(Opt), Opt = struct; end
 
@@ -90,10 +94,10 @@ logmsg(1,'-- slow motion regime simulation ----------------------------------');
 %-------------------------------------------------------------------------------
 DefaultExp.nPoints = 1024;
 DefaultExp.Harmonic = [];
-DefaultExp.mwPhase = 0;
-DefaultExp.Temperature = NaN;  % high-temperature limit
 DefaultExp.ModAmp = 0;
+DefaultExp.mwPhase = 0;
 DefaultExp.mwMode = 'perpendicular';
+DefaultExp.Temperature = NaN;  % high-temperature limit
 DefaultExp.lightBeam = '';
 DefaultExp.Ordering = [];
 DefaultExp.SampleFrame = [];
@@ -103,33 +107,13 @@ DefaultExp.CrystalSymmetry = '';
 
 Exp = adddefaults(Exp,DefaultExp);
 
-% Photoselection is not supported
-if ~isempty(Exp.lightBeam)
-  error('Photoselection (via Exp.lightBeam) is not supported.')
-end
-
-% Crystal samples and sample rotations are not supported
-if ~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry)
-  error('Crystal samples (via Exp.MolFrame and Exp.CrystalSymmetry) are not supported.');
-end
-if ~isempty(Exp.SampleRotation)
-  error('Sample rotations (via Exp.SampleRotation) are not supported.');
-end
-if ~isempty(Exp.SampleFrame) && ~isequal(size(Exp.SampleFrame),[1 3])
-  error('Exp.SampleFrame must contain a single orientation (three Euler angles).');
-end
-
-% Temperature (NaN: high-temperature limit)
-if ~p_temperature(Exp)
-  Exp.Temperature = NaN;
-end
-
 logmsg(1,'Experiment:');
 
 % Field or frequency sweep, mw frequency, field, number of points
 allowZeroField = false;
 FieldSweep = p_sweeptype(Exp,allowZeroField);
 Exp.FrequencySweep = ~FieldSweep;
+logmsg(1,'  %d points',Exp.nPoints);
 
 % Sweep range from CenterSweep or Range (CenterSweep has precedence),
 % stored in Exp.Range or Exp.mwRange ([] for automatic range, which is
@@ -152,17 +136,31 @@ end
 % which already has the correct dispersion sign along the frequency axis
 
 % Resonator mode
-switch Exp.mwMode
-  case 'perpendicular', ParallelMode = false;
-  case 'parallel', ParallelMode = true;
-  otherwise, error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
+if ~isequal(Exp.mwMode,'perpendicular')
+  error('chili supports only perpendicular-mode spectra (Exp.mwMode = ''perpendicular'').');
 end
-logmsg(1,'  %s mode',Exp.mwMode);
-if ParallelMode
-  error('chili does not support parallel-mode spectra.');
+logmsg(1,'  resonator mode: %s',Exp.mwMode);
+
+% Temperature (NaN: high-temperature limit)
+if ~p_temperature(Exp)
+  Exp.Temperature = NaN;
 end
 
-logmsg(1,'  %d points',Exp.nPoints);
+% Photoselection is not supported
+if ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+
+% Crystal samples and sample rotations are not supported
+if ~isempty(Exp.MolFrame) || ~isempty(Exp.CrystalSymmetry)
+  error('Crystal samples (via Exp.MolFrame and Exp.CrystalSymmetry) are not supported.');
+end
+if ~isempty(Exp.SampleRotation)
+  error('Sample rotations (via Exp.SampleRotation) are not supported.');
+end
+if ~isempty(Exp.SampleFrame) && ~isequal(size(Exp.SampleFrame),[1 3])
+  error('Exp.SampleFrame must contain a single orientation (three Euler angles).');
+end
 
 % Director orientation: a single one given in Exp.SampleFrame (aligned
 % sample), or orientationally disordered (Exp.SampleFrame empty). This is

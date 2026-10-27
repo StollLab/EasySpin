@@ -79,6 +79,10 @@ end
 error(eschecker('internal'));
 warning(chkmlver);
 
+if ~isstruct(Exp)
+  error('The second input (Exp) must be a structure.');
+end
+
 if ~isfield(Opt,'Verbosity')
   Opt.Verbosity = 0;  % log level
 end
@@ -91,12 +95,18 @@ if logmsg>=1, logmsg(1,'=begin=garlic=====%s=================',char(datetime)); 
 %-------------------------------------------------------------------------
 % Process experiment structure
 %-------------------------------------------------------------------------
-DefaultExp.Harmonic = [];
 DefaultExp.nPoints = 1024;
+DefaultExp.Harmonic = [];
 DefaultExp.ModAmp = 0;
-DefaultExp.mwMode = 'perpendicular';
 DefaultExp.mwPhase = 0;
+DefaultExp.mwMode = 'perpendicular';
 DefaultExp.Temperature = NaN;  % high-temperature limit
+DefaultExp.lightBeam = '';
+DefaultExp.Ordering = [];
+DefaultExp.SampleFrame = [];
+DefaultExp.SampleRotation = [];
+DefaultExp.MolFrame = [];
+DefaultExp.CrystalSymmetry = '';
 
 Exp = adddefaults(Exp,DefaultExp);
 
@@ -104,22 +114,6 @@ Exp = adddefaults(Exp,DefaultExp);
 allowZeroField = false;
 FieldSweep = p_sweeptype(Exp,allowZeroField);
 Exp.FrequencySweep = ~FieldSweep;
-
-% Photoselection is not supported
-if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
-  error('Photoselection (via Exp.lightBeam) is not supported.')
-end
-
-% Partial ordering is not supported
-if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
-  error('Partial ordering (via Exp.Ordering) is not supported.')
-end
-
-% Microwave phase
-if ~FieldSweep
-  % flip dispersion lineshape depending on field or freq sweep
-  Exp.mwPhase = -Exp.mwPhase;
-end
 
 % Sweep range from CenterSweep or Range (CenterSweep has precedence),
 % stored in Exp.Range or Exp.mwRange ([] for automatic range)
@@ -136,22 +130,36 @@ if SweepAutoRange
   logmsg(1,'  automatic determination of sweep range');
 end
 
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
 % Resonator mode
-if ~strcmp(Exp.mwMode,'perpendicular') && ~strcmp(Exp.mwMode,'parallel')
+if ~ischar(Exp.mwMode) || ~any(strcmp(Exp.mwMode,{'perpendicular','parallel'}))
   error('Exp.mwMode must be either ''perpendicular'' or ''parallel''.');
 end
-logmsg(1,'  %s mode',Exp.mwMode);
+logmsg(1,'  resonator mode: %s',Exp.mwMode);
 
 % Temperature (NaN: high-temperature limit)
 if ~p_temperature(Exp)
   Exp.Temperature = NaN;
 end
 
+% Photoselection and partial ordering are not supported
+if ~isempty(Exp.lightBeam)
+  error('Photoselection (via Exp.lightBeam) is not supported.')
+end
+if ~isempty(Exp.Ordering)
+  error('Partial ordering (via Exp.Ordering) is not supported.')
+end
+
 % Sample orientation has no effect on isotropic spectra
 orientationFields = {'SampleFrame','SampleRotation','MolFrame','CrystalSymmetry'};
 for k = 1:numel(orientationFields)
   f = orientationFields{k};
-  if isfield(Exp,f) && ~isempty(Exp.(f))
+  if ~isempty(Exp.(f))
     logmsg(1,'  Exp.%s has no effect on isotropic spectra, ignoring it',f);
   end
 end
