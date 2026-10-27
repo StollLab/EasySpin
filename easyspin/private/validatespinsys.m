@@ -216,7 +216,7 @@ else
 
   % Supplement g: free-electron value, or zero if Sys.Ham* fields are given
   Sys.fullg = false;
-  if any(strncmp(fieldnames(Sys),'Ham',3))
+  if any(strncmp(givenFields,'Ham',3))
     Sys.g = zeros(nElectrons,3);
   else
     Sys.g = gfree*ones(nElectrons,3);
@@ -227,12 +227,13 @@ end
 % Euler angles for g tensor(s)
 if ~isfield(Sys,'gFrame') || isempty(Sys.gFrame)
   Sys.gFrame = zeros(nElectrons,3);
-end
-err = sizecheck(Sys,'gFrame',[nElectrons 3]);
-if ~isempty(err), return; end
-if Sys.fullg
-  err = fullframecheck(Sys,'g');
+else
+  err = sizecheck(Sys,'gFrame',[nElectrons 3]);
   if ~isempty(err), return; end
+  if Sys.fullg
+    err = fullframecheck(Sys,'g');
+    if ~isempty(err), return; end
+  end
 end
 
 
@@ -283,12 +284,13 @@ end
 % Euler angles for D tensor(s)
 if ~isfield(Sys,'DFrame') || isempty(Sys.DFrame)
   Sys.DFrame = zeros(nElectrons,3);
-end
-err = sizecheck(Sys,'DFrame',[nElectrons 3]);
-if ~isempty(err), return; end
-if Sys.fullD
-  err = fullframecheck(Sys,'D');
+else
+  err = sizecheck(Sys,'DFrame',[nElectrons 3]);
   if ~isempty(err), return; end
+  if Sys.fullD
+    err = fullframecheck(Sys,'D');
+    if ~isempty(err), return; end
+  end
 end
 
 
@@ -296,7 +298,12 @@ end
 %-------------------------------------------------------------------------------
 Sys.B = [];
 D_present = any(Sys.D(:));
-for k = find(ismember(BNames,givenFields))
+% (ismember is slow, so it is skipped if no field starts with B)
+BIdx = [];
+if any(strncmp(givenFields,'B',1))
+  BIdx = find(ismember(BNames,givenFields));
+end
+for k = BIdx
   fieldname = BNames{k};
   Bk = Sys.(fieldname);
 
@@ -448,12 +455,13 @@ if nElectrons>1 && ~reprocessing
   % (full matrices built from J, dip and dvec can be combined with eeFrame)
   if ~isfield(Sys,'eeFrame') || isempty(Sys.eeFrame)
     Sys.eeFrame = zeros(nElPairs,3);
-  end
-  err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
-  if ~isempty(err), return; end
-  if eeMatrix && Sys.fullee
-    err = fullframecheck(Sys,'ee');
+  else
+    err = sizecheck(Sys,'eeFrame',[nElPairs 3]);
     if ~isempty(err), return; end
+    if eeMatrix && Sys.fullee
+      err = fullframecheck(Sys,'ee');
+      if ~isempty(err), return; end
+    end
   end
 
 end
@@ -477,6 +485,11 @@ end
 
 % Orbital angular momentum (Sys.L, Sys.soc, Sys.gL, Sys.CF*)
 %-------------------------------------------------------------------------------
+% (ismember is slow, so it is skipped if no field starts with CF)
+CFIdx = [];
+if any(strncmp(givenFields,'CF',2))
+  CFIdx = find(ismember(CFNames,givenFields));
+end
 if isfield(Sys,'L') && ~isempty(Sys.L)
   if ~isreal(Sys.L) || any(mod(Sys.L,1)) || any(Sys.L<0)
     err = 'Orbital angular momentum in Sys.L must be nonnegative integers.';
@@ -514,7 +527,7 @@ if isfield(Sys,'L') && ~isempty(Sys.L)
       return
     end
   end
-  for k = find(ismember(CFNames,givenFields))
+  for k = CFIdx
     fieldname = CFNames{k};
     CFk = Sys.(fieldname);
 
@@ -540,7 +553,7 @@ else
     err = 'Sys.soc is given, but Sys.L is missing. Specify Sys.L.';
     return
   end
-  for k = find(ismember(CFNames,givenFields))
+  for k = CFIdx
     if ~isempty(Sys.(CFNames{k}))
       err = sprintf('Sys.%s is given, but Sys.L is missing. Specify Sys.L.',CFNames{k});
       return
@@ -555,7 +568,7 @@ Sys.nL = numel(Sys.L);
 % Higher-order Zeeman terms (Sys.Ham*)
 %-------------------------------------------------------------------------------
 Sys.MO_present = false;
-if any(strncmp('Ham',fieldnames(Sys),3))
+if any(strncmp(givenFields,'Ham',3))
   Hamstr = cell(9,9,17);
   for lB = 8:-1:0
     for lS = 8:-1:0
@@ -691,12 +704,13 @@ end
 % Euler angles for sigma tensor(s)
 if ~isfield(Sys,'sigmaFrame') || isempty(Sys.sigmaFrame)
   Sys.sigmaFrame = zeros(nNuclei,3);
-end
-err = sizecheck(Sys,'sigmaFrame',[nNuclei 3]);
-if ~isempty(err), return; end
-if Sys.fullsigma
-  err = fullframecheck(Sys,'sigma');
+else
+  err = sizecheck(Sys,'sigmaFrame',[nNuclei 3]);
   if ~isempty(err), return; end
+  if Sys.fullsigma
+    err = fullframecheck(Sys,'sigma');
+    if ~isempty(err), return; end
+  end
 end
 
 
@@ -793,12 +807,13 @@ if nNuclei>0
   % Euler angles for A tensor(s)
   if ~isfield(Sys,'AFrame') || isempty(Sys.AFrame)
     Sys.AFrame = zeros(nNuclei,3*nElectrons);
-  end
-  err = sizecheck(Sys,'AFrame',[nNuclei,3*nElectrons]);
-  if ~isempty(err), return; end
-  if Sys.fullA
-    err = fullframecheck(Sys,'A');
+  else
+    err = sizecheck(Sys,'AFrame',[nNuclei,3*nElectrons]);
     if ~isempty(err), return; end
+    if Sys.fullA
+      err = fullframecheck(Sys,'A');
+      if ~isempty(err), return; end
+    end
   end
 
 end
@@ -860,12 +875,13 @@ if nNuclei>0
   % Euler angles for Q tensor(s)
   if ~isfield(Sys,'QFrame') || isempty(Sys.QFrame)
     Sys.QFrame = zeros(nNuclei,3);
-  end
-  err = sizecheck(Sys,'QFrame',[nNuclei 3]);
-  if ~isempty(err), return; end
-  if Sys.fullQ
-    err = fullframecheck(Sys,'Q');
+  else
+    err = sizecheck(Sys,'QFrame',[nNuclei 3]);
     if ~isempty(err), return; end
+    if Sys.fullQ
+      err = fullframecheck(Sys,'Q');
+      if ~isempty(err), return; end
+    end
   end
 
 end
@@ -912,12 +928,13 @@ else
   % Euler angles for nn tensor(s)
   if ~isfield(Sys,'nnFrame') || isempty(Sys.nnFrame)
     Sys.nnFrame = zeros(nNucPairs,3);
-  end
-  err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
-  if ~isempty(err), return; end
-  if Sys.fullnn
-    err = fullframecheck(Sys,'nn');
+  else
+    err = sizecheck(Sys,'nnFrame',[nNucPairs 3]);
     if ~isempty(err), return; end
+    if Sys.fullnn
+      err = fullframecheck(Sys,'nn');
+      if ~isempty(err), return; end
+    end
   end
 
 end
@@ -996,7 +1013,7 @@ end
 % List of spins and state space dimension
 %-------------------------------------------------------------------------------
 Sys.Spins = [Sys.S(:); Sys.I(:); Sys.L(:)].';
-Sys.nStates = hsdim(Sys.Spins);
+Sys.nStates = prod(2*Sys.Spins+1);
 
 
 % Convolution line widths (Sys.lw, Sys.lwpp, Sys.lwEndor)
@@ -1305,12 +1322,10 @@ function err = frames_obsoletemsg(Sys)
 oldFields = {'gpa', 'Dpa', 'eepa', 'Apa', 'Qpa'};
 correctFields = {'gFrame','DFrame','eeFrame','AFrame','QFrame'};
 err = '';
-for k = 1:numel(oldFields)
-  oldField = oldFields{k};
-  if isfield(Sys,oldField)
-    err = sprintf('Sys.%s is no longer supported. To specify a tensor orientation, use Sys.%s instead.',...
-      oldField,correctFields{k});
-    return
-  end
+given = isfield(Sys,oldFields);
+if any(given)
+  k = find(given,1);
+  err = sprintf('Sys.%s is no longer supported. To specify a tensor orientation, use Sys.%s instead.',...
+    oldFields{k},correctFields{k});
 end
 end

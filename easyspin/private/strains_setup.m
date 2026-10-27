@@ -26,19 +26,22 @@
 
 function [StrainData,err] = strains_setup(SysIn,Sys)
 
-StrainData.Q = [];
-StrainData.Deriv = [];
-StrainData.Tensors = struct('type',{},'idx',{},'M',{});
-StrainData.Nuclei = [];
+% Strain data without strains (built once, since struct creation is slow)
+persistent noStrainData
+if isempty(noStrainData)
+  noStrainData.Q = [];
+  noStrainData.Deriv = [];
+  noStrainData.Tensors = struct('type',{},'idx',{},'M',{});
+  noStrainData.Nuclei = [];
+end
+StrainData = noStrainData;
 err = '';
 
-strainFields = {'StrainFWHM','StrainCorr','StrainModes'};
 if ~isfield(SysIn,'StrainPars') || isempty(SysIn.StrainPars)
-  for f = 1:numel(strainFields)
-    if isfield(SysIn,strainFields{f})
-      err = sprintf('Sys.%s is given, but Sys.StrainPars is missing or empty.',strainFields{f});
-      return
-    end
+  strainFields = {'StrainFWHM','StrainCorr','StrainModes'};
+  given = isfield(SysIn,strainFields);
+  if any(given)
+    err = sprintf('Sys.%s is given, but Sys.StrainPars is missing or empty.',strainFields{find(given,1)});
   end
   return
 end

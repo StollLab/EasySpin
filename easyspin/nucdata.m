@@ -111,11 +111,8 @@ for k = numel(Nucs):-1:1
     end
     error(Message);
   end
-end
 
-% Find nuclei and get spin and gn
-for k = numel(Nucs):-1:1
-  idx = find(strcmp(Nucs{k},IsotopeList.Symbols));
+  % Get spin, gn, quadrupole moment, abundance
   Spin(k) = IsotopeList.Spins(idx);
   gn(k) = IsotopeList.gns(idx);
   qm(k) = IsotopeList.qms(idx);
