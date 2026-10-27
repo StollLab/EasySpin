@@ -35,7 +35,7 @@ EasySpin is a MATLAB toolbox for analyzing, simulating and fitting EPR spectra a
 - Every public function starts with a help block and `if nargin==0, help(mfilename); return; end`, unless it is a GUI function (see [Documentation](#documentation)).
 - Inputs come as structures: `Sys` (spin system), `Exp` (experiment), `Opt` (options). Common helpers:
   - `validatespinsys` normalizes and checks `Sys`.
-  - `validate_exp` and the `p_*.m` helpers (`p_sweeprange`, `p_temperature`, `p_sampletype`, ...) parse shared `Exp` fields consistently across simulation functions. Reuse them instead of re-parsing fields.
+  - The `p_*.m` helpers (`p_sweeptype`, `p_sweeprange`, `p_temperature`, `p_sampletype`, ...) parse shared `Exp` fields consistently across simulation functions. Reuse them instead of re-parsing fields.
   - `adddefaults(User,Default)` merges defaults into a structure, and `parseoption` parses enumerated string options.
   - `logmsg(level,fmt,...)` writes log output, controlled by `Opt.Verbosity`.
 - Simulation functions (`pepper`, `garlic`, `chili`, `salt`, `saffron`, ...) loop over components and isotopologues through `compisoloop`, which calls the function recursively with `Sys.singleiso`.

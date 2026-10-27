@@ -147,11 +147,9 @@ else
   SweepAutoRange = false;
 end
 
-% Microwave phase
-if ~FieldSweep
-  % flip dispersion lineshape depending on field or freq sweep
-  Exp.mwPhase = -Exp.mwPhase;
-end
+% Microwave phase: unlike pepper and garlic, Exp.mwPhase is not flipped for
+% frequency sweeps, since chili_single applies it to the complex spectrum,
+% which already has the correct dispersion sign along the frequency axis
 
 % Resonator mode
 switch Exp.mwMode
@@ -1329,7 +1327,7 @@ end
 
 
 %===============================================================================
-% Phasing (Exp.mwPhase has been flipped by chili() for frequency sweeps)
+% Phasing
 %===============================================================================
 spec = real(exp(1i*Exp.mwPhase)*spec);
 

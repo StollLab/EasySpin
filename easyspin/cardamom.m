@@ -63,11 +63,13 @@
 %     mwRange        sweep range, [sweepmin sweepmax], in GHz (for frequency sweeps)
 %     mwCenterSweep  sweep range, [center sweep], in GHz (for frequency sweeps)
 %     nPoints        number of points
-%     Harmonic       detection harmonic: 1 for field sweeps, 0 for frequency
-%                    sweeps (other values are not supported)
+%     Harmonic       detection harmonic: 0, 1, 2 (default: 1 for field sweeps,
+%                    0 for frequency sweeps)
+%     ModAmp         peak-to-peak modulation amplitude, in mT (field sweeps only)
+%     mwPhase        detection phase (0 = absorption, pi/2 = dispersion)
 %     Temperature    not supported; must be omitted (or NaN)
-%     ModAmp, mwPhase, mwMode='parallel', lightBeam, Ordering, SampleFrame,
-%     SampleRotation, MolFrame and CrystalSymmetry are not supported
+%     mwMode='parallel', lightBeam, Ordering, SampleFrame, SampleRotation,
+%     MolFrame and CrystalSymmetry are not supported
 %
 %   Par: structure with simulation parameters
 %     Model      model for spin label dynamics
@@ -214,36 +216,89 @@ end
 %-------------------------------------------------------------------------------
 
 logmsg(1,'Experimental settings:');
-[Exp,FieldSweep,CenterField,CenterFreq,~] = validate_exp('cardamom',Sys,Exp);
+
+DefaultExp.nPoints = 1024;
+DefaultExp.Harmonic = [];
+DefaultExp.ModAmp = 0;
+DefaultExp.mwPhase = 0;
+DefaultExp.mwMode = 'perpendicular';
+DefaultExp.Temperature = NaN;
+DefaultExp.lightBeam = '';
+DefaultExp.Ordering = [];
+DefaultExp.SampleFrame = [];
+DefaultExp.SampleRotation = [];
+DefaultExp.MolFrame = [];
+DefaultExp.CrystalSymmetry = '';
+
+Exp = adddefaults(Exp,DefaultExp);
+
+% Field or frequency sweep, mw frequency, field, number of points
+allowZeroField = false;
+FieldSweep = p_sweeptype(Exp,allowZeroField);
+Exp.FrequencySweep = ~FieldSweep;
+
+% Sweep range from CenterSweep or Range (CenterSweep has precedence),
+% stored in Exp.Range or Exp.mwRange (automatic range for field sweeps only)
+if FieldSweep
+  Exp.Range = p_sweeprange(Exp,false,false);
+  Exp.CenterSweep = [];
+  if isempty(Exp.Range)
+    if Sys.S==1/2
+      logmsg(1,'  automatic determination of sweep range');
+      I = nucspin(Sys.Nucs).';
+      if numel(I)>0
+        Amax = max(abs(Sys.A),[],2);
+        hf = sum(I.*Amax)*1e6; % MHz -> Hz
+      else
+        hf = 0;
+      end
+      gmax = max(Sys.g(:));
+      gmin = min(Sys.g(:));
+      minB = planck*(Exp.mwFreq*1e9 - hf)/bmagn/gmax/1e-3;
+      maxB = planck*(Exp.mwFreq*1e9 + hf)/bmagn/gmin/1e-3;
+      Stretch = 1.25;
+      Exp.Range = (maxB+minB)/2 + [-1 1]/2*Stretch*max(maxB-minB,5);
+    else
+      error('Cannot automatically determine sweep range for this spin system.');
+    end
+  end
+  CenterField = mean(Exp.Range);
+  logmsg(1,'  field range (mT): min %g, max %g',Exp.Range(1),Exp.Range(2));
+else
+  Exp.mwRange = p_sweeprange(Exp,true,false);
+  Exp.mwCenterSweep = [];
+  if isempty(Exp.mwRange)
+    error('Either Exp.mwRange or Exp.mwCenterSweep need to be given.');
+  end
+  CenterField = Exp.Field;
+  logmsg(1,'  frequency range (GHz): min %g, max %g',Exp.mwRange(1),Exp.mwRange(2));
+end
+
+% Microwave phase
+if ~FieldSweep
+  % flip dispersion lineshape depending on field or freq sweep
+  Exp.mwPhase = -Exp.mwPhase;
+end
+
+% Resonator mode
+if ~isequal(Exp.mwMode,'perpendicular')
+  error('cardamom supports only perpendicular-mode spectra (Exp.mwMode = ''perpendicular'').');
+end
 
 % Temperature
 if p_temperature(Exp)
   error('Exp.Temperature is not supported by cardamom.');
 end
 
-% Detection: first harmonic for field sweeps, absorption for frequency sweeps
-if ~isempty(Exp.Harmonic) && ~all(isnan(Exp.Harmonic))
-  if FieldSweep && ~isequal(Exp.Harmonic,1)
-    error('cardamom supports only Exp.Harmonic = 1 for field sweeps.');
-  elseif ~FieldSweep && ~isequal(Exp.Harmonic,0)
-    error('cardamom supports only Exp.Harmonic = 0 for frequency sweeps.');
-  end
-end
-if ~isempty(Exp.ModAmp) && any(Exp.ModAmp~=0)
-  error('Field modulation (via Exp.ModAmp) is not supported by cardamom.');
-end
-if ~isempty(Exp.mwPhase) && any(Exp.mwPhase~=0)
-  error('Dispersion detection (via Exp.mwPhase) is not supported by cardamom.');
-end
-if ~isempty(Exp.mwMode) && ~isequal(Exp.mwMode,'perpendicular')
-  error('cardamom supports only perpendicular-mode spectra (Exp.mwMode = ''perpendicular'').');
-end
+% Detection harmonic and field modulation amplitude
+% (relaxation always broadens the spectrum)
+[Exp,derivsLeft] = p_harmonic(Exp,FieldSweep,true);
 
 % Photoselection, partial ordering, sample orientations and crystals
 unsupportedFields = {'lightBeam','Ordering','SampleFrame','SampleRotation','MolFrame','CrystalSymmetry'};
 for k = 1:numel(unsupportedFields)
   f = unsupportedFields{k};
-  if isfield(Exp,f) && ~isempty(Exp.(f))
+  if ~isempty(Exp.(f))
     error('Exp.%s is not supported by cardamom.',f);
   end
 end
@@ -251,7 +306,7 @@ end
 if FieldSweep
   omega0 = 2*pi*Exp.mwFreq*1e9;  % GHz -> rad s^-1
 else
-  omega0 = 2*pi*CenterFreq*1e9;  % GHz -> rad s^-1
+  omega0 = 2*pi*mean(Exp.mwRange)*1e9;  % GHz -> rad s^-1
 end
 
 % Check local dynamics models
@@ -653,7 +708,7 @@ nOrientsTot = 0;
 t = linspace(0, nStepsSpin*Par.dtSpin, nStepsSpin).';
 
 converged = false;
-spcLast = 0;
+dspcLast = 0;
 while ~converged
   tic
   
@@ -822,13 +877,18 @@ while ~converged
     end
   end
   
-  % Multiply by t for differentiation and take the FFT
-  spcArray = cat(2, spcArray, imag(fftshift(fft(TDSignal.*tLong, [], 1))));
+  % Absorption spectrum via FFT (halving the t=0 point avoids a baseline offset)
+  TDSignalHalf = TDSignal;
+  TDSignalHalf(1,:) = TDSignalHalf(1,:)/2;
+  spcArray = cat(2, spcArray, real(fftshift(fft(TDSignalHalf, [], 1))));
   spcNew = mean(spcArray,2);
-  
+
   if checkConvergence
-    span = max(spcNew)-min(spcNew);
-    rmsdNew = sqrt(mean((spcNew-spcLast).^2))/span;
+    % judge convergence on the first derivative, which is more sensitive
+    % than the absorption
+    dspcNew = diff(spcNew);
+    span = max(dspcNew)-min(dspcNew);
+    rmsdNew = sqrt(mean((dspcNew-dspcLast).^2))/span;
     if rmsdNew<2e-2
       converged = true;
     elseif iter>2
@@ -846,7 +906,7 @@ while ~converged
       fprintf(msg);
     end
     rmsdLast = rmsdNew;
-    spcLast = spcNew;  % store for comparison after next iteration completes
+    dspcLast = dspcNew;  % store for comparison after next iteration completes
     nOrientsTot = nOrientsTot + nOrientations;
     skip = iter*nOrientsTot;  % seed Sobol sequence generator for next iteration
     
@@ -889,21 +949,29 @@ else
   fftAxis = freq/1e9+unitconvert(Exp.Field,'mT->MHz',mean(Sys.g))/1e3;  % GHz
 end
 
+% scale so that the first derivative along the sweep axis equals the
+% t-weighted spectrum imag(fft(t*S(t))) = dt*M/(2*pi)*d(real(fft(S)))/dk
+spcAvg = spcAvg*Par.dtSpin*M/(2*pi)*abs(fftAxis(2)-fftAxis(1));
+
 % set up horizontal sweep axis
 if FieldSweep
   xAxis = linspace(Exp.Range(1),Exp.Range(2),Exp.nPoints);  % field axis, mT
+  unitstr = 'mT';
 else
-  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % field axis, GHz
+  xAxis = linspace(Exp.mwRange(1),Exp.mwRange(2),Exp.nPoints);  % frequency axis, GHz
+  unitstr = 'GHz';
 end
 
 % interpolate over horizontal sweep range
 if FieldSweep
-  outspc = interp1(fftAxis, spcAvg, xAxis);
+  outspc = interp1(fftAxis,spcAvg,xAxis,'linear',0);
 else
   spcAvg = spcAvg(end:-1:1);   % reverse the axis for frequency sweep
   outspc = interp1(fftAxis,spcAvg,xAxis,'spline',0);
-  outspc = cumtrapz(xAxis(end:-1:1),outspc);  % frequency sweeps outputs the absorption
 end
+
+% Phase, harmonic and field modulation
+outspc = p_lineshape(xAxis,outspc,[0 0],derivsLeft,Exp.mwPhase,Exp,unitstr,0,true);
 
 % average over trajectories for time-domain signal output
 TDSignal = mean(TDSignal, 2);
