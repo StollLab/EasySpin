@@ -41,14 +41,18 @@ end
 % Keep the unmodified input (used by strains_setup)
 SysIn = Sys;
 
-% Compile MEX files if necessary
+% Compile MEX files if necessary (checked once per session)
 %-------------------------------------------------------------------------------
-fileName = 'cubicsolve';
-if exist(fileName,'file')~=3
-  easyspin_compile;
+persistent mexFilesPresent
+if isempty(mexFilesPresent)
+  fileName = 'cubicsolve';
   if exist(fileName,'file')~=3
-    error('EasySpin: Generation of mex files failed.');
+    easyspin_compile;
+    if exist(fileName,'file')~=3
+      error('EasySpin: Generation of mex files failed.');
+    end
   end
+  mexFilesPresent = true;
 end
 
 % Field names: capitalization, obsolete and unsupported fields
@@ -67,11 +71,11 @@ correctFields = {'S','Nucs','Abund','n','gnscale',...
   'L', 'soc', 'gL',...
   'initState',...
   'tdm',...
-  'tcorr','logtcorr','Diff','logDiff','DiffFrame'};
-fieldlist = @(str,irange) arrayfun(@(x)sprintf('%s%d',str,x),irange,'UniformOutput',false);
-correctFields = [correctFields fieldlist('B',1:12)];
-correctFields = [correctFields strcat(fieldlist('B',1:12),'Frame')];
-correctFields = [correctFields fieldlist('CF',1:12)];
+  'tcorr','logtcorr','Diff','logDiff','DiffFrame',...
+  'B1','B2','B3','B4','B5','B6','B7','B8','B9','B10','B11','B12',...
+  'B1Frame','B2Frame','B3Frame','B4Frame','B5Frame','B6Frame',...
+  'B7Frame','B8Frame','B9Frame','B10Frame','B11Frame','B12Frame',...
+  'CF1','CF2','CF3','CF4','CF5','CF6','CF7','CF8','CF9','CF10','CF11','CF12'};
 
 % Capitalization
 givenFields = fieldnames(Sys);
