@@ -81,6 +81,9 @@ if ~isfield(Exp,'Field')
   if isfield(Sys,'g')
     error('Exp.Field is required for Sys.g.')
   elseif isfield(Sys,'ZeemanFreq') && ~isempty(Sys.ZeemanFreq) && all(Sys.ZeemanFreq~=0) % && (~isfield(Sys,'S') || all(Sys.S==1/2))
+    if Sys.ZeemanFreq(1)<0
+      error('Exp.Field is missing and cannot be negative, so Sys.ZeemanFreq(1) must be positive.');
+    end
     % if Sys.ZeemanFreq is used, it Exp.Field is not required, however the
     % program needs a reference field to correctly shift frequencies and
     % to calculate nuclear Larmor frequencies (if nuclei are given). The
@@ -93,6 +96,8 @@ if ~isfield(Exp,'Field')
   end  
 elseif length(Exp.Field) ~= 1
   error('Exp.Field must be a single number (in mT).');
+elseif Exp.Field<0
+  error('Exp.Field cannot be negative.');
 end
 
 % Build the Event and Vary structure
