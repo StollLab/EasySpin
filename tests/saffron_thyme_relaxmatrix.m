@@ -7,6 +7,10 @@ function ok = test()
 %     echo as a scalar T2. With A > 2*nuI, the eigenstates sorted by energy
 %     are in a different order than the product states.
 % (2) short T1 does not lead to numerical divergence
+% (3) scalar T2 acts only on electron coherences: in three-pulse ESEEM with
+%     anisotropic hyperfine coupling, it gives the same result as T2 for
+%     all electron coherences (aa,ab - ba,bb), and nuclear coherences
+%     during T do not decay
 
 Sys.S = 1/2;
 Sys.g = 2;
@@ -46,3 +50,22 @@ Exp.Sequence = {P180 1.5 P90 0.2 P180 0.2};
 Sys.T1 = 0.03;
 [~,y] = saffron(Sys,Exp,Opt);
 ok(3) = all(isfinite(y)) && max(abs(y)) < 2*max(abs(y0));
+
+% (3)
+Sys = rmfield(Sys,'T1');
+Sys.Nucs = '1H';
+Sys.A = [2 9];
+Exp = rmfield(Exp,'DetWindow');
+Exp.Sequence = '3pESEEM';
+Exp.tau = 0.12;
+Exp.T = 0.1;
+Exp.dt = 0.1;
+Exp.nPoints = 10;
+Opt.SimulationMode = 'thyme';
+SysR = Sys;
+SysR.T2 = 0.5;
+[~,yScalar] = saffron(SysR,Exp,Opt);
+SysR.T2 = zeros(4);
+SysR.T2([1 2],[3 4]) = 0.5;
+[~,yMatrix] = saffron(SysR,Exp,Opt);
+ok(4) = areequal(yScalar,yMatrix,1e-8,'rel');

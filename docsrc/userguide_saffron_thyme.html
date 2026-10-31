@@ -389,7 +389,7 @@ In some cases, it might be of interest to investigate the effect of only one typ
 </p>
 
 <p>
-Relaxation acts on the energy levels of the spin system. <code>T2</code> is the decay time of the coherence between two levels. <code>T1</code> describes the transfer of population between two levels: if only two levels were involved, the difference of their populations would return to equilibrium with the time constant <code>T1</code>. A scalar <code>T1</code> is applied to every pair of levels. With more than two levels, the populations therefore return to equilibrium faster than with <code>T1</code>, since there are more pathways.
+Relaxation acts on the energy levels of the spin system. <code>T2</code> is the decay time of the coherence between two levels. A scalar <code>T2</code> is applied to all electron transitions. Nuclear transitions, which do not change the state of any electron spin, are not affected, since nuclear coherences decay much more slowly than electron coherences. This keeps the nuclear modulations in ESEEM and HYSCORE. <code>T1</code> describes the transfer of population between two levels: if only two levels were involved, the difference of their populations would return to equilibrium with the time constant <code>T1</code>. A scalar <code>T1</code> is applied to every pair of levels. With more than two levels, the populations therefore return to equilibrium faster than with <code>T1</code>, since there are more pathways.
 </p>
 
 <p>
@@ -452,6 +452,7 @@ Sys.T1 =
 The population is transferred from level j to level i with the rate 1/(2&middot;<code>T1(i,j)</code>). For elements of the lower triangle of <code>T1</code> that are zero, the corresponding element of the upper triangle is used, so that both directions have the same rate.
 Pairs of levels without a relaxation time (matrix element 0) do not relax. Elements on the diagonal are ignored.
 Relaxation times in the lower triangle of <code>T2</code> are ignored.
+Unlike a scalar <code>T2</code>, a matrix <code>T2</code> is applied exactly as given, also to nuclear transitions. A matrix with the same value everywhere therefore also damps nuclear coherences.
 </p>
 
 <p>

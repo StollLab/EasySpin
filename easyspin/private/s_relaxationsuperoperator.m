@@ -12,6 +12,8 @@
 %   overlaps most with (one-to-one).
 %
 %   Input:
+%     Sys.Spins, Sys.nElectrons  spin quantum numbers (electrons first) and
+%             number of electrons
 %     Sys.T1  longitudinal relaxation time (us), scalar or nStates x nStates
 %             matrix; T1(i,j) gives the rate 1/(2*T1(i,j)) from state j to
 %             state i. For an isolated pair of states with symmetric rates,
@@ -20,7 +22,9 @@
 %     Sys.T2  transverse relaxation time (us), scalar or nStates x nStates
 %             matrix; T2(i,j) is the decay time of the coherence between
 %             states i and j. Only the upper triangle is used. A scalar is
-%             used for all coherences.
+%             used for all electron coherences (between states that differ
+%             in the state of at least one electron spin), but not for
+%             nuclear coherences.
 %             Zero means no relaxation, both for T1 and T2.
 %     H       Hamiltonian (MHz) in the product basis, nStates x nStates
 %
@@ -46,9 +50,14 @@ W = zeros(N);
 W(T1>0) = 1./(2*T1(T1>0));
 
 % Coherence decay rates
+% A scalar T2 applies only to electron coherences, i.e. between product
+% states that differ in the state of at least one electron spin. Nuclear
+% coherences (same electron state) are not affected.
 T2 = Sys.T2;
 if isscalar(T2)
-  T2 = T2*ones(N);
+  nElectronStates = prod(2*Sys.Spins(1:Sys.nElectrons)+1);
+  electronState = ceil((1:N)/(N/nElectronStates));  % electrons come first in Sys.Spins
+  T2 = T2*(electronState.'~=electronState);
 end
 T2 = triu(T2,1);
 T2 = T2 + T2.';

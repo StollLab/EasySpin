@@ -7,6 +7,8 @@ H = diag([1 -1]);  % MHz
 tol = 1e-12;
 
 % Different rates up and down
+Sys.Spins = 1/2;
+Sys.nElectrons = 1;
 Sys.T1 = [0 1.5; 1 0];
 Sys.T2 = 0.5;
 

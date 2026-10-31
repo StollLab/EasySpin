@@ -113,16 +113,16 @@ Longitudinal relaxation time in microseconds.
 If it is a scalar, the relaxation time is applied to all transitions. 
 Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>).
 Transitions with a relaxation time of 0 do not relax.
-In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
+If it is given and nonzero, relaxation is switched on for the entire sequence, unless <code>Opt.Relaxation</code> is given (see below).
 </div>
 
 <div class="optionfield"><code>T2</code></div>
 <div class="optiondescr">
-Transverse relaxation time in microseconds. 
-If it is a scalar, the relaxation time is applied to all transitions. 
+Transverse relaxation time in microseconds.
+If it is a scalar, the relaxation time is applied to all electron transitions, but not to nuclear transitions (transitions that do not change the state of any electron spin).
 Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>).
 Transitions with a relaxation time of 0 do not relax.
-In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
+If it is given and nonzero, relaxation is switched on for the entire sequence, unless <code>Opt.Relaxation</code> is given (see below).
 </div>
 
 <div class="optionfield"><code>initState</code></div>
@@ -504,7 +504,7 @@ If set to <code>'compensate'</code>, the pulse shape is adapted such that it com
 
 <div class="optionfield"><code>Relaxation</code></div>
 <div class="optiondescr">
-Relaxation can be controlled for the entire sequence or specific events:
+Relaxation can be controlled for the entire sequence or specific events. If not given, relaxation is on for the entire sequence if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero, and off otherwise.
 <pre class="matlab">
 Opt.Relaxation = true;   	% switches on relaxation for the entire simulation
 Opt.Relaxation = [0 0 1];	% relaxation is active only during the third event

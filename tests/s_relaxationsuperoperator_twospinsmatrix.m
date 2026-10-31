@@ -8,6 +8,8 @@ tol = 1e-12;
 % difference of 1 and 2 relaxes with T1(1,2), the sum of their populations
 % and the population of state 3 stay constant
 H = diag([1 0 -1]);  % MHz
+Sys.Spins = 1;
+Sys.nElectrons = 1;
 Sys.T1 = [0 2 0; 0 0 0; 0 0 0];
 Sys.T2 = 0;
 Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
@@ -24,6 +26,8 @@ H = diag([1 2 3 4]);
 N = 4;
 T1 = [0 1 2 3; 0 0 4 5; 0 0 0 6; 0 0 0 0];
 T1(3,1) = 7;  % only one reverse rate given
+Sys.Spins = [1/2 1/2];
+Sys.nElectrons = 2;
 Sys.T1 = T1;
 Sys.T2 = 0;
 Gamma = runprivate('s_relaxationsuperoperator',Sys,H);

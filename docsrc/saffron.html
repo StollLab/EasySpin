@@ -124,7 +124,7 @@ Transitions with a relaxation time of 0 do not relax.
 Transverse relaxation time in microseconds.
 For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
 For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
-If it is a scalar, the relaxation time is applied to all transitions.
+If it is a scalar, the relaxation time is applied to all electron transitions, but not to nuclear transitions (transitions that do not change the state of any electron spin).
 Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
 Transitions with a relaxation time of 0 do not relax.
 </div>

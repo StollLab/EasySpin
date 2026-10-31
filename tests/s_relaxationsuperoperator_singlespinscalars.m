@@ -6,6 +6,8 @@ function ok = test()
 H = diag([1 -1]);  % MHz, energy order opposite to product order
 tol = 1e-12;
 
+Sys.Spins = 1/2;
+Sys.nElectrons = 1;
 Sys.T1 = 1.5;
 Sys.T2 = 0.5;
 
