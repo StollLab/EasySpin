@@ -211,10 +211,14 @@ H = H - Opt.FrameShift*1e3*Sz_total;  % MHz
 % Propagation
 %-------------------------------------------------------------------------------
 if ~isempty(Relaxation)
-  logmsg(1,'  adapting relaxation superoperator to system frame');
-  [U,~] = eig(H);
-  R = kron(transpose(U),(U'));
-  Relaxation.Gamma = R'*Relaxation.Gamma*R;
+  logmsg(1,'  setting up the relaxation superoperator');
+  [Relaxation.Gamma,minOverlap] = s_relaxationsuperoperator(Sys,H);
+  relaxationMatrix = ~isscalar(Sys.T1) || ~isscalar(Sys.T2);
+  if relaxationMatrix && minOverlap<0.5
+    warning(['The eigenstates are strongly mixed (smallest overlap with a product ' ...
+      'state: %0.2f). The assignment of the relaxation times in Sys.T1 and Sys.T2 ' ...
+      'to transitions is ambiguous.'],minOverlap);
+  end
 end
 
 % Calls the actual propagation engine

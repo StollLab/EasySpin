@@ -385,14 +385,19 @@ Sys.T2 = 0.5;  % transverse relaxation time in microseconds
 </pre>
 
 <p>
-In some cases, it might be of interest to investigate the effect of only one type of relaxation: If only <code>T1</code> or <code>T2</code> are defined, the missing relaxation time is by default set to 10<sup>10</sup> microseconds.
+In some cases, it might be of interest to investigate the effect of only one type of relaxation: If only <code>T1</code> or <code>T2</code> is given (or the other one is zero), the other type of relaxation is switched off.
+</p>
+
+<p>
+Relaxation acts on the energy levels of the spin system. <code>T2</code> is the decay time of the coherence between two levels. <code>T1</code> describes the transfer of population between two levels: if only two levels were involved, the difference of their populations would return to equilibrium with the time constant <code>T1</code>. A scalar <code>T1</code> is applied to every pair of levels. With more than two levels, the populations therefore return to equilibrium faster than with <code>T1</code>, since there are more pathways.
 </p>
 
 <p>
 In systems with larger spin quantum numbers or several spins, relaxation times can differ for different types of transitions.
 If you do not want to use the same relaxation time for each transition, relaxation times can also be provided in matrices. 
 To set up the input correctly, some knowledge of the spin system and the resulting density matrices is required:
-For a single-spin system the basis functions of the operators in the Zeeman basis states are in descending order, left to right (more at <a href="sop.html">sop</a>).
+The rows and columns of the matrices refer to the Zeeman basis states. For a single-spin system they are in descending order of m, left to right (more at <a href="sop.html">sop</a>).
+Each energy level is identified with the Zeeman basis state that it resembles most. If the levels are strongly mixed, this assignment is ambiguous, and you get a warning.
 E.g., an <i>S</i> = 1 system has three states and the three pathways connecting them can be described by a 3 &times; 3 (density-like) matrix:
 </p>
 
@@ -444,8 +449,8 @@ Sys.T1 =
 </pre>
 
 <p>
-In case the lower triangle is not defined for <code>T1</code>, the upper triangle is used for up and down directions.
-Any transitions that are not assigned a relaxation time (matrix element 0 in the upper triangle) are automatically set to 10<sup>10</sup> microseconds, which effectively switches relaxation off on that pathway. 
+The population is transferred from level j to level i with the rate 1/(2&middot;<code>T1(i,j)</code>). For elements of the lower triangle of <code>T1</code> that are zero, the corresponding element of the upper triangle is used, so that both directions have the same rate.
+Pairs of levels without a relaxation time (matrix element 0) do not relax. Elements on the diagonal are ignored.
 Relaxation times in the lower triangle of <code>T2</code> are ignored.
 </p>
 

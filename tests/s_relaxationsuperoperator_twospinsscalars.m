@@ -1,61 +1,30 @@
 function ok = test()
 
-DefRelTime = 1e10;
+% Scalar T1 and T2 for two spins-1/2 (4 states): same as a matrix with
+% equal values, trace is conserved, coherences decay with T2
 
-% First Test ---------------------------------------
+H = diag([1 2 3 4]);  % MHz
+tol = 1e-12;
+N = 4;
+idxPop = 1:N+1:N^2;
+idxCoh = setdiff(1:N^2,idxPop);
 
-Sys.Spins = [1/2 1/2];
 Sys.T1 = 1.5;
 Sys.T2 = 0.5;
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
 
-RefGamma1 = zeros(16,16);
+% Same as matrix with equal values
+SysM.T1 = triu(1.5*ones(N),1);
+SysM.T2 = triu(0.5*ones(N),1);
+GammaM = runprivate('s_relaxationsuperoperator',SysM,H);
+ok(1) = areequal(Gamma,GammaM,tol,'abs');
 
-for i = [2:5, 7:10, 12:15]
-  RefGamma1(i,i) = 1/Sys.T2;
-end
+% Populations: trace conserved, all other modes decay with rate N/(2*T1)
+GammaPop = Gamma(idxPop,idxPop);
+ok(2) = areequal(sum(GammaPop,1),zeros(1,N),tol,'abs');
+k = sort(eig(GammaPop));
+ok(3) = areequal(k,[0; N/(2*Sys.T1)*ones(N-1,1)],tol,'abs');
 
-
-for i = [1 6 11 16]
-  for ii = [1 6 11 16]
-    if i ~= ii
-      RefGamma1(ii,i) = -1/Sys.T1;
-      RefGamma1(i,ii) = -1/Sys.T1;
-    end
-  end
-end
-
-
-[Gamma1] = runprivate('s_relaxationsuperoperator',Sys);
-
-% Second Test - Default Values for T1 --------------
-
-RefGamma2 = RefGamma1;
-
-for i = [1 6 11 16]
-  for ii = [1 6 11 16]
-    if i ~= ii
-      RefGamma2(ii,i) = -1/DefRelTime;
-      RefGamma2(i,ii) = -1/DefRelTime;
-    end
-  end
-end
-
-Sys.T1 = 0; % this value is being set in s_propagationsetup if the field is empty or not found
-
-[Gamma2] = runprivate('s_relaxationsuperoperator',Sys);
-
-
-% Third Test - Default Values for T2 --------------
-Sys.T1 = 1.5;
-Sys.T2 = 0;
-
-RefGamma3 = RefGamma1;
-
-for i = [2:5, 7:10, 12:15]
-  RefGamma3(i,i) = 1/DefRelTime;
-end
-
-[Gamma3] = runprivate('s_relaxationsuperoperator',Sys);
-
-ok = all([isequal(RefGamma1,Gamma1) isequal(RefGamma2,Gamma2) isequal(RefGamma3,Gamma3)]);
-
+% Coherences: decay with T2, no coupling to populations
+ok(4) = areequal(Gamma(idxCoh,idxCoh),eye(N^2-N)/Sys.T2,tol,'abs');
+ok(5) = ~any(Gamma(idxPop,idxCoh),'all') && ~any(Gamma(idxCoh,idxPop),'all');

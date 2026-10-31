@@ -115,8 +115,8 @@ Longitudinal relaxation time in microseconds.
 For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
 For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all transitions.
-Transition-specific relaxation times can be provided in the form of a matrix. In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
-Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
+Transitions with a relaxation time of 0 do not relax.
 </div>
 
 <div class="optionfield"><code>T2</code></div>
@@ -125,8 +125,8 @@ Transverse relaxation time in microseconds.
 For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
 For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all transitions.
-Transition-specific relaxation times can be provided in the form of a matrix. In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
-Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
+Transitions with a relaxation time of 0 do not relax.
 </div>
 
 <p>

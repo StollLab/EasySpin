@@ -1,123 +1,95 @@
-function [Gamma] = s_relaxationsuperoperator(System)
-%  [gamma] = changeup(system)
+% s_relaxationsuperoperator  Relaxation superoperator for saffron and spidyan
 %
-%  The function changeup calculates the relaxation superoperators for a 
-%  given spinsystem system.sqn, which is a vector of spin quantum numbers.
-%  Relaxation times can either be given as a single or in matrix form. 
-%  In the former case, the same value is applied all T1 or T2 relaxation
-%  pathways:
-%  
-%  System.T1 = 1000;
-%  System.T2 = 500;
+%   [Gamma,minOverlap] = s_relaxationsuperoperator(Sys,H)
 %
-%  The latter allows to define T1 and T2 values to all transitions 
-%  seperately. The used matrix has the same structure as a denisty matrix
-%  of the system, with elements corresponding to the same states as in
-%  sigma. The off-diagonal elements correlate the pathways between the
-%  states in the first dimension and the second dimension. Therefore it is
-%  necessary to define the upper triangle only.
-% 
-%  Assign different relaxation times to all transitions in above example:
-% 
-%                aa  ab     ba      bb
-%  System.T1 =  [0   10^7   10^3    10^4;  aa
-%                0   0      10^4    10^3;  ab
-%                0   0      0       10^7;  ba
-%                0   0      0       0   ;] bb
-% 
-%                aa  ab     ba      bb
-%  System.T2 =  [0   10^3   10^2    10^3;  aa
-%                0   0      10^3    10^2;  ab
-%                0   0      0       10^5;  ba
-%                0   0      0       0   ;] bb
-% 
-%  From this, the program builds the relaxation superator gamma in 
-%  Liouville space.
+%   Builds the relaxation superoperator Gamma for the Liouville-space equation
+%     d(sigma)/dt = -1i*[H,sigma] - Gamma*(sigma-sigma_eq)
+%   where sigma is vectorized column-wise (sigma(:)).
 %
-%  St. Pribitzer, 2017
+%   Relaxation acts on the eigenstates of H. Relaxation times given as
+%   matrices refer to product states, in the order of sop (descending m
+%   for each spin). Each eigenstate is assigned to the product state it
+%   overlaps most with (one-to-one).
+%
+%   Input:
+%     Sys.T1  longitudinal relaxation time (us), scalar or nStates x nStates
+%             matrix; T1(i,j) gives the rate 1/(2*T1(i,j)) from state j to
+%             state i. For an isolated pair of states with symmetric rates,
+%             the population difference relaxes with T1(i,j). If T1(i,j)
+%             with i>j is zero, T1(j,i) is used. A scalar is used for all pairs.
+%     Sys.T2  transverse relaxation time (us), scalar or nStates x nStates
+%             matrix; T2(i,j) is the decay time of the coherence between
+%             states i and j. Only the upper triangle is used. A scalar is
+%             used for all coherences.
+%             Zero means no relaxation, both for T1 and T2.
+%     H       Hamiltonian (MHz) in the product basis, nStates x nStates
+%
+%   Output:
+%     Gamma       relaxation superoperator (1/us) in the product basis
+%     minOverlap  smallest squared overlap between an eigenstate and its
+%                 assigned product state (1 for unmixed states)
 
-[t11, t12] = size(System.T1);
-[t21, t22] = size(System.T2);
+function [Gamma,minOverlap] = s_relaxationsuperoperator(Sys,H)
 
-HilbertDimension = prod(System.Spins*2+1);
+N = size(H,1);
 
-T1ud = 0;
-
-% checks the format of the input and expands it to matrices if necessary
-% for T1 times, which allows for easier processing
-if t11 == 1 && t12 == 1
-    T1 = System.T1*ones(HilbertDimension); 
-else
-    T1 = System.T1;
-    if any(any(tril(T1)))
-       T1ud = 1; 
-    end
+% Population transfer rates W(i,j) from state j to state i
+T1 = Sys.T1;
+if isscalar(T1)
+  T1 = T1*ones(N);
 end
+T1 = T1 - diag(diag(T1));
+T1t = T1.';
+useUpper = T1==0 & tril(true(N),-1);
+T1(useUpper) = T1t(useUpper);
+W = zeros(N);
+W(T1>0) = 1./(2*T1(T1>0));
 
-% checks the format of the input and expands it to matrices if necessary
-% for T2 times, which allows for easier processing
-if t21 ~= 1 || t22 ~= 1
-    T2 = System.T2;
-%     if ~any(any(tril(T2)))
-        % mirrors upper triangle of matrix to lower triangle
-        T2 = triu(T2) + triu(T2,1)';
-%     end
-elseif t21 == 1 && t22 == 1 
-    T2 = System.T2*ones(HilbertDimension);   
+% Coherence decay rates
+T2 = Sys.T2;
+if isscalar(T2)
+  T2 = T2*ones(N);
 end
+T2 = triu(T2,1);
+T2 = T2 + T2.';
+R2 = zeros(N);
+R2(T2>0) = 1./T2(T2>0);
 
+% Superoperator in the eigenbasis: rate equation for the populations
+% (columns sum to zero, so the trace is conserved), exponential decay for
+% the coherences
+K = W - diag(sum(W,1));
+Gamma = diag(R2(:));
+idxPop = 1:N+1:N^2;
+Gamma(idxPop,idxPop) = -K;
 
+% Eigenstates of H, assigned one-to-one to product states by maximum overlap
+H = (H+H')/2;
+[V,E] = eig(H,'vector');
+Overlap = abs(V).^2;  % Overlap(i,k): product state i, eigenstate k
+pairs = matchpairs(1-Overlap,N);
+idx = zeros(1,N);
+idx(pairs(:,1)) = pairs(:,2);
+V = V(:,idx);
+E = E(idx);
 
-% Assigns default values or Inf to all T1 relaxation paths which are zero.
-T1(T1==0) = 1e10;
-T2(T2==0) = 1e10;
-
-Gamma = zeros((HilbertDimension)^2);
-
-kk = 1;
-jj = 2;
-
-% calculates the positions of longitudinal relaxation, populations are
-% never on the diagonal elements of the relaxation superoperator.
-for k1 = 1:HilbertDimension+1:HilbertDimension^2
-    
-    for k2 = k1+HilbertDimension+1 : HilbertDimension+1 : HilbertDimension^2
-        
-        Gamma(k1,k2) = -1/T1(kk,jj);
-        
-        if T1ud
-            Gamma(k2,k1) = -1/T1(jj,kk);
-        else
-            Gamma(k2,k1) = -1/T1(kk,jj);
-        end
-        % since we are using only reduced density matrices (difference of
-        % the equilibrium state to the current state), it is not necessary
-        % to compensate the T1 decay of off-diagonal elements/states with
-        % the diagonal elements:
-%         gamma(k1,k1)=gamma(k1,k1)+1/T1(kk,jj);
-%         gamma(k2,k2)=gamma(k2,k2)+1/T1(kk,jj);
-        jj = jj+1;
-        
-    end
-    
-    kk = kk+1;
-    jj = kk+1;
-    
+% Within sets of degenerate eigenstates, eig returns an arbitrary basis.
+% Rotate it to be closest to the assigned product states (polar
+% decomposition of the overlap matrix).
+tol = 1e-9*max(1,max(abs(E)));
+[Es,order] = sort(E);
+setBoundaries = [0; find(diff(Es)>tol); N];
+for iSet = 1:numel(setBoundaries)-1
+  k = order(setBoundaries(iSet)+1:setBoundaries(iSet+1));
+  if numel(k)>1
+    [Ul,~,Ur] = svd(V(k,k)');
+    V(:,k) = V(:,k)*(Ul*Ur');
+  end
 end
+minOverlap = min(abs(diag(V)).^2);
 
-% populates positions of transverse relaxation elements
-n = 1;
-% rewrites T2 matrix into a vector, to allow effective processing
-T2vec = reshape(T2,HilbertDimension*HilbertDimension,1);
-
-for k = 2:HilbertDimension^2-1
-    
-    if k ~= n+1+n*HilbertDimension
-        Gamma(k,k) = 1/T2vec(k);
-    else
-        n = n+1;
-    end 
-end
+% Transform to the product basis: vec(V'*sigma*V) = kron(V.',V')*vec(sigma)
+R = kron(V.',V');
+Gamma = R'*Gamma*R;
 
 end
-

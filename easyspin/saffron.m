@@ -1987,6 +1987,7 @@ else  % if fastSimulationMode
   rawSignals = cell(1,nOrientations);
   timeAxis = cell(1,nOrientations);
   minWeight = ones(1,nOrientations);  % smallest mS manifold weight (see s_secularham)
+  minOverlap = ones(1,nOrientations);  % smallest eigenstate/product state overlap (see s_relaxationsuperoperator)
 
   logmsg(1,'-starting orientation loop-----------------------------');
   if Opt.Relaxation
@@ -2027,10 +2028,7 @@ else  % if fastSimulationMode
 
     Relaxation_ = Relaxation;
     if ~isempty(Relaxation_)
-      logmsg(1,'  adapting relaxation superoperator to system frame');
-      [U,~] = eig(Ham);
-      R = kron(transpose(U),U');
-      Relaxation_.Gamma = R'*Relaxation_.Gamma*R;
+      [Relaxation_.Gamma,minOverlap(iOrientation)] = s_relaxationsuperoperator(Sys,Ham);
       if isempty(Relaxation_.equilibriumState)
         Relaxation_.equilibriumState = Sigma_;
       end
@@ -2044,6 +2042,12 @@ else  % if fastSimulationMode
       'mS manifold: %0.2f). The high-field approximation used in the shifted ' ...
       'simulation frame can be inaccurate. Use Opt.SimFreq = 0 to simulate in ' ...
       'the lab frame.'],min(minWeight));
+  end
+  relaxationMatrix = ~isscalar(Sys.T1) || ~isscalar(Sys.T2);
+  if relaxationMatrix && min(minOverlap)<0.5
+    warning(['The eigenstates are strongly mixed (smallest overlap with a product ' ...
+      'state: %0.2f). The assignment of the relaxation times in Sys.T1 and Sys.T2 ' ...
+      'to transitions is ambiguous.'],min(minOverlap));
   end
 
   timeAxis = timeAxis{1};

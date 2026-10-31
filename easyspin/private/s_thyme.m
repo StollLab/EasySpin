@@ -351,10 +351,10 @@ for iPoints = 1 : nPoints
               
             elseif currentEvent.ComplexExcitation == 0 && currentEvent.Relaxation
               
-              [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
+              [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
               
               Events{iEvent}.Propagation.LTable = LTable;
-              Events{iEvent}.Propagation.SigmassTable = SigmassTable;
+              Events{iEvent}.Propagation.SigmaOffsetTable = SigmaOffsetTable;
               
             end
             
@@ -366,7 +366,7 @@ for iPoints = 1 : nPoints
                 Utotal = cell(nPhaseSteps,1);
               else
                 Ltotal = cell(nPhaseSteps,length(realBinary));
-                SigmaSStotal = Ltotal;
+                SigmaOffsetTotal = Ltotal;
               end
             end
             
@@ -381,7 +381,7 @@ for iPoints = 1 : nPoints
                     U = UTable{realBinary(iPhaseStep,iWavePoint)+1};
                   else
                     L=LTable{realBinary(iPhaseStep,iWavePoint)+1};
-                    SigmaSS=SigmassTable{realBinary(iPhaseStep,iWavePoint)+1};
+                    SigmaOffset=SigmaOffsetTable{realBinary(iPhaseStep,iWavePoint)+1};
                   end
                 else
                   %----------------------------------------------------
@@ -393,7 +393,7 @@ for iPoints = 1 : nPoints
                   if ~currentEvent.Relaxation
                     U = Propagator(Ham,currentEvent.TimeStep);
                   else
-                    [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,currentEvent.TimeStep);
+                    [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,currentEvent.TimeStep);
                   end
                 end
                 
@@ -413,7 +413,7 @@ for iPoints = 1 : nPoints
                   end
                 else
                   Ltotal{iPhaseStep,iWavePoint} = L;
-                  SigmaSStotal{iPhaseStep,iWavePoint} = SigmaSS;
+                  SigmaOffsetTotal{iPhaseStep,iWavePoint} = SigmaOffset;
                   
                 end
               end
@@ -427,7 +427,7 @@ for iPoints = 1 : nPoints
               Events{iEvent}.Propagation.Utotal = Utotal;
             else
               Events{iEvent}.Propagation.Ltotal = Ltotal;
-              Events{iEvent}.Propagation.SigmaSStotal = SigmaSStotal;
+              Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffsetTotal;
             end
           end
           
@@ -560,8 +560,8 @@ for iPoints = 1 : nPoints
               Sigma = U*Sigma*U';
             elseif currentEvent.Relaxation
               L = currentEvent.Propagation.Ltotal{iPhaseStep,iWavePoint};
-              SigmaSS = currentEvent.Propagation.SigmaSStotal{iPhaseStep,iWavePoint};
-              SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
+              SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal{iPhaseStep,iWavePoint};
+              SigmaVector = L*SigmaVector + SigmaOffset;
               
               Sigma = reshape(SigmaVector,n,n);
             end
@@ -625,13 +625,13 @@ for iPoints = 1 : nPoints
           SigmaVector = reshape(Sigma,n*n,1);
           if isfield(currentEvent.Propagation,'Ltotal')
             L = currentEvent.Propagation.Ltotal;
-            SigmaSS = currentEvent.Propagation.SigmaSStotal;
+            SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal;
           else
             Gamma = Relaxation.Gamma;
             equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-            [L, SigmaSS] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
+            [L, SigmaOffset] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
             Events{iEvent}.Propagation.Ltotal = L;
-            Events{iEvent}.Propagation.SigmaSStotal = SigmaSS;
+            Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffset;
           end
         end
         %--------------------------------------------------------------
@@ -643,7 +643,7 @@ for iPoints = 1 : nPoints
           if ~currentEvent.Relaxation
             Sigma = U*Sigma*U';
           elseif currentEvent.Relaxation
-            SigmaVector = SigmaSS+L*(SigmaVector-SigmaSS);
+            SigmaVector = L*SigmaVector + SigmaOffset;
             Sigma = reshape(SigmaVector,n,n);
           end
           
@@ -895,29 +895,39 @@ function U = Propagator(Ham,dt)
 U = expm(-1i*Ham*dt);
 
 
-function [LTable, SigmassTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
+function [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
 
-SigmassTable = cell(1,vertRes+1);
+SigmaOffsetTable = cell(1,vertRes+1);
 LTable = cell(1,vertRes+1);
 
 for ivertRes = 0:vertRes
   Ham1 = scale*(ivertRes-vertRes/2)*real(xOp);
   Ham = Ham0 + Ham1;
-  [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt);
+  [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt);
   LTable{ivertRes+1} = L;
-  SigmassTable{ivertRes+1} = SigmaSS;
+  SigmaOffsetTable{ivertRes+1} = SigmaOffset;
 end
 
 
-function [L, SigmaSS] = Liouvillian(Ham,Gamma,equilibriumState,dt)
+function [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt)
 
 n = size(Ham,1);
 
 HamSuOp = kron(eye(n,n),Ham)-kron(Ham.',eye(n,n));
 L = -1i*HamSuOp-Gamma;
-SigmaSS = Gamma*equilibriumState; % steady state solutions for the density matrices
-SigmaSS = -L\SigmaSS;
-L = expm(L*dt); %calculations of the Liouvillians
+
+% Propagation over dt of d(sigma)/dt = L*sigma + Gamma*sigma_eq:
+%   sigma(t+dt) = expm(L*dt)*sigma(t) + SigmaOffset
+% with SigmaOffset = integral from 0 to dt of expm(L*s)*Gamma*sigma_eq ds.
+% Both are obtained from the exponential of an augmented matrix, which
+% works also if L is singular (e.g. due to trace conservation).
+N = n^2;
+A = zeros(N+1);
+A(1:N,1:N) = L;
+A(1:N,N+1) = Gamma*equilibriumState;
+expA = expm(A*dt);
+L = expA(1:N,1:N);
+SigmaOffset = expA(1:N,N+1);
 
 
 function LoadedElement = LoadfromArray(Array, ArrayIndex)

@@ -85,16 +85,24 @@ else
   Sigma0 = [];
 end
 
-% Set up relaxation superoperator and equilibrium state
+% Set up equilibrium state for relaxation (the relaxation superoperator
+% depends on the Hamiltonian and is set up by the caller)
 
 % --------------------------------------------------------------------------------------
 if all([Sys.T1(:); Sys.T2(:)] == 0)
   Relaxation = [];
 else
-  logmsg(1,'  setting up the relaxation superoperator and the equilibrium state');
+  logmsg(1,'  setting up the equilibrium state');
 
-  Relaxation.Gamma = s_relaxationsuperoperator(Sys);
-  
+  if ~isscalar(Sys.T1) && ~isequal(size(Sys.T1),[Sys.nStates Sys.nStates])
+    error('Sys.T1 must be a single number or a %dx%d matrix.',Sys.nStates,Sys.nStates);
+  end
+  if ~isscalar(Sys.T2) && ~isequal(size(Sys.T2),[Sys.nStates Sys.nStates])
+    error('Sys.T2 must be a single number or a %dx%d matrix.',Sys.nStates,Sys.nStates);
+  end
+
+  Relaxation.Gamma = [];
+
   % Set up equilibrium state (required for relaxation)
   if isfield(Sys,'eqState') && ~isempty(Sys.eqState)
     % if eqilibrium state was provided, this checks if the dimensions are correct

@@ -1,40 +1,36 @@
 function ok = test()
 
-DefRelTime = 1e10;
+% Scalar T1 and T2 for a spin-1/2: population difference relaxes with T1,
+% coherences decay with T2, zero means no relaxation
 
-% First Test ---------------------------------------
+H = diag([1 -1]);  % MHz, energy order opposite to product order
+tol = 1e-12;
 
-Sys.Spins = 1/2;
 Sys.T1 = 1.5;
 Sys.T2 = 0.5;
 
-RefGamma1(2,2) = 1/Sys.T2;
-RefGamma1(3,3) = 1/Sys.T2;
-RefGamma1(1,4) = -1/Sys.T1;
-RefGamma1(4,1) = -1/Sys.T1;
+w = 1/(2*Sys.T1);  % rate per direction
+RefT1 = zeros(4);
+RefT1([1 4],[1 4]) = [w -w; -w w];
+RefT2 = zeros(4);
+RefT2(2,2) = 1/Sys.T2;
+RefT2(3,3) = 1/Sys.T2;
 
-[Gamma1] = runprivate('s_relaxationsuperoperator',Sys);
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(1) = areequal(Gamma,RefT1+RefT2,tol,'abs');
 
-% Second Test - Default Values for T1 --------------
+% Population difference decays with rate 1/T1
+idx = [1 4];
+k = eig(Gamma(idx,idx));
+ok(2) = areequal(sort(k),[0; 1/Sys.T1],tol,'abs');
 
-RefGamma2 = RefGamma1;
-RefGamma2(1,4) = -1/DefRelTime;
-RefGamma2(4,1) = -1/DefRelTime;
+% No T1
+Sys.T1 = 0;
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(3) = areequal(Gamma,RefT2,tol,'abs');
 
-Sys.T1 = 0; % this value is being set in s_propagationsetup if the field is empty or not found
-
-[Gamma2] = runprivate('s_relaxationsuperoperator',Sys);
-
-
-% Third Test - Default Values for T2 --------------
+% No T2
 Sys.T1 = 1.5;
 Sys.T2 = 0;
-
-RefGamma3 = RefGamma1;
-RefGamma3(2,2) = 1/DefRelTime;
-RefGamma3(3,3) = 1/DefRelTime;
-
-[Gamma3] = runprivate('s_relaxationsuperoperator',Sys);
-
-ok = all([isequal(RefGamma1,Gamma1) isequal(RefGamma2,Gamma2) isequal(RefGamma3,Gamma3)]);
-
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(4) = areequal(Gamma,RefT1,tol,'abs');

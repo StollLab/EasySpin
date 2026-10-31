@@ -1,51 +1,40 @@
 function ok = test()
 
-DefRelTime = 1e10;
+% Matrix T1 and T2 for a spin-1/2: T1(i,j) gives the rate 1/(2*T1(i,j))
+% from state j to state i, lower triangle of T2 is ignored
 
-% First Test ---------------------------------------
+H = diag([1 -1]);  % MHz
+tol = 1e-12;
 
-Sys.Spins = 1/2;
+% Different rates up and down
 Sys.T1 = [0 1.5; 1 0];
 Sys.T2 = 0.5;
 
-RefGamma1(2,2) = 1/Sys.T2;
-RefGamma1(3,3) = 1/Sys.T2;
-RefGamma1(1,4) = -1/Sys.T1(1,2);
-RefGamma1(4,1) = -1/Sys.T1(2,1);
+w12 = 1/(2*1.5);  % from state 2 to state 1
+w21 = 1/(2*1);    % from state 1 to state 2
+Ref = zeros(4);
+Ref([1 4],[1 4]) = [w21 -w12; -w21 w12];
+Ref(2,2) = 1/Sys.T2;
+Ref(3,3) = 1/Sys.T2;
 
-[Gamma1] = runprivate('s_relaxationsuperoperator',Sys);
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(1) = areequal(Gamma,Ref,tol,'abs');
 
-% Second Test - Have Default for T2 --------------
-
-Sys.T2 = 0; % this value is being set in s_propagationsetup if the field is empty or not found
-
-RefGamma2 = RefGamma1;
-RefGamma2(2,2) = 1/DefRelTime;
-RefGamma2(3,3) = 1/DefRelTime;
-
-[Gamma2] = runprivate('s_relaxationsuperoperator',Sys);
-
-% Third Test - Matrix for T2 --------------
+% Only upper triangle: same rate in both directions
 Sys.T1 = [0 1.5; 0 0];
-Sys.T2 = [0 0.5; 0 0];
+Sys.T2 = [0 0.5; 0.3 0];  % 0.3 is ignored
 
-RefGamma3(2,2) = 1/Sys.T2(1,2);
-RefGamma3(3,3) = 1/Sys.T2(1,2);
-RefGamma3(1,4) = -1/Sys.T1(1,2);
-RefGamma3(4,1) = -1/Sys.T1(1,2);
+w = 1/(2*1.5);
+Ref = zeros(4);
+Ref([1 4],[1 4]) = [w -w; -w w];
+Ref(2,2) = 1/0.5;
+Ref(3,3) = 1/0.5;
 
-[Gamma3] = runprivate('s_relaxationsuperoperator',Sys);
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(2) = areequal(Gamma,Ref,tol,'abs');
 
-% Third Test - Empty matrix for T1 --------------
-Sys.T1 = [0 0; 0 0];
-Sys.T2 = [0 0.5; 0.3 0]; % checks if the value 0.3 is indeed ignored
-
-RefGamma4(2,2) = 1/Sys.T2(1,2);
-RefGamma4(3,3) = 1/Sys.T2(1,2);
-RefGamma4(1,4) = -1/DefRelTime;
-RefGamma4(4,1) = -1/DefRelTime;
-
-[Gamma4] = runprivate('s_relaxationsuperoperator',Sys);
-
-ok = all([isequal(RefGamma1,Gamma1) isequal(RefGamma2,Gamma2) isequal(RefGamma3,Gamma3) isequal(RefGamma4,Gamma4)]);
-
+% No T1
+Sys.T1 = zeros(2);
+Ref([1 4],[1 4]) = 0;
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(3) = areequal(Gamma,Ref,tol,'abs');

@@ -1,66 +1,41 @@
 function ok = test()
 
-DefRelTime = 1e10;
+% Matrix T1 for several states: rate equation for the populations
 
-% First Test ---------------------------------------
+tol = 1e-12;
 
-Sys.Spins = [1/2 1/2];
-Sys.T1 = [0 1.5 1.5 1.5; 0 0 1.5 1.5; 0 0 0 1.5; 0 0 0 0];
-Sys.T2 = 0.5;
+% Spin-1 (3 states), relaxation only between states 1 and 2: the population
+% difference of 1 and 2 relaxes with T1(1,2), the sum of their populations
+% and the population of state 3 stay constant
+H = diag([1 0 -1]);  % MHz
+Sys.T1 = [0 2 0; 0 0 0; 0 0 0];
+Sys.T2 = 0;
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+idxPop = [1 5 9];
+x0 = [-1; 0; 1];  % deviation from equilibrium
+t = 1.3;
+x = expm(-Gamma(idxPop,idxPop)*t)*x0;
+d = (x0(1)-x0(2))*exp(-t/Sys.T1(1,2));
+s = x0(1)+x0(2);
+ok(1) = areequal(x,[(s+d)/2; (s-d)/2; x0(3)],tol,'abs');
 
-RefGamma1 = zeros(16,16);
+% Partially given lower triangle: missing entries are taken from the upper triangle
+H = diag([1 2 3 4]);
+N = 4;
+T1 = [0 1 2 3; 0 0 4 5; 0 0 0 6; 0 0 0 0];
+T1(3,1) = 7;  % only one reverse rate given
+Sys.T1 = T1;
+Sys.T2 = 0;
+Gamma = runprivate('s_relaxationsuperoperator',Sys,H);
+T1full = T1 + triu(T1,1).';
+T1full(3,1) = 7;
+W = 1./(2*T1full);
+W(1:N+1:end) = 0;
+K = W - diag(sum(W,1));
+idxPop = 1:N+1:N^2;
+ok(2) = areequal(Gamma(idxPop,idxPop),-K,tol,'abs');
 
-for i = [2:5, 7:10, 12:15]
-  RefGamma1(i,i) = 1/Sys.T2;
-end
-
-
-for i = [1 6 11 16]
-  for ii = [1 6 11 16]
-    if i ~= ii
-      RefGamma1(ii,i) = -1/Sys.T1(1,2);
-      RefGamma1(i,ii) = -1/Sys.T1(1,2);
-    end
-  end
-end
-
-
-[Gamma1] = runprivate('s_relaxationsuperoperator',Sys);
-
-% Second Test - Default Values for T1 --------------
-Sys.T1 = [0 1.5 1.5 1.5; 1 0 1.5 1.5; 1 1 0 1.5; 1 1 1 0];
-Sys.T2 = 0.5;
-
-RefGamma2 = zeros(16,16);
-
-for i = [2:5, 7:10, 12:15]
-  RefGamma2(i,i) = 1/Sys.T2;
-end
-
-
-for i = [1 6 11 16]
-  for ii = [1 6 11 16]
-    if i ~= ii
-      RefGamma2(ii,i) = -1/Sys.T1(1,2);
-      RefGamma2(i,ii) = -1/Sys.T1(2,1);
-    end
-  end
-end
-
-
-[Gamma2] = runprivate('s_relaxationsuperoperator',Sys);
-
-
-% Third Test - Default Values for T2 --------------
-Sys.T2 = [0 .5 .5 .5; 0 0 .5 .5; 0 0 0 .5; 0 0 0 0];
-
-RefGamma3 = RefGamma2;
-
-for i = [2:5, 7:10, 12:15]
-  RefGamma3(i,i) = 1/Sys.T2(1,2);
-end
-
-[Gamma3] = runprivate('s_relaxationsuperoperator',Sys);
-
-ok = all([isequal(RefGamma1,Gamma1) isequal(RefGamma2,Gamma2) isequal(RefGamma3,Gamma3)]);
-
+% Diagonal elements of T1 are ignored
+Sys.T1 = T1 + diag([1 1 1 1]);
+GammaD = runprivate('s_relaxationsuperoperator',Sys,H);
+ok(3) = areequal(GammaD,Gamma,tol,'abs');

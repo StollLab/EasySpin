@@ -97,7 +97,7 @@ Most of the regular fields of <code>Sys</code> can be used for the construction 
 Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>StrainPars</code>, etc.) are ignored.
 Some additional fields can be used with <code>spidyan</code>: To facilitate working with frequency-swept pulses, the field <code>ZeemanFreq</code> is available.
 For simulations with relaxation, at least generic relaxation times <code>T1</code> or <code>T2</code> should be provided.
-If only one is provided, the other one is set by default to a very large value (10<sup>10</sup> microseconds), essentially switching that type of relaxation off.
+If only one is provided, the other type of relaxation is switched off.
 </p>
 
 <div class="optionfield"><code>ZeemanFreq</code></div>
@@ -111,8 +111,8 @@ If a non-zero Zeeman frequency is found, any g values given for this electron sp
 <div class="optiondescr">
 Longitudinal relaxation time in microseconds. 
 If it is a scalar, the relaxation time is applied to all transitions. 
-Transition-specific relaxation times can be provided in the form of a matrix.
-Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>).
+Transitions with a relaxation time of 0 do not relax.
 In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
 </div>
 
@@ -120,8 +120,8 @@ In order for <code>spidyan</code> to simulate relaxation effects, it is necessar
 <div class="optiondescr">
 Transverse relaxation time in microseconds. 
 If it is a scalar, the relaxation time is applied to all transitions. 
-Transition-specific relaxation times can be provided in the form of a matrix.
-Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>).
+Transitions with a relaxation time of 0 do not relax.
 In order for <code>spidyan</code> to simulate relaxation effects, it is necessary to switch relaxation on with <code>Opt.Relaxation</code> (see below).
 </div>
 
