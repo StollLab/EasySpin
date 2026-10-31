@@ -11,12 +11,12 @@ RawSignal1 = Cos.';
 RawSignal2(1,:,:) = [Cos; Cos + 1i*Sin; ones(1,length(TimeAxis)); ones(1,length(TimeAxis))];
 RawSignal2(2,1:2,:) = [Cos + 1i*Sin*1e-10; Cos*1e-10 + 1i*Sin];
 
-[ProcessedSignal1] = signalprocessing(TimeAxis,RawSignal1,-Freq/1000);
-[ProcessedSignal1_] = signalprocessing(TimeAxis,RawSignal1.',-Freq/1000);
+[ProcessedSignal1] = runprivate('signalprocessing',TimeAxis,RawSignal1,-Freq/1000);
+[ProcessedSignal1_] = runprivate('signalprocessing',TimeAxis,RawSignal1.',-Freq/1000);
 
 data.ProcessedSignal1 = ProcessedSignal1;
 
-[ProcessedSignal2] = signalprocessing(TimeAxis,RawSignal2,[-Freq/1000 -Freq/1000 0 0]);
+[ProcessedSignal2] = runprivate('signalprocessing',TimeAxis,RawSignal2,[-Freq/1000 -Freq/1000 0 0]);
 
 data.ProcessedSignal2 = ProcessedSignal2;
 

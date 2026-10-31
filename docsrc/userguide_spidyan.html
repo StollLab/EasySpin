@@ -892,9 +892,9 @@ If you want to observe up to a time <i>t</i><sub>max</sub> after the first excit
 
 <p>
 If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 
-This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency. 
-Instead of adapting the down-conversion and rerunning the entire simulation, you can call <a class="esf" href="signalprocessing.html"><code>signalprocessing</code></a> with the returned signal and the correct down-conversion frequencies.
-More info <a class="esf" href="signalprocessing.html">here</a>.
+This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency.
+In this case, correct <code>Exp.DetFreq</code> and run the simulation again.
+</p>
 
 <hr>
 </section>

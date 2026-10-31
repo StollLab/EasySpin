@@ -4671,35 +4671,6 @@
       }
     ]
   },
-  "signalprocessing": {
-    "description": "Signal translation and cleanup for spidyan",
-    "inputs": [
-      {
-        "name": "TimeAxis",
-        "kind": "required",
-        "type": [
-          "numeric"
-        ],
-        "purpose": "time axis, µs"
-      },
-      {
-        "name": "RawSignal",
-        "kind": "required",
-        "type": [
-          "numeric"
-        ],
-        "purpose": "raw signal"
-      },
-      {
-        "name": "FreqTranslation",
-        "kind": "required",
-        "type": [
-          "numeric"
-        ],
-        "purpose": "vector for frequencies for translation, GHz"
-      }
-    ]
-  },
   "sop": {
     "description": "Spin operator matrices",
     "inputs": [
