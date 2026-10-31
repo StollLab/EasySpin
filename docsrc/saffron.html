@@ -565,7 +565,7 @@ A number giving the number of orientations (knots) for which spectra are explici
 <div class="optionfield"><code>SimulationMode</code></div>
 <div class="optiondescr">
 Optional, allows switching the simulation mode. Can be <code>'fast'</code> for the fast algorithm or <code>'thyme'</code> for the general approach.
-By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If <code>Sys.initState</code> or transition-specific relaxation times (a matrix in <code>Sys.T1</code> or <code>Sys.T2</code>) are given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error. With several spin systems, all of them are simulated with <code>'thyme'</code> if any of them needs it.
+By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If you set <code>'fast'</code> but the pulse sequence or the detection requires <code>'thyme'</code> (e.g. shaped pulses or <code>Exp.DetWindow</code>), <code>saffron</code> gives an error. If <code>Sys.initState</code> or transition-specific relaxation times (a matrix in <code>Sys.T1</code> or <code>Sys.T2</code>) are given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error. With several spin systems, all of them are simulated with <code>'thyme'</code> if any of them needs it.
 </div>
 
 <div class="optionfield"><code>separate</code>

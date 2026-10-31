@@ -21,7 +21,7 @@
 %     ResonatorMode
 %     PhaseCycle
 %   Opt - structure with the following fields
-%     SimulationMode - "fast" or "thyme"
+%     SimulationMode - "fast" or "thyme" (if not given, "fast" if possible)
 %     StateTrajectories - bool or array of bool to store whether densitry
 %         matrices should be stored during evolution periods
 %     SimFreq
@@ -65,7 +65,9 @@ predefinedExperiment = isfield(Exp,'Sequence') && ischar(Exp.Sequence);
 
 message = ''; % initialize message that explains the choice of simulation algorithm - 'fast' or 'general'
 
-if ~isfield(Opt,'SimulationMode'), Opt.SimulationMode = ''; end
+% If no simulation mode is given, use the fast mode if the sequence allows it
+autoSimulationMode = ~isfield(Opt,'SimulationMode') || isempty(Opt.SimulationMode);
+if autoSimulationMode, Opt.SimulationMode = 'fast'; end
 origSimulationMode = Opt.SimulationMode;
 
 
@@ -221,7 +223,10 @@ if Opt.SimulationMode=="fast"
 end
 
 if ~strcmp(origSimulationMode,Opt.SimulationMode)
-  message = ['The ''thyme'' simulation mode has to be used.' '\n' 'The reason for this is: ' message '\n'];
+  if ~autoSimulationMode
+    error('Opt.SimulationMode = ''fast'' cannot be used: %s. Use ''thyme'', or omit Opt.SimulationMode.',message);
+  end
+  message =['The ''thyme'' simulation mode has to be used.' '\n' 'The reason for this is: ' message '\n'];
   logmsg(1,message);
 end
 

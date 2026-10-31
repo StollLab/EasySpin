@@ -122,6 +122,11 @@ end
 if ~isfield(Exp,'Sequence')
   error('Exp.Sequence is missing. Provide a pre-defined or user-defined pulse sequence.');
 end
+
+% Detection fields specific to spidyan
+if any(isfield(Exp,{'DetSequence','DetOperator'}))
+  error('Exp.DetSequence and Exp.DetOperator are specific to spidyan and can not be used with saffron. Please remove them.');
+end
 isENDOR = ischar(Exp.Sequence) && Exp.Sequence=="MimsENDOR";
 
 % Temperature
@@ -178,17 +183,19 @@ if Opt.GridSize<7
   error('Opt.GridSize must be at least 7. You gave %d.',Opt.GridSize);
 end
 
-% Determine simulation mode (fast mode does not support Sys.initState and
+% Determine simulation mode. If not given, s_sequencer uses fast mode if the
+% sequence allows it. Fast mode does not support Sys.initState and
 % transition-selective relaxation times, so use thyme if any spin system
-% has them)
-if ~isfield(Opt,'SimulationMode')
+% has them.
+if isfield(Opt,'SimulationMode')
+  [~,err] = parseoption(Opt,'SimulationMode',{'fast','thyme'});
+  error(err);
+else
   if iscell(Sys), SysList = Sys; else, SysList = {Sys}; end
   hasInitState = @(S) isfield(S,'initState') && ~isempty(S.initState);
   hasRelaxMatrix = @(S) (isfield(S,'T1') && numel(S.T1)>1) || (isfield(S,'T2') && numel(S.T2)>1);
   if any(cellfun(hasInitState,SysList)) || any(cellfun(hasRelaxMatrix,SysList))
     Opt.SimulationMode = 'thyme';
-  else
-    Opt.SimulationMode = 'fast';
   end
 end
 
@@ -203,8 +210,6 @@ if ~isempty(oldSeq)
   Exp.dt = oldSeq.dt;
 end
 
-[~,err] = parseoption(Opt,'SimulationMode',{'fast','thyme'});
-error(err);
 fastSimulationMode = Opt.SimulationMode=="fast";
 
 % Number of points of predefined sequences in thyme mode, as set up by
@@ -227,11 +232,6 @@ if fastSimulationMode
   %===================================================================
   % Experiment structure
   %===================================================================
-
-  spidyanExpFields = {'DetSequence','DetOperator'};
-  if any(isfield(Exp,spidyanExpFields))
-    error('Exp.DetSequence and Exp.DetOperator are specific to spidyan and can not be used with saffron. Please remove them.');
-  end
 
   % Pulse sequence
   idxFreeL = []; idxFreeR = []; idxPulseL = []; idxPulseR = [];
@@ -2088,13 +2088,16 @@ else  % if fastSimulationMode
   if ~Opt.SinglePointDetection
     logmsg(1,'-processing transients---------------------------------');
 
-    if ~isfield(Exp,'DetFrequency') && isfield(Exp,'mwFreq')
+    if ~isfield(Exp,'DetFreq') && isfield(Exp,'mwFreq')
       logmsg(1,'  using Exp.mwFreq as detection frequency');
-      Exp.DetFrequency = Exp.mwFreq;
+      Exp.DetFreq = Exp.mwFreq;
+    end
+    if numel(Exp.DetFreq)~=1
+      error('Exp.DetFreq must be a single frequency (in GHz).');
     end
 
     % Adapt FreqTranslation if needed
-    FreqTranslation = -(Exp.DetFrequency - Events{1}.FrameShift);
+    FreqTranslation = -(Exp.DetFreq - Events{1}.FrameShift);
 
     % Downconversion/processing of signal
     Signal = signalprocessing(timeAxis,Signal,FreqTranslation);

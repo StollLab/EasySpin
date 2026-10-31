@@ -21,9 +21,17 @@ Exp.nPoints = 4;
 [x,y] = saffron(Sys,Exp,Opt);
 ok(1) = isequal(size(y),[4 4]) && numel(x{1})==4 && numel(x{2})==4;
 
-% Two-pulse ESEEM with Exp.DetSequence (replaced by Exp.DetWindow)
+% Two-pulse ESEEM
 Exp = rmfield(Exp,{'t1','t2'});
 Exp.Sequence = '2pESEEM';
-Exp.DetSequence = [0 1];
 [~,y] = saffron(Sys,Exp,Opt);
 ok(2) = numel(y)==4;
+
+% Exp.DetSequence is specific to spidyan
+Exp.DetSequence = [0 1];
+try
+  saffron(Sys,Exp,Opt);
+  ok(3) = false;
+catch err
+  ok(3) = contains(err.message,'DetSequence');
+end

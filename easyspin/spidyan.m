@@ -63,6 +63,17 @@ logmsg(2,'  log level %d',logmsg);
 % Preprocess Input
 %-------------------------------------------------------------------------------
 
+% spidyan simulates a single orientation, with the molecular frame aligned
+% with the lab frame
+orientationFields = {'SampleFrame','MolFrame','CrystalSymmetry','SampleRotation'};
+for index = 1:numel(orientationFields)
+  field_ = orientationFields{index};
+  if isfield(Exp,field_) && ~isempty(Exp.(field_))
+    error(['Exp.%s is not supported. spidyan simulates a single orientation, with the ' ...
+      'molecular frame aligned with the lab frame. Use saffron for other orientations.'],field_);
+  end
+end
+
 % Check for magnetic field
 if ~isfield(Exp,'Field')
   logmsg(1,'  no Exp.Field given');
