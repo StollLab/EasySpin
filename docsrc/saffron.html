@@ -114,8 +114,8 @@ You can provide the transverse and longitudinal relaxation times in the spin sys
 Longitudinal relaxation time in microseconds.
 For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
 For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
-If it is a scalar, the relaxation time is applied to all transitions. 
-Transition-specific relaxation times can be provided in the form of a matrix.
+If it is a scalar, the relaxation time is applied to all transitions.
+Transition-specific relaxation times can be provided in the form of a matrix. In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 </div>
 
@@ -125,9 +125,13 @@ Transverse relaxation time in microseconds.
 For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
 For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all transitions.
-Transition-specific relaxation times can be provided in the form of a matrix.
+Transition-specific relaxation times can be provided in the form of a matrix. In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
 Relaxation times for transitions that are not defined (or 0) are automatically set to 10<sup>10</sup> microseconds.
 </div>
+
+<p>
+The <em>fast</em> method does not include relaxation in the spin dynamics. Instead, it multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence, and with T<sub>1</sub> over the time it is in a population state. This is done for <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code> and <code>'HYSCORE'</code>. For <code>'MimsENDOR'</code>, relaxation has no effect, and for custom sequences, relaxation times are only supported with the <em>thyme</em> method.
+</p>
 
 <p>
 For spin-polarized systems, you can provide a non-equilibrium initial state:
@@ -172,7 +176,7 @@ Specifies a predefined pulse experiment or a user-defined pulse experiment.
 </p>
 
 <p>
-Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
+Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. With the <em>thyme</em> method, only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code> are available. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
 </p>
 <p>
 User-defined sequences have to be given as a cell array, with alternating entries for pulses (via a structure containing the pulse parameters) and numbers that give the inter-pulse delays in microseconds.
@@ -561,7 +565,7 @@ A number giving the number of orientations (knots) for which spectra are explici
 <div class="optionfield"><code>SimulationMode</code></div>
 <div class="optiondescr">
 Optional, allows switching the simulation mode. Can be <code>'fast'</code> for the fast algorithm or <code>'thyme'</code> for the general approach.
-By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If <code>Sys.initState</code> is given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error. With several spin systems, all of them are simulated with <code>'thyme'</code> if any of them has <code>initState</code>.
+By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If <code>Sys.initState</code> or transition-specific relaxation times (a matrix in <code>Sys.T1</code> or <code>Sys.T2</code>) are given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error. With several spin systems, all of them are simulated with <code>'thyme'</code> if any of them needs it.
 </div>
 
 <div class="optionfield"><code>separate</code>

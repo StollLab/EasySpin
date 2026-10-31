@@ -426,6 +426,10 @@ It is possible to add relaxation to pre-defined experimental sequences. For this
 </p>
 
 <p>
+The fast method multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence (during the two interpulse delays &tau;), and with T<sub>1</sub> over the time it is in a population state (e.g. T in three-pulse ESEEM, or t<sub>1</sub> and t<sub>2</sub> in HYSCORE). The decay is the same for all orientations and does not depend on the nuclear coherences, so the ESEEM modulations decay along with the echo. This is done for two-pulse, three-pulse and four-pulse ESEEM, and for HYSCORE. For Mims ENDOR, relaxation has no effect.
+</p>
+
+<p>
 The following example shows how to add decay to a two-pulse sequence:
 </p>
 
@@ -443,7 +447,7 @@ Sys.T2 = 2; % adds transverse relaxation (phase memory time)
 </pre>
 
 <p>
-To include transition-selective relaxation times, the slower <em>thyme</em> method must be used (see corresponding <a href="userguide_saffron_thyme.html">user guide</a>).
+Transition-selective relaxation times require the slower <em>thyme</em> method, which <code>saffron</code> then uses by default (see corresponding <a href="userguide_saffron_thyme.html">user guide</a>).
 </p>
 
 <hr>

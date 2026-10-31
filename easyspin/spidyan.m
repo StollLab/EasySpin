@@ -87,9 +87,10 @@ end
 % Build the Event and Vary structure
 Opt.SimulationMode = 'thyme'; % to force s_sequencer to setup for step wise
 
-% If the user provides relaxation times, but no Opt.Relaxation,
-% relaxationis switched on for the entire sequence
-if (isfield(Sys,'T1') || isfield(Sys,'T2')) && ~isfield(Opt,'Relaxation')
+% If the user provides nonzero relaxation times, but no Opt.Relaxation,
+% relaxation is switched on for the entire sequence
+hasRelaxation = (isfield(Sys,'T1') && any(Sys.T1(:))) || (isfield(Sys,'T2') && any(Sys.T2(:)));
+if hasRelaxation && ~isfield(Opt,'Relaxation')
   Opt.Relaxation = true;
 end
 

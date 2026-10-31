@@ -29,15 +29,17 @@ end
 logmsg(1,'  looking for and verifying fields related to relaxation');
 % Look for equilibrium state and issue a warning if an equilibrium state is
 % given, but no relaxation times
-if isfield(Sys,'eqState') && ~isfield(Sys,'T2') && ~isfield(Sys,'T1')
+hasRelaxation = (isfield(Sys,'T1') && any(Sys.T1(:))) || (isfield(Sys,'T2') && any(Sys.T2(:)));
+if isfield(Sys,'eqState') && ~hasRelaxation
   warning('An equilibrium state was provided, but no relaxation times. Equilibrium state ignored.');
+end
+
+if isfield(Sys,'T1T2')
+  error('Sys.T1T2 is not supported. Provide relaxation times in Sys.T1 and Sys.T2.');
 end
 
 % Check if T1, T2 are provided or switch off/set to a very large value
 if ~isfield(Sys,'T1') && ~isfield(Sys,'T2')
-  if isfield(Sys,'T1T2')
-    error('T1 and T2 should be provided in Sys.T1 and Sys.T2 and not in Sys.T1T2.');
-  end
   Sys.T1 = 0;
   Sys.T2 = 0;
 elseif isfield(Sys,'T1') && ~isfield(Sys,'T2')

@@ -17,7 +17,7 @@ switch Exp.Sequence
               
     if ~isfield(Exp,'DetWindow')
       if isfield(Exp,'DetSequence')
-        Exp = rmfield(Exp.DetSequence);
+        Exp = rmfield(Exp,'DetSequence');
       end
       Exp.DetWindow = 0;
     end
@@ -38,7 +38,7 @@ switch Exp.Sequence
         
     if ~isfield(Exp,'DetWindow')
       if isfield(Exp,'DetSequence')
-        Exp = rmfield(Exp.DetSequence);
+        Exp = rmfield(Exp,'DetSequence');
       end
       Exp.DetWindow = 0;
     end
@@ -62,7 +62,7 @@ switch Exp.Sequence
     
     if ~isfield(Exp,'DetWindow')
       if isfield(Exp,'DetSequence')
-        Exp = rmfield(Exp.DetSequence);
+        Exp = rmfield(Exp,'DetSequence');
       end
       Exp.DetWindow = 0;
     end
@@ -77,7 +77,10 @@ switch Exp.Sequence
     
     Exp.Dim1 = {'d2' Exp.dt};
     Exp.Dim2 = {'d3' Exp.dt};
-    
+
+  otherwise
+    error('Exp.Sequence = ''%s'' is not supported with the thyme method.',Exp.Sequence);
+
 end
 
 

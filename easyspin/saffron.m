@@ -159,7 +159,7 @@ for index = 1 : numel(spidyanOptFields)
   end
 end
 
-% Relaxation: if not given, it is on for spin systems with Sys.T1 or Sys.T2.
+% Relaxation: if not given, it is on for spin systems with nonzero Sys.T1 or Sys.T2.
 % That is set for each spin system in saffron_single, here it is off.
 if isfield(Opt,'Relaxation') && length(Opt.Relaxation) > 1
   error('Opt.Relaxation has to be true or false.')
@@ -178,12 +178,14 @@ if Opt.GridSize<7
   error('Opt.GridSize must be at least 7. You gave %d.',Opt.GridSize);
 end
 
-% Determine simulation mode (fast mode does not support Sys.initState, so
-% use thyme if any spin system has one)
+% Determine simulation mode (fast mode does not support Sys.initState and
+% transition-selective relaxation times, so use thyme if any spin system
+% has them)
 if ~isfield(Opt,'SimulationMode')
   if iscell(Sys), SysList = Sys; else, SysList = {Sys}; end
   hasInitState = @(S) isfield(S,'initState') && ~isempty(S.initState);
-  if any(cellfun(hasInitState,SysList))
+  hasRelaxMatrix = @(S) (isfield(S,'T1') && numel(S.T1)>1) || (isfield(S,'T2') && numel(S.T2)>1);
+  if any(cellfun(hasInitState,SysList)) || any(cellfun(hasRelaxMatrix,SysList))
     Opt.SimulationMode = 'thyme';
   else
     Opt.SimulationMode = 'fast';
@@ -204,6 +206,13 @@ end
 [~,err] = parseoption(Opt,'SimulationMode',{'fast','thyme'});
 error(err);
 fastSimulationMode = Opt.SimulationMode=="fast";
+
+% Number of points of predefined sequences in thyme mode, as set up by
+% s_sequencer (default if not given, two dimensions for HYSCORE)
+if ~fastSimulationMode && isfield(Exp,'Sequence') && ischar(Exp.Sequence)
+  ExpPredefined = s_predefinedexperiments(Exp);
+  Exp.nPoints = ExpPredefined.nPoints;
+end
 
 if ~fastSimulationMode  && ~nargout && isfield(Exp,'nPoints')
   if Opt.SinglePointDetection  && length(Exp.nPoints) > 2
@@ -522,10 +531,6 @@ if fastSimulationMode
     end
   end
 
-  % Relaxation time constants
-  if ~isfield(Exp,'T1'), Exp.T1 = 0; end
-  if ~isfield(Exp,'T2'), Exp.T2 = 0; end
-
   if predefinedExperiment
     switch Exp.ExperimentID
       case 2 % 3pESEEM
@@ -635,6 +640,10 @@ switch nargout
       saffron_plot(x,info,isENDOR,Sys,Exp,Opt);
     else
       Opt.SinglePointDetection = info.SinglePointDetection;
+      if ischar(Exp.Sequence)
+        % expand predefined sequence, as done by s_sequencer for thyme mode
+        Exp = s_predefinedexperiments(Exp);
+      end
       s_plotting(x,data,Exp,Opt);
     end
   case 1
@@ -703,9 +712,14 @@ if ~fastSimulationMode
   Opt = rmfield(Opt,{'thymeEvents','thymeVary'});
 end
 
-% Relaxation: on if not given and the spin system has relaxation times
+% Relaxation times
+if isfield(Sys,'T1T2')
+  error('Sys.T1T2 is not supported. Provide relaxation times in Sys.T1 and Sys.T2.');
+end
+
+% Relaxation: on if not given and the spin system has nonzero relaxation times
 if Opt.relaxationFromSys
-  Opt.Relaxation = isfield(Sys,'T1') || isfield(Sys,'T2');
+  Opt.Relaxation = (isfield(Sys,'T1') && any(Sys.T1(:))) || (isfield(Sys,'T2') && any(Sys.T2(:)));
   if ~fastSimulationMode
     for iEvent = 1:numel(Events)
       Events{iEvent}.Relaxation = Opt.Relaxation;
@@ -762,33 +776,29 @@ if fastSimulationMode
   realPulse = ~idealPulse;
   OrientationSelection = Opt.fastSeq.OrientationSelection;
 
-  % T1, T2
-  if isfield(Sys,'T1T2')
-    error('T1 and T2 should be provided in Sys.T1 and Sys.T2 and not in Sys.T1T2.');
-  end
-  Sys.T1T2 = [0 0];
+  % T1, T2 (0 or not given: no relaxation)
+  T1 = 0;
+  T2 = 0;
   if isfield(Sys,'T1')
-    if any(size(Sys.T1) > 1)
-      error('The fast algorithm does not support transition selective relaxation times, please provide a single value for Sys.T1.')
-    else
-      Sys.T1T2(1) = Sys.T1;
+    if numel(Sys.T1)~=1
+      error('The fast algorithm does not support transition-selective relaxation times. Provide a single value for Sys.T1, or use Opt.SimulationMode = ''thyme''.')
     end
+    T1 = Sys.T1;
   end
   if isfield(Sys,'T2')
-    if any(size(Sys.T2) > 1)
-      error('The fast algorithm does not support transition selective relaxation times, please provide a single value for Sys.T2.')
-    else
-      Sys.T1T2(2) = Sys.T2;
+    if numel(Sys.T2)~=1
+      error('The fast algorithm does not support transition-selective relaxation times. Provide a single value for Sys.T2, or use Opt.SimulationMode = ''thyme''.')
     end
+    T2 = Sys.T2;
   end
-  Sys.T1T2(Sys.T1T2==0) = Inf;
-
-  if any(Sys.T1T2<=0) || any(~isreal(Sys.T1T2))
+  if T1<0 || T2<0 || ~isreal(T1) || ~isreal(T2)
     error('T1 and T2 in Sys.T1 and Sys.T2 must be positive, in microseconds.');
   end
+  if T1==0, T1 = Inf; end
+  if T2==0, T2 = Inf; end
 
-  if ~predefinedExperiment && any(~isinf(Sys.T1T2))
-    error('Relaxation times T1 and T2 for custom sequences not supported.');
+  if ~predefinedExperiment && (~isinf(T1) || ~isinf(T2))
+    error('The fast algorithm does not support relaxation times (Sys.T1, Sys.T2) for custom sequences. Use Opt.SimulationMode = ''thyme''.');
   end
 
   if isENDOR
@@ -1793,31 +1803,26 @@ if fastSimulationMode
         t1 = (0:Exp.nPoints-1)*Exp.dt;
     end
 
+    % Relaxation decays: T2 during electron coherence periods, T1 during
+    % periods with electron populations (exp(-t/Inf) = 1 if not given)
+    % decayAdded indicates a time-dependent decay
     decayAdded = false;
-    if any(~isinf(Sys.T1T2))
+    if ~isinf(T1) || ~isinf(T2)
       logmsg(1,'Adding relaxation decays...');
-      T1 = Sys.T1T2(1);
-      T2 = Sys.T1T2(2);
-      tdecay = [];
       switch Exp.ExperimentID
-        case 1 % two-pulse ESEEM
-          if ~isinf(T2)
-            tdecay = exp(-2*t1/T2);
-            td = td.*tdecay;
-          end
-        case 2 % three-pulse ESEEM
-          if ~isinf(T1)
-            tdecay = exp(-2*Exp.tau/T2)*exp(-t1/T1);
-            td = td.*tdecay;
-          end
-        case 4 % HYSCORE
-          if ~isinf(T1)
-            tdecay = exp(-t1/T1)'*exp(-t2/T1);
-            tdecay = exp(-2*Exp.tau/T2)*tdecay;
-            td = td.*tdecay;
-          end
+        case 1 % two-pulse ESEEM: coherence during 2*(tau+t)
+          td = td.*exp(-2*t1/T2);
+          decayAdded = ~isinf(T2);
+        case 2 % three-pulse ESEEM: coherence during 2*tau, populations during T+t
+          td = td.*(exp(-2*Exp.tau/T2)*exp(-(t1-Exp.tau)/T1));
+          decayAdded = ~isinf(T1);
+        case 3 % four-pulse ESEEM: coherence during 2*tau, populations during 2*(T+t)
+          td = td.*(exp(-2*Exp.tau/T2)*exp(-2*t1/T1));
+          decayAdded = ~isinf(T1);
+        case 4 % HYSCORE: coherence during 2*tau, populations during t1+t2
+          td = td.*(exp(-2*Exp.tau/T2)*(exp(-t1/T1)'*exp(-t2/T1)));
+          decayAdded = ~isinf(T1);
       end
-      decayAdded = ~isempty(tdecay);
     end
 
   end
