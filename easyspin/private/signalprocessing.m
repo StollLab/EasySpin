@@ -162,7 +162,11 @@ try
         end
         
       else
-        % stores original cleaned up signal
+        % stores original cleaned up signal (a purely imaginary signal was
+        % reduced to its imaginary part above)
+        if isreal(RFSignal) && purelyImag
+          RFSignal = 1i*RFSignal;
+        end
         if iscell(RawSignal)
           Traces(iTrace,:) = RFSignal;
         else
