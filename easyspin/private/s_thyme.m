@@ -132,11 +132,17 @@ for iPoints = 1 : nPoints
   % Update the propagators of the pulses (free evolution propagators are
   % built during propagation)
   %--------------------------------------------------------------------
-  % The pulse shapes were shifted into the simulation frame on their own
-  % time axes. The carrier is phase-continuous, so each pulse gets the
-  % phase of the frame shift at its start time in the sequence.
+  % Each pulse gets the carrier phase at its start time (phase-continuous
+  % carrier). Each step from t(k) to t(k+1) uses the field at its middle:
+  % the two samples, moved by half a step at the center frequency of the
+  % pulse (mean phase advance per step), are averaged.
   for iEvent = find(isPulse)
     IQ = Events{iEvent}.IQ.*exp(2i*pi*Events{iEvent}.FrameOffset*1e3*tStart(iEvent));
+    if size(IQ,2)<2
+      error('Pulse %d is shorter than the integration time step (Opt.IntTimeStep).',find(PulsePositions==iEvent));
+    end
+    halfStepPhaseRot = exp(1i*angle(sum(conj(IQ(:,1:end-1)).*IQ(:,2:end),'all'))/2);
+    IQ = (IQ(:,1:end-1)*halfStepPhaseRot + IQ(:,2:end)*conj(halfStepPhaseRot))/2;
     Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
   end
   
@@ -174,7 +180,7 @@ for iPoints = 1 : nPoints
       switch currentEvent.type
         case 'pulse'
           tvector = currentEvent.t;
-          currentSignal = zeros(nDet,size(currentEvent.IQ,2)+1);
+          currentSignal = zeros(nDet,numel(currentEvent.t));
         case 'free evolution'
           tvector = 0:currentEvent.TimeStep:currentEvent.t;
           currentSignal = zeros(nDet,length(tvector));
@@ -219,13 +225,11 @@ for iPoints = 1 : nPoints
     switch currentEvent.type
       case 'pulse'
         %--------------------------------------------------------------
-        % This creates a new time axis from the one provided inside the
-        % event structure. This is necessary, as the first point should
-        % represent the state of the system as it was before any
-        % irradiation. The pulse therefore starts at t0 + dt;
+        % The time points of the pulse are the boundaries of the
+        % propagation steps: the first point is the state before the
+        % pulse, the last one the state at the end of the pulse.
         %--------------------------------------------------------------
-        tvector(1) = 0;
-        tvector(2:length(currentEvent.t)+1) = currentEvent.t+currentEvent.TimeStep;
+        tvector = currentEvent.t;
         
         nPhaseSteps = size(currentEvent.PhaseCycle,1);
         
@@ -579,7 +583,7 @@ end
 function tStart = eventStartTimes(Events,Sequence)
 % Start times of all events in the order given by Sequence, with time
 % counted from the start of the sequence. The event durations are those of
-% the propagation time steps: a pulse lasts one time step longer than its
+% the propagation time steps: a pulse lasts until the last point of its
 % time axis, and a detected free evolution ends at its last full time step.
 tStart = zeros(1,numel(Events));
 t = 0;
@@ -587,7 +591,7 @@ for iEvent = Sequence
   tStart(iEvent) = t;
   Event = Events{iEvent};
   if strcmp(Event.type,'pulse')
-    t = t + (Event.t(end)+Event.TimeStep);
+    t = t + Event.t(end);
   elseif Event.Detection
     tDetected = 0:Event.TimeStep:Event.t;
     t = t + tDetected(end);
@@ -599,10 +603,14 @@ end
 
 
 function Prop = pulsePropagators(Event,IQ,Ham0,Relaxation)
-% Propagators of a pulse event with pulse shape IQ (in the simulation
-% frame). They are only rebuilt if the pulse shape changed, and the lookup
-% table of propagators for linearly polarized excitation is only rebuilt
-% if the amplitude scale changed.
+% Propagators (or Liouvillians, with relaxation) of a pulse event for each
+% phase cycle step: one per time step, or, for a pulse without detection
+% and relaxation, their product. IQ contains the field of each time step
+% in the simulation frame (rows: phase cycle steps, columns: time steps),
+% i.e. one value fewer per row than the time points in Event.t. The
+% propagators are only rebuilt if IQ changed, and the lookup table of
+% propagators for linearly polarized excitation is only rebuilt if the
+% amplitude scale changed.
 Prop = Event.Propagation;
 if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ)
   return

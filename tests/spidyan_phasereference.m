@@ -3,7 +3,7 @@ function ok = test()
 % Signal phases do not depend on the pulse timing or on the simulation
 % frame: the microwave carrier is phase-continuous over the sequence
 
-tol = 2;  % degrees
+tol = 0.5;  % degrees
 ok = [];
 
 Sys.S = 1/2;
@@ -35,6 +35,22 @@ for detWindow = {[-0.002 0.002], 0}
   end
   ok(end+1) = phasediff(phi,phi(1)) < tol; %#ok<AGROW>
 end
+
+% Same echo phase with a fixed time step in simulation frames with very
+% different carrier frequencies (each propagation step uses the field at
+% its middle, otherwise the pulses lag by pi*carrierfrequency*dt)
+Exp.DetWindow = [-0.002 0.002];
+Exp.Sequence = {P90 tau(1) P180 tau(1)+P90.tp/2};
+OptFixed.IntTimeStep = 5e-6;  % µs
+SimFreqFixed = [6 8.5];  % GHz, 3.5 and 1 GHz below Exp.mwFreq
+phi = zeros(1,numel(SimFreqFixed));
+for iFreq = 1:numel(SimFreqFixed)
+  OptFixed.SimFreq = SimFreqFixed(iFreq);
+  [~,signal] = spidyan(Sys,Exp,OptFixed);
+  [~,idx] = max(abs(signal));
+  phi(iFreq) = angle(signal(idx));
+end
+ok(end+1) = phasediff(phi,phi(1)) < tol;
 
 % Single-point FID after a delay: same phase in different simulation frames
 Exp.DetWindow = 0;
@@ -100,6 +116,34 @@ for iFreq = 1:numel(SimFreq)
 end
 ok(end+1) = phasediff(angle([signalBuilt signalUser]),angle(signalBuilt(1))) < tol && ...
   max(abs(abs(signalUser)-abs(signalBuilt))) < 0.02*abs(signalBuilt(1));
+
+% A pulse lasts exactly tp, and a pi/2 pulse on resonance turns the
+% magnetization fully into the transverse plane (detection operators are
+% normalized, so |<S+>| = 1)
+clear Opt
+Exp.Sequence = {P90};
+Exp = rmfield(Exp,'DetWindow');
+Exp.DetOperator = {'+1','z1'};
+Exp.DetFreq = [9.5 0];
+[t,signal] = spidyan(Sys,Exp);
+ok(end+1) = abs(t(end)-P90.tp) < 1e-12;
+ok(end+1) = abs(abs(signal(end,1))-1) < 1e-3 && abs(signal(end,2)) < 1e-3;
+
+% A pulse shorter than the time step is an error (simulation frame at
+% Exp.mwFreq, where the pulse shape is not shifted)
+Opt.SimFreq = 9.5;  % GHz
+Opt.IntTimeStep = 5e-4;  % µs
+Pshort = P90;
+Pshort.tp = 3e-4;  % µs
+Exp.Sequence = {Pshort 0.01};
+warnState = warning('off','all');
+try
+  spidyan(Sys,Exp,Opt);
+  ok(end+1) = false;
+catch err
+  ok(end+1) = contains(err.message,'shorter than the integration time step');
+end
+warning(warnState);
 
 end
 

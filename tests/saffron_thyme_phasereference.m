@@ -3,7 +3,7 @@ function ok = test()
 % Signal phases do not depend on the pulse timing or on the simulation
 % frame, and integrated echoes equal the sum of the transient
 
-tol = 2;  % degrees
+tol = 0.5;  % degrees
 
 Sys.S = 1/2;
 Sys.g = gfree;
