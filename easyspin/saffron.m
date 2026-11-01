@@ -2068,7 +2068,25 @@ else  % if fastSimulationMode
 
   Signal = Signal*phase;
 
-  if ~Opt.SinglePointDetection && isfield(Exp,'DetIntegrate') && Exp.DetIntegrate
+  % Frequency translation from the simulation frame (down conversion)
+  if ~isfield(Exp,'DetFreq') && isfield(Exp,'mwFreq')
+    logmsg(1,'  using Exp.mwFreq as detection frequency');
+    Exp.DetFreq = Exp.mwFreq;
+  end
+  if numel(Exp.DetFreq)~=1
+    error('Exp.DetFreq must be a single frequency (in GHz).');
+  end
+  FreqTranslation = -(Exp.DetFreq - Events{1}.FrameShift);
+
+  % For single points and integrated echoes, the translation is applied as a
+  % phase factor at the detection times (counted from the start of the
+  % sequence), consistent with the translation of transients below
+  integrateEchoes = ~Opt.SinglePointDetection && isfield(Exp,'DetIntegrate') && Exp.DetIntegrate;
+  if Opt.SinglePointDetection || integrateEchoes
+    Signal = Signal.*reshape(exp(2i*pi*FreqTranslation*1e3*timeAxis),size(Signal));
+  end
+
+  if integrateEchoes
     logmsg(1,'-integrating echos-------------------------------------');
 
     sizeSig = size(Signal);
@@ -2087,17 +2105,6 @@ else  % if fastSimulationMode
   % Signal processing
   if ~Opt.SinglePointDetection
     logmsg(1,'-processing transients---------------------------------');
-
-    if ~isfield(Exp,'DetFreq') && isfield(Exp,'mwFreq')
-      logmsg(1,'  using Exp.mwFreq as detection frequency');
-      Exp.DetFreq = Exp.mwFreq;
-    end
-    if numel(Exp.DetFreq)~=1
-      error('Exp.DetFreq must be a single frequency (in GHz).');
-    end
-
-    % Adapt FreqTranslation if needed
-    FreqTranslation = -(Exp.DetFreq - Events{1}.FrameShift);
 
     % Downconversion/processing of signal
     Signal = signalprocessing(timeAxis,Signal,FreqTranslation);

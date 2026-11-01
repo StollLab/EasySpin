@@ -864,6 +864,7 @@ With <code>Exp.mwPolarization = 'circular'</code> we are letting <code>spidyan</
 </p>
 <p>
 If the above code is now run, the simulation will use the real part of the waveform to propagate the electron spin and the imaginary part to propagate the nucleus, as if we were irradiating the spin system with two pulses at different frequencies at the same time.
+This only works for a pulse at the start of the sequence (as in the example) and in the lab frame (<code>Opt.SimFreq = 0</code>), since otherwise the carrier phase and the frequency shift into the simulation frame mix the real and imaginary parts of the waveform.
 </p>
 
 

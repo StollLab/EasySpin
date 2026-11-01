@@ -260,8 +260,44 @@ if ~isempty(RawSignal) && isfield(Exp,'DetPhase')
   RawSignal = applyPhaseShift(RawSignal,DetPhase);
 end
 
+% Frequency translation of the detected signals (down conversion)
+if ~isempty(RawSignal)
+  % Check if Exp.DetFreq and Exp.DetOperator have the same length
+  if isfield(Exp,'DetFreq')
+    logmsg(1,'  veryfing Exp.DetFreq...');
+    if isfield(Exp,'DetOperator')
+      if length(Exp.DetFreq) ~= length(Exp.DetOperator)
+        error('Exp.DetOperator and Exp.DetFreq must contain the same number of elements.')
+      end
+    elseif length(Exp.DetFreq) ~= 1
+      error('If Exp.DetOperator is not provided the default detection operator (S+ for all electrons) is assumed. In this case Exp.DetFreq must contain only one frequency.')
+    end
+  else
+    if ~isfield(Exp,'DetOperator') && isfield(Exp,'mwFreq')
+      logmsg(1,'  using Exp.mwFreq as detection frequency');
+      Exp.DetFreq = Exp.mwFreq;
+    end
+  end
+  
+  FreqTranslation = zeros(1,nDetOps);
+  
+  if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq)
+    
+    % This adapts the values for DetFreq to simulation frame
+    Exp.DetFreq(Exp.DetFreq > 0) = Exp.DetFreq(Exp.DetFreq > 0) - Events{1}.FrameShift;
+    Exp.DetFreq(Exp.DetFreq < 0) = Exp.DetFreq(Exp.DetFreq < 0) + Events{1}.FrameShift;
+    
+    % And then writes them
+    FreqTranslation(1:length(Exp.DetFreq)) = - Exp.DetFreq; % To make it a down conversion for negative frequencies add the neg sign
+    
+  end
+end
+
 if Opt.SinglePointDetection
   logmsg(1,'  single point detection...');
+  if ~isempty(RawSignal)
+    RawSignal = translateSinglePoints(RawSignal,TimeAxis,FreqTranslation,DetOps);
+  end
   if isfield(Exp,'nPoints') && nDetOps ~= 1
     DimSignal =  ndims(RawSignal);
     Signal = permute(RawSignal,[1:(DimSignal-1) DimSignal+1 DimSignal]);
@@ -270,38 +306,7 @@ if Opt.SinglePointDetection
   end
 else
   if ~isempty(RawSignal)
-    % Check if Exp.DetFreq and Exp.DetOperator have the same length
-    if isfield(Exp,'DetFreq')
-      logmsg(1,'  veryfing Exp.DetFreq...');
-      if isfield(Exp,'DetOperator')
-        if length(Exp.DetFreq) ~= length(Exp.DetOperator)
-          error('Exp.DetOperator and Exp.DetFreq must contain the same number of elements.')
-        end
-      elseif length(Exp.DetFreq) ~= 1
-        error('If Exp.DetOperator is not provided the default detection operator (S+ for all electrons) is assumed. In this case Exp.DetFreq must contain only one frequency.')
-      end
-    else
-      if ~isfield(Exp,'DetOperator') && isfield(Exp,'mwFreq')
-        logmsg(1,'  using Exp.mwFreq as detection frequency');
-        Exp.DetFreq = Exp.mwFreq;
-      end
-    end
-    
     logmsg(1,'  processing transients...');
-    
-    % Adapt FreqTranslation if needed
-    FreqTranslation = zeros(1,nDetOps);
-    
-    if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq)
-      
-      % This adapts the values for DetFreq to simulation frame
-      Exp.DetFreq(Exp.DetFreq > 0) = Exp.DetFreq(Exp.DetFreq > 0) - Events{1}.FrameShift;
-      Exp.DetFreq(Exp.DetFreq < 0) = Exp.DetFreq(Exp.DetFreq < 0) + Events{1}.FrameShift;
-      
-      % And then writes them
-      FreqTranslation(1:length(Exp.DetFreq)) = - Exp.DetFreq; % To make it a down conversion for negative frequencies add the neg sign
-      
-    end
     
     % Downconversion/processing of signal
     Signal = signalprocessing(TimeAxis,RawSignal,FreqTranslation);
@@ -401,5 +406,27 @@ else
   phasedSignal = reshape(phasedSignal,signalSize);
   
 end
+
+end
+
+%===============================================================================
+% Frequency translation of single-point signals, as a phase factor at the
+% detection times (counted from the start of the sequence), consistent with
+% the translation of transients. Signals of Hermitian detection operators
+% (e.g. Sx) are real and contain both rotation senses, so they cannot be
+% translated from single points and are left unchanged.
+function Signal = translateSinglePoints(Signal,TimeAxis,FreqTranslation,DetOps)
+
+sizeSignal = size(Signal);
+nDetOps = numel(FreqTranslation);
+Signal = reshape(Signal,[],nDetOps);
+for iDetOp = find(FreqTranslation~=0)
+  D = DetOps{iDetOp};
+  if max(abs(D-D'),[],'all') <= 1e-12*max(abs(D),[],'all')
+    continue
+  end
+  Signal(:,iDetOp) = Signal(:,iDetOp).*exp(2i*pi*FreqTranslation(iDetOp)*1e3*TimeAxis(:));
+end
+Signal = reshape(Signal,sizeSignal);
 
 end

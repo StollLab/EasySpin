@@ -132,8 +132,12 @@ for iPoints = 1 : nPoints
   % Update the propagators of the pulses (free evolution propagators are
   % built during propagation)
   %--------------------------------------------------------------------
+  % The pulse shapes were shifted into the simulation frame on their own
+  % time axes. The carrier is phase-continuous, so each pulse gets the
+  % phase of the frame shift at its start time in the sequence.
   for iEvent = find(isPulse)
-    Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},Ham0,Relaxation);
+    IQ = Events{iEvent}.IQ.*exp(2i*pi*Events{iEvent}.FrameOffset*1e3*tStart(iEvent));
+    Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
   end
   
   %--------------------------------------------------------------------
@@ -594,12 +598,13 @@ end
 end
 
 
-function Prop = pulsePropagators(Event,Ham0,Relaxation)
-% Propagators of a pulse event. They are only rebuilt if the pulse shape
-% changed, and the lookup table of propagators for linearly polarized
-% excitation is only rebuilt if the amplitude scale changed.
+function Prop = pulsePropagators(Event,IQ,Ham0,Relaxation)
+% Propagators of a pulse event with pulse shape IQ (in the simulation
+% frame). They are only rebuilt if the pulse shape changed, and the lookup
+% table of propagators for linearly polarized excitation is only rebuilt
+% if the amplitude scale changed.
 Prop = Event.Propagation;
-if isfield(Prop,'IQ') && isequal(Prop.IQ,Event.IQ)
+if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ)
   return
 end
 
@@ -609,9 +614,9 @@ nPhaseSteps = size(Event.PhaseCycle,1);
 % convert the IQ wave form into a binary form, so that it
 % is possible to use a propagator look up table
 %------------------------------------------------------------
-rMax = max(abs(real(Event.IQ(:))));
-iMax = max(abs(imag(Event.IQ(:))));
-MaxWave = max(rMax,iMax);
+% The amplitude scale does not depend on the phase of the pulse, so that
+% the lookup table can be reused for different start times
+MaxWave = max(abs(IQ(:)));
 
 if isfield(Event,'vertRes')
   % undocumented feature, you can provide your pulses with
@@ -631,11 +636,11 @@ scale = 2*2*2*pi*MaxWave/vertRes;
 % irradiation, the other because of the digitization of the
 % wave
 
-realArbitrary = real(Event.IQ)/MaxWave;
+realArbitrary = real(IQ)/MaxWave;
 realBinary = round(vertRes*(realArbitrary+1)/2);
 
 if Event.ComplexExcitation
-  imagArbitrary = imag(Event.IQ)/MaxWave;
+  imagArbitrary = imag(IQ)/MaxWave;
   imagBinary = round(vertRes*(imagArbitrary+1)/2);
 end
 
@@ -740,7 +745,7 @@ else
   Prop.Ltotal = Ltotal;
   Prop.SigmaOffsetTotal = SigmaOffsetTotal;
 end
-Prop.IQ = Event.IQ;
+Prop.IQ = IQ;
 end
 
 

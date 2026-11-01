@@ -762,6 +762,14 @@ for iEvent = 1:length(Exp.Sequence)
     % Store the PhaseCycle in the Event structure
     Events{iEvent}.PhaseCycle = thisPhaseCycle;
     
+    % Frequency (GHz) of the microwave carrier in the simulation frame. The
+    % pulse shape was shifted into the simulation frame on the time axis of
+    % the pulse, and s_thyme adds the carrier phase at the start time of the
+    % pulse, so that the carrier is continuous over the sequence. This
+    % includes user-supplied lab-frame waveforms, which are taken to be
+    % upconverted with the carrier at Exp.mwFreq.
+    Events{iEvent}.FrameOffset = freqShift;
+    
     % Checks if ComplexExcitation is requested for this pulse, if not
     % specified ComplexExcitation is switched off by default - the
     % excitation operator is being built outside of s_sequencer

@@ -180,6 +180,7 @@ Exp.Sequence = {P90 0.2 P180 0.4}; % Creates a two pulse (echo) sequence, with a
 				   % of 0.4 microseconds
 </pre>
 The delays are defined to go from the end of the previous element in <code>Sequence</code> to the beginning of the next (unlike in Bruker spectrometers).
+The microwave carrier at <code>Exp.mwFreq</code> runs continuously through the whole sequence, as in a spectrometer. The phase of a pulse (<code>Pulse.Phase</code>) is relative to this carrier, and frequency offsets and sweeps of a pulse start at the beginning of that pulse. User-supplied waveforms (<code>Pulse.IQ</code>, with <code>Pulse.t</code> starting at zero) are treated as if they were generated relative to the same continuous carrier.
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>

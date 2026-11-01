@@ -1,7 +1,9 @@
 function ok = test()
 
 % Tests if both ways of inputting excitation bands work/give the same
-% result
+% result. With a single pulse: in later pulses, the phases differ, since
+% the carrier at Exp.mwFreq is phase-continuous, while frequencies given
+% relative to Exp.mwFreq = 0 start at the beginning of each pulse.
 
 % System ------------------------
 Sys.S = 1/2;
@@ -17,8 +19,8 @@ Pulse.Flip = pi;
 Exp.mwFreq = 33.5;
 Pulse.Frequency = 1000* [-0.100 0.100];
 
-Exp.Sequence = {Pulse 0.5 Pulse};
-Exp.Field = 1240; 
+Exp.Sequence = {Pulse 0.5};
+Exp.Field = 1240;
 Exp.TimeStep = 0.00001; % µs
 
 
@@ -34,7 +36,7 @@ Exp.DetFreq = [0 33.5];
 % Second Method -------------------------
 Exp.mwFreq = 0;
 Pulse.Frequency = 1000* [33.400 33.600];
-Exp.Sequence = {Pulse 0.5 Pulse};
+Exp.Sequence = {Pulse 0.5};
 
 [~, ~, out2] = spidyan(Sys,Exp);
 

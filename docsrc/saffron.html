@@ -209,6 +209,10 @@ Exp.Sequence = {Pulse1 0.2 Pulse2 0.4};
 <p>
 The inter-pulse delays are defined as going from the end of one pulse to the beginning of the next.
 </p>
+
+<p>
+The microwave carrier at <code>Exp.mwFreq</code> runs continuously through the whole sequence, as in a spectrometer. The phase of a pulse (<code>Pulse.Phase</code>) is relative to this carrier, and frequency offsets and sweeps of a pulse start at the beginning of that pulse.
+</p>
 </div>
 
 <div class="optionfield"><code>mwFreq</code></div>
