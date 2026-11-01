@@ -49,159 +49,26 @@ for iEvent = 1 : nEvents
   end
 end
 
-%----------------------------------------------------------------------
-% This checks if traces for all datapoints have the save length, if
-% not, a cell array is used for storage of traces
-%----------------------------------------------------------------------
+% Traces are stored in a numeric array, unless their lengths differ
+% between acquisition points (see storage at the end of the loop)
 StoreInCellArray = false;
 
-% Gets initial event lengths
+% Initial event lengths, the indirect dimensions are applied to these
 InitialEventLengths = zeros(1,nEvents);
 for iEvent = 1 : nEvents
   InitialEventLengths(iEvent) = Events{iEvent}.t(end);
 end
 
-if nDimensions > 0
-  
-  
-  % Loop over all data points
-  for iPoint = 1 : nPoints
-    
-    EventLengths = InitialEventLengths;
-    
-    % DetectionTime is used to measure the total length of detected
-    % events
-    DetectionTime = 0;
-    
-    % First all delays are set according to the incrementation tables
-    % for each dimension
-    for iDimension = 1 : nDimensions
-      if any(any(Vary.IncrementationTable{iDimension}))
-        ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,DimensionIndices(iDimension)));
-        for i = 1 : length(ModifiedEvents)
-          EventLengths(ModifiedEvents(i)) = EventLengths(ModifiedEvents(i)) + Vary.IncrementationTable{iDimension}(ModifiedEvents(i),DimensionIndices(iDimension));
-        end
-      end
-    end
-    
-    % Loops over the pulses, and loads the pulse length for the current
-    % acquisition point
-    for iPulse = 1 : nPulses
-      if ~isempty(Vary.Pulses{iPulse})
-        iEvent = PulsePositions(iPulse);
-        t = LoadfromArray(Vary.Pulses{iPulse}.ts,DimensionIndices);
-        if Resonator
-          % if resonator is present the original length of the pulse is
-          % calculated (and rounded)
-          DecimalRound = 10;
-          Ringing = LoadfromArray(Vary.Pulses{iPulse}.Ringing,DimensionIndices);
-          Ringing = round(Ringing*(10^DecimalRound))/(10^DecimalRound);
-          EventLengths(iEvent) = t(end)-Ringing;
-        else
-          % if not, the length can be obtained from the last element of
-          % the time axis
-          EventLengths(iEvent) = t(end);
-        end
-      end
-    end
-    
-    % Reorder Events and adjust event lengths
-    [Sequence, NewEventLengths] = s_reorder_events(EventLengths,isPulse);
-    
-    if Resonator
-      % Loop over the pulses
-      for iPulse = 1 : nPulses
-        % Get the initial event index of the current pulse
-        ThisEventIndex = PulsePositions(iPulse);
-        % Use the inital event index to find it in the position after
-        % reordering
-        ThisEvent = find(Sequence == PulsePositions(iPulse));
-        if ~isempty(Vary.Pulses{iPulse})
-          % if any parameter of the pulse is varied, the length of the
-          % ringing is taken from the vary structure
-          Ringing = LoadfromArray(Vary.Pulses{iPulse}.Ringing,DimensionIndices);
-        else
-          % if the pulse is not in the vary structure, the length of
-          % the ringing is taken from the Event structure
-          Ringing = Events{Sequence(ThisEventIndex)}.Ringing;
-        end
-        % Rounding of the Ringing length
-        DecimalRound = 10;
-        Ringing = round(Ringing*(10^DecimalRound))/(10^DecimalRound);
-        % Length of the pulse is being updated, to make sure that the
-        % counter for detection periods is correct
-        NewEventLengths(ThisEvent) = NewEventLengths(ThisEvent) + Ringing;
-        if ThisEvent < nEvents
-          % if the current pulse is not the last pulse in the new
-          % sequence, the succeeding event is checked to make sure it
-          % is not a pulse
-          FollowingEvent = Sequence(ThisEvent+1);
-          if strcmp(Events{FollowingEvent}.type,'pulse')
-            error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
-          end
-          % And then the free evolution event is shortened by the
-          % length of Ringing
-          NewEventLengths(FollowingEvent) = NewEventLengths(FollowingEvent) - Ringing;
-          % And the new length is checked again
-          if NewEventLengths(FollowingEvent) < 0
-            Msg = ['The delay ' num2str(FollowingEvent) ' is too short to accomodate for ringing of the preceding pulse.'];
-            error(Msg);
-          end
-        end
-      end
-    end
-    
-    % Count the time during detected events
-    for iSequence = 1 : nEvents
-      if Events{Sequence(iSequence)}.Detection
-        DetectionTime = DetectionTime + NewEventLengths(iSequence);
-      end
-    end
-    
-    % Get a reference detection time for the first data point
-    if iPoint == 1
-      ReferenceDetection = DetectionTime;
-    else
-      % Or compare the sum of the detected time intervals to the
-      % detection time of the first data point. If they don't match,
-      % signals are stored in a cell array
-      if abs(ReferenceDetection-DetectionTime) > 1e-12
-        StoreInCellArray = true;
-        break
-      end
-    end
-    
-    % Increment Dimensions in Acquisition Counter
-    for d = nDimensions:-1:1
-      if DimensionIndices(d)<Vary.Points(d)
-        DimensionIndices(d) = DimensionIndices(d)+1;
-        break;
-      else
-        DimensionIndices(d) = 1;
-      end
-    end
-    
-  end
-  
-  % Reset Acquisition counter to first data point
-  DimensionIndices = ones(1,nDimensions);
-  
-elseif Resonator
-  % This is called, if the simulation is a single experiment (no
-  % Exp.nPoints and hence no Vary structure)
+% Without indirect dimensions, the delay after a pulse is shortened by the
+% (rounded) duration of the ringing of that pulse. s_sequencer has checked
+% that the delays are long enough.
+if nDimensions==0 && Resonator
   for iEvent = 1 : nEvents-1
     if strcmp(Events{iEvent}.type,'pulse')
-      if strcmp(Events{iEvent+1}.type,'pulse')
-        error('When using a resonator, pulses need to be separated by inter pulse delays to accomodate for ringing from the resonator.')
-      end
-      % Inter pulse delay of the following event is shortened by the
-      % (rounded) duration of ringing
-      Ringing = Events{iEvent}.Ringing;
       DecimalRound = 10;
-      Ringing = round(Ringing*(10^DecimalRound))/(10^DecimalRound);
+      Ringing = round(Events{iEvent}.Ringing*(10^DecimalRound))/(10^DecimalRound);
       Events{iEvent+1}.t = Events{iEvent+1}.t - Ringing;
     end
-    
   end
 end
 
@@ -211,17 +78,15 @@ end
 %----------------------------------------------------------------------
 for iPoints = 1 : nPoints
   
-  EventLengths = InitialEventLengths;
   Sigma = initialSigma;
   
   %--------------------------------------------------------------------
-  % Overwrites IQ and t axis for all pulses that are being modified.
-  % This needs to be adapted so that only events are overwritten that
-  % are actually changed!
+  % Set the pulse shapes and event lengths of the current acquisition
+  % point
   %--------------------------------------------------------------------
-  if~isempty(Vary)
-    % Replace the inital lengths of the delays with the one that
-    % correspond to the current acquisition
+  if ~isempty(Vary)
+    % Apply the increments of the delays for the current acquisition
+    EventLengths = InitialEventLengths;
     for iDimension = 1 : nDimensions
       if any(any(Vary.IncrementationTable{iDimension}))
         ModifiedEvents = find(Vary.IncrementationTable{iDimension}(:,DimensionIndices(iDimension)));
@@ -232,21 +97,12 @@ for iPoints = 1 : nPoints
     end
     
     % Load the pulse shapes corresponding to the current acquisition
-    % point
+    % point (their propagators are updated below if the shape changed)
     for iPulse = 1 : nPulses
       if ~isempty(Vary.Pulses{iPulse})
         iEvent = PulsePositions(iPulse);
-        IQ = LoadfromArray(Vary.Pulses{iPulse}.IQs,DimensionIndices);
-        t = LoadfromArray(Vary.Pulses{iPulse}.ts,DimensionIndices);
-        % Only replace if the new wave form is different from the
-        % previous one
-        if ~isequal(Events{iEvent}.IQ,IQ)
-          Events{iEvent}.IQ = IQ;
-          Events{iEvent}.t = t;
-          % Clear propagators
-          Events{iEvent}.Propagation = [];
-        end
-        % Write pulse length to EventLengths vector
+        Events{iEvent}.IQ = LoadfromArray(Vary.Pulses{iPulse}.IQs,DimensionIndices);
+        Events{iEvent}.t = LoadfromArray(Vary.Pulses{iPulse}.ts,DimensionIndices);
         EventLengths(iEvent) = Events{iEvent}.t(end);
       end
     end
@@ -269,171 +125,15 @@ for iPoints = 1 : nPoints
     Sequence = 1 : nEvents;
   end
   
-  %--------------------------------------------------------------------
+  % Start times of all events, from the start of the sequence
+  tStart = eventStartTimes(Events,Sequence);
   
   %--------------------------------------------------------------------
-  % Check if the Propagators that are needed for this acquisition are
-  % available and if not, build and store them
+  % Update the propagators of the pulses (free evolution propagators are
+  % built during propagation)
   %--------------------------------------------------------------------
-  for iEvent = 1 : nEvents
-    currentEvent = Events{iEvent};
-    
-    if isempty(currentEvent.Propagation) || ~(isfield(currentEvent.Propagation,'Utotal') || isfield(currentEvent.Propagation,'Ltotal'))
-      
-      switch currentEvent.type
-        case 'pulse'
-          
-          nPhaseSteps = size(currentEvent.PhaseCycle,1);
-          %------------------------------------------------------------
-          % convert the IQ wave form into a binary form, so that it
-          % is possible to use a propagator look up table
-          %------------------------------------------------------------
-          
-          rMax = max(abs(real(currentEvent.IQ(:)))); % max(abs(real....(:)))
-          iMax = max(abs(imag(currentEvent.IQ(:))));
-          
-          MaxWave = max(rMax,iMax);
-          
-          if isfield(currentEvent,'vertRes')
-            % undocumented feature, you can provide your pulses with
-            % their own vertical resolution e.g. for a rectangular
-            % pulse it would suffice to have a vertRes of 3 (-1,0,1)
-            if mod(currentEvent.vertRes,2)
-              vertRes = currentEvent.vertRes+1;
-            else
-              vertRes = currentEvent.vertRes;
-            end
-          else
-            vertRes = 1024;
-          end
-          
-          scale = 2*2*2*pi*MaxWave/vertRes;
-          % one factor 2 is required because of linearly polarized
-          % irradiation, the other because of the digitization of the
-          % wave
-          
-          tvector(1) = 0;
-          tvector(2:length(currentEvent.t)+1) = currentEvent.t+currentEvent.TimeStep;
-          
-          realArbitrary = real(currentEvent.IQ)/MaxWave;
-          realBinary = round(vertRes*(realArbitrary+1)/2);
-          
-          if currentEvent.ComplexExcitation == 1
-            imagArbitrary = imag(currentEvent.IQ)/MaxWave;
-            imagBinary = round(vertRes*(imagArbitrary+1)/2);
-          end
-          
-          %------------------------------------------------------------
-          % Propagator/Liouvillian Calculation Starts Here
-          %------------------------------------------------------------
-          % Only build the propagators if they are not available
-          if (~currentEvent.Relaxation && ~isfield(currentEvent.Propagation,'Utotal')) ... % checks for availability if simulation is in Hilbert space
-              || (currentEvent.Relaxation && ~isfield(currentEvent.Propagation,'Ltotal')) % checks for availability in Liouville space
-            
-            if currentEvent.Relaxation % Set up for Liouville space simulations
-              n = size(Sigma,1);
-              Gamma = Relaxation.Gamma;
-              equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-            end
-            
-            %----------------------------------------------------------
-            % Build the Propagator table, only possible for
-            % excitation that has no imaginary part - increases speed
-            % by precomputing all propagators and later loading them,
-            % instead of calculating them at each way point (true as
-            % long as length(Wave) > vertical resolution)
-            %----------------------------------------------------------
-            if currentEvent.ComplexExcitation == 0 && ~currentEvent.Relaxation
-              
-              UTable = buildPropagators(Ham0,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
-              
-              Events{iEvent}.Propagation.UTable = UTable;
-              
-            elseif currentEvent.ComplexExcitation == 0 && currentEvent.Relaxation
-              
-              [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,currentEvent.xOp,currentEvent.TimeStep,vertRes,scale);
-              
-              Events{iEvent}.Propagation.LTable = LTable;
-              Events{iEvent}.Propagation.SigmaOffsetTable = SigmaOffsetTable;
-              
-            end
-            
-            % Set up structures for the actual propagators
-            if currentEvent.Detection && ~currentEvent.Relaxation
-              Utotal = cell(nPhaseSteps,length(realBinary));
-            else
-              if ~currentEvent.Relaxation
-                Utotal = cell(nPhaseSteps,1);
-              else
-                Ltotal = cell(nPhaseSteps,length(realBinary));
-                SigmaOffsetTotal = Ltotal;
-              end
-            end
-            
-            for iPhaseStep = 1 : nPhaseSteps
-              for iWavePoint = 1 : length(realBinary)
-                if currentEvent.ComplexExcitation == 0
-                  %----------------------------------------------------
-                  % Lookup tables are only feasible for non-complex
-                  % excitation
-                  %----------------------------------------------------
-                  if ~currentEvent.Relaxation
-                    U = UTable{realBinary(iPhaseStep,iWavePoint)+1};
-                  else
-                    L=LTable{realBinary(iPhaseStep,iWavePoint)+1};
-                    SigmaOffset=SigmaOffsetTable{realBinary(iPhaseStep,iWavePoint)+1};
-                  end
-                else
-                  %----------------------------------------------------
-                  % For complex excitation it is not possible to use a
-                  % lookup table
-                  %----------------------------------------------------
-                  Ham1 = scale/2*(realBinary(iPhaseStep,iWavePoint)-vertRes/2)*real(currentEvent.xOp)+1i*scale/2*(imagBinary(iPhaseStep,iWavePoint)-vertRes/2)*imag(currentEvent.xOp);
-                  Ham =  Ham0+Ham1;
-                  if ~currentEvent.Relaxation
-                    U = Propagator(Ham,currentEvent.TimeStep);
-                  else
-                    [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,currentEvent.TimeStep);
-                  end
-                end
-                
-                if ~currentEvent.Relaxation
-                  %------------------------------------------------------
-                  % Store Propagators for propation in one step
-                  % (additional speed bost if no detection) or stepwise
-                  %------------------------------------------------------
-                  if currentEvent.Detection
-                    Utotal{iPhaseStep,iWavePoint} = U;
-                  else
-                    if iWavePoint == 1
-                      Utotal{iPhaseStep,1} = U;
-                    else
-                      Utotal{iPhaseStep,1} = U*Utotal{iPhaseStep,1};
-                    end
-                  end
-                else
-                  Ltotal{iPhaseStep,iWavePoint} = L;
-                  SigmaOffsetTotal{iPhaseStep,iWavePoint} = SigmaOffset;
-                  
-                end
-              end
-            end
-            
-            
-            %-------------------------------------------------------
-            % Write to Event Structure
-            %--------------------------------------------------------
-            if ~currentEvent.Relaxation
-              Events{iEvent}.Propagation.Utotal = Utotal;
-            else
-              Events{iEvent}.Propagation.Ltotal = Ltotal;
-              Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffsetTotal;
-            end
-          end
-          
-      end
-      
-    end
+  for iEvent = find(isPulse)
+    Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},Ham0,Relaxation);
   end
   
   %--------------------------------------------------------------------
@@ -444,7 +144,6 @@ for iPoints = 1 : nPoints
   % bookkeping to keep track of when the first event is detected and
   % what should be stored, needed for proper arrangment of the output
   % later
-  ttotal = 0;
   firstDetection = true;
   firstDensityMatrix = true;
   CurrentStateTrajectories = [];
@@ -671,13 +370,13 @@ for iPoints = 1 : nPoints
         t = [];
         % store first point of the first signal
         Signal(:,1) = currentSignal(:,1);
-        t(1,1) = ttotal;
+        t(1,1) = tStart(iEvent);
         
         % now add all the others timepoints
         nSignal = size(currentSignal,2);
         endTrace = startTrace+nSignal-2;
         Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
-        t(1,startTrace:endTrace) = tvector(2:end)+ttotal;
+        t(1,startTrace:endTrace) = tvector(2:end)+tStart(iEvent);
         startTrace = endTrace+1;
         firstDetection = false;
         
@@ -689,7 +388,7 @@ for iPoints = 1 : nPoints
         nSignal = size(currentSignal,2);
         endTrace = startTrace+nSignal-2;
         Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
-        t(1,startTrace:endTrace) = tvector(2:end)+ttotal;
+        t(1,startTrace:endTrace) = tvector(2:end)+tStart(iEvent);
         startTrace = endTrace+1;
       end
     end
@@ -714,9 +413,6 @@ for iPoints = 1 : nPoints
         end
       end
     end
-    % Update Total Time, necessary to keep correct timings  if events
-    % are not detected
-    ttotal = ttotal + tvector(end);
     %------------------------------------------------------------------
     
   end
@@ -758,25 +454,19 @@ for iPoints = 1 : nPoints
     % position in the array
     if ~StoreInCellArray
       if length(t) > 1 && size(TimeArray,ndims(TimeArray)) ~= length(t)      
-        % double check that the most recent trace has the same length as
-        % all the others before
-        % in very rare cases it can happen that the total detection time
-        % between different acquistions is identical, but the total number
-        % of points changes. This is due to the fact, that if the length of
-        % an event is changed along one of the indirect dimensions, this
-        % change might not scale with the time step (think of it as the
-        % least common denominator). An extreme example would be:
+        % The trace of the current acquisition point has a different
+        % length than the traces before, e.g. because a detected event is
+        % incremented along an indirect dimension. From now on, traces are
+        % stored in cell arrays, and the traces stored so far are moved
+        % there. The number of points can also change if the total
+        % detected time stays the same, since event lengths are rounded to
+        % the time step, e.g. with dt = 0.2 µs:
         % 1st Acquisition: tau1 = 0.5 µs, tau2 = 0.5 µs, dt = 0.2 µs
         %                  total detection time = 0.5 + 0.5 = 1 µs
         %                  total number of data points = 2 + 2 = 4
         % 2nd Acquisition: tau1 = 0.4 µs, tau2 = 0.6 µs, dt = 0.2 µs
         %                  total detection time = 0.4 + 0.6 = 1 µs
         %                  total number of data points = 2 + 3 = 5
-        % These are usually very minor numerical differences (not
-        % necessesarily errors) that come from the time discretization step
-        % and are not expected to affect the simulation (especially since
-        % the time step is usually very small compared to any time
-        % increment along an indirect dimension).
         StoreInCellArray = true;
         
         % Create cell arrays for output
@@ -797,7 +487,9 @@ for iPoints = 1 : nPoints
           if isscalar(IndirectDimensions)
             indexID{1} = jSignal;
           else
-            [indexID{:}] = ind2sub(cell2mat(IndirectDimensions),jSignal);
+            % acquisition points are visited with the last dimension
+            % changing fastest
+            [indexID{end:-1:1}] = ind2sub(fliplr(cell2mat(IndirectDimensions)),jSignal);
           end
 
           % assign jSignal to cell array, remove singleton dimensions
@@ -877,6 +569,179 @@ if firstDetection
   SignalArray = [];
   TimeArray = [];
 end
+end
+
+
+function tStart = eventStartTimes(Events,Sequence)
+% Start times of all events in the order given by Sequence, with time
+% counted from the start of the sequence. The event durations are those of
+% the propagation time steps: a pulse lasts one time step longer than its
+% time axis, and a detected free evolution ends at its last full time step.
+tStart = zeros(1,numel(Events));
+t = 0;
+for iEvent = Sequence
+  tStart(iEvent) = t;
+  Event = Events{iEvent};
+  if strcmp(Event.type,'pulse')
+    t = t + (Event.t(end)+Event.TimeStep);
+  elseif Event.Detection
+    tDetected = 0:Event.TimeStep:Event.t;
+    t = t + tDetected(end);
+  else
+    t = t + Event.t;
+  end
+end
+end
+
+
+function Prop = pulsePropagators(Event,Ham0,Relaxation)
+% Propagators of a pulse event. They are only rebuilt if the pulse shape
+% changed, and the lookup table of propagators for linearly polarized
+% excitation is only rebuilt if the amplitude scale changed.
+Prop = Event.Propagation;
+if isfield(Prop,'IQ') && isequal(Prop.IQ,Event.IQ)
+  return
+end
+
+nPhaseSteps = size(Event.PhaseCycle,1);
+
+%------------------------------------------------------------
+% convert the IQ wave form into a binary form, so that it
+% is possible to use a propagator look up table
+%------------------------------------------------------------
+rMax = max(abs(real(Event.IQ(:))));
+iMax = max(abs(imag(Event.IQ(:))));
+MaxWave = max(rMax,iMax);
+
+if isfield(Event,'vertRes')
+  % undocumented feature, you can provide your pulses with
+  % their own vertical resolution e.g. for a rectangular
+  % pulse it would suffice to have a vertRes of 3 (-1,0,1)
+  if mod(Event.vertRes,2)
+    vertRes = Event.vertRes+1;
+  else
+    vertRes = Event.vertRes;
+  end
+else
+  vertRes = 1024;
+end
+
+scale = 2*2*2*pi*MaxWave/vertRes;
+% one factor 2 is required because of linearly polarized
+% irradiation, the other because of the digitization of the
+% wave
+
+realArbitrary = real(Event.IQ)/MaxWave;
+realBinary = round(vertRes*(realArbitrary+1)/2);
+
+if Event.ComplexExcitation
+  imagArbitrary = imag(Event.IQ)/MaxWave;
+  imagBinary = round(vertRes*(imagArbitrary+1)/2);
+end
+
+if Event.Relaxation % Set up for Liouville space simulations
+  n = size(Ham0,1);
+  Gamma = Relaxation.Gamma;
+  equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
+end
+
+%----------------------------------------------------------
+% Build the Propagator table, only possible for
+% excitation that has no imaginary part - increases speed
+% by precomputing all propagators and later loading them,
+% instead of calculating them at each way point (true as
+% long as length(Wave) > vertical resolution)
+%----------------------------------------------------------
+if ~Event.ComplexExcitation && ~(isfield(Prop,'scale') && Prop.scale==scale)
+  if ~Event.Relaxation
+    Prop.UTable = buildPropagators(Ham0,Event.xOp,Event.TimeStep,vertRes,scale);
+  else
+    [Prop.LTable, Prop.SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,vertRes,scale);
+  end
+  Prop.scale = scale;
+end
+
+% Set up structures for the actual propagators
+if Event.Detection && ~Event.Relaxation
+  Utotal = cell(nPhaseSteps,length(realBinary));
+else
+  if ~Event.Relaxation
+    Utotal = cell(nPhaseSteps,1);
+  else
+    Ltotal = cell(nPhaseSteps,length(realBinary));
+    SigmaOffsetTotal = Ltotal;
+  end
+end
+
+% Local copies for the loop over the wave form (faster than field access)
+complexExcitation = Event.ComplexExcitation;
+relaxation = Event.Relaxation;
+detection = Event.Detection;
+if ~complexExcitation
+  if ~relaxation
+    UTable = Prop.UTable;
+  else
+    LTable = Prop.LTable;
+    SigmaOffsetTable = Prop.SigmaOffsetTable;
+  end
+end
+
+for iPhaseStep = 1 : nPhaseSteps
+  for iWavePoint = 1 : length(realBinary)
+    if ~complexExcitation
+      %----------------------------------------------------
+      % Lookup tables are only feasible for non-complex
+      % excitation
+      %----------------------------------------------------
+      if ~relaxation
+        U = UTable{realBinary(iPhaseStep,iWavePoint)+1};
+      else
+        L = LTable{realBinary(iPhaseStep,iWavePoint)+1};
+        SigmaOffset = SigmaOffsetTable{realBinary(iPhaseStep,iWavePoint)+1};
+      end
+    else
+      %----------------------------------------------------
+      % For complex excitation it is not possible to use a
+      % lookup table
+      %----------------------------------------------------
+      Ham1 = scale/2*(realBinary(iPhaseStep,iWavePoint)-vertRes/2)*real(Event.xOp)+1i*scale/2*(imagBinary(iPhaseStep,iWavePoint)-vertRes/2)*imag(Event.xOp);
+      Ham =  Ham0+Ham1;
+      if ~relaxation
+        U = Propagator(Ham,Event.TimeStep);
+      else
+        [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,Event.TimeStep);
+      end
+    end
+
+    if ~relaxation
+      %------------------------------------------------------
+      % Store Propagators for propation in one step
+      % (additional speed bost if no detection) or stepwise
+      %------------------------------------------------------
+      if detection
+        Utotal{iPhaseStep,iWavePoint} = U;
+      else
+        if iWavePoint == 1
+          Utotal{iPhaseStep,1} = U;
+        else
+          Utotal{iPhaseStep,1} = U*Utotal{iPhaseStep,1};
+        end
+      end
+    else
+      Ltotal{iPhaseStep,iWavePoint} = L;
+      SigmaOffsetTotal{iPhaseStep,iWavePoint} = SigmaOffset;
+    end
+  end
+end
+
+if ~Event.Relaxation
+  Prop.Utotal = Utotal;
+else
+  Prop.Ltotal = Ltotal;
+  Prop.SigmaOffsetTotal = SigmaOffsetTotal;
+end
+Prop.IQ = Event.IQ;
+end
 
 
 function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
@@ -889,10 +754,12 @@ for iRes = 0:vertRes
   U = Propagator(Ham,dt);
   UTable{iRes+1} = U;
 end
+end
 
 
 function U = Propagator(Ham,dt)
 U = expm(-1i*Ham*dt);
+end
 
 
 function [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
@@ -906,6 +773,7 @@ for ivertRes = 0:vertRes
   [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt);
   LTable{ivertRes+1} = L;
   SigmaOffsetTable{ivertRes+1} = SigmaOffset;
+end
 end
 
 
@@ -928,6 +796,7 @@ A(1:N,N+1) = Gamma*equilibriumState;
 expA = expm(A*dt);
 L = expA(1:N,1:N);
 SigmaOffset = expA(1:N,N+1);
+end
 
 
 function LoadedElement = LoadfromArray(Array, ArrayIndex)
@@ -951,4 +820,5 @@ if iscell(Array)
   LoadedElement = Array{IndexToLoad{:}};
 else
   LoadedElement = Array(IndexToLoad{:});
+end
 end
