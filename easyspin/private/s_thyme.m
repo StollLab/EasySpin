@@ -659,8 +659,8 @@ if Event.Relaxation % Set up for Liouville space simulations
 end
 
 %----------------------------------------------------------
-% Build the Propagator table, only possible for
-% excitation that has no imaginary part - increases speed
+% Build the Propagator table, only possible for linearly
+% polarized excitation (one field component) - increases speed
 % by precomputing all propagators and later loading them,
 % instead of calculating them at each way point (true as
 % long as length(Wave) > vertical resolution)
@@ -717,7 +717,7 @@ for iPhaseStep = 1 : nPhaseSteps
       % For complex excitation it is not possible to use a
       % lookup table
       %----------------------------------------------------
-      Ham1 = scale/2*(realBinary(iPhaseStep,iWavePoint)-vertRes/2)*real(Event.xOp)+1i*scale/2*(imagBinary(iPhaseStep,iWavePoint)-vertRes/2)*imag(Event.xOp);
+      Ham1 = scale/2*(realBinary(iPhaseStep,iWavePoint)-vertRes/2)*Event.xOp + scale/2*(imagBinary(iPhaseStep,iWavePoint)-vertRes/2)*Event.yOp;
       Ham =  Ham0+Ham1;
       if ~relaxation
         U = Propagator(Ham,Event.TimeStep);
@@ -762,7 +762,7 @@ function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
 UTable = cell(1,vertRes+1);
 
 for iRes = 0:vertRes
-  Ham1 = scale*(iRes-vertRes/2)*real(xOp);
+  Ham1 = scale*(iRes-vertRes/2)*xOp;
   Ham = Ham0+Ham1;
   U = Propagator(Ham,dt);
   UTable{iRes+1} = U;
@@ -781,7 +781,7 @@ SigmaOffsetTable = cell(1,vertRes+1);
 LTable = cell(1,vertRes+1);
 
 for ivertRes = 0:vertRes
-  Ham1 = scale*(ivertRes-vertRes/2)*real(xOp);
+  Ham1 = scale*(ivertRes-vertRes/2)*xOp;
   Ham = Ham0 + Ham1;
   [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt);
   LTable{ivertRes+1} = L;

@@ -214,7 +214,7 @@ The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc
 <pre class="matlab">
 Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
 </pre>
-<code>mwPolarization</code> can also be used in combination with custom excitation operators (<code>Opt.ExcOperator</code>), if they have an imaginary component.
+With a custom excitation operator (<code>Opt.ExcOperator</code>), the imaginary part of the waveform acts through the same operator rotated by 90&deg; about the static field, e.g. <i>&Scirc;<sub>y</sub></i> for <i>&Scirc;<sub>x</sub></i>.
 Keep in mind that using <code>'circular'</code> does not allow <code>spidyan</code> to use some of its speed-up tricks and can lead to significantly longer simulation times.
 </div>
 
@@ -574,7 +574,7 @@ It is possible to use the syntax from <a class="esf" href="sop.html">sop</a> as 
 Opt.ExcOperator = {[] 'x(1|2)'};     % transition selective excitation operator for the second pulse
 Opt.ExcOperator = {[0 1/2; 1/2 0]};  % custom excitation operator for the first pulse in matrix form
 </pre>
-The imaginary part of a custom excitation operator is only considered if <code>ComplexExcitation</code> is active for the respective pulse.
+Excitation operators must be Hermitian. With <code>Exp.mwPolarization = 'circular'</code>, the operator for the imaginary part of the waveform is obtained by rotating the given operator by 90&deg; about the static field.
 </div>
 
 <div class="subtitle">Output Structure</div>

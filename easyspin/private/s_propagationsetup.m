@@ -129,12 +129,20 @@ end
 logmsg(1,'  setting up the excitation operators');
 
 % -------------------------------------------------------------------------
-% Build the excitation operator for each pulse - if a custom excitation
-% operator is provided in string form, sop will be called. If a matrix is
-% provided, this matrix is used as excitation operator. If no custom
-% excitation operators are given and no complex excitation was requested, 
-% Sx is being used, for complex excitation Sx + Sy
+% Build the excitation operator xOp for each pulse: the total electron Sx,
+% or a custom Hermitian operator (sop string or matrix). With circular
+% polarization, the field also has a component along y(Lab). It couples to
+% yOp, the excitation operator rotated by 90 degrees about z(Lab):
+% yOp = Rz*xOp*Rz' with Rz = exp(-1i*pi/2*Fz), where Fz is the total Sz of
+% all spins. For Sx, yOp is Sy.
 % -------------------------------------------------------------------------
+
+% Rz is diagonal, so the rotation multiplies each element by a phase
+mTotal = 0;
+for iSpin = 1:numel(Sys.Spins)
+  mTotal = mTotal + full(diag(sop(Sys.Spins,[iSpin,3])));
+end
+rotPhases = exp(-1i*pi/2*(mTotal-mTotal.'));
 
 % initialize pulse counting
 iPulse = 1;
@@ -147,21 +155,23 @@ for iEvent = 1: length(Events)
       % ... if yes, they are translated/verified and stored into the
       % current event ...
       if ischar(Opt.ExcOperator{iPulse})
-        Events{iEvent}.xOp = sop(Sys.Spins,Opt.ExcOperator{iPulse});
+        xOp = sop(Sys.Spins,Opt.ExcOperator{iPulse});
       elseif any(size(Opt.ExcOperator{iPulse}) ~= size(totSpinOps{1}))
         message = ['The excitation operator that you provided for pulse no. ' num2str(iPulse) ' does not have the same size as the density matrix.'];
         error(message)
       else
-         Events{iEvent}.xOp = Opt.ExcOperator{iPulse};
+        xOp = Opt.ExcOperator{iPulse};
       end
+      if norm(xOp-xOp','fro') > 1e-10*norm(xOp,'fro')
+        error('The excitation operator for pulse no. %d is not Hermitian.',iPulse);
+      end
+      Events{iEvent}.xOp = (xOp+xOp')/2;
     else
-      % ... if not, the total Sx operator is used ...
+      % ... if not, the total Sx operator is used
       Events{iEvent}.xOp = totSpinOps{1};
-      % ... and if complex excitation is required, the Sy operator is added
-      % on top
-      if Events{iEvent}.ComplexExcitation
-        Events{iEvent}.xOp = Events{iEvent}.xOp + totSpinOps{2};
-      end
+    end
+    if Events{iEvent}.ComplexExcitation
+      Events{iEvent}.yOp = Events{iEvent}.xOp.*rotPhases;
     end
     % Increment pulse counter
     iPulse = iPulse + 1;

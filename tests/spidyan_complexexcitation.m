@@ -34,14 +34,23 @@ Exp.mwPolarization = 'circular';
 data.t1 = t1;
 data.signal1 = signal1;
 
-% Using a custom complex excitation operator ----------------------
-Opt.ExcOperator = {sop(Sys.S,'x(1|2)')+sop(Sys.S,'y(1|2)')};
-Exp.mwPolarization = 'circular';
+% A custom excitation operator equal to the default one gives the same
+% result, the operator for the imaginary part (Sy) is derived from it
+Opt.ExcOperator = {sop(Sys.S,'x(1|2)')};
 
 [~, signal2] = spidyan(Sys,Exp,Opt);
 
+% Non-Hermitian excitation operators are rejected
+Opt.ExcOperator = {sop(Sys.S,'+')};
+try
+  spidyan(Sys,Exp,Opt);
+  nonHermitianRejected = false;
+catch
+  nonHermitianRejected = true;
+end
+
 if ~isempty(olddata)
-  ok = areequal(signal1,olddata.signal1,1e-4,'abs') || ~areequal(signal1,signal2,1e-4,'abs');
+  ok = [areequal(signal1,olddata.signal1,1e-4,'abs') areequal(signal1,signal2,1e-12,'abs') nonHermitianRejected];
 else
   ok = [];
 end

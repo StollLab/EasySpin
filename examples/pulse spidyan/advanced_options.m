@@ -94,13 +94,14 @@ Exp_.Sequence = {Adiabatic};
 plot(TimeAxis*1000,Custom)
 legend('linear mwPolarization','circular mwPolarization','userdefined ExOp')
 
-% It is also possible to combine circular mwPolarization with custom excitation 
+% It is also possible to combine circular mwPolarization with custom excitation
 % operators
 % In this case the excitation operator takes the form:
-% real(IQ)*real(ExOperator) + imag(IQ)*imag(ExOperator)
+% real(IQ)*ExOperator + imag(IQ)*(ExOperator rotated by 90 degrees about z),
+% here real(IQ)*Sx(1|2) + imag(IQ)*Sy(1|2)
 
 Opt_ = [];
-Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')+sop(Sys_.S,'y(1|2)')};
+Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')};
 
 Exp_.mwPolarization = 'circular';
 
