@@ -63,6 +63,7 @@ In the case of transient detection, <code>y</code> is an (n+1)-dimensional array
 <code>x</code> is a vector if <code>y</code> is one-dimensional. 
 If <code>y</code> has more than one dimension, <code>x</code> becomes a cell array with the individual axes.
 In the case of transient detection, the time axis of the transient is always the last element in <code>x</code>.
+The signal is averaged over all orientations of a powder, and over all sample orientations and sites of a crystal. For S=1/2 without nuclear modulation and with ideal pulses that excite all spins, the two-pulse echo is 1/2, and the stimulated and four-pulse echoes are 1/4.
 For ESEEM simulations, <code>info</code> contains the frequency abscissa (in MHz) in <code>info.f</code> and the spectrum obtained by Fourier transform from the time domain data in <code>info.fd</code>.
 </p>
 

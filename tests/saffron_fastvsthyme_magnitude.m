@@ -54,8 +54,8 @@ for k = 1:3
   ok(3+k) = areequal(yIdeal{k},yThyme{k},5e-3,'rel');
 end
 
-% Without modulation, the stimulated and the four-pulse echo are half the
-% primary echo
+% Without modulation, the echo is 1/2 for the primary echo and 1/4 for the
+% stimulated and the four-pulse echo
 Sys.A = [0 0];
 E2 = rmfield(E2,'PhaseCycle');
 E3 = rmfield(E3,'PhaseCycle');
@@ -63,9 +63,9 @@ EH = rmfield(EH,'PhaseCycle');
 E2.Sequence = {p90 tau p180 tau};
 E3.Sequence = {p90 tau p90 T p90 tau};
 EH.Sequence = {p90 tau p90 T p180 T p90 tau};
-y2 = fast(Sys,E2);
-ok(7) = areequal(fast(Sys,E3),y2/2,1e-10,'rel');
-ok(8) = areequal(fast(Sys,EH),y2(1)/2*ones(4,1),1e-10,'rel');
+ok(7) = areequal(fast(Sys,E2),1/2*ones(3,1),1e-10,'rel');
+ok(8) = areequal(fast(Sys,E3),1/4*ones(3,1),1e-10,'rel');
+ok(9) = areequal(fast(Sys,EH),1/4*ones(4,1),1e-10,'rel');
 
 end
 

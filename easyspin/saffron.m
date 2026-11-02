@@ -781,6 +781,9 @@ end
 if numel(Exp.OriWeights)~=nOrientations
   Exp.OriWeights = repmat(Exp.OriWeights,1,nSites);
 end
+% Total orientation weight 1: average over the powder, and over the sample
+% orientations and sites of a crystal
+Exp.OriWeights = Exp.OriWeights/sum(Exp.OriWeights);
 
 
 
