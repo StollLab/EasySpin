@@ -1278,10 +1278,16 @@ if fastSimulationMode
               Hpulse = [diag(Ea+offsets(iOffset)/2), +M*nu1/2i; ...
                 -Mt*nu1/2i diag(Eb-offsets(iOffset)/2)];
               FullPulsePropagator = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
+              % Hpulse is for phase index 1 (Exp.Phase, in multiples of
+              % pi/2). Another phase rotates the propagator about the
+              % electron Sz, which multiplies the a-b block by
+              % (-1i)^(Phase-1) and the b-a block by (+1i)^(Phase-1), as
+              % for the ideal pulses (pathwayprefactor).
+              phaseFactor = exp(-1i*pi/2*(Exp.Phase(iInt)-1));
               PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
               PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
-              PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb);
-              PulseSubPropagator{iInt,4} = FullPulsePropagator(idxb,idxa);
+              PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb)*phaseFactor;
+              PulseSubPropagator{iInt,4} = FullPulsePropagator(idxb,idxa)*conj(phaseFactor);
             end
           end
 
