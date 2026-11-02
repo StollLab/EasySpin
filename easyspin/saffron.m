@@ -129,6 +129,16 @@ if any(isfield(Exp,{'DetSequence','DetOperator'}))
 end
 isENDOR = ischar(Exp.Sequence) && Exp.Sequence=="MimsENDOR";
 
+% Detection phase (both simulation modes): phase of the detection reference
+if isfield(Exp,'DetPhase')
+  if numel(Exp.DetPhase)~=1
+    error('Exp.DetPhase must be a single value (in radians).');
+  end
+  if isENDOR && Exp.DetPhase~=0
+    error('Exp.DetPhase cannot be used with ENDOR, which gives a real spectrum.');
+  end
+end
+
 % Temperature
 if p_temperature(Exp)
   error('Exp.Temperature is not supported for pulse EPR simulations.');
@@ -211,6 +221,13 @@ if ~isempty(oldSeq)
 end
 
 fastSimulationMode = Opt.SimulationMode=="fast";
+
+% In thyme mode, user-defined sequences are detected only in Exp.DetWindow
+if ~fastSimulationMode && iscell(Exp.Sequence) && ~isfield(Exp,'DetWindow')
+  error(['The thyme method needs a detection window (Exp.DetWindow) for ' ...
+    'user-defined sequences. (The fast method, which detects the echo at the ' ...
+    'end of the sequence, needs an indirect dimension, Exp.nPoints and Exp.Dim1.)']);
+end
 
 % Number of points of predefined sequences in thyme mode, as set up by
 % s_sequencer (default if not given, two dimensions for HYSCORE)
@@ -466,9 +483,9 @@ if fastSimulationMode
 
     [idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(pathwayList);
 
-    % Exp.Phase contains the pulse phases in multiples of pi/2
+    % Exp.Phase contains the pulse phases in multiples of pi/2 (0 = x)
     if ~isfield(Exp,'Phase')
-      Exp.Phase = ones(1,nIntervals);  % y phase by default
+      Exp.Phase = zeros(1,nIntervals);  % x phase by default
     end
 
     % Compute all ideal pulse transfer prefactors
@@ -1278,11 +1295,11 @@ if fastSimulationMode
               Hpulse = [diag(Ea+offsets(iOffset)/2), +M*nu1/2i; ...
                 -Mt*nu1/2i diag(Eb-offsets(iOffset)/2)];
               FullPulsePropagator = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
-              % Hpulse is for phase index 1 (Exp.Phase, in multiples of
-              % pi/2). Another phase rotates the propagator about the
-              % electron Sz, which multiplies the a-b block by
-              % (-1i)^(Phase-1) and the b-a block by (+1i)^(Phase-1), as
-              % for the ideal pulses (pathwayprefactor).
+              % Hpulse is for phase index 1, a pulse along y (Exp.Phase, in
+              % multiples of pi/2, 0 = x). Another phase rotates the
+              % propagator about the electron Sz, which multiplies the a-b
+              % block by (-1i)^(Phase-1) and the b-a block by
+              % (+1i)^(Phase-1), as for the ideal pulses (pathwayprefactor).
               phaseFactor = exp(-1i*pi/2*(Exp.Phase(iInt)-1));
               PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
               PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
@@ -1779,11 +1796,18 @@ if fastSimulationMode
     % pathways above and are normalized here by their largest magnitude.
     % Predefined experiments don't include them; their pathways have equal
     % prefactors, so only the common sign is applied, giving the same
-    % result as the custom sequence.
+    % result as the custom sequence with pulses along y.
     if ~predefinedExperiment
       td = td/max(abs(pathwayprefactor));
     else
       td = td*sign(pathwayprefactor(1));
+    end
+
+    % Detection phase: phase of the detection reference; the signal has the
+    % coherence order of S+ (as the default detection operator in thyme
+    % mode)
+    if isfield(Exp,'DetPhase')
+      td = td*exp(-1i*Exp.DetPhase);
     end
 
   end
@@ -1943,9 +1967,6 @@ else  % if fastSimulationMode
     Opt.DetFreq = Exp.mwFreq;
   end
   if isfield(Exp,'DetPhase')
-    if numel(Exp.DetPhase)~=1
-      error('Exp.DetPhase must be a single value (in radians).');
-    end
     Opt.DetPhase = Exp.DetPhase;
   end
 

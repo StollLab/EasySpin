@@ -2,7 +2,8 @@ function ok = test()
 
 % Fast mode: predefined experiments give the same signal as the same
 % sequence entered as a custom sequence (same coherence pathways), including
-% the sign of the pulse transfer prefactors
+% the sign of the pulse transfer prefactors. Predefined experiments use
+% pulses along y; equivalently, pulses along x with Exp.DetPhase = -pi/2.
 
 Sys.S = 1/2;
 Sys.g = [2.00 2.02 2.04];
@@ -17,7 +18,9 @@ Opt.GridSize = 7;
 Opt.SimulationMode = 'fast';
 
 P90.Flip = pi/2;
+P90.Phase = pi/2;
 P180.Flip = pi;
+P180.Phase = pi/2;
 tau = 0.15;  % µs
 T = 0.1;  % µs
 dt = 0.02;  % µs
@@ -51,3 +54,11 @@ E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2' dt}; E.Dim
 E.nPoints = [4 4];
 yCustom = saffron(Sys,E,Opt);
 ok(4) = areequal(yCustom,yPredefined,1e-10,'rel');
+
+% HYSCORE with pulses along x and Exp.DetPhase = -pi/2
+P90x = rmfield(P90,'Phase');
+P180x = rmfield(P180,'Phase');
+E.Sequence = {P90x tau P90x T P180x T P90x tau};
+E.DetPhase = -pi/2;
+yCustom = saffron(Sys,E,Opt);
+ok(5) = areequal(yCustom,yPredefined,1e-10,'rel');

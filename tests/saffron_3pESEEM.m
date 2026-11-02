@@ -35,7 +35,9 @@ data.y1 = y1;
 % ExpManual.dt = dt;
 % ExpManual.nPoints = nPoints; 
 
+% pulses along y, as in the predefined experiment
 p90.Flip = pi/2;
+p90.Phase = pi/2;
 
 ExpManual.Sequence = {p90 tau p90 0 p90 tau};
 ExpManual.Field = Field;

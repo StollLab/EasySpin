@@ -14,9 +14,11 @@ dt = 0.08; % mus
 
 p90.Flip = pi/2; % rad
 p90.tp = 0.01; % mus
+p90.Phase = pi/2; % rad, pulse along y as in the predefined 'HYSCORE'
 
 p180.Flip = pi; % rad
 p180.tp = 0.01; % mus
+p180.Phase = pi/2; % rad
 
 Exp.Field = 350; % mT
 

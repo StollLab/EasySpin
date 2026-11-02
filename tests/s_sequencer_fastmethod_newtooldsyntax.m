@@ -7,7 +7,7 @@ refExp.Inc = [0 1 0];
 refExp.t = [tau 0 tau];
 refExp.dt = 0.012;
 refExp.nPoints = 128;
-refExp.Phase = [1 1 1];
+refExp.Phase = [0 0 0];  % pulses along x (multiples of pi/2)
 refExp.tp  = [0 0 0];
 
 Pulse1.Flip = pi/2;

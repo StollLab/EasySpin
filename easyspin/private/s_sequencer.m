@@ -117,7 +117,7 @@ if Opt.SimulationMode=="fast"
     
     Flip = zeros(1,nPulses);
     tp = zeros(1,nPulses);
-    Phase = ones(1,nPulses);
+    Phase = zeros(1,nPulses);  % multiples of pi/2, 0 = x pulse
     
     % Loop over pulses, verify and determine Flip/tp/Phase
     for iPulse = 1:nPulses
@@ -162,7 +162,13 @@ if Opt.SimulationMode=="fast"
     Exp_oldSyntax.Flip = Flip;
     Exp_oldSyntax.tp = tp;
     Exp_oldSyntax.Phase = Phase;
-        
+
+    % the fast algorithm needs at least one incremented delay
+    if ~isfield(Exp,'nPoints')
+      Opt.SimulationMode = 'thyme';
+      message = addtomessage(message,'no indirect dimension (Exp.nPoints, Exp.Dim1) is given');
+    end
+
     if isfield(Exp,'nPoints')
       nDimensions = length(Exp.nPoints);
       

@@ -179,6 +179,10 @@ Specifies a predefined pulse experiment or a user-defined pulse experiment.
 Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. With the <em>thyme</em> method, only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code> are available. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
 </p>
 <p>
+The pulses of the predefined experiments are along y, in both methods, so that the echo is real.
+To reproduce a predefined experiment as a user-defined sequence, give each pulse <code>Phase = pi/2</code>, or use pulses along x and <code>Exp.DetPhase = -pi/2</code>, which gives the same signal.
+</p>
+<p>
 User-defined sequences have to be given as a cell array, with alternating entries for pulses (via a structure containing the pulse parameters) and numbers that give the inter-pulse delays in microseconds.
 </p>
 
@@ -211,7 +215,7 @@ The inter-pulse delays are defined as going from the end of one pulse to the beg
 </p>
 
 <p>
-The microwave carrier at <code>Exp.mwFreq</code> runs continuously through the whole sequence, as in a spectrometer. The phase of a pulse (<code>Pulse.Phase</code>) is relative to this carrier, and frequency offsets and sweeps of a pulse start at the beginning of that pulse.
+The microwave carrier at <code>Exp.mwFreq</code> runs continuously through the whole sequence, as in a spectrometer. The phase of a pulse (<code>Pulse.Phase</code>) is relative to this carrier, and frequency offsets and sweeps of a pulse start at the beginning of that pulse. A pulse with <code>Phase = 0</code> is along x, in both methods.
 </p>
 </div>
 
@@ -503,9 +507,9 @@ The <em>fast</em> method always uses <code>Exp.mwFreq</code>. If <code>DetFreq</
 
 <div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
-Phase of the detection reference in radians, optional.
+Phase of the detection reference in radians, optional, for both methods.
 It works like the phase of a pulse: changing it rotates the detection axis about the static field, and multiplies the signal by e<sup>-i<code>DetPhase</code></sup>.
-The default value is <code>0</code>.
+The default value is <code>0</code>. It cannot be used with <code>'MimsENDOR'</code>, which gives a real spectrum.
 </div>
 
 <div class="optionfield"><code>DetTimeStep</code></div>

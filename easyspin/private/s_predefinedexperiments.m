@@ -3,11 +3,14 @@ function [Exp] = s_predefinedexperiments(Exp)
 
 defaultPoints = 512;
 
+% Predefined experiments use pulses along y, as in saffron's fast mode
 P90.tp = 0.016;
 P90.Flip = pi/2;
+P90.Phase = pi/2;
 
 P180.tp = 0.032;
-P180.Flip= pi;
+P180.Flip = pi;
+P180.Phase = pi/2;
 
 switch Exp.Sequence
   case '2pESEEM'

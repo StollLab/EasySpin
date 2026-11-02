@@ -31,10 +31,11 @@
 <p>
 This page summarizes the predefined experiments available in <code>saffron</code> and <code>spidyan</code>, together with their parameters.
 They can be accessed through the <code>Exp.Sequence</code> field.
+All pulses of the predefined experiments are along y, so that the echo is real.
 </p>
 
 <p>
-The <a class="esf" href="saffron.html#algorithms"><em>thyme</em> algorithm</a> supports only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code>. For these, standard monochromatic rectangular pulses are assumed with a length of 16 ns for 90&deg; pulses and 32 ns for 180&deg; pulses.
+The <a class="esf" href="saffron.html#algorithms"><em>thyme</em> algorithm</a> supports only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code>. For these, standard monochromatic rectangular pulses along y are assumed with a length of 16 ns for 90&deg; pulses and 32 ns for 180&deg; pulses.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -44,7 +45,6 @@ Exp.Sequence = '2pESEEM'
 Exp.dt = 0.01; % time increment in microseconds
 </pre>
 
-<p>
 <div class="optionfield"><code>Exp.dt</code></div>
 <div class="optiondescr">
 Time increment (dwell time), in microseconds. 
@@ -74,7 +74,6 @@ Exp.dt = 0.01; % time increment in microseconds
 Exp.tau = 0.1; % tau in microseconds
 </pre>
 
-<p>
 <div class="optionfield"><code>Exp.dt</code></div>
 <div class="optiondescr">
 Time increment (dwell time), in microseconds. 
@@ -107,7 +106,6 @@ Exp.dt = 0.01; % time increment in microseconds
 Exp.tau = 0.1; % tau in microseconds
 </pre>
 
-<p>
 <div class="optionfield"><code>Exp.dt</code></div>
 <div class="optiondescr">
 Time increment (dwell time), in microseconds. 
@@ -140,7 +138,6 @@ Exp.dt = 0.01; % time increment in microseconds
 Exp.tau = 0.1; % tau in microseconds
 </pre>
 
-<p>
 <div class="optionfield"><code>Exp.dt</code></div>
 <div class="optiondescr">
 Time increment (dwell time), in microseconds. 
