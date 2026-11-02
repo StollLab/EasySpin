@@ -179,8 +179,8 @@ Specifies a predefined pulse experiment or a user-defined pulse experiment.
 Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. With the <em>thyme</em> method, only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code> are available. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
 </p>
 <p>
-The pulses of the predefined experiments are along y, in both methods, so that the echo is real.
-To reproduce a predefined experiment as a user-defined sequence, give each pulse <code>Phase = pi/2</code>, or use pulses along x and <code>Exp.DetPhase = -pi/2</code>, which gives the same signal.
+The pulses of the predefined experiments are along y, in both methods, and the echo is real and positive. For this, the detection phase is 0 for <code>'2pESEEM'</code> and <code>'3pESEEM'</code>, and &pi; for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
+To reproduce a predefined experiment as a user-defined sequence, give each pulse <code>Phase = pi/2</code> and use <code>Exp.DetPhase = pi</code> for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
 </p>
 <p>
 User-defined sequences have to be given as a cell array, with alternating entries for pulses (via a structure containing the pulse parameters) and numbers that give the inter-pulse delays in microseconds.
@@ -509,7 +509,7 @@ The <em>fast</em> method always uses <code>Exp.mwFreq</code>. If <code>DetFreq</
 <div class="optiondescr">
 Phase of the detection reference in radians, optional, for both methods.
 It works like the phase of a pulse: changing it rotates the detection axis about the static field, and multiplies the signal by e<sup>-i<code>DetPhase</code></sup>.
-The default value is <code>0</code>. It cannot be used with <code>'MimsENDOR'</code>, which gives a real spectrum.
+The default value is <code>0</code>. It cannot be used with predefined experiments.
 </div>
 
 <div class="optionfield"><code>DetTimeStep</code></div>

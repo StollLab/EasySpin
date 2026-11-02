@@ -31,7 +31,7 @@
 <p>
 This page summarizes the predefined experiments available in <code>saffron</code> and <code>spidyan</code>, together with their parameters.
 They can be accessed through the <code>Exp.Sequence</code> field.
-All pulses of the predefined experiments are along y, so that the echo is real.
+All pulses of the predefined experiments are along y, and the detection phase is chosen so that the echo is real and positive: 0 for <code>'2pESEEM'</code> and <code>'3pESEEM'</code>, and &pi; for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
 </p>
 
 <p>
@@ -41,7 +41,7 @@ The <a class="esf" href="saffron.html#algorithms"><em>thyme</em> algorithm</a> s
 <div class="subtitle">2pESEEM</div>
 Minimal call:
 <pre class="matlab">
-Exp.Sequence = '2pESEEM'
+Exp.Sequence = '2pESEEM';
 Exp.dt = 0.01; % time increment in microseconds
 </pre>
 
@@ -69,7 +69,7 @@ Number of data points along the indirect dimension, default is 512.
 <div class="subtitle">3pESEEM</div>
 Minimal call:
 <pre class="matlab">
-Exp.Sequence = '3pESEEM'
+Exp.Sequence = '3pESEEM';
 Exp.dt = 0.01; % time increment in microseconds
 Exp.tau = 0.1; % tau in microseconds
 </pre>
@@ -101,7 +101,7 @@ Number of data points along the indirect dimension, default is 512.
 <div class="subtitle">4pESEEM</div>
 Minimal call:
 <pre class="matlab">
-Exp.Sequence = '4pESEEM'
+Exp.Sequence = '4pESEEM';
 Exp.dt = 0.01; % time increment in microseconds
 Exp.tau = 0.1; % tau in microseconds
 </pre>
@@ -133,7 +133,7 @@ Number of data points along the indirect dimension, default is 512.
 <div class="subtitle">HYSCORE</div>
 Minimal call:
 <pre class="matlab">
-Exp.Sequence = 'HYSCORE'
+Exp.Sequence = 'HYSCORE';
 Exp.dt = 0.01; % time increment in microseconds
 Exp.tau = 0.1; % tau in microseconds
 </pre>
@@ -171,7 +171,7 @@ Exp.nPoints = [128 64]; % 128 points along first dimension, 64 along the second
 Minimal call:
 
 <pre class="matlab">
-Exp.Sequence = 'MimsENDOR'
+Exp.Sequence = 'MimsENDOR';
 Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;
 Exp.tau = 0.1; % tau in microseconds
 </pre>

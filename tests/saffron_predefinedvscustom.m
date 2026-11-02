@@ -44,6 +44,7 @@ E = Base; E.Sequence = '4pESEEM'; E.tau = tau; E.T = T; E.dt = dt; E.nPoints = 8
 yPredefined = saffron(Sys,E,Opt);
 E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2,d3' dt}; E.nPoints = 8;
 E.Pathways = ['+ab-';'+ba-'];
+E.DetPhase = pi;
 yCustom = saffron(Sys,E,Opt);
 ok(3) = areequal(yCustom,yPredefined,1e-10,'rel');
 
@@ -52,13 +53,17 @@ E = Base; E.Sequence = 'HYSCORE'; E.tau = tau; E.t1 = T; E.t2 = T; E.dt = dt; E.
 yPredefined = saffron(Sys,E,Opt);
 E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2' dt}; E.Dim2 = {'d3' dt};
 E.nPoints = [4 4];
+E.DetPhase = pi;
 yCustom = saffron(Sys,E,Opt);
 ok(4) = areequal(yCustom,yPredefined,1e-10,'rel');
 
-% HYSCORE with pulses along x and Exp.DetPhase = -pi/2
+% HYSCORE with pulses along x and Exp.DetPhase = pi/2
 P90x = rmfield(P90,'Phase');
 P180x = rmfield(P180,'Phase');
 E.Sequence = {P90x tau P90x T P180x T P90x tau};
-E.DetPhase = -pi/2;
+E.DetPhase = pi/2;
 yCustom = saffron(Sys,E,Opt);
 ok(5) = areequal(yCustom,yPredefined,1e-10,'rel');
+
+% Predefined experiments give a real positive echo
+ok(6) = all(abs(imag(yPredefined(:)))<1e-10*abs(yPredefined(:))) && all(real(yPredefined(:))>0);

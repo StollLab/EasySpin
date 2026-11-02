@@ -129,13 +129,26 @@ if any(isfield(Exp,{'DetSequence','DetOperator'}))
 end
 isENDOR = ischar(Exp.Sequence) && Exp.Sequence=="MimsENDOR";
 
-% Detection phase (both simulation modes): phase of the detection reference
+% Detection phase (both simulation modes): phase of the detection reference,
+% fixed for predefined experiments
 if isfield(Exp,'DetPhase')
   if numel(Exp.DetPhase)~=1
     error('Exp.DetPhase must be a single value (in radians).');
   end
-  if isENDOR && Exp.DetPhase~=0
-    error('Exp.DetPhase cannot be used with ENDOR, which gives a real spectrum.');
+  if ischar(Exp.Sequence) && Exp.DetPhase~=0
+    error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined sequence instead.');
+  end
+end
+
+% Detection phase of the predefined experiments (both simulation modes). All
+% their pulses are along y. The detection phase is chosen such that the echo
+% is real and positive: with ideal pulses, the pulse transfer prefactors of
+% the echo pathways are +1/2 (2pESEEM), +1/8 (3pESEEM, Mims ENDOR) and -1/8
+% (4pESEEM, HYSCORE), giving a detection phase of 0 or pi.
+if ischar(Exp.Sequence)
+  switch Exp.Sequence
+    case {'2pESEEM','3pESEEM','MimsENDOR'}, Exp.DetPhase = 0;
+    case {'4pESEEM','HYSCORE'}, Exp.DetPhase = pi;
   end
 end
 
@@ -276,6 +289,8 @@ if fastSimulationMode
 
     isENDOR = false;
     tauRequired = true;
+    % Pulse transfer prefactors of the echo pathways, for ideal pulses along y
+    % (the same as computed for custom sequences, see pathwayprefactor below)
     switch Exp.ExperimentID
       case 1  % 2pESEEM
         nIntervals = 2; nDimensions = 1; IncSchemeID = 2;
@@ -1414,6 +1429,15 @@ if fastSimulationMode
 
           else
 
+            % Pulse transfer prefactors of the pathways (Mims ENDOR excluded),
+            % included in the first nuclear subspace only, since the product
+            % rule multiplies the signals of all subspaces
+            if iSpace==1
+              pathwayWeight = pathwayprefactor;
+            else
+              pathwayWeight = ones(1,nPathways);
+            end
+
             switch Exp.ExperimentID
 
               case 5
@@ -1556,7 +1580,7 @@ if fastSimulationMode
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
-                G1 = G_*Mt; G2 = Mt*G_;
+                G1 = pathwayWeight(1)*G_*Mt; G2 = pathwayWeight(2)*Mt*G_;
                 D1 = Mt*D_; D2 = D_*Mt;
                 Tl1 = Mt; Tr1 = M;
                 Tl2 = M; Tr2 = Mt;
@@ -1600,8 +1624,8 @@ if fastSimulationMode
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
-                G1 = G_*Mt; D1 = Mt*D_;
-                G2 = Mt*G_; D2 = D_*Mt;
+                G1 = pathwayWeight(1)*G_*Mt; D1 = Mt*D_;
+                G2 = pathwayWeight(2)*Mt*G_; D2 = D_*Mt;
                 Tl1 = Mt; Tr1 = M;
                 Tl2 = M; Tr2 = Mt;
 
@@ -1642,8 +1666,8 @@ if fastSimulationMode
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
-                G1 = G_*Mt; D1 = D_*Mt;
-                G2 = Mt*G_; D2 = Mt*D_;
+                G1 = pathwayWeight(1)*G_*Mt; D1 = D_*Mt;
+                G2 = pathwayWeight(2)*Mt*G_; D2 = Mt*D_;
 
                 if Exp.T~=0
                   q_ = exp(-2i*pi*Exp.T*Ea); G1 = (q_*q_').*G1;
@@ -1675,7 +1699,7 @@ if fastSimulationMode
                 if ~all(idealPulse)
                   error('Pre-defined 2pESEEM not supported for real pulses.');
                 end
-                G = prefactor*M;
+                G = prefactor*pathwayWeight(1)*M;
                 D = M;
                 T1left = Mt;
                 T1right = Mt;
@@ -1792,16 +1816,9 @@ if fastSimulationMode
     td = td/EqDensityTrace;
     td = td/nPathways;
 
-    % Pulse transfer prefactors: custom sequences include them in the
-    % pathways above and are normalized here by their largest magnitude.
-    % Predefined experiments don't include them; their pathways have equal
-    % prefactors, so only the common sign is applied, giving the same
-    % result as the custom sequence with pulses along y.
-    if ~predefinedExperiment
-      td = td/max(abs(pathwayprefactor));
-    else
-      td = td*sign(pathwayprefactor(1));
-    end
+    % Pulse transfer prefactors: included in the pathways above, normalized
+    % here by their largest magnitude
+    td = td/max(abs(pathwayprefactor));
 
     % Detection phase: phase of the detection reference; the signal has the
     % coherence order of S+ (as the default detection operator in thyme
