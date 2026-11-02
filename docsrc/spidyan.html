@@ -203,6 +203,7 @@ In each row, the first element is the phase, and the second element the detectio
 PC = [0, 1; pi, -1];   		% phase cycle
 Exp.PhaseCycle = {[] PC};	% phase cycles the second pulse
 </pre>
+Predefined experiments have fixed phase cycles that keep only the echo of an electron spin 1/2, so <code>PhaseCycle</code> cannot be used with them. With other detection operators, these phase cycles do not give meaningful signals.
 Phase cycling that steps more than one pulse simultaneously is not available through the <code>PhaseCycle</code> structure, but can be achieved through adding an additional indirect dimension to the experiment (see <code>Dim</code>).
 </div>
 

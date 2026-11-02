@@ -190,6 +190,9 @@ if ischar(Exp.Sequence)
   if isfield(Exp,'DetPhase') && any(Exp.DetPhase~=0)
     error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined sequence instead.');
   end
+  if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
+    error('Exp.PhaseCycle cannot be used with predefined experiments. Use a user-defined sequence instead.');
+  end
   if isfield(Opt,'DetOperator'), nDetOps = numel(Opt.DetOperator); else, nDetOps = 1; end
   if Exp.Sequence=="HYSCORE"
     Exp.DetPhase = pi*ones(1,nDetOps);

@@ -146,6 +146,11 @@ if isfield(Exp,'DetPhase')
   end
 end
 
+% Predefined experiments have fixed phase cycles (thyme) or pathways (fast)
+if ischar(Exp.Sequence) && isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
+  error('Exp.PhaseCycle cannot be used with predefined experiments. Use a user-defined sequence instead.');
+end
+
 % Detection phase of the predefined experiments (both simulation modes). All
 % their pulses are along y. The detection phase is chosen such that the echo
 % is real and positive: with ideal pulses, the pulse transfer prefactors of

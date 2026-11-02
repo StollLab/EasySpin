@@ -25,7 +25,10 @@ Exp.DetIntegrate = true;
 Exp.nPoints = 100; % 100 data points in indirect dimension
 Exp.Dim1 = {'d2', 0.005}; % increment of second delay by 5 ns per step
 
-Exp.PhaseCycle{1} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
+% Phase cycles that keep only the stimulated echo. The four-step cycle on the
+% first pulse is needed because the simulation has no inhomogeneous
+% broadening, so the unrefocused pathway does not decay as in a real sample.
+Exp.PhaseCycle{1} = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i];  % [+(+x)+i(+y)-(-x)-i(-y)]  phase cycle
 Exp.PhaseCycle{3} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
 
 Opt.GridSize = 10;

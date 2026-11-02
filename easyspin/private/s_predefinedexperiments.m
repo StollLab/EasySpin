@@ -1,5 +1,6 @@
 function [Exp] = s_predefinedexperiments(Exp)
-% This function creates the Event and Vary Structures
+% This function expands a predefined experiment (Exp.Sequence given as a
+% name) into a user-defined sequence for the thyme method
 
 defaultPoints = 512;
 
@@ -11,6 +12,18 @@ P90.Phase = pi/2;
 P180.tp = 0.032;
 P180.Flip = pi;
 P180.Phase = pi/2;
+
+% Phase cycles that select the echo pathway for S = 1/2. A pulse that
+% changes the electron coherence order p by dp multiplies the pathway by
+% exp(-1i*dp*phase), so the cycle weights it by sum(w.*exp(-1i*dp*phases)).
+% A single spin packet has no inhomogeneous broadening, so the unrefocused
+% pathways do not dephase and have to be removed by the cycles.
+%   sel:  keeps dp = +1 (p = 0 -> +1 after the first pulse)
+%   odd:  keeps odd dp
+%   even: keeps even dp
+sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
+odd = [0 1; pi -1];
+even = [0 1; pi 1];
 
 if ~ismember(Exp.Sequence,{'2pESEEM','3pESEEM','HYSCORE'})
   error('Exp.Sequence = ''%s'' is not supported with the thyme method.',Exp.Sequence);
@@ -56,7 +69,10 @@ switch Exp.Sequence
     end
     
     Exp.Dim1 = {'d1,d2' Exp.dt};
-    
+
+    % pathway +1 -> -1
+    Exp.PhaseCycle = {sel};
+
   case '3pESEEM'
     
     if ~isfield(Exp,'DetWindow')
@@ -74,8 +90,8 @@ switch Exp.Sequence
     
     Exp.Dim1 = {'d2' Exp.dt};
     
-    Exp.PhaseCycle{1}=[0, 1; pi, -1];
-    Exp.PhaseCycle{3}=[0, 1; pi, -1];
+    % pathway +1 -> 0 -> -1
+    Exp.PhaseCycle = {sel [] odd};
 
   case 'HYSCORE'
     
@@ -90,8 +106,8 @@ switch Exp.Sequence
     
     if ~isfield(Exp,'nPoints')
       Exp.nPoints = [defaultPoints/4 defaultPoints/4];
-	  elseif length(Exp.nPoints) == 1
-	  Exp.nPoints = [Exp.nPoints Exp.nPoints];
+    elseif length(Exp.nPoints) == 1
+      Exp.nPoints = [Exp.nPoints Exp.nPoints];
     end
     
     % one increment for both dimensions, or one per dimension
@@ -101,5 +117,8 @@ switch Exp.Sequence
     dt = Exp.dt.*[1 1];
     Exp.Dim1 = {'d2' dt(1)};
     Exp.Dim2 = {'d3' dt(2)};
+
+    % pathway +1 -> 0 -> 0 -> -1
+    Exp.PhaseCycle = {sel [] even odd};
 
 end

@@ -429,6 +429,7 @@ Exp.PhaseCycle = {[0 +1] PC2};  % phase cycle only second pulse; use [0 1] for n
 Exp.PhaseCycle = {[] PC2};      % alternative: [] for non-cycled pulses
 </pre>
 The phase cycle is built from the individual phase steps for each pulse in a nested fashion, where each pulse is cycled separately.
+With <code>PhaseCycle</code>, saffron uses the <em>thyme</em> method. Predefined experiments have fixed phase cycles (<em>thyme</em>) or pathways (<em>fast</em>), so <code>PhaseCycle</code> cannot be used with them.
 
 To step more than one pulse simultaneously, add an indirect dimension to the experiment (see <code>Dim</code>).
 </div>

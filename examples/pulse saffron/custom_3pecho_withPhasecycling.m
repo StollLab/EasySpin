@@ -1,7 +1,9 @@
 % Three-pulse echo with phasecycling (saffron)
 %==========================================================================
-% creates a three pulse echo, with [+(+x)-(-x)] phase-cycles for the first
-% and third pulse
+% creates a three pulse echo, with phase cycles on the first and third pulse
+% that keep only the stimulated echo. The four-step cycle on the first pulse
+% is needed because the simulation has no inhomogeneous broadening, so the
+% unrefocused pathway does not decay as in a real sample.
 
 clear
 
@@ -23,7 +25,7 @@ Exp.mwFreq = 9.1; % GHz
 Exp.Field = 324.9; % mT
 Exp.DetWindow = [-0.1 0.1]; % detection window in mus
 
-Exp.PhaseCycle{1} = [0, 1; pi, -1]; % [+(+x)-(-x)]  phase cycle
+Exp.PhaseCycle{1} = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i]; % [+(+x)+i(+y)-(-x)-i(-y)]  phase cycle
 Exp.PhaseCycle{3} = [0, 1; pi, -1]; % [+(+x)-(-x)]  phase cycle
 
 saffron(Sys,Exp);

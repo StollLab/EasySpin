@@ -354,15 +354,14 @@ Exp.DetWindow = [-0.1 0.1];
 </pre>
 
 <p>
-To get a clean echo, three-pulse ESEEM uses a [+(+<code>x</code>)-(-<code>x</code>)] phase-cycle on the first &pi;/2 pulse and [+(+<code>x</code>)-(-<code>x</code>)] on the third &pi;/2 pulse.
-</p>
-
-<p>
-In <a class="esf" href="saffron.html">saffron</a> this is achieved by
+Besides the stimulated echo, the three pulses create other signals, such as free induction decays and unrefocused echoes.
+In a real sample, the unrefocused signals decay quickly because the spins precess at many different frequencies.
+In the simulation, each orientation is a single set of spins without this spread, so these signals do not decay and the phase cycle has to remove them.
+To keep only the stimulated echo, cycle the first pulse in four steps of 90&deg; with detection phases 1, i, -1, -i, and the third pulse in two steps of 180&deg; with detection phases +1 and -1:
 </p>
 
 <pre class="matlab">
-Exp.PhaseCycle{1} = [0, 1; pi, -1];
+Exp.PhaseCycle{1} = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i];
 Exp.PhaseCycle{3} = [0, 1; pi, -1];
 </pre>
 
@@ -371,12 +370,13 @@ where the indexing corresponds to the pulse index, e.g. <code>Exp.PhaseCycle{3}<
 </p>
 
 <p>
-An alternative way to write this exact phase cycle would be:
+An alternative way to write this phase cycle is:
 </p>
 
 <pre class="matlab">
-PC = [0, 1; pi, -1];
-Exp.PhaseCycle = {PC [] PC};
+sel = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i];
+odd = [0, 1; pi, -1];
+Exp.PhaseCycle = {sel [] odd};
 </pre>
 
 <p>

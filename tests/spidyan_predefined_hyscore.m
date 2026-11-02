@@ -1,7 +1,7 @@
 function ok = test()
 
 % Predefined HYSCORE: pulses along y and detection phase pi, giving a
-% positive echo; a nonzero Exp.DetPhase is rejected
+% positive echo; a nonzero Exp.DetPhase and Exp.PhaseCycle are rejected
 
 Sys.S = 1/2;
 Sys.g = 2;
@@ -33,8 +33,20 @@ ExpCustom.Dim2 = {'d3' Exp.dt};
 ExpCustom.nPoints = [3 3];
 ExpCustom.DetWindow = 0;
 ExpCustom.DetPhase = pi;
+sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];  % echo pathway after the first pulse
+ExpCustom.PhaseCycle = {sel [] [0 1; pi 1] [0 1; pi -1]};
 [~,yCustom] = spidyan(Sys,ExpCustom);
 ok(2) = areequal(yCustom,yPredefined,1e-10,'rel');
+
+% Exp.PhaseCycle cannot be used with predefined experiments
+ExpPC = Exp;
+ExpPC.PhaseCycle = {[0 1; pi -1]};
+try
+  spidyan(Sys,ExpPC);
+  ok(4) = false;
+catch err
+  ok(4) = contains(err.message,'Exp.PhaseCycle cannot be used with predefined experiments');
+end
 
 % Exp.DetPhase cannot be changed for predefined experiments
 Exp.DetPhase = pi/2;

@@ -82,6 +82,10 @@ if isfield(Exp,'DetWindow')
     message = addtomessage(message,'Exp.DetWindow does not work with the fast method');
   end
 end
+if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle) && ~predefinedExperiment
+  Opt.SimulationMode = 'thyme';
+  message = addtomessage(message,'Exp.PhaseCycle does not work with the fast method');
+end
 if isfield(Exp,'ResonatorFrequency') || isfield(Exp,'ResonatorQL') || isfield(Exp,'FrequencyResponse')
   Opt.SimulationMode = 'thyme';
   message = addtomessage(message,'Exp definition contains resonator specifics');
