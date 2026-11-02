@@ -315,44 +315,40 @@ Exp.DetOperator = '+1'; % same as {'+1'}
 Exp.DetOperator = [1/2 0; 0 -1/2];   % identical to {[1/2 0; 0 -1/2]}
 </pre>
 <p>
-If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> or <i>&Scirc;</i><sub>-</sub> as detection operator and then take the real part of the obtained signal.
-This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
-</p>
-<p>
-<i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> are not Hermitian operators.
-Hence, if you use <i>&Scirc;</i><sub>+</sub> as detection operator, the signal that is returned will in fact correspond to &langle;<i>&Scirc;</i><sub>-</sub>&rangle;.
-The real part of the signal (<i>&Scirc;<sub>x</sub></i>) is not affected by this.
-But if your data processing involves the imaginary part of the signal and you encounter frequencies with a wrong sign, you might want to consider using <i>&Scirc;</i><sub>-</sub> instead.
+The signal of a detection operator is its expectation value, divided by the squared norm of the operator.
+Signals of Hermitian operators such as <i>&Scirc;<sub>x</sub></i> are real, and the signal of <i>&Scirc;</i><sub>-</sub> is the complex conjugate of the signal of <i>&Scirc;</i><sub>+</sub>.
 </p>
 </div>
 
 <div class="optionfield"><code>DetFreq</code></div>
 <div class="optiondescr">
-The signal is detected in the simulation frame, which causes all signals from detection operators that have non-zero off-diagonal elements to have an oscillating component.
-By translating/shifting the frequency it is possible to center the signal around 0 (baseband) or any other desired frequency.
-The frequency shift has to be given as an absolute frequency (even if used in conjunction with <code>FrameShift</code>) in GHz and for each detection operator separately.
-Indexing in <code>DetFreq</code> corresponds to the ordering in <code>DetOperator</code>:
+Frequency of the detection frame, in GHz, optional.
+All signals, as well as the returned density matrices (<code>FinalState</code> and <code>StateTrajectories</code>), are given in a frame that rotates at <code>DetFreq</code> about the static field, like the signal after down-conversion with a reference oscillator at <code>DetFreq</code> in a spectrometer.
+The default is <code>Exp.mwFreq</code>, so that signals oscillate only at the frequency offsets of the spins (0 if <code>Exp.mwFreq</code> is not given).
+<code>DetFreq = 0</code> gives the signals in the lab frame.
 <pre class="matlab">
-Exp.DetOperator = {'+1' 'z1'};   % detects  <i>&Scirc;</i><sub>+</sub> and  <i>&Scirc;<sub>z</sub></i> of the first electron spin
-Exp.DetFreq = [33.5 0]; % shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz
-				 % <i>&Scirc;<sub>z</sub></i> does not contain a rotating component and does not need to shifted
+Exp.DetOperator = {'+1' 'z1'};   % detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;<sub>z</sub></i> of the first electron spin
+Exp.DetFreq = 33.5;              % detection frame at 33.5 GHz
 </pre>
-For counter-rotating detection operators (e.g. <i>&Scirc;</i><sub>-</sub>) the sign of the corresponding element in <code>DetFreq</code> has to reflect this:
-<pre class="matlab">
-Exp.DetOperator = {'+1' '-1'};	% detects <i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> of the first electron spin
-Exp.DetFreq = [33.5 -33.5]; 	% shifts <i>&Scirc;</i><sub>+</sub> by -33.5 GHz and <i>&Scirc;</i><sub>-</sub> by 33.5 GHz
-</pre>
+There is one detection frame for all detection operators.
+Operators without rotating components, such as <i>&Scirc;<sub>z</sub></i> or nuclear operators, are not affected by it.
+<p>
+The detection time step (<code>DetTimeStep</code>) is chosen to resolve the signal frequencies in the simulation frame (<code>Opt.SimFreq</code>).
+If <code>DetFreq</code> is far from the simulation frequency, e.g. <code>DetFreq = 0</code>, choose <code>DetTimeStep</code> small enough to resolve the signal frequencies in the detection frame.
+</p>
 </div>
 
 <div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
-Phase of detection in radians, optional. 
-Has to be specified for each detection operator separately:
+Phase of the detection reference in radians, optional, one value for each detection operator.
+It works like the phase of a pulse: changing it rotates the detection axis about the static field.
+For example, with <code>DetPhase = pi/2</code>, <i>&Scirc;<sub>x</sub></i> detects the signal along y, and the signal of <i>&Scirc;</i><sub>+</sub> is multiplied by e<sup>-i&pi;/2</sup>.
 <pre class="matlab">
 Exp.DetOperator = {'z1' '+1'};
 Exp.DetPhase = [0 pi]; 		% change detection phase of second detection operator by &pi;
 </pre>
-The default value is <code>0</code>. The phase provided in <code>DetPhase</code> is added to the signal, regardless of the type of operator.
+The default value is <code>0</code>. Operators without rotating components, such as <i>&Scirc;<sub>z</sub></i>, are not affected.
+<code>DetPhase</code> applies to the signals only, not to the returned density matrices.
 </div>
 
 <div class="optionfield"><code>DetTimeStep</code></div>
@@ -541,8 +537,9 @@ In order to avoid unexpected behavior, if <code>Opt.Relaxation</code> is not use
 
 <div class="optionfield"><code>SimFreq</code></div>
 <div class="optiondescr">
-Optional, frequency of the (rotating) simulation frame in GHz. 
+Optional, frequency of the (rotating) simulation frame in GHz, zero or positive.
 If <code>SimFreq</code> is not provided, a suitable simulation frame is automatically selected.
+The results are given in the detection frame (<code>Exp.DetFreq</code>), independent of the simulation frame.
 No matter the choice of the simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
 For example, for running a Q-band simulation without using the default simulation frame, but one that rotates at 30 GHz:
 <pre class="matlab">

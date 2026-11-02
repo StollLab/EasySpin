@@ -9,7 +9,7 @@ if nargin<4 || nargin>6, error('Wrong number of input arguments!'); end
 
 nEvents = length(Events);
 
-nDet = numel(Det);
+nDet = numel(Det.Ops);
 Ham0 = Ham0*2*pi;
 eigVectors = [];  % eigenbasis of Ham0, computed when needed
 
@@ -28,6 +28,26 @@ end
 
 n = size(Sigma,2);
 FinalStates = zeros(IndirectDimensions{:},n,n);
+
+%----------------------------------------------------------------------
+% Detection: the signals are computed in the simulation frame for each
+% detection operator D_k split into its parts D_k^(m) of electron
+% coherence order m (one row of DetArray each, normalized by Tr(D_k'*D_k)),
+% and combined in the detection frame by detectionFrameSignal
+%----------------------------------------------------------------------
+detOrders = unique(Det.M(:)).';
+nOrders = numel(detOrders);
+DetArray = zeros(nDet*nOrders,n^2);
+for iDet = 1:nDet
+  D = full(Det.Ops{iDet});
+  normD = sum(abs(D(:)).^2);
+  for iOrder = 1:nOrders
+    Dm = D.*(Det.M==detOrders(iOrder));
+    % row r with r*Sigma(:) = trace(Dm*Sigma)/normD
+    DetArray((iDet-1)*nOrders+iOrder,:) = reshape(Dm.',1,n^2)/normD;
+  end
+end
+nDetRows = size(DetArray,1);
 StateTrajectories = [];
 initialSigma = Sigma;
 Resonator = false;
@@ -181,25 +201,13 @@ for iPoints = 1 : nPoints
       switch currentEvent.type
         case 'pulse'
           tvector = currentEvent.t;
-          currentSignal = zeros(nDet,numel(currentEvent.t));
         case 'free evolution'
           tvector = detectionTimes(currentEvent);
           if numel(tvector)>1
             currentEvent.TimeStep = tvector(2)-tvector(1);
           end
-          currentSignal = zeros(nDet,length(tvector));
       end
-      
-      n = size(Sigma,1);
-      
-      % Normalize detection operators and arrange for efficient
-      % trace calculation.
-      DetArray = zeros(nDet,n^2);
-      for iDet = 1:nDet
-        Det{iDet} = reshape(Det{iDet}.',1,n^2);
-        normDet_ = Det{iDet}*Det{iDet}';
-        DetArray(iDet,:) = Det{iDet}/normDet_;
-      end
+      currentSignal = zeros(nDetRows,numel(tvector));
       currentSignal(:,1) = DetArray*Sigma(:);
       
     else
@@ -348,10 +356,10 @@ for iPoints = 1 : nPoints
           SigmaEig = V'*Sigma*V;
           % detection operators in the eigenbasis, using
           % sum(R.*Sigma) = sum((V.'*R*conj(V)).*SigmaEig)
-          Coeff = zeros(nDet,n^2);
-          for iDet = 1:nDet
-            R = V.'*reshape(DetArray(iDet,:),n,n)*conj(V);
-            Coeff(iDet,:) = R(:).'.*SigmaEig(:).';
+          Coeff = zeros(nDetRows,n^2);
+          for iRow = 1:nDetRows
+            R = V.'*reshape(DetArray(iRow,:),n,n)*conj(V);
+            Coeff(iRow,:) = R(:).'.*SigmaEig(:).';
           end
           chunkSize = max(1,floor(2^22/n^2));
           for k0 = 2:chunkSize:numel(tvector)
@@ -418,6 +426,7 @@ for iPoints = 1 : nPoints
     % and prepares the output
     %------------------------------------------------------------------
     if ~isempty(currentSignal)
+      currentSignal = detectionFrameSignal(currentSignal,tvector+tStart(iEvent),Det,detOrders);
       if firstDetection
         Signal = [];
         t = [];
@@ -449,6 +458,16 @@ for iPoints = 1 : nPoints
     % If StateTrajectories are required, they are stored in a temporary
     % cell array, which will later be stored to the output
     if currentEvent.StateTrajectories
+      % Density matrices in the detection frame: an event stores either
+      % all its time points or only its start and end
+      if numel(DensityMatrices)==numel(tvector)
+        tStates = tvector + tStart(iEvent);
+      else
+        tStates = [0 tvector(end)] + tStart(iEvent);
+      end
+      for iCell = 1 : length(DensityMatrices)
+        DensityMatrices{iCell} = detectionFrameState(DensityMatrices{iCell},tStates(iCell),Det);
+      end
       if firstDensityMatrix
         for iCell = 1 : length(DensityMatrices)
           CurrentStateTrajectories{iCell} = DensityMatrices{iCell}; %#ok<AGROW>
@@ -588,8 +607,9 @@ for iPoints = 1 : nPoints
     end
   end
   
-  % Store the final state at its correct position
-  FinalStates(AcquisitionIndex{:},:,:) = Sigma;
+  % Store the final state (in the detection frame) at its correct position
+  tEnd = tStart(Sequence(end)) + Events{Sequence(end)}.t(end);
+  FinalStates(AcquisitionIndex{:},:,:) = detectionFrameState(Sigma,tEnd,Det);
   
   % Store the cell array with state tractories (if any) of the current
   % acquisition point in its correct position in the output cellarray
@@ -635,6 +655,30 @@ for iEvent = Sequence
   tStart(iEvent) = t;
   t = t + Events{iEvent}.t(end);
 end
+end
+
+
+function signal = detectionFrameSignal(rows,t,Det,detOrders)
+% Signals in the detection frame, from the rows of DetArray*Sigma(:) (for
+% each detection operator k, one row per electron coherence order m) at
+% the times t (from the start of the sequence):
+%   signal_k(t) = sum_m exp(-1i*m*(theta(t)+phi_k)) * row_{k,m}(t)
+% with theta(t) = 2*pi*(DetFreq-SimFreq)*t and the detection phase phi_k
+nOrders = numel(detOrders);
+nDet = size(rows,1)/nOrders;
+theta = 2*pi*Det.FrameOffset*1e3*t(:).';  % GHz*µs -> rad
+signal = zeros(nDet,numel(t));
+for iDet = 1:nDet
+  iRows = (iDet-1)*nOrders + (1:nOrders);
+  signal(iDet,:) = sum(exp(-1i*detOrders(:)*(theta+Det.Phase(iDet))).*rows(iRows,:),1);
+end
+end
+
+
+function Sigma = detectionFrameState(Sigma,t,Det)
+% Density matrix in the detection frame at time t (from the start of the
+% sequence)
+Sigma = Sigma.*exp(2i*pi*Det.FrameOffset*1e3*t*Det.M);
 end
 
 

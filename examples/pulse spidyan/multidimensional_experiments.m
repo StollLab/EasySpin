@@ -84,7 +84,7 @@ Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses
 Exp.Dim2 = {'p2.Flip', pi/2};  % Change the flip angle of the second pulse
 
 % In order to see the influence of the phase, the detection is changed to
-% S^+ and the detected trace down converted with Opt.FreqTranslation
+% S^+, detected in the frame rotating at Exp.DetFreq (default Exp.mwFreq)
 Exp.DetOperator = {'+1'};
 Exp.DetFreq = 9.5; % GHz
 
@@ -109,9 +109,8 @@ Exp.Dim1 = {'p1.Phase,p2.Phase', pi/4}; % Changes the Phase of both pulses
                                         % by pi/4 each step 
 Exp.Dim2 = {'p2.tp', 0.05};  % Change the length of the second pulse, µs
 
-% Now, Sz and S^+ are detected
+% Now, Sz and S^+ are detected (the detection frame does not affect Sz)
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFreq = [0 9.5]; % GHz
 
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 

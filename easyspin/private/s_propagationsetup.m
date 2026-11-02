@@ -1,4 +1,4 @@
-function [Sys,Sigma0,DetOps,Events,Relaxation] = s_propagationsetup(Sys,Events,Opt)
+function [Sys,Sigma0,Det,Events,Relaxation] = s_propagationsetup(Sys,Events,Opt)
 % Spin system setup and input checking for saffron/spidyan
 
 % Check spin system structure
@@ -263,5 +263,25 @@ else
       DetOps{iDetectionOperator} = Opt.DetOperator{iDetectionOperator};
     end
   end
-logmsg(1,'  spin system validation finished successfully!');
 end
+
+% Detection frame: signals and states are returned in the frame rotating
+% at Opt.DetFreq (see s_thyme). Det.Phase is the phase of the detection
+% reference for each detection operator (Exp.DetPhase).
+Det.Ops = DetOps;
+Det.M = M;
+if isfield(Opt,'DetPhase') && ~isempty(Opt.DetPhase)
+  Det.Phase = Opt.DetPhase;
+else
+  Det.Phase = zeros(1,numel(DetOps));
+end
+if ~isscalar(Opt.DetFreq) || ~isreal(Opt.DetFreq)
+  error(['Exp.DetFreq must be a single frequency (in GHz). All signals and ' ...
+    'density matrices are given in one detection frame; operators without ' ...
+    'electron coherence, such as Sz, are not affected by it.']);
+end
+if Opt.DetFreq<0
+  error('Exp.DetFreq cannot be negative.');
+end
+Det.FrameOffset = Opt.DetFreq - Events{1}.FrameShift;  % GHz
+logmsg(1,'  spin system validation finished successfully!');

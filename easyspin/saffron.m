@@ -1925,7 +1925,20 @@ else  % if fastSimulationMode
 
   logmsg(1,'-processing Sys structure------------------------------');
 
-  [Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
+  % Detection frame (validated in s_propagationsetup)
+  if isfield(Exp,'DetFreq')
+    Opt.DetFreq = Exp.DetFreq;
+  else
+    Opt.DetFreq = Exp.mwFreq;
+  end
+  if isfield(Exp,'DetPhase')
+    if numel(Exp.DetPhase)~=1
+      error('Exp.DetPhase must be a single value (in radians).');
+    end
+    Opt.DetPhase = Exp.DetPhase;
+  end
+
+  [Sys, Sigma, Det, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
   % Simulation frame: shift by the frame frequency along the total electron Sz
   shiftedFrame = Opt.FrameShift~=0;
@@ -2036,7 +2049,7 @@ else  % if fastSimulationMode
       end
     end
 
-    [timeAxis{iOrientation}, rawSignals{iOrientation}] = s_thyme(Sigma_, Ham, DetOps, Events, Relaxation_, Vary);
+    [timeAxis{iOrientation}, rawSignals{iOrientation}] = s_thyme(Sigma_, Ham, Det, Events, Relaxation_, Vary);
   end
 
   if min(minWeight)<0.9
@@ -2060,33 +2073,9 @@ else  % if fastSimulationMode
     Signal = Signal + rawSignals{iOrientation}*Exp.OriWeights(iOrientation);
   end
 
-  if isfield(Exp,'DetPhase')
-    logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
-    phase = exp(-1i*Exp.DetPhase);
-  else
-    logmsg(1,'  applying default detection phase: 0');
-    phase = exp(-1i*0);
-  end
-
-  Signal = Signal*phase;
-
-  % Frequency translation from the simulation frame (down conversion)
-  if ~isfield(Exp,'DetFreq') && isfield(Exp,'mwFreq')
-    logmsg(1,'  using Exp.mwFreq as detection frequency');
-    Exp.DetFreq = Exp.mwFreq;
-  end
-  if numel(Exp.DetFreq)~=1
-    error('Exp.DetFreq must be a single frequency (in GHz).');
-  end
-  FreqTranslation = -(Exp.DetFreq - Events{1}.FrameShift);
-
-  % For single points and integrated echoes, the translation is applied as a
-  % phase factor at the detection times (counted from the start of the
-  % sequence), consistent with the translation of transients below
+  % The signals are in the detection frame (Exp.DetFreq, Exp.DetPhase, see
+  % s_thyme)
   integrateEchoes = ~Opt.SinglePointDetection && isfield(Exp,'DetIntegrate') && Exp.DetIntegrate;
-  if Opt.SinglePointDetection || integrateEchoes
-    Signal = Signal.*reshape(exp(2i*pi*FreqTranslation*1e3*timeAxis),size(Signal));
-  end
 
   % detected time points (from the start of the sequence) of the first
   % acquisition
@@ -2117,17 +2106,11 @@ else  % if fastSimulationMode
     logmsg(1,'  integrated %d transients',numel(Signal));
   end
 
-  % Signal processing
+  % Transients: remove the dimension of the (single) detection operator,
+  % giving [indirect dimensions..., time]
   if ~Opt.SinglePointDetection
-    logmsg(1,'-processing transients---------------------------------');
-
-    % Downconversion/processing of signal
-    Signal = signalprocessing(timeAxis,Signal,FreqTranslation);
-
-    %       Signal = Signal/max(abs(Signal(:)));
-    if ndims(Signal) == 2 && size(Signal,2) ==1 %#ok<ISMAT>
-      Signal = permute(Signal,[2 1]);
-    end
+    sizeSig = size(Signal);
+    Signal = reshape(Signal,[sizeSig(1:end-2) sizeSig(end)]);
 
     % detected time points relative to the detection window
     timeAxis = Exp.DetWindow(1) + (tDetected - tDetected(1));

@@ -21,7 +21,7 @@ Exp.mwFreq = 9.500; % GHz
 
 % Options
 Exp.DetOperator = {'z1','+1'}; % detection operators
-Exp.DetFreq = [0 9.5]; % downconversion frequency in GHz
+Exp.DetFreq = 9.5; % detection frame frequency in GHz (does not affect Sz)
 
 % Run simulation
 [TimeAxis, Signal] = spidyan(Sys,Exp);

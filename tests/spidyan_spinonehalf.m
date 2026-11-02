@@ -24,7 +24,6 @@ Exp.DetSequence = [1 1 1];
 
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFreq = [0 33.5]; 
 
 % Options ---------------------------
 Opt.SimFreq = 32;

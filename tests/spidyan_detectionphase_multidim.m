@@ -8,7 +8,6 @@ p.tp = 0.02;
 Exp.Sequence = {p 0.5};
 Exp.mwFreq = 9.5;
 Exp.DetOperator = {'z1' '+1'};
-Exp.DetFreq = [0 9.5];
 
 reference = spidyan(Sys,Exp);
 
@@ -30,6 +29,7 @@ Exp_.DetPhase = [pi pi];
 test2 = spidyan(Sys,Exp_);
 
 
-% Comparison
-ok = areequal(reference,-squeeze(test1(1,:,:)),1e-4,'abs') &&...
-     areequal(reference,-test2{2},1e-4,'abs');
+% Comparison: a detection phase of pi negates S+ and leaves Sz unchanged
+flip = [1 -1];
+ok = areequal(reference.*flip,squeeze(test1(1,:,:)),1e-4,'abs') &&...
+     areequal(reference.*flip,test2{2},1e-4,'abs');

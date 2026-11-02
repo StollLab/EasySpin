@@ -35,7 +35,6 @@ end
 Exp_ = Exp;
 
 Exp_.DetOperator = {'z1' '+1' '+1'};
-Exp_.DetFreq = [0 9.5 9.5];
 Exp_.DetPhase = [0 0 pi];
 
 s2 = spidyan(Sys,Exp_);

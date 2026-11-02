@@ -181,14 +181,23 @@ if isfield(Exp,'DetPhase')
     error('Exp.DetPhase has to have the same length as Exp.DetOperator.');
   elseif ~isfield(Opt,'DetOperator') && length(Exp.DetPhase) ~= 1
     error('Exp.DetPhase has to have length one if no Exp.DetOperator is provided.');
-  end  
+  end
+  Opt.DetPhase = Exp.DetPhase;
 end
-  
+
+% Detection frame (validated in s_propagationsetup)
+if isfield(Exp,'DetFreq')
+  Opt.DetFreq = Exp.DetFreq;
+elseif isfield(Exp,'mwFreq')
+  Opt.DetFreq = Exp.mwFreq;
+else
+  Opt.DetFreq = 0;
+end
 
 % Validate and build spin system as well as excitation operators
 logmsg(1,'  parsing the Sys structure...');
 
-[Sys, Sigma, DetOps, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
+[Sys, Sigma, Det, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
 
 % Get Hamiltonian
 logmsg(1,'  computing lab frame Hamiltonian');
@@ -241,63 +250,17 @@ end
 logmsg(1,'-starting propagation----------------------------------');
 logmsg(1,'  depending on the Exp setup this may take a while...');
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
-  s_thyme(Sigma, H, DetOps, Events, Relaxation, Vary);
+  s_thyme(Sigma, H, Det, Events, Relaxation, Vary);
 logmsg(1,'  propagation finished!');
 
-% Signal Processing
+% Output arrangement (signals and states are in the detection frame)
 %-------------------------------------------------------------------------------
-logmsg(1,'-validating and processing outout----------------------');
-% Signal postprocessing, such as down conversion and filtering and
-% checking output of the timeaxis 
+logmsg(1,'-arranging output--------------------------------------');
 
-nDetOps = numel(DetOps); % number of detection operators
-
-% Applying detection phase
-if ~isempty(RawSignal) && isfield(Exp,'DetPhase')
-  logmsg(1,'  applying detection phase: %d*pi',Exp.DetPhase/pi);
-  DetPhase = exp(-1i*Exp.DetPhase);
-  
-  RawSignal = applyPhaseShift(RawSignal,DetPhase);
-end
-
-% Frequency translation of the detected signals (down conversion)
-if ~isempty(RawSignal)
-  % Check if Exp.DetFreq and Exp.DetOperator have the same length
-  if isfield(Exp,'DetFreq')
-    logmsg(1,'  veryfing Exp.DetFreq...');
-    if isfield(Exp,'DetOperator')
-      if length(Exp.DetFreq) ~= length(Exp.DetOperator)
-        error('Exp.DetOperator and Exp.DetFreq must contain the same number of elements.')
-      end
-    elseif length(Exp.DetFreq) ~= 1
-      error('If Exp.DetOperator is not provided the default detection operator (S+ for all electrons) is assumed. In this case Exp.DetFreq must contain only one frequency.')
-    end
-  else
-    if ~isfield(Exp,'DetOperator') && isfield(Exp,'mwFreq')
-      logmsg(1,'  using Exp.mwFreq as detection frequency');
-      Exp.DetFreq = Exp.mwFreq;
-    end
-  end
-  
-  FreqTranslation = zeros(1,nDetOps);
-  
-  if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq)
-    
-    % This adapts the values for DetFreq to simulation frame
-    Exp.DetFreq(Exp.DetFreq > 0) = Exp.DetFreq(Exp.DetFreq > 0) - Events{1}.FrameShift;
-    Exp.DetFreq(Exp.DetFreq < 0) = Exp.DetFreq(Exp.DetFreq < 0) + Events{1}.FrameShift;
-    
-    % And then writes them
-    FreqTranslation(1:length(Exp.DetFreq)) = - Exp.DetFreq; % To make it a down conversion for negative frequencies add the neg sign
-    
-  end
-end
+nDetOps = numel(Det.Ops); % number of detection operators
 
 if Opt.SinglePointDetection
   logmsg(1,'  single point detection...');
-  if ~isempty(RawSignal)
-    RawSignal = translateSinglePoints(RawSignal,TimeAxis,FreqTranslation,DetOps);
-  end
   if isfield(Exp,'nPoints') && nDetOps ~= 1
     DimSignal =  ndims(RawSignal);
     Signal = permute(RawSignal,[1:(DimSignal-1) DimSignal+1 DimSignal]);
@@ -306,11 +269,9 @@ if Opt.SinglePointDetection
   end
 else
   if ~isempty(RawSignal)
-    logmsg(1,'  processing transients...');
-    
-    % Downconversion/processing of signal
-    Signal = signalprocessing(TimeAxis,RawSignal,FreqTranslation);
-    
+    logmsg(1,'  arranging transients...');
+    Signal = arrangeTransients(RawSignal);
+
     % If time axis is the same for each data point, it is reduced to a single
     % vector at this point - helps with plotting
     if ~iscell(TimeAxis)
@@ -375,58 +336,24 @@ if logmsg>=1, logmsg(1,'=end=spidyan======%s=================\n',char(datetime))
 end
 
 %===============================================================================
-function phasedSignal = applyPhaseShift(rawSignal, phase)
+% Arranges the transients from s_thyme (detection operators along the
+% second-to-last dimension, time along the last) with time first and the
+% detection operators last: [indirect dimensions..., time, operator], or a
+% cell array of time x operator arrays
+function Signal = arrangeTransients(RawSignal)
 
-nPhases = length(phase);
-
-if iscell(rawSignal)
-  nPoints = numel(rawSignal);
-  
-  phasedSignal = cell(size(rawSignal));
-  
-  for iPoint = 1:nPoints
-    phasedSignal{iPoint} = rawSignal{iPoint}.*phase';
-  end
-  
+if iscell(RawSignal)
+  Signal = cellfun(@(s)s.',RawSignal,'UniformOutput',false);
 else
-  signalSize = size(rawSignal);
-  
-  nPoints = prod(signalSize(1:end-2));
-  % reshape the n-dimensional array into a 3-dimensional array, that
-  % can be looped over linearly along the first dimension (which
-  % corresponds to all the acquistion points)
-  rawSignal = reshape(rawSignal,[nPoints signalSize(end-1) signalSize(end)]);
-  
-  phasedSignal = zeros(size(rawSignal));
-  
-  for iPhase = 1 : nPhases
-    phasedSignal(:,iPhase,:) = rawSignal(:,iPhase,:)*phase(iPhase);
+  nDims = ndims(RawSignal);
+  Signal = permute(RawSignal,[1:nDims-2 nDims nDims-1]);
+  if ndims(Signal)==3 && size(Signal,1)==1
+    % single acquisition, several detection operators: time x operator
+    Signal = squeeze(Signal);
+  elseif ismatrix(Signal) && size(Signal,1)==1 && size(RawSignal,nDims-1)==1
+    % single acquisition, one detection operator: column vector
+    Signal = Signal.';
   end
-  
-  phasedSignal = reshape(phasedSignal,signalSize);
-  
 end
-
-end
-
-%===============================================================================
-% Frequency translation of single-point signals, as a phase factor at the
-% detection times (counted from the start of the sequence), consistent with
-% the translation of transients. Signals of Hermitian detection operators
-% (e.g. Sx) are real and contain both rotation senses, so they cannot be
-% translated from single points and are left unchanged.
-function Signal = translateSinglePoints(Signal,TimeAxis,FreqTranslation,DetOps)
-
-sizeSignal = size(Signal);
-nDetOps = numel(FreqTranslation);
-Signal = reshape(Signal,[],nDetOps);
-for iDetOp = find(FreqTranslation~=0)
-  D = DetOps{iDetOp};
-  if max(abs(D-D'),[],'all') <= 1e-12*max(abs(D),[],'all')
-    continue
-  end
-  Signal(:,iDetOp) = Signal(:,iDetOp).*exp(2i*pi*FreqTranslation(iDetOp)*1e3*TimeAxis(:));
-end
-Signal = reshape(Signal,sizeSignal);
 
 end

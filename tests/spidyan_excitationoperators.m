@@ -23,7 +23,6 @@ Exp.DetSequence = [1 0];
 
 % Options ---------------------------
 Exp.DetOperator = {'+','+(1|2)'};
-Exp.DetFreq = [33.5 33.5];
 Opt.SimFreq = 32;
 
 % Test custom exc operator syntax

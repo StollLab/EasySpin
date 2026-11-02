@@ -68,7 +68,6 @@ ok(end+1) = phasediff(phi,phi(1)) < tol;
 % depend on the simulation frame
 Exp.Sequence = {P90 0.1003 P90};
 Exp.DetOperator = {'z1'};
-Exp.DetFreq = 0;
 Sz = zeros(1,2);
 SimFreq = [7 7.3];
 for iFreq = 1:numel(SimFreq)
@@ -78,25 +77,26 @@ for iFreq = 1:numel(SimFreq)
 end
 ok(end+1) = abs(Sz(1)-Sz(2)) < 1e-2;
 
-% Single points of a Hermitian detection operator (Sx) are not translated
-% and stay real, while S+ is translated
+% Single points of a Hermitian detection operator (Sx) are real, and Sx
+% and S+ do not depend on the simulation frame
 Exp.Sequence = {P90 0.0537};
 Exp.DetOperator = {'x1','+1'};
-Exp.DetFreq = [9.5 9.5];
+Sx = zeros(1,2);
 Sp = zeros(1,2);
 for iFreq = 1:numel(SimFreq)
   Opt.SimFreq = SimFreq(iFreq);
   [~,signal] = spidyan(Sys,Exp,Opt);
   ok(end+1) = isreal(signal(1)) || abs(imag(signal(1))) < 1e-12; %#ok<AGROW>
+  Sx(iFreq) = real(signal(1));
   Sp(iFreq) = signal(2);
 end
-ok(end+1) = abs(Sp(2)-Sp(1)) < 0.02*abs(Sp(1));
+ok(end+1) = abs(Sp(2)-Sp(1)) < 0.02*abs(Sp(1)) && abs(Sx(2)-Sx(1)) < 0.04*abs(Sp(1));
 
 % User-supplied IQ (lab frame, upconverted on the time axis of the pulse)
 % acts like the built pulse, in different simulation frames
 clear Opt
 Opt.IntTimeStep = 4e-6;  % µs
-Exp = rmfield(Exp,{'DetOperator','DetFreq'});
+Exp = rmfield(Exp,'DetOperator');
 P45 = P90;
 P45.Flip = pi/4;
 P45.TimeStep = Opt.IntTimeStep;
@@ -118,16 +118,16 @@ ok(end+1) = phasediff(angle([signalBuilt signalUser]),angle(signalBuilt(1))) < t
   max(abs(abs(signalUser)-abs(signalBuilt))) < 0.02*abs(signalBuilt(1));
 
 % A pulse lasts exactly tp, and a pi/2 pulse on resonance turns the
-% magnetization fully into the transverse plane (detection operators are
-% normalized, so |<S+>| = 1)
+% magnetization fully into the transverse plane (signals are normalized by
+% Tr(D'*D): Sz starts at -1, and |<S+>| = 1/2 in the transverse plane)
 clear Opt
 Exp.Sequence = {P90};
 Exp = rmfield(Exp,'DetWindow');
 Exp.DetOperator = {'+1','z1'};
-Exp.DetFreq = [9.5 0];
 [t,signal] = spidyan(Sys,Exp);
 ok(end+1) = abs(t(end)-P90.tp) < 1e-12;
-ok(end+1) = abs(abs(signal(end,1))-1) < 1e-3 && abs(signal(end,2)) < 1e-3;
+ok(end+1) = abs(signal(1,2)+1) < 1e-12 && abs(abs(signal(end,1))-1/2) < 1e-3 && ...
+  abs(signal(end,2)) < 1e-3;
 
 % A pulse shorter than the time step is an error (simulation frame at
 % Exp.mwFreq, where the pulse shape is not shifted)

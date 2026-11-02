@@ -34,12 +34,15 @@ This user guide explains how to use <a class="esf" href="spidyan.html">spidyan</
 
 <p>
 It is easier to follow this guide if you are familiar with <a class="esf" href="userguide_saffron.html">part I</a> and <a class="esf" href="userguide_saffron_thyme.html">part II</a> of the guide on <a class="esf" href="saffron.html">saffron</a>.
+</p>
 
 <p>
 For the pulse definitions, the documentation page of <a class="esf" href="pulse.html">pulse</a> and the corresponding <a class="esf" href="userguide_shapedpulses.html">guide</a> are a great starting point.
+</p>
 
 <p>
 This guide covers the following topics:
+</p>
 
 <ul>
 <li><a href = "#calling">Running the simulation</a></li>
@@ -61,6 +64,7 @@ Look at the list of <a href="examplesmain.html#pulse spidyan">examples</a> for m
 
 <p>
 A <a class="esf" href="spidyan.html">spidyan</a> script has the same layout as a <a class="esf" href="saffron.html">saffron</a> script. First, a spin system is defined:
+</p>
 
 <pre class="matlab">
 Sys.ZeemanFreq = 9.5; % in GHz
@@ -72,6 +76,7 @@ While <a class="esf" href="spidyan.html">spidyan</a> still accepts <code>Sys.g</
 
 <p>
 After the spin system comes the experiment. Here we are creating a two-pulse sequence:
+</p>
 <pre class="matlab">
 p90.Flip = pi/2; % flip angle in rad
 p90.tp = 0.02; % pulse length in &mu;s
@@ -86,9 +91,11 @@ Exp.mwFreq = 9.5; % carrier frequency
 
 <p>
 Here we create two monochromatic rectangular pulses with flip angles &pi;/2 and &pi; that are separated by a free evolution period.
+</p>
  
 <p>
 Running the above code with 
+</p>
 
 <pre class="matlab">
 spidyan(Sys,Exp)
@@ -96,11 +103,13 @@ spidyan(Sys,Exp)
 
 <p>
 will plot the evolution of the electron coherence during the <em>entire</em> sequence (this includes during the pulses).
+</p>
 
 <p>
 You might be expecting an echo to form at some point; after all, this is the common two-pulse echo sequence.
 But keep in mind that an echo is a property of a distribution of spins with different resonance frequencies - the echo forms at a certain point of time, when all the spins are refocused.
 Since we called <a class="esf" href="spidyan.html">spidyan</a> with a single resonance frequency, no echo is to be expected.
+</p>
 
 <!-- ============================================================= -->
 <a name="inversion_pulses"><div class="subtitle">Inversion pulses</div></a>
@@ -108,6 +117,7 @@ Since we called <a class="esf" href="spidyan.html">spidyan</a> with a single res
 <p>
 This section is going to show three different inversion pulses and how to plot their effects on the spin.
 First, we start again with the spin system.
+</p>
 
 <pre class="matlab">
 Sys.ZeemanFreq = 9.5; % in GHz
@@ -122,11 +132,13 @@ Exp.mwFreq = 9.5; % GHz
 
 <p>
 Since we are interested in the inversion of the spin, we choose <i>&Scirc;<sub>z</sub></i> as detection operator.
+</p>
 
 <div class="subtitle2">Monochromatic rectangular pulse</div>
 
 <p>
 First, let us start with a common monochromatic rectangular pulse:
+</p>
 
 <pre class="matlab">
 Monochromatic.tp = 0.06; % pulse length in &mu;s
@@ -136,9 +148,11 @@ Monochromatic.Flip = pi; % flip angle in rad
 <p>
 This is the minimal required input for a monochromatic pulse. If no <code>Pulse.Type</code> is given, a rectangular pulse is assumed by default.
 The same is true for the parameter <code>Pulse.Frequency</code>, which is set to <code>0</code> by default, corresponding to a pulse with the frequency of the carrier frequency <code>Exp.mwFreq</code>.
+</p>
 
 <p>
 For completeness, here is an equivalent pulse definition:
+</p>
 
 <pre class="matlab">
 Monochromatic.Type = 'rectangular';
@@ -149,6 +163,7 @@ Monochromatic.Frequency = 0;
 
 <p>
 Next, let us build <code>Exp.Sequence</code>, run the simulation and then plot it
+</p>
 
 <pre class="matlab">
 Exp.Sequence = {Monochromatic};
@@ -174,6 +189,7 @@ The plot will show you the trajectory of the spin during the pulse, ending up at
 
 <p>
 Next, let us look at what happens to a spin during adiabatic passage. We define the pulse and overwrite the current <code>Exp.Sequence</code> 
+</p>
 
 <pre class="matlab">
 LinearChirp.Type = 'quartersin/linear'; 
@@ -189,9 +205,11 @@ Exp.Sequence = {LinearChirp};
 <p>
 According to <a class="esf" href="pulse.html">pulse</a>, this gives a chirp pulse with a length of 200 ns and a bandwidth of 100 MHz, centered around the carrier frequency <code>Exp.mwFreq</code>.
 To ensure a well-defined excitation profile in the frequency domain, the edges in the time domain are smoothed with a quarter sine, which has a length of 30 ns.
+</p>
 
 <p>
 Run and plot this with
+</p>
 <pre class="matlab">
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 
@@ -201,11 +219,13 @@ plot(TimeAxis*1000,real(Signal));
 
 <p>
 and you will see how the spin follows the effective field during adiabatic inversion. 
+</p>
 
 <div class="subtitle2">Hyperbolic secant pulse</div>
 
 <p>
 Once again, we define a new pulse and plot the simulation:
+</p>
 
 <pre class="matlab">
 HS.Type = 'sech/tanh';
@@ -226,20 +246,24 @@ plot(TimeAxis*1000,real(Signal));
 
 <p>
 Although the trajectory is slightly different, both adiabatic pulses end up in the same spin state.
+</p>
 
 <p>
 The quality of adiabatic pulses is in general described by a parameter called critical adiabaticity <code>Q<sub>crit</sub></code>, which measures the ability of the pulse to invert the spin and depends on the amplitude and the sweep rate.
 The flip angle and <code>Q<sub>crit</sub></code> are related through the Landau-Zener-Stückelberg-Majorana equation, e.g., a <code>Q<sub>crit</sub></code> of 5 corresponds to a &pi; pulse and a <code>Q<sub>crit</sub></code> of about 0.7 to a &pi;/2 pulse.
 Hence, instead of <code>Pulse.Flip</code>, you can also provide <code>Pulse.Amplitude</code> or <code>Pulse.Qcrit</code> for frequency-swept pulses.
+</p>
 
 <p>
 Adiabatic pulses have the big advantage that they invert all spins within their excitation band equally.
 You can see this by changing the resonance frequency of the spin <code>Sys.ZeemanFreq</code> from <code>9.500</code> by 25 MHz to <code>Sys.ZeemanFreq = 9.525</code> and then comparing the three pulses.
+</p>
 
 <p>
 A second advantage of adiabatic pulses is that overturning of the spin is not possible, something that is common with rectangular pulses, see <a href = "#rabi">this example</a>.
 This means that no matter how strong the amplitude of your pulse gets, the flip angle cannot become larger than &pi;.
 You can try this by removing <code>Par.Flip</code> from the pulse definitions, and instead using <code>Par.Amplitude</code>.
+</p>
 
 <!-- ============================================================= -->
 <a name="adiabatic"><div class="subtitle">3D plot of adiabatic passage</div></a>
@@ -247,6 +271,7 @@ You can try this by removing <code>Par.Flip</code> from the pulse definitions, a
 <p>
 The aim of this example is to create a three-dimensional depiction of the spin trajectory during adiabatic passage.
 We start with the spin system:
+</p>
 
 <pre class="matlab">
 Sys.ZeemanFreq = 9.500; % resonance frequency of the spin in GHz
@@ -254,6 +279,7 @@ Sys.ZeemanFreq = 9.500; % resonance frequency of the spin in GHz
 
 <p>
 Next, the pulse and experiment definition:
+</p>
 
 <pre class="matlab">
 Pulse.Type = 'quartersin/linear';
@@ -269,18 +295,21 @@ Exp.mwFreq = 9.500; % GHz
 <p>
 For the three-dimensional plot we need the expectation values of <i>&Scirc;<sub>x</sub></i>, <i>&Scirc;<sub>y</sub></i> and <i>&Scirc;<sub>z</sub></i>.
 Since <code><i>&Scirc;<sub>+</sub></i> = <i>&Scirc;<sub>x</sub></i> + i <i>&Scirc;<sub>y</sub></i></code> we can use this to our advantage for the detection:
+</p>
 
 <pre class="matlab">
 Exp.DetOperator = {'z1','+1'}; % detection operators
-Exp.DetFreq = [0 9.5]; % downconversion frequency in GHz
+Exp.DetFreq = 9.5; % detection frame frequency in GHz
 </pre>
 
 <p>
-<code>Exp.DetFreq</code> contains the frequencies for downconversion in GHz.
-Since <i>&Scirc;<sub>z</sub></i> does not contain any rotating components, the down-conversion has to be switched off for it, by setting it to <code>0</code>.
+<code>Exp.DetFreq</code> is the frequency of the detection frame in GHz, the frequency of the reference oscillator used for down-conversion in a spectrometer. If it is not given, <code>Exp.mwFreq</code> is used.
+<i>&Scirc;<sub>z</sub></i> does not contain any rotating components and is not affected by it.
+</p>
 
 <p>
 We can run the simulation and plot it:
+</p>
 
 <pre class="matlab">
 [TimeAxis, Signal] = spidyan(Sys,Exp);
@@ -298,6 +327,7 @@ legend(Exp.DetOperator)
 
 <p>
 In order to get a three-dimensional plot, we need to use the real and imaginary parts of <code>&lang;<i>&Scirc;<sub>+</sub></i>&rang;</code>:
+</p>
 
 <pre class="matlab">
 figure(2)
@@ -311,38 +341,46 @@ grid on
 
 <p>
 More on the theory of adiabatic passage can be found in
+</p>
 
 <p>
 Gunnar Jeschke, Stephan Pribitzer, Andrin Doll<br>
 <b>Coherence Transfer by Passage Pulses in Electron Paramagnetic Resonance Spectroscopy</b><br>
 <em>The Journal of Physical Chemistry B</em> 2015, DOI: <a target="_blank" href="https://doi.org/10.1021/acs.jpcb.5b02964">10.1021/acs.jpcb.5b02964</a>
+</p>
 
 <p>
 and
+</p>
 
 <p>
 Philipp Spindler, et al.<br>
 <b>Shaped Pulses in EPR</b><br>
 <em>eMagRes</em> 2016, DOI: <a target="_blank" href="https://doi.org/10.1002/9780470034590.emrstm1520">10.1002/9780470034590.emrstm1520</a>
+</p>
 
 <!-- ============================================================= -->
 <a name="detection"><div class="subtitle">Detection</div></a>
 
 <p>
 The use of the detection window <code>Exp.DetWindow</code> was already discussed in <a class="esf" href="userguide_saffron_thyme.html#detection_window">part II</a> of the guide on <a class="esf" href="saffron.html">saffron</a>.
+</p>
 
 <p>
 With <a class="esf" href="spidyan.html">spidyan</a> you get more control over what is detected and when.
+</p>
 
 <div class="subtitle2">Detection operators</div>
 
 <p>
 The first topic concerns detection operators.
 By default, if <code>Exp.DetOperator</code> is omitted, <i>&Scirc;<sub>+</sub></i> of all electrons is detected.
+</p>
 
 <p>
 But using <code>Exp.DetOperator</code> you can not only use several operators at once, but also specify <a href="#excitation_and_detection_operators">spin-</a> and <a href="#bulldozer">transition-selective</a> operators, using the extended <a class="esf" href="sop.html">sop syntax</a>.
 The detection operators are specified in a cell array, e.g.
+</p>
 
 <pre class="matlab">
 Exp.DetOperator = {'z1' 'x1' '+2'};
@@ -350,40 +388,35 @@ Exp.DetOperator = {'z1' 'x1' '+2'};
 
 <p>
 uses <i>&Scirc;<sub>z</sub></i> and <i>&Scirc;<sub>x</sub></i> of the first spin of the spin system and <i>&Scirc;<sub>+</sub></i> of the second spin.
+</p>
 
 <p>
-For each of the components of <code>Exp.DetOperator</code> a frequency for downconversion in GHz must be provided. 
-Detection operators that correspond only to elements on the diagonal of the detection operator do not need to be down-converted.
+All detection operators are detected in one detection frame, which rotates at <code>Exp.DetFreq</code> (default <code>Exp.mwFreq</code>):
+</p>
+
+<pre class="matlab">
+Exp.DetFreq = 9.5; % detection frame frequency in GHz
+</pre>
+
+<p>
+Operators with only diagonal elements are not affected by the detection frame.
 Such operators are any <i>&Scirc;<sub>z</sub></i>-operators, written like <code>'z1'</code>, polarization operators between two levels, specified for example with <code>z(1|2)</code>, and population-selective operators, specified like <code>e(2)</code>.
-
-<p>
-Assuming that both spins are of the same type, we could write for the above example:
-
-<pre class="matlab">
-Exp.DetFreq = [0 9.5 9.5]; % down conversion frequency in GHz
-</pre>
-
-<p>
-This corresponds to no down-conversion of <code>'z1'</code> and down-conversion with 9.5 GHz for <code>'x1'</code> and 9.5 GHz for <code>'x2'</code>.
-
-<p>
-For counter-rotating operators, e.g. <i>&Scirc;<sub>-</sub></i>,  the sign of the corresponding element in <code>DetFreq</code> has to reflect this:
-
-<pre class="matlab">
-Exp.DetOperator = {'+1' '-1'}
-Exp.DetFreq = [9.5 -9.5]; % down conversion frequency in GHz
-</pre>
+The signals of <i>&Scirc;<sub>x</sub></i> are real, and the signal of <i>&Scirc;<sub>-</sub></i> is the complex conjugate of the signal of <i>&Scirc;<sub>+</sub></i>.
+</p>
 
 <div class="subtitle2">Detection sequence</div>
 
 <p>
 Instead of using <code>Exp.DetWindow</code>, which only allows detection <em>after</em> the last pulse, you can also use <code>Exp.DetSequence</code>, which allows you to detect during selected events.
+</p>
 
 <p>
 If neither <code>Exp.DetWindow</code> nor <code>Exp.DetSequence</code> are defined, <a class="esf" href="spidyan.html">spidyan</a> detects the entire sequence by default.
+</p>
 
 <p>
 Detection is controlled through booleans for each element in <code>Exp.Sequence</code> separately. Here are a few examples:
+</p>
 
 <pre class="matlab">
 Exp.Sequence = {p90 tau p180 2*tau}; % the pulse experiment
@@ -398,6 +431,7 @@ Exp.DetSequence = [0 0 1 0] % detection during the third event
 <p>
 Keep in mind that detection not only requires a significant amount of computing time, it also keeps <a class="esf" href="spidyan.html">spidyan</a> from using some of its speed-up tricks.
 Hence, if you run a big simulation with a lot of indirect dimensions and data points, you might want to think about reducing detection to a minimum for the sake of speed.
+</p>
 
 <!-- ============================================================= -->
 <a name="bulldozer"><div class="subtitle">Enhancement of the central transition of a high-spin system</div></a>
@@ -406,9 +440,11 @@ Hence, if you run a big simulation with a lot of indirect dimensions and data po
 This example goes through the enhancement of the central transition of a <code>S = 3/2</code> system for a single spin packet.
 For this we are going to use two frequency-swept pulses that will transfer magnetization from the outer transitions to the central transition. 
 We can follow the polarization enhancement by using transition-selective operators.
+</p>
 
 <p>
 First, let us define a spin system with some zero-field splitting:
+</p>
 
 <pre class="matlab">
 Sys.S = 3/2;
@@ -418,6 +454,7 @@ Sys.D = 166;  % MHz
 
 <p>
 Next we set up two chirp pulses that are being swept from the outside of the spectrum towards the center and put them right after each other in <code>Exp.Sequence</code>:
+</p>
 
 <pre class="matlab">
 Pulse1.Type = 'quartersin/linear'; % make it a chirp
@@ -438,6 +475,7 @@ Exp.Sequence = {Pulse1 Pulse2};
 
 <p>
 We then set the carrier frequency and specify our detection operators:
+</p>
 
 <pre class="matlab">
 Exp.mwFreq = 33.5; % GHz
@@ -450,9 +488,11 @@ Exp.DetOperator = {'z(1|2)' 'z(2|3)' 'z(3|4)'};
 <p>
 We make use of the transition-selective operators from <a class="esf" href="sop.html">sop</a>:
 With <code>'z(1|2)'</code> polarization between <code>|3/2></code> and <code>|1/2></code> is detected, with <code>'z(2|3)'</code> the central transition (<code>|1/2></code> and <code>|-1/2></code>) and with <code>'z(3|4)'</code> the polarization of the states <code>|-1/2></code>  and <code>|-3/2></code>.
+</p>
 
 <p>
 Running and plotting it with
+</p>
 <pre class="matlab">
 [TimeAxis, Signal] = spidyan(Sys,Exp);
 
@@ -471,16 +511,19 @@ legend(Exp.DetOperator)
 shows how the first pulse shuffles polarization from one of the outer transitions to the central transition, increasing the polarization on the central transition from 1 to 2.
 The second pulse does the same with the other outer transition, raising the polarization of the central transition to 3!
 Try this with a <code>S = 5/2</code> or <code>S = 7/2</code> and see if you can achieve even larger enhancements - you might have to adapt the excitation bands of your pulses and add the correct detection operators!
+</p>
 
 <p>
 Now, this simulation was done for a single spin packet (e.g. a single crystal) only. 
 In reality, you encounter a distribution of spins (the spectrum) paired with a distribution of zero-field splitting values which make it harder to enhance the central transition.
 A real-life example with Gd(III) can be found in
+</p>
 
 <p>
 Andrin Doll, et al.<br>
 <b>Sensitivity enhancement by population transfer in Gd(III) spin labels</b><br>
 <em>Phys. Chem. Chem. Phys.</em> 2015, DOI: <a target="_blank" href="https://doi.org/10.1039/C4CP05893C">10.1039/C4CP05893C</a>
+</p>
 
 <!-- ============================================================= -->
 <a name="excitation_and_detection_operators"><div class="subtitle">Selective excitation and detection operators</div></a>
@@ -489,6 +532,7 @@ Andrin Doll, et al.<br>
 This example explores how spin-selective excitation and detection operators are used.
 First we start with the specification of a spin system.
 Since we are interested in seeing the pulses and not spin dynamics, we are going to set the spin-spin coupling to zero.
+</p>
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];
@@ -499,6 +543,7 @@ Sys.J = 0; % spin-spin coupling, MHz
 
 <p>
 Next we are going to define pulses and then put them into a pulse sequence:
+</p>
 
 <pre class="matlab">
 P90.tp = 0.016; % mus
@@ -517,6 +562,7 @@ Exp.mwFreq = 9.5; % GHz
 
 <p>
 To see how the pulses flip our spins, we are going to use selective <i>&Scirc;<sub>z</sub></i> operators for both spins:
+</p>
 <pre class="matlab">
 Exp.DetOperator = {'z1' 'z2'};
 </pre>
@@ -525,6 +571,7 @@ Exp.DetOperator = {'z1' 'z2'};
 Next, let us use some selective excitation operators with <code>Opt.ExcOperator</code>.
 The indexing in <code>Opt.ExcOperator</code> corresponds to the pulses, e.g. the second element in <code>Opt.ExcOperator</code> concerns only the second pulse.
 For declaring special excitation operators, we can use the usual <a class="esf" href="sop.html">sop</a> syntax.
+</p>
 
 <pre class="matlab">
 Opt.ExcOperator = {'x1' [] 'x2'}; 
@@ -533,6 +580,7 @@ Opt.ExcOperator = {'x1' [] 'x2'};
 <p>
 Now, the first pulse will use <i>&Scirc;<sub>x</sub></i> for the first spin, the second pulse excites all spins in the system and the last pulse only excites the second spin.
 Run and plot it with
+</p>
 
 <pre class="matlab">
 [TimeAxis, Signal] = spidyan(Sys,Exp,Opt);
@@ -550,10 +598,12 @@ legend(Exp.DetOperator)
 
 <p>
 and you will see the spin flips.
+</p>
 
 <p>
 Of course, you can use transition-selective excitation operators by using the <a class="esf" href="sop.html">sop</a> syntax.
 If it is not possible to build the excitation operator with <a class="esf" href="sop.html">sop</a>, it is even possible to manually design the excitation operator in matrix form, and then use that as input:
+</p>
 
 <pre class="matlab">
 Sys.S = 3/2;
@@ -577,6 +627,7 @@ Opt.ExcOperator = {Op};
 This example shows how to set up a Rabi oscillation with <a class="esf" href="spidyan.html">spidyan</a> using indirect dimensions.
 For more info on indirect dimensions, please refer to the <a class="esf" href="spidyan.html#indirect_dimensions">documentation</a>.
 Once again, we start with the spin system and then set up a very short 1 ns rectangular pulse.
+</p>
 
 <pre class="matlab">
 % Spin System
@@ -587,6 +638,7 @@ Sys.ZeemanFreq = 9.500; % GHz
 In order to observe Rabi oscillations, we want a rectangular pulse with a constant amplitude. 
 We then are going to use the indirect dimension to increase the length of the pulse and detect the outcome of the experiment.
 Let us start with the pulse and <code>Exp.Sequence</code>
+</p>
 
 <pre class="matlab">
 % experiment setup
@@ -601,6 +653,7 @@ Exp.mwFreq = 9.5; % GHz
 <p>
 Next, detection.
 As detection operator we use 
+</p>
 <pre class="matlab">
 Exp.DetOperator = {'z1'};
 </pre>
@@ -608,6 +661,7 @@ Exp.DetOperator = {'z1'};
 <p>
 and we are interested in the expectation value right after the pulse.
 The easiest way is to use <code>Exp.DetWindow</code>:
+</p>
 
 <pre class="matlab">
 Exp.DetWindow = 0; % position of the detection window in &mu;s
@@ -617,9 +671,11 @@ Exp.DetWindow = 0; % position of the detection window in &mu;s
 Since we are not providing an interval for the detection window, we are going to do single-point detection.
 The value <code>0</code> corresponds to the time in &mu;s <em>after</em> the end of the last element in <code>Exp.Sequence</code>.
 For more information on how to use <code>Exp.DetWindow</code>, see the <a class="esf" href="spidyan.html#detection">documentation</a>.
+</p>
 
 <p>
 Alternatively, we could have adapted <code>Exp.Sequence</code> and used <code>Exp.DetSequence</code> (see <a class="esf" href="userguide_spidyan.html#detection">here</a> and <a class="esf" href="spidyan.html#detsequence">here</a>):
+</p>
  
 <pre class="matlab">
 Exp.Sequence = {Pulse 0}; % append an event with length 0 &mu;s
@@ -629,6 +685,7 @@ Exp.DetSequence = [0 1]; % detect only during the second element in Exp.Sequence
 
 <p>
 The indirect dimension, where we change the pulse length, can be added through:
+</p>
 
 <pre class="matlab">
 Exp.nPoints = 99 % number of data points 
@@ -637,6 +694,7 @@ Exp.Dim1 = {'p1.tp' 0.001}; % increment length of the pulse by 1 ns per step
 
 <p>
 With this, we are going to record 99 data points, with the pulse length ranging from 1 ns to 100 ns:
+</p>
 
 <pre class="matlab">
 spidyan(Sys,Exp);
@@ -645,9 +703,11 @@ ylim([-1 1]) % to ensure right limits in the plot
 
 <p>
 Now you can investigate how the frequency of the Rabi oscillation depends on the frequency difference between the microwave pulse and the resonance frequency of the spin by changing <code>Sys.ZeemanFreq</code>.
+</p>
 
 <p>
 Or you can add some relaxation by adding:
+</p>
 
 <pre class="matlab">
 Sys.T1 = 2; % longitudinal relaxation time in &mu;s
@@ -666,10 +726,12 @@ spidyan(Sys,Exp,Opt);
 Per call, <a class="esf" href="spidyan.html">spidyan</a> can process a single spin packet. 
 If you want to simulate a pulse sequence with an entire spectrum, you would usually use <a class="esf" href="saffron.html">saffron</a>, unless you want to use special excitation operators, change the detection operator or detect between and during pulses.
 In such a case you can manually define an orientation loop which calls <a class="esf" href="spidyan.html">spidyan</a>.
+</p>
 
 <p>
 We start again with the spin system, but this time we are using <code>Sys.g</code> instead of <code>Sys.ZeemanFreq</code>.
 Since we are going to manually rotate the interactions, we are going to set them up as tensors:
+</p>
 
 <pre class="matlab">
 % Spin System
@@ -681,6 +743,7 @@ Sys.Nucs = '14N';
 
 <p>
 We then determine the grid with the EasySpin functions <a class="esf" href="hamsymm.html">hamsymm</a> and <a class="esf" href="sphgrid.html">sphgrid</a>.
+</p>
 
 <pre class="matlab">
 Symmetry = hamsymm(Sys);
@@ -689,6 +752,7 @@ Symmetry = hamsymm(Sys);
 
 <p>
 Then we set up frequency-swept pulses that cover the entire spectrum:
+</p>
 
 <pre class="matlab">
 Chirp90.Type = 'quartersin/linear'; 
@@ -723,9 +787,11 @@ Exp.DetFreq = 9.1;
 If you are not sure about where to place your pulses, keep in mind that you can call <a class="esf" href="pepper.html">pepper</a> with a <code>Sys</code> and <code>Exp.Field</code>, which is going to plot the spectrum for you.
 For detection we are detecting the electron coherence in a 0.1 &mu;s window centered around the end of the last element in <code>Exp.Sequence</code>.
 Since we are using frequency-swept pulses, the position of the echo is not at &tau; after the end of the &pi; pulse, but we also need to take the pulse length into account.
+</p>
 
 <p>
 With this we can loop over the orientations and accumulate the signal:
+</p>
 
 <pre class="matlab">
 Signal = 0; % initialize Signal
@@ -746,6 +812,7 @@ end
 
 <p>
 After completion, the signal can be plotted:
+</p>
 
 <pre class="matlab">
 % plotting
@@ -762,11 +829,13 @@ ylabel('Signal (arb.u.)')
 <p>
 If you are investigating spin dynamics, it is often not necessary to simulate entire spectra. 
 Instead you can use any distribution of spin packets (a distribution of different resonance frequencies is needed for an echo to form).
+</p>
 
 <p>
 Here we are going to cover how to loop <a class="esf" href="spidyan.html">spidyan</a> over a Gaussian line.
 The resonance frequencies of the spins are centered around 9.5 GHz, with a standard deviation of 10 MHz.
 Spins are sampled from 9.450 to 9.550 GHz, with a sampling step of 0.5 MHz, resulting in a total of 201 spin packets.
+</p>
 
 <pre class="matlab">
 CenterFrequency = 9.5; % center frequency of Gaussian distribution, GHz
@@ -782,9 +851,11 @@ nSpinpackets = length(ZeemanFreqVec);
 
 <p>
 For each of the spin packets we now have a resonance frequency and a probability.
+</p>
 
 <p>
 After setting up the pulse sequence
+</p>
 
 <pre class="matlab">
 Pulse90.Type = 'rectangular';
@@ -807,6 +878,7 @@ Exp.DetFreq = 9.5; % GHz
 <p>
 Now, all that is left is looping over the spins.
 In contrast to the <a href="#spinecho_nitroxide">example with the nitroxide</a>, we do not need to rotate any tensors anymore, and can just load the resonance frequency and then plot the accumulated signal:
+</p>
 
 <pre class="matlab">
 Signal = 0; % initialize the signal
@@ -834,25 +906,10 @@ ylim([0 1])
 <a name="tipsntricks"><div class="subtitle">Tips and tricks</div></a>
 
 <p>
-If you are interested in the expectation values of <i>&Scirc;<sub>x</sub></i>, it is usually beneficial to use <i>&Scirc;</i><sub>+</sub> as the actual detection operator and then take the real part of the obtained signal.
-This removes artifacts at the beginning and end of the time traces that are introduced when translating a purely real signal during the signal processing.
-
-<p>
-<i>&Scirc;</i><sub>+</sub> and <i>&Scirc;</i><sub>-</sub> are not Hermitian operators.
-Hence, if you use <i>&Scirc;</i><sub>+</sub> as detection operator, the signal that is returned will in fact correspond to &langle;<i>&Scirc;</i><sub>-</sub>&rangle;.
-The real part of the signal (<i>&Scirc;<sub>x</sub></i>) is not affected by this. 
-But if your data processing involves the imaginary part of the signal and you encounter frequencies with a wrong sign, you might want to consider using <i>&Scirc;</i><sub>-</sub> as detection operator instead.
-
-<p>
 In some simulations you may observe echoes in your time trace that should not be there.
 Besides physical reasons (incomplete phase cycling, different refocusing conditions,...), such artifact echoes can arise from an aliasing effect if the spectrum (e.g. the nitroxide spectrum in the example above) is insufficiently sampled.
 This can easily be checked: By increasing the number of samples from your distribution, the artifact echoes should move, spread further apart or vanish, while physical echoes stay in place. You can also compute the required increment for the spin packet distribution in the frequency domain by an inverse Nyquist criterion. 
 If you want to observe up to a time <i>t</i><sub>max</sub> after the first excitation event (first pulse), the frequency increment should not be larger than 1/(2 <i>t</i><sub>max</sub>). Otherwise, use Monte Carlo sampling of spin packet frequencies, which will convert the artifacts to 'Monte Carlo noise' that averages out with increasing number of trials.  
-
-<p>
-If the signal processing fails, <code>spidyan</code> returns the signal in the simulation frame. 
-This can happen if you try to translate <i>&Scirc;<sub>z</sub></i> or provide a wrong frequency.
-In this case, correct <code>Exp.DetFreq</code> and run the simulation again.
 </p>
 
 <hr>

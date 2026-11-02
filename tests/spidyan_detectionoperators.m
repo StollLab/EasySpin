@@ -25,7 +25,6 @@ Exp.DetSequence = [1 0 0];
 Opt.SimFreq = 32;
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFreq = [0 33.5]; 
 
 % Function Call -----------------------------
 [t1, signal1] = spidyan(Sys,Exp,Opt);

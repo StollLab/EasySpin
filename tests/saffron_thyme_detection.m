@@ -1,6 +1,7 @@
 function ok = test()
 
-% Detection fields in thyme mode: Exp.DetFreq is used for down-conversion,
+% Detection fields in thyme mode: Exp.DetFreq defines the detection frame,
+% the fast mode only supports Exp.DetFreq = Exp.mwFreq, and
 % spidyan-specific detection fields are rejected
 
 Sys.S = 1/2;
@@ -37,6 +38,12 @@ ok(3) = throwsWith(@() saffron(Sys,ExpD,Opt),'DetOperator');
 ExpD = rmfield(Exp,'DetWindow');
 ExpD.DetSequence = 'last';
 ok(4) = throwsWith(@() saffron(Sys,ExpD,Opt),'DetSequence');
+
+% The fast mode gives signals in the frame rotating at Exp.mwFreq
+ExpF = rmfield(Exp,'DetWindow');
+OptF = Opt;
+OptF.SimulationMode = 'fast';
+ok(5) = throwsWith(@() saffron(Sys,ExpF,OptF),'DetFreq');
 
 end
 

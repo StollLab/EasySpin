@@ -492,18 +492,19 @@ Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
 
 <div class="optionfield"><code>DetFreq</code></div>
 <div class="optiondescr">
-The signal is detected in the simulation frame and hence contains an oscillating component.
-By translating/shifting the frequency it is possible to center the signal around 0 (baseband) or any other desired frequency.
-The frequency shift has to be given as an absolute frequency:
+Frequency of the detection frame, in GHz, optional (<em>thyme</em> method).
+The signal is given in a frame that rotates at <code>DetFreq</code> about the static field, like the signal after down-conversion with a reference oscillator at <code>DetFreq</code> in a spectrometer.
+The default is <code>Exp.mwFreq</code>, so that the signal oscillates only at the frequency offsets of the spins.
 <pre class="matlab">
-Exp.DetFreq = 33.5; % shifts detected signal by -33.5 GHz
+Exp.DetFreq = 33.5; % detection frame at 33.5 GHz
 </pre>
-If no <code>DetFreq</code> is provided, <code>Exp.mwFreq</code> is taken as frequency for down-conversion.
+The <em>fast</em> method always uses <code>Exp.mwFreq</code>. If <code>DetFreq</code> differs from it, the <em>thyme</em> method is used.
 </div>
 
 <div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
-Phase of detection in radians, optional.
+Phase of the detection reference in radians, optional.
+It works like the phase of a pulse: changing it rotates the detection axis about the static field, and multiplies the signal by e<sup>-i<code>DetPhase</code></sup>.
 The default value is <code>0</code>.
 </div>
 
@@ -656,8 +657,9 @@ The following option can only be used with the general <em>thyme</em> algorithm:
 
 <div class="optionfield"><code>SimFreq</code></div>
 <div class="optiondescr">
-Optional, frequency of the (rotating) simulation frame in GHz. 
+Optional, frequency of the (rotating) simulation frame in GHz, zero or positive.
 If <code>SimFreq</code> is not provided, a suitable simulation frame is automatically selected.
+The results are given in the detection frame (<code>Exp.DetFreq</code>), independent of the simulation frame.
 No matter the choice of the simulation frame, all other frequencies must still be given in the lab frame - the program handles all required frequency shifts.
 For example, for running a Q-band simulation without using the default simulation frame, but one that rotates at 30 GHz:
 <pre class="matlab">

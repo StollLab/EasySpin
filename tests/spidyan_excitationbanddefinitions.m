@@ -26,7 +26,7 @@ Exp.TimeStep = 0.00001; % µs
 
 % Detection -------------------------
 Exp.DetOperator = {'z1','+1'};
-Exp.DetFreq = [0 33.5]; 
+Exp.DetFreq = 33.5;  % GHz, also for the second method (Exp.mwFreq = 0)
 
 
 % Function Call -----------------------------

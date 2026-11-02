@@ -12,6 +12,7 @@
 %     DetWindow
 %     Dim1, Dim2, etc
 %     mwFreq
+%     DetFreq
 %     DetTimeStep
 %     nPoints
 %     mwPolarization
@@ -84,6 +85,11 @@ end
 if isfield(Exp,'ResonatorFrequency') || isfield(Exp,'ResonatorQL') || isfield(Exp,'FrequencyResponse')
   Opt.SimulationMode = 'thyme';
   message = addtomessage(message,'Exp definition contains resonator specifics');
+end
+% the fast method gives signals in the frame rotating at Exp.mwFreq
+if isfield(Exp,'DetFreq') && ~(isfield(Exp,'mwFreq') && isequal(Exp.DetFreq,Exp.mwFreq))
+  Opt.SimulationMode = 'thyme';
+  message = addtomessage(message,'Exp.DetFreq differs from Exp.mwFreq');
 end
 
 % Creates the Exp structure in the old saffron syntax
@@ -457,7 +463,11 @@ else
 end
 
 if isfield(Opt,'SimFreq')
-  % User-provided value for simulation frequency shift
+  % User-provided value for simulation frequency shift; frames rotate in
+  % the positive sense (as Exp.DetFreq)
+  if ~isscalar(Opt.SimFreq) || ~isreal(Opt.SimFreq) || Opt.SimFreq<0
+    error('Opt.SimFreq must be a single nonnegative frequency (in GHz).');
+  end
   frameShift = Opt.SimFreq;
   freqShift = freqShift - frameShift;
   

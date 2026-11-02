@@ -20,7 +20,6 @@ Exp.Field = 1195;
 Opt.IntTimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
 Exp.DetSequence = [1 1];
-Exp.DetFreq = 0;
 Exp.DetPhase = 0;
 
 % Options ---------------------------
