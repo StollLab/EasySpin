@@ -1771,14 +1771,19 @@ if fastSimulationMode
     end
 
     % Normalize modulation signal
-    % No need to normalize out the experiment prefactors (due to
-    % pulse transfer amplitudes), since they were not included above.
     EqDensityTrace = prod(2*Sys.I+1);
     td = td/EqDensityTrace;
     td = td/nPathways;
 
+    % Pulse transfer prefactors: custom sequences include them in the
+    % pathways above and are normalized here by their largest magnitude.
+    % Predefined experiments don't include them; their pathways have equal
+    % prefactors, so only the common sign is applied, giving the same
+    % result as the custom sequence.
     if ~predefinedExperiment
       td = td/max(abs(pathwayprefactor));
+    else
+      td = td*sign(pathwayprefactor(1));
     end
 
   end

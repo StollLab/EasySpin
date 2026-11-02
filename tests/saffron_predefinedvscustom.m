@@ -1,0 +1,53 @@
+function ok = test()
+
+% Fast mode: predefined experiments give the same signal as the same
+% sequence entered as a custom sequence (same coherence pathways), including
+% the sign of the pulse transfer prefactors
+
+Sys.S = 1/2;
+Sys.g = [2.00 2.02 2.04];
+Sys.Nucs = '1H';
+Sys.A = [2 6];  % MHz
+
+Base.mwFreq = 9.5;  % GHz
+Base.Field = unitconvert(Base.mwFreq,'GHz->mT',2.02);
+Base.ExciteWidth = Inf;
+
+Opt.GridSize = 7;
+Opt.SimulationMode = 'fast';
+
+P90.Flip = pi/2;
+P180.Flip = pi;
+tau = 0.15;  % µs
+T = 0.1;  % µs
+dt = 0.02;  % µs
+
+% 2pESEEM
+E = Base; E.Sequence = '2pESEEM'; E.tau = tau; E.dt = dt; E.nPoints = 8;
+yPredefined = saffron(Sys,E,Opt);
+E = Base; E.Sequence = {P90 tau P180 tau}; E.Dim1 = {'d1,d2' dt}; E.nPoints = 8;
+yCustom = saffron(Sys,E,Opt);
+ok(1) = areequal(yCustom,yPredefined,1e-10,'rel');
+
+% 3pESEEM
+E = Base; E.Sequence = '3pESEEM'; E.tau = tau; E.T = T; E.dt = dt; E.nPoints = 8;
+yPredefined = saffron(Sys,E,Opt);
+E = Base; E.Sequence = {P90 tau P90 T P90 tau}; E.Dim1 = {'d2' dt}; E.nPoints = 8;
+yCustom = saffron(Sys,E,Opt);
+ok(2) = areequal(yCustom,yPredefined,1e-10,'rel');
+
+% 4pESEEM
+E = Base; E.Sequence = '4pESEEM'; E.tau = tau; E.T = T; E.dt = dt; E.nPoints = 8;
+yPredefined = saffron(Sys,E,Opt);
+E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2,d3' dt}; E.nPoints = 8;
+E.Pathways = ['+ab-';'+ba-'];
+yCustom = saffron(Sys,E,Opt);
+ok(3) = areequal(yCustom,yPredefined,1e-10,'rel');
+
+% HYSCORE
+E = Base; E.Sequence = 'HYSCORE'; E.tau = tau; E.t1 = T; E.t2 = T; E.dt = dt; E.nPoints = [4 4];
+yPredefined = saffron(Sys,E,Opt);
+E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2' dt}; E.Dim2 = {'d3' dt};
+E.nPoints = [4 4];
+yCustom = saffron(Sys,E,Opt);
+ok(4) = areequal(yCustom,yPredefined,1e-10,'rel');
