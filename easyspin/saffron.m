@@ -2213,7 +2213,7 @@ else  % if fastSimulationMode
             else
               tstart = 0;
             end
-            x{iDim} = tstart + Exp.dt*(0:Exp.nPoints(iDim)-1);
+            x{iDim} = tstart + Exp.dt(min(iDim,end))*(0:Exp.nPoints(iDim)-1);
           end
       end
     else

@@ -12,12 +12,36 @@ P180.tp = 0.032;
 P180.Flip = pi;
 P180.Phase = pi/2;
 
+if ~ismember(Exp.Sequence,{'2pESEEM','3pESEEM','HYSCORE'})
+  error('Exp.Sequence = ''%s'' is not supported with the thyme method.',Exp.Sequence);
+end
+
+if ~isfield(Exp,'dt')
+  error('Exp.dt is missing.');
+end
+
+% Initial values of incremented delays default to zero, as in saffron's fast mode
 switch Exp.Sequence
   case '2pESEEM'
-    requiredFields = {'dt','tau'};
-    
-    checkfields(requiredFields,Exp)
-              
+    if ~isfield(Exp,'tau'), Exp.tau = 0; end
+  case '3pESEEM'
+    if ~isfield(Exp,'T'), Exp.T = 0; end
+  case 'HYSCORE'
+    if ~isfield(Exp,'t1'), Exp.t1 = 0; end
+    if ~isfield(Exp,'t2'), Exp.t2 = 0; end
+end
+if ismember(Exp.Sequence,{'3pESEEM','HYSCORE'})
+  if ~isfield(Exp,'tau')
+    error('Exp.tau is missing.');
+  end
+  if Exp.tau<=0
+    error('Exp.tau must be larger than 0.');
+  end
+end
+
+switch Exp.Sequence
+  case '2pESEEM'
+
     if ~isfield(Exp,'DetWindow')
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
@@ -35,10 +59,6 @@ switch Exp.Sequence
     
   case '3pESEEM'
     
-    requiredFields = {'dt','tau','T'};
-    
-    checkfields(requiredFields,Exp)
-        
     if ~isfield(Exp,'DetWindow')
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
@@ -59,10 +79,6 @@ switch Exp.Sequence
 
   case 'HYSCORE'
     
-    requiredFields = {'t1','t2','tau'};
-    
-    checkfields(requiredFields,Exp)
-    
     if ~isfield(Exp,'DetWindow')
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
@@ -78,19 +94,12 @@ switch Exp.Sequence
 	  Exp.nPoints = [Exp.nPoints Exp.nPoints];
     end
     
-    Exp.Dim1 = {'d2' Exp.dt};
-    Exp.Dim2 = {'d3' Exp.dt};
-
-  otherwise
-    error('Exp.Sequence = ''%s'' is not supported with the thyme method.',Exp.Sequence);
+    % one increment for both dimensions, or one per dimension
+    if numel(Exp.dt)>2
+      error('Exp.dt needs either 1 or 2 elements, one per dimension. You gave %d.',numel(Exp.dt));
+    end
+    dt = Exp.dt.*[1 1];
+    Exp.Dim1 = {'d2' dt(1)};
+    Exp.Dim2 = {'d3' dt(2)};
 
 end
-
-
-function checkfields(requiredFields, Exp)
-    for iField = 1 : numel(requiredFields)
-      if ~isfield(Exp,requiredFields{iField})
-        msg = ['The field Exp.' requiredFields{iField} ' is required to run ' Exp.Sequence ' with the general method (and may not be allowed to be zero).'];
-        error(msg);
-      end
-    end

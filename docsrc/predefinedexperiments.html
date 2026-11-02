@@ -29,163 +29,275 @@
 <h1>Predefined experiments</h1>
 
 <p>
-This page summarizes the predefined experiments available in <code>saffron</code> and <code>spidyan</code>, together with their parameters.
-They can be accessed through the <code>Exp.Sequence</code> field.
-All pulses of the predefined experiments are along y, and the detection phase is chosen so that the echo is real and positive: 0 for <code>'2pESEEM'</code> and <code>'3pESEEM'</code>, and &pi; for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
+<a class="esf" href="saffron.html">saffron</a> and <a class="esf" href="spidyan.html">spidyan</a> have predefined pulse experiments, selected via <code>Exp.Sequence</code>. For each, this page lists its parameters and the equivalent user-defined sequence, which you can modify further.
 </p>
 
 <p>
-The <a class="esf" href="saffron.html#algorithms"><em>thyme</em> algorithm</a> supports only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code>. For these, standard monochromatic rectangular pulses along y are assumed with a length of 16 ns for 90&deg; pulses and 32 ns for 180&deg; pulses.
+All pulses are along y, and the detection phase is chosen so that the echo is real and positive. With the <em>fast</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
 </p>
 
 <div class="subtitle">2pESEEM</div>
-Minimal call:
+
+<p>
+&pi;/2 &ndash; &tau; &ndash; &pi; &ndash; &tau; &ndash; echo, with &tau; incremented.
+</p>
+
 <pre class="matlab">
 Exp.Sequence = '2pESEEM';
-Exp.dt = 0.01; % time increment in microseconds
+Exp.tau = 0.1;  % initial tau, µs
+Exp.dt = 0.01;  % increment, µs
 </pre>
+
+<p>
+Parameters:
+</p>
 
 <div class="optionfield"><code>Exp.dt</code></div>
 <div class="optiondescr">
-Time increment (dwell time), in microseconds. 
+Increment of &tau;, in µs.
 </div>
-
-<p>
-The following fields are optional in combination with <code>Exp.Sequence = '2pESEEM'</code>
-</p>
 
 <div class="optionfield"><code>Exp.tau</code></div>
 <div class="optiondescr">
-This is the starting &tau; value.
-If omitted, it is set to zero. 
-Has to be non-zero if used with the <em>thyme</em> algorithm.
+Initial &tau;, in µs, default 0.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
 <div class="optiondescr">
-Number of data points along the indirect dimension, default is 512.
+Number of points, default 512.
 </div>
+
+<p>
+Equivalent user-defined sequence:
+</p>
+
+<pre class="matlab">
+p90.Flip = pi/2;
+p90.Phase = pi/2;
+p180.Flip = pi;
+p180.Phase = pi/2;
+Exp.Sequence = {p90 0.1 p180 0.1};
+Exp.nPoints = 512;
+Exp.Dim1 = {'d1,d2' 0.01};
+</pre>
 
 <div class="subtitle">3pESEEM</div>
-Minimal call:
+
+<p>
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with T incremented.
+</p>
+
 <pre class="matlab">
 Exp.Sequence = '3pESEEM';
-Exp.dt = 0.01; % time increment in microseconds
-Exp.tau = 0.1; % tau in microseconds
+Exp.tau = 0.1;  % tau, µs
+Exp.T = 0.08;   % initial T, µs
+Exp.dt = 0.01;  % increment, µs
 </pre>
 
-<div class="optionfield"><code>Exp.dt</code></div>
-<div class="optiondescr">
-Time increment (dwell time), in microseconds. 
-</div>
+<p>
+Parameters:
+</p>
 
 <div class="optionfield"><code>Exp.tau</code></div>
 <div class="optiondescr">
-Value of &tau;, in microseconds.
+&tau;, in µs.
 </div>
 
-<p>
-The following fields are optional in combination with <code>Exp.Sequence = '3pESEEM'</code>
-</p>
+<div class="optionfield"><code>Exp.dt</code></div>
+<div class="optiondescr">
+Increment of T, in µs.
+</div>
 
 <div class="optionfield"><code>Exp.T</code></div>
 <div class="optiondescr">
-The starting T value, in microseconds, default is 0.
+Initial T, in µs, default 0.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
 <div class="optiondescr">
-Number of data points along the indirect dimension, default is 512.
+Number of points, default 512.
 </div>
+
+<p>
+Equivalent user-defined sequence:
+</p>
+
+<pre class="matlab">
+p90.Flip = pi/2;
+p90.Phase = pi/2;
+Exp.Sequence = {p90 0.1 p90 0.08 p90 0.1};
+Exp.nPoints = 512;
+Exp.Dim1 = {'d2' 0.01};
+</pre>
 
 <div class="subtitle">4pESEEM</div>
-Minimal call:
+
+<p>
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi; &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with both T incremented. <em>fast</em> method only.
+</p>
+
 <pre class="matlab">
 Exp.Sequence = '4pESEEM';
-Exp.dt = 0.01; % time increment in microseconds
-Exp.tau = 0.1; % tau in microseconds
+Exp.tau = 0.1;  % tau, µs
+Exp.T = 0.08;   % initial T, µs
+Exp.dt = 0.01;  % increment, µs
 </pre>
 
-<div class="optionfield"><code>Exp.dt</code></div>
-<div class="optiondescr">
-Time increment (dwell time), in microseconds. 
-</div>
+<p>
+Parameters:
+</p>
 
 <div class="optionfield"><code>Exp.tau</code></div>
 <div class="optiondescr">
-Value of &tau;, in microseconds.
+&tau;, in µs.
 </div>
 
-<p>
-The following fields are optional in combination with <code>Exp.Sequence = '4pESEEM'</code>
-</p>
+<div class="optionfield"><code>Exp.dt</code></div>
+<div class="optiondescr">
+Increment of T, in µs.
+</div>
 
 <div class="optionfield"><code>Exp.T</code></div>
 <div class="optiondescr">
-The starting T value, in microseconds, default is 0.
+Initial T, in µs, default 0.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
 <div class="optiondescr">
-Number of data points along the indirect dimension, default is 512.
-</div>
-
-<div class="subtitle">HYSCORE</div>
-Minimal call:
-<pre class="matlab">
-Exp.Sequence = 'HYSCORE';
-Exp.dt = 0.01; % time increment in microseconds
-Exp.tau = 0.1; % tau in microseconds
-</pre>
-
-<div class="optionfield"><code>Exp.dt</code></div>
-<div class="optiondescr">
-Time increment (dwell time), in microseconds. 
-</div>
-
-<div class="optionfield"><code>Exp.tau</code></div>
-<div class="optiondescr">
-Value of &tau;, in microseconds.
+Number of points, default 512.
 </div>
 
 <p>
-The following fields are optional in combination with <code>Exp.Sequence = 'HYSCORE'</code>
+Equivalent user-defined sequence. The filter removes the echo refocused by the &pi; pulse, which the predefined experiment does not include.
 </p>
 
-<div class="optionfield"><code>Exp.t1,Exp.t2</code></div>
+<pre class="matlab">
+p90.Flip = pi/2;
+p90.Phase = pi/2;
+p180.Flip = pi;
+p180.Phase = pi/2;
+Exp.Sequence = {p90 0.1 p90 0.08 p180 0.08 p90 0.1};
+Exp.nPoints = 512;
+Exp.Dim1 = {'d2,d3' 0.01};
+Exp.Filter = '+00-';
+Exp.DetPhase = pi;
+</pre>
+
+<div class="subtitle">HYSCORE</div>
+
+<p>
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; t<sub>1</sub> &ndash; &pi; &ndash; t<sub>2</sub> &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with t<sub>1</sub> and t<sub>2</sub> incremented independently.
+</p>
+
+<pre class="matlab">
+Exp.Sequence = 'HYSCORE';
+Exp.tau = 0.1;  % tau, µs
+Exp.t1 = 0.08;  % initial t1, µs
+Exp.t2 = 0.08;  % initial t2, µs
+Exp.dt = 0.01;  % increment, µs
+</pre>
+
+<p>
+Parameters:
+</p>
+
+<div class="optionfield"><code>Exp.tau</code></div>
 <div class="optiondescr">
-The starting values of t<sub>1</sub> and t<sub>2</sub>, in microseconds.
+&tau;, in µs.
+</div>
+
+<div class="optionfield"><code>Exp.dt</code></div>
+<div class="optiondescr">
+Increment of t<sub>1</sub> and t<sub>2</sub>, in µs. Two values can be given, one per dimension.
+</div>
+
+<div class="optionfield"><code>Exp.t1</code>, <code>Exp.t2</code></div>
+<div class="optiondescr">
+Initial t<sub>1</sub> and t<sub>2</sub>, in µs, default 0.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
 <div class="optiondescr">
-Number of data points along the indirect dimensions, default is 128 for both dimensions.
-The indirect dimensions can have different lengths:
-<pre class="matlab">
-Exp.nPoints = [128 64]; % 128 points along first dimension, 64 along the second
-</pre>
+Number of points along t<sub>1</sub> and t<sub>2</sub>, e.g. <code>[128 64]</code>. A single value applies to both. Default <code>[256 256]</code> with <em>fast</em>, <code>[128 128]</code> with <em>thyme</em> and <code>spidyan</code>.
 </div>
+
+<p>
+Equivalent user-defined sequence:
+</p>
+
+<pre class="matlab">
+p90.Flip = pi/2;
+p90.Phase = pi/2;
+p180.Flip = pi;
+p180.Phase = pi/2;
+Exp.Sequence = {p90 0.1 p90 0.08 p180 0.08 p90 0.1};
+Exp.nPoints = [256 256];
+Exp.Dim1 = {'d2' 0.01};
+Exp.Dim2 = {'d3' 0.01};
+Exp.DetPhase = pi;
+</pre>
 
 <div class="subtitle">MimsENDOR</div>
 
-Minimal call:
+<p>
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with an rf &pi; pulse during T, swept over a frequency range. <em>fast</em> method only. There is no equivalent user-defined sequence, since these cannot contain rf pulses.
+</p>
 
 <pre class="matlab">
 Exp.Sequence = 'MimsENDOR';
-Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;
-Exp.tau = 0.1; % tau in microseconds
+Exp.tau = 0.1;  % tau, µs
+Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % rf range, MHz
 </pre>
+
+<p>
+Parameters:
+</p>
 
 <div class="optionfield"><code>Exp.tau</code></div>
 <div class="optiondescr">
-This gives the value of &tau;, in microseconds.
+&tau;, in µs.
 </div>
-
 
 <div class="optionfield"><code>Exp.Range</code></div>
 <div class="optiondescr">
-Contains the lower and upper limits of the frequency range for ENDOR. Values should be in MHz, e.g. <code>Exp.Range=[0 30]</code>.
+Lower and upper limits of the rf range, in MHz, e.g. <code>[0 30]</code>.
 </div>
+
+<div class="optionfield"><code>Exp.nPoints</code></div>
+<div class="optiondescr">
+Number of points, default 1001.
+</div>
+
+<div class="optionfield"><code>Exp.T</code></div>
+<div class="optiondescr">
+T, in µs, excluding the rf pulse. Default 0.
+</div>
+
+<div class="optionfield"><code>Exp.tprf</code></div>
+<div class="optiondescr">
+Length of the rf pulse, in µs, default 20. It sets the rf excitation bandwidth for <code>Opt.EndorMethod</code> 1 and 2.
+</div>
+
+<div class="subtitle">Equivalent sequences for <em>thyme</em> and spidyan</div>
+
+<p>
+Starting from the equivalent sequences above, add the pulse lengths and detect at the echo:
+</p>
+
+<pre class="matlab">
+p90.tp = 0.016;   % µs
+p180.tp = 0.032;  % µs
+Exp.DetWindow = 0;
+</pre>
+
+<p>
+For <code>'3pESEEM'</code>, also add the phase cycle of the first and third pulse:
+</p>
+
+<pre class="matlab">
+PC = [0 +1; pi -1];
+Exp.PhaseCycle = {PC [] PC};
+</pre>
 
 <div class="subtitle">See also</div>
 <p>
