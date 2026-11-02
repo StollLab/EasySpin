@@ -1141,7 +1141,11 @@ if fastSimulationMode
     if ~isfield(Opt,'lwOffset')
       Opt.lwOffset = 100;
     end
-    offsets = linspace(-1,1,Opt.nOffsets)*Opt.lwOffset*2;
+    if Opt.nOffsets==1
+      offsets = 0;  % no offset integration, on resonance
+    else
+      offsets = linspace(-1,1,Opt.nOffsets)*Opt.lwOffset*2;
+    end
     offsetWeight = exp(-(offsets/Opt.lwOffset).^2);
     offsetWeight = offsetWeight/sum(offsetWeight);
   else
