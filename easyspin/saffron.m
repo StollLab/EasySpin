@@ -106,6 +106,12 @@ end
 if isfield(Exp,'CrystalOrientation')
   error('Exp.CrystalOrientation is no longer supported, use Exp.SampleFrame instead.');
 end
+obsoleteFields = {'Flip','Phase','tp','t','Inc'};
+for index = 1:numel(obsoleteFields)
+  if isfield(Exp,obsoleteFields{index})
+    error('Exp.%s is no longer supported, define pulses and delays in Exp.Sequence and increments in Exp.Dim1, Exp.Dim2 instead.',obsoleteFields{index});
+  end
+end
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
 end
@@ -281,12 +287,6 @@ if fastSimulationMode
     if numel(Exp.ExperimentID)>1, error('Ambiguous sequence name.'); end
     logmsg(1,'Sequence: %s',ExperimentNames{Exp.ExperimentID});
 
-    if isfield(Exp,'tp')
-      if any(Exp.tp~=0)
-        error('You cannot use predefined sequences (Exp.Sequence) with real pulses (Exp.tp).');
-      end
-    end
-
     isENDOR = false;
     tauRequired = true;
     % Pulse transfer prefactors of the echo pathways, for ideal pulses along y
@@ -411,10 +411,6 @@ if fastSimulationMode
   % Determine whether to use ideal pulse theory
   if ~isfield(Exp,'tp')
     Exp.tp = zeros(1,nIntervals);
-  else
-    if numel(Exp.tp)~=nIntervals
-      error('Exp.tp contains a wrong number of elements.');
-    end
   end
   idealPulse = (Exp.tp==0);
   realPulse = ~idealPulse;
@@ -1445,10 +1441,6 @@ if fastSimulationMode
                 % coherence transfer pathway 1: +,alpha,-
                 % coherence transfer pathway 2: +,beta,-
 
-                if ~all(idealPulse)
-                  error('Pre-defined Mims ENDOR with real pulses not supported.');
-                end
-
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
@@ -1573,10 +1565,6 @@ if fastSimulationMode
                 % coherence transfer pathway 1: +,alpha,beta,-
                 % coherence transfer pathway 2: +,beta,alpha,-
 
-                if ~all(idealPulse)
-                  error('Pre-defined HYSCORE with real pulses not supported.');
-                end
-
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
@@ -1617,10 +1605,6 @@ if fastSimulationMode
                 % coherence transfer pathway 1: +,alpha,beta,-
                 % coherence transfer pathway 2: +,beta,alpha,-
 
-                if ~all(idealPulse)
-                  error('Pre-defined 4p-ESEEM with real pulses not supported.');
-                end
-
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
@@ -1659,10 +1643,6 @@ if fastSimulationMode
                 % coherence transfer pathway 1: +,alpha,-
                 % coherence transfer pathway 2: +,beta,-
 
-                if ~all(idealPulse)
-                  error('Pre-defined 3pESEEM not supported for real pulses.');
-                end
-
                 Q_ = exp(-2i*pi*Ea*Exp.tau)*exp(-2i*pi*Eb*Exp.tau)';
                 G_ = prefactor*Q_.*M;
                 D_ = conj(Q_).*M;
@@ -1696,9 +1676,6 @@ if fastSimulationMode
                 % 2pESEEM ---------------------------------------------------------
                 % coherence transfer pathway: +-
 
-                if ~all(idealPulse)
-                  error('Pre-defined 2pESEEM not supported for real pulses.');
-                end
                 G = prefactor*pathwayWeight(1)*M;
                 D = M;
                 T1left = Mt;

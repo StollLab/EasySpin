@@ -27,14 +27,6 @@ data.x1 = x1;
 data.y1 = y1;
 
 % now the same with a manual definition
-% The old code, that was used to generate the data:
-% ExpManual.Field = 350;
-% ExpManual.Flip = [1 1 1];
-% ExpManual.Inc = [0 1 0];
-% ExpManual.t = [tau 0 tau];
-% ExpManual.dt = dt;
-% ExpManual.nPoints = nPoints; 
-
 % pulses along y, as in the predefined experiment
 p90.Flip = pi/2;
 p90.Phase = pi/2;

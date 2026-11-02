@@ -74,6 +74,13 @@ for index = 1:numel(orientationFields)
   end
 end
 
+obsoleteFields = {'Flip','Phase','tp','t','Inc'};
+for index = 1:numel(obsoleteFields)
+  if isfield(Exp,obsoleteFields{index})
+    error('Exp.%s is no longer supported, define pulses and delays in Exp.Sequence and increments in Exp.Dim1, Exp.Dim2 instead.',obsoleteFields{index});
+  end
+end
+
 % Check for magnetic field
 if ~isfield(Exp,'Field')
   logmsg(1,'  no Exp.Field given');

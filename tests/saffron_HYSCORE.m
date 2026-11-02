@@ -32,15 +32,6 @@ data.x1 = x1;
 data.y1 = y1;
 
 % now the same with a manual definition
-% The old code, that was used to generate the data:
-% ExpManual.Field = Field;
-ExpManual.DetPhase = pi;
-% ExpManual.Flip = [1 1 2 1];
-% ExpManual.Inc = [0 1 2 0];
-% ExpManual.t = [tau t1 t2 tau];
-% ExpManual.dt = dt;
-% ExpManual.nPoints = nPoints; 
-
 % pulses along y and detection phase pi, as in the predefined experiment
 P90.Flip = pi/2;
 P90.Phase = pi/2;

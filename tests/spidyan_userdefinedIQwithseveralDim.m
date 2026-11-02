@@ -15,7 +15,6 @@ Pulse.Frequency = 1000* 0.100;
 Pulse.tp = 0.1;
 
 % Experiment with pulses internally defined -------------------
-Exp.t = [0.1 0.5 0.1];
 Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Opt.IntTimeStep = 0.0001; % µs
