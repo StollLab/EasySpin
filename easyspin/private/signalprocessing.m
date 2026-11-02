@@ -109,50 +109,43 @@ try
           RFSignal = 2*RFSignal;
         end
       end
-      % Break signal into smaller signals if a nondetected event is present
-      % (non linear time axis)
-      % store indices
-          
-      % Looks for nonlinear steps in the time axis (with rounding), if
-      % jumps in the time axis are detected, the signal is processed
-      % separatel for each continuuous section. This is the case when
-      % detection several events are detected, with one in the middle that
-      % is not, eg. Det.Events = [1 0 1]
-      num_dig = 10;
-      diffTime = round(diff(DCTimeAxis)*(10^num_dig))/(10^num_dig);
-      
-      % Extracting the time step
-      dt = min(diffTime);
-      Opt.dt = dt;
-      
-      % Indices for splitting the signal
-      BreakIndices = [1  find(diffTime ~= dt)+1 length(DCTimeAxis)+1];
-      
       % Does the downconversion, if no down conversion is requested for the
       % current detection operator, the cleaned up signal is written to
       % ProcessedSignal
-      
+
       if FreqTranslations(iTrace) ~= 0
         DCSignal = zeros(1,length(RFSignal));
-        % Depending on the type of trace, different down conversion types
-        % are required (see rfmixer for details)
-        for j = 1 : length(BreakIndices)-1
-          Elements = BreakIndices(j):(BreakIndices(j+1)-1);
-          if isreal(RFSignal)
-            % Mixing if signal is real or imaginary
-            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),FreqTranslations(iTrace),'IQdemod',Opt);
-            
-            if purelyImag
-              DCSignal = real(DCSignal)*1i;
-            else
-              DCSignal = real(DCSignal);
+        if isreal(RFSignal)
+          % A real signal is demodulated with rfmixer, which needs evenly
+          % spaced points. The time axis is split into runs of evenly
+          % spaced points (with rounding), since detected events can have
+          % different time steps, and undetected events leave gaps, e.g.
+          % Exp.DetSequence = [1 0 1]. Each run is processed separately.
+          num_dig = 10;
+          diffTime = round(diff(DCTimeAxis)*(10^num_dig))/(10^num_dig);
+          nTimes = numel(DCTimeAxis);
+          runStart = 1;
+          while runStart <= nTimes
+            runEnd = min(runStart+1,nTimes);
+            while runEnd < nTimes && diffTime(runEnd)==diffTime(runStart)
+              runEnd = runEnd+1;
             end
-            
-          else
-            % Mixing if signal is complex          
-            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),FreqTranslations(iTrace),'IQshift',Opt);
-            
+            Elements = runStart:runEnd;
+            if numel(Elements)>1
+              Opt.dt = diffTime(runStart);
+            end
+            [~, DCSignal(Elements)] = rfmixer(DCTimeAxis(Elements),RFSignal(Elements),FreqTranslations(iTrace),'IQdemod',Opt);
+            runStart = runEnd+1;
           end
+          if purelyImag
+            DCSignal = real(DCSignal)*1i;
+          else
+            DCSignal = real(DCSignal);
+          end
+        else
+          % A complex signal is shifted in frequency point by point (as
+          % rfmixer does with 'IQshift'), which works for any time axis
+          DCSignal = reshape(RFSignal,1,[]).*exp(2i*pi*FreqTranslations(iTrace)*1e3*reshape(DCTimeAxis,1,[]));
         end
         
         if iscell(RawSignal)

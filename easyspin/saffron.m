@@ -1958,8 +1958,9 @@ else  % if fastSimulationMode
     % to zero. The initial state must be averaged over chi.
     % Rotating the molecule by chi about the lab z axis rotates the
     % Hamiltonian and the initial state by Rz(chi) = exp(-1i*chi*Fz), where
-    % Fz is the total z spin operator (electrons and nuclei). The pulses act
-    % on the electrons only and are fixed in the lab frame. Moving Rz(chi)
+    % Fz is the total z spin operator (electrons and nuclei). The pulses are
+    % microwave pulses acting on the electrons only (this does not hold for
+    % RF pulses on nuclei) and are fixed in the lab frame. Moving Rz(chi)
     % onto the pulses shows that the rotation is equivalent to shifting the
     % phase of all pulses by -chi. In a shifted simulation frame, the
     % Hamiltonian is secular (see s_secularham) and commutes with the total
@@ -1972,10 +1973,11 @@ else  % if fastSimulationMode
     % electron spin projection. Averaging over chi removes all contributions with p~=0.
     % Therefore, the chi average is obtained by zeroing these elements. This
     % keeps populations, nuclear coherences, and electron zero-quantum
-    % coherences (e.g. S-T0 in radical pairs), and leaves -Sz unchanged. It
-    % is approximate to the extent that counter-rotating pulse components
-    % matter, and in the lab frame (no frame shift) also to the extent that
-    % non-secular terms matter.
+    % coherences (e.g. S-T0 in radical pairs), and leaves -Sz unchanged. In
+    % a shifted frame, where the pulses only contain the components that
+    % rotate with the frame (see s_propagationsetup), this is exact. In the
+    % lab frame (no frame shift), it is approximate to the extent that
+    % counter-rotating pulse components and non-secular terms matter.
     % For crystals, chi is defined by the sample orientation, and the full
     % state is used.
     if averageOverChi
@@ -2086,6 +2088,15 @@ else  % if fastSimulationMode
     Signal = Signal.*reshape(exp(2i*pi*FreqTranslation*1e3*timeAxis),size(Signal));
   end
 
+  % detected time points (from the start of the sequence) of the first
+  % acquisition
+  if iscell(timeAxis)
+    tDetected = timeAxis{1};
+  else
+    tDetected = reshape(timeAxis,[],size(timeAxis,ndims(timeAxis)));
+    tDetected = tDetected(1,:);
+  end
+
   if integrateEchoes
     logmsg(1,'-integrating echos-------------------------------------');
 
@@ -2093,7 +2104,11 @@ else  % if fastSimulationMode
 
     Signal = reshape(Signal,[nDataPoints, sizeSig(end)]);
 
-    Signal = sum(Signal,2);
+    % integral over the detection window (trapezoidal rule), which does not
+    % depend on Exp.DetTimeStep
+    if numel(tDetected)>1
+      Signal = trapz(tDetected,Signal,2);
+    end
 
     Signal = reshape(Signal, [sizeSig(1:end-2) 1]);
 
@@ -2114,8 +2129,8 @@ else  % if fastSimulationMode
       Signal = permute(Signal,[2 1]);
     end
 
-    dt = Events{end}.TimeStep;
-    timeAxis = Exp.DetWindow(1):dt:Exp.DetWindow(2);
+    % detected time points relative to the detection window
+    timeAxis = Exp.DetWindow(1) + (tDetected - tDetected(1));
   end
 
   logmsg(1,'-setting up axes for output----------------------------');

@@ -39,6 +39,19 @@ for iSpin = 1:nElectrons
 end
 mS_total = diag(Sz_total);
 
+% The frame rotates about +z, so each electron must precess in the positive
+% sense, i.e. its Zeeman frequency along z, tr(Sz*H)/tr(Sz^2), must be
+% positive (hyperfine, zero-field and exchange terms do not contribute)
+for iSpin = 1:nElectrons
+  Sz = sop(Spins,[iSpin,3]);
+  if real(trace(Sz*H)) <= 0
+    error(['Electron spin %d does not precess in the positive sense about ' ...
+      'the field (zero or negative g value along the field), which a shifted ' ...
+      'simulation frame does not support. Use Opt.SimFreq = 0 to simulate in ' ...
+      'the lab frame.'],iSpin);
+  end
+end
+
 % Manifold index via total electron mS
 [~,~,manifold] = unique(mS_total);
 nManifolds = max(manifold);

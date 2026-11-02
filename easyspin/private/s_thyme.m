@@ -11,6 +11,7 @@ nEvents = length(Events);
 
 nDet = numel(Det);
 Ham0 = Ham0*2*pi;
+eigVectors = [];  % eigenbasis of Ham0, computed when needed
 
 % Create some variables for bookkeeping
 if ~isempty(Vary)
@@ -182,7 +183,10 @@ for iPoints = 1 : nPoints
           tvector = currentEvent.t;
           currentSignal = zeros(nDet,numel(currentEvent.t));
         case 'free evolution'
-          tvector = 0:currentEvent.TimeStep:currentEvent.t;
+          tvector = detectionTimes(currentEvent);
+          if numel(tvector)>1
+            currentEvent.TimeStep = tvector(2)-tvector(1);
+          end
           currentSignal = zeros(nDet,length(tvector));
       end
       
@@ -255,6 +259,9 @@ for iPoints = 1 : nPoints
           else
             nSteps = size(currentEvent.Propagation.Ltotal,2);
             SigmaVector = reshape(Sigma,n*n,1);
+            if ~isempty(currentEvent.Propagation.PhaseTotal)
+              phaseFactors = currentEvent.Propagation.PhaseTotal{iPhaseStep};
+            end
           end
           
           %------------------------------------------------------------
@@ -268,7 +275,16 @@ for iPoints = 1 : nPoints
             elseif currentEvent.Relaxation
               L = currentEvent.Propagation.Ltotal{iPhaseStep,iWavePoint};
               SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal{iPhaseStep,iWavePoint};
-              SigmaVector = L*SigmaVector + SigmaOffset;
+              if isempty(currentEvent.Propagation.PhaseTotal)
+                SigmaVector = L*SigmaVector + SigmaOffset;
+              else
+                % table Liouvillian rotated about the electron Sz (see pulsePropagators)
+                % phase factors d(i)*conj(d(j)) of the vectorized state
+                d = phaseFactors(:,iWavePoint);
+                p = d.*d';
+                p = p(:);
+                SigmaVector = p.*(L*(conj(p).*SigmaVector) + SigmaOffset);
+              end
               
               Sigma = reshape(SigmaVector,n,n);
             end
@@ -317,54 +333,83 @@ for iPoints = 1 : nPoints
         %--------------------------------------------------------------
         
       case 'free evolution'
-        %--------------------------------------------------------------
-        % Loads or computes the Propagator/Liouvillian if necessary
-        %--------------------------------------------------------------
-        if ~currentEvent.Relaxation
-          if isfield(currentEvent.Propagation,'Utotal')
-            U = currentEvent.Propagation.Utotal;
-          else
-            U = Propagator(Ham0,currentEvent.TimeStep);
-            Events{iEvent}.Propagation.Utotal = U;
+        if currentEvent.Detection && ~currentEvent.Relaxation && ~currentEvent.StateTrajectories
+          %--------------------------------------------------------------
+          % Evolution in the eigenbasis of Ham0, for all detected time
+          % points at once: element (k,l) of the state in the eigenbasis
+          % evolves with exp(-1i*(E(k)-E(l))*t)
+          %--------------------------------------------------------------
+          if isempty(eigVectors)
+            [eigVectors,E] = eig(full(Ham0+Ham0')/2,'vector');
+            eigOmega = E-E.';
+            eigOmega = eigOmega(:);
           end
-        elseif currentEvent.Relaxation
-          n = size(Sigma,1);
-          SigmaVector = reshape(Sigma,n*n,1);
-          if isfield(currentEvent.Propagation,'Ltotal')
-            L = currentEvent.Propagation.Ltotal;
-            SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal;
-          else
-            Gamma = Relaxation.Gamma;
-            equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-            [L, SigmaOffset] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
-            Events{iEvent}.Propagation.Ltotal = L;
-            Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffset;
+          V = eigVectors;
+          SigmaEig = V'*Sigma*V;
+          % detection operators in the eigenbasis, using
+          % sum(R.*Sigma) = sum((V.'*R*conj(V)).*SigmaEig)
+          Coeff = zeros(nDet,n^2);
+          for iDet = 1:nDet
+            R = V.'*reshape(DetArray(iDet,:),n,n)*conj(V);
+            Coeff(iDet,:) = R(:).'.*SigmaEig(:).';
           end
-        end
-        %--------------------------------------------------------------
-        
-        %--------------------------------------------------------------
-        % Loops over the time axis for propagation
-        %--------------------------------------------------------------
-        for itvector=2:length(tvector)
+          chunkSize = max(1,floor(2^22/n^2));
+          for k0 = 2:chunkSize:numel(tvector)
+            k = k0:min(k0+chunkSize-1,numel(tvector));
+            currentSignal(:,k) = Coeff*exp(-1i*eigOmega*tvector(k));
+          end
+          Sigma = V*(SigmaEig.*reshape(exp(-1i*eigOmega*tvector(end)),n,n))*V';
+
+        else
+          %--------------------------------------------------------------
+          % Loads or computes the Propagator/Liouvillian if necessary
+          %--------------------------------------------------------------
           if ~currentEvent.Relaxation
-            Sigma = U*Sigma*U';
+            if isfield(currentEvent.Propagation,'Utotal')
+              U = currentEvent.Propagation.Utotal;
+            else
+              U = Propagator(Ham0,currentEvent.TimeStep);
+              Events{iEvent}.Propagation.Utotal = U;
+            end
           elseif currentEvent.Relaxation
-            SigmaVector = L*SigmaVector + SigmaOffset;
-            Sigma = reshape(SigmaVector,n,n);
+            n = size(Sigma,1);
+            SigmaVector = reshape(Sigma,n*n,1);
+            if isfield(currentEvent.Propagation,'Ltotal')
+              L = currentEvent.Propagation.Ltotal;
+              SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal;
+            else
+              Gamma = Relaxation.Gamma;
+              equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
+              [L, SigmaOffset] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
+              Events{iEvent}.Propagation.Ltotal = L;
+              Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffset;
+            end
           end
-          
-          %------------------------------------------------------------
-          % Stores expectation values and denisty matrices if requested
-          %------------------------------------------------------------
-          if currentEvent.Detection
-            currentSignal(:,itvector) = DetArray*Sigma(:);
+          %--------------------------------------------------------------
+
+          %--------------------------------------------------------------
+          % Loops over the time axis for propagation
+          %--------------------------------------------------------------
+          for itvector=2:length(tvector)
+            if ~currentEvent.Relaxation
+              Sigma = U*Sigma*U';
+            elseif currentEvent.Relaxation
+              SigmaVector = L*SigmaVector + SigmaOffset;
+              Sigma = reshape(SigmaVector,n,n);
+            end
+
+            %------------------------------------------------------------
+            % Stores expectation values and denisty matrices if requested
+            %------------------------------------------------------------
+            if currentEvent.Detection
+              currentSignal(:,itvector) = DetArray*Sigma(:);
+            end
+
+            if currentEvent.StateTrajectories
+              DensityMatrices{itvector} = Sigma;
+            end
+            %------------------------------------------------------------
           end
-          
-          if currentEvent.StateTrajectories
-            DensityMatrices{itvector} = Sigma;
-          end
-          %------------------------------------------------------------
         end
     end
     
@@ -582,23 +627,28 @@ end
 
 function tStart = eventStartTimes(Events,Sequence)
 % Start times of all events in the order given by Sequence, with time
-% counted from the start of the sequence. The event durations are those of
-% the propagation time steps: a pulse lasts until the last point of its
-% time axis, and a detected free evolution ends at its last full time step.
+% counted from the start of the sequence. A pulse lasts until the last
+% point of its time axis.
 tStart = zeros(1,numel(Events));
 t = 0;
 for iEvent = Sequence
   tStart(iEvent) = t;
-  Event = Events{iEvent};
-  if strcmp(Event.type,'pulse')
-    t = t + Event.t(end);
-  elseif Event.Detection
-    tDetected = 0:Event.TimeStep:Event.t;
-    t = t + tDetected(end);
-  else
-    t = t + Event.t;
-  end
+  t = t + Events{iEvent}.t(end);
 end
+end
+
+
+function t = detectionTimes(Event)
+% Detected time points of a free evolution event, counted from its start:
+% evenly spaced from 0 to Event.t, with steps of Event.DetTimeStep, or
+% slightly shorter steps if the event length is not a multiple of it
+if Event.t==0
+  t = 0;
+  return
+end
+nSteps = ceil(Event.t/Event.DetTimeStep-1e-9);
+t = (0:nSteps)*(Event.t/nSteps);
+t(end) = Event.t;
 end
 
 
@@ -609,8 +659,7 @@ function Prop = pulsePropagators(Event,IQ,Ham0,Relaxation)
 % in the simulation frame (rows: phase cycle steps, columns: time steps),
 % i.e. one value fewer per row than the time points in Event.t. The
 % propagators are only rebuilt if IQ changed, and the lookup table of
-% propagators for linearly polarized excitation is only rebuilt if the
-% amplitude scale changed.
+% propagators is only rebuilt if its amplitudes changed.
 Prop = Event.Propagation;
 if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ)
   return
@@ -639,58 +688,80 @@ else
   vertRes = 1024;
 end
 
-scale = 2*2*2*pi*MaxWave/vertRes;
-% one factor 2 is required because of linearly polarized
-% irradiation, the other because of the digitization of the
-% wave
-
-realArbitrary = real(IQ)/MaxWave;
-realBinary = round(vertRes*(realArbitrary+1)/2);
-
-if Event.ComplexExcitation
-  imagArbitrary = imag(IQ)/MaxWave;
-  imagBinary = round(vertRes*(imagArbitrary+1)/2);
-end
+% The pulse Hamiltonian is Re(IQ)*xOp + Im(IQ)*yOp (see s_propagationsetup),
+% with a single operator if yOp is empty. There are three cases:
+% - single operator: lookup table over Re(IQ), digitized in [-1 1]*MaxWave
+% - rotated: in a shifted frame, the Hamiltonian is |IQ|*xOp rotated about
+%   the total electron Sz by angle(IQ), and this rotation commutes with
+%   Ham0. The propagator is obtained from a lookup table over |IQ|,
+%   digitized in [0 1]*MaxWave, by multiplying its elements with
+%   exp(-1i*angle(IQ)*M), M being the electron coherence order. With
+%   relaxation, this requires that relaxation conserves the electron
+%   coherence order and that the equilibrium state has no electron
+%   coherences. Then the rotation is applied to the state during
+%   propagation (PhaseTotal), and the table Liouvillians are not copied.
+% - otherwise: propagator for each time step
+twoOperators = ~isempty(Event.yOp);
+rotated = twoOperators && ~isempty(Event.CoherenceOrder);
 
 if Event.Relaxation % Set up for Liouville space simulations
   n = size(Ham0,1);
   Gamma = Relaxation.Gamma;
   equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
+  if rotated
+    Mvec = Event.CoherenceOrder(:);
+    changesOrder = Mvec~=Mvec.';
+    rotated = norm(Gamma(changesOrder)) <= 1e-10*norm(Gamma,'fro') && ...
+      norm(equilibriumState(Mvec~=0)) <= 1e-10*norm(equilibriumState);
+  end
 end
 
+if rotated
+  amplitudes = 2*pi*MaxWave/vertRes*(0:vertRes);
+  tableIndex = round(vertRes*abs(IQ)/MaxWave)+1;
+  phase = angle(IQ);
+elseif ~twoOperators
+  % The factor 2 is due to the digitization of the wave
+  amplitudes = 2*2*pi*MaxWave/vertRes*((0:vertRes)-vertRes/2);
+  tableIndex = round(vertRes*(real(IQ)/MaxWave+1)/2)+1;
+else
+  realIQ = real(IQ);
+  imagIQ = imag(IQ);
+end
+nWavePoints = size(IQ,2);
+useTable = rotated || ~twoOperators;
+
 %----------------------------------------------------------
-% Build the Propagator table, only possible for linearly
-% polarized excitation (one field component) - increases speed
-% by precomputing all propagators and later loading them,
+% Build the Propagator table - increases speed by
+% precomputing all propagators and later loading them,
 % instead of calculating them at each way point (true as
 % long as length(Wave) > vertical resolution)
 %----------------------------------------------------------
-if ~Event.ComplexExcitation && ~(isfield(Prop,'scale') && Prop.scale==scale)
+if useTable && ~(isfield(Prop,'amplitudes') && isequal(Prop.amplitudes,amplitudes))
   if ~Event.Relaxation
-    Prop.UTable = buildPropagators(Ham0,Event.xOp,Event.TimeStep,vertRes,scale);
+    Prop.UTable = buildPropagators(Ham0,Event.xOp,Event.TimeStep,amplitudes);
   else
-    [Prop.LTable, Prop.SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,vertRes,scale);
+    [Prop.LTable, Prop.SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,amplitudes);
   end
-  Prop.scale = scale;
+  Prop.amplitudes = amplitudes;
 end
 
 % Set up structures for the actual propagators
 if Event.Detection && ~Event.Relaxation
-  Utotal = cell(nPhaseSteps,length(realBinary));
+  Utotal = cell(nPhaseSteps,nWavePoints);
 else
   if ~Event.Relaxation
     Utotal = cell(nPhaseSteps,1);
   else
-    Ltotal = cell(nPhaseSteps,length(realBinary));
+    Ltotal = cell(nPhaseSteps,nWavePoints);
     SigmaOffsetTotal = Ltotal;
   end
 end
 
 % Local copies for the loop over the wave form (faster than field access)
-complexExcitation = Event.ComplexExcitation;
 relaxation = Event.Relaxation;
 detection = Event.Detection;
-if ~complexExcitation
+if useTable
   if ~relaxation
     UTable = Prop.UTable;
   else
@@ -698,26 +769,61 @@ if ~complexExcitation
     SigmaOffsetTable = Prop.SigmaOffsetTable;
   end
 end
+if rotated
+  M = Event.CoherenceOrder;
+end
+% Without detection and relaxation, only the product of the propagators
+% is needed. The propagators of all time steps are taken from the table
+% as a stack of matrices and multiplied with pagemtimes, in chunks to
+% limit memory.
+productOnly = useTable && ~relaxation && ~detection;
+if productOnly
+  n = size(Ham0,1);
+  UTableStack = cat(3,UTable{:});
+  chunkSize = max(2,floor(2^22/n^2));
+end
 
 for iPhaseStep = 1 : nPhaseSteps
-  for iWavePoint = 1 : length(realBinary)
-    if ~complexExcitation
+  if rotated && ~relaxation
+    % The rotation is diag(d)*U*diag(d)' with d = exp(-1i*angle(IQ)*mS),
+    % where mS is taken relative to the first state (M(:,1)), since a
+    % constant cancels
+    D = exp(-1i*M(:,1)*phase(iPhaseStep,:));
+  end
+  if productOnly
+    Uproduct = eye(n);
+    for k0 = 1:chunkSize:nWavePoints
+      k = k0:min(k0+chunkSize-1,nWavePoints);
+      U = UTableStack(:,:,tableIndex(iPhaseStep,k));
+      if rotated
+        U = U.*reshape(D(:,k),n,1,[]).*reshape(conj(D(:,k)),1,n,[]);
+      end
+      Uproduct = productOfPropagators(U)*Uproduct;
+    end
+    Utotal{iPhaseStep,1} = Uproduct;
+    continue
+  end
+  for iWavePoint = 1 : nWavePoints
+    if useTable
       %----------------------------------------------------
-      % Lookup tables are only feasible for non-complex
-      % excitation
+      % Load from lookup table
       %----------------------------------------------------
+      k = tableIndex(iPhaseStep,iWavePoint);
       if ~relaxation
-        U = UTable{realBinary(iPhaseStep,iWavePoint)+1};
+        U = UTable{k};
+        if rotated
+          d = D(:,iWavePoint);
+          U = (d.*U).*d';
+        end
       else
-        L = LTable{realBinary(iPhaseStep,iWavePoint)+1};
-        SigmaOffset = SigmaOffsetTable{realBinary(iPhaseStep,iWavePoint)+1};
+        L = LTable{k};
+        SigmaOffset = SigmaOffsetTable{k};
       end
     else
       %----------------------------------------------------
-      % For complex excitation it is not possible to use a
-      % lookup table
+      % Compute propagator for this time step
       %----------------------------------------------------
-      Ham1 = scale/2*(realBinary(iPhaseStep,iWavePoint)-vertRes/2)*Event.xOp + scale/2*(imagBinary(iPhaseStep,iWavePoint)-vertRes/2)*Event.yOp;
+      Ham1 = 2*pi*(realIQ(iPhaseStep,iWavePoint)*Event.xOp + imagIQ(iPhaseStep,iWavePoint)*Event.yOp);
       Ham =  Ham0+Ham1;
       if ~relaxation
         U = Propagator(Ham,Event.TimeStep);
@@ -735,15 +841,18 @@ for iPhaseStep = 1 : nPhaseSteps
         Utotal{iPhaseStep,iWavePoint} = U;
       else
         if iWavePoint == 1
-          Utotal{iPhaseStep,1} = U;
+          Uproduct = U;
         else
-          Utotal{iPhaseStep,1} = U*Utotal{iPhaseStep,1};
+          Uproduct = U*Uproduct;
         end
       end
     else
       Ltotal{iPhaseStep,iWavePoint} = L;
       SigmaOffsetTotal{iPhaseStep,iWavePoint} = SigmaOffset;
     end
+  end
+  if ~relaxation && ~detection
+    Utotal{iPhaseStep,1} = Uproduct;
   end
 end
 
@@ -752,20 +861,43 @@ if ~Event.Relaxation
 else
   Prop.Ltotal = Ltotal;
   Prop.SigmaOffsetTotal = SigmaOffsetTotal;
+  if rotated
+    % rotation d = exp(-1i*angle(IQ)*mS) for each time step, with mS
+    % relative to the first state (M(:,1)), since a constant cancels
+    Prop.PhaseTotal = cell(nPhaseSteps,1);
+    for iPhaseStep = 1:nPhaseSteps
+      Prop.PhaseTotal{iPhaseStep} = exp(-1i*M(:,1)*phase(iPhaseStep,:));
+    end
+  else
+    Prop.PhaseTotal = [];
+  end
 end
 Prop.IQ = IQ;
 end
 
 
-function UTable = buildPropagators(Ham0,xOp,dt,vertRes,scale)
+function P = productOfPropagators(U)
+% Product U(:,:,end)*...*U(:,:,1) of a stack of propagators, obtained by
+% repeatedly multiplying neighboring pairs
+while size(U,3) > 1
+  m = size(U,3);
+  P = pagemtimes(U(:,:,2:2:m),U(:,:,1:2:m-1));
+  if mod(m,2)
+    P = cat(3,P,U(:,:,m));
+  end
+  U = P;
+end
+P = U;
+end
 
-UTable = cell(1,vertRes+1);
 
-for iRes = 0:vertRes
-  Ham1 = scale*(iRes-vertRes/2)*xOp;
-  Ham = Ham0+Ham1;
-  U = Propagator(Ham,dt);
-  UTable{iRes+1} = U;
+function UTable = buildPropagators(Ham0,xOp,dt,amplitudes)
+
+UTable = cell(1,numel(amplitudes));
+
+for k = 1:numel(amplitudes)
+  Ham = Ham0 + amplitudes(k)*xOp;
+  UTable{k} = Propagator(Ham,dt);
 end
 end
 
@@ -775,17 +907,14 @@ U = expm(-1i*Ham*dt);
 end
 
 
-function [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,vertRes,scale)
+function [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,amplitudes)
 
-SigmaOffsetTable = cell(1,vertRes+1);
-LTable = cell(1,vertRes+1);
+SigmaOffsetTable = cell(1,numel(amplitudes));
+LTable = cell(1,numel(amplitudes));
 
-for ivertRes = 0:vertRes
-  Ham1 = scale*(ivertRes-vertRes/2)*xOp;
-  Ham = Ham0 + Ham1;
-  [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt);
-  LTable{ivertRes+1} = L;
-  SigmaOffsetTable{ivertRes+1} = SigmaOffset;
+for k = 1:numel(amplitudes)
+  Ham = Ham0 + amplitudes(k)*xOp;
+  [LTable{k}, SigmaOffsetTable{k}] = Liouvillian(Ham,Gamma,equilibriumState,dt);
 end
 end
 

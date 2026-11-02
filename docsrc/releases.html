@@ -75,6 +75,7 @@ $ReleaseID$
 <li><a class="esf" href="saffron.html">saffron</a> (<code>'fast'</code> mode): Relaxation decays from <code>Sys.T1</code> and <code>Sys.T2</code> are now applied consistently. Previously, <code>'4pESEEM'</code> had no decay, <code>'3pESEEM'</code> and <code>'HYSCORE'</code> were not scaled by the T<sub>2</sub> decay when <code>Sys.T1</code> was not given, and <code>'3pESEEM'</code> included τ in the T<sub>1</sub> decay. Transition-specific (matrix) relaxation times now select the <code>'thyme'</code> mode automatically.</li>
 <li><a class="esf" href="saffron.html">saffron</a> (<code>'thyme'</code> mode) and <a class="esf" href="spidyan.html">spidyan</a>: Fixed relaxation with <code>Sys.T1</code> and <code>Sys.T2</code>. Short T<sub>1</sub> could make simulations diverge, and transition-specific relaxation times (matrices) were applied to the wrong transitions. Matrix elements now refer to the Zeeman basis states, as documented. <code>Sys.T1(i,j)</code> now transfers population from level j to level i with the rate 1/(2&middot;T<sub>1</sub>), so that the population difference of two levels relaxes with T<sub>1</sub>. As a result, for spin systems with more than two levels, populations relax faster than before with a scalar <code>Sys.T1</code>. A scalar <code>Sys.T2</code> now applies only to electron coherences and no longer damps nuclear coherences, which previously suppressed the modulations in ESEEM and HYSCORE.</li>
 <li><a class="esf" href="saffron.html">saffron</a> (<code>'thyme'</code> mode) and <a class="esf" href="spidyan.html">spidyan</a>: The microwave carrier now runs continuously through the pulse sequence. Previously, its phase restarted with every pulse, so that signal phases depended on the pulse timing and on <code>Opt.SimFreq</code>. Pulses now last exactly <code>Pulse.tp</code> (previously one time step longer).</li>
+<li><a class="esf" href="saffron.html">saffron</a> (<code>'thyme'</code> mode) and <a class="esf" href="spidyan.html">spidyan</a>: With linear microwave polarization (the default) in a shifted simulation frame, pulses contained a spurious component, so that results depended on <code>Opt.SimFreq</code>, and with <code>Opt.SimFreq</code> close to <code>Exp.mwFreq</code>, pulse phases were lost. In a shifted frame, pulses now contain only the field component that rotates with the spins, so with the default excitation operator, linear and circular polarization give the same results.</li>
 <li>Fixed an incorrect sign in the calculation of the nuclear Zeeman Hamiltonian in <code>ham_nz(Sys,B)</code>.</li>
 <li>Without <code>Exp.Temperature</code>, intensities now follow the high-temperature limit. Previously, relative intensities were wrong between spin systems with different spin or number of electrons, and between lines in frequency sweeps.</li>
 <li><a class="esf" href="chili.html">chili</a> intensities now match <a class="esf" href="pepper.html">pepper</a> in the rigid limit also for S&gt;1/2 and several electrons.</li>
@@ -90,6 +91,8 @@ $ReleaseID$
 <li><a class="esf" href="addnoise.html">addnoise</a> now sets the noise level for complex-valued signals based on the real and imaginary parts separately, changing the noise realizations for complex-valued input compared to earlier releases.</li>
 <li>Without <code>Exp.Temperature</code>, simulated intensities have changed for systems with S&gt;1/2 or more than one electron, and for all frequency sweeps. Intensities for S=1/2 field sweeps are unchanged.</li>
 <li>The obsolete EasySpin 5 Hamiltonian functions <code>sham</code>, <code>zeeman</code>, <code>zeemanho</code>, <code>zfield</code>, <code>hfine</code>, <code>nquad</code>, <code>eeint</code>, <code>nnint</code>, <code>soint</code>, and <code>crystalfield</code> have been removed. Use <a class="esf" href="ham.html">ham</a> and the <code>ham_*</code> functions instead.</li>
+<li><a class="esf" href="saffron.html">saffron</a> (<code>'thyme'</code> mode) and <a class="esf" href="spidyan.html">spidyan</a>: Detected free evolution is now sampled with <code>Exp.DetTimeStep</code> (default: about a quarter of the period of the highest pulse frequency in the simulation frame) instead of the integration time step, which makes these simulations several times faster. Transients therefore have fewer points than before, with unchanged values at the detected times. A detected free evolution now ends exactly at its specified length; previously, a remainder shorter than a time step was dropped, which shifted all later events. With <code>Exp.DetIntegrate</code>, <a class="esf" href="saffron.html">saffron</a> now returns the integral of the signal over the detection window (in signal units times µs) instead of the sum of the detected points, so the result does not depend on the time step.</li>
+<li><a class="esf" href="spidyan.html">spidyan</a>: In a shifted simulation frame, excitation operators in <code>Opt.ExcOperator</code> must only change the electron m<sub>S</sub> by &plusmn;1. Other operators, e.g. nuclear operators or <code>'x(1|3)'</code> for S=1, give an error and require the lab frame (<code>Opt.SimFreq = 0</code>).</li>
 <li>The function <code>signalprocessing</code> has been removed. It was only needed to post-process signals from <a class="esf" href="spidyan.html">spidyan</a>, which does this itself.</li>
 <li>Full interaction matrices (in <code>Sys.g</code>, <code>Sys.D</code>, <code>Sys.ee</code>, <code>Sys.A</code>, <code>Sys.Q</code>, <code>Sys.sigma</code>, <code>Sys.nn</code>) can no longer be combined with nonzero Euler angles in the corresponding <code>Frame</code> field, and give an error. Previously, the angles were applied by some functions and ignored by others.</li>
 <li><a class="esf" href="pepper.html">pepper</a> no longer supports <code>Opt.Freq2Field</code>. Use <a class="esf" href="resfields.html">resfields</a> instead.</li>
@@ -351,7 +354,7 @@ $ReleaseID$
 4.5.1
 </div>
 
-<p>Bug fixes
+<p>Bug fixes</p>
 <ul>
 <li><a class="esf" href="saffron.html">saffron</a>: did not work correctly with full Q tensor.
 <li><a class="esf" href="wigner3j.html">wigner3j</a>: fixed crash for large parameters.
@@ -376,13 +379,13 @@ $ReleaseID$
 <li><a class="esf" href="addnoise.html">addnoise</a> now includes a simple 1/f noise model.
 </ul>
 
-<p>Changes
+<p>Changes</p>
 <ul>
 <li>Fundamental constants are updated from the CODATA 2006 to the CODATA 2010 recommended values.
 <li>Support for MATLAB releases prior to R2007b has been dropped.
 </ul>
 
-<p>Bug fixes
+<p>Bug fixes</p>
 <ul>
 <li>Compatibility adjustment for newest MATLAB release R2012a.
 <li><a class="esf" href="wigner3j.html">wigner3j</a> and <a class="esf" href="clebschgordan.html">clebschgordan</a> work now for large angular momenta.
@@ -392,6 +395,7 @@ $ReleaseID$
 
 <p>
 The following changes are incompatible with older versions and might require adaptation of existing code. 
+</p>
 <ul>
 <li>The default axis for <code>Sys.aF</code> was changed from the 3-fold axis to the 4-fold axis. Use
 <code>Sys.aFrame</code> to change (see <a href="spinsystem.html">reference</a>).
@@ -572,7 +576,6 @@ and <code>Opt.nSpline=4</code>, one now sets <code>Opt.GridSize=[19 4]</code>.
 The following changes are incompatible with older versions and might require adaptation of existing code.
 </p>
 
-<p>
 <ul>
 <li>The order of outputs of <a class="esf" href="eprload.html">eprload</a> has changed from <code>[spc,Params,B]</code> to <code>[B,spc,Params]</code>.
 <li>The input syntax for <a class="esf" href="resfields.html">resfields</a> and <a class="esf" href="resfields_eig.html">resfields_eig</a> has
@@ -957,6 +960,7 @@ of knots is not sufficient for reliable results.
 
 <p>
 First public release.
+</p>
 
 
 </section>

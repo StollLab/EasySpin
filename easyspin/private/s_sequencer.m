@@ -37,13 +37,14 @@
 %     IQ
 %     t
 %     PhaseCycle
-%     ComplexExcitation
+%     Polarization
 %     Relaxation
 %     Detection
 %     StateTrajectories
 %     Propagation
 %     FrameShift
 %     TimeStep
+%     DetTimeStep
 %   Vary - structure with the following fields
 %     Points
 %     IncrementationTable
@@ -194,13 +195,30 @@ if Opt.SimulationMode=="fast"
                 % Pulse parameters can not be changed
                 message = addtomessage(message,['a pulse parameter is changed along indirect dimension no. ' num2str(iDimension)]);
                 Opt.SimulationMode = 'thyme';
+                continue
             else
               Inc(EventSpecificIndex) = iDimension;
             end
-            
-            if dt(iDimension) == 0
-              dt(iDimension) = Exp.(dimX){iLine,2};
-            elseif dt(iDimension) ~= Exp.(dimX){iLine,2}
+
+            % The increment is a step size, or a list of values, one per
+            % point, which is a linear increment if it is evenly spaced
+            % and starts at zero
+            increment = Exp.(dimX){iLine,2};
+            nPoints_ = Exp.nPoints(iDimension);
+            if ~isscalar(increment)
+              if isvector(increment) && numel(increment)==nPoints_ && nPoints_>1 && ...
+                  increment(1)==0 && all(abs(diff(increment,2))<1e-12*max(abs(increment)))
+                increment = increment(2);
+              else
+                increment = [];
+              end
+            end
+            if isempty(increment)
+              Opt.SimulationMode = 'thyme';
+              message = addtomessage(message,['the increment of dimension no. ' num2str(iDimension) ' is not linear']);
+            elseif dt(iDimension) == 0
+              dt(iDimension) = increment;
+            elseif dt(iDimension) ~= increment
               Opt.SimulationMode = 'thyme';
               message = addtomessage(message,['the increment of dimension no. ' num2str(iDimension) ' is not linear']);
             end
@@ -510,9 +528,11 @@ if isfield(Opt,'IntTimeStep') && ~isfield(Exp,'DetTimeStep')
     warning(warnMsg);
   end
   
+  % largest multiple of the integration time step that does not exceed
+  % the default detection time step
   logmsg(1,'  automatically assuming a suitable detection time step');
-  Exp.DetTimeStep = RefDetTimeStep;
-  
+  Exp.DetTimeStep = max(1,floor(RefDetTimeStep/Opt.IntTimeStep))*Opt.IntTimeStep;
+
 elseif ~isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
   
   logmsg(1,'  computing an integration time step that fits the provided Exp.DetTimeStep');
@@ -521,7 +541,8 @@ elseif ~isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
   
 elseif isfield(Opt,'IntTimeStep') && isfield(Exp,'DetTimeStep')
   
-  if mod(Opt.IntTimeStep,Exp.DetTimeStep)
+  ratio = Exp.DetTimeStep/Opt.IntTimeStep;
+  if round(ratio)<1 || abs(ratio-round(ratio)) > 1e-9*ratio
     errMsg = 'The provided integration time step (Opt.IntTimeStep) and detection time step (Exp.DetTimeStep) do not match. Exp.DetTimeStep has to be a multiple of Opt.IntTimeStep.';
     error(errMsg);
   end
@@ -585,8 +606,8 @@ else
   logmsg(1,'  found %d pulse(s) and %d free evolution period(s)',nPulses,nDelays);
 end
 
-if isfield(Exp,'mwPolarization')
-  if ~ischar(Exp.mwPolarization) && ~isstring(Exp.mwPolarization)
+if isfield(Exp,'mwPolarization') && ~isempty(Exp.mwPolarization)
+  if ~any(strcmp(Exp.mwPolarization,{'linear','circular'}))
     error('Exp.mwPolarization has to be ''linear'' or ''circular''.');
   end
 end
@@ -770,13 +791,12 @@ for iEvent = 1:length(Exp.Sequence)
     % upconverted with the carrier at Exp.mwFreq.
     Events{iEvent}.FrameOffset = freqShift;
     
-    % Checks if ComplexExcitation is requested for this pulse, if not
-    % specified ComplexExcitation is switched off by default - the
-    % excitation operator is being built outside of s_sequencer
-    if isfield(Exp,'mwPolarization') && ~isempty(Exp.mwPolarization) && strcmp(Exp.mwPolarization,'circular')
-      Events{iEvent}.ComplexExcitation = true;
+    % Polarization of the microwave field (linear by default), used by
+    % s_propagationsetup to build the pulse Hamiltonian
+    if isfield(Exp,'mwPolarization') && ~isempty(Exp.mwPolarization)
+      Events{iEvent}.Polarization = char(Exp.mwPolarization);
     else
-      Events{iEvent}.ComplexExcitation = false;
+      Events{iEvent}.Polarization = 'linear';
     end
     
     % Temporarily store pulse paramaters to avoid reassigning them for creating the
@@ -837,9 +857,11 @@ for iEvent = 1:length(Exp.Sequence)
   % Store an empty propagation structure, will be overwritten by thyme
   Events{iEvent}.Propagation = [];
   
-  % Store the time step, which will be needed in thyme to calculate time
-  % axis and propagators
+  % Store the time steps, which will be needed in thyme to calculate time
+  % axis and propagators: pulses are integrated and detected with
+  % TimeStep, detected free evolution is computed at steps of DetTimeStep
   Events{iEvent}.TimeStep = Opt.IntTimeStep;
+  Events{iEvent}.DetTimeStep = Exp.DetTimeStep;
   
   % Keep track of the frameshift
   Events{iEvent}.FrameShift = frameShift;

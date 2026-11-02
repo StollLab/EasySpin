@@ -9,6 +9,7 @@ Exp.Field = 1240;
 Exp.mwFreq = 33.5;
 
 Opt = struct;
+Opt.SimulationMode = 'thyme';  % with Exp.DetSequence, the fast mode would be chosen
 
 % First Test ---------------------------------------
 Exp1 = Exp;

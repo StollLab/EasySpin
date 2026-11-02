@@ -129,12 +129,33 @@ end
 logmsg(1,'  setting up the excitation operators');
 
 % -------------------------------------------------------------------------
-% Build the excitation operator xOp for each pulse: the total electron Sx,
-% or a custom Hermitian operator (sop string or matrix). With circular
-% polarization, the field also has a component along y(Lab). It couples to
-% yOp, the excitation operator rotated by 90 degrees about z(Lab):
-% yOp = Rz*xOp*Rz' with Rz = exp(-1i*pi/2*Fz), where Fz is the total Sz of
-% all spins. For Sx, yOp is Sy.
+% The excitation operator X of each pulse is the total electron Sx, or a
+% custom Hermitian operator (sop string or matrix). It couples to the
+% x(Lab) component of the field. With circular polarization, the field
+% also has a component along y(Lab), which couples to Y, the excitation
+% operator rotated by 90 degrees about z(Lab): Y = Rz*X*Rz' with
+% Rz = exp(-1i*pi/2*Fz), where Fz is the total Sz of all spins. For Sx,
+% Y is Sy.
+%
+% The pulse Hamiltonian is H1 = Re(c)*xOp + Im(c)*yOp, where c is the
+% pulse waveform (IQ) in the simulation frame, and yOp is empty if H1 has
+% a single operator:
+% - Lab frame: H1 = 2*Re(c)*X for linear polarization (field 2*Re(c)
+%   along x(Lab)), and H1 = Re(c)*X + Im(c)*Y for circular polarization.
+% - Shifted frame (rotating at f_s about the total electron Sz): the
+%   elements of X with electron coherence order M = mS(i)-mS(j) acquire
+%   exp(1i*M*2*pi*f_s*t). Only the part of the field that rotates with the
+%   frame (rotating-wave approximation, as for the secular Hamiltonian) is
+%   kept: H1 = conj(c)*Xp + c*Xp', where Xp is the M = +1 part of X
+%   (linear polarization) or of (X+1i*Y)/2 (circular polarization). For
+%   electron operators such as Sx, both are the same, and H1 =
+%   Re(c)*Sx + Im(c)*Sy. Elements with M ~= +-1 oscillate at about the
+%   microwave frequency or faster and are not driven by a microwave pulse.
+%   They are rejected.
+%   With c = a*exp(1i*psi), H1 = a*xOp.*exp(-1i*psi*M) is xOp rotated about
+%   the total electron Sz, which commutes with the secular Hamiltonian.
+%   M is stored in the event (CoherenceOrder), so that s_thyme can obtain
+%   the propagators from a lookup table over the amplitude a.
 % -------------------------------------------------------------------------
 
 % Rz is diagonal, so the rotation multiplies each element by a phase
@@ -143,6 +164,10 @@ for iSpin = 1:numel(Sys.Spins)
   mTotal = mTotal + full(diag(sop(Sys.Spins,[iSpin,3])));
 end
 rotPhases = exp(-1i*pi/2*(mTotal-mTotal.'));
+
+% Electron coherence order of each matrix element
+mS = full(diag(totSpinOps{3}));
+M = mS-mS.';
 
 % initialize pulse counting
 iPulse = 1;
@@ -165,13 +190,40 @@ for iEvent = 1: length(Events)
       if norm(xOp-xOp','fro') > 1e-10*norm(xOp,'fro')
         error('The excitation operator for pulse no. %d is not Hermitian.',iPulse);
       end
-      Events{iEvent}.xOp = (xOp+xOp')/2;
+      xOp = (xOp+xOp')/2;
     else
       % ... if not, the total Sx operator is used
-      Events{iEvent}.xOp = totSpinOps{1};
+      xOp = totSpinOps{1};
     end
-    if Events{iEvent}.ComplexExcitation
-      Events{iEvent}.yOp = Events{iEvent}.xOp.*rotPhases;
+    circular = strcmp(Events{iEvent}.Polarization,'circular');
+    if circular
+      yOp = xOp.*rotPhases;
+    end
+    Events{iEvent}.CoherenceOrder = [];
+    if Events{iEvent}.FrameShift==0
+      if circular
+        Events{iEvent}.xOp = xOp;
+        Events{iEvent}.yOp = yOp;
+      else
+        Events{iEvent}.xOp = 2*xOp;
+        Events{iEvent}.yOp = [];
+      end
+    else
+      if norm(xOp(abs(M)~=1)) > 1e-10*norm(xOp,'fro')
+        error(['The excitation operator for pulse no. %d has elements that ' ...
+          'do not change the electron mS by +-1. A microwave pulse cannot drive ' ...
+          'them in a shifted simulation frame. Use Opt.SimFreq = 0 to ' ...
+          'simulate in the lab frame.'],iPulse);
+      end
+      if circular
+        Xp = (xOp+1i*yOp)/2;
+      else
+        Xp = xOp;
+      end
+      Xp(M~=1) = 0;
+      Events{iEvent}.xOp = Xp+Xp';
+      Events{iEvent}.yOp = 1i*(Xp'-Xp);
+      Events{iEvent}.CoherenceOrder = M;
     end
     % Increment pulse counter
     iPulse = iPulse + 1;

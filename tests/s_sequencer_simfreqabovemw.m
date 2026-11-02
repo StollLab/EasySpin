@@ -11,6 +11,7 @@ Exp.Sequence = {Pulse 0.1};
 Exp.Field = 340;
 Exp.mwFreq = 9.5;  % GHz
 
+Opt.SimulationMode = 'thyme';  % the time step is only set up for thyme
 Opt.SimFreq = 10;  % GHz, 0.5 GHz above the pulses
 [~,~,OptAbove] = runprivate('s_sequencer',Exp,Opt);
 Opt.SimFreq = 9;   % GHz, 0.5 GHz below the pulses

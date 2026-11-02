@@ -38,7 +38,7 @@ Opt.ExcOperator = {'x(1|2)' []};
 [~, signal2] = spidyan(Sys,Exp,Opt);
 
 % Test custom exc operator input syntax
-Opt.ExcOperator = {'x(1|2)' 'x(1|3)'};
+Opt.ExcOperator = {'x(1|2)' 'x(2|3)'};
 [~, signal3] = spidyan(Sys,Exp,Opt);
 
 data.t = t;

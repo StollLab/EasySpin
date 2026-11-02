@@ -180,7 +180,7 @@ Exp.DetFreq = 0;   % No down conversion
 If down-conversion is switched off, the signal is returned in the simulation frame.
 
 <p>
-The last field related to detection is <code>Exp.DetIntegrate</code>, which, if switched on, tells <a class="esf" href="saffron.html">saffron</a> to integrate the signal.
+The last field related to detection is <code>Exp.DetIntegrate</code>, which, if switched on, tells <a class="esf" href="saffron.html">saffron</a> to integrate the signal over the detection window. The result is the area under the detected signal (in signal units times microseconds), so it does not depend on <code>Exp.DetTimeStep</code>.
 
 <p>
 Something to keep in mind: The entire detection window is used. This means that if there are other echoes within the detection window, those will get integrated as well and might interfere with your data.

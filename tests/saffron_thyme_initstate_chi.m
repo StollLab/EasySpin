@@ -3,10 +3,9 @@ function ok = test()
 % Powder simulations with Sys.initState: removing electron coherences from
 % the initial state must reproduce the explicit average over the third Euler
 % angle chi (rotation about the field), which the powder grid omits.
-% Tolerance limited by counter-rotating pulse components (nu1/nu0 in the
-% simulation frame).
+% In a shifted simulation frame, this is exact.
 
-tol = 2e-2;
+tol = 1e-6;
 
 Pulse.tp = 0.02;
 Pulse.Flip = pi/4;

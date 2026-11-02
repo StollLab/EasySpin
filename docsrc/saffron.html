@@ -222,6 +222,7 @@ EPR spectrometer frequency in GHz. For the <em>fast</em> method, this needs only
 </p>
 <p>
 For the <em>thyme</em> method, this is required. All frequencies in the pulse definition (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.mwFreq</code>:
+</p>
 <pre class="matlab">
 Exp.mwFreq = 33.5;
 
@@ -435,7 +436,10 @@ The default excitation then becomes <code>real</code>(<code>IQ</code>) <i>&Scirc
 <pre class="matlab">
 Exp.mwPolarization = 'circular';     % mwPolarziation set to circular for all pulses
 </pre>
-Keep in mind that using <code>'circular'</code> does not allow <code>saffron</code> to use some of its speed-up tricks and can lead to significantly longer simulation times.
+<p>
+In a shifted simulation frame, only the part of the field that rotates with the spins is kept (see <code>Opt.SimFreq</code>). Linear and circular polarization then give the same result, and the polarization matters only in the lab frame (<code>Opt.SimFreq = 0</code>).
+In the lab frame, <code>'circular'</code> does not allow <code>saffron</code> to use some of its speed-up tricks and can lead to significantly longer simulation times.
+</p>
 </div>
 
 <div class="optionfield"><code>DetWindow</code></div>
@@ -499,8 +503,19 @@ If no <code>DetFreq</code> is provided, <code>Exp.mwFreq</code> is taken as freq
 
 <div class="optionfield"><code>DetPhase</code></div>
 <div class="optiondescr">
-Phase of detection in radians, optional. 
+Phase of detection in radians, optional.
 The default value is <code>0</code>.
+</div>
+
+<div class="optionfield"><code>DetTimeStep</code></div>
+<div class="optiondescr">
+Time step for detection in the detection window (<code>DetWindow</code>), in microseconds, optional.
+The signal is computed directly at these time points, so a larger step makes the simulation faster without making it less accurate.
+If the length of the detection window is not a multiple of <code>DetTimeStep</code>, the step is shortened slightly, so that the points are evenly spaced and the last point falls on the end of the window.
+<p>
+If <code>DetTimeStep</code> is not given, it is set to about a quarter of the period of the highest pulse frequency in the simulation frame (a multiple of <code>Opt.IntTimeStep</code>).
+If both are given, <code>DetTimeStep</code> must be a multiple of <code>Opt.IntTimeStep</code>.
+</p>
 </div>
 
 <p>
@@ -661,6 +676,9 @@ To have the program adapt the time step to the simulation frequency, remove the 
 <p>
 In a simulation frame other than the lab frame, the high-field approximation is used: the spin Hamiltonian keeps its exact energy levels, but the small mixing between electron spin states with different m<sub>S</sub>, caused e.g. by g anisotropy or zero-field splitting, is neglected. To include this mixing, simulate in the lab frame (<code>Opt.SimFreq = 0</code>).
 </p>
+<p>
+In the same way, a pulse keeps only the part of its field that rotates with the electron spins (rotating-wave approximation). The counter-rotating part, which causes small effects such as the Bloch-Siegert shift, is neglected. The results then do not depend on the choice of <code>SimFreq</code>, as long as it is not zero.
+</p>
 </div>
 
 <div class="optionfield"><code>IntTimeStep</code></div>
@@ -751,6 +769,7 @@ Stephan Pribitzer, Andrin Doll, Gunnar Jeschke<br>
 <a class="esf" href="nucfrq2d.html">nucfrq2d</a>,
 <a class="esf" href="salt.html">salt</a>,
 <a class="esf" href="pepper.html">pepper</a>
+</p>
 
 <hr>
 

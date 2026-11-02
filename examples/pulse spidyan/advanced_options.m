@@ -51,20 +51,38 @@ ylabel('<S_i>')
 legend(Exp.DetOperator)
 
 %% 2) circular mwPolarization
-% circular mwPolarization excitation operators allow to investigate Bloch Siegert shifts
-% If circular mwPolarization is 'circular', the excitation operator takes the form:
+% If mwPolarization is 'circular', the excitation operator takes the form:
 % real(IQ)*Sx + imag(IQ)*Sy
+% In a shifted simulation frame (the default), pulses keep only the field
+% component that rotates with the spins, so linear and circular
+% polarization give the same result. They differ only in the lab frame,
+% where the counter-rotating component of a linearly polarized field
+% causes the Bloch-Siegert shift and oscillations at twice the microwave
+% frequency. These effects scale with the ratio of the pulse amplitude to
+% the microwave frequency, so this example uses a strong pulse at a low
+% frequency and simulates in the lab frame (Opt.SimFreq = 0).
 
-Sys_ = Sys;
+Sys_ = [];
+Sys_.S = 1/2;
+Sys_.ZeemanFreq = 0.3; % GHz
 
-Exp_ = Exp;
-Exp_.Sequence = {Adiabatic};
+Strong.Type = 'rectangular';
+Strong.tp = 0.005; % µs
+Strong.Flip = pi; % rad
 
-[TimeAxis, Regular] = spidyan(Sys_,Exp_);
+Exp_ = [];
+Exp_.mwFreq = 0.3; % GHz
+Exp_.Sequence = {Strong};
+Exp_.DetOperator = {'z1'};
+
+Opt_ = [];
+Opt_.SimFreq = 0;  % lab frame
+
+[TimeAxis, Regular] = spidyan(Sys_,Exp_,Opt_);
 
 Exp_.mwPolarization = 'circular';
 
-[~, ComplexExOp] = spidyan(Sys_,Exp_);
+[~, ComplexExOp] = spidyan(Sys_,Exp_,Opt_);
 
 % plotting
 figure(2)
@@ -83,6 +101,8 @@ legend('linear mwPolarization','circular mwPolarization')
 % manually defined (sop(Sys.S,'x') would also be possible. 
 % Feel free to experiment!
 
+Sys_ = Sys;
+
 Opt_ = [];
 Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')};
 
@@ -91,26 +111,29 @@ Exp_.Sequence = {Adiabatic};
 
 [TimeAxis, Custom] = spidyan(Sys_,Exp_,Opt_);
 
-plot(TimeAxis*1000,Custom)
-legend('linear mwPolarization','circular mwPolarization','userdefined ExOp')
-
 % It is also possible to combine circular mwPolarization with custom excitation
 % operators
 % In this case the excitation operator takes the form:
 % real(IQ)*ExOperator + imag(IQ)*(ExOperator rotated by 90 degrees about z),
 % here real(IQ)*Sx(1|2) + imag(IQ)*Sy(1|2)
-
-Opt_ = [];
-Opt_.ExcOperator = {sop(Sys_.S,'x(1|2)')};
+% For an electron operator such as this one, the result in a shifted
+% simulation frame (the default) is the same as with linear polarization.
 
 Exp_.mwPolarization = 'circular';
 
-[TimeAxis, Custom] = spidyan(Sys_,Exp_,Opt_);
+[~, CustomCircular] = spidyan(Sys_,Exp_,Opt_);
 
+% plotting
+figure(3)
+clf
+hold on
 plot(TimeAxis*1000,Custom)
-legend('linear mwPolarization','circular mwPolarization','userdefined ExOp','circular polarized userdefined ExOp')
+plot(TimeAxis*1000,CustomCircular,'--')
+xlabel('t (ns)')
+ylabel('<S_i>')
+legend('userdefined ExOp','circular polarized userdefined ExOp')
 
-%% 3) state trajectories
+%% 4) state trajectories
 % if state trajectories is switched on for an event, density matrices at
 % each propagation point are stored and returned
 

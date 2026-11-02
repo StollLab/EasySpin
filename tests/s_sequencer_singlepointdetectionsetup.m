@@ -12,6 +12,7 @@ Exp.mwFreq = 33.5;
 Exp1 = Exp;
 Exp1.DetWindow = 0;
 Opt = struct;
+Opt.SimulationMode = 'thyme';  % with Exp.DetSequence, the fast mode would be chosen
 [Events1] = runprivate('s_sequencer',Exp1,Opt);
 
 Exp2 = Exp;

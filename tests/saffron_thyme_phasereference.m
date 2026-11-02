@@ -1,7 +1,7 @@
 function ok = test()
 
 % Signal phases do not depend on the pulse timing or on the simulation
-% frame, and integrated echoes equal the sum of the transient
+% frame, and integrated echoes equal the integral of the transient
 
 tol = 0.5;  % degrees
 
@@ -38,11 +38,15 @@ for iFreq = 1:numel(SimFreq)
 end
 ok(1) = max(abs(rad2deg(angle(exp(1i*(phi(:)-phi(1))))))) < tol;
 
-% Integrated echo equals the sum of the down-converted transient (which
-% includes a factor of 2 for complex signals)
-[~,transient] = saffron(Sys,Exp,Opt);
+% Integrated echo equals the integral of the down-converted transient
+% (which includes a factor of 2 for complex signals), and does not depend
+% on the detection time step
+[t,transient] = saffron(Sys,Exp,Opt);
 Exp.DetIntegrate = true;
 integrated = saffron(Sys,Exp,Opt);
-ok(2) = areequal(integrated,sum(transient)/2,1e-6,'rel');
+ok(2) = areequal(integrated,trapz(t,transient)/2,1e-6,'rel');
+Exp.DetTimeStep = 2*(t(2)-t(1));
+integrated2 = saffron(Sys,Exp,Opt);
+ok(3) = areequal(integrated2,integrated,1e-2,'rel');
 
 end
