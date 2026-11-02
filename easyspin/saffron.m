@@ -1792,14 +1792,16 @@ if fastSimulationMode
       end
     end
 
-    % Normalize modulation signal
+    % Normalize modulation signal: true amplitude Tr(S+*rho)/Tr(S+'*S+) for
+    % the initial state -Sz, as in thyme mode. The pulse transfer amplitudes
+    % are included in the pathways above (ideal pulses: pathwayprefactor;
+    % finite pulses: propagators). Without modulation, the echo is 1/2
+    % (2pESEEM) or 1/4 (3pESEEM, 4pESEEM, HYSCORE). Tr(S+'*S+) equals the
+    % number of nuclear states for S = 1/2. This holds for two electron
+    % manifolds (twoElectronManifolds). Otherwise, the transitions are
+    % weighted by |<u|Sy|v>| and are not on this scale.
     EqDensityTrace = prod(2*Sys.I+1);
     td = td/EqDensityTrace;
-    td = td/nPathways;
-
-    % Pulse transfer prefactors: included in the pathways above, normalized
-    % here by their largest magnitude
-    td = td/max(abs(pathwayprefactor));
 
     % Detection phase: phase of the detection reference; the signal has the
     % coherence order of S+ (as the default detection operator in thyme
