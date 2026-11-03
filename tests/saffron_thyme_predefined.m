@@ -1,7 +1,8 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
-% Predefined sequences in thyme mode: sizes, rejected fields, and echo
-% amplitudes from the echo-selecting phase cycles
+% Predefined sequences in thyme mode: sizes, rejected fields, echo
+% amplitudes from the echo-selecting phase cycles, and 4pESEEM as the
+% diagonal of HYSCORE
 
 Sys.S = 1/2;
 Sys.g = 2;
@@ -63,9 +64,33 @@ Exp.nPoints = 2;
 [~,y2] = saffron(Sys,Exp,Opt);
 Exp.Sequence = '3pESEEM';
 [~,y3] = saffron(Sys,Exp,Opt);
+Exp.Sequence = '4pESEEM';
+[~,y4] = saffron(Sys,Exp,Opt);
 Exp.Sequence = 'HYSCORE';
 Exp.nPoints = [2 2];
 [~,yH] = saffron(Sys,Exp,Opt);
 ok(5) = areequal(y2(:),1/2*ones(2,1),1e-3,'rel');
 ok(6) = areequal(y3(:),1/4*ones(2,1),1e-3,'rel');
 ok(7) = areequal(yH(:),1/4*ones(4,1),1e-3,'rel');
+ok(8) = areequal(y4(:),1/4*ones(2,1),1e-3,'rel');
+
+% 4pESEEM is the diagonal of HYSCORE (t1 = t2 = T)
+Sys.Nucs = '1H';
+Sys.A = [2 6];  % MHz
+clear Exp
+Exp.mwFreq = 9.5;  % GHz
+Exp.Field = unitconvert(Exp.mwFreq,'GHz->mT',gfree);
+Exp.tau = 0.1;  % µs
+Exp.dt = 0.02;  % µs
+Exp.Sequence = '4pESEEM';
+Exp.T = 0.05;  % µs
+Exp.nPoints = 3;
+[x4,y4] = saffron(Sys,Exp,Opt);
+Exp = rmfield(Exp,'T');
+Exp.Sequence = 'HYSCORE';
+Exp.t1 = 0.05;  % µs
+Exp.t2 = 0.05;  % µs
+Exp.nPoints = [3 3];
+[~,yH] = saffron(Sys,Exp,Opt);
+ok(9) = areequal(y4(:),diag(yH),1e-10,'rel');
+ok(10) = areequal(x4,[0.05 0.07 0.09],1e-12,'abs');

@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Predefined experiments in thyme mode: initial delays default to zero as in
 % fast mode, tau must be positive, and HYSCORE accepts one increment per
@@ -74,3 +74,13 @@ ExpCustom.PhaseCycle = {sel [] [0 1; pi 1] [0 1; pi -1]};
 [~,yCustom] = saffron(Sys,ExpCustom,Opt);
 ok(5) = areequal(yCustom,yPredefined,1e-10,'rel');
 ok(6) = areequal(x{1},[0.05 0.07 0.09],1e-12,'abs') && areequal(x{2},[0.07 0.10],1e-12,'abs');
+
+% 4pESEEM: T defaults to 0
+Exp4p = Exp;
+Exp4p.Sequence = '4pESEEM';
+Exp4p.tau = 0.1;  % µs
+Exp4p.nPoints = 3;
+[~,yDefault] = saffron(Sys,Exp4p,Opt);
+Exp4p.T = 0;
+[~,yZero] = saffron(Sys,Exp4p,Opt);
+ok(7) = areequal(yDefault,yZero,1e-12,'rel');

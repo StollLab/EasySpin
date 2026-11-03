@@ -25,7 +25,7 @@ sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
 odd = [0 1; pi -1];
 even = [0 1; pi 1];
 
-if ~ismember(Exp.Sequence,{'2pESEEM','3pESEEM','HYSCORE'})
+if ~ismember(Exp.Sequence,{'2pESEEM','3pESEEM','4pESEEM','HYSCORE'})
   error('Exp.Sequence = ''%s'' is not supported with the thyme method.',Exp.Sequence);
 end
 
@@ -37,13 +37,13 @@ end
 switch Exp.Sequence
   case '2pESEEM'
     if ~isfield(Exp,'tau'), Exp.tau = 0; end
-  case '3pESEEM'
+  case {'3pESEEM','4pESEEM'}
     if ~isfield(Exp,'T'), Exp.T = 0; end
   case 'HYSCORE'
     if ~isfield(Exp,'t1'), Exp.t1 = 0; end
     if ~isfield(Exp,'t2'), Exp.t2 = 0; end
 end
-if ismember(Exp.Sequence,{'3pESEEM','HYSCORE'})
+if ismember(Exp.Sequence,{'3pESEEM','4pESEEM','HYSCORE'})
   if ~isfield(Exp,'tau')
     error('Exp.tau is missing.');
   end
@@ -92,6 +92,30 @@ switch Exp.Sequence
     
     % pathway +1 -> 0 -> -1
     Exp.PhaseCycle = {sel [] odd};
+
+  case '4pESEEM'
+    
+    if ~isfield(Exp,'DetWindow')
+      if isfield(Exp,'DetSequence')
+        Exp = rmfield(Exp,'DetSequence');
+      end
+      Exp.DetWindow = 0;
+    end
+    
+    Exp.Sequence = {P90 Exp.tau P90 Exp.T P180 Exp.T P90 Exp.tau};
+    
+    if ~isfield(Exp,'nPoints')
+      Exp.nPoints = defaultPoints;
+    end
+    
+    % both T delays incremented together
+    if numel(Exp.dt)~=1
+      error('Exp.dt must be a single value for 4pESEEM. You gave %d.',numel(Exp.dt));
+    end
+    Exp.Dim1 = {'d2,d3' Exp.dt};
+    
+    % pathway +1 -> 0 -> 0 -> -1, as for HYSCORE
+    Exp.PhaseCycle = {sel [] even odd};
 
   case 'HYSCORE'
     

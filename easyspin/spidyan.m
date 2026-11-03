@@ -184,8 +184,8 @@ if isfield(Exp,'DetOperator')
 end
 
 % Detection phase of the predefined experiments, as in saffron: all pulses
-% are along y, and the detection phase pi for HYSCORE (negative pulse
-% transfer prefactor) gives a real positive echo
+% are along y, and the detection phase pi for 4pESEEM and HYSCORE (negative
+% pulse transfer prefactor) gives a real positive echo
 if ischar(Exp.Sequence)
   if isfield(Exp,'DetPhase') && any(Exp.DetPhase~=0)
     error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined sequence instead.');
@@ -194,7 +194,7 @@ if ischar(Exp.Sequence)
     error('Exp.PhaseCycle cannot be used with predefined experiments. Use a user-defined sequence instead.');
   end
   if isfield(Opt,'DetOperator'), nDetOps = numel(Opt.DetOperator); else, nDetOps = 1; end
-  if Exp.Sequence=="HYSCORE"
+  if ismember(Exp.Sequence,{'4pESEEM','HYSCORE'})
     Exp.DetPhase = pi*ones(1,nDetOps);
   else
     Exp.DetPhase = zeros(1,nDetOps);

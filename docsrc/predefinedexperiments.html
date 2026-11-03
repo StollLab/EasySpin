@@ -33,7 +33,7 @@
 </p>
 
 <p>
-All pulses are along y, and the detection phase is chosen so that the echo is real and positive. With the <em>fast</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support only <code>'2pESEEM'</code>, <code>'3pESEEM'</code> and <code>'HYSCORE'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
+All pulses are along y, and the detection phase is chosen so that the echo is real and positive. With the <em>fast</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support all experiments except <code>'MimsENDOR'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -133,7 +133,7 @@ Exp.Dim1 = {'d2' 0.01};
 <div class="subtitle">4pESEEM</div>
 
 <p>
-&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi; &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with both T incremented. <em>fast</em> method only.
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi; &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with both T incremented.
 </p>
 
 <pre class="matlab">
@@ -300,8 +300,12 @@ odd = [0 1; pi -1];
 even = [0 1; pi 1];
 Exp.PhaseCycle = {sel};              % 2pESEEM
 Exp.PhaseCycle = {sel [] odd};       % 3pESEEM
-Exp.PhaseCycle = {sel [] even odd};  % HYSCORE
+Exp.PhaseCycle = {sel [] even odd};  % 4pESEEM, HYSCORE
 </pre>
+
+<p>
+For <code>'4pESEEM'</code>, the phase cycle replaces <code>Exp.Filter</code>, which works only with the <em>fast</em> method.
+</p>
 
 <p>
 The predefined experiments use these phase cycles in the <em>thyme</em> method and in <a class="esf" href="spidyan.html">spidyan</a>, so you cannot change <code>Exp.PhaseCycle</code> for them.
