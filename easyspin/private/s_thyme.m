@@ -56,6 +56,7 @@ Resonator = false;
 % Creates the pulse list, that is needed for reordering events
 %----------------------------------------------------------------------
 isPulse = zeros(1,nEvents);
+meanPCWeight = ones(1,nEvents);
 nPulses = 0;
 for iEvent = 1 : nEvents
   switch Events{iEvent}.type
@@ -63,6 +64,9 @@ for iEvent = 1 : nEvents
       isPulse(iEvent) = 1;
       nPulses = nPulses + 1;
       PulsePositions(nPulses) = iEvent; %#ok<AGROW>
+      if size(Events{iEvent}.PhaseCycle,1)>1
+        meanPCWeight(iEvent) = mean(Events{iEvent}.PhaseCycle(:,2));
+      end
       % If ringing is found, resonator is set to on
       if isfield(Events{iEvent},'Ringing')
         Resonator = true;
@@ -148,6 +152,15 @@ for iPoints = 1 : nPoints
   
   % Start times of all events, from the start of the sequence
   tStart = eventStartTimes(Events,Sequence);
+
+  % Weight of the recovery toward equilibrium (SigmaOffset) in the
+  % relaxation steps of each event. By linearity, each phase cycle step is
+  % a separate experiment, and the weighted sum of their steps
+  % L*sigma + SigmaOffset weights SigmaOffset with the mean of the cycle
+  % weights. So the weight is the product of the mean weights of the phase
+  % cycles of all earlier pulses.
+  recoveryWeight = ones(1,nEvents);
+  recoveryWeight(Sequence) = cumprod([1 meanPCWeight(Sequence(1:end-1))]);
   
   %--------------------------------------------------------------------
   % Update the propagators of the pulses (free evolution propagators are
@@ -284,14 +297,14 @@ for iPoints = 1 : nPoints
               L = currentEvent.Propagation.Ltotal{iPhaseStep,iWavePoint};
               SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal{iPhaseStep,iWavePoint};
               if isempty(currentEvent.Propagation.PhaseTotal)
-                SigmaVector = L*SigmaVector + SigmaOffset;
+                SigmaVector = L*SigmaVector + recoveryWeight(iEvent)*SigmaOffset;
               else
                 % table Liouvillian rotated about the electron Sz (see pulsePropagators)
                 % phase factors d(i)*conj(d(j)) of the vectorized state
                 d = phaseFactors(:,iWavePoint);
                 p = d.*d';
                 p = p(:);
-                SigmaVector = p.*(L*(conj(p).*SigmaVector) + SigmaOffset);
+                SigmaVector = p.*(L*(conj(p).*SigmaVector) + recoveryWeight(iEvent)*SigmaOffset);
               end
               
               Sigma = reshape(SigmaVector,n,n);
@@ -392,6 +405,7 @@ for iPoints = 1 : nPoints
               Events{iEvent}.Propagation.Ltotal = L;
               Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffset;
             end
+            SigmaOffset = recoveryWeight(iEvent)*SigmaOffset;
           end
           %--------------------------------------------------------------
 
