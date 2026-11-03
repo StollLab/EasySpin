@@ -1170,6 +1170,33 @@ if fastSimulationMode
     end
   end
 
+  % Field-reversed orientations
+  % Powder grids cover only part of the sphere, without the field-reversed
+  % orientation -n of each orientation n. Reversing the field leaves the
+  % nuclear energies unchanged and complex-conjugates the eigenvectors
+  % (time reversal), so M -> conj(M). With a nuclear quadrupole interaction,
+  % M cannot be made real, and the signals of n and -n differ. For ideal
+  % pulses and the mirror-symmetric predefined sequences, the -n signal is
+  % conj(S(n)) (2p, 3p, 4p ESEEM, Mims ENDOR) or conj(S(t2,t1)) (HYSCORE),
+  % and the partners are added after the orientation loop (for Mims ENDOR,
+  % by taking the real part of the spectrum). Otherwise, each orientation
+  % is computed a second time with the field reversed.
+  reversedField = "none";
+  partialSphereGrid = ~Opt.crystalSample && isfield(Opt,'nOctants') && Opt.nOctants~=8;
+  if partialSphereGrid && nSubSpaces>0 && any(arrayfun(@(N)any(N.Hnq(:)~=0),NucHams))
+    idealPredefined = predefinedExperiment && all(idealPulse);
+    squareHYSCORE = Exp.ExperimentID==4 && Exp.t1==Exp.t2 && ...
+      Exp.dt(1)==Exp.dt(2) && Exp.nPoints(1)==Exp.nPoints(2);
+    if idealPredefined && any(Exp.ExperimentID==[1 2 3 5])
+      reversedField = "conj";
+    elseif idealPredefined && squareHYSCORE
+      reversedField = "conjtranspose";
+    else
+      reversedField = "compute";
+      Exp.OriWeights = Exp.OriWeights/2;
+    end
+  end
+
   nSkippedOrientations = 0;
   for iOri = 1:nOrientations
 
@@ -1263,6 +1290,15 @@ if fastSimulationMode
       end
     end
 
+    % Compute each transition a second time for the reversed field
+    fieldReversed = false(nTransitions,1);
+    if reversedField=="compute"
+      Transitions = [Transitions; Transitions];
+      OriSelWeight = [OriSelWeight(:); OriSelWeight(:)];
+      fieldReversed = [fieldReversed; true(nTransitions,1)];
+      nTransitions = 2*nTransitions;
+    end
+
     logmsg(2,'orientation %d of %d: %d transitions',iOri,nOrientations,nTransitions);
 
     % Compute and diagonalize nuclear Hamiltonians
@@ -1294,6 +1330,12 @@ if fastSimulationMode
         Eb = Manifold(b).E{iSpace};
         Ma = Manifold(a).V{iSpace};
         Mb = Manifold(b).V{iSpace};
+        if fieldReversed(iT)
+          % Eigenvectors for -n are U*conj(V); U cancels in M, and in Iy1
+          % and Iy2 together with IyLab -> conj(IyLab) below
+          Ma = conj(Ma);
+          Mb = conj(Mb);
+        end
         M = Ma'*Mb;       % <a|b> overlap matrix
         Mt = M';
         nNucStates = length(Ea);
@@ -1307,6 +1349,9 @@ if fastSimulationMode
           IyLab = yLab_M(1)*NucHams(iSpace).Ix + ...
             yLab_M(2)*NucHams(iSpace).Iy + ...
             yLab_M(3)*NucHams(iSpace).Iz;
+          if fieldReversed(iT)
+            IyLab = conj(IyLab);
+          end
         end
 
         for iOffset = 1:Opt.nOffsets
@@ -1798,6 +1843,14 @@ if fastSimulationMode
           td = ifft2dpartial(buff,Exp.nPoints,Opt.PartialIFFT)*numel(buff);
         end
       end
+    end
+
+    % Add the signals of the field-reversed orientations (see above)
+    switch reversedField
+      case "conj"
+        td = real(td);
+      case "conjtranspose"
+        td = (td + td')/2;
     end
 
     % Normalize modulation signal: true amplitude Tr(S+*rho)/Tr(S+'*S+) for
