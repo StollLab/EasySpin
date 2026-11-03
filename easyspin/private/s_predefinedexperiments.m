@@ -13,6 +13,15 @@ P180.tp = 0.032;
 P180.Flip = pi;
 P180.Phase = pi/2;
 
+% Detection time of the echo, relative to the end of the sequence. To first
+% order in the resonance offset, a rectangular pi/2 pulse of length tp acts
+% like an ideal pulse followed by free evolution over 2*tp/pi. In all
+% predefined sequences, this delays the echo by 2*tp/pi (the pi pulse is
+% symmetric, and the extra evolution at the start and end of a population
+% period cancels). Detecting at the echo avoids a phase error proportional
+% to the offset.
+tEcho = 2*P90.tp/pi;
+
 % Phase cycles that select the echo pathway for S = 1/2. A pulse that
 % changes the electron coherence order p by dp multiplies the pathway by
 % exp(-1i*dp*phase), so the cycle weights it by sum(w.*exp(-1i*dp*phases)).
@@ -59,7 +68,7 @@ switch Exp.Sequence
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
       end
-      Exp.DetWindow = 0;
+      Exp.DetWindow = tEcho;
     end
     
     Exp.Sequence = {P90 Exp.tau P180 Exp.tau};
@@ -79,7 +88,7 @@ switch Exp.Sequence
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
       end
-      Exp.DetWindow = 0;
+      Exp.DetWindow = tEcho;
     end
     
     Exp.Sequence = {P90 Exp.tau P90 Exp.T P90 Exp.tau};
@@ -99,7 +108,7 @@ switch Exp.Sequence
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
       end
-      Exp.DetWindow = 0;
+      Exp.DetWindow = tEcho;
     end
     
     Exp.Sequence = {P90 Exp.tau P90 Exp.T P180 Exp.T P90 Exp.tau};
@@ -123,7 +132,7 @@ switch Exp.Sequence
       if isfield(Exp,'DetSequence')
         Exp = rmfield(Exp,'DetSequence');
       end
-      Exp.DetWindow = 0;
+      Exp.DetWindow = tEcho;
     end
     
     Exp.Sequence = {P90 Exp.tau P90 Exp.t1 P180 Exp.t2 P90 Exp.tau};

@@ -281,13 +281,13 @@ Length of the rf pulse, in µs, default 20. It sets the rf excitation bandwidth 
 <div class="subtitle">Equivalent sequences for <em>thyme</em> and spidyan</div>
 
 <p>
-Starting from the equivalent sequences above, add the pulse lengths and detect at the echo:
+Starting from the equivalent sequences above, add the pulse lengths and detect at the echo maximum. With rectangular pulses, the echo peaks slightly later than with ideal pulses, by 2/&pi; times the length of the &pi;/2 pulses.
 </p>
 
 <pre class="matlab">
 p90.tp = 0.016;   % µs
 p180.tp = 0.032;  % µs
-Exp.DetWindow = 0;
+Exp.DetWindow = 2*p90.tp/pi;  % echo position, µs
 </pre>
 
 <p>

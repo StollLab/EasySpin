@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Predefined HYSCORE: pulses along y and detection phase pi, giving a
 % positive echo; a nonzero Exp.DetPhase and Exp.PhaseCycle are rejected
@@ -31,7 +31,7 @@ ExpCustom.Sequence = {P90 Exp.tau P90 Exp.t1 P180 Exp.t2 P90 Exp.tau};
 ExpCustom.Dim1 = {'d2' Exp.dt};
 ExpCustom.Dim2 = {'d3' Exp.dt};
 ExpCustom.nPoints = [3 3];
-ExpCustom.DetWindow = 0;
+ExpCustom.DetWindow = 2*P90.tp/pi;  % echo of rectangular pulses
 ExpCustom.DetPhase = pi;
 sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];  % echo pathway after the first pulse
 ExpCustom.PhaseCycle = {sel [] [0 1; pi 1] [0 1; pi -1]};
