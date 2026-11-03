@@ -33,7 +33,7 @@
 </p>
 
 <p>
-All pulses are along y, and the detection phase is chosen so that the echo is real and positive. With the <em>fast</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support all experiments except <code>'MimsENDOR'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
+All pulses are along x, and the detection phase is chosen so that the echo is real and positive. With the <em>fast</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support all experiments except <code>'MimsENDOR'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -73,12 +73,11 @@ Equivalent user-defined sequence:
 
 <pre class="matlab">
 p90.Flip = pi/2;
-p90.Phase = pi/2;
 p180.Flip = pi;
-p180.Phase = pi/2;
 Exp.Sequence = {p90 0.1 p180 0.1};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d1,d2' 0.01};
+Exp.DetPhase = -pi/2;
 </pre>
 
 <div class="subtitle">3pESEEM</div>
@@ -124,10 +123,10 @@ Equivalent user-defined sequence:
 
 <pre class="matlab">
 p90.Flip = pi/2;
-p90.Phase = pi/2;
 Exp.Sequence = {p90 0.1 p90 0.08 p90 0.1};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2' 0.01};
+Exp.DetPhase = -pi/2;
 </pre>
 
 <div class="subtitle">4pESEEM</div>
@@ -173,14 +172,12 @@ Equivalent user-defined sequence. The filter removes the echo refocused by the &
 
 <pre class="matlab">
 p90.Flip = pi/2;
-p90.Phase = pi/2;
 p180.Flip = pi;
-p180.Phase = pi/2;
 Exp.Sequence = {p90 0.1 p90 0.08 p180 0.08 p90 0.1};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2,d3' 0.01};
 Exp.Filter = '+00-';
-Exp.DetPhase = pi;
+Exp.DetPhase = pi/2;
 </pre>
 
 <div class="subtitle">HYSCORE</div>
@@ -227,14 +224,12 @@ Equivalent user-defined sequence:
 
 <pre class="matlab">
 p90.Flip = pi/2;
-p90.Phase = pi/2;
 p180.Flip = pi;
-p180.Phase = pi/2;
 Exp.Sequence = {p90 0.1 p90 0.08 p180 0.08 p90 0.1};
 Exp.nPoints = [256 256];
 Exp.Dim1 = {'d2' 0.01};
 Exp.Dim2 = {'d3' 0.01};
-Exp.DetPhase = pi;
+Exp.DetPhase = pi/2;
 </pre>
 
 <div class="subtitle">MimsENDOR</div>

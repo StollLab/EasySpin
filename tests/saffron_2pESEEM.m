@@ -1,4 +1,4 @@
-function [ok,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata) %#ok<FNDEF>
 
 % Compare pre-defind and user-defined 2-pulse ESEEM
 
@@ -22,12 +22,11 @@ ExpPredefined.Field = Field;
 
 [x1, y1] = saffron(Sys,ExpPredefined,Opt);
 
-% pulses along y, as in the predefined experiment
+% pulses along x and detection phase -pi/2, as in the predefined experiment
 p90.Flip = pi/2;
-p90.Phase = pi/2;
 p180.Flip = pi;
-p180.Phase = pi/2;
 ExpManual.Sequence = {p90 tau0 p180 tau0};
+ExpManual.DetPhase = -pi/2;
 ExpManual.Dim1 = {'d1,d2', dt};
 
 ExpManual.nPoints = nPoints;

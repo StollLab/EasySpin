@@ -14,9 +14,9 @@ Sys.A_ = [5 2];  % MHz
 % Experiment
 tau = 0.01;  % µs
 p90.Flip = pi/2;  % rad
-p90.Phase = pi/2;  % rad, pulse along y as in the predefined '3pESEEM'
 Exp.Field = 350;  % mT
 Exp.Sequence = {p90 tau p90 0.06 p90 tau};
+Exp.DetPhase = -pi/2;  % rad, real positive echo as in the predefined '3pESEEM'
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2', 0.005}; % µs
 

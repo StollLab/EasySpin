@@ -20,8 +20,8 @@ Opt.TimeDomain = true;
 Opt.GridSize = 7;
 Opt.nOffsets = 5;
 
-p90 = struct('Flip',pi/2,'Phase',pi/2);
-p180 = struct('Flip',pi,'Phase',pi/2);
+p90.Flip = pi/2;
+p180.Flip = pi;
 f90 = p90; f90.tp = 0.016;  % µs
 f180 = p180; f180.tp = 0.032;  % µs
 dt = 0.05;  % µs

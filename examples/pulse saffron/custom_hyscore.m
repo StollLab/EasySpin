@@ -14,15 +14,14 @@ dt = 0.08; % mus
 
 p90.Flip = pi/2; % rad
 p90.tp = 0.01; % mus
-p90.Phase = pi/2; % rad, pulse along y as in the predefined 'HYSCORE'
 
 p180.Flip = pi; % rad
 p180.tp = 0.01; % mus
-p180.Phase = pi/2; % rad
 
 Exp.Field = 350; % mT
 
 Exp.Sequence = {p90 tau p90 0 p180 0 p90 tau};
+Exp.DetPhase = pi/2; % rad, real positive echo as in the predefined 'HYSCORE'
 
 Exp.nPoints = [101 101]; % data points
 Exp.Dim1 = {'d2' dt}; % increment in dimension 1, mus

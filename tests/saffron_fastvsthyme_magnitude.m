@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Fast and thyme mode give the same signal amplitude Tr(S+*rho)/Tr(S+'*S+),
 % for ideal and finite pulses. Thyme mode selects the echo pathway with
@@ -25,14 +25,15 @@ odd = [0 1; pi -1];
 even = [0 1; pi 1];
 
 tp = 0.001;  % µs, finite pulse length
-p90 = struct('Flip',pi/2,'Phase',pi/2);
-p180 = struct('Flip',pi,'Phase',pi/2);
+p90.Flip = pi/2;
+p180.Flip = pi;
 f90 = p90; f90.tp = tp;
 f180 = p180; f180.tp = 2*tp;
 
-E2 = Exp; E2.Dim1 = {'d1,d2' dt}; E2.nPoints = 3;
-E3 = Exp; E3.Dim1 = {'d2' dt}; E3.nPoints = 3;
-EH = Exp; EH.Dim1 = {'d2' dt}; EH.Dim2 = {'d3' dt}; EH.nPoints = [2 2]; EH.DetPhase = pi;
+% Pulses along x; the detection phases give a real positive echo
+E2 = Exp; E2.Dim1 = {'d1,d2' dt}; E2.nPoints = 3; E2.DetPhase = -pi/2;
+E3 = Exp; E3.Dim1 = {'d2' dt}; E3.nPoints = 3; E3.DetPhase = -pi/2;
+EH = Exp; EH.Dim1 = {'d2' dt}; EH.Dim2 = {'d3' dt}; EH.nPoints = [2 2]; EH.DetPhase = pi/2;
 
 E2.Sequence = {p90 tau p180 tau};
 E3.Sequence = {p90 tau p90 T p90 tau};

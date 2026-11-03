@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % The orientation weights add up to 1: signals are averaged over the powder,
 % and over the sample orientations and sites of a crystal
@@ -45,8 +45,8 @@ ok(3) = areequal(yAll,(ySite1+ySite2)/2,1e-10,'rel');
 
 % Single crystal orientation with molecular frame = lab frame: same as
 % spidyan (thyme mode, echo pathway selected)
-p90 = struct('Flip',pi/2,'Phase',pi/2,'tp',0.016);
-p180 = struct('Flip',pi,'Phase',pi/2,'tp',0.032);
+p90 = struct('Flip',pi/2,'tp',0.016);
+p180 = struct('Flip',pi,'tp',0.032);
 ExpT = rmfield(Exp,{'ExciteWidth','Sequence','tau','dt','CrystalSymmetry'});
 ExpT.SampleFrame = [0 0 0];
 ExpT.Sequence = {p90 0.1 p180 0.1};

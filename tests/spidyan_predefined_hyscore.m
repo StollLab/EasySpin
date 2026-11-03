@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Predefined HYSCORE: pulses along y and detection phase pi, giving a
+% Predefined HYSCORE: pulses along x and detection phase pi/2, giving a
 % positive echo; a nonzero Exp.DetPhase and Exp.PhaseCycle are rejected
 
 Sys.S = 1/2;
@@ -23,16 +23,16 @@ Exp.Sequence = 'HYSCORE';
 [~,yPredefined] = spidyan(Sys,Exp);
 ok(1) = all(real(yPredefined(:))>0);
 
-% Same as user-defined sequence with pulses along y and detection phase pi
-P90 = struct('tp',0.016,'Flip',pi/2,'Phase',pi/2);
-P180 = struct('tp',0.032,'Flip',pi,'Phase',pi/2);
+% Same as user-defined sequence with pulses along x and detection phase pi/2
+P90 = struct('tp',0.016,'Flip',pi/2);
+P180 = struct('tp',0.032,'Flip',pi);
 ExpCustom = rmfield(Exp,{'tau','t1','t2','dt'});
 ExpCustom.Sequence = {P90 Exp.tau P90 Exp.t1 P180 Exp.t2 P90 Exp.tau};
 ExpCustom.Dim1 = {'d2' Exp.dt};
 ExpCustom.Dim2 = {'d3' Exp.dt};
 ExpCustom.nPoints = [3 3];
 ExpCustom.DetWindow = 2*P90.tp/pi;  % echo of rectangular pulses
-ExpCustom.DetPhase = pi;
+ExpCustom.DetPhase = pi/2;
 sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];  % echo pathway after the first pulse
 ExpCustom.PhaseCycle = {sel [] [0 1; pi 1] [0 1; pi -1]};
 [~,yCustom] = spidyan(Sys,ExpCustom);

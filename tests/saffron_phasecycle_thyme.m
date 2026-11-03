@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Exp.PhaseCycle selects the thyme method, and is rejected with an
 % explicit fast method
@@ -8,8 +8,8 @@ Sys.g = gfree;
 Sys.Nucs = '1H';
 Sys.A = [2 6];  % MHz
 
-p90 = struct('tp',0.016,'Flip',pi/2,'Phase',pi/2);
-p180 = struct('tp',0.032,'Flip',pi,'Phase',pi/2);
+p90 = struct('tp',0.016,'Flip',pi/2);
+p180 = struct('tp',0.032,'Flip',pi);
 
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = unitconvert(Exp.mwFreq,'GHz->mT',gfree);

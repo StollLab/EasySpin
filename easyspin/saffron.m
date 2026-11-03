@@ -141,7 +141,7 @@ if isfield(Exp,'DetPhase')
   if numel(Exp.DetPhase)~=1
     error('Exp.DetPhase must be a single value (in radians).');
   end
-  if ischar(Exp.Sequence) && Exp.DetPhase~=0
+  if ischar(Exp.Sequence)
     error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined sequence instead.');
   end
 end
@@ -152,14 +152,14 @@ if ischar(Exp.Sequence) && isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
 end
 
 % Detection phase of the predefined experiments (both simulation modes). All
-% their pulses are along y. The detection phase is chosen such that the echo
+% their pulses are along x. The detection phase is chosen such that the echo
 % is real and positive: with ideal pulses, the pulse transfer prefactors of
-% the echo pathways are +1/2 (2pESEEM), +1/8 (3pESEEM, Mims ENDOR) and -1/8
-% (4pESEEM, HYSCORE), giving a detection phase of 0 or pi.
+% the echo pathways are -i/2 (2pESEEM), -i/8 (3pESEEM, Mims ENDOR) and +i/8
+% (4pESEEM, HYSCORE), giving a detection phase of -pi/2 or +pi/2.
 if ischar(Exp.Sequence)
   switch Exp.Sequence
-    case {'2pESEEM','3pESEEM','MimsENDOR'}, Exp.DetPhase = 0;
-    case {'4pESEEM','HYSCORE'}, Exp.DetPhase = pi;
+    case {'2pESEEM','3pESEEM','MimsENDOR'}, Exp.DetPhase = -pi/2;
+    case {'4pESEEM','HYSCORE'}, Exp.DetPhase = +pi/2;
   end
 end
 
@@ -294,26 +294,26 @@ if fastSimulationMode
 
     isENDOR = false;
     tauRequired = true;
-    % Pulse transfer prefactors of the echo pathways, for ideal pulses along y
+    % Pulse transfer prefactors of the echo pathways, for ideal pulses along x
     % (the same as computed for custom sequences, see pathwayprefactor below)
     switch Exp.ExperimentID
       case 1  % 2pESEEM
         nIntervals = 2; nDimensions = 1; IncSchemeID = 2;
-        nPathways = 1; pathwayprefactor = +1/2;
+        nPathways = 1; pathwayprefactor = -1i/2;
         tauRequired = false;
       case 2  % 3pESEEM
         nIntervals = 3; nDimensions = 1; IncSchemeID = 1;
-        nPathways = 2; pathwayprefactor = +1/8*[1 1];
+        nPathways = 2; pathwayprefactor = -1i/8*[1 1];
       case 3  % 4pESEEM
         nIntervals = 4; nDimensions = 1; IncSchemeID = 2;
-        nPathways = 2; pathwayprefactor = -1/8*[1 1];
+        nPathways = 2; pathwayprefactor = +1i/8*[1 1];
       case 4  % HYSCORE
         nIntervals = 4; nDimensions = 2; IncSchemeID = 11;
-        nPathways = 2; pathwayprefactor = -1/8*[1 1];
+        nPathways = 2; pathwayprefactor = +1i/8*[1 1];
       case 5  % Mims ENDOR
         isENDOR = true;
         nIntervals = 3; nDimensions = 1; IncSchemeID = 0;
-        nPathways = 2; pathwayprefactor = +1/8*[1 1];
+        nPathways = 2; pathwayprefactor = -1i/8*[1 1];
     end
 
     if tauRequired
@@ -1178,7 +1178,8 @@ if fastSimulationMode
   % M cannot be made real, and the signals of n and -n differ. For ideal
   % pulses and the mirror-symmetric predefined sequences, the -n signal is
   % conj(S(n)) (2p, 3p, 4p ESEEM, Mims ENDOR) or conj(S(t2,t1)) (HYSCORE),
-  % and the partners are added after the orientation loop (for Mims ENDOR,
+  % with S the signal after the detection phase (real echo), and the
+  % partners are added after the orientation loop (for Mims ENDOR,
   % by taking the real part of the spectrum). Otherwise, each orientation
   % is computed a second time with the field reversed.
   reversedField = "none";
@@ -1360,15 +1361,15 @@ if fastSimulationMode
           for iInt = 1:nIntervals
             if realPulse(iInt)
               nu1 = (pi/2*Exp.Flip(iInt))/Exp.tp(iInt)/2/pi;
-              Hpulse = [diag(Ea+offsets(iOffset)/2), +M*nu1/2i; ...
-                -Mt*nu1/2i diag(Eb-offsets(iOffset)/2)];
+              Hpulse = [diag(Ea+offsets(iOffset)/2), M*nu1/2; ...
+                Mt*nu1/2 diag(Eb-offsets(iOffset)/2)];
               FullPulsePropagator = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
-              % Hpulse is for phase index 1, a pulse along y (Exp.Phase, in
-              % multiples of pi/2, 0 = x). Another phase rotates the
-              % propagator about the electron Sz, which multiplies the a-b
-              % block by (-1i)^(Phase-1) and the b-a block by
-              % (+1i)^(Phase-1), as for the ideal pulses (pathwayprefactor).
-              phaseFactor = exp(-1i*pi/2*(Exp.Phase(iInt)-1));
+              % Hpulse is for a pulse along x (Exp.Phase, in multiples of
+              % pi/2, 0 = x). Another phase rotates the propagator about
+              % the electron Sz, which multiplies the a-b block by
+              % (-1i)^Phase and the b-a block by (+1i)^Phase, as for the
+              % ideal pulses (pathwayprefactor).
+              phaseFactor = (-1i)^Exp.Phase(iInt);
               PulseSubPropagator{iInt,1} = FullPulsePropagator(idxa,idxa);
               PulseSubPropagator{iInt,2} = FullPulsePropagator(idxb,idxb);
               PulseSubPropagator{iInt,3} = FullPulsePropagator(idxa,idxb)*phaseFactor;
@@ -1845,6 +1846,14 @@ if fastSimulationMode
       end
     end
 
+    % Detection phase: phase of the detection reference; the signal has the
+    % coherence order of S+ (as the default detection operator in thyme
+    % mode). It is applied before adding the field-reversed partners, which
+    % are the complex conjugates of the signal with a real echo.
+    if isfield(Exp,'DetPhase')
+      td = td*exp(-1i*Exp.DetPhase);
+    end
+
     % Add the signals of the field-reversed orientations (see above)
     switch reversedField
       case "conj"
@@ -1863,13 +1872,6 @@ if fastSimulationMode
     % weighted by |<u|Sy|v>| and are not on this scale.
     EqDensityTrace = prod(2*Sys.I+1);
     td = td/EqDensityTrace;
-
-    % Detection phase: phase of the detection reference; the signal has the
-    % coherence order of S+ (as the default detection operator in thyme
-    % mode)
-    if isfield(Exp,'DetPhase')
-      td = td*exp(-1i*Exp.DetPhase);
-    end
 
   end
 

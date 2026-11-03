@@ -1,4 +1,4 @@
-function [ok,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata) %#ok<FNDEF>
 
 % the original data sets to compare to where created with the old saffron
 
@@ -27,11 +27,11 @@ data.x1 = x1;
 data.y1 = y1;
 
 % now the same with a manual definition
-% pulses along y, as in the predefined experiment
+% pulses along x and detection phase -pi/2, as in the predefined experiment
 p90.Flip = pi/2;
-p90.Phase = pi/2;
 
 ExpManual.Sequence = {p90 tau p90 0 p90 tau};
+ExpManual.DetPhase = -pi/2;
 ExpManual.Field = Field;
 
 ExpManual.nPoints = nPoints;
