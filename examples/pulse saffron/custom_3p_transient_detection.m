@@ -3,7 +3,7 @@
 % This example illustrates how to use Exp.Sequence, Exp.Dim1,
 % and Exp.nPoints to create a custom pulse sequence that, for each
 % acquisition point an echo transient is recorded and integrated.
-% For this, saffron switches to the slower thyme method
+% For this, saffron uses the slower full-space engine
 
 clear
 

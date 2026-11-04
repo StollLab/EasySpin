@@ -45,11 +45,11 @@ For this, <a class="esf" href="saffron.html">saffron</a> employs two different a
 The <code>fast</code> algorithm can accommodate a single electron spin (S=1/2 or S>1/2) coupled to an arbitrary number of magnetic nuclei.
 It is also limited to experiments with rectangular pulses and a single microwave carrier frequency. 
 Relaxation is limited to T<sub>1</sub> and T<sub>2</sub>.
-The <em>fast</em> algorithm also does not work with transient detection, more than two indirect dimensions, or the modification of a pulse parameter along one of the indirect dimensions.
+The <em>subspace</em> algorithm also does not work with transient detection, more than two indirect dimensions, or the modification of a pulse parameter along one of the indirect dimensions.
 </p>
 
 <p>
-If any of these requirements are not met, <a class="esf" href="saffron.html">saffron</a> uses the slower but general <em>thyme</em> algorithm (named after the function that is used for propagation), which is described <a href="userguide_saffron_thyme.html">here</a>.
+If any of these requirements are not met, <a class="esf" href="saffron.html">saffron</a> uses the slower but general <em>full-space</em> algorithm, which is described <a href="userguide_saffron_propagation.html">here</a>.
 </p>
 
 <p>
@@ -282,8 +282,8 @@ p180real.Phase = pi; % set phase to -x
 <p>
 This defines the pulse sequence. Next, we need to define the incrementation scheme. 
 This includes specifying which pulse intervals are incremented or decremented, and which dimension in the data the incrementation should count for. 
-The <em>fast</em> algorithm only supports incrementation or decrementation of delays along a maximum of two indirect dimensions.
-How to change pulse parameters or run experiments with more than two indirect dimensions is discussed <a class="esf" href="userguide_saffron_thyme.html">here</a>.
+The <em>subspace</em> algorithm only supports incrementation or decrementation of delays along a maximum of two indirect dimensions.
+How to change pulse parameters or run experiments with more than two indirect dimensions is discussed <a class="esf" href="userguide_saffron_propagation.html">here</a>.
 </p>
 
 <p>
@@ -447,7 +447,7 @@ Sys.T2 = 2; % adds transverse relaxation (phase memory time)
 </pre>
 
 <p>
-Transition-selective relaxation times require the slower <em>thyme</em> method, which <code>saffron</code> then uses by default (see corresponding <a href="userguide_saffron_thyme.html">user guide</a>).
+Transition-selective relaxation times require the slower <em>full-space</em> method, which <code>saffron</code> then uses by default (see corresponding <a href="userguide_saffron_propagation.html">user guide</a>).
 </p>
 
 <hr>

@@ -108,7 +108,6 @@ elseif Exp.Field<0
 end
 
 % Build the Event and Vary structure
-Opt.SimulationMode = 'thyme'; % to force s_sequencer to setup for step wise
 
 % If the user provides nonzero relaxation times, but no Opt.Relaxation,
 % relaxation is switched on for the entire sequence
@@ -117,7 +116,7 @@ if hasRelaxation && ~isfield(Opt,'Relaxation')
   Opt.Relaxation = true;
 end
 
-[Events, Vary, Opt] = s_sequencer(Exp,Opt);
+[Events, Vary, Opt] = sf_buildevents(Exp,Opt);
 
 % check if output can be plotted in case nargout == 0
 if nargout == 0 && isfield(Exp,'nPoints')
@@ -174,7 +173,7 @@ if isfield(Sys,'ZeemanFreq')
 end
 
 % Transfer DetOperator from Exp to Opt, to make it available to
-% s_propagationsetup
+% sf_propagationsetup
 if isfield(Exp,'DetOperator')
   % catch the case when Exp.DetOperator = 'z1' instead of {'z1'}
   if ~iscell(Exp.DetOperator)
@@ -210,7 +209,7 @@ if isfield(Exp,'DetPhase')
   Opt.DetPhase = Exp.DetPhase;
 end
 
-% Detection frame (validated in s_propagationsetup)
+% Detection frame (validated in sf_propagationsetup)
 if isfield(Exp,'DetFreq')
   Opt.DetFreq = Exp.DetFreq;
 elseif isfield(Exp,'mwFreq')
@@ -222,14 +221,14 @@ end
 % Validate and build spin system as well as excitation operators
 logmsg(1,'  parsing the Sys structure...');
 
-[Sys, Sigma, Det, Events, Relaxation] = s_propagationsetup(Sys,Events,Opt);
+[Sys, Sigma, Det, Events, Relaxation] = sf_propagationsetup(Sys,Events,Opt);
 
 % Get Hamiltonian
 logmsg(1,'  computing lab frame Hamiltonian');
 H = ham(Sys,Exp.Field*[0 0 1]);
 if Opt.FrameShift~=0
   logmsg(1,'  using secular Hamiltonian (shifted simulation frame)');
-  [H,minWeight] = s_secularham(H,Sys.Spins,Sys.nElectrons);  % high-field approximation
+  [H,minWeight] = sf_secularham(H,Sys.Spins,Sys.nElectrons);  % high-field approximation
   if min(minWeight)<0.9
     warning(['The electron spin states are strongly mixed (smallest weight in an ' ...
       'mS manifold: %0.2f). The high-field approximation used in the shifted ' ...
@@ -262,7 +261,7 @@ H = H - Opt.FrameShift*1e3*Sz_total;  % MHz
 %-------------------------------------------------------------------------------
 if ~isempty(Relaxation)
   logmsg(1,'  setting up the relaxation superoperator');
-  [Relaxation.Gamma,minOverlap] = s_relaxationsuperoperator(Sys,H);
+  [Relaxation.Gamma,minOverlap] = sf_relaxationsuperoperator(Sys,H);
   relaxationMatrix = ~isscalar(Sys.T1) || ~isscalar(Sys.T2);
   if relaxationMatrix && minOverlap<0.5
     warning(['The eigenstates are strongly mixed (smallest overlap with a product ' ...
@@ -271,11 +270,11 @@ if ~isempty(Relaxation)
   end
 end
 
-% Calls the actual propagation engine
+% Calls the actual full-space engine
 logmsg(1,'-starting propagation----------------------------------');
 logmsg(1,'  depending on the Exp setup this may take a while...');
 [TimeAxis, RawSignal, FinalState, StateTrajectories, Events] = ...
-  s_thyme(Sigma, H, Det, Events, Relaxation, Vary);
+  sf_propagate(Sigma, H, Det, Events, Relaxation, Vary);
 logmsg(1,'  propagation finished!');
 
 % Output arrangement (signals and states are in the detection frame)
@@ -336,7 +335,7 @@ switch nargout
     if isempty(Signal)
       disp('Detection was switched off, nothing to display.')
     else
-      s_plotting(TimeAxis,Signal,Exp,Opt);
+      sf_plotting(TimeAxis,Signal,Exp,Opt);
     end
   case 1
     varargout = {Signal};
@@ -361,7 +360,7 @@ if logmsg>=1, logmsg(1,'=end=spidyan======%s=================\n',char(datetime))
 end
 
 %===============================================================================
-% Arranges the transients from s_thyme (detection operators along the
+% Arranges the transients from sf_propagate (detection operators along the
 % second-to-last dimension, time along the last) with time first and the
 % detection operators last: [indirect dimensions..., time, operator], or a
 % cell array of time x operator arrays

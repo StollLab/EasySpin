@@ -33,7 +33,7 @@
 </p>
 
 <p>
-All pulses are along x, and the detection phase is chosen so that the echo is real and positive. With the <em>fast</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>thyme</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support all experiments except <code>'MimsENDOR'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
+All pulses are along x, and the detection phase is chosen so that the echo is real and positive. With the <em>subspace</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>full-space</em> method</a> and <code>spidyan</code>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support all experiments except <code>'MimsENDOR'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -215,7 +215,7 @@ Initial t<sub>1</sub> and t<sub>2</sub>, in µs, default 0.
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
 <div class="optiondescr">
-Number of points along t<sub>1</sub> and t<sub>2</sub>, e.g. <code>[128 64]</code>. A single value applies to both. Default <code>[256 256]</code> with <em>fast</em>, <code>[128 128]</code> with <em>thyme</em> and <code>spidyan</code>.
+Number of points along t<sub>1</sub> and t<sub>2</sub>, e.g. <code>[128 64]</code>. A single value applies to both. Default <code>[256 256]</code> with <em>subspace</em>, <code>[128 128]</code> with <em>full-space</em> and <code>spidyan</code>.
 </div>
 
 <p>
@@ -235,7 +235,7 @@ Exp.DetPhase = pi/2;
 <div class="subtitle">MimsENDOR</div>
 
 <p>
-&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with an rf &pi; pulse during T, swept over a frequency range. <em>fast</em> method only. There is no equivalent user-defined sequence, since these cannot contain rf pulses.
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with an rf &pi; pulse during T, swept over a frequency range. <em>subspace</em> method only. There is no equivalent user-defined sequence, since these cannot contain rf pulses.
 </p>
 
 <pre class="matlab">
@@ -273,7 +273,7 @@ T, in µs, excluding the rf pulse. Default 0.
 Length of the rf pulse, in µs, default 20. It sets the rf excitation bandwidth for <code>Opt.EndorMethod</code> 1 and 2.
 </div>
 
-<div class="subtitle">Equivalent sequences for <em>thyme</em> and spidyan</div>
+<div class="subtitle">Equivalent sequences for <em>full-space</em> and spidyan</div>
 
 <p>
 Starting from the equivalent sequences above, add the pulse lengths and detect at the echo maximum. With rectangular pulses, the echo peaks slightly later than with ideal pulses, by 2/&pi; times the length of the &pi;/2 pulses.
@@ -299,11 +299,11 @@ Exp.PhaseCycle = {sel [] even odd};  % 4pESEEM, HYSCORE
 </pre>
 
 <p>
-For <code>'4pESEEM'</code>, the phase cycle replaces <code>Exp.Filter</code>, which works only with the <em>fast</em> method.
+For <code>'4pESEEM'</code>, the phase cycle replaces <code>Exp.Filter</code>, which works only with the <em>subspace</em> method.
 </p>
 
 <p>
-The predefined experiments use these phase cycles in the <em>thyme</em> method and in <a class="esf" href="spidyan.html">spidyan</a>, so you cannot change <code>Exp.PhaseCycle</code> for them.
+The predefined experiments use these phase cycles in the <em>full-space</em> method and in <a class="esf" href="spidyan.html">spidyan</a>, so you cannot change <code>Exp.PhaseCycle</code> for them.
 </p>
 
 <div class="subtitle">See also</div>

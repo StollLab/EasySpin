@@ -39,6 +39,7 @@ P180.Flip = pi;
 ExpManual.Sequence = {P90 tau P90 t1 P180 t2 P90 tau};
 ExpManual.Field = Field;
 ExpManual.DetPhase = pi/2;
+ExpManual.Pathways = '+00-';
 
 ExpManual.nPoints = nPoints;
 ExpManual.Dim1 = {'d2' dt};

@@ -54,7 +54,7 @@ See also the <a href="examplesmain.html#pulse spidyan">examples</a> on how to us
 This function simulates spin dynamics of pulse EPR experiments with arbitrary waveforms.
 The focus of <code>spidyan</code> lies on investigation of spin dynamics and on effects of non-ideal or frequency-swept pulses on the outcome of experiments.
 Hence, the outputs of <code>spidyan</code> are a time-domain signal and density matrices of a single spin packet.
-For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based on the same propagation engine.
+For simulating transients or spectra of realistic samples, use the function <code>saffron</code>, which is based on the same full-space engine.
 Time-domain signals or state trajectories simulated by <code>spidyan</code> are typically further analyzed by (MATLAB) software home-written by the user.
 At the expense of requiring more knowledge of spin quantum mechanics than higher-level EasySpin functions, <code>spidyan</code> provides a lot of freedom in specifying input and output (e.g., custom (non-physical) initial states, transition-selective excitation operators, freely selectable detection operators,...). 
 This freedom should help you to investigate your spin dynamics problem in depth.
@@ -111,7 +111,7 @@ If a non-zero Zeeman frequency is found, any g values given for this electron sp
 <div class="optiondescr">
 Longitudinal relaxation time in microseconds. 
 If it is a scalar, the relaxation time is applied to all transitions. 
-Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>).
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>).
 Transitions with a relaxation time of 0 do not relax.
 If it is given and nonzero, relaxation is switched on for the entire sequence, unless <code>Opt.Relaxation</code> is given (see below).
 </div>
@@ -120,7 +120,7 @@ If it is given and nonzero, relaxation is switched on for the entire sequence, u
 <div class="optiondescr">
 Transverse relaxation time in microseconds.
 If it is a scalar, the relaxation time is applied to all electron transitions, but not to nuclear transitions (transitions that do not change the state of any electron spin).
-Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>).
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>).
 Transitions with a relaxation time of 0 do not relax.
 If it is given and nonzero, relaxation is switched on for the entire sequence, unless <code>Opt.Relaxation</code> is given (see below).
 </div>

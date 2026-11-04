@@ -1,8 +1,8 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
-% Fast mode: pulse phases act on finite pulses (Pulse.tp) in the same way
-% as on ideal pulses, so the ratio of the two signals does not depend on
-% the pulse phases
+% Subspace engine: pulse phases act on finite pulses (Pulse.tp) in the same
+% way as on ideal pulses, so the ratio of the two signals does not depend
+% on the pulse phases
 
 Sys.S = 1/2;
 Sys.g = gfree;
@@ -11,12 +11,12 @@ Sys.A = [2 6];  % MHz
 
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = unitconvert(Exp.mwFreq,'GHz->mT',gfree);
-Exp.ExciteWidth = Inf;
+Exp.Pathways = 'echo';
 Exp.nPoints = 2;
 Exp.Dim1 = {'d1,d2' 0.005};
 
 Opt.GridSize = 7;
-Opt.SimulationMode = 'fast';
+Opt.Method = 'subspace';
 
 P90.Flip = pi/2;
 P180.Flip = pi;

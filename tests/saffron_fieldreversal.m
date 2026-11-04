@@ -1,12 +1,12 @@
 function ok = test() %#ok<FNDEF>
 
-% Fast mode, powder: with a nuclear quadrupole interaction, the signals of
-% the field directions n and -n differ (complex-conjugated eigenvectors).
-% A partial-sphere grid (Ci) must give the same signal as the full sphere
-% (C1), for the predefined shortcuts (2pESEEM: real part, HYSCORE:
-% conjugate transpose) and for orientations computed a second time with
-% the field reversed (finite pulses, sequences that are not mirror
-% symmetric).
+% Subspace engine, powder: with a nuclear quadrupole interaction, the
+% signals of the field directions n and -n differ (complex-conjugated
+% eigenvectors). A partial-sphere grid (Ci) must give the same signal as the
+% full sphere (C1), for the shortcuts found by the symmetry probe (2pESEEM:
+% real part, HYSCORE: conjugate transpose) and for orientations computed a
+% second time with the field reversed (finite pulses, sequences that are
+% not mirror symmetric).
 
 Sys.Nucs = '14N';
 Sys.A = [1.6 1.9 2.6];  % MHz
@@ -15,8 +15,7 @@ Sys.Q = [0.9 0.6];  % MHz
 
 Base.Field = 324.9;  % mT
 
-Opt.SimulationMode = 'fast';
-Opt.TimeDomain = true;
+Opt.Method = 'subspace';
 Opt.GridSize = 7;
 Opt.nOffsets = 5;
 

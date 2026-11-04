@@ -29,6 +29,11 @@ for iField = 1:numel(obsoleteFields)
   ExpC.(field_) = [0 0];
   calls = {@() saffron(Sys,ExpP), @() saffron(Sys,ExpC), @() spidyan(Sys,ExpP)};
   for k = 1:numel(calls)
+    if strcmp(field_,'tp') && k==1
+      % Exp.tp is a macro parameter of saffron's predefined experiments
+      ok(iField,k) = true;
+      continue
+    end
     try
       calls{k}();
       ok(iField,k) = false;

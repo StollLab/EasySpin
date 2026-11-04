@@ -1,7 +1,8 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
-% Fast mode with finite pulses: Opt.nOffsets = 1 gives a single offset of
-% zero, the same as a vanishingly narrow offset distribution
+% Subspace engine with finite pulses: Opt.nOffsets = 1 gives a single offset
+% of zero, the same as a vanishingly narrow inhomogeneous line
+% (Sys.lwAnisoG)
 
 Sys.Nucs = '1H';
 Sys.A = [2 6];  % MHz
@@ -17,7 +18,7 @@ Opt.nOffsets = 1;
 [~,y1] = saffron(Sys,Exp,Opt);
 
 Opt.nOffsets = 3;
-Opt.lwOffset = 1e-9;  % MHz
+Sys.lwAnisoG = 1e-9*[1 1 1];  % MHz
 [~,y3] = saffron(Sys,Exp,Opt);
 
 ok = areequal(y1,y3,1e-10,'rel');

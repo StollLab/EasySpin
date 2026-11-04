@@ -44,7 +44,7 @@ y = saffron(...)
 </pre>
 
 <p>
-See also the <a href="examplesmain.html#pulse saffron">examples</a> and <a href="userguide_saffron.html">part I</a> and <a href="userguide_saffron_thyme.html">part II</a> of the <code>saffron</code> user guide.
+See also the <a href="examplesmain.html#pulse saffron">examples</a> and <a href="userguide_saffron.html">part I</a> and <a href="userguide_saffron_propagation.html">part II</a> of the <code>saffron</code> user guide.
 </p>
 
 <!-- ====================================================== -->
@@ -52,7 +52,7 @@ See also the <a href="examplesmain.html#pulse saffron">examples</a> and <a href=
 
 <p>
 This function calculates pulse EPR (ESEEM and ENDOR) spectra of powders and single crystals.
-Two different simulation methods are available: a fast one that works with predefined experiment sequences and certain user-defined ones (referred to as <em>fast</em>) and a much slower but completely general algorithm (referred to as <em>thyme</em>).
+Two different simulation methods are available: a fast one that works with predefined experiment sequences and certain user-defined ones (referred to as <em>subspace</em>) and a much slower but completely general algorithm (referred to as <em>full-space</em>).
 For more details, see <a href="#algorithms">here</a>.
 </p>
 
@@ -113,25 +113,25 @@ You can provide the transverse and longitudinal relaxation times in the spin sys
 <div class="optionfield"><code>T1</code></div>
 <div class="optiondescr">
 Longitudinal relaxation time in microseconds.
-For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
-For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
+For simulations using the <em>subspace</em> method, the relaxation time has to be a scalar.
+For simulations that use the <em>full-space</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all transitions.
-Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>full-space</em> method by default.
 Transitions with a relaxation time of 0 do not relax.
 </div>
 
 <div class="optionfield"><code>T2</code></div>
 <div class="optiondescr">
 Transverse relaxation time in microseconds.
-For simulations using the <em>fast</em> method, the relaxation time has to be a scalar.
-For simulations that use the <em>thyme</em> method, it can be either a scalar or a matrix.
+For simulations using the <em>subspace</em> method, the relaxation time has to be a scalar.
+For simulations that use the <em>full-space</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all electron transitions, but not to nuclear transitions (transitions that do not change the state of any electron spin).
-Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_thyme.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>thyme</em> method by default.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>full-space</em> method by default.
 Transitions with a relaxation time of 0 do not relax.
 </div>
 
 <p>
-The <em>fast</em> method does not include relaxation in the spin dynamics. Instead, it multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence, and with T<sub>1</sub> over the time it is in a population state. This is done for <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code> and <code>'HYSCORE'</code>. For <code>'MimsENDOR'</code>, relaxation has no effect, and for custom sequences, relaxation times are only supported with the <em>thyme</em> method.
+The <em>subspace</em> method does not include relaxation in the spin dynamics. Instead, it multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence, and with T<sub>1</sub> over the time it is in a population state. This is done for <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code> and <code>'HYSCORE'</code>. For <code>'MimsENDOR'</code>, relaxation has no effect, and for custom sequences, relaxation times are only supported with the <em>full-space</em> method.
 </p>
 
 <p>
@@ -142,7 +142,7 @@ For spin-polarized systems, you can provide a non-equilibrium initial state:
 <div class="optiondescr">
 Initial state of the spin system, e.g. populations of zero-field, high-field or coupled states, or a density matrix. All forms described on the <a href="spinsystem.html#pop">spin system page</a> are accepted. If not given, the initial state is -S<sub>z</sub> of all electron spins (high-temperature approximation).
 <p>
-<code>initState</code> is only supported with the <em>thyme</em> method. If <code>initState</code> is given and <code>Opt.SimulationMode</code> is not, <code>saffron</code> uses the <em>thyme</em> method. <code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>).
+<code>initState</code> is only supported with the <em>full-space</em> method. If <code>initState</code> is given and <code>Opt.Method</code> is not, <code>saffron</code> uses the <em>full-space</em> method. <code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>).
 </p>
 <p>
 A state given in the molecular frame (e.g. <code>'xyz'</code> populations or a density matrix) is rotated into the lab frame for each orientation. For powders, coherences between states with different total electron spin projection along the field are removed from the initial state, since they average out over all rotations of the molecule around the magnetic field.
@@ -177,7 +177,7 @@ Specifies a predefined pulse experiment or a user-defined pulse experiment.
 </p>
 
 <p>
-Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. With the <em>thyme</em> method, all except <code>'MimsENDOR'</code> are available. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
+Possible values for predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code>. With the <em>full-space</em> method, all except <code>'MimsENDOR'</code> are available. See the page on <a href="predefinedexperiments.html">predefined experiments</a> for details.
 </p>
 <p>
 The pulses of the predefined experiments are along x, in both methods, and the echo is real and positive. For this, the detection phase is -&pi;/2 for <code>'2pESEEM'</code> and <code>'3pESEEM'</code>, and +&pi;/2 for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
@@ -223,10 +223,10 @@ The microwave carrier at <code>Exp.mwFreq</code> runs continuously through the w
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
 <p>
-EPR spectrometer frequency in GHz. For the <em>fast</em> method, this needs only to be given if orientation selection is wanted (see <code>Exp.ExciteWidth</code>).
+EPR spectrometer frequency in GHz. For the <em>subspace</em> method, this needs only to be given if orientation selection is wanted (see <code>Exp.ExciteWidth</code>).
 </p>
 <p>
-For the <em>thyme</em> method, this is required. All frequencies in the pulse definition (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.mwFreq</code>:
+For the <em>full-space</em> method, this is required. All frequencies in the pulse definition (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.mwFreq</code>:
 </p>
 <pre class="matlab">
 Exp.mwFreq = 33.5;
@@ -401,7 +401,7 @@ When <code>CrystalSymmetry</code> is given, all symmetry-related sites in the cr
 
 
 <p>
-The following fields can only be used with the <em>fast</em> algorithm
+The following fields can only be used with the <em>subspace</em> algorithm
 </p>
 
 <div class="optionfield"><code>ExciteWidth</code></div>
@@ -415,7 +415,7 @@ Coherence filter, one character for each inter-pulse delay. <code>'+'</code> sta
 </div>
 
 <p>
-The following fields can only be used with the <em>thyme</em> method:
+The following fields can only be used with the <em>full-space</em> method:
 </p>
 
 <div class="optionfield"><code>PhaseCycle</code></div>
@@ -429,7 +429,7 @@ Exp.PhaseCycle = {[0 +1] PC2};  % phase cycle only second pulse; use [0 1] for n
 Exp.PhaseCycle = {[] PC2};      % alternative: [] for non-cycled pulses
 </pre>
 The phase cycle is built from the individual phase steps for each pulse in a nested fashion, where each pulse is cycled separately.
-With <code>PhaseCycle</code>, saffron uses the <em>thyme</em> method. Predefined experiments have fixed phase cycles (<em>thyme</em>) or pathways (<em>fast</em>), so <code>PhaseCycle</code> cannot be used with them.
+With <code>PhaseCycle</code>, saffron uses the <em>full-space</em> method. Predefined experiments have fixed phase cycles (<em>full-space</em>) or pathways (<em>subspace</em>), so <code>PhaseCycle</code> cannot be used with them.
 
 To step more than one pulse simultaneously, add an indirect dimension to the experiment (see <code>Dim</code>).
 </div>
@@ -452,7 +452,7 @@ In the lab frame, <code>'circular'</code> does not allow <code>saffron</code> to
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds:
 The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
-It only works with the <em>thyme</em> method.
+It only works with the <em>full-space</em> method.
 The detected signal corresponds to &langle;<i>&Scirc;</i><sub>-</sub>&rangle;, which means the real part corresponds to &langle;<i>&Scirc;</i><sub>x</sub>&rangle; and the imaginary part to &langle;-<i>&Scirc;</i><sub>y</sub>&rangle;.
 
 <p>
@@ -498,13 +498,13 @@ Exp.DetWindow = [0 0.100]    % detect an FID after the last pulse
 
 <div class="optionfield"><code>DetFreq</code></div>
 <div class="optiondescr">
-Frequency of the detection frame, in GHz, optional (<em>thyme</em> method).
+Frequency of the detection frame, in GHz, optional (<em>full-space</em> method).
 The signal is given in a frame that rotates at <code>DetFreq</code> about the static field, like the signal after down-conversion with a reference oscillator at <code>DetFreq</code> in a spectrometer.
 The default is <code>Exp.mwFreq</code>, so that the signal oscillates only at the frequency offsets of the spins.
 <pre class="matlab">
 Exp.DetFreq = 33.5; % detection frame at 33.5 GHz
 </pre>
-The <em>fast</em> method always uses <code>Exp.mwFreq</code>. If <code>DetFreq</code> differs from it, the <em>thyme</em> method is used.
+The <em>subspace</em> method always uses <code>Exp.mwFreq</code>. If <code>DetFreq</code> differs from it, the <em>full-space</em> method is used.
 </div>
 
 <div class="optionfield"><code>DetPhase</code></div>
@@ -588,10 +588,11 @@ If set to <code>'compensate'</code>, the pulse shape is adapted such that it com
 A number giving the number of orientations (knots) for which spectra are explicitly calculated. <code>GridSize</code> gives the number of orientations on a quarter of a meridian, i.e. between &theta; = 0 and &theta; = 90&deg;. The default value is 31, corresponding to a 3&deg; spacing between orientations. For highly anisotropic spectra, esp. for HYSCORE, the value often has to be increased to 181 (0.5&deg; spacing) or beyond.
 </div>
 
-<div class="optionfield"><code>SimulationMode</code></div>
+<div class="optionfield"><code>Method</code>
+<code>'auto'</code> (default), <code>'subspace'</code>, <code>'fullspace'</code></div>
 <div class="optiondescr">
-Optional, allows switching the simulation mode. Can be <code>'fast'</code> for the fast algorithm or <code>'thyme'</code> for the general approach.
-By default, <code>saffron</code> chooses <code>'fast'</code> if possible. If you set <code>'fast'</code> but the pulse sequence or the detection requires <code>'thyme'</code> (e.g. shaped pulses or <code>Exp.DetWindow</code>), <code>saffron</code> gives an error. If <code>Sys.initState</code> or transition-specific relaxation times (a matrix in <code>Sys.T1</code> or <code>Sys.T2</code>) are given, the default is <code>'thyme'</code>, and <code>'fast'</code> gives an error. With several spin systems, all of them are simulated with <code>'thyme'</code> if any of them needs it.
+Simulation engine. <code>'subspace'</code> is fast: it treats the electron spin as a two-level system and computes the nuclear spin dynamics separately within each electron spin state. <code>'fullspace'</code> is slower but general: it follows the state of the complete spin system step by step in time.
+With <code>'auto'</code>, <code>saffron</code> uses <code>'subspace'</code> whenever it supports all requested features exactly, and <code>'fullspace'</code> otherwise. If you request <code>'subspace'</code> but the experiment needs <code>'fullspace'</code> (e.g. shaped microwave pulses, <code>Sys.initState</code> or transition-specific relaxation times), <code>saffron</code> gives an error that names the feature. The engine used is returned in <code>info.Method</code>.
 </div>
 
 <div class="optionfield"><code>separate</code>
@@ -603,7 +604,7 @@ Determines whether to return the total spectrum or a list of subspectra. If set 
 </div>
 
 <p>
-The following options can only be used in combination with the <em>fast</em> algorithm:
+The following options can only be used in combination with the <em>subspace</em> algorithm:
 </p>
 
 <div class="optionfield"><code>TimeDomain</code></div>
@@ -658,7 +659,7 @@ The factor by which the time-domain signal array should be padded with zeros bef
 </div>
 
 <p>
-The following option can only be used with the general <em>thyme</em> algorithm:
+The following option can only be used with the general <em>full-space</em> algorithm:
 </p>
 
 <div class="optionfield"><code>SimFreq</code></div>
@@ -704,7 +705,7 @@ For integration time steps larger than the recommended ones, a warning is printe
 <h2 id="algorithms"></h2>
 
 <p>
-<b>The <em>fast</em> algorithm:</b>
+<b>The <em>subspace</em> algorithm:</b>
 </p>
 <p>
 For both ESEEM and ENDOR, <code>saffron</code> can use matrix-based methods similar to those employed by Mims (1972) to compute frequencies and amplitudes of all peaks. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform.
@@ -736,7 +737,7 @@ Stefan Stoll, R. David Britt<br>
 
 
 <p>
-For the following it is not possible to use the <em>fast</em> algorithm and <code>saffron</code> will fall back to the general, but much slower, <em>thyme</em> algorithm:
+For the following it is not possible to use the <em>subspace</em> algorithm and <code>saffron</code> will fall back to the general, but much slower, <em>full-space</em> algorithm:
 </p>
 <ul>
 <li> Frequency-swept pulses
@@ -746,11 +747,11 @@ For the following it is not possible to use the <em>fast</em> algorithm and <cod
 <li> More than two indirect dimensions or an indirect dimension with a non-uniform increment (as defined <a href="#indirect_dimensions">here</a>).
 <li> Modification of a pulse parameter along any indirect dimension
 <li> Pulses that are not separated by a delay
-<li> Incremented delays in an order that the <em>fast</em> algorithm does not support. Listing the dimension of each incremented delay in the order of the sequence, the supported orders are 1; 1,1; 1,2; 1,2,1; 1,1,2; 1,2,2,1; and 1,1,2,2. For example, HYSCORE with <code>Exp.Dim1 = {'d2' dt}</code> and <code>Exp.Dim2 = {'d3' dt}</code> is supported, but not with <code>Exp.Dim1 = {'d3' dt}</code> and <code>Exp.Dim2 = {'d2' dt}</code>.
+<li> Incremented delays in an order that the <em>subspace</em> algorithm does not support. Listing the dimension of each incremented delay in the order of the sequence, the supported orders are 1; 1,1; 1,2; 1,2,1; 1,1,2; 1,2,2,1; and 1,1,2,2. For example, HYSCORE with <code>Exp.Dim1 = {'d2' dt}</code> and <code>Exp.Dim2 = {'d3' dt}</code> is supported, but not with <code>Exp.Dim1 = {'d3' dt}</code> and <code>Exp.Dim2 = {'d2' dt}</code>.
 </ul>
 
 <p>
-<b>The <em>thyme</em> algorithm:</b>
+<b>The <em>full-space</em> algorithm:</b>
 </p>
 
 <p>

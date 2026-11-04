@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Fast mode: predefined experiments give the same signal as the same
+% Subspace engine: predefined experiments give the same signal as the same
 % sequence entered as a custom sequence (same coherence pathways), including
 % the sign of the pulse transfer prefactors. Predefined experiments use
 % pulses along x with Exp.DetPhase = -pi/2 (2pESEEM, 3pESEEM) or +pi/2
@@ -14,10 +14,9 @@ Sys.A = [2 6];  % MHz
 
 Base.mwFreq = 9.5;  % GHz
 Base.Field = unitconvert(Base.mwFreq,'GHz->mT',2.02);
-Base.ExciteWidth = Inf;
 
 Opt.GridSize = 7;
-Opt.SimulationMode = 'fast';
+Opt.Method = 'subspace';
 
 P90.Flip = pi/2;
 P180.Flip = pi;
@@ -29,6 +28,7 @@ dt = 0.02;  % µs
 E = Base; E.Sequence = '2pESEEM'; E.tau = tau; E.dt = dt; E.nPoints = 8;
 yPredefined = saffron(Sys,E,Opt);
 E = Base; E.Sequence = {P90 tau P180 tau}; E.Dim1 = {'d1,d2' dt}; E.nPoints = 8;
+E.Pathways = '+-';
 E.DetPhase = -pi/2;
 yCustom = saffron(Sys,E,Opt);
 ok(1) = areequal(yCustom,yPredefined,1e-10,'rel');
@@ -37,6 +37,7 @@ ok(1) = areequal(yCustom,yPredefined,1e-10,'rel');
 E = Base; E.Sequence = '3pESEEM'; E.tau = tau; E.T = T; E.dt = dt; E.nPoints = 8;
 yPredefined = saffron(Sys,E,Opt);
 E = Base; E.Sequence = {P90 tau P90 T P90 tau}; E.Dim1 = {'d2' dt}; E.nPoints = 8;
+E.Pathways = '+0-';
 E.DetPhase = -pi/2;
 yCustom = saffron(Sys,E,Opt);
 ok(2) = areequal(yCustom,yPredefined,1e-10,'rel');
@@ -45,7 +46,7 @@ ok(2) = areequal(yCustom,yPredefined,1e-10,'rel');
 E = Base; E.Sequence = '4pESEEM'; E.tau = tau; E.T = T; E.dt = dt; E.nPoints = 8;
 yPredefined = saffron(Sys,E,Opt);
 E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2,d3' dt}; E.nPoints = 8;
-E.Pathways = ['+ab-';'+ba-'];
+E.Pathways = '+00-';
 E.DetPhase = pi/2;
 yCustom = saffron(Sys,E,Opt);
 ok(3) = areequal(yCustom,yPredefined,1e-10,'rel');
@@ -55,6 +56,7 @@ E = Base; E.Sequence = 'HYSCORE'; E.tau = tau; E.t1 = T; E.t2 = T; E.dt = dt; E.
 yPredefined = saffron(Sys,E,Opt);
 E = Base; E.Sequence = {P90 tau P90 T P180 T P90 tau}; E.Dim1 = {'d2' dt}; E.Dim2 = {'d3' dt};
 E.nPoints = [4 4];
+E.Pathways = '+00-';
 E.DetPhase = pi/2;
 yCustom = saffron(Sys,E,Opt);
 ok(4) = areequal(yCustom,yPredefined,1e-10,'rel');
