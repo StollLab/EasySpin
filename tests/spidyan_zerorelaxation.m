@@ -3,15 +3,14 @@ function ok = test()
 % Zero relaxation times are ignored
 
 Sys.S = 1/2;
-Sys.ZeemanFreq = 9.5;
 
 Pulse.Type = 'rectangular';
 Pulse.tp = 0.02;
 Pulse.Flip = pi/2;
 
 Exp.Sequence = {Pulse 0.1};
-Exp.Field = 340;
 Exp.mwFreq = 9.5;
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree
 Exp.DetSequence = [0 1];
 
 Opt.SimFreq = 9.4;

@@ -9,7 +9,6 @@ clear
 
 % System
 Sys.S = 3/2;
-Sys.ZeemanFreq = 33.500; % GHz
 Sys.D = 166;  % MHz
 
 % Pulse
@@ -29,6 +28,7 @@ Pulse2.Frequency = [-500 -170]; % frequency band, relative to Exp.mwFreq
 Exp.Sequence = {Pulse1 Pulse2};
 
 Exp.mwFreq = 33.5; % GHz
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree at 33.5 GHz
 
 % The detection operators detect polarization between (1) levels 1 and 2,
 % levels 2 and (3) levels 3 and 4

@@ -4,7 +4,7 @@ function ok = test()
 % where the length of the transient (in points) changes due to events
 % changing their length.
 
-Sys.ZeemanFreq = 9.400;
+Sys.S = 1/2;
 
 Pulse.tp = 0.030;
 Pulse.Flip = pi;
@@ -15,6 +15,7 @@ Pulse.Frequency =  200;
 tau = 0.3;
 Exp.Sequence = {tau Pulse tau}; % µs
 Exp.mwFreq = 9.400; % GHz
+Exp.Field = mhz2mt(9400);  % mT, resonance field for g = gfree
 Exp.Dim1 = {'p1.Position' 0.1};
 Exp.Dim2 = {'p1.Position' 0.01};
 

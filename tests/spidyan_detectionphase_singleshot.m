@@ -1,12 +1,13 @@
 function [ok,data] = test(opt,olddata)
 
-Sys.ZeemanFreq = 9.5;
+Sys.S = 1/2;
 
 p.Flip = pi/2;
 p.tp = 0.02;
 
 Exp.Sequence = {p 0.5};
 Exp.mwFreq = 9.5;
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree
 
 % Test 1 - comparison for default detection operator
 s1_nodetectionphase = spidyan(Sys,Exp);

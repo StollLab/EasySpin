@@ -10,11 +10,12 @@
 clear 
 
 % Spin System
-Sys.ZeemanFreq = 9.500; % GHz
+Sys.S = 1/2;
 
 % General experiment settings
 Exp.DetOperator = 'z1';
 Exp.mwFreq = 9.500; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 
 % set up figure
 figure(1)

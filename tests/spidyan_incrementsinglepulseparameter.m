@@ -2,7 +2,6 @@ function ok = test()
 
 % System ------------------------
 Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500;
 
 % Experiment -------------------
 HS.Type = 'sech/uniformQ';
@@ -19,9 +18,9 @@ HS2.Flip = pi;
 
 
 Exp.Sequence = {HS1 0.5 HS2};
-Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Exp.DetSequence = 1; 
 
 % Options ---------------------------

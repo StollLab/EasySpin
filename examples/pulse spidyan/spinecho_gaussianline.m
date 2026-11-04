@@ -35,6 +35,7 @@ Pulse180.Flip = pi;  % flip angle, rad
 
 Exp.Sequence = {Pulse90 0.1 Pulse90 0.2}; 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(CenterFrequency*1e3);  % mT, resonance field of the line center for g = gfree
 
 % If you want to see only the free evolution after the second pulse use:
 Exp.DetSequence = [0 0 0 1]; % detect the last event
@@ -49,7 +50,7 @@ Signal = 0; % initialize the signal
 % Loop over the spinpackets and sum up the traces ------------
 for i = 1 : nSpinpackets
   
-  Sys_.ZeemanFreq = ZeemanFreqVec(i); % Set Zeeman frequency
+  Sys_.g = gfree*mhz2mt(ZeemanFreqVec(i)*1e3)/Exp.Field;  % g of the spin packet
   
   [t, signal] = spidyan(Sys_,Exp);
   
@@ -87,7 +88,7 @@ Exp.Sequence = {Chirp90 0.1 Chirp180 0.2}; % free evolution events in µs
 % Loop over the spinpackets and sum up the traces
 for i = 1 : nSpinpackets
   
-  Sys_.ZeemanFreq = ZeemanFreqVec(i); % Set Zeeman frequency
+  Sys_.g = gfree*mhz2mt(ZeemanFreqVec(i)*1e3)/Exp.Field;  % g of the spin packet
   
   [t, signal] = spidyan(Sys_,Exp);
   if i == 1

@@ -6,7 +6,7 @@
 clear
 
 % Spin System
-Sys.ZeemanFreq = 9.500; % resonance frequency of the spin in GHz
+Sys.S = 1/2;
 
 % Pulse Definition
 Pulse.Type = 'quartersin/linear';
@@ -18,6 +18,7 @@ Pulse.Frequency = [-100 100]; % frequency band, MHz
 % Experiment/Sequence
 Exp.Sequence = {Pulse}; % µs
 Exp.mwFreq = 9.500; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 
 % Options
 Exp.DetOperator = {'z1','+1'}; % detection operators

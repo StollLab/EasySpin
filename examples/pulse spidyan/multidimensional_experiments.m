@@ -6,7 +6,7 @@
 clear
 
 % Spin System
-Sys.ZeemanFreq = 9.5;
+Sys.S = 1/2;
 
 % Experiment
 Pulse90.Type = 'rectangular';
@@ -21,6 +21,7 @@ Pulse180.Flip = pi; % rad
 Exp.Sequence = {Pulse90 0.5 Pulse180 0.5}; % µs
 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 
 Exp.DetOperator = {'z1'};
 

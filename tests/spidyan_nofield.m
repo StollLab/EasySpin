@@ -1,7 +1,6 @@
 function ok = test()
 
-% Without Exp.Field, spidyan needs Sys.ZeemanFreq. With neither Sys.g nor
-% Sys.ZeemanFreq, it must issue an informative error.
+% Without Exp.Field, spidyan must issue an informative error.
 
 Pulse.tp = 0.02;  % µs
 Pulse.Flip = pi/2;

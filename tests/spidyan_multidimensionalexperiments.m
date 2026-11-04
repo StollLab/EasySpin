@@ -5,7 +5,6 @@ warning('off','all');
 
 % System ------------------------
 Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500;  % GHz
 
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
@@ -15,9 +14,9 @@ Pulse.tp = 0.2;  % µs
 Pulse.Frequency = 1000* [-0.1 0.1];  % MHz
 
 Exp.Sequence = {Pulse 0.5 Pulse};
-Exp.Field = 1240; 
 Opt.IntTimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;  % GHz
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Exp.DetSequence = 1; 
 Exp.DetPhase = 0;
 

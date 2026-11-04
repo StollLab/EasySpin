@@ -42,7 +42,6 @@ highSpin = false;
 for c = 1:numel(SysList)
   S_ = SysList{c};
   if isfield(S_,'S'), Svals = S_.S; else, Svals = 1/2; end
-  if isfield(S_,'ZeemanFreq') && ~isfield(S_,'S'), Svals = 1/2*ones(1,numel(S_.ZeemanFreq)); end
   if numel(Svals)>1
     reasons{end+1} = 'more than one electron spin'; %#ok<*AGROW>
   elseif Svals~=1/2

@@ -1,7 +1,7 @@
 function [ok,data] = test(opt,olddata)
 
 % System ------------------------
-Sys.ZeemanFreq = 33.500;
+Sys.S = 1/2;
 
 % Experiment -------------------
 Pulse.tp = 0.03;
@@ -9,6 +9,7 @@ Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0};
 Exp.mwFreq = 33.5;
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Exp.DetSequence = [0 1]; 
 
 % Options ---------------------------

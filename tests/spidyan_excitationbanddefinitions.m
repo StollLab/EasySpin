@@ -7,7 +7,6 @@ function ok = test()
 
 % System ------------------------
 Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500;
 
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
@@ -17,10 +16,10 @@ Pulse.Flip = pi;
 
 % First method ----------------------
 Exp.mwFreq = 33.5;
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Pulse.Frequency = 1000* [-0.100 0.100];
 
 Exp.Sequence = {Pulse 0.5};
-Exp.Field = 1240;
 Exp.TimeStep = 0.00001; % µs
 
 

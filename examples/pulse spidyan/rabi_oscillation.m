@@ -5,7 +5,7 @@
 clear
 
 % Spin System
-Sys.ZeemanFreq = 9.500; % resonance frequency of spin in GHz
+Sys.S = 1/2;
 
 % eperiment setup
 Pulse.Type = 'rectangular';
@@ -14,6 +14,7 @@ Pulse.Amplitude = 30; % MHz
 
 Exp.Sequence = {Pulse}; 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 
 Exp.DetWindow = 0;
 Exp.DetOperator = {'z1'};

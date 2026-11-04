@@ -15,7 +15,7 @@
 
 clear
 
-% Zeeman frequencies of the spins
+% Zeeman frequencies of the spins (set via their g values at a fixed field)
 ZFreqs = [9.4 9.5 9.6]; % GHz
 
 Pulse.Type = 'quartersin/linear';
@@ -27,6 +27,7 @@ Pulse.Frequency = [-200 200]; % MHz
 
 Exp.Sequence = {Pulse};
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 Exp.DetOperator = {'z1'};
 
 % Uncomment the following two lines to see the effect of the resonator
@@ -46,7 +47,7 @@ Signal = cell(1,length(ZFreqs));
 
 for i = 1 : length(ZFreqs)
   
-  Sys_.ZeemanFreq = [ZFreqs(i)];
+  Sys_.g = gfree*mhz2mt(ZFreqs(i)*1e3)/Exp.Field;  % g for the Zeeman frequency ZFreqs(i)
   [TimeAxis, Signal{i}] = spidyan(Sys_,Exp);
   
   plot(TimeAxis*1000,real(Signal{i}));

@@ -17,7 +17,7 @@ Opt.SimFreq = 9.48;
 
 % Fully polarized S=1/2, compared to the default initial state -Sz
 Sys.S = 1/2;
-Sys.ZeemanFreq = 9.5;
+Sys.g = gfree*mhz2mt(9500)/Exp.Field;  % Zeeman frequency 9.5 GHz
 [~,ref] = spidyan(Sys,Exp,Opt);
 Sys.initState = {[1 0],'eigen'};
 [~,sig1] = spidyan(Sys,Exp,Opt);
@@ -38,7 +38,7 @@ SysN.initState = {diag([0 1]),'uncoupled'};
 % Triplet: 'xyz' populations equal 'zerofield' populations in energy order
 % (D>0, E>0: Z < X < Y)
 SysT.S = 1;
-SysT.ZeemanFreq = 9.5;
+SysT.g = Sys.g;
 SysT.D = [300 30];
 SysT.initState = {[0.5 0.3 0.2],'xyz'};
 [~,sigT1] = spidyan(SysT,Exp,Opt);

@@ -9,7 +9,6 @@ warning('off','all');
 
 % System ------------------------
 Sys.S = 1/2;
-Sys.ZeemanFreq = 9.5;
 Sys.T1 = 0.2;
 Sys.T2 = 0.1;
 
@@ -20,6 +19,7 @@ Pulse.Flip = pi/2;
 
 Exp.Sequence = {Pulse 0.1 Pulse 0.05};
 Exp.mwFreq = 9.5;
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree
 Exp.DetSequence = [0 0 0 1];
 Exp.DetTimeStep = 0.005;
 Exp.DetOperator = {'z1','+1'};

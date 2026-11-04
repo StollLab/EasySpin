@@ -7,7 +7,6 @@ clear
 
 % Default Spin System
 Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500; % GHz
 Sys.T1 = 1; % µs
 Sys.T2 = 0.5; % µs
 
@@ -25,6 +24,7 @@ Adiabatic.Frequency = [-50 50]; % frequency band,MHz
 
 % A default Experiment/Sequence
 Exp.mwFreq = 33.5; % GHz
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree at 33.5 GHz
 Exp.DetOperator = {'z1'};
 
 %% 1) Using a custom initial state and equilibrium state:
@@ -64,7 +64,6 @@ legend(Exp.DetOperator)
 
 Sys_ = [];
 Sys_.S = 1/2;
-Sys_.ZeemanFreq = 0.3; % GHz
 
 Strong.Type = 'rectangular';
 Strong.tp = 0.005; % µs
@@ -72,6 +71,7 @@ Strong.Flip = pi; % rad
 
 Exp_ = [];
 Exp_.mwFreq = 0.3; % GHz
+Exp_.Field = mhz2mt(300);  % mT, resonance field for g = gfree at 0.3 GHz
 Exp_.Sequence = {Strong};
 Exp_.DetOperator = {'z1'};
 

@@ -11,8 +11,8 @@ orig_state = warning;
 warning('off','all');
 
 Sys.S = 1/2;
-Sys.ZeemanFreq = 9.505;  % GHz
 Exp.Field = 340;
+Sys.g = gfree*mhz2mt(9505)/Exp.Field;  % Zeeman frequency 9.505 GHz
 Exp.mwFreq = 9.5;
 
 % Two pi/2 pulses with a varying relative phase, separated by a delay
@@ -77,7 +77,7 @@ ok(7) = throwsError(@() spidyan(SysT,Exp,OptT));
 % An electron that precesses in the negative sense (negative g) is
 % rejected in a shifted frame
 SysG.S = [1/2 1/2];
-SysG.ZeemanFreq = [9.505 -9.6];  % GHz
+SysG.g = gfree*mhz2mt([9505; -9600])/Exp.Field;  % Zeeman frequencies 9.505 and -9.6 GHz
 SysG.J = 1;  % MHz
 ok(8) = throwsError(@() spidyan(SysG,Exp,Opt));
 

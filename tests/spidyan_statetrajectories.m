@@ -2,7 +2,6 @@ function [ok,data] = test(opt,olddata)
 
 % System ------------------------
 Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500; % GHz
 
 % Experiment -------------------
 Pulse.Type = 'quartersin/linear';
@@ -12,10 +11,10 @@ Pulse.Frequency = 1000* [-0.100 0.100];
 Pulse.Flip = pi;
 
 Exp.Sequence = {Pulse 0.5 Pulse};
-Exp.Field = 1240; % mT
 Exp.TimeStep = 0.0001; % µs
 
 Exp.mwFreq = 33.5;
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Exp.DetSequence = [1 0 0]; 
 
 % Options ---------------------------

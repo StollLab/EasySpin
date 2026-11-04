@@ -8,8 +8,8 @@ orig_state = warning;
 warning('off','all');
 
 Sys.S = 1/2;
-Sys.ZeemanFreq = 9.505;  % GHz
 Exp.mwFreq = 9.5;  % GHz
+Exp.Field = mhz2mt(9505);  % mT, resonance field for g = gfree at 9.505 GHz
 p90.Flip = pi/2;
 p90.tp = 0.02;  % µs
 Exp.Sequence = {p90 0.1};
@@ -81,12 +81,11 @@ ok(7) = areequal(s6(:).',s(idx,:),1e-9,'abs');
 % propagation (with state trajectories) agree, also for detection
 % operators with several electron coherence orders
 SysT.S = 1;
-SysT.ZeemanFreq = 9.505;
 SysT.D = 30;  % MHz
 ExpT = Exp;
 ExpT.DetOperator = {'x1','+1','z1'};
 SysE.S = [1/2 1/2];
-SysE.ZeemanFreq = [9.505 9.51];
+SysE.g = gfree*[9.505; 9.51]/9.505;  % Zeeman frequencies 9.505 and 9.51 GHz
 SysE.J = 5;  % MHz
 ExpE = Exp;
 ExpE.DetOperator = {'x1','x2','+1','+2','z1'};

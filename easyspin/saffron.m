@@ -345,9 +345,6 @@ x_out = [];
 %===============================================================================
 % Spin system structure
 %===============================================================================
-if isfield(Sys,'ZeemanFreq') && ~isempty(Sys.ZeemanFreq)
-  Sys = zeemanfreq2g(Sys,Exp);
-end
 [Sys,err] = validatespinsys(Sys);
 error(err);
 if Sys.MO_present
@@ -543,17 +540,6 @@ end
 if max(abs(fd(:)))<1e-300, fd = fd*0; end
 info.td = td;
 info.fd = fd;
-end
-
-%===============================================================================
-% Sys.ZeemanFreq (GHz) as g values at the given field
-function Sys = zeemanfreq2g(Sys,Exp)
-nuZ = Sys.ZeemanFreq(:).'*1e9;  % Hz
-if isfield(Sys,'S') && numel(Sys.S)~=numel(nuZ)
-  error('Sys.ZeemanFreq needs one value per electron spin.');
-end
-Sys.g = (planck*nuZ/bmagn/(Exp.Field*1e-3)).';
-Sys = rmfield(Sys,'ZeemanFreq');
 end
 
 %===============================================================================

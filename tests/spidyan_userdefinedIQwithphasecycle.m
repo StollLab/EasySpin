@@ -5,7 +5,6 @@ warning('off','all');
 
 % System ------------------------
 Sys.S = [1/2];
-Sys.ZeemanFreq = [33.600];
 
 
 % Pulse -------------------
@@ -19,9 +18,9 @@ PC = [0, 1; pi, -1];
 
 % Experiment with pulses internally defined -------------------
 Exp.Sequence = {Pulse 0.5 Pulse};
-Exp.Field = 1240; 
 Opt.IntTimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
+Exp.Field = mhz2mt(33600);  % mT, resonance field for g = gfree
 Exp.DetEvents = [1 1 1]; 
 Exp.PhaseCycle = {PC []};
 

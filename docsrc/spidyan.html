@@ -95,17 +95,9 @@ The three input arguments to <code>spidyan</code> are
 <code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. 
 Most of the regular fields of <code>Sys</code> can be used for the construction of the spin Hamiltonian. 
 Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, <code>StrainPars</code>, etc.) are ignored.
-Some additional fields can be used with <code>spidyan</code>: To facilitate working with frequency-swept pulses, the field <code>ZeemanFreq</code> is available.
 For simulations with relaxation, at least generic relaxation times <code>T1</code> or <code>T2</code> should be provided.
 If only one is provided, the other type of relaxation is switched off.
 </p>
-
-<div class="optionfield"><code>ZeemanFreq</code></div>
-<div class="optiondescr">
-Array with Zeeman frequencies (in GHz) of electron spins defined in <code>S</code> of the spin system structure. 
-It is possible to use <code>ZeemanFreq</code> in combination with <code>g</code>. 
-If a non-zero Zeeman frequency is found, any g values given for this electron spin are ignored.
-</div>
 
 <div class="optionfield"><code>T1</code></div>
 <div class="optiondescr">
@@ -157,8 +149,8 @@ The equilibrium state is only used if relaxation is active; otherwise, it is ign
 
 <div class="optionfield"><code>Field</code></div>
 <div class="optiondescr">
-Magnetic field (in mT) at which the experiment is performed; it needs to be provided only if the spin system is defined with <code>Sys.g</code>. Negative fields are not supported.
-If <code>Sys.ZeemanFreq</code> is used, <code>Field</code> can be omitted.
+Magnetic field (in mT) at which the experiment is performed, required. Negative fields are not supported.
+To place an electron spin with g = g<sub>free</sub> (the default) at a given Zeeman frequency <code>nu</code> (in GHz), use its resonance field, <code>Exp.Field = mhz2mt(nu*1e3)</code>. With nuclei, keep the physical field and set <code>Sys.g = gfree*mhz2mt(nu*1e3)/Exp.Field</code> instead.
 </div>
 
 <div class="optionfield"><code>Sequence</code></div>

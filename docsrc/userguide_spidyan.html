@@ -67,12 +67,12 @@ A <a class="esf" href="spidyan.html">spidyan</a> script has the same layout as a
 </p>
 
 <pre class="matlab">
-Sys.ZeemanFreq = 9.5; % in GHz
+Sys.S = 1/2;
 </pre>
 
 Here, we already encounter the first difference between <a class="esf" href="spidyan.html">spidyan</a> and <a class="esf" href="saffron.html">saffron</a>. 
 <a class="esf" href="saffron.html">saffron</a> simulates powder-averaged (or single-crystal) EPR experiments, whereas <a class="esf" href="spidyan.html">spidyan</a> only works with one single spin system at a time.
-While <a class="esf" href="spidyan.html">spidyan</a> still accepts <code>Sys.g</code>, it can be more convenient to define the Zeeman frequency <code>Sys.ZeemanFreq</code> of the investigated spin packet.
+The spin has the default g = g<sub>free</sub>.
 
 <p>
 After the spin system comes the experiment. Here we are creating a two-pulse sequence:
@@ -87,10 +87,11 @@ p180.tp = 0.04; % pulse length in &mu;s
 tau = 0.5; % delay in &mu;s
 Exp.Sequence = {p90 tau p180 tau}; % pulse sequence
 Exp.mwFreq = 9.5; % carrier frequency
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 </pre>
 
 <p>
-Here we create two monochromatic rectangular pulses with flip angles &pi;/2 and &pi; that are separated by a free evolution period.
+Here we create two monochromatic rectangular pulses with flip angles &pi;/2 and &pi; that are separated by a free evolution period. The field is the resonance field of the spin at 9.5 GHz (<a class="esf" href="mhz2mt.html">mhz2mt</a>), so the spin is on resonance with the carrier.
 </p>
  
 <p>
@@ -120,7 +121,7 @@ First, we start again with the spin system.
 </p>
 
 <pre class="matlab">
-Sys.ZeemanFreq = 9.5; % in GHz
+Sys.S = 1/2;
 </pre>
 
 Next, let's define some general experimental parameters, like the detection operator and the carrier frequency:
@@ -128,6 +129,7 @@ Next, let's define some general experimental parameters, like the detection oper
 <pre class="matlab">
 Exp.DetOperator = 'z1';
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 </pre>
 
 <p>
@@ -256,7 +258,7 @@ Hence, instead of <code>Pulse.Flip</code>, you can also provide <code>Pulse.Ampl
 
 <p>
 Adiabatic pulses have the big advantage that they invert all spins within their excitation band equally.
-You can see this by changing the resonance frequency of the spin <code>Sys.ZeemanFreq</code> from <code>9.500</code> by 25 MHz to <code>Sys.ZeemanFreq = 9.525</code> and then comparing the three pulses.
+You can see this by changing the resonance frequency of the spin by 25 MHz, from <code>Exp.Field = mhz2mt(9500)</code> to <code>Exp.Field = mhz2mt(9525)</code>, and then comparing the three pulses.
 </p>
 
 <p>
@@ -274,7 +276,7 @@ We start with the spin system:
 </p>
 
 <pre class="matlab">
-Sys.ZeemanFreq = 9.500; % resonance frequency of the spin in GHz
+Sys.S = 1/2;
 </pre>
 
 <p>
@@ -290,6 +292,7 @@ Pulse.Frequency = [-100 100]; % frequency band in MHz
 
 Exp.Sequence = {Pulse}; % &mu;s
 Exp.mwFreq = 9.500; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 </pre>
 
 <p>
@@ -448,7 +451,6 @@ First, let us define a spin system with some zero-field splitting:
 
 <pre class="matlab">
 Sys.S = 3/2;
-Sys.ZeemanFreq = 33.500; % GHz
 Sys.D = 166;  % MHz
 </pre>
 
@@ -479,6 +481,7 @@ We then set the carrier frequency and specify our detection operators:
 
 <pre class="matlab">
 Exp.mwFreq = 33.5; % GHz
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree at 33.5 GHz
 
 % The detection operators detect polarization between (1) levels 1 and 2,
 % levels 2 and (3) levels 3 and 4
@@ -536,7 +539,6 @@ Since we are interested in seeing the pulses and not spin dynamics, we are going
 
 <pre class="matlab">
 Sys.S = [1/2 1/2];
-Sys.ZeemanFreq = [9.500 9.500]; % GHz
 
 Sys.J = 0; % spin-spin coupling, MHz
 </pre>
@@ -558,6 +560,7 @@ tau = 0.5; % mus
 Exp.Sequence = {P90 tau P180 tau P180 tau};
 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 </pre>
 
 <p>
@@ -631,7 +634,7 @@ Once again, we start with the spin system and then set up a very short 1 ns rect
 
 <pre class="matlab">
 % Spin System
-Sys.ZeemanFreq = 9.500; % GHz
+Sys.S = 1/2;
 </pre>
 
 <p>
@@ -648,6 +651,7 @@ Pulse.Amplitude = 30; % pulse amplitude in MHz
 
 Exp.Sequence = {Pulse}; 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 </pre>
 
 <p>
@@ -702,7 +706,7 @@ ylim([-1 1]) % to ensure right limits in the plot
 </pre>
 
 <p>
-Now you can investigate how the frequency of the Rabi oscillation depends on the frequency difference between the microwave pulse and the resonance frequency of the spin by changing <code>Sys.ZeemanFreq</code>.
+Now you can investigate how the frequency of the Rabi oscillation depends on the frequency difference between the microwave pulse and the resonance frequency of the spin by changing <code>Exp.Field</code>.
 </p>
 
 <p>
@@ -729,7 +733,7 @@ In such a case you can manually define an orientation loop which calls <a class=
 </p>
 
 <p>
-We start again with the spin system, but this time we are using <code>Sys.g</code> instead of <code>Sys.ZeemanFreq</code>.
+We start again with the spin system, but this time with a g tensor and a nucleus.
 Since we are going to manually rotate the interactions, we are going to set them up as tensors:
 </p>
 
@@ -868,6 +872,7 @@ Pulse180.Flip = pi/2;  % flip angle, rad
 
 Exp.Sequence = {Pulse90 0.25 Pulse90 0.5}; 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(CenterFrequency*1e3);  % mT, resonance field of the line center for g = gfree
 
 Exp.DetSequence = [0 0 0 1]; % detect the last event
 
@@ -886,7 +891,7 @@ Signal = 0; % initialize the signal
 % Loop over the spin packets and sum up the traces ------------
 for i = 1 : nSpinpackets
   
-  Sys_.ZeemanFreq = ZeemanFreqVec(i); % Set Zeeman frequency
+  Sys_.g = gfree*mhz2mt(ZeemanFreqVec(i)*1e3)/Exp.Field;  % g of the spin packet
   
   [t, signal] = spidyan(Sys_,Exp);
   

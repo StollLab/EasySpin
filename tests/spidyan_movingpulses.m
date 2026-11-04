@@ -5,7 +5,6 @@ warning('off','all');
 
 % System ------------------------
 Sys.S = 1/2;
-Sys.ZeemanFreq = 33.500;
 
 % Experiment -------------------
 Pulse.Type = 'rectangular';
@@ -13,9 +12,9 @@ Pulse.Flip = pi;
 Pulse.tp = 0.1;
 
 Exp.Sequence = {Pulse 0.5 Pulse 0.5 Pulse 0.5};
-Exp.Field = 1240; 
 Opt.IntTimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
+Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Exp.DetSequence = 1;
 Exp.DetPhase = 0;
 

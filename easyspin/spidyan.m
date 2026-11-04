@@ -83,24 +83,7 @@ end
 
 % Check for magnetic field
 if ~isfield(Exp,'Field')
-  logmsg(1,'  no Exp.Field given');
-  logmsg(1,'  checking if Sys allows for running without a field...');
-  if isfield(Sys,'g')
-    error('Exp.Field is required for Sys.g.')
-  elseif isfield(Sys,'ZeemanFreq') && ~isempty(Sys.ZeemanFreq) && all(Sys.ZeemanFreq~=0) % && (~isfield(Sys,'S') || all(Sys.S==1/2))
-    if Sys.ZeemanFreq(1)<0
-      error('Exp.Field is missing and cannot be negative, so Sys.ZeemanFreq(1) must be positive.');
-    end
-    % if Sys.ZeemanFreq is used, it Exp.Field is not required, however the
-    % program needs a reference field to correctly shift frequencies and
-    % to calculate nuclear Larmor frequencies (if nuclei are given). The
-    % program does so, by "guessing" a field from Sys.ZeemanFreq and gfree
-    Exp.Field = (Sys.ZeemanFreq(1)*1e6)*planck/bmagn/(gfree*1e-6);
-    logmsg(1,'  Exp.Field is needed for calculating simulation frame frequencies');
-    logmsg(1,'  setting Exp.Field to %.1f mT',Exp.Field);
-  else
-    error('Exp.Field is required for given spin system.')
-  end  
+  error('Exp.Field is required. Give a magnetic field in mT.');
 elseif length(Exp.Field) ~= 1
   error('Exp.Field must be a single number (in mT).');
 elseif Exp.Field<0
@@ -128,49 +111,6 @@ if nargout == 0 && isfield(Exp,'nPoints')
 end
 
 logmsg(1,'-validating spin system--------------------------------');
-
-if ~isfield(Sys,'S')
- if isfield(Sys,'ZeemanFreq') && ~isscalar(Sys.ZeemanFreq)
-  error('If you provide more than one value in Sys.ZeemanFreq, Sys.S must be specified');
- end
-end
-
-% Translate Frequency to g values
-if isfield(Sys,'ZeemanFreq')
-  logmsg(1,'  translating Sys.ZeemanFreq into g values');
-  Sys.ZeemanFreq = Sys.ZeemanFreq*1000; % GHz -> MHz
-  if isfield(Sys,'g')
-    [~, dgTensor] = size(Sys.g);
-    if isfield(Sys,'S')
-      nElectrons = numel(Sys.S);
-    else
-      nElectrons = 1;
-    end
-    fullg = isequal(size(Sys.g),[3*nElectrons 3]);
-  else
-    dgTensor = 1;
-    fullg = false;
-  end
-  % Recalculates the g value
-  for ieSpin = 1 : length(Sys.ZeemanFreq)
-    if Sys.ZeemanFreq(ieSpin) ~= 0
-      g = (Sys.ZeemanFreq(ieSpin)*1e6)*planck/bmagn/(Exp.Field*1e-3);
-      if dgTensor==6
-        Sys.g(ieSpin,:) = [g g g 0 0 0];  % symmetric g matrix
-      elseif fullg
-        Sys.g(3*ieSpin-2:3*ieSpin,:) = g*eye(3);  % full g matrix
-      else
-        Sys.g(ieSpin,1:dgTensor) = g;
-      end
-    end
-  end
-end
-
-% Remove spidyan-specific field ZeemanFreq if given
-if isfield(Sys,'ZeemanFreq')
-  logmsg(1,'  removing Sys.ZeemanFreq from Sys structure');
-  Sys = rmfield(Sys,'ZeemanFreq');
-end
 
 % Transfer DetOperator from Exp to Opt, to make it available to
 % sf_propagationsetup

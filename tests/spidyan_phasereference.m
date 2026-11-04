@@ -7,7 +7,6 @@ tol = 0.5;  % degrees
 ok = [];
 
 Sys.S = 1/2;
-Sys.ZeemanFreq = 9.5;  % GHz
 
 P90.Type = 'rectangular';
 P90.tp = 0.010;  % µs
@@ -16,6 +15,7 @@ P180 = P90;
 P180.Flip = pi;
 
 Exp.mwFreq = 9.5;  % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree
 
 % Two-pulse echo, transient and single-point detection: the echo phase is
 % the same for sub-ns changes of tau and for different simulation frames

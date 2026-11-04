@@ -8,7 +8,6 @@ clear
 
 % System
 Sys.S = [1/2 1/2];
-Sys.ZeemanFreq = [9.500 9.500]; % GHz
 
 Sys.J = 0; % MHz
 
@@ -26,6 +25,7 @@ tau = 0.5; % µs
 Exp.Sequence = {P90 tau P180 tau P180 tau};
 
 Exp.mwFreq = 9.5; % GHz
+Exp.Field = mhz2mt(9500);  % mT, resonance field for g = gfree at 9.5 GHz
 
 Exp.DetOperator = {'z1' 'z2'};
 
