@@ -108,10 +108,10 @@ for k = 1:N
         P(k).Flip = p_.Flip;
       elseif isfield(p_,'Amplitude') && P(k).tp>0
         P(k).Flip = 2*pi*p_.Amplitude*P(k).tp;
-      elseif rect
+      elseif rect && ~isfield(p_,'IQ')
         error('Pulse %d: the flip angle (Flip) is missing.',k);
       else
-        P(k).Flip = pi;  % placeholder, shaped pulses are not supported
+        P(k).Flip = pi;  % placeholder, shaped and IQ pulses are not supported
       end
       P(k).ideal = P(k).tp==0 || idealPulses;
     case 'rf'
@@ -211,6 +211,14 @@ for d = 1:nDims
   linStep = nan(1,numel(targets));
   for k = 1:numel(targets)
     v = values{k};
+    if size(v,2)>1 && ~isempty(regexp(targets{k},'\.Frequency$','once'))
+      % several values per point: a row of band-edge increments, or one
+      % frequency band per row (as read by sf_buildevents); a column of
+      % per-point offsets is handled below
+      reasons{end+1} = 'indirect dimensions over frequency bands of pulses';
+      vals{k} = [];
+      continue
+    end
     if isscalar(v)
       vals{k} = v*(0:nPoints(d)-1);
       linStep(k) = v;
