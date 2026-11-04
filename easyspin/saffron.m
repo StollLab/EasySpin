@@ -234,7 +234,7 @@ else
 end
 
 % Parse pulse sequence
-[Events,Vary,Opt,oldSeq] = s_sequencer(Exp,Opt);
+[Events,Vary,Opt,oldSeq,fastReason] = s_sequencer(Exp,Opt);
 if ~isempty(oldSeq)
   Exp.Flip = oldSeq.Flip;
   Exp.Phase = oldSeq.Phase;
@@ -248,9 +248,14 @@ fastSimulationMode = Opt.SimulationMode=="fast";
 
 % In thyme mode, user-defined sequences are detected only in Exp.DetWindow
 if ~fastSimulationMode && iscell(Exp.Sequence) && ~isfield(Exp,'DetWindow')
-  error(['The thyme method needs a detection window (Exp.DetWindow) for ' ...
-    'user-defined sequences. (The fast method, which detects the echo at the ' ...
-    'end of the sequence, needs an indirect dimension, Exp.nPoints and Exp.Dim1.)']);
+  msg = 'The thyme method needs a detection window (Exp.DetWindow) for user-defined sequences.';
+  if isempty(fastReason)
+    msg = [msg ' (The fast method, which detects the echo at the end of the ' ...
+      'sequence, needs an indirect dimension, Exp.nPoints and Exp.Dim1.)'];
+  else
+    msg = [msg ' The fast method cannot be used: ' fastReason '.'];
+  end
+  error(msg);
 end
 
 % Number of points of predefined sequences in thyme mode, as set up by
@@ -275,7 +280,7 @@ if fastSimulationMode
   %===================================================================
 
   % Pulse sequence
-  idxFreeL = []; idxFreeR = []; idxPulseL = []; idxPulseR = [];
+  idxPulseL = []; idxPulseR = [];
   idxIncL = []; idxIncR = [];
   predefinedExperiment = isfield(Exp,'Sequence') && ~isempty(Exp.Sequence) && ischar(Exp.Sequence);
   if predefinedExperiment
@@ -354,19 +359,18 @@ if fastSimulationMode
     if numel(Exp.Inc)~=nIntervals
       error('Exp.Inc must contain the same number of elements as Exp.Flip.');
     end
+    % Incremented delays, in order, labeled by their dimension, with their
+    % IDs in sf_peaks (s_sequencer switches to thyme for other schemes)
     IncScheme = Exp.Inc(Exp.Inc~=0);
     if isequal(IncScheme,1), IncSchemeID = 1;
     elseif isequal(IncScheme,[1 1]), IncSchemeID = 2;
-    elseif isequal(IncScheme,[1 -1]), IncSchemeID = 3;
     elseif isequal(IncScheme,[1 2]), IncSchemeID = 11;
     elseif isequal(IncScheme,[1 2 1]), IncSchemeID = 12;
-    elseif isequal(IncScheme,[1 2 2]), IncSchemeID = 13;
     elseif isequal(IncScheme,[1 1 2]), IncSchemeID = 14;
     elseif isequal(IncScheme,[1 2 2 1]), IncSchemeID = 15;
-    elseif isequal(IncScheme,[1 2 -2 1]), IncSchemeID = 16;
     elseif isequal(IncScheme,[1 1 2 2]), IncSchemeID = 17;
     else
-      error('Unsupported incrementation scheme in Exp.Inc.');
+      error('Unsupported incrementation scheme.');
     end
     nDimensions = max(abs(Exp.Inc));
 
@@ -645,7 +649,6 @@ if fastSimulationMode
     'isENDOR',isENDOR,'nIntervals',nIntervals,'nDimensions',nDimensions,...
     'IncSchemeID',IncSchemeID,'nPathways',nPathways,...
     'pathwayprefactor',pathwayprefactor,...
-    'idxFreeL',idxFreeL,'idxFreeR',idxFreeR,...
     'idxPulseL',idxPulseL,'idxPulseR',idxPulseR,...
     'idxIncL',idxIncL,'idxIncR',idxIncR,...
     'idealPulse',idealPulse,'OrientationSelection',OrientationSelection);
@@ -802,8 +805,6 @@ if fastSimulationMode
   IncSchemeID = Opt.fastSeq.IncSchemeID;
   nPathways = Opt.fastSeq.nPathways;
   pathwayprefactor = Opt.fastSeq.pathwayprefactor;
-  idxFreeL = Opt.fastSeq.idxFreeL;
-  idxFreeR = Opt.fastSeq.idxFreeR;
   idxPulseL = Opt.fastSeq.idxPulseL;
   idxPulseR = Opt.fastSeq.idxPulseR;
   idxIncL = Opt.fastSeq.idxIncL;
@@ -879,7 +880,9 @@ if fastSimulationMode
 
   % ProductRule: not used for a single nucleus
   if Sys.nNuclei==1, Opt.ProductRule = 0; end
-  %if isENDOR, Opt.ProductRule = 1; end
+  if Opt.ProductRule && ~predefinedExperiment
+    error('Opt.ProductRule is not supported for user-defined pulse sequences.');
+  end
 
   % EndorMethod: how to simulate the effect of the RF pulse in ENDOR
   if isENDOR
@@ -1156,10 +1159,20 @@ if fastSimulationMode
     end
     offsetWeight = exp(-(offsets/Opt.lwOffset).^2);
     offsetWeight = offsetWeight/sum(offsetWeight);
+    % Nutation frequencies of the finite pulses (MHz). Pulses with the same
+    % nutation frequency have the same pulse Hamiltonian and differ only in
+    % length, so they share its eigenvectors (pulseGroup indexes nu1Pulse).
+    nu1 = zeros(1,nIntervals);
+    nu1(realPulse) = (pi/2*Exp.Flip(realPulse))./Exp.tp(realPulse)/2/pi;
+    [nu1Pulse,~,iGroup] = unique(nu1(realPulse));
+    pulseGroup = zeros(1,nIntervals);
+    pulseGroup(realPulse) = iGroup;
   else
     offsets = 0;
     offsetWeight = 1;
     Opt.nOffsets = 1;
+    nu1Pulse = [];
+    pulseGroup = zeros(1,nIntervals);
   end
 
   if twoElectronManifolds
@@ -1344,6 +1357,33 @@ if fastSimulationMode
         if any(realPulse)
           idxa = 1:nNucStates;
           idxb = idxa + nNucStates;
+          % Pulse Hamiltonian (in the frame rotating at the microwave
+          % frequency) for each nutation frequency, without the offset term,
+          % which is offset*Sz with Sz = +1/2 (a) and -1/2 (b)
+          Szdiag = [ones(nNucStates,1); -ones(nNucStates,1)]/2;
+          Hpulse0 = cell(1,numel(nu1Pulse));
+          for iGroup = 1:numel(nu1Pulse)
+            Hpulse0{iGroup} = [diag(Ea), M*nu1Pulse(iGroup)/2; ...
+              Mt*nu1Pulse(iGroup)/2, diag(Eb)];
+          end
+        end
+        % Propagator of each interval (pulse, then free evolution during the
+        % fixed delay) for the four blocks 1 = aa, 2 = bb, 3 = ab and 4 = ba
+        % (see pathwayparser). The free evolution is in the manifold of the
+        % row index (a for aa and ab, b for bb and ba). The density evolves
+        % as Step*rho*Step'. Diagonal steps are stored as column vectors.
+        % For ideal pulses, the pulse transfer amplitudes are in
+        % pathwayprefactor, and the steps do not depend on the offset. For
+        % finite pulses, they are computed for each offset below.
+        if ~predefinedExperiment
+          freeA = exp(-2i*pi*Ea*Exp.t);  % nNucStates x nIntervals
+          freeB = exp(-2i*pi*Eb*Exp.t);
+          Step = cell(nIntervals,4);
+          for iInt = find(idealPulse)
+            fa = freeA(:,iInt);
+            fb = freeB(:,iInt);
+            Step(iInt,:) = {fa, fb, fa.*M, fb.*Mt};
+          end
         end
         % Set up RF operator for ENDOR
         if isENDOR
@@ -1357,13 +1397,13 @@ if fastSimulationMode
 
         for iOffset = 1:Opt.nOffsets
 
-          % Pulse propagators
-          for iInt = 1:nIntervals
-            if realPulse(iInt)
-              nu1 = (pi/2*Exp.Flip(iInt))/Exp.tp(iInt)/2/pi;
-              Hpulse = [diag(Ea+offsets(iOffset)/2), M*nu1/2; ...
-                Mt*nu1/2 diag(Eb-offsets(iOffset)/2)];
-              FullPulsePropagator = expm(-2i*pi*Exp.tp(iInt)*Hpulse);
+          % Pulse propagators exp(-2i*pi*tp*Hpulse), from the eigenvalues
+          % and eigenvectors of the (Hermitian) pulse Hamiltonian
+          for iGroup = 1:numel(nu1Pulse)
+            Hpulse = Hpulse0{iGroup} + diag(offsets(iOffset)*Szdiag);
+            [V,lambda] = eig(Hpulse,'vector');
+            for iInt = find(pulseGroup==iGroup)
+              FullPulsePropagator = (V.*exp(-2i*pi*Exp.tp(iInt)*lambda.'))*V';
               % Hpulse is for a pulse along x (Exp.Phase, in multiples of
               % pi/2, 0 = x). Another phase rotates the propagator about
               % the electron Sz, which multiplies the a-b block by
@@ -1400,74 +1440,47 @@ if fastSimulationMode
           if ~predefinedExperiment
 
             % General method ------------------------------------------
+            % Interval propagators of the finite pulses (see Step above)
+            for iInt = find(realPulse)
+              fa = freeA(:,iInt);
+              fb = freeB(:,iInt);
+              Step(iInt,:) = {fa.*PulseSubPropagator{iInt,1}, ...
+                fb.*PulseSubPropagator{iInt,2}, ...
+                fa.*PulseSubPropagator{iInt,3}, ...
+                fb.*PulseSubPropagator{iInt,4}};
+            end
+
+            % Each pathway is split into blocks at the incremented delays:
+            % G (density before the first incremented delay), BlockL/BlockR
+            % (transfer between incremented delays), and D (detection
+            % operator S+, propagated back from the end of the sequence)
             increments = Exp.Inc;
             BlockL = cell(0);
             BlockR = cell(0);
             for iPathway = 1:nPathways
               iBlock = 0;
-              Left = prefactor*pathwayprefactor(iPathway);
-              Right = 1;
+              Left = prefactor*pathwayprefactor(iPathway)*eyeN;
+              Right = eyeN;
               for iInt = 1:nIntervals
-                % Pulse propagator
-                if idealPulse(iInt)
-                  switch idxPulseL(iPathway,iInt)
-                    case 3, Left = M*Left;
-                    case 4, Left = Mt*Left;
-                  end
-                  switch idxPulseR(iPathway,iInt)
-                    case 3, Right = Right*Mt;
-                    case 4, Right = Right*M;
-                  end
-                else
-                  Left = PulseSubPropagator{iInt,idxPulseL(iPathway,iInt)}*Left;
-                  Right = Right*PulseSubPropagator{iInt,idxPulseR(iPathway,iInt)}';
-                end
-
-                % Free evolution propagator
-                t = Exp.t(iInt);
-                if t>0
-                  if idxFreeL(iPathway,iInt)==1, E = Ea; else, E = Eb; end
-                  Left = diag(exp(-2i*pi*E*t)) * Left;
-                  if idxFreeR(iPathway,iInt)==1, E = Ea; else, E = Eb; end
-                  Right = Right * diag(exp(+2i*pi*E*t));
-                end
-
-                % Conclude block and start next one
+                P = Step{iInt,idxPulseL(iPathway,iInt)};
+                if iscolumn(P), Left = P.*Left; else, Left = P*Left; end
+                P = Step{iInt,idxPulseR(iPathway,iInt)};
+                if iscolumn(P), Right = Right.*P'; else, Right = Right*P'; end
                 if increments(iInt)~=0
                   if iBlock==0
                     G = Left*Right;
-                    if isscalar(G)
-                      G = G*eyeN;
-                    end
                   else
-                    if isscalar(Left)
-                      BlockL{iBlock} = eyeN;
-                    else
-                      BlockL{iBlock} = Left;
-                    end
-                    if isscalar(Right)
-                      BlockR{iBlock} = eyeN;
-                    else
-                      BlockR{iBlock} = Right;
-                    end
+                    BlockL{iBlock} = Left;
+                    BlockR{iBlock} = Right;
                   end
                   iBlock = iBlock + 1;
-                  Left = 1;
-                  Right = 1;
+                  Left = eyeN;
+                  Right = eyeN;
                 end
-
-              end % iInt
-
-              if increments(end)~=0
-                D = M;
-              else
-                D = Right*M*Left;
               end
+              D = Right*M*Left;
 
               % Accumulate peaks / generate time domain
-              if Opt.ProductRule
-                error('Product rule for user-defined experiments not implemented.');
-              end
               if Opt.TimeDomain
                 totaltd = totaltd + ...
                   sf_evolve(IncSchemeID,Exp.nPoints,Exp.dt,...
@@ -2367,9 +2380,6 @@ switch IncSchemeID
       T1r = UUright.*T1r; % equivalent to U*T1Right*U'
     end
 
-  case 3 % IncScheme [1 -1]
-    error('Time-domain evolution for incrementation scheme [1 -1] not supported.');
-
   case 11 % IncScheme [1 2], HYSCORE
     UUt1 = exp(-2i*pi*E{incL(1)}*dt(1))*exp(-2i*pi*E{incR(1)}*dt(1))';
     UUt2 = exp(-2i*pi*E{incL(2)}*dt(2))*exp(-2i*pi*E{incR(2)}*dt(2))';
@@ -2383,27 +2393,8 @@ switch IncSchemeID
       Density = UUt1.*Density;
     end
 
-  case 12 % IncScheme [1 2 2]
-    error('Time-domain evolution for this experiment not supported.');
-
-  case 13 % IncScheme [1 2 1] 2D-3p
-    error('Time-domain evolution for this experiment not supported.');
-
-  case 14 % IncScheme [1 1 2], CF-NF
-    error('Time-domain evolution for this experiment not supported.');
-
-  case 15 % IncScheme [1 2 2 1], 2D-CP
-    error('Time-domain evolution for this experiment not supported.');
-
-  case 16 % IncScheme [1 2 -2 1]
-    error('Time-domain evolution for this experiment not supported.');
-
-  case 17 % IncScheme [1 1 2 2], 2D refocused primary ESEEM
-    error('Time-domain evolution for this experiment not supported.');
-
   otherwise
-
-    error('Time-domain evolution for this experiment not supported.');
+    error('Time-domain evolution (Opt.TimeDomain) is only supported for the incrementation schemes [1], [1 1] and [1 2].');
 
 end
 
@@ -2431,9 +2422,6 @@ function [FreeL,FreeR,PulsL,PulsR] = pathwayparser(ctp)
 % E.g. -b in 2nd row and 3rd column describes transfer from
 % S+ to Sb. -b is an abbreviation for U- * ... * Ub'.
 
-Display = 0;
-idealPulse = nargout<=2;
-
 % Pre- and post-multiplications
 PropL = [1 3 1 3; 4 2 4 2; 1 3 1 3; 4 2 4 2];
 PropR = [1 3 3 1; 4 2 2 4; 4 2 2 4; 1 3 3 1];
@@ -2446,34 +2434,18 @@ if ischar(ctp)
   ctp = code0(ctp);
 end
 
-% Get indices for pre- and post-multiplication for pulses
-if ~idealPulse
-  before = [ones(size(ctp,1),1)*2 ctp(:,1:end-1)];
-  idx = ctp + (before-1)*4;
-  PulsL = PropL(idx);
-  PulsR = PropR(idx);
-end
+% Get indices for pre- and post-multiplication for pulses. The initial
+% state is the beta population (b). It differs from -Sz = (Pb-Pa)/2 by the
+% identity/2, which is invariant under all propagators and gives no signal.
+before = [ones(size(ctp,1),1)*2 ctp(:,1:end-1)];
+idx = ctp + (before-1)*4;
+PulsL = PropL(idx);
+PulsR = PropR(idx);
 
 % Get indices for pre- and post-multiplications for free evolutions
 idx = 5*ctp - 4;
 FreeL = PropL(idx);
 FreeR = PropR(idx);
-
-% Display formula
-if Display
-  decode = 'ab+-';
-  ecode = 'AB';
-  for i = 1:size(ctp,1)
-    formula = '';
-    for k = 1:size(ctp,2)
-      if ~Opt.idealPulse
-        formula = ['P' decode(PulsL(i,k)) ' ' formula ' P' decode(PulsR(i,k)) ''''];
-      end
-      formula = [ecode(FreeL(i,k)) ' ' formula ' ' ecode(FreeR(i,k)) ''''];
-    end
-    fprintf('%s :   trace(%s)\n',decode(ctp(i,:)),formula);
-  end
-end
 
 end
 

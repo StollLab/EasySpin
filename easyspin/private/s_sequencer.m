@@ -56,6 +56,7 @@
 %     %FreqShift
 %   Exp_oldSyntax
 %     ...
+%   fastReason - reasons why the fast mode cannot be used ('' if it can)
 
 
 function varargout = s_sequencer(Exp,Opt)
@@ -113,7 +114,7 @@ if Opt.SimulationMode=="fast"
     nPulses = length(pulsePositions);
     nDelays = length(delayPositions);
     
-    if any(diff(pulsePositions)==0)
+    if any(diff(pulsePositions)==1)
       % adjacent pulses cannot be processed by saffron
       Opt.SimulationMode = 'thyme';
       message = addtomessage(message,'two or more pulses are not separated by an interpulse delay');
@@ -243,6 +244,15 @@ if Opt.SimulationMode=="fast"
         end
       end
       
+      % The fast algorithm supports only some orders of the incremented
+      % delays (dimension of each incremented delay, in sequence order)
+      supportedSchemes = {1, [1 1], [1 2], [1 2 1], [1 1 2], [1 2 2 1], [1 1 2 2]};
+      IncScheme = Inc(Inc~=0);
+      if ~isempty(IncScheme) && ~any(cellfun(@(s)isequal(IncScheme,s),supportedSchemes))
+        Opt.SimulationMode = 'thyme';
+        message = addtomessage(message,'this combination of incremented delays is not supported by the fast method');
+      end
+
       Exp_oldSyntax.Inc = Inc;
       Exp_oldSyntax.dt = dt;
       
@@ -251,8 +261,10 @@ if Opt.SimulationMode=="fast"
   end
 end
 
-if Opt.SimulationMode=="fast"  
-  varargout = {[],[],Opt,Exp_oldSyntax};
+fastReason = message;
+
+if Opt.SimulationMode=="fast"
+  varargout = {[],[],Opt,Exp_oldSyntax,fastReason};
   return
 end
 
@@ -1399,7 +1411,7 @@ if isfield(Exp,'nPoints')
   end
 end
 
-varargout = {Events,Vary,Opt,[]};
+varargout = {Events,Vary,Opt,[],fastReason};
 
 logmsg(1,'  pulse sequence parsed successfully!');
 

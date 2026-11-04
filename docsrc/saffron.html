@@ -745,6 +745,8 @@ For the following it is not possible to use the <em>fast</em> algorithm and <cod
 <li> Incorporation of bandwidth limiting effects from the resonator and TWT
 <li> More than two indirect dimensions or an indirect dimension with a non-uniform increment (as defined <a href="#indirect_dimensions">here</a>).
 <li> Modification of a pulse parameter along any indirect dimension
+<li> Pulses that are not separated by a delay
+<li> Incremented delays in an order that the <em>fast</em> algorithm does not support. Listing the dimension of each incremented delay in the order of the sequence, the supported orders are 1; 1,1; 1,2; 1,2,1; 1,1,2; 1,2,2,1; and 1,1,2,2. For example, HYSCORE with <code>Exp.Dim1 = {'d2' dt}</code> and <code>Exp.Dim2 = {'d3' dt}</code> is supported, but not with <code>Exp.Dim1 = {'d3' dt}</code> and <code>Exp.Dim2 = {'d2' dt}</code>.
 </ul>
 
 <p>
