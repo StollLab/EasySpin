@@ -19,7 +19,8 @@
 % schemes, other pulse parameters point by point, coherence pathway
 % selection, phase cycles, scalar T1/T2 and single-point S+ detection at
 % the end of the sequence. Everything else needs the full-space engine (see
-% sf_parsesequence for the sequence features).
+% sf_parsesequence for the sequence features). Conversely, inhomogeneous
+% broadening (Sys.lwAnisoG) is only supported by the subspace engine.
 
 function [method,reason,seq] = sf_selectengine(Sys,Exp,Opt)
 
@@ -66,9 +67,6 @@ end
 if highSpin && ~strcmp(requested,'subspace')
   reasons{end+1} = 'electron spin S > 1/2 (use Opt.Method = ''subspace'' for the transition-selective approximation)';
 end
-if isfield(Opt,'StateTrajectories') && any(Opt.StateTrajectories)
-  reasons{end+1} = 'state trajectories (Opt.StateTrajectories)';
-end
 if isfield(Opt,'Relaxation') && numel(Opt.Relaxation)>1
   reasons{end+1} = 'event-specific relaxation (Opt.Relaxation)';
 end
@@ -95,5 +93,21 @@ switch requested
     end
 end
 if ~strcmp(method,'subspace'), seq = []; end
+
+% Features only the subspace engine supports: inhomogeneous broadening of
+% the EPR line (Sys.lwAnisoG, or its deprecated name Sys.HStrain)
+if strcmp(method,'fullspace')
+  for c = 1:numel(SysList)
+    S_ = SysList{c};
+    if (isfield(S_,'lwAnisoG') && any(S_.lwAnisoG(:))) || (isfield(S_,'HStrain') && any(S_.HStrain(:)))
+      if strcmp(requested,'fullspace')
+        error('The full-space engine (Opt.Method = ''fullspace'') does not support Sys.lwAnisoG.');
+      else
+        error(['Sys.lwAnisoG is only supported by the subspace engine, but this simulation needs ' ...
+          'the full-space engine (%s).'],reason);
+      end
+    end
+  end
+end
 
 end

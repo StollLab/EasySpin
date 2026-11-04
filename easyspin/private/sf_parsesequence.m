@@ -79,9 +79,6 @@ for k = 1:N
   if isfield(p_,'IQ')
     reasons{end+1} = 'user-defined pulse waveforms (IQ)'; %#ok<*AGROW>
   end
-  if isfield(p_,'Operator') && ~isempty(p_.Operator)
-    reasons{end+1} = 'custom excitation operators';
-  end
   if ~isfield(p_,'Phase') || isempty(p_.Phase), p_.Phase = 0; end
   P(k).Phase = p_.Phase;
   if ~isfield(p_,'tp') || isempty(p_.tp), p_.tp = 0; end

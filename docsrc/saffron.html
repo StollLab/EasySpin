@@ -85,7 +85,7 @@ The three input arguments to the function are
 <div class="subtitle2">Input: Spin system</div>
 
 <p>
-<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. Fields available in <code>Sys</code> include all needed for the construction of the spin Hamiltonian. Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, etc.) are not recognized, except <code>lwAnisoG</code>. Strains (<code>StrainPars</code>) are not supported and give an error. <code>lwAnisoG</code> is used in excitation window computations (see <code>Exp.ExciteWidth</code>) when orientation selection is wanted.
+<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a>. Fields available in <code>Sys</code> include all needed for the construction of the spin Hamiltonian. Line broadening parameters used by other simulation functions (<code>lw</code>, <code>lwpp</code>, etc.) are not recognized, except <code>lwAnisoG</code>. Strains (<code>StrainPars</code>) are not supported and give an error. <code>lwAnisoG</code> gives the inhomogeneous width of the EPR line, which matters for orientation selection with finite pulses. It is only supported by the subspace engine (<code>Opt.Method = 'subspace'</code>); simulations that need the full-space engine give an error if it is nonzero.
 </p>
 
 <p>

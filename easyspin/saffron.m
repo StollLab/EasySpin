@@ -45,8 +45,7 @@
 %     GridSize, GridSymmetry, GridFrame, nOffsets
 %     IntTimeStep, SimFreq (fullspace)
 %     OriThreshold, Nuclei, Transitions, ProductRule (subspace)
-%     Relaxation, StateTrajectories, separate, Window, ZeroFillFactor,
-%     Verbosity
+%     Relaxation, separate, Window, ZeroFillFactor, Verbosity
 %
 %  Outputs:
 %     x       axis of each indirect dimension (values of the first
@@ -166,6 +165,11 @@ for f = {'TimeDomain','PartialIFFT','logplot','ExcOperator'}
     error('Opt.%s is no longer supported.',f{1});
   end
 end
+if isfield(Opt,'StateTrajectories') && any(Opt.StateTrajectories)
+  error(['Opt.StateTrajectories is not supported. To follow the spin dynamics, detect ' ...
+    'expectation values over the whole sequence, e.g. Exp.DetOperator = {''x1'',''y1'',''z1''} ' ...
+    'with Exp.DetWindow = ''sequence''.']);
+end
 if isfield(Exp,'Ordering') && ~isempty(Exp.Ordering)
   error('Partially ordered samples are not implemented in saffron.')
 end
@@ -188,6 +192,16 @@ if ischar(Exp.Sequence) || isstring(Exp.Sequence)
   Exp.Sequence = char(Exp.Sequence);
   Exp = sf_predefinedexperiments(Exp);
   logmsg(1,'Predefined experiment %s, expanded.',Exp.Macro);
+end
+
+% Custom excitation operators are not supported (all pulses act on the
+% total electron spin)
+if iscell(Exp.Sequence)
+  for k = find(cellfun(@isstruct,Exp.Sequence))
+    if isfield(Exp.Sequence{k},'Operator')
+      error('Pulse field Operator is not supported. Pulses act on all electron spins; select spins by their resonance frequencies instead.');
+    end
+  end
 end
 
 % Detection window, default: single point at the end of the sequence
