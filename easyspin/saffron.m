@@ -7,7 +7,7 @@
 %     [x,S,info] = saffron(...)
 %
 %  Inputs:
-%     Sys   ... spin system with electron spin and nuclei
+%     Sys   ... spin system (electron spins and nuclei)
 %     Exp   ... experimental parameters (time unit µs)
 %     Opt   ... simulation options
 %
@@ -16,11 +16,12 @@
 %     mwFreq         microwave carrier frequency (GHz)
 %     rfFreq         RF carrier frequency (MHz), for RF pulses
 %     Sequence       pulse sequence: cell array of pulses (structures) and
-%                    delays (µs), or the name of a predefined experiment:
+%                    delays (µs); or the name of a predefined experiment,
+%                    which sets the sequence and its incrementation scheme:
 %                    '2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR',
 %                    'DaviesENDOR' (macro parameters tau, T, t1, t2, dt,
 %                    tp, Range, tprf)
-%     nPoints, Dim1, Dim2, ...   indirect dimensions
+%     nPoints, Dim1, Dim2, ...   incrementation scheme (indirect dimensions)
 %     Pathways       coherence pathway selection: 'all' (default), 'echo',
 %                    a string of electron coherence orders per pulse
 %                    ('+0-', '.' = any), or a numeric matrix (NaN = any)
@@ -29,9 +30,13 @@
 %     DetWindow      detection window (µs) relative to the end of the
 %                    sequence: 0 (default, single point), [a b] (transient),
 %                    or 'sequence' (whole sequence)
-%     DetOperator, DetFreq, DetPhase, DetIntegrate, DetTimeStep
-%     mwPolarization, ResonatorFrequency, ResonatorQL, FrequencyResponse
-%     SampleFrame, MolFrame, CrystalSymmetry, SampleRotation
+%     DetOperator    detection operators (sop strings or matrices), default
+%                    S+ of all electrons
+%     DetFreq, DetPhase, DetIntegrate, DetTimeStep
+%     mwPolarization, ResonatorFrequency, ResonatorQL, FrequencyResponse,
+%     ResonatorMode
+%     SampleFrame, MolFrame, CrystalSymmetry, SampleRotation (powder by
+%     default; Exp.MolFrame = [0 0 0] for a single orientation)
 %
 %  Pulse fields: Flip, tp (0 or absent: ideal pulse), Phase, Type,
 %     Frequency (offset from the carrier, or [start end] for chirps),
@@ -42,10 +47,13 @@
 %     Method         'auto' (default), 'subspace', 'fullspace'
 %     IdealPulses    treat finite pulses as ideal, with orientation
 %                    selection by an excitation window of width 1/tp
-%     GridSize, GridSymmetry, GridFrame, nOffsets
+%     Relaxation     relaxation on/off, a single value or one per element
+%                    of Exp.Sequence (fullspace)
+%     GridSize, GridSymmetry, GridFrame, Sites
 %     IntTimeStep, SimFreq (fullspace)
-%     OriThreshold, Nuclei, Transitions, ProductRule (subspace)
-%     Relaxation, separate, Window, ZeroFillFactor, Verbosity
+%     nOffsets, OriThreshold, Nuclei, Transitions, ProductRule, Expand
+%     (subspace)
+%     separate, Window, ZeroFillFactor, Verbosity
 %
 %  Outputs:
 %     x       axis of each indirect dimension (values of the first
@@ -53,7 +61,9 @@
 %     S       simulated signal, dimensions [Dim1, Dim2, ..., transient
 %             time, detection operator], singletons removed
 %     info    structure with the expanded experiment (Exp), the engine
-%             (Method, MethodReason), the processed spectrum (f, fd), etc.
+%             (Method, MethodReason), the processed spectrum (f, fd, or
+%             f1, f2, fd), and the start and end times of the elements of
+%             Exp.Sequence on the time axis of x (EventTimes, fullspace)
 
 function varargout = saffron(Sys,Exp,Opt)
 
@@ -194,10 +204,11 @@ end
 
 % Exp.Sequence is a required field
 if ~isfield(Exp,'Sequence')
-  error('Exp.Sequence is missing. Provide a predefined or user-defined pulse sequence.');
+  error('Exp.Sequence is missing. Give a pulse sequence or the name of a predefined experiment.');
 end
 
-% Predefined experiments are macros that expand into user-defined sequences
+% Predefined experiments are macros that expand into user-defined
+% experiments (pulse sequence and incrementation scheme)
 if ischar(Exp.Sequence) || isstring(Exp.Sequence)
   Exp.Sequence = char(Exp.Sequence);
   Exp = sf_predefinedexperiments(Exp);

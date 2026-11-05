@@ -31,17 +31,17 @@ if ~any(strcmp(name,macros))
 end
 
 if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
-  error('Exp.PhaseCycle cannot be used with predefined experiments. Use a user-defined sequence instead.');
+  error('Exp.PhaseCycle cannot be used with predefined experiments. Use a user-defined experiment instead.');
 end
 if isfield(Exp,'DetPhase')
-  error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined sequence instead.');
+  error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined experiment instead.');
 end
 if isfield(Exp,'Pathways')
-  error('Exp.Pathways cannot be used with predefined experiments. Use a user-defined sequence instead.');
+  error('Exp.Pathways cannot be used with predefined experiments. Use a user-defined experiment instead.');
 end
 for f = {'Dim1','Dim2','rfFreq'}
   if isfield(Exp,f{1})
-    error('Exp.%s cannot be used with predefined experiments. Use a user-defined sequence instead.',f{1});
+    error('Exp.%s cannot be used with predefined experiments. Use a user-defined experiment instead.',f{1});
   end
 end
 

@@ -4581,7 +4581,7 @@
     "description": "Rydberg constant"
   },
   "saffron": {
-    "description": "Pulse EPR spectra simulation",
+    "description": "Pulse EPR and ENDOR signals and spectra, and spin dynamics",
     "inputs": [
       {
         "name": "Sys",

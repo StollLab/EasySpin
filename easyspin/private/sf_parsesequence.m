@@ -1,9 +1,10 @@
-% sf_parsesequence  Parse a canonical pulse sequence for the subspace engine
+% sf_parsesequence  Parse a user-defined experiment for the subspace engine
 %
 %   [seq,reasons] = sf_parsesequence(Exp,Opt)
 %
-% Converts a user-defined sequence (Exp.Sequence as a cell array of pulses
-% and delays, Exp.nPoints, Exp.Dim1, ..., Exp.Pathways, Exp.PhaseCycle,
+% Converts a user-defined experiment (the pulse sequence in Exp.Sequence as
+% a cell array of pulses and delays, the incrementation scheme in
+% Exp.nPoints, Exp.Dim1, ..., and Exp.Pathways, Exp.PhaseCycle,
 % Exp.DetPhase) into the representation used by the subspace engine
 % (sf_engine_subspace). Each interval is a pulse followed by a (possibly zero)
 % delay. reasons is a cell array of strings that list the features the
