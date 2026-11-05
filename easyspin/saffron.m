@@ -285,6 +285,12 @@ else
     end
   end
   [Events,Vary,Opt] = sf_buildevents(ExpProp,Opt);
+  % Detected transients whose length changes along an indirect dimension
+  % are not supported: sf_propagate stops at the first point where the
+  % length changes
+  if ~isempty(Vary)
+    Vary.ConstantLength = true;
+  end
   Opt.propEvents = Events;
   Opt.propVary = Vary;
   Opt.propPathways = sf_pathwayorders(Exp,Opt);

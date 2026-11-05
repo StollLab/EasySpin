@@ -566,6 +566,13 @@ for iPoints = 1 : nPoints
         % 2nd Acquisition: tau1 = 0.4 µs, tau2 = 0.6 µs, dt = 0.2 µs
         %                  total detection time = 0.4 + 0.6 = 1 µs
         %                  total number of data points = 2 + 3 = 5
+        % saffron does not support this (Vary.ConstantLength): stop here,
+        % before the remaining points are propagated.
+        if isfield(Vary,'ConstantLength') && Vary.ConstantLength
+          error(['saffron does not support detected events whose length changes along an ' ...
+            'indirect dimension. Run one simulation per point instead, e.g. with ' ...
+            'Exp.DetWindow = ''sequence'', and collect the transients.']);
+        end
         StoreInCellArray = true;
         
         % Create cell arrays for output

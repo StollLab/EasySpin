@@ -180,9 +180,6 @@ Signal = 0;
 for iOrientation = 1 : nOrientations
   Signal = Signal + rawSignals{iOrientation}*Exp.OriWeights(iOrientation);
 end
-if iscell(Signal)
-  error('saffron does not support detected events whose length changes along an indirect dimension.');
-end
 
 % Arrange as [indirect dimensions..., time, detection operator]
 if isfield(Exp,'nPoints') && ~isempty(Exp.nPoints)
