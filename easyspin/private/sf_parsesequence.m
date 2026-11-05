@@ -177,7 +177,7 @@ end
 if isfield(Exp,'DetIntegrate') && Exp.DetIntegrate
   reasons{end+1} = 'echo integration (Exp.DetIntegrate)';
 end
-if isfield(Exp,'DetFreq') && ~(isfield(Exp,'mwFreq') && Exp.DetFreq==Exp.mwFreq)
+if isfield(Exp,'DetFreq') && ~(isfield(Exp,'mwFreq') && isequal(Exp.DetFreq,Exp.mwFreq))
   reasons{end+1} = 'Exp.DetFreq different from Exp.mwFreq';
 end
 if any(isfield(Exp,{'ResonatorFrequency','ResonatorQL','FrequencyResponse'}))
@@ -226,6 +226,12 @@ for d = 1:nDims
       % frequency band per row (as read by sf_buildevents); a column of
       % per-point offsets is handled below
       reasons{end+1} = 'indirect dimensions over frequency bands of pulses';
+      vals{k} = [];
+      continue
+    end
+    if ~isempty(regexp(targets{k},'\.IQ$','once'))
+      % one user-defined waveform per point, given in the pulse (no values);
+      % the full-space reason is added below (pulse field 'IQ')
       vals{k} = [];
       continue
     end
