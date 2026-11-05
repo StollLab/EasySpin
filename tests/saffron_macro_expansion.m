@@ -1,7 +1,7 @@
 function ok = test() %#ok<FNDEF>
 
 % A predefined experiment is a macro: the expanded experiment returned in
-% info.Exp, run as a user-defined sequence, gives the same result, and the
+% info.Exp, run as a user-defined experiment, gives the same result, and the
 % axis is the value of the first parameter in Exp.Dim1.
 
 Sys.Nucs = '14N';

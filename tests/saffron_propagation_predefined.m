@@ -1,8 +1,8 @@
 function ok = test() %#ok<FNDEF>
 
-% Predefined sequences in the full-space engine: sizes, rejected fields, echo
-% amplitudes from the echo-selecting phase cycles, 4pESEEM as the diagonal
-% of HYSCORE, and detection at the echo of the rectangular pulses
+% Predefined experiments with the full-space method: sizes, rejected fields,
+% echo amplitudes from the selected echo pathways, 4pESEEM as the diagonal
+% of HYSCORE, and real echoes off resonance
 
 Sys.S = 1/2;
 Sys.g = 2;
@@ -48,7 +48,7 @@ catch err
   ok(4) = contains(err.message,'Exp.PhaseCycle cannot be used with predefined experiments');
 end
 
-% The phase cycles select the echo pathway: without modulation, the echo is
+% Only the echo pathways contribute: without modulation, the echo is
 % 1/2 for 2pESEEM and 1/4 for 3pESEEM and HYSCORE (single orientation, on
 % resonance)
 Sys.g = gfree;
@@ -95,9 +95,8 @@ Exp.nPoints = [3 3];
 ok(9) = areequal(y4(:),diag(yH),1e-10,'rel');
 ok(10) = areequal(x4,[0.05 0.07 0.09],1e-12,'abs');
 
-% Detection at the echo of the rectangular pulses: off resonance, the echo
-% phase is zero (it was 0.32 rad at 5 MHz when detecting at the end of the
-% sequence)
+% Ideal pulses refocus the echo exactly at the detection point: off
+% resonance, the echo phase is zero
 Sys = rmfield(Sys,{'Nucs','A'});
 clear Exp
 Exp.mwFreq = 9.5;  % GHz
@@ -107,9 +106,9 @@ Exp.SampleFrame = [0 0 0];
 Exp.tau = 0.1;  % µs
 Exp.dt = 0.02;  % µs
 Exp.nPoints = 2;
-sequences = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE'};
-for k = 1:numel(sequences)
-  Exp.Sequence = sequences{k};
+experiments = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE'};
+for k = 1:numel(experiments)
+  Exp.Sequence = experiments{k};
   [~,y] = saffron(Sys,Exp,Opt);
   ok(10+k) = all(abs(angle(y(:)))<0.01);
 end

@@ -55,7 +55,7 @@ catch err
   ok(4) = contains(err.message,'Exp.tau must be larger than 0');
 end
 
-% HYSCORE with one increment per dimension, same as user-defined sequence
+% HYSCORE with one increment per dimension, same as user-defined experiment
 ExpHY.t1 = 0.05;  % µs
 ExpHY.t2 = 0.07;  % µs
 ExpHY.dt = [0.02 0.03];  % µs

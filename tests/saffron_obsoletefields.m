@@ -2,7 +2,7 @@ function ok = test() %#ok<FNDEF>
 
 % The old fields for the pulse sequence (Exp.Flip, Exp.Phase, Exp.tp, Exp.t,
 % Exp.Inc) are obsolete: saffron rejects them for predefined and
-% user-defined sequences
+% user-defined experiments
 
 Sys.S = 1/2;
 Sys.g = 2;
