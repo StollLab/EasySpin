@@ -1,25 +1,26 @@
-% Three-pulse ESEEM sequence with user-defined sequence
-%=======================================================
-% This example illustrates how to use Exp.Sequence, Exp.Dim1,
-% and Exp.nPoints to create a custom pulse sequence that, for each
-% acquisition point an echo transient is recorded and integrated.
-% For this, saffron uses the slower full-space engine
+% Three-pulse ESEEM with integrated echo transients (saffron)
+%==========================================================================
+% This example defines a three-pulse ESEEM experiment with rectangular
+% pulses (pulse sequence in Exp.Sequence, incrementation scheme in
+% Exp.nPoints and Exp.Dim1). For each point of the indirect dimension, the
+% echo transient is detected in a window around the echo and integrated.
+% For this, saffron uses the slower full-space method.
 
 clear
 
 Sys.Nucs = '1H';
 Sys.A_ = [7 3]; % MHz
 
-tau = 0.2; % mus
+tau = 0.2; % µs
 
 p90.Flip = pi/2; % flip angle, rad
-p90.tp = 0.02; % pulse length, mus
+p90.tp = 0.02; % pulse length, µs
 
 Exp.Field = 350; % mT
 Exp.Sequence = {p90 tau p90 0.1 p90 tau};
 Exp.mwFreq = 9.81; % GHz
 
-Exp.DetWindow = [-0.05 0.05]; % mus
+Exp.DetWindow = [-0.05 0.05]; % µs
 Exp.DetIntegrate = true;
 
 Exp.nPoints = 100; % 100 data points in indirect dimension
@@ -32,6 +33,6 @@ Exp.PhaseCycle{1} = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i];  % [+(+x)+i(+y)-(-x)-
 Exp.PhaseCycle{3} = [0, 1; pi, -1];  % [+(+x)-(-x)]  phase cycle
 
 Opt.GridSize = 10;
-Opt.Verbosity = 1; 
+Opt.Verbosity = 1;
 
 saffron(Sys,Exp,Opt);

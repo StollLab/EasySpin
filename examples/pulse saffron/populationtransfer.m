@@ -13,14 +13,14 @@ Sys.D = 166;  % MHz
 
 % Pulse
 Pulse1.Type = 'quartersin/linear'; % make it a chirp
-Pulse1.trise = 0.05; % smooth edges in time domain with a quarter sine, in mus
-Pulse1.Qcrit = 10; % use critical adabaticity instead of Par.Flip or Par.Amplitude
+Pulse1.trise = 0.05; % smooth edges in time domain with a quarter sine, in µs
+Pulse1.Qcrit = 10; % use critical adiabaticity instead of Pulse.Flip or Pulse.Amplitude
 Pulse1.tp = 1; % pulse length in µs
 Pulse1.Frequency = [500 170]; % frequency band, relative to Exp.mwFreq
 
 Pulse2.Type = 'quartersin/linear'; % make it a chirp
-Pulse2.trise = 0.05; % smooth edges in time domain with a quarter sine, in mus
-Pulse2.Qcrit = 10; % use critical adabaticity instead of Par.Flip or Par.Amplitude
+Pulse2.trise = 0.05; % smooth edges in time domain with a quarter sine, in µs
+Pulse2.Qcrit = 10; % use critical adiabaticity instead of Pulse.Flip or Pulse.Amplitude
 Pulse2.tp = 1; % pulse length in µs
 Pulse2.Frequency = [-500 -170]; % frequency band, relative to Exp.mwFreq
 

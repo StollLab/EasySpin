@@ -13,17 +13,17 @@ Sys.A = [11.5 11.5 95]; % MHz
 Sys.Nucs = '14N';
 
 % Pulse definition
-p90.tp = 0.020; % mus
+p90.tp = 0.020; % µs
 p90.Flip = pi/2; % rad
 
-tau = 0.5; % mus
-T = 1; % mus
+tau = 0.5; % µs
+T = 1; % µs
 
 % Experiment
 Exp.Sequence = {p90 tau p90 T p90 tau};
 Exp.mwFreq = 9.1; % GHz
 Exp.Field = 324.9; % mT
-Exp.DetWindow = [-0.1 0.1]; % detection window in mus
+Exp.DetWindow = [-0.1 0.1]; % detection window in µs
 
 Exp.PhaseCycle{1} = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i]; % [+(+x)+i(+y)-(-x)-i(-y)]  phase cycle
 Exp.PhaseCycle{3} = [0, 1; pi, -1]; % [+(+x)-(-x)]  phase cycle
