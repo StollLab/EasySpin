@@ -1,15 +1,15 @@
 % This function parses the pulse sequence specified in the Exp structure and
 % additionally using settings from the Opt structure to create the Event and
-% Vary structures needed for the simulation by sf_propagate.
-% Predefined experiments (macros) are expanded by sf_predefinedexperiments.
-%
-% This function is called by saffron and spidyan.
+% Vary structures needed for the simulation by sf_propagate (full-space
+% engine of saffron). Predefined experiments (macros) are expanded by
+% saffron before.
 %
 % Input:
 %   Exp - structure with the following fields
 %     Sequence
-%     DetSequence
-%     DetWindow
+%     DetWindow  - detection window (one or two numbers, in µs, relative
+%                  to the end of the sequence), or 'sequence' for the
+%                  whole sequence
 %     Dim1, Dim2, etc
 %     mwFreq
 %     DetFreq
@@ -23,8 +23,6 @@
 %     PhaseCycle
 %   Opt - structure with the following fields
 %     rfGammaRef - gyromagnetic ratio (MHz/mT) for nominal RF flip angles
-%     StateTrajectories - bool or array of bool to store whether densitry
-%         matrices should be stored during evolution periods
 %     SimFreq
 %     IntTimeStep
 %     dt
@@ -41,7 +39,8 @@
 %     Polarization
 %     Relaxation
 %     Detection
-%     StateTrajectories
+%     StateTrajectories - store the density matrices during the event
+%         (always false here; set by callers of sf_propagate, e.g. tests)
 %     Propagation
 %     FrameShift
 %     TimeStep
@@ -59,24 +58,6 @@
 function varargout = sf_buildevents(Exp,Opt)
 
 logmsg(1,'-parsing pulse sequence-----------------------------');
-
-% Predefined experiments are macros (used here by spidyan; saffron expands
-% them before)
-if isfield(Exp,'Sequence') && ischar(Exp.Sequence)
-  if isfield(Exp,'DetSequence'), Exp = rmfield(Exp,'DetSequence'); end
-  Exp = sf_predefinedexperiments(Exp);
-  % spidyan has no pathway projection: select the echo pathway of the
-  % predefined experiments with the equivalent phase cycles
-  sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
-  odd = [0 1; pi -1];
-  even = [0 1; pi 1];
-  switch Exp.Pathways
-    case '+-', Exp.PhaseCycle = {sel};
-    case '+0-', Exp.PhaseCycle = {sel [] odd};
-    case '+00-', Exp.PhaseCycle = {sel [] even odd};
-  end
-  Exp = rmfield(Exp,'Pathways');
-end
 
 Vary = [];
 
@@ -123,26 +104,27 @@ end
 mwPulsePositions = pulsePositions(~isRFEvent(pulsePositions));
 finitemwPulsePositions = pulsePositions(~isRFEvent(pulsePositions) & ~isIdealEvent(pulsePositions));
 
-% Event-specific settings (Opt.Relaxation, Opt.StateTrajectories) refer to
-% the elements of Exp.Sequence as given by the user, before detection
-% events are appended below
+% Event-specific relaxation (Opt.Relaxation) refers to the elements of
+% Exp.Sequence as given by the user, before detection events are appended
+% below
 nUserEvents = numel(Exp.Sequence);
-eventFlags = {'Relaxation','StateTrajectories'};
-for f = eventFlags
-  if isfield(Opt,f{1}) && ~isscalar(Opt.(f{1})) && numel(Opt.(f{1}))~=nUserEvents
-    error('Opt.%s must be a single value or have one entry per element of Exp.Sequence (%d).',f{1},nUserEvents);
-  end
+if isfield(Opt,'Relaxation') && ~isscalar(Opt.Relaxation) && numel(Opt.Relaxation)~=nUserEvents
+  error('Opt.Relaxation must be a single value or have one entry per element of Exp.Sequence (%d).',nUserEvents);
 end
 
 % Set up detection
 %-------------------------------------------------------------------------------
 logmsg(1,'  setting up detection');
 
-if isfield(Exp,'DetWindow')
-  if isfield(Exp,'DetSequence')
-    warning('You provided both Exp.DetWindow and Exp.DetSequence. Remove one of them.');
-  end
-
+% detectEvents: detection on (true) or off for each event
+detectWholeSequence = ~isfield(Exp,'DetWindow') || ischar(Exp.DetWindow) || isstring(Exp.DetWindow);
+if detectWholeSequence
+  % Exp.DetWindow = 'sequence' (checked by saffron)
+  logmsg(1,'  detection during the whole sequence');
+  detectEvents = true(1,numel(Exp.Sequence));
+  % a sequence of a single zero-length delay is a single point
+  Opt.SinglePointDetection = isscalar(Exp.Sequence) && ~isstruct(Exp.Sequence{1}) && Exp.Sequence{1}==0;
+else
   % Ensure that detection window does not overlap with a pulse
   if any(Exp.DetWindow<0) && isstruct(Exp.Sequence{end})
     error('You provided Exp.DetWindow with a negative value, but the last element in Exp.Sequence is a pulse. Detection during a pulse is not possible. Please adapt your detection or append an appropriate free evolution event.')
@@ -169,58 +151,22 @@ if isfield(Exp,'DetWindow')
     logmsg(1,'  transient detection');
   end
   
-  % Update Exp.DetSequence
-  Exp.DetSequence = zeros(1,numel(Exp.Sequence));
-  Exp.DetSequence(end) = true;
-  
-elseif isfield(Exp,'DetSequence')
-  % setting up detection in case of Exp.DetSequence
-  logmsg(1,'  setting up detection:');
-  if ischar(Exp.DetSequence) || isstring(Exp.DetSequence)
-    % parsing strings
-    if Exp.DetSequence=="last"
-      Exp.DetSequence = zeros(1,length(Exp.Sequence));
-      Exp.DetSequence(end) = true;
-      logmsg(1,'  detection is active during the last element in Exp.Sequence');
-    elseif Exp.DetSequence=="all"
-      Exp.DetSequence = ones(1,length(Exp.Sequence));
-      logmsg(1,'  all elements in Exp.Sequence are detected');
-    else
-      msg = 'The string you provided in Exp.DetSequence was not recognized.';
-      error(msg);
-    end
-  else
-    if ~isscalar(Exp.DetSequence) && length(Exp.DetSequence) ~= length(Exp.Sequence)
-      error('The lengths of Exp.Sequence and Exp.DetSequence do not match. Length of Exp.DetSequence has to be 1 or the same as Exp.Sequence.')
-    end
-    logmsg(1,'  detection set according to Exp.DetSequence');
-  end
-  
-  % identifying single point detection
-  if sum(Exp.DetSequence) == 1 && ~isstruct(Exp.Sequence{Exp.DetSequence==1}) && Exp.Sequence{Exp.DetSequence==1} == 0
-    Opt.SinglePointDetection = true;
-    logmsg(1,'  single point detection');
-  end
-  
-else
-  % default if no detection is given:
-  logmsg(1,'  no detection specified, detection is active during the entire sequence');
-  Exp.DetSequence = ones(1,numel(Exp.Sequence));
+  % Only the appended detection event is detected
+  detectEvents = false(1,numel(Exp.Sequence));
+  detectEvents(end) = true;
 end
 
 % Detection events appended for Exp.DetWindow are free evolution, so they
-% take the event-specific settings of the last delay in the user's
-% sequence (or, without delays, are on if the setting is on anywhere)
+% take the relaxation setting of the last delay in the user's sequence (or,
+% without delays, relaxation is on if it is on anywhere)
 userDelays = find(~cellfun(@isstruct,Exp.Sequence(1:nUserEvents)));
-for f = eventFlags
-  if isfield(Opt,f{1}) && ~isscalar(Opt.(f{1}))
-    if isempty(userDelays)
-      flag = any(Opt.(f{1}));
-    else
-      flag = Opt.(f{1})(userDelays(end));
-    end
-    Opt.(f{1})(nUserEvents+1:numel(Exp.Sequence)) = flag;
+if isfield(Opt,'Relaxation') && ~isscalar(Opt.Relaxation)
+  if isempty(userDelays)
+    flag = any(Opt.Relaxation);
+  else
+    flag = Opt.Relaxation(userDelays(end));
   end
+  Opt.Relaxation(nUserEvents+1:numel(Exp.Sequence)) = flag;
 end
 
 % Check if resonator is provided
@@ -412,7 +358,7 @@ delayIndices = find(~isPulse);
 nPulses = length(pulseIndices);
 nDelays = length(delayIndices);
 
-if isfield(Exp,'DetWindow')
+if ~detectWholeSequence
   logmsg(1,'  found %d pulse(s), %d free evolution period(s) and a detection window',nPulses,nDelays-1);
 else
   logmsg(1,'  found %d pulse(s) and %d free evolution period(s)',nPulses,nDelays);
@@ -653,28 +599,12 @@ for iEvent = 1:length(Exp.Sequence)
     end
   end
   
-  % Check if detection is requested, otherwise turn it off
-  if ~isfield(Exp,'DetSequence') || isempty(Exp.DetSequence)
-    Events{iEvent}.Detection = false;
-  else
-    if isscalar(Exp.DetSequence)
-      Events{iEvent}.Detection = Exp.DetSequence;
-    else
-      Events{iEvent}.Detection = Exp.DetSequence(iEvent);
-    end
-  end
-  
-  % Check if density matrices are requested, otherwise turn off
-  if ~isfield(Opt,'StateTrajectories')
-    Events{iEvent}.StateTrajectories = false;
-  else
-    if isscalar(Opt.StateTrajectories)
-      Events{iEvent}.StateTrajectories = Opt.StateTrajectories;
-    else
-      Events{iEvent}.StateTrajectories = Opt.StateTrajectories(iEvent);
-    end
-  end
-  
+  % Detection during this event (set up from Exp.DetWindow above)
+  Events{iEvent}.Detection = detectEvents(iEvent);
+
+  % Density matrices during the event are not stored
+  Events{iEvent}.StateTrajectories = false;
+
   % Store an empty propagation structure, filled in by sf_propagate
   Events{iEvent}.Propagation = [];
   

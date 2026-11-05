@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % µs
@@ -14,7 +14,7 @@ Exp.Field = 1240;
 Exp.TimeStep = 0.0001; % µs
 
 Exp.mwFreq = 33.5;
-Exp.DetSequence = [1 0 0 0]; 
+Exp.DetWindow = 'sequence';
 
 Opt = struct;
 

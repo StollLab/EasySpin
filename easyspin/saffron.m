@@ -167,6 +167,9 @@ for f = {'TimeDomain','PartialIFFT','logplot','ExcOperator'}
     error('Opt.%s is no longer supported.',f{1});
   end
 end
+if isfield(Opt,'DetOperator')
+  error('Opt.DetOperator is not supported. Give the detection operators in Exp.DetOperator.');
+end
 if isfield(Opt,'StateTrajectories') && any(Opt.StateTrajectories)
   error(['Opt.StateTrajectories is not supported. To follow the spin dynamics, detect ' ...
     'expectation values over the whole sequence, e.g. Exp.DetOperator = {''x1'',''y1'',''z1''} ' ...
@@ -286,12 +289,8 @@ else
     Opt.DetOperator = ExpProp.DetOperator;
     ExpProp = rmfield(ExpProp,'DetOperator');
   end
-  if ischar(ExpProp.DetWindow) || isstring(ExpProp.DetWindow)
-    if ~strcmp(ExpProp.DetWindow,'sequence')
-      error('Exp.DetWindow must be a number, two numbers, or ''sequence''.');
-    end
-    ExpProp = rmfield(ExpProp,'DetWindow');
-    ExpProp.DetSequence = 'all';
+  if (ischar(ExpProp.DetWindow) || isstring(ExpProp.DetWindow)) && ~strcmp(ExpProp.DetWindow,'sequence')
+    error('Exp.DetWindow must be a number, two numbers, or ''sequence''.');
   end
   % Reference gyromagnetic ratio (MHz/mT) for nominal RF flip angles: the
   % first nucleus of the first component
@@ -304,12 +303,6 @@ else
     end
   end
   [Events,Vary,Opt] = sf_buildevents(ExpProp,Opt);
-  % Detected transients whose length changes along an indirect dimension
-  % are not supported: sf_propagate stops at the first point where the
-  % length changes
-  if ~isempty(Vary)
-    Vary.ConstantLength = true;
-  end
   Opt.propEvents = Events;
   Opt.propVary = Vary;
   Opt.propPathways = sf_pathwayorders(Exp,Opt);

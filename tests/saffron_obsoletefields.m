@@ -1,7 +1,7 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % The old fields for the pulse sequence (Exp.Flip, Exp.Phase, Exp.tp, Exp.t,
-% Exp.Inc) are obsolete: saffron and spidyan reject them for predefined and
+% Exp.Inc) are obsolete: saffron rejects them for predefined and
 % user-defined sequences
 
 Sys.S = 1/2;
@@ -27,7 +27,7 @@ for iField = 1:numel(obsoleteFields)
   ExpP.(field_) = [0 0];
   ExpC = ExpCustom;
   ExpC.(field_) = [0 0];
-  calls = {@() saffron(Sys,ExpP), @() saffron(Sys,ExpC), @() spidyan(Sys,ExpP)};
+  calls = {@() saffron(Sys,ExpP), @() saffron(Sys,ExpC)};
   for k = 1:numel(calls)
     if strcmp(field_,'tp') && k==1
       % Exp.tp is a macro parameter of saffron's predefined experiments

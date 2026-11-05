@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 Pulse.Type = 'rectangular';
 Pulse.tp = 0.1;
@@ -8,7 +8,7 @@ Exp.Sequence = {Pulse 0.5 Pulse};
 Exp.Field = 1240; 
 Exp.TimeStep = 0.0001; % µs
 Exp.mwFreq = 33.5;
-Exp.DetSequence = 1; 
+Exp.DetWindow = 'sequence';
 
 Opt.SimFreq = 32;
 

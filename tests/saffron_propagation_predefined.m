@@ -29,7 +29,7 @@ Exp.Sequence = '2pESEEM';
 [~,y] = saffron(Sys,Exp,Opt);
 ok(2) = numel(y)==4;
 
-% Exp.DetSequence is specific to spidyan
+% Exp.DetSequence is no longer supported
 Exp.DetSequence = [0 1];
 try
   saffron(Sys,Exp,Opt);

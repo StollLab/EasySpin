@@ -2,7 +2,7 @@ function ok = test() %#ok<FNDEF>
 
 % Options that saffron does not support give an error instead of being
 % ignored, with any Opt.Method: a pulse field Operator, Opt.StateTrajectories,
-% and Sys.lwAnisoG when the full-space engine is needed
+% Sys.lwAnisoG when the full-space engine is needed, and Opt.DetOperator
 
 Sys.Nucs = '1H';
 Sys.A = [2 3 9];  % MHz
@@ -37,6 +37,10 @@ ok(6) = throwsWith(@() saffron(SysL,Exp,full),'lwAnisoG');
 E = Exp;
 E.DetOperator = {'z1'};  % needs the full-space engine
 ok(7) = throwsWith(@() saffron(SysL,E,auto),'lwAnisoG');
+
+% Opt.DetOperator (detection operators belong in Exp.DetOperator)
+ok(8) = throwsWith(@() saffron(Sys,Exp,struct('DetOperator','z1')),'Exp.DetOperator');
+ok(9) = throwsWith(@() saffron(Sys,Exp,setfield(full,'DetOperator',{'z1'})),'Exp.DetOperator'); %#ok<SFLD>
 
 end
 

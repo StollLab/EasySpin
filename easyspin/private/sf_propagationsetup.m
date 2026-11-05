@@ -1,5 +1,5 @@
 function [Sys,Sigma0,Det,Events,Relaxation] = sf_propagationsetup(Sys,Events,Opt)
-% Spin system setup and input checking for saffron/spidyan
+% Spin system setup and input checking for the full-space engine of saffron
 
 % Check spin system structure
 % --------------------------------------------------------------------------------------
@@ -9,8 +9,8 @@ if ~isfield(Sys,'Nucs'), Sys.Nucs = ''; end
 % Validate spin system
 [Sys,err] = validatespinsys(Sys);
 error(err);
-if Sys.MO_present, error('saffron/spidyan do not support general parameters!'); end
-if any(Sys.L(:)), error('saffron/spidyan do not support L!'); end
+if Sys.MO_present, error('saffron does not support general parameters!'); end
+if any(Sys.L(:)), error('saffron does not support L!'); end
 
 if (Sys.nNuclei==0)
   logmsg(1,'  spin system: %d electron(s)',Sys.nElectrons);
@@ -19,11 +19,11 @@ else
 end
 
 if isfield(Sys,'n') && any(Sys.n~=1)
-  error('saffron/spidyan do not support Sys.n. Specify equivalent nuclei explicitly.')
+  error('saffron does not support Sys.n. Specify equivalent nuclei explicitly.')
 end
 
 if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
-  error('saffron/spidyan do not support nuclear-nuclear couplings (Sys.nn).');
+  error('saffron does not support nuclear-nuclear couplings (Sys.nn).');
 end
 
 logmsg(1,'  looking for and verifying fields related to relaxation');
@@ -129,10 +129,10 @@ end
 logmsg(1,'  setting up the excitation operators');
 
 % -------------------------------------------------------------------------
-% The excitation operator X of each pulse is the total electron Sx, or a
-% custom Hermitian operator (sop string or matrix). It couples to the
-% x(Lab) component of the field. With circular polarization, the field
-% also has a component along y(Lab), which couples to Y, the excitation
+% The excitation operator X of each microwave pulse is the total electron
+% Sx. It couples to the x(Lab) component of the field. With circular
+% polarization, the field also has a component along y(Lab), which couples
+% to Y, the excitation
 % operator rotated by 90 degrees about z(Lab): Y = Rz*X*Rz' with
 % Rz = exp(-1i*pi/2*Fz), where Fz is the total Sz of all spins. For Sx,
 % Y is Sy.
@@ -148,10 +148,7 @@ logmsg(1,'  setting up the excitation operators');
 %   frame (rotating-wave approximation, as for the secular Hamiltonian) is
 %   kept: H1 = conj(c)*Xp + c*Xp', where Xp is the M = +1 part of X
 %   (linear polarization) or of (X+1i*Y)/2 (circular polarization). For
-%   electron operators such as Sx, both are the same, and H1 =
-%   Re(c)*Sx + Im(c)*Sy. Elements with M ~= +-1 oscillate at about the
-%   microwave frequency or faster and are not driven by a microwave pulse.
-%   They are rejected.
+%   Sx, both are the same, and H1 = Re(c)*Sx + Im(c)*Sy.
 %   With c = a*exp(1i*psi), H1 = a*xOp.*exp(-1i*psi*M) is xOp rotated about
 %   the total electron Sz, which commutes with the secular Hamiltonian.
 %   M is stored in the event (CoherenceOrder), so that sf_propagate can obtain
@@ -169,10 +166,6 @@ rotPhases = exp(-1i*pi/2*(mTotal-mTotal.'));
 mS = full(diag(totSpinOps{3}));
 M = mS-mS.';
 
-% initialize pulse counting
-iPulse = 1;
-
-% Loop over events and check if they are pulses
 % RF excitation operator (MHz/mT): nuclear Zeeman interaction with an RF
 % field along x(Lab), H1 = 2*Re(IQ)*X0 with the lab-frame RF waveform IQ
 % (mT). It has electron coherence order 0, so it is the same in shifted
@@ -184,6 +177,7 @@ for iNuc = 1:Sys.nNuclei
 end
 X0 = full(X0);
 
+% Excitation operators of the pulses
 for iEvent = 1: length(Events)
   if strcmp(Events{iEvent}.type,'pulse') && isfield(Events{iEvent},'Ideal') && Events{iEvent}.Ideal
     % Ideal pulses rotate all electron spins (see sf_propagate)
@@ -191,7 +185,6 @@ for iEvent = 1: length(Events)
     Events{iEvent}.xOp = [];
     Events{iEvent}.yOp = [];
     Events{iEvent}.CoherenceOrder = [];
-    iPulse = iPulse + 1;
     continue
   end
   if strcmp(Events{iEvent}.type,'pulse') && isfield(Events{iEvent},'Channel') && strcmp(Events{iEvent}.Channel,'rf')
@@ -201,30 +194,10 @@ for iEvent = 1: length(Events)
     Events{iEvent}.xOp = 2*X0;
     Events{iEvent}.yOp = [];
     Events{iEvent}.CoherenceOrder = [];
-    iPulse = iPulse + 1;
     continue
   end
   if strcmp(Events{iEvent}.type,'pulse')
-    % Checks if user defined excitation operators were provided....
-    if isfield(Opt,'ExcOperator') && ~isempty(Opt.ExcOperator) && (iPulse <= length(Opt.ExcOperator)) && ~isempty(Opt.ExcOperator{iPulse})
-      % ... if yes, they are translated/verified and stored into the
-      % current event ...
-      if ischar(Opt.ExcOperator{iPulse})
-        xOp = sop(Sys.Spins,Opt.ExcOperator{iPulse});
-      elseif any(size(Opt.ExcOperator{iPulse}) ~= size(totSpinOps{1}))
-        message = ['The excitation operator that you provided for pulse no. ' num2str(iPulse) ' does not have the same size as the density matrix.'];
-        error(message)
-      else
-        xOp = Opt.ExcOperator{iPulse};
-      end
-      if norm(xOp-xOp','fro') > 1e-10*norm(xOp,'fro')
-        error('The excitation operator for pulse no. %d is not Hermitian.',iPulse);
-      end
-      xOp = (xOp+xOp')/2;
-    else
-      % ... if not, the total Sx operator is used
-      xOp = totSpinOps{1};
-    end
+    xOp = totSpinOps{1};  % total electron Sx
     circular = strcmp(Events{iEvent}.Polarization,'circular');
     if circular
       yOp = xOp.*rotPhases;
@@ -239,12 +212,6 @@ for iEvent = 1: length(Events)
         Events{iEvent}.yOp = [];
       end
     else
-      if norm(xOp(abs(M)~=1)) > 1e-10*norm(xOp,'fro')
-        error(['The excitation operator for pulse no. %d has elements that ' ...
-          'do not change the electron mS by +-1. A microwave pulse cannot drive ' ...
-          'them in a shifted simulation frame. Use Opt.SimFreq = 0 to ' ...
-          'simulate in the lab frame.'],iPulse);
-      end
       if circular
         Xp = (xOp+1i*yOp)/2;
       else
@@ -255,8 +222,6 @@ for iEvent = 1: length(Events)
       Events{iEvent}.yOp = 1i*(Xp'-Xp);
       Events{iEvent}.CoherenceOrder = M;
     end
-    % Increment pulse counter
-    iPulse = iPulse + 1;
   end
 end
 
@@ -271,13 +236,7 @@ if useDefaultDetOperator
   % default value, equals to S+ for all electron spins 
   DetOps{1} = totSpinOps{1}+1i*totSpinOps{2}; 
 else
-  
-  % catch the case Exp.DetOperator = 'z1' instead of {'z1'} - spidyan
-  % checks and corrects for this case before
-  if ischar(Opt.DetOperator)
-    Opt.DetOperator = {Opt.DetOperator};
-  end
-
+  % Opt.DetOperator is a cell array (saffron wraps a single operator)
   nDetOps = length(Opt.DetOperator);
   
   % compute DetOperators if input was string or validate them if input was

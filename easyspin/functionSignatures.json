@@ -4812,35 +4812,6 @@
       }
     ]
   },
-  "spidyan": {
-    "description": "Spin dyanmics with arbitrary waveforms",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "Exp",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "experimental parameters"
-      },
-      {
-        "name": "Opt",
-        "kind": "ordered",
-        "type": [
-          "struct"
-        ],
-        "purpose": "simulation options"
-      }
-    ]
-  },
   "spinladder": {
     "description": "Computes spin Hamiltonians for the manifolds of a spin-coupled pair",
     "inputs": [

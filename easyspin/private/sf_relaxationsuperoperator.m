@@ -1,4 +1,4 @@
-% sf_relaxationsuperoperator  Relaxation superoperator for saffron and spidyan
+% sf_relaxationsuperoperator  Relaxation superoperator for saffron (full-space engine)
 %
 %   [Gamma,minOverlap] = sf_relaxationsuperoperator(Sys,H)
 %

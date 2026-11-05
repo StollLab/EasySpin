@@ -76,10 +76,6 @@ for iEvent = 1 : nEvents
   end
 end
 
-% Traces are stored in a numeric array, unless their lengths differ
-% between acquisition points (see storage at the end of the loop)
-StoreInCellArray = false;
-
 % Initial event lengths, the indirect dimensions are applied to these
 InitialEventLengths = zeros(1,nEvents);
 for iEvent = 1 : nEvents
@@ -522,128 +518,44 @@ for iPoints = 1 : nPoints
   end
   
   %--------------------------------------------------------------------
-  % If time traces were stored they are now stored in a large numeric
-  % array (or cell array if and of the detected events lengths changed)
-  % that contains all the time traces according to the Vary structure
+  % Store the time trace in a numeric array that contains all the time
+  % traces according to the Vary structure
   %--------------------------------------------------------------------
-  
+
   if ~firstDetection
     % If the current acquisition was the first, the arrays must first
     % be created
     if iPoints ==1
-      if ~StoreInCellArray
-        SignalSize = size(Signal);
-        % Create an empty array for storage of all the signals
-        SignalArray = zeros(IndirectDimensions{:},SignalSize(1),SignalSize(2));
-        % Create an empty array for storage of all the time axes
-        TimeArray = zeros(IndirectDimensions{:},SignalSize(2));
-        
-      else
-        % Create cell arrays for output
-        if isscalar(IndirectDimensions)
-          % if no or only one Indirect Dimensions are requesteted, the
-          % output structure is created here, to avoid creating square
-          % cell arrays
-          SignalArray = cell(1,IndirectDimensions{:});
-          TimeArray = cell(1,IndirectDimensions{:});
-        else
-          SignalArray = cell(IndirectDimensions{:});
-          TimeArray = cell(IndirectDimensions{:});
-        end
-      end
+      SignalSize = size(Signal);
+      % Create an empty array for storage of all the signals
+      SignalArray = zeros(IndirectDimensions{:},SignalSize(1),SignalSize(2));
+      % Create an empty array for storage of all the time axes
+      TimeArray = zeros(IndirectDimensions{:},SignalSize(2));
     end
-    
-    % Now the signals and their corresponding time axis can be stored.
-    % The indexing uses AcquisitionIndex, which provides the current
-    % position in the array
-    if ~StoreInCellArray
-      if length(t) > 1 && size(TimeArray,ndims(TimeArray)) ~= length(t)      
-        % The trace of the current acquisition point has a different
-        % length than the traces before, e.g. because a detected event is
-        % incremented along an indirect dimension. From now on, traces are
-        % stored in cell arrays, and the traces stored so far are moved
-        % there. The number of points can also change if the total
-        % detected time stays the same, since event lengths are rounded to
-        % the time step, e.g. with dt = 0.2 µs:
-        % 1st Acquisition: tau1 = 0.5 µs, tau2 = 0.5 µs, dt = 0.2 µs
-        %                  total detection time = 0.5 + 0.5 = 1 µs
-        %                  total number of data points = 2 + 2 = 4
-        % 2nd Acquisition: tau1 = 0.4 µs, tau2 = 0.6 µs, dt = 0.2 µs
-        %                  total detection time = 0.4 + 0.6 = 1 µs
-        %                  total number of data points = 2 + 3 = 5
-        % saffron does not support this (Vary.ConstantLength): stop here,
-        % before the remaining points are propagated.
-        if isfield(Vary,'ConstantLength') && Vary.ConstantLength
-          error(['saffron does not support detected events whose length changes along an ' ...
-            'indirect dimension. Run one simulation per point instead, e.g. with ' ...
-            'Exp.DetWindow = ''sequence'', and collect the transients.']);
-        end
-        StoreInCellArray = true;
-        
-        % Create cell arrays for output
-        if isscalar(IndirectDimensions)
-          % if no or only one Indirect Dimensions are requesteted, the
-          % output structure is created here, to avoid creating square
-          % cell arrays
-          NewSignalArray = cell(1,IndirectDimensions{:});
-          NewTimeArray = cell(1,IndirectDimensions{:});
-        else
-          NewSignalArray = cell(IndirectDimensions{:});
-          NewTimeArray = cell(IndirectDimensions{:});
-        end
-        
-        for jSignal = 1 : iPoints-1
-          % get index for position of jSignal in the output cell array
-          indexID = cell(length(IndirectDimensions),1);
-          if isscalar(IndirectDimensions)
-            indexID{1} = jSignal;
-          else
-            % acquisition points are visited with the last dimension
-            % changing fastest
-            [indexID{end:-1:1}] = ind2sub(fliplr(cell2mat(IndirectDimensions)),jSignal);
-          end
 
-          % assign jSignal to cell array, remove singleton dimensions
-          NewSignalArray{indexID{:}} = squeeze(SignalArray(indexID{:},:,:));
-          
-          % If only one detection operator is used, the squeeze above also
-          % rotates the signal vector and we have to reverse the rotation.
-          if nDet==1
-            NewSignalArray{indexID{:}} = NewSignalArray{indexID{:}}.';
-          end
-          
-          % For the time axis, two cases need to be considered as well. If
-          % there is only one indirect dimension, the time vector can be
-          % taken as is
-          if isscalar(IndirectDimensions)
-            NewTimeArray{indexID{:}} = TimeArray(indexID{:},:);
-          else
-            % if there are more than one indirect dimensions, a squeeze has
-            % to be applied and the vector needs to be rotated.
-            NewTimeArray{indexID{:}} = squeeze(TimeArray(indexID{:},:)).';
-          end
-        end
-        
-        % store the signal and time axis of the most recent acquisition 
-        % point (the one where the length of the transient changed)
-        NewSignalArray{AcquisitionIndex{:}} = Signal;
-        NewTimeArray{AcquisitionIndex{:}} = t;
-        
-        % Copy signal and time axes arrays over
-        SignalArray = NewSignalArray;
-        TimeArray = NewTimeArray;
-                
-      else 
-        % Storing in vector array (transients have identical number of
-        % points)
-        TimeArray(AcquisitionIndex{:},:) = t;
-        SignalArray(AcquisitionIndex{:},:,:) = Signal;
-      end
-    else
-      % Storing in cell array (transients have different number of points)
-      SignalArray{AcquisitionIndex{:}} = Signal;
-      TimeArray{AcquisitionIndex{:}} = t;
+    if length(t) > 1 && size(TimeArray,ndims(TimeArray)) ~= length(t)
+      % The trace of the current acquisition point has a different
+      % length than the traces before, e.g. because a detected event is
+      % incremented along an indirect dimension. The number of points can
+      % also change if the total detected time stays the same, since event
+      % lengths are rounded to the time step, e.g. with dt = 0.2 µs:
+      % 1st Acquisition: tau1 = 0.5 µs, tau2 = 0.5 µs, dt = 0.2 µs
+      %                  total detection time = 0.5 + 0.5 = 1 µs
+      %                  total number of data points = 2 + 2 = 4
+      % 2nd Acquisition: tau1 = 0.4 µs, tau2 = 0.6 µs, dt = 0.2 µs
+      %                  total detection time = 0.4 + 0.6 = 1 µs
+      %                  total number of data points = 2 + 3 = 5
+      % This is not supported: stop here, before the remaining points are
+      % propagated.
+      error(['saffron does not support detected events whose length changes along an ' ...
+        'indirect dimension. Run one simulation per point instead, e.g. with ' ...
+        'Exp.DetWindow = ''sequence'', and collect the transients.']);
     end
+
+    % Store the signal and its time axis at the current position
+    % (AcquisitionIndex) in the arrays
+    TimeArray(AcquisitionIndex{:},:) = t;
+    SignalArray(AcquisitionIndex{:},:,:) = Signal;
   end
   
   % Store the final state (in the detection frame) at its correct position

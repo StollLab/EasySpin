@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 orig_state = warning;
 warning('off','all');
@@ -16,7 +16,7 @@ Exp.Field = 1240;
 Exp.mwFreq = 0;
 Opt.IntTimeStep = 0.0001; % µs
 
-Exp.DetSequence = 1;
+Exp.DetWindow = 'sequence';
 
 % First Syntax -----------------------------
 Exp.nPoints = 3;
