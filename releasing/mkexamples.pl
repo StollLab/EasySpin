@@ -21,7 +21,6 @@ $Description{'magnetometry'} = 'Magnetometry';
 $Description{'photoexcitation'} = 'Spin-polarized systems';
 $Description{'pulse evolve'} = 'Pulse EPR simulations (evolve)';
 $Description{'pulse saffron'} = 'Pulse EPR simulations (saffron)';
-$Description{'pulse spidyan'} = 'Pulse EPR simulations (spidyan)';
 $Description{'pulse shaping'} = 'Pulse shaping';
 $Description{'slowmotion'} = 'Slow-motion cw EPR simulations';
 $Description{'solidstate'} = 'Solid-state cw EPR simulations';
@@ -83,7 +82,6 @@ The examples are organized in the following groups:
 <li><a href="#pulse evolve">Pulse EPR simulations (evolve)</a></li>
 <li><a href="#pulse saffron">Pulse EPR simulations (saffron)</a></li>
 <li><a href="#pulse shaping">Pulse shaping</a></li>
-<li><a href="#pulse spidyan">Pulse EPR simulations (spidyan)</a></li>
 <li><a href="#slowmotion">Slow-motion cw EPR simulations</a></li>
 <li><a href="#solidstate">Solid-state cw EPR simulations</a></li>
 <li><a href="#trajectories">EPR spectra from MD trajectories</a></li>

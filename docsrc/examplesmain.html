@@ -50,7 +50,6 @@ The examples are organized in the following groups:
 <li><a href="#pulse evolve">Pulse EPR simulations (evolve)</a></li>
 <li><a href="#pulse saffron">Pulse EPR simulations (saffron)</a></li>
 <li><a href="#pulse shaping">Pulse shaping</a></li>
-<li><a href="#pulse spidyan">Pulse EPR simulations (spidyan)</a></li>
 <li><a href="#slowmotion">Slow-motion cw EPR simulations</a></li>
 <li><a href="#solidstate">Solid-state cw EPR simulations</a></li>
 <li><a href="#trajectories">EPR spectra from MD trajectories</a></li>
@@ -381,6 +380,14 @@ The examples are organized in the following groups:
 
 <table width=100% class="examplelist">
 <tr>
+<td width=200><a href="../examples/pulse saffron/adiabatic_passage.m">adiabatic_passage</a></td>
+<td>Spin trajectory during adiabatic passage (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/advanced_options.m">advanced_options</a></td>
+<td>Advanced options for spin dynamics (saffron)
+</td></tr>
+<tr>
 <td width=200><a href="../examples/pulse saffron/custom_2p_echo.m">custom_2p_echo</a></td>
 <td>Two-pulse echo transient using chirp pulses (saffron)
 </td></tr>
@@ -413,12 +420,52 @@ The examples are organized in the following groups:
 <td>HYSCORE of S=1/2 with a 14N nucleus (saffron)
 </td></tr>
 <tr>
+<td width=200><a href="../examples/pulse saffron/inversion_pulses.m">inversion_pulses</a></td>
+<td>Spin trajectories with three different inversion pulses (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/moving_pulses.m">moving_pulses</a></td>
+<td>Moving a pulse with Exp.Dim (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/multidimensional_experiments.m">multidimensional_experiments</a></td>
+<td>Setting up indirect dimensions (saffron)
+</td></tr>
+<tr>
 <td width=200><a href="../examples/pulse saffron/n14_twopulse.m">n14_twopulse</a></td>
 <td>Two-pulse ESEEM of a 14N nucleus (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/orisel2p.m">orisel2p</a></td>
 <td>Orientation-selective three-pulse ESEEM (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/populationtransfer.m">populationtransfer</a></td>
+<td>Enhancement of central transition in a S = 3/2 system (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/rabi_oscillation.m">rabi_oscillation</a></td>
+<td>Rabi oscillation (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/relaxation.m">relaxation</a></td>
+<td>Relaxation (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/resonatorlimitations.m">resonatorlimitations</a></td>
+<td>Resonator limitations and compensation (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/spin_selective_excitation.m">spin_selective_excitation</a></td>
+<td>Selective excitation of two spins with different resonance frequencies (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/spinecho_gaussianline.m">spinecho_gaussianline</a></td>
+<td>Spin echo of a Gaussian line (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/spinecho_nitroxide.m">spinecho_nitroxide</a></td>
+<td>Spin echo of a nitroxide (saffron)
 </td></tr>
 </table>
 <p></p>
@@ -462,61 +509,6 @@ The examples are organized in the following groups:
 <tr>
 <td width=200><a href="../examples/pulse shaping/sechtanhinversionpulse.m">sechtanhinversionpulse</a></td>
 <td>Comparison of excitation profiles of a rectangular and sech/tanh pulse
-</td></tr>
-</table>
-<p></p>
-
-<!-- ===================================================================== -->
-<a name="pulse spidyan"><b>Pulse EPR simulations (spidyan)</b></a>
-
-<table width=100% class="examplelist">
-<tr>
-<td width=200><a href="../examples/pulse spidyan/adiabatic_passage.m">adiabatic_passage</a></td>
-<td>Spin trajectory during adiabatic passage (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/advanced_options.m">advanced_options</a></td>
-<td>Advanced options for spindynamics (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/inversion_pulses.m">inversion_pulses</a></td>
-<td>Spin trajectories with three different inversion pulses (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/moving_pulses.m">moving_pulses</a></td>
-<td>Moving a pulse with Exp.Dim (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/multidimensional_experiments.m">multidimensional_experiments</a></td>
-<td>Setting up indirect dimensions (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/populationtransfer.m">populationtransfer</a></td>
-<td>Enhancement of central transition in a S = 3/2 system (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/rabi_oscillation.m">rabi_oscillation</a></td>
-<td>Rabi oscillation (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/relaxation.m">relaxation</a></td>
-<td>Relaxation (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/resonatorlimitations.m">resonatorlimitations</a></td>
-<td>Resonator limitations and compensation (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/spin_selective_excitation.m">spin_selective_excitation</a></td>
-<td>Selective excitation of two spins with identical resonance frequency  (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/spinecho_gaussianline.m">spinecho_gaussianline</a></td>
-<td>Spin echo of a Gaussian line (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/spinecho_nitroxide.m">spinecho_nitroxide</a></td>
-<td>Spin echo of a nitroxide (spidyan)
 </td></tr>
 </table>
 <p></p>
