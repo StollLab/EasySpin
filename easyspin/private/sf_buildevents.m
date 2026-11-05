@@ -110,9 +110,11 @@ for Pos = pulsePositions
     if ~isfield(p_,'Flip')
       error('Ideal pulses (no tp) need a flip angle (Flip).');
     end
-  elseif noCarrier && ~isfield(p_,'IQ') && (~isfield(p_,'Frequency') || isempty(p_.Frequency))
+  elseif noCarrier && ~isfield(p_,'IQ') && ...
+      (~isfield(p_,'Frequency') || isempty(p_.Frequency) || all(p_.Frequency==0))
+    % Pulse.Frequency = 0 would be a pulse at 0 MHz in the lab frame
     error(['Without Exp.mwFreq, the frequencies of microwave pulses are absolute: ' ...
-      'give Pulse.Frequency (in MHz) for every finite pulse, or give Exp.mwFreq.']);
+      'give a nonzero Pulse.Frequency (in MHz) for every finite pulse, or give Exp.mwFreq.']);
   end
   if isfield(p_,'IQ') && ~isfield(Opt,'IntTimeStep')
     error('If you use userprovided IQs for pulses, Opt.IntTimeStep must be given.')

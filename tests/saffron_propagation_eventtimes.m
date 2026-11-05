@@ -41,8 +41,8 @@ ok(2) = areequal(infoW.EventTimes,[-0.16 -0.14; -0.14 -0.04; -0.04 0],tol,'abs')
 idx = t >= info.EventTimes(4,1)-tol & t <= info.EventTimes(4,2)+tol;
 tCrop = t(idx) - info.EventTimes(4,1);
 SCrop = S(idx);
-ok(3) = areequal(tCrop([1 end]),tW([1 end]),tol,'abs');
-ok(4) = areequal(SCrop([1 end]),SW([1 end]),1e-6,'abs');
+ok(3) = numel(tCrop)==numel(tW) && areequal(tCrop,tW,tol,'abs');
+ok(4) = numel(SCrop)==numel(SW) && areequal(SCrop,SW,1e-6,'abs');
 
 % Single point at the end: times relative to the end of the sequence
 E = Exp;

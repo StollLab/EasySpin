@@ -234,8 +234,8 @@ Pulse.Frequency = [-250 250];  % corresponds to 33.25 - 33.75 GHz
 <code>Exp.mwFreq</code> is needed for orientation selection by finite pulses and for a resonator. Without it:
 </p>
 <ul>
-<li>Pulses without <code>Pulse.Frequency</code> are on resonance with every orientation (no orientation selection). This is simulated with the subspace engine, e.g. for predefined experiments.</li>
-<li>Pulse frequencies are absolute (carrier at zero, in MHz), and the detection frame (<code>Exp.DetFreq</code>) defaults to the lab frame. This needs the full-space engine, which then requires <code>Pulse.Frequency</code> for every finite pulse.</li>
+<li>With the <em>subspace</em> method, pulses without <code>Pulse.Frequency</code> (or with <code>Pulse.Frequency = 0</code>) are on resonance with every orientation (no orientation selection). This is how predefined experiments are usually simulated. It does not apply when the experiment needs the <em>full-space</em> method, e.g. for spin systems without nuclei (see <code>Opt.Method</code>).</li>
+<li>With the <em>full-space</em> method, pulse frequencies are absolute (carrier at zero, in MHz), and the detection frame (<code>Exp.DetFreq</code>) defaults to the lab frame. Every finite pulse then needs a nonzero <code>Pulse.Frequency</code>. A nonzero pulse frequency always selects the full-space method.</li>
 </ul>
 <pre class="matlab">
 Pulse.Frequency = 9.5e3 + [-50 50];  % chirp from 9.45 to 9.55 GHz, no Exp.mwFreq

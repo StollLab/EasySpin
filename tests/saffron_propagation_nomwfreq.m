@@ -4,8 +4,8 @@ function ok = test() %#ok<FNDEF>
 % frequencies are absolute and the detection frame defaults to the lab
 % frame. A pulse at 9500 MHz without Exp.mwFreq equals a pulse at offset 0
 % with Exp.mwFreq = 9.5 GHz (same detection frame). In the full-space
-% engine, finite pulses without a frequency and a resonator give errors
-% without Exp.mwFreq. Pulses without a frequency use the subspace engine
+% engine, finite pulses without a nonzero frequency and a resonator give
+% errors without Exp.mwFreq. Pulses without a frequency use the subspace engine
 % (on resonance), pulses with a frequency the full-space engine.
 
 Sys.S = 1/2;
@@ -49,6 +49,10 @@ ok(8) = areequal(yEmpty,yLab,1e-12,'abs');
 E = rmfield(Exp,'DetFreq');
 E.Sequence = {Pulse};  % no frequency
 ok(3) = throwsWith(@() saffron(Sys,E),'Pulse.Frequency');
+P0 = Pulse;
+P0.Frequency = 0;  % would be 0 MHz in the lab frame
+E.Sequence = {P0};
+ok(9) = throwsWith(@() saffron(Sys,E),'nonzero Pulse.Frequency');
 E.Sequence = {P};
 E.ResonatorFrequency = 9.5;  % GHz
 E.ResonatorQL = 100;
