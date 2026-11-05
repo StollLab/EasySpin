@@ -118,6 +118,17 @@ end
 mwPulsePositions = pulsePositions(~isRFEvent(pulsePositions));
 finitemwPulsePositions = pulsePositions(~isRFEvent(pulsePositions) & ~isIdealEvent(pulsePositions));
 
+% Event-specific settings (Opt.Relaxation, Opt.StateTrajectories) refer to
+% the elements of Exp.Sequence as given by the user, before detection
+% events are appended below
+nUserEvents = numel(Exp.Sequence);
+eventFlags = {'Relaxation','StateTrajectories'};
+for f = eventFlags
+  if isfield(Opt,f{1}) && ~isscalar(Opt.(f{1})) && numel(Opt.(f{1}))~=nUserEvents
+    error('Opt.%s must be a single value or have one entry per element of Exp.Sequence (%d).',f{1},nUserEvents);
+  end
+end
+
 % Set up detection
 %-------------------------------------------------------------------------------
 logmsg(1,'  setting up detection');
@@ -190,6 +201,21 @@ else
   % default if no detection is given:
   logmsg(1,'  no detection specified, detection is active during the entire sequence');
   Exp.DetSequence = ones(1,numel(Exp.Sequence));
+end
+
+% Detection events appended for Exp.DetWindow are free evolution, so they
+% take the event-specific settings of the last delay in the user's
+% sequence (or, without delays, are on if the setting is on anywhere)
+userDelays = find(~cellfun(@isstruct,Exp.Sequence(1:nUserEvents)));
+for f = eventFlags
+  if isfield(Opt,f{1}) && ~isscalar(Opt.(f{1}))
+    if isempty(userDelays)
+      flag = any(Opt.(f{1}));
+    else
+      flag = Opt.(f{1})(userDelays(end));
+    end
+    Opt.(f{1})(nUserEvents+1:numel(Exp.Sequence)) = flag;
+  end
 end
 
 % Check if resonator is provided
@@ -365,22 +391,6 @@ Events = cell(1,length(Exp.Sequence));
 nEvents = length(Exp.Sequence);
 
 Intervals = zeros(1,length(Exp.Sequence));
-
-% making sure that relaxation is defined globally of for all individual
-% elements in Exp.Sequence
-if isfield(Opt,'Relaxation')
-  if ~isscalar(Opt.Relaxation) && length(Opt.Relaxation) ~= length(Exp.Sequence)
-    error('The lengths of Exp.Sequence and Opt.Relaxation do not match. Length of Opt.Relaxation has to be 1 or the same as Exp.Sequence.')
-  end
-end
-
-% making sure that state trajectories are defined globally of for all
-% individual elements in Exp.Sequence
-if isfield(Opt,'StateTrajectories')
-  if ~isscalar(Opt.StateTrajectories) && length(Opt.StateTrajectories) ~= length(Exp.Sequence)
-    error('The lengths of Exp.Sequence and Opt.StateTrajectories do not match. Length of Opt.StateTrajectories has to be 1 or the same as Exp.Sequence.')
-  end
-end
 
 % Setting up data structures for the pulses and events
 logmsg(1,'  parsing Exp.Sequence:');
