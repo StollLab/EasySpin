@@ -154,6 +154,19 @@ else
 end
 seq.finitePulses = any(~[P.ideal] & ~isRF);
 
+% Without Exp.mwFreq, the subspace engine puts finite microwave pulses on
+% resonance with every orientation (no orientation selection). A pulse
+% frequency is then absolute (carrier at 0), which needs the full-space
+% engine.
+if ~isfield(Exp,'mwFreq')
+  for k = find(~isRF & ~[P.ideal])
+    if any(P(k).Par.Frequency~=0)
+      reasons{end+1} = 'absolute pulse frequencies (no Exp.mwFreq)';
+      break
+    end
+  end
+end
+
 % Detection
 if isfield(Exp,'DetWindow') && ~(isnumeric(Exp.DetWindow) && all(Exp.DetWindow==0))
   reasons{end+1} = 'transient or shifted detection (Exp.DetWindow)';

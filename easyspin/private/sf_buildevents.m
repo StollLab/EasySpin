@@ -80,9 +80,9 @@ end
 
 Vary = [];
 
-if ~isfield(Exp,'mwFreq')
-  error('Exp.mwFreq is required for the full-space engine.');
-end
+% Without Exp.mwFreq, the microwave carrier is at 0: pulse frequencies
+% (Pulse.Frequency, in MHz) are absolute
+noCarrier = ~isfield(Exp,'mwFreq');
 
 Opt.SinglePointDetection = false;
 
@@ -110,6 +110,9 @@ for Pos = pulsePositions
     if ~isfield(p_,'Flip')
       error('Ideal pulses (no tp) need a flip angle (Flip).');
     end
+  elseif noCarrier && ~isfield(p_,'IQ') && (~isfield(p_,'Frequency') || isempty(p_.Frequency))
+    error(['Without Exp.mwFreq, the frequencies of microwave pulses are absolute: ' ...
+      'give Pulse.Frequency (in MHz) for every finite pulse, or give Exp.mwFreq.']);
   end
   if isfield(p_,'IQ') && ~isfield(Opt,'IntTimeStep')
     error('If you use userprovided IQs for pulses, Opt.IntTimeStep must be given.')
@@ -223,6 +226,9 @@ includeResonator = false;
 Resonator = struct;
 if any([isfield(Exp,'ResonatorFrequency') isfield(Exp,'ResonatorQL') isfield(Exp,'FrequencyResponse')])
   logmsg(1,'  resonator present');
+  if noCarrier
+    error('A resonator (Exp.ResonatorFrequency, Exp.FrequencyResponse) needs the microwave carrier frequency Exp.mwFreq.');
+  end
   if isfield(Exp,'ResonatorFrequency') && isfield(Exp,'ResonatorQL')
     logmsg(1,'  resonator frequency: %s',num2str(Exp.ResonatorFrequency));
     logmsg(1,'  resonator QL: %s',num2str(Exp.ResonatorQL));

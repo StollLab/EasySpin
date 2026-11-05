@@ -1,10 +1,12 @@
 % sf_propagate  Time domain evolution of density matrix
-function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events] = ...
+function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events, EventTimes] = ...
   sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary)
+% EventTimes: [start end] of each event (rows in the order of Events), in
+% µs from the start of the sequence, for the first acquisition point
 
 if nargin==0, help(mfilename); return; end
 
-if nargout>5, error('Too many output arguments.'); end
+if nargout>6, error('Too many output arguments.'); end
 if nargin<4 || nargin>6, error('Wrong number of input arguments!'); end
 
 nEvents = length(Events);
@@ -155,6 +157,9 @@ for iPoints = 1 : nPoints
   
   % Start times of all events, from the start of the sequence
   tStart = eventStartTimes(Events,Sequence);
+  if iPoints==1
+    EventTimes = tStart(:) + [zeros(nEvents,1) cellfun(@(E)E.t(end),Events(:))];
+  end
 
   % Weight of the recovery toward equilibrium (SigmaOffset) in the
   % relaxation steps of each event. By linearity, each phase cycle step is

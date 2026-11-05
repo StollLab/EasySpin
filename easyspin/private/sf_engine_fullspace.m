@@ -35,8 +35,10 @@ logmsg(1,'-processing Sys structure------------------------------');
 % Detection frame (validated in sf_propagationsetup)
 if isfield(Exp,'DetFreq')
   Opt.DetFreq = Exp.DetFreq;
-else
+elseif isfield(Exp,'mwFreq')
   Opt.DetFreq = Exp.mwFreq;
+else
+  Opt.DetFreq = 0;  % no microwave carrier: lab frame
 end
 if isfield(Exp,'DetPhase')
   Opt.DetPhase = Exp.DetPhase;
@@ -108,6 +110,7 @@ end
 
 rawSignals = cell(1,nOrientations);
 timeAxis = cell(1,nOrientations);
+eventTimes = cell(1,nOrientations);
 minWeight = ones(1,nOrientations);
 minOverlap = ones(1,nOrientations);
 
@@ -152,12 +155,14 @@ parfor iOrientation = 1 : nOrientations
 
   sig = 0;
   tAx = [];
+  evT = [];
   for iRun = 1:nPathwayRuns
-    [tAx, sig_] = sf_propagate(Sigma_, Ham, Det, EventsList{iRun}, Relaxation_, Vary);
+    [tAx, sig_, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, EventsList{iRun}, Relaxation_, Vary);
     sig = sig + sig_;
   end
   timeAxis{iOrientation} = tAx;
   rawSignals{iOrientation} = sig;
+  eventTimes{iOrientation} = evT;
 end
 
 if min(minWeight)<0.9
@@ -220,6 +225,23 @@ if nTime>1
 else
   info.transientAxis = [];
 end
+
+% Start and end of each element of Exp.Sequence, on the time axis of the
+% transient: from the start of the sequence for DetWindow = 'sequence',
+% from the end of the sequence otherwise. Events appended for the
+% detection window are left out; the last of them starts at DetWindow(1).
+nElements = numel(Exp.Sequence);
+evT = eventTimes{1};
+if isnumeric(Exp.DetWindow)
+  tEndSequence = evT(end,1) - Exp.DetWindow(1);
+  evT = evT(1:nElements,:) - tEndSequence;
+  if ~isstruct(Exp.Sequence{end})
+    evT(end,2) = 0;  % the last delay, shortened or extended by DetWindow(1)
+  end
+else
+  evT = evT(1:nElements,:);
+end
+info.EventTimes = evT;
 
 end
 

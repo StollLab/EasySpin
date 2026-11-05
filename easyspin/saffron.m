@@ -146,7 +146,9 @@ if isfield(Exp,'Filter')
   error('Exp.Filter is no longer supported. Select coherence pathways with Exp.Pathways, e.g. ''+0-''.');
 end
 if isfield(Exp,'DetSequence')
-  error('Exp.DetSequence is no longer supported. Use Exp.DetWindow = ''sequence'' to detect during the whole sequence.');
+  error(['Exp.DetSequence is no longer supported. Use Exp.DetWindow = ''sequence'' to detect ' ...
+    'during the whole sequence; info.EventTimes gives the start and end of each element of ' ...
+    'Exp.Sequence, for selecting the detected events.']);
 end
 if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
@@ -182,6 +184,11 @@ if any(Exp.Field<0)
   error('Exp.Field cannot be negative.');
 end
 
+% Microwave carrier frequency, optional: empty is the same as not given
+if isfield(Exp,'mwFreq') && isempty(Exp.mwFreq)
+  Exp = rmfield(Exp,'mwFreq');
+end
+
 % Exp.Sequence is a required field
 if ~isfield(Exp,'Sequence')
   error('Exp.Sequence is missing. Provide a predefined or user-defined pulse sequence.');
@@ -208,8 +215,23 @@ end
 if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)
   Exp.DetWindow = 0;
 end
-if isfield(Exp,'DetPhase') && numel(Exp.DetPhase)~=1
-  error('Exp.DetPhase must be a single value (in radians).');
+% Detection operators as a cell array; detection phases: one per operator
+% (a single value applies to all operators). An empty DetOperator means
+% the default (S+).
+if isfield(Exp,'DetOperator') && ~isempty(Exp.DetOperator) && ~iscell(Exp.DetOperator)
+  Exp.DetOperator = {Exp.DetOperator};
+end
+if isfield(Exp,'DetOperator') && ~isempty(Exp.DetOperator)
+  nDetOps = numel(Exp.DetOperator);
+else
+  nDetOps = 1;
+end
+if isfield(Exp,'DetPhase') && ~isempty(Exp.DetPhase)
+  if isscalar(Exp.DetPhase)
+    Exp.DetPhase = repmat(Exp.DetPhase,1,nDetOps);
+  elseif numel(Exp.DetPhase)~=nDetOps
+    error('Exp.DetPhase must be a single value or have one value per detection operator in Exp.DetOperator (%d).',nDetOps);
+  end
 end
 
 % Temperature
@@ -259,9 +281,6 @@ if subspaceEngine
   Opt.fastExp = Exp;
 else
   % Full-space engine: set up events and indirect dimensions
-  if ~isfield(Exp,'mwFreq')
-    error('Exp.mwFreq is required for the full-space engine.');
-  end
   ExpProp = Exp;
   if isfield(ExpProp,'DetOperator')
     Opt.DetOperator = ExpProp.DetOperator;
@@ -568,9 +587,59 @@ end
 function saffron_plot(x,data,info,Exp)
 
 logmsg(1,'Plotting...');
-clf
 if isfield(Exp,'Macro'), name = Exp.Macro; else, name = 'User-defined experiment'; end
-xl = axisLabels(Exp);
+
+% Axes: indirect dimensions, then the transient time axis (if any)
+if isempty(x), ax = {}; elseif iscell(x), ax = x; else, ax = {x}; end
+nAx = numel(ax);
+xl = axisLabels(Exp,nAx);
+if isfield(Exp,'DetOperator') && ~isempty(Exp.DetOperator)
+  ops = Exp.DetOperator;
+  yLabel = 'expectation value';
+else
+  ops = {};
+  yLabel = 'echo amplitude';
+end
+nDet = max(numel(ops),1);
+
+% Single points and outputs with more than two axes are not plotted
+if nAx==0
+  fprintf('%s: signal = %s\n',name,mat2str(data,4));
+  return
+elseif nAx>2
+  fprintf('%s: no plot for outputs with more than two axes.\n',name);
+  return
+end
+clf
+
+% Several detection operators: one subplot per operator
+if nDet>1
+  sz = cellfun(@numel,ax);
+  D = reshape(data,[sz nDet]);
+  for k = 1:nDet
+    subplot(nDet,1,k);
+    if ischar(ops{k}), opName = ['\langle' ops{k} '\rangle']; else, opName = sprintf('operator %d',k); end
+    if nAx==1
+      d = D(:,k).';
+      if isreal(d) || max(abs(imag(d)))<1e-6*max(abs(d))
+        plot(ax{1},real(d));
+      else
+        plot(ax{1},real(d),ax{1},imag(d));
+        legend('real','imag'); legend boxoff
+      end
+      axis tight
+      xlabel(xl{1}); ylabel(yLabel);
+      title(opName);
+    else
+      surf(ax{1},ax{2},real(D(:,:,k)).');
+      view([0 90]); shading flat; axis tight; box on
+      set(gca,'Layer','top');
+      xlabel(xl{1}); ylabel(xl{2});
+      title([opName ' (real part)']);
+    end
+  end
+  return
+end
 
 isENDOR = ~isempty(rfFrequencyDims(Exp));
 if isENDOR && isvector(data)
@@ -611,7 +680,7 @@ if iscell(x), x = x{1}; end
 if ~isvector(data)
   plot(x,real(data.'));
   xlabel(xl{1});
-  ylabel('signal');
+  ylabel(yLabel);
   title(name);
   return
 end
@@ -625,7 +694,7 @@ else
 end
 axis tight
 xlabel(xl{1});
-ylabel('echo amplitude');
+ylabel(yLabel);
 title(sprintf('%s, time domain',name));
 if hasFD
   subplot(2,1,2);
@@ -639,10 +708,11 @@ if hasFD
 end
 end
 
-function xl = axisLabels(Exp)
-xl = {'',''};
-if ~isfield(Exp,'nPoints'), xl{1} = 't (µs)'; return; end
-for d = 1:numel(Exp.nPoints)
+% Labels of the nAx axes: indirect dimensions, then the transient time
+function xl = axisLabels(Exp,nAx)
+xl = repmat({'t (µs)'},1,max(nAx,2));
+if ~isfield(Exp,'nPoints'), return; end
+for d = 1:min(numel(Exp.nPoints),nAx)
   Dim = Exp.(sprintf('Dim%d',d));
   target = strtrim(Dim{1,1});
   if strcmp(target,'rfFreq')
