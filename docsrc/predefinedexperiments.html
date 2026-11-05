@@ -29,11 +29,34 @@
 <h1>Predefined experiments</h1>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> has predefined pulse experiments, selected via <code>Exp.Sequence</code>. For each, this page lists its parameters and the equivalent user-defined sequence, which you can modify further.
+<a class="esf" href="saffron.html">saffron</a> has predefined pulse experiments, selected via <code>Exp.Sequence</code>. Each of them is a shortcut for a user-defined experiment: a pulse sequence with its incrementation scheme, coherence pathway selection and detection phase. For each, this page lists its parameters and the equivalent user-defined experiment, which you can modify further. <a class="esf" href="saffron.html">saffron</a> also returns the equivalent user-defined experiment in <code>info.Exp</code>:
+</p>
+
+<pre class="matlab">
+[x,y,info] = saffron(Sys,Exp);
+ExpCustom = rmfield(info.Exp,'Macro');   % gives the same result as Exp
+</pre>
+
+<p>
+All microwave pulses are along x, and the detection phase is chosen so that the echo is real and positive. A single point is detected at the end of the sequence. The predefined experiments work with both simulation methods; <a class="esf" href="saffron.html">saffron</a> chooses the method as for any other experiment.
 </p>
 
 <p>
-All pulses are along x, and the detection phase is chosen so that the echo is real and positive. With the <em>subspace</em> method of <code>saffron</code>, pulses are ideal. With the <a class="esf" href="saffron.html#algorithms"><em>full-space</em> method</a>, they are rectangular pulses at <code>Exp.mwFreq</code>, 16 ns long for &pi;/2 and 32 ns for &pi;; these support all experiments except <code>'MimsENDOR'</code>. The equivalent sequences give the same signal, but their time axis starts at zero.
+Parameters common to all predefined experiments:
+</p>
+
+<div class="optionfield"><code>Exp.tp</code></div>
+<div class="optiondescr">
+Lengths of the microwave pulses, in µs: one value for all of them, or one value per microwave pulse. By default, the pulses are ideal (zero length). With finite lengths, the pulses are rectangular, and they select orientations and transitions according to <code>Exp.mwFreq</code> and the spin system. <code>'DaviesENDOR'</code> requires finite pulses.
+</div>
+
+<div class="optionfield"><code>Exp.nPoints</code></div>
+<div class="optiondescr">
+Number of points. The defaults are given below.
+</div>
+
+<p>
+The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code>, <code>Exp.DetPhase</code> and <code>Exp.rfFreq</code>. To change them, start from the equivalent user-defined experiment.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -68,7 +91,7 @@ Number of points, default 512.
 </div>
 
 <p>
-Equivalent user-defined sequence:
+Equivalent user-defined experiment:
 </p>
 
 <pre class="matlab">
@@ -77,6 +100,7 @@ p180.Flip = pi;
 Exp.Sequence = {p90 0.1 p180 0.1};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d1,d2' 0.01};
+Exp.Pathways = '+-';
 Exp.DetPhase = -pi/2;
 </pre>
 
@@ -118,7 +142,7 @@ Number of points, default 512.
 </div>
 
 <p>
-Equivalent user-defined sequence:
+Equivalent user-defined experiment:
 </p>
 
 <pre class="matlab">
@@ -126,6 +150,7 @@ p90.Flip = pi/2;
 Exp.Sequence = {p90 0.1 p90 0.08 p90 0.1};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2' 0.01};
+Exp.Pathways = '+0-';
 Exp.DetPhase = -pi/2;
 </pre>
 
@@ -167,7 +192,7 @@ Number of points, default 512.
 </div>
 
 <p>
-Equivalent user-defined sequence. The filter removes the echo refocused by the &pi; pulse, which the predefined experiment does not include.
+Equivalent user-defined experiment. The pathway selection keeps only the echo for which the electron spin is in a population state (coherence order 0) during both T periods.
 </p>
 
 <pre class="matlab">
@@ -176,7 +201,7 @@ p180.Flip = pi;
 Exp.Sequence = {p90 0.1 p90 0.08 p180 0.08 p90 0.1};
 Exp.nPoints = 512;
 Exp.Dim1 = {'d2,d3' 0.01};
-Exp.Filter = '+00-';
+Exp.Pathways = '+00-';
 Exp.DetPhase = pi/2;
 </pre>
 
@@ -215,11 +240,11 @@ Initial t<sub>1</sub> and t<sub>2</sub>, in µs, default 0.
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
 <div class="optiondescr">
-Number of points along t<sub>1</sub> and t<sub>2</sub>, e.g. <code>[128 64]</code>. A single value applies to both. Default <code>[256 256]</code> with <em>subspace</em>, <code>[128 128]</code> with <em>full-space</em>.
+Number of points along t<sub>1</sub> and t<sub>2</sub>, e.g. <code>[128 64]</code>. A single value applies to both. Default <code>[256 256]</code>.
 </div>
 
 <p>
-Equivalent user-defined sequence:
+Equivalent user-defined experiment:
 </p>
 
 <pre class="matlab">
@@ -229,19 +254,20 @@ Exp.Sequence = {p90 0.1 p90 0.08 p180 0.08 p90 0.1};
 Exp.nPoints = [256 256];
 Exp.Dim1 = {'d2' 0.01};
 Exp.Dim2 = {'d3' 0.01};
+Exp.Pathways = '+00-';
 Exp.DetPhase = pi/2;
 </pre>
 
 <div class="subtitle">MimsENDOR</div>
 
 <p>
-&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with an rf &pi; pulse during T, swept over a frequency range. <em>subspace</em> method only. There is no equivalent user-defined sequence, since these cannot contain rf pulses.
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The signal is the ENDOR effect: the difference between the echo without and with the RF pulse.
 </p>
 
 <pre class="matlab">
 Exp.Sequence = 'MimsENDOR';
 Exp.tau = 0.1;  % tau, µs
-Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % rf range, MHz
+Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % RF range, MHz
 </pre>
 
 <p>
@@ -255,7 +281,7 @@ Parameters:
 
 <div class="optionfield"><code>Exp.Range</code></div>
 <div class="optiondescr">
-Lower and upper limits of the rf range, in MHz, e.g. <code>[0 30]</code>.
+Lower and upper limits of the RF range, in MHz, e.g. <code>[0 30]</code>.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
@@ -265,46 +291,109 @@ Number of points, default 1001.
 
 <div class="optionfield"><code>Exp.T</code></div>
 <div class="optiondescr">
-T, in µs, excluding the rf pulse. Default 0.
+Delay between the second microwave pulse and the RF pulse, in µs, default 0.
 </div>
 
 <div class="optionfield"><code>Exp.tprf</code></div>
 <div class="optiondescr">
-Length of the rf pulse, in µs, default 20. It sets the rf excitation bandwidth for <code>Opt.EndorMethod</code> 1 and 2.
+Length of the RF pulse, in µs, default 20. It sets the RF excitation bandwidth.
 </div>
 
-<div class="subtitle">Equivalent sequences for <em>full-space</em></div>
-
 <p>
-Starting from the equivalent sequences above, add the pulse lengths and detect at the echo maximum. With rectangular pulses, the echo peaks slightly later than with ideal pulses, by 2/&pi; times the length of the &pi;/2 pulses.
+Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points. The phase cycle of the RF pulse switches it on and off (third column: amplitude scale) and takes the difference.
 </p>
 
 <pre class="matlab">
-p90.tp = 0.016;   % µs
-p180.tp = 0.032;  % µs
-Exp.DetWindow = 2*p90.tp/pi;  % echo position, µs
+p90.Flip = pi/2;
+RF.Channel = 'rf';
+RF.Flip = pi;
+RF.tp = 20;
+Exp.Sequence = {p90 0.1 p90 0 RF 0 p90 0.1};
+Exp.rfFreq = 10;
+Exp.nPoints = 21;
+Exp.Dim1 = {'rfFreq' 0.5};
+Exp.Pathways = '+00-';
+Exp.PhaseCycle = {[],[],[0 -1 1; 0 1 0],[]};
+Exp.DetPhase = -pi/2;
 </pre>
 
+<div class="subtitle">DaviesENDOR</div>
+
 <p>
-Also add the phase cycles. They keep only the echo and remove all other signals, for systems with S = 1/2:
+&pi; &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; &pi; &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The microwave pulses must be selective, so their lengths must be given in <code>Exp.tp</code>. The signal is the ENDOR effect: the difference between the echo with and without the RF pulse.
 </p>
 
 <pre class="matlab">
-sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
-odd = [0 1; pi -1];
-even = [0 1; pi 1];
-Exp.PhaseCycle = {sel};              % 2pESEEM
-Exp.PhaseCycle = {sel [] odd};       % 3pESEEM
-Exp.PhaseCycle = {sel [] even odd};  % 4pESEEM, HYSCORE
+Exp.Sequence = 'DaviesENDOR';
+Exp.tau = 0.3;              % tau, µs
+Exp.tp = [0.2 0.1 0.2];     % lengths of the inversion, pi/2 and pi pulses, µs
+Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % RF range, MHz
 </pre>
 
 <p>
-For <code>'4pESEEM'</code>, the phase cycle replaces <code>Exp.Filter</code>, which works only with the <em>subspace</em> method.
+Parameters:
 </p>
 
+<div class="optionfield"><code>Exp.tau</code></div>
+<div class="optiondescr">
+&tau;, in µs.
+</div>
+
+<div class="optionfield"><code>Exp.tp</code></div>
+<div class="optiondescr">
+Lengths of the three microwave pulses, in µs. Required.
+</div>
+
+<div class="optionfield"><code>Exp.Range</code></div>
+<div class="optiondescr">
+Lower and upper limits of the RF range, in MHz.
+</div>
+
+<div class="optionfield"><code>Exp.nPoints</code></div>
+<div class="optiondescr">
+Number of points, default 1001.
+</div>
+
+<div class="optionfield"><code>Exp.T</code></div>
+<div class="optiondescr">
+Delay between the inversion pulse and the RF pulse, in µs, default 0.
+</div>
+
+<div class="optionfield"><code>Exp.tprf</code></div>
+<div class="optiondescr">
+Length of the RF pulse, in µs, default 20.
+</div>
+
 <p>
-You cannot change <code>Exp.PhaseCycle</code> for the predefined experiments.
+Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points:
 </p>
+
+<pre class="matlab">
+pinv = struct('Flip',pi,'tp',0.2);
+p90 = struct('Flip',pi/2,'tp',0.1);
+p180 = struct('Flip',pi,'tp',0.2);
+RF.Channel = 'rf';
+RF.Flip = pi;
+RF.tp = 20;
+Exp.Sequence = {pinv 0 RF 0 p90 0.3 p180 0.3};
+Exp.rfFreq = 10;
+Exp.nPoints = 21;
+Exp.Dim1 = {'rfFreq' 0.5};
+Exp.Pathways = '00+-';
+Exp.PhaseCycle = {[],[0 1 1; 0 -1 0],[],[]};
+Exp.DetPhase = -pi/2;
+</pre>
+
+<div class="subtitle">Finite pulses and the echo position</div>
+
+<p>
+With rectangular pulses of finite length (<code>Exp.tp</code>), the echo peaks slightly later than with ideal pulses, by about 2/&pi; times the length of the &pi;/2 pulses. Since the predefined experiments detect at the end of the sequence, this can give a small signal phase for spins off resonance. To detect at the echo maximum, start from the equivalent user-defined experiment and set the detection point:
+</p>
+
+<pre class="matlab">
+ExpCustom = rmfield(info.Exp,'Macro');
+ExpCustom.DetWindow = 2*Exp.tp(1)/pi;   % echo position, µs
+</pre>
 
 <div class="subtitle">See also</div>
 <p>
