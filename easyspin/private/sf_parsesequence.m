@@ -382,7 +382,11 @@ end
 pw = Exp.Pathways;
 if (ischar(pw) || isstring(pw)) && any(strcmp(pw,{'all','echo'}))
   if strcmp(pw,'echo')
-    sel = echoPathways(co,t,seq.Inc);
+    % the spins evolve during RF pulses, so their lengths count as
+    % evolution time (the lengths of microwave pulses do not)
+    tEvol = t;
+    tEvol(isRF) = tEvol(isRF) + [P(isRF).tp];
+    sel = echoPathways(co,tEvol,seq.Inc);
     ctp = ctp(sel,:);
     co = co(sel,:);
     if isempty(ctp)

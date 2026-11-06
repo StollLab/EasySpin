@@ -991,6 +991,13 @@ nP = seq.nPathways;
 if r==1
   error('The RF pulse cannot be the first pulse.');
 end
+% The population-transfer model needs the electron spin in a population
+% state during the RF pulse (blocks 1 = aa, 2 = bb, not 3 = ab, 4 = ba)
+if any(seq.ctp(:,r)>2)
+  error(['The subspace engine simulates ENDOR only for pathways with electron coherence order 0 ' ...
+    'during the RF pulse. Select them with Exp.Pathways (e.g. ''+00-'' for Mims ENDOR), ' ...
+    'or use Opt.Method = ''fullspace''.']);
+end
 seqG = seq;
 seqG.Inc = zeros(1,N);
 seqG.Inc(r-1) = 1;  % split point: G = state at the end of interval r-1
@@ -1021,6 +1028,9 @@ for e0 = 1:chunk:E.nE
   if useB1
     nu1 = rfNutation(E,ec,NucHams,Sys,Exp,rf.B1,iu,iv); % {a,b} nT x K
   end
+  % population transfer amplitudes of the NMR transitions in the manifold
+  % of the RF pulse (1 = alpha, 2 = beta), summed over offsets and pathways
+  amp = {zeros(numel(iu),K),zeros(numel(iu),K)};
   for iOff = 1:nOff
     if seq.finitePulses
       offsets = Ed.dE0 + E.offsetGrid(iOff)*Ed.lw/(2*sqrt(log(2)));
@@ -1037,31 +1047,36 @@ for e0 = 1:chunk:E.nE
       Soff = Soff + sum(G.*permute(D,[2 1 3]),'all');
       % population transfer
       gd = diag3(G); dd = diag3(D);
-      amp = (gd(iv,:)-gd(iu,:)).*(dd(iu,:)-dd(iv,:));  % nT x K
-      if seq.ctp(p,r)==1, En = Ed.Ea; m = 1; else, En = Ed.Eb; m = 2; end
-      nu = abs(En(iv,:)-En(iu,:));
-      if useB1
-        n1 = nu1{m};
+      if seq.ctp(p,r)==1, m = 1; else, m = 2; end
+      amp{m} = amp{m} + (gd(iv,:)-gd(iu,:)).*(dd(iu,:)-dd(iv,:));  % nT x K
+    end
+  end
+  % RF response: depends only on the NMR transition frequencies and
+  % nutation frequencies, not on the offset or the pathway
+  for m = 1:2
+    if m==1, En = Ed.Ea; else, En = Ed.Eb; end
+    nu = abs(En(iv,:)-En(iu,:));
+    if useB1
+      n1 = nu1{m};
+    else
+      n1 = nu1nom*ones(size(nu));
+    end
+    a = amp{m}(:); nu = nu(:); n1 = n1(:);
+    keep = abs(a)>0;
+    a = a(keep); nu = nu(keep); n1 = n1(keep);
+    % accumulate over the RF axis in chunks
+    cs = max(1,floor(2e6/nF));
+    for j0 = 1:cs:numel(a)
+      j = j0:min(j0+cs-1,numel(a));
+      Delta = nu(j) - f;
+      if rect
+        Delta = Delta - rf.Frequency(1);  % offset of the pulse from the carrier
+        Om = sqrt(n1(j).^2 + Delta.^2);
+        P = (n1(j)./Om).^2.*sin(pi*Om*rf.tp).^2;
       else
-        n1 = nu1nom*ones(size(nu));
+        P = interp2(tabDelta,tabScale,tabP,Delta,repmat(n1(j)/tabNominal(rf),1,nF),'linear',0);
       end
-      amp = amp(:); nu = nu(:); n1 = n1(:);
-      keep = abs(amp)>0;
-      amp = amp(keep); nu = nu(keep); n1 = n1(keep);
-      % accumulate over the RF axis in chunks
-      cs = max(1,floor(2e6/nF));
-      for j0 = 1:cs:numel(amp)
-        j = j0:min(j0+cs-1,numel(amp));
-        Delta = nu(j) - f;
-        if rect
-          Delta = Delta - rf.Frequency(1);  % offset of the pulse from the carrier
-          Om = sqrt(n1(j).^2 + Delta.^2);
-          P = (n1(j)./Om).^2.*sin(pi*Om*rf.tp).^2;
-        else
-          P = interp2(tabDelta,tabScale,tabP,Delta,repmat(n1(j)/tabNominal(rf),1,nF),'linear',0);
-        end
-        dS = dS + amp(j).'*P;
-      end
+      dS = dS + a(j).'*P;
     end
   end
 end
