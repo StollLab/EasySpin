@@ -1,12 +1,14 @@
 % sf_selectengine  Choose the simulation engine of saffron
 %
-%   [method,reason,seq] = sf_selectengine(Sys,Exp,Opt)
+%   [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 %
 % Checks which features of the request the subspace engine supports and
 % returns the engine to use:
-%   method  'subspace' or 'fullspace'
-%   reason  why the full-space engine is used ('' for subspace)
-%   seq     parsed sequence for the subspace engine (empty for fullspace)
+%   method   'subspace' or 'fullspace'
+%   reason   why the full-space engine is used ('' for subspace)
+%   seq      parsed sequence for the subspace engine (empty for fullspace)
+%   reasons  cell array of the features the subspace engine does not
+%            support (empty if the full-space engine was requested)
 %
 % Opt.Method = 'auto' (default) uses the subspace engine whenever it
 % supports every feature, and the full-space engine otherwise. An explicit
@@ -22,7 +24,7 @@
 % sf_parsesequence for the sequence features). Conversely, inhomogeneous
 % broadening (Sys.lwAnisoG) is only supported by the subspace engine.
 
-function [method,reason,seq] = sf_selectengine(Sys,Exp,Opt)
+function [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 
 if ~isfield(Opt,'Method') || isempty(Opt.Method)
   Opt.Method = 'auto';

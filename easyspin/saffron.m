@@ -286,8 +286,16 @@ if ~isfield(Opt,'IdealPulses'), Opt.IdealPulses = false; end
 
 % Choose the simulation engine
 %===============================================================================
-[Opt.Method,methodReason,seq] = sf_selectengine(Sys,Exp,Opt);
-logmsg(1,'Simulation engine: %s %s',Opt.Method,methodReason);
+autoMethod = ~isfield(Opt,'Method') || isempty(Opt.Method) || strcmp(Opt.Method,'auto');
+[Opt.Method,methodReason,seq,engineReasons] = sf_selectengine(Sys,Exp,Opt);
+if autoMethod && ~isempty(engineReasons)
+  logmsg(1,'Simulation engine: %s, since the subspace engine does not support',Opt.Method);
+  for iReason = 1:numel(engineReasons)
+    logmsg(1,'  - %s',engineReasons{iReason});
+  end
+else
+  logmsg(1,'Simulation engine: %s %s',Opt.Method,methodReason);
+end
 subspaceEngine = strcmp(Opt.Method,'subspace');
 
 if subspaceEngine
