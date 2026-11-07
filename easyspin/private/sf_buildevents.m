@@ -451,7 +451,7 @@ for iEvent = 1:length(Exp.Sequence)
       Pulse.isRF = isRFEvent(iEvent);
       if Pulse.isRF
         Pulse.rfCarrier = Exp.rfFreq;  % MHz
-        Pulse.TimeStep = rfTimeStep(Exp.rfFreq,Pulse.Frequency);
+        Pulse.TimeStep = rfTimeStep(Exp.rfFreq,Pulse.Frequency,Pulse.tp);
         if ~isfield(Pulse,'B1') && isfield(Opt,'rfGammaRef')
           Pulse.rfGammaRef = Opt.rfGammaRef;
         end
@@ -613,7 +613,7 @@ for iEvent = 1:length(Exp.Sequence)
   % TimeStep, detected free evolution is computed at steps of DetTimeStep
   Events{iEvent}.TimeStep = Opt.IntTimeStep;
   if isfield(Events{iEvent},'Channel') && strcmp(Events{iEvent}.Channel,'rf')
-    Events{iEvent}.TimeStep = Events{iEvent}.t(2) - Events{iEvent}.t(1);  % RF waveform step
+    Events{iEvent}.TimeStep = Pulse.TimeStep;  % RF waveform step
   end
   Events{iEvent}.DetTimeStep = Exp.DetTimeStep;
   
@@ -955,7 +955,12 @@ if isfield(Exp,'nPoints')
             % Adapt indexing according to dimension
             pulses{iPulse}.ArrayIndex(Dimension) = DimensionIndices(Dimension);
           end
-          
+
+          % RF pulses: time step for the RF frequency of this point
+          if pulses{iPulse}.isRF
+            pulses{iPulse}.TimeStep = rfTimeStep(pulses{iPulse}.rfCarrier,pulses{iPulse}.Frequency,pulses{iPulse}.tp);
+          end
+
           % Convert array into cell for indexing
           ArrayIndex = num2cell(pulses{iPulse}.ArrayIndex);
               
@@ -972,6 +977,7 @@ if isfield(Exp,'nPoints')
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
           if pulses{iPulse}.isRF
             Vary.Pulses{iPulse}.FrameOffsets{ArrayIndex{:}} = pulses{iPulse}.rfCarrier/1e3;
+            Vary.Pulses{iPulse}.TimeSteps{ArrayIndex{:}} = pulses{iPulse}.TimeStep;
           end
           
           
@@ -1209,8 +1215,10 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Time step for RF pulses (µs): 40 points per period of the highest RF
-% frequency in the lab frame
-function dt = rfTimeStep(rfFreq,Frequency)
-dt = 1/(40*(abs(rfFreq)+max(abs(Frequency))));
+% Time step for RF pulses (µs): at least 40 points per period of the
+% highest RF frequency in the lab frame, and at least 100 steps per pulse
+% (needed for RF frequencies near zero). The step divides the pulse length,
+% so that the waveform ends at tp.
+function dt = rfTimeStep(rfFreq,Frequency,tp)
+dt = tp/max(100,ceil(40*(abs(rfFreq)+max(abs(Frequency)))*tp));
 end

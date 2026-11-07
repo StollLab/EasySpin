@@ -129,6 +129,10 @@ for iPoints = 1 : nPoints
         if isfield(Vary.Pulses{iPulse},'FrameOffsets')
           Events{iEvent}.FrameOffset = LoadfromArray(Vary.Pulses{iPulse}.FrameOffsets,DimensionIndices);
         end
+        if isfield(Vary.Pulses{iPulse},'TimeSteps')
+          % RF pulses: the time step depends on the RF frequency of this point
+          Events{iEvent}.TimeStep = LoadfromArray(Vary.Pulses{iPulse}.TimeSteps,DimensionIndices);
+        end
         EventLengths(iEvent) = Events{iEvent}.t(end);
       end
     end
@@ -656,7 +660,7 @@ function Prop = pulsePropagators(Event,IQ,Ham0,Relaxation)
 % propagators are only rebuilt if IQ changed, and the lookup table of
 % propagators is only rebuilt if its amplitudes changed.
 Prop = Event.Propagation;
-if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ)
+if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ) && Prop.TimeStep==Event.TimeStep
   return
 end
 
@@ -732,13 +736,14 @@ useTable = rotated || ~twoOperators;
 % instead of calculating them at each way point (true as
 % long as length(Wave) > vertical resolution)
 %----------------------------------------------------------
-if useTable && ~(isfield(Prop,'amplitudes') && isequal(Prop.amplitudes,amplitudes))
+if useTable && ~(isfield(Prop,'amplitudes') && isequal(Prop.amplitudes,amplitudes) && Prop.tableTimeStep==Event.TimeStep)
   if ~Event.Relaxation
     Prop.UTable = buildPropagators(Ham0,Event.xOp,Event.TimeStep,amplitudes);
   else
     [Prop.LTable, Prop.SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,amplitudes);
   end
   Prop.amplitudes = amplitudes;
+  Prop.tableTimeStep = Event.TimeStep;
 end
 
 % Set up structures for the actual propagators
@@ -868,6 +873,7 @@ else
   end
 end
 Prop.IQ = IQ;
+Prop.TimeStep = Event.TimeStep;
 end
 
 
