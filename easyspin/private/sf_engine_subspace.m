@@ -30,9 +30,9 @@
 % - Linearly incremented delays: the signal of each pathway is a sum of
 %   exponentials, binned in the frequency domain (sf_peaks) and Fourier
 %   transformed.
-% - RF pulses (ENDOR): population transfer between the levels of each NMR
-%   transition, with the exact two-level response of the RF waveform at
-%   the detuning from the RF carrier, averaged over the RF phase.
+% - RF pulses (ENDOR, rectangular only): population transfer between the
+%   levels of each NMR transition, with the two-level response (Rabi
+%   formula) at the detuning from the RF carrier, averaged over the RF phase.
 % - Relaxation: exp(-t/T2) for intervals with electron coherence and
 %   exp(-t/T1) for intervals with electron populations.
 
@@ -969,10 +969,10 @@ end
 
 %===============================================================================
 % ENDOR: echo as a function of the RF carrier frequency (kind-2 dimension),
-% for a single RF pulse. The RF pulse transfers population between the
-% two levels u,v of each NMR transition with probability P(Delta), the
-% exact two-level response of the RF waveform at the detuning
-% Delta = nu_uv - rfFreq. Terms that depend on the absolute RF phase
+% for a single rectangular RF pulse. The RF pulse transfers population
+% between the two levels u,v of each NMR transition with probability
+% P(Delta) = (nu1/Omega)^2*sin(pi*Omega*tp)^2, Omega = sqrt(nu1^2+Delta^2),
+% at the detuning Delta = nu_uv - rfFreq - Frequency. Terms that depend on the absolute RF phase
 % average out (RF not phase-locked to the microwave, and the chi average of
 % powders), leaving the population transfer.
 function y = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
@@ -1003,16 +1003,11 @@ seqG = seq;
 seqG.Inc = zeros(1,N);
 seqG.Inc(iRF-1) = 1;  % split point: G = state at the end of interval iRF-1
 
-% RF response: nutation frequency per transition and the transfer
-% probability as a function of the detuning
+% RF nutation frequency: nominal from the flip angle, or per transition
+% from B1 (shaped RF pulses are excluded by sf_parsesequence)
 useB1 = ~isempty(rfPulse.B1);
 if ~useB1
   nu1Nominal = rfPulse.Flip/(2*pi*rfPulse.tp);  % MHz
-end
-rectangularPulse = any(strcmp(rfPulse.Type,{'rectangular','rectangular/none'}));
-if ~rectangularPulse
-  % table over detuning (and nutation scale for B1) from 2x2 propagation
-  [tableDelta,tableScale,tableP] = rfResponseTable(rfPulse,rfFreqs);
 end
 
 yBaseline = 0;  % signal without RF pulse
@@ -1071,31 +1066,14 @@ for e0 = 1:chunk:E.nE
     chunkRF = max(1,floor(2e6/nRfFreqs));
     for j0 = 1:chunkRF:numel(amp)
       idx = j0:min(j0+chunkRF-1,numel(amp));
-      Delta = nuNMR(idx) - rfFreqs;
-      if rectangularPulse
-        Delta = Delta - rfPulse.Frequency(1);  % offset of the pulse from the carrier
-        Omega = sqrt(nu1Trans(idx).^2 + Delta.^2);
-        Ptransfer = (nu1Trans(idx)./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
-      else
-        scale = repmat(nu1Trans(idx)/tableNu1Ref(rfPulse),1,nRfFreqs);
-        Ptransfer = interp2(tableDelta,tableScale,tableP,Delta,scale,'linear',0);
-      end
+      Delta = nuNMR(idx) - rfFreqs - rfPulse.Frequency;  % pulse offset from the carrier
+      Omega = sqrt(nu1Trans(idx).^2 + Delta.^2);
+      Ptransfer = (nu1Trans(idx)./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
       yTransfer = yTransfer + amp(idx).'*Ptransfer;
     end
   end
 end
 y = (seq.rfOn+seq.rfOff)*yBaseline + seq.rfOn*yTransfer;
-end
-
-%-------------------------------------------------------------------------------
-% Nutation frequency (MHz) that corresponds to scale 1 in the RF response
-% table: the nominal one from the flip angle, or 1 MHz for a given B1
-function nu1Ref = tableNu1Ref(rfPulse)
-if isempty(rfPulse.B1)
-  nu1Ref = rfPulse.Flip/(2*pi*rfPulse.tp);
-else
-  nu1Ref = 1;
-end
 end
 
 %-------------------------------------------------------------------------------
@@ -1143,48 +1121,5 @@ for k = 1:K
     end
     nu1{iManifold}(:,k) = 2*B1*sqrt(matElSq/nChi);
   end
-end
-end
-
-%-------------------------------------------------------------------------------
-% Transfer probability table P(Delta, scale) of a shaped RF pulse, from the
-% two-level propagation of its waveform (rotating-wave approximation)
-function [tableDelta,tableScale,tableP] = rfResponseTable(rfPulse,rfFreqs)
-pulsePar = rfPulse.Par;
-pulsePar = rmfield(pulsePar,intersect(fieldnames(pulsePar),{'Channel','B1'}));
-if ~isempty(rfPulse.B1)
-  pulsePar.Amplitude = 1;  % per MHz of nutation; scaled by the transition nutation
-  if isfield(pulsePar,'Flip'), pulsePar = rmfield(pulsePar,'Flip'); end
-  if isfield(pulsePar,'Qcrit'), pulsePar = rmfield(pulsePar,'Qcrit'); end
-end
-[t,IQ] = pulse(pulsePar);
-dt = t(2)-t(1);
-IQmid = (IQ(1:end-1)+IQ(2:end))/2;
-DeltaMax = max(abs([rfFreqs(1) rfFreqs(end)]))+max(abs(rfPulse.Frequency))+50;
-tableDelta = linspace(-DeltaMax,DeltaMax,4001);
-if ~isempty(rfPulse.B1)
-  tableScale = linspace(0,20,81).';
-else
-  tableScale = linspace(0,4,41).';
-end
-tableP = zeros(numel(tableScale),numel(tableDelta));
-for iScale = 1:numel(tableScale)
-  scale = tableScale(iScale);
-  % Cayley-Klein parameters a, b of the propagator U = [a -conj(b); b conj(a)]
-  a = ones(size(tableDelta)); b = zeros(size(tableDelta));
-  for k = 1:numel(IQmid)
-    hx = scale*real(IQmid(k))/2; hy = scale*imag(IQmid(k))/2; hz = tableDelta/2;
-    hNorm = sqrt(hx^2+hy^2+hz.^2);
-    theta = 2*pi*hNorm*dt;
-    cosTheta = cos(theta);
-    sinTheta = sin(theta)./max(hNorm,eps);
-    % step propagator exp(-i*theta*(n.sigma)) = cos(theta) - i*sin(theta)*(n.sigma)
-    u11 = cosTheta - 1i*sinTheta.*hz;
-    u21 = -1i*sinTheta.*(hx+1i*hy);
-    aNew = u11.*a - conj(u21).*b;
-    bNew = u21.*a + conj(u11).*b;
-    a = aNew; b = bNew;
-  end
-  tableP(iScale,:) = abs(b).^2;
 end
 end

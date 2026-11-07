@@ -116,6 +116,13 @@ for k = 1:N
       if P(k).tp<=0
         error('Pulse %d: RF pulses need a pulse length (tp>0).',k);
       end
+      if ~rect
+        reasons{end+1} = 'shaped or frequency-swept RF pulses';
+      end
+      if numel(P(k).Frequency)>1 && P(k).Frequency(1)~=P(k).Frequency(end)
+        reasons{end+1} = 'frequency-swept RF pulses';
+      end
+      P(k).Frequency = P(k).Frequency(1);
       P(k).ideal = false;
       P(k).Flip = [];
       P(k).B1 = [];
@@ -123,8 +130,8 @@ for k = 1:N
         P(k).B1 = p_.B1;
       elseif isfield(p_,'Flip') && ~isempty(p_.Flip)
         P(k).Flip = p_.Flip;
-      elseif ~rect && isfield(p_,'Qcrit')
-        P(k).Flip = pi;  % nominal; amplitude from Qcrit
+      elseif ~rect
+        P(k).Flip = pi;  % placeholder, shaped RF pulses are not supported
       else
         error('Pulse %d: RF pulses need Flip (nominal) or B1 (in mT).',k);
       end
