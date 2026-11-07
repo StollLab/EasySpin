@@ -118,7 +118,11 @@ logmsg(1,'-starting orientation loop-----------------------------');
 logmsg(1,'  propagating %d orientations, %d pathway run(s)',nOrientations,nPathwayRuns);
 Field = Exp.Field;
 
-parfor iOrientation = 1 : nOrientations
+% A parallel pool only pays off for several orientations (starting one
+% takes seconds), so a single orientation runs without one.
+if nOrientations>1, maxWorkers = Inf; else, maxWorkers = 0; end
+
+parfor (iOrientation = 1 : nOrientations, maxWorkers)
 
   Sys_L = rotatesystem(Sys,Orientations(iOrientation,:)); % mol->lab frame
 
