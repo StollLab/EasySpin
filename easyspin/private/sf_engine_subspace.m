@@ -23,7 +23,7 @@
 % - Each excited EPR transition (b -> a) is a two-level electron system.
 %   The nuclear sub-Hamiltonians of the two manifolds use the expectation
 %   value <S> of the electron spin (high-field approximation). Their
-%   eigenvectors give the overlap matrix M = Ma'*Mb.
+%   eigenvectors Va and Vb give the overlap matrix M = Va'*Vb.
 % - Ideal microwave pulses give pathway prefactors (sf_parsesequence);
 %   rectangular pulses are exact 2n x 2n propagators at each resonance
 %   offset. Free evolution is a diagonal phase factor.
@@ -163,7 +163,7 @@ E.ori = zeros(1,0);
 E.rev = false(1,0);
 for s = 1:nSubSpaces
   E.Ea{s} = []; E.Eb{s} = []; E.M{s} = [];
-  if isENDOR, E.Ma{s} = []; E.Mb{s} = []; E.Sa{s} = []; E.Sb{s} = []; E.dSa{s} = []; E.dSb{s} = []; E.d{s} = []; end
+  if isENDOR, E.Va{s} = []; E.Vb{s} = []; end
 end
 if twoElectronManifolds
   zL = zeros(3,nOrientations); xL = zL; yL = zL;
@@ -197,7 +197,7 @@ if twoElectronManifolds
   for s = 1:nSubSpaces
     n = size(NucHams(s).Hnzz,1);
     Ea = zeros(n,nE); Eb = zeros(n,nE); M = zeros(n,n,nE);
-    if isENDOR, Ma_ = M; Mb_ = M; end
+    if isENDOR, VaAll = M; VbAll = M; end
     for k = 1:nE
       iOri = oriList(k);
       q = geff(:,iOri).'/geffNorm(iOri);
@@ -209,10 +209,10 @@ if twoElectronManifolds
       [Vb,Eb_] = eig((Hb+Hb')/2,'vector');
       Ea(:,k) = real(Ea_); Eb(:,k) = real(Eb_);
       M(:,:,k) = Va'*Vb;
-      if isENDOR, Ma_(:,:,k) = Va; Mb_(:,:,k) = Vb; end
+      if isENDOR, VaAll(:,:,k) = Va; VbAll(:,:,k) = Vb; end
     end
     E.Ea{s} = Ea; E.Eb{s} = Eb; E.M{s} = M;
-    if isENDOR, E.Ma{s} = Ma_; E.Mb{s} = Mb_; end
+    if isENDOR, E.Va{s} = VaAll; E.Vb{s} = VbAll; end
   end
   if isENDOR
     E.geff = geff(:,oriList); E.geffNorm = geffNorm(oriList);
@@ -273,7 +273,7 @@ else
   for s = 1:nSubSpaces
     n = size(NucHams(s).Hnzz,1);
     Ea = zeros(n,nE); Eb = zeros(n,nE); M = zeros(n,n,nE);
-    if isENDOR, Ma_ = M; Mb_ = M; end
+    if isENDOR, VaAll = M; VbAll = M; end
     for k = 1:nE
       zLab_M = rows{k,7};
       Hnuc = Exp.Field*(zLab_M(1)*NucHams(s).Hnzx + zLab_M(2)*NucHams(s).Hnzy + zLab_M(3)*NucHams(s).Hnzz) + NucHams(s).Hnq;
@@ -284,10 +284,10 @@ else
       [Vb,Eb_] = eig((Hb+Hb')/2,'vector');
       Ea(:,k) = real(Ea_); Eb(:,k) = real(Eb_);
       M(:,:,k) = Va'*Vb;
-      if isENDOR, Ma_(:,:,k) = Va; Mb_(:,:,k) = Vb; end
+      if isENDOR, VaAll(:,:,k) = Va; VbAll(:,:,k) = Vb; end
     end
     E.Ea{s} = Ea; E.Eb{s} = Eb; E.M{s} = M;
-    if isENDOR, E.Ma{s} = Ma_; E.Mb{s} = Mb_; end
+    if isENDOR, E.Va{s} = VaAll; E.Vb{s} = VbAll; end
   end
   if isENDOR
     E.zL = [rows{:,7}];
@@ -298,7 +298,7 @@ if nSubSpaces==0
   error('The subspace engine needs at least one nucleus with nuclear spin in the nuclear subspace (Opt.Nuclei).');
 end
 
-% Field-reversed partners, computed explicitly (Ma, Mb -> conj)
+% Field-reversed partners, computed explicitly (M, Va, Vb -> conj)
 if reversedField=="compute"
   E.w = [E.w E.w]/2;
   E.dE0 = [E.dE0 E.dE0];
@@ -310,14 +310,15 @@ if reversedField=="compute"
     E.Eb{s} = [E.Eb{s} E.Eb{s}];
     E.M{s} = cat(3,E.M{s},conj(E.M{s}));
     if isENDOR
-      E.Ma{s} = cat(3,E.Ma{s},conj(E.Ma{s}));
-      E.Mb{s} = cat(3,E.Mb{s},conj(E.Mb{s}));
+      E.Va{s} = cat(3,E.Va{s},conj(E.Va{s}));
+      E.Vb{s} = cat(3,E.Vb{s},conj(E.Vb{s}));
     end
   end
   if isENDOR
-    fn = intersect(fieldnames(E),{'geff','geffNorm','xL','yL','zL'});
-    for f = fn.'
-      if ~isempty(E.(f{1})), E.(f{1}) = [E.(f{1}) E.(f{1})]; end
+    oriFields = intersect(fieldnames(E),{'geff','geffNorm','xL','yL','zL'});
+    for iField = 1:numel(oriFields)
+      fld = oriFields{iField};
+      if ~isempty(E.(fld)), E.(fld) = [E.(fld) E.(fld)]; end
     end
   end
   nE = 2*nE;
@@ -979,58 +980,59 @@ function y = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
 if nSubSpaces>1
   error('ENDOR is not supported with the product rule.');
 end
-f = seq.rfAxis(:).';
-nF = numel(f);
-r = find(seq.isRF);
-rf = seq.Pulse(r);
+rfFreqs = seq.rfAxis(:).';
+nRfFreqs = numel(rfFreqs);
+iRF = find(seq.isRF);
+rfPulse = seq.Pulse(iRF);
 N = seq.N;
 nP = seq.nPathways;
 
-% Sequence split at the RF pulse: intervals 1..r-1 (state G before the RF
-% pulse) and r..N (detection D after it)
-if r==1
+% Sequence split at the RF pulse: intervals 1..iRF-1 (state G before the RF
+% pulse) and iRF..N (detection D after it)
+if iRF==1
   error('The RF pulse cannot be the first pulse.');
 end
 % The population-transfer model needs the electron spin in a population
 % state during the RF pulse (blocks 1 = aa, 2 = bb, not 3 = ab, 4 = ba)
-if any(seq.ctp(:,r)>2)
+if any(seq.ctp(:,iRF)>2)
   error(['The subspace engine simulates ENDOR only for pathways with electron coherence order 0 ' ...
     'during the RF pulse. Select them with Exp.Pathways (e.g. ''+00-'' for Mims ENDOR), ' ...
     'or use Opt.Method = ''fullspace''.']);
 end
 seqG = seq;
 seqG.Inc = zeros(1,N);
-seqG.Inc(r-1) = 1;  % split point: G = state at the end of interval r-1
+seqG.Inc(iRF-1) = 1;  % split point: G = state at the end of interval iRF-1
 
 % RF response: nutation frequency per transition and the transfer
 % probability as a function of the detuning
-useB1 = ~isempty(rf.B1);
+useB1 = ~isempty(rfPulse.B1);
 if ~useB1
-  nu1nom = rf.Flip/(2*pi*rf.tp);  % MHz
+  nu1Nominal = rfPulse.Flip/(2*pi*rfPulse.tp);  % MHz
 end
-rect = any(strcmp(rf.Type,{'rectangular','rectangular/none'}));
-if ~rect
+rectangularPulse = any(strcmp(rfPulse.Type,{'rectangular','rectangular/none'}));
+if ~rectangularPulse
   % table over detuning (and nutation scale for B1) from 2x2 propagation
-  [tabDelta,tabScale,tabP] = rfResponseTable(rf,f,E);
+  [tableDelta,tableScale,tableP] = rfResponseTable(rfPulse,rfFreqs);
 end
 
-Soff = 0;
-dS = zeros(1,nF);
+yBaseline = 0;  % signal without RF pulse
+yTransfer = zeros(1,nRfFreqs);  % change of the signal by the RF pulse
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
 nOff = numel(E.offsetGrid);
-[iu,iv] = find(triu(true(n),1));
+[idxU,idxV] = find(triu(true(n),1));  % levels u<v of each NMR transition
+nTransitions = numel(idxU);
 for e0 = 1:chunk:E.nE
   ec = e0:min(e0+chunk-1,E.nE);
   Ed = entrySlice(E,1,ec);
   K = numel(ec);
   % RF nutation frequencies (MHz) of the transitions in both manifolds
   if useB1
-    nu1 = rfNutation(E,ec,NucHams,Sys,Exp,rf.B1,iu,iv); % {a,b} nT x K
+    nu1 = rfNutation(E,ec,NucHams,Sys,Exp,rfPulse.B1,idxU,idxV); % {a,b} nTransitions x K
   end
   % population transfer amplitudes of the NMR transitions in the manifold
   % of the RF pulse (1 = alpha, 2 = beta), summed over offsets and pathways
-  amp = {zeros(numel(iu),K),zeros(numel(iu),K)};
+  transferAmp = {zeros(nTransitions,K),zeros(nTransitions,K)};
   for iOff = 1:nOff
     if seq.finitePulses
       offsets = Ed.dE0 + E.offsetGrid(iOff)*Ed.lw/(2*sqrt(log(2)));
@@ -1044,90 +1046,102 @@ for e0 = 1:chunk:E.nE
       wp = seq.pathwayprefactor(p)*wOff*reshape(Ed.w,1,1,[]);
       G = G.*wp;
       % baseline: trace(D*G)
-      Soff = Soff + sum(G.*permute(D,[2 1 3]),'all');
+      yBaseline = yBaseline + sum(G.*permute(D,[2 1 3]),'all');
       % population transfer
-      gd = diag3(G); dd = diag3(D);
-      if seq.ctp(p,r)==1, m = 1; else, m = 2; end
-      amp{m} = amp{m} + (gd(iv,:)-gd(iu,:)).*(dd(iu,:)-dd(iv,:));  % nT x K
+      popG = diag3(G); popD = diag3(D);
+      if seq.ctp(p,iRF)==1, iManifold = 1; else, iManifold = 2; end
+      transferAmp{iManifold} = transferAmp{iManifold} + ...
+        (popG(idxV,:)-popG(idxU,:)).*(popD(idxU,:)-popD(idxV,:));  % nTransitions x K
     end
   end
   % RF response: depends only on the NMR transition frequencies and
   % nutation frequencies, not on the offset or the pathway
-  for m = 1:2
-    if m==1, En = Ed.Ea; else, En = Ed.Eb; end
-    nu = abs(En(iv,:)-En(iu,:));
+  for iManifold = 1:2
+    if iManifold==1, Enuc = Ed.Ea; else, Enuc = Ed.Eb; end
+    nuNMR = abs(Enuc(idxV,:)-Enuc(idxU,:));
     if useB1
-      n1 = nu1{m};
+      nu1Trans = nu1{iManifold};
     else
-      n1 = nu1nom*ones(size(nu));
+      nu1Trans = nu1Nominal*ones(size(nuNMR));
     end
-    a = amp{m}(:); nu = nu(:); n1 = n1(:);
-    keep = abs(a)>0;
-    a = a(keep); nu = nu(keep); n1 = n1(keep);
+    amp = transferAmp{iManifold}(:); nuNMR = nuNMR(:); nu1Trans = nu1Trans(:);
+    nonzero = abs(amp)>0;
+    amp = amp(nonzero); nuNMR = nuNMR(nonzero); nu1Trans = nu1Trans(nonzero);
     % accumulate over the RF axis in chunks
-    cs = max(1,floor(2e6/nF));
-    for j0 = 1:cs:numel(a)
-      j = j0:min(j0+cs-1,numel(a));
-      Delta = nu(j) - f;
-      if rect
-        Delta = Delta - rf.Frequency(1);  % offset of the pulse from the carrier
-        Om = sqrt(n1(j).^2 + Delta.^2);
-        P = (n1(j)./Om).^2.*sin(pi*Om*rf.tp).^2;
+    chunkRF = max(1,floor(2e6/nRfFreqs));
+    for j0 = 1:chunkRF:numel(amp)
+      idx = j0:min(j0+chunkRF-1,numel(amp));
+      Delta = nuNMR(idx) - rfFreqs;
+      if rectangularPulse
+        Delta = Delta - rfPulse.Frequency(1);  % offset of the pulse from the carrier
+        Omega = sqrt(nu1Trans(idx).^2 + Delta.^2);
+        Ptransfer = (nu1Trans(idx)./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
       else
-        P = interp2(tabDelta,tabScale,tabP,Delta,repmat(n1(j)/tabNominal(rf),1,nF),'linear',0);
+        scale = repmat(nu1Trans(idx)/tableNu1Ref(rfPulse),1,nRfFreqs);
+        Ptransfer = interp2(tableDelta,tableScale,tableP,Delta,scale,'linear',0);
       end
-      dS = dS + a(j).'*P;
+      yTransfer = yTransfer + amp(idx).'*Ptransfer;
     end
   end
 end
-y = (seq.rfOn+seq.rfOff)*Soff + seq.rfOn*dS;
-end
-
-function nu = tabNominal(rf)
-nu = rf.Flip/(2*pi*rf.tp);
-if ~isempty(rf.B1), nu = 1; end
+y = (seq.rfOn+seq.rfOff)*yBaseline + seq.rfOn*yTransfer;
 end
 
 %-------------------------------------------------------------------------------
-% RF nutation frequencies 2*B1*|<u|O|v>| (MHz) for the transitions (iu,iv)
+% Nutation frequency (MHz) that corresponds to scale 1 in the RF response
+% table: the nominal one from the flip angle, or 1 MHz for a given B1
+function nu1Ref = tableNu1Ref(rfPulse)
+if isempty(rfPulse.B1)
+  nu1Ref = rfPulse.Flip/(2*pi*rfPulse.tp);
+else
+  nu1Ref = 1;
+end
+end
+
+%-------------------------------------------------------------------------------
+% RF nutation frequencies 2*B1*|<u|O|v>| (MHz) for the transitions (idxU,idxV)
 % of both manifolds, with the effective RF operator O (MHz/mT): nuclear
 % Zeeman along the RF field direction plus the hyperfine enhancement from
 % the tilt of <S> by the RF field. For powders, |<u|O|v>| is averaged
 % (in quadrature) over the RF field direction in the plane perpendicular
 % to the static field.
-function nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,iu,iv)
+function nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
+if isempty(E.geff)
+  error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the subspace engine.');
+end
 K = numel(ec);
-nT = numel(iu);
-nu1 = {zeros(nT,K),zeros(nT,K)};
+nTransitions = numel(idxU);
+nu1 = {zeros(nTransitions,K),zeros(nTransitions,K)};
 nChi = 8;
-chis = (0:nChi-1)*pi/nChi;
+chiList = (0:nChi-1)*pi/nChi;
+g = Sys.g;
+if ~Sys.fullg
+  Rg = erot(Sys.gFrame).';
+  g = Rg*diag(g)*Rg.';
+end
 for k = 1:K
   e = ec(k);
-  if ~isempty(E.geff)
-    gn_ = E.geff(:,e); gnorm = E.geffNorm(e);
-    q = gn_/gnorm;
-    xL = E.xL(:,e); yL = E.yL(:,e);
-    G = Sys.g; if ~Sys.fullg, Rg = erot(Sys.gFrame).'; G = Rg*diag(G)*Rg.'; end
-  else
-    xL = []; yL = [];
-  end
-  for m = 1:2
-    if m==1, V = E.Ma{1}(:,:,e); mS = +0.5; else, V = E.Mb{1}(:,:,e); mS = -0.5; end
-    acc = zeros(nT,1);
-    for chi = chis
-      if isempty(xL)
-        error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the subspace engine.');
-      end
-      d = cos(chi)*xL + sin(chi)*yL;
-      gd = G.'*d;
-      dq = (gd - q*(q.'*gd))/(gnorm*Exp.Field);  % per mT
-      dS = mS*dq;
-      O = d(1)*NucHams(1).Hnzx + d(2)*NucHams(1).Hnzy + d(3)*NucHams(1).Hnzz + ...
-        dS(1)*NucHams(1).Hhfx + dS(2)*NucHams(1).Hhfy + dS(3)*NucHams(1).Hhfz;
-      Oe = V'*O*V;
-      acc = acc + abs(Oe(sub2ind(size(Oe),iu,iv))).^2;
+  geffNorm = E.geffNorm(e);
+  q = E.geff(:,e)/geffNorm;  % direction of <S>
+  xL = E.xL(:,e); yL = E.yL(:,e);
+  for iManifold = 1:2
+    if iManifold==1
+      V = E.Va{1}(:,:,e); mS = +1/2;
+    else
+      V = E.Vb{1}(:,:,e); mS = -1/2;
     end
-    nu1{m}(:,k) = 2*B1*sqrt(acc/nChi);
+    matElSq = zeros(nTransitions,1);
+    for chi = chiList
+      nB1 = cos(chi)*xL + sin(chi)*yL;  % RF field direction
+      gB1 = g.'*nB1;
+      dqdB = (gB1 - q*(q.'*gB1))/(geffNorm*Exp.Field);  % tilt of <S> direction, per mT
+      dSdB = mS*dqdB;
+      Orf = nB1(1)*NucHams(1).Hnzx + nB1(2)*NucHams(1).Hnzy + nB1(3)*NucHams(1).Hnzz + ...
+        dSdB(1)*NucHams(1).Hhfx + dSdB(2)*NucHams(1).Hhfy + dSdB(3)*NucHams(1).Hhfz;
+      OrfEig = V'*Orf*V;
+      matElSq = matElSq + abs(OrfEig(sub2ind(size(OrfEig),idxU,idxV))).^2;
+    end
+    nu1{iManifold}(:,k) = 2*B1*sqrt(matElSq/nChi);
   end
 end
 end
@@ -1135,39 +1149,42 @@ end
 %-------------------------------------------------------------------------------
 % Transfer probability table P(Delta, scale) of a shaped RF pulse, from the
 % two-level propagation of its waveform (rotating-wave approximation)
-function [tabDelta,tabScale,tabP] = rfResponseTable(rf,f,E) %#ok<INUSD>
-par = rf.Par;
-par = rmfield(par,intersect(fieldnames(par),{'Channel','B1'}));
-if ~isempty(rf.B1)
-  par.Amplitude = 1;  % per MHz of nutation; scaled by the transition nutation
-  if isfield(par,'Flip'), par = rmfield(par,'Flip'); end
-  if isfield(par,'Qcrit'), par = rmfield(par,'Qcrit'); end
+function [tableDelta,tableScale,tableP] = rfResponseTable(rfPulse,rfFreqs)
+pulsePar = rfPulse.Par;
+pulsePar = rmfield(pulsePar,intersect(fieldnames(pulsePar),{'Channel','B1'}));
+if ~isempty(rfPulse.B1)
+  pulsePar.Amplitude = 1;  % per MHz of nutation; scaled by the transition nutation
+  if isfield(pulsePar,'Flip'), pulsePar = rmfield(pulsePar,'Flip'); end
+  if isfield(pulsePar,'Qcrit'), pulsePar = rmfield(pulsePar,'Qcrit'); end
 end
-[t,IQ] = pulse(par);
-dt_ = t(2)-t(1);
-IQm = (IQ(1:end-1)+IQ(2:end))/2;
-range = max(abs([f(1) f(end)]))+max(abs(rf.Frequency))+50;
-tabDelta = linspace(-range,range,4001);
-if ~isempty(rf.B1)
-  tabScale = linspace(0,20,81).';
+[t,IQ] = pulse(pulsePar);
+dt = t(2)-t(1);
+IQmid = (IQ(1:end-1)+IQ(2:end))/2;
+DeltaMax = max(abs([rfFreqs(1) rfFreqs(end)]))+max(abs(rfPulse.Frequency))+50;
+tableDelta = linspace(-DeltaMax,DeltaMax,4001);
+if ~isempty(rfPulse.B1)
+  tableScale = linspace(0,20,81).';
 else
-  tabScale = linspace(0,4,41).';
+  tableScale = linspace(0,4,41).';
 end
-tabP = zeros(numel(tabScale),numel(tabDelta));
-for is = 1:numel(tabScale)
-  sc = tabScale(is);
-  a = ones(size(tabDelta)); b = zeros(size(tabDelta));  % U = [a -conj(b); b conj(a)]
-  for k = 1:numel(IQm)
-    hx = sc*real(IQm(k))/2; hy = sc*imag(IQm(k))/2; hz = tabDelta/2;
-    w = sqrt(hx^2+hy^2+hz.^2);
-    th = 2*pi*w*dt_;
-    c = cos(th); s = sin(th)./max(w,eps);
-    % step propagator exp(-i*th*(n.sigma)) = c - i*s*(hz*sz + hx*sx + hy*sy)
-    u11 = c - 1i*s.*hz; u21 = -1i*s.*(hx+1i*hy);
-    a_ = u11.*a - conj(u21).*b;
-    b_ = u21.*a + conj(u11).*b;
-    a = a_; b = b_;
+tableP = zeros(numel(tableScale),numel(tableDelta));
+for iScale = 1:numel(tableScale)
+  scale = tableScale(iScale);
+  % Cayley-Klein parameters a, b of the propagator U = [a -conj(b); b conj(a)]
+  a = ones(size(tableDelta)); b = zeros(size(tableDelta));
+  for k = 1:numel(IQmid)
+    hx = scale*real(IQmid(k))/2; hy = scale*imag(IQmid(k))/2; hz = tableDelta/2;
+    hNorm = sqrt(hx^2+hy^2+hz.^2);
+    theta = 2*pi*hNorm*dt;
+    cosTheta = cos(theta);
+    sinTheta = sin(theta)./max(hNorm,eps);
+    % step propagator exp(-i*theta*(n.sigma)) = cos(theta) - i*sin(theta)*(n.sigma)
+    u11 = cosTheta - 1i*sinTheta.*hz;
+    u21 = -1i*sinTheta.*(hx+1i*hy);
+    aNew = u11.*a - conj(u21).*b;
+    bNew = u21.*a + conj(u11).*b;
+    a = aNew; b = bNew;
   end
-  tabP(is,:) = abs(b).^2;
+  tableP(iScale,:) = abs(b).^2;
 end
 end
