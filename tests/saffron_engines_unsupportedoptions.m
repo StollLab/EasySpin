@@ -2,7 +2,8 @@ function ok = test() %#ok<FNDEF>
 
 % Options that saffron does not support give an error instead of being
 % ignored, with any Opt.Method: a pulse field Operator, Opt.StateTrajectories,
-% Sys.lwAnisoG when the full-space engine is needed, and Opt.DetOperator
+% Sys.lwAnisoG and Opt.IdealPulses when the full-space engine is needed,
+% and Opt.DetOperator
 
 Sys.Nucs = '1H';
 Sys.A = [2 3 9];  % MHz
@@ -41,6 +42,17 @@ ok(7) = throwsWith(@() saffron(SysL,E,auto),'lwAnisoG');
 % Opt.DetOperator (detection operators belong in Exp.DetOperator)
 ok(8) = throwsWith(@() saffron(Sys,Exp,struct('DetOperator','z1')),'Exp.DetOperator');
 ok(9) = throwsWith(@() saffron(Sys,Exp,setfield(full,'DetOperator',{'z1'})),'Exp.DetOperator'); %#ok<SFLD>
+
+% Opt.IdealPulses: the subspace engine with 'auto', an error when the
+% full-space engine is needed or requested
+EF = Exp;
+EF.Sequence = {struct('Flip',pi/2,'tp',0.016) 0.1 struct('Flip',pi/2,'tp',0.016) 0.1};
+[~,~,info] = saffron(Sys,EF,struct('IdealPulses',true));
+ok(10) = strcmp(info.Method,'subspace');
+ok(11) = throwsWith(@() saffron(Sys,EF,setfield(full,'IdealPulses',true)),'IdealPulses'); %#ok<SFLD>
+E = EF;
+E.DetOperator = {'z1'};  % needs the full-space engine
+ok(12) = throwsWith(@() saffron(Sys,E,struct('IdealPulses',true)),'IdealPulses');
 
 end
 

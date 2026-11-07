@@ -47,6 +47,7 @@
 %     Method         'auto' (default), 'subspace', 'fullspace'
 %     IdealPulses    treat finite pulses as ideal, with orientation
 %                    selection by an excitation window of width 1/tp
+%                    (subspace)
 %     Relaxation     relaxation on/off, a single value or one per element
 %                    of Exp.Sequence (fullspace)
 %     GridSize, GridSymmetry, GridFrame, Sites

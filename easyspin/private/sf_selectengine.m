@@ -22,7 +22,8 @@
 % selection, phase cycles, scalar T1/T2 and single-point S+ detection at
 % the end of the sequence. Everything else needs the full-space engine (see
 % sf_parsesequence for the sequence features). Conversely, inhomogeneous
-% broadening (Sys.lwAnisoG) is only supported by the subspace engine.
+% broadening (Sys.lwAnisoG) and ideal pulses with an excitation window
+% (Opt.IdealPulses) are only supported by the subspace engine.
 
 function [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 
@@ -109,6 +110,17 @@ if strcmp(method,'fullspace')
           'the full-space engine (%s).'],reason);
       end
     end
+  end
+end
+
+% Ideal pulses with an excitation window (Opt.IdealPulses) are only
+% supported by the subspace engine
+if strcmp(method,'fullspace') && isfield(Opt,'IdealPulses') && Opt.IdealPulses
+  if strcmp(requested,'fullspace')
+    error('The full-space engine (Opt.Method = ''fullspace'') does not support Opt.IdealPulses = true.');
+  else
+    error(['Opt.IdealPulses = true is only supported by the subspace engine, but this simulation needs ' ...
+      'the full-space engine (%s).'],reason);
   end
 end
 
