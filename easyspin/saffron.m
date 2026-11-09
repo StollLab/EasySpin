@@ -41,7 +41,10 @@
 %  Pulse fields: Flip, tp (0 or absent: ideal pulse), Phase, Type,
 %     Frequency (offset from the carrier, or [start end] for chirps),
 %     Amplitude, Channel ('mw' or 'rf'), B1 (RF field, mT), and the
-%     parameters of pulse().
+%     parameters of pulse(). For electron spins S > 1/2, microwave pulses
+%     need tp and Amplitude (nutation frequency in MHz, pulse Hamiltonian
+%     Amplitude*Sx); Flip, ideal pulses and predefined experiments are not
+%     available.
 %
 %  Opt fields:
 %     Method         'auto' (default), 'subspace', 'fullspace'
@@ -206,6 +209,17 @@ end
 % Exp.Sequence is a required field
 if ~isfield(Exp,'Sequence')
   error('Exp.Sequence is missing. Give a pulse sequence or the name of a predefined experiment.');
+end
+
+% Electron spins S > 1/2: with several EPR transitions, a flip angle has no
+% unique meaning, so microwave pulses need their strength as Amplitude
+if iscell(Sys), SysList = Sys; else, SysList = {Sys}; end
+highSpin = false;
+for c = 1:numel(SysList)
+  highSpin = highSpin || (isfield(SysList{c},'S') && any(SysList{c}.S>1/2));
+end
+if highSpin
+  checkHighSpinPulses(Exp,Opt);
 end
 
 % Predefined experiments are macros that expand into user-defined
@@ -733,4 +747,71 @@ for d = 1:min(numel(Exp.nPoints),nAx)
     xl{d} = target;
   end
 end
+end
+
+%===============================================================================
+% Microwave pulses for spin systems with an electron spin S > 1/2. The pulse
+% Hamiltonian is H1 = nu1*Sx, with nu1 = Amplitude (MHz), and transition
+% a<->b nutates with nu1*|<a|S+|b>|. A flip angle (Flip, or Qcrit, which
+% sets the amplitude by a spin-1/2 criterion) has no unique meaning with
+% several transitions, so only Amplitude is accepted, and only for finite
+% pulses.
+function checkHighSpinPulses(Exp,Opt)
+
+if ischar(Exp.Sequence) || isstring(Exp.Sequence)
+  error(['Predefined experiments are not available for electron spins S > 1/2. ' ...
+    'Give the pulse sequence explicitly in Exp.Sequence, with the pulse strength ' ...
+    'as Amplitude (nutation frequency in MHz).']);
+end
+if isfield(Opt,'IdealPulses') && Opt.IdealPulses
+  error('Opt.IdealPulses is not supported for electron spins S > 1/2. Use finite pulses.');
+end
+msgAmplitude = ['give its strength as Amplitude (nutation frequency nu1 in MHz, ' ...
+  'pulse Hamiltonian nu1*Sx).'];
+
+if ~iscell(Exp.Sequence), return; end  % checked in the engines
+pulseIdx = find(cellfun(@isstruct,Exp.Sequence));
+isRF = false(1,numel(pulseIdx));
+for k = 1:numel(pulseIdx)
+  pulses = Exp.Sequence{pulseIdx(k)};
+  for p = pulses(:).'
+    if isfield(p,'Channel') && strcmpi(p.Channel,'rf')
+      isRF(k) = true;
+      continue
+    end
+    if isfield(p,'IQ'), continue; end  % user-defined waveform, in MHz
+    for f = {'Flip','Qcrit'}
+      if isfield(p,f{1}) && ~isempty(p.(f{1}))
+        error(['Pulse %d: %s is not accepted for electron spins S > 1/2, since a flip angle ' ...
+          'has no unique meaning with several EPR transitions. Instead, %s'],k,f{1},msgAmplitude);
+      end
+    end
+    if ~isfield(p,'Amplitude') || isempty(p.Amplitude)
+      error('Pulse %d: for electron spins S > 1/2, %s',k,msgAmplitude);
+    end
+    if ~isfield(p,'tp') || isempty(p.tp) || all(p.tp==0)
+      error('Pulse %d: ideal pulses (no tp) are not supported for electron spins S > 1/2. Give a pulse length tp and an Amplitude.',k);
+    end
+  end
+end
+
+% Indirect dimensions over flip angles of microwave pulses
+dimFields = fieldnames(Exp);
+dimFields = dimFields(~cellfun(@isempty,regexp(dimFields,'^Dim\d+$','once')));
+for d = 1:numel(dimFields)
+  Dim = Exp.(dimFields{d});
+  if ~iscell(Dim), continue; end
+  for iLine = 1:size(Dim,1)
+    targets = strtrim(regexp(Dim{iLine,1},',','split'));
+    for t = 1:numel(targets)
+      tok = regexp(targets{t},'^p(\d+)\.(Flip|Qcrit)$','tokens','once');
+      if isempty(tok), continue; end
+      iPulse = str2double(tok{1});
+      if iPulse>=1 && iPulse<=numel(isRF) && isRF(iPulse), continue; end
+      error('Exp.%s: for electron spins S > 1/2, increment p%d.Amplitude instead of p%d.%s.',...
+        dimFields{d},iPulse,iPulse,tok{2});
+    end
+  end
+end
+
 end

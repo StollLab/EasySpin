@@ -201,6 +201,7 @@ E.dE0 = zeros(1,0);          % EPR resonance offset from mwFreq (MHz)
 E.lw = zeros(1,0);           % inhomogeneous FWHM (MHz)
 E.ori = zeros(1,0);
 E.rev = false(1,0);
+E.moment = [];               % transition moments |<a|S+|b>|, empty: all 1 (S = 1/2)
 for s = 1:nSubSpaces
   E.Ea{s} = []; E.Eb{s} = []; E.M{s} = [];
   if isENDOR, E.Va{s} = []; E.Vb{s} = []; end
@@ -259,24 +260,33 @@ if twoElectronManifolds
     E.xL = xL(:,oriList); E.yL = yL(:,oriList);
   end
 else
-  % General electron system: transitions from the core Hamiltonian
+  % General electron system: transitions from the core Hamiltonian. Each
+  % transition b -> a (a above b) is a two-level system. Its microwave
+  % coupling is the co-rotating field component, as in the full-space
+  % engine (rotating-wave approximation): the nutation frequency is
+  % nu1*|<a|S+|b>|, with S+ in the lab frame. The initial state -Sz gives
+  % the population difference <a|Sz|a> - <b|Sz|b>. Ideal pulses (only
+  % S = 1/2 here, with nuclei in the core system) use the nominal flip
+  % angle, since |<a|S+|b>| = 1 for the allowed transitions up to the
+  % hyperfine mixing in the core system.
   rows = {};
   for iOri = 1:nOrientations
-    [~,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
+    [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
     muzL = zLab_M(1)*mux + zLab_M(2)*muy + zLab_M(3)*muz;
     H = H0 - Exp.Field*muzL;
     [eV,eE] = eig(H);
     eE = real(diag(eE));
-    SyLab = yLab_M(1)*Sx + yLab_M(2)*Sy + yLab_M(3)*Sz;
-    SyLab = abs(eV'*SyLab*eV);
-    maxSyy = max(SyLab(:));
+    SpLab = (xLab_M(1)+1i*yLab_M(1))*Sx + (xLab_M(2)+1i*yLab_M(2))*Sy + (xLab_M(3)+1i*yLab_M(3))*Sz;
+    transMoment = abs(eV'*SpLab*eV);  % |<a|S+|b>|
+    selWeight = transMoment;
+    maxMoment = max(transMoment(:));
     lwInh2 = sum((lwAnisoG(:).*zLab_M(:)).^2);
     if OrientationSelection
       lw2 = lwInh2 + seq.ExciteWidth^2;
       dE = eE - eE.' - Exp.mwFreq*1e3;
-      SyLab = SyLab.*exp(-4*log(2)*dE.^2/lw2)/sqrt(1+lwInh2/seq.ExciteWidth^2);
+      selWeight = selWeight.*exp(-4*log(2)*dE.^2/lw2)/sqrt(1+lwInh2/seq.ExciteWidth^2);
     end
-    SyLab(SyLab<Opt.OriThreshold*maxSyy) = 0;
+    selWeight(selWeight<Opt.OriThreshold*maxMoment) = 0;
     if isfield(Opt,'Transitions') && ~isempty(Opt.Transitions)
       nStates = size(H,1);
       if any(Opt.Transitions(:)>nStates)
@@ -288,20 +298,23 @@ else
         rmvTransition(tr(1),tr(2)) = false;
         rmvTransition(tr(2),tr(1)) = false;
       end
-      SyLab(rmvTransition) = 0;
+      selWeight(rmvTransition) = 0;
     end
-    [v,u,wSel] = find(tril(SyLab,-1));
+    [v,u,wSel] = find(tril(selWeight,-1));
     for iT = 1:numel(u)
       b = u(iT); a = v(iT);
       vecA = eV(:,a); vecB = eV(:,b);
       SA = real([vecA'*Sx*vecA; vecA'*Sy*vecA; vecA'*Sz*vecA]);
       SB = real([vecB'*Sx*vecB; vecB'*Sy*vecB; vecB'*Sz*vecB]);
-      rows(end+1,:) = {iOri, Exp.OriWeights(iOri)*wSel(iT), eE(a)-eE(b), sqrt(lwInh2), SA, SB, zLab_M}; %#ok<AGROW>
+      dPop = zLab_M(:).'*(SA-SB);  % population difference from -Sz
+      rows(end+1,:) = {iOri, Exp.OriWeights(iOri)*wSel(iT)*dPop, eE(a)-eE(b), ...
+        sqrt(lwInh2), SA, SB, zLab_M, transMoment(a,b)}; %#ok<AGROW>
     end
   end
   nE = size(rows,1);
   info.nSkippedOrientations = nOrientations - numel(unique([rows{:,1}]));
   E.w = [rows{:,2}];
+  E.moment = [rows{:,8}];  % transition moments |<a|S+|b>|
   if isfield(Exp,'mwFreq')
     E.dE0 = [rows{:,3}] - 1000*Exp.mwFreq;
   else
@@ -345,6 +358,7 @@ if reversedField=="compute"
   E.lw = [E.lw E.lw];
   E.ori = [E.ori E.ori];
   E.rev = [false(1,nE) true(1,nE)];
+  if ~isempty(E.moment), E.moment = [E.moment E.moment]; end
   for s = 1:nSubSpaces
     E.Ea{s} = [E.Ea{s} E.Ea{s}];
     E.Eb{s} = [E.Eb{s} E.Eb{s}];
@@ -471,10 +485,12 @@ switch reversedField
   case "conjtranspose"
     y = (y + y')/2;
 end
-% Normalization: true echo amplitude Tr(S+*rho)/Tr(S+'*S+) for the initial
-% state -Sz (S = 1/2). For other spin systems, transitions are weighted
-% by |<u|Sy|v>| and are not on this scale.
-y = y/prod(2*Sys.I+1);
+% Normalization: echo amplitude Tr(S+*rho)/Tr(S+'*S+) for the initial state
+% -Sz, as in the full-space engine. Each transition contributes with its
+% population difference times its transition moment (in E.w), and
+% Tr(S+'*S+) = prod(2I+1)*(2/3)*S*(S+1)*(2S+1), which is prod(2I+1) for S = 1/2.
+S = Sys.S;
+y = y/(prod(2*Sys.I+1)*(4*S*(S+1)*(2*S+1))/6);
 
 end
 
@@ -782,6 +798,11 @@ Ed.Mt = pagectranspose(Ed.M);
 Ed.w = E.w(ec);
 Ed.dE0 = E.dE0(ec);
 Ed.lw = E.lw(ec);
+if isempty(E.moment)
+  Ed.moment = [];
+else
+  Ed.moment = E.moment(ec);
+end
 Ed.n = n;
 Ed.K = K;
 % For field-reversed partners (E.rev, appended after the original entries):
@@ -829,7 +850,10 @@ Szdiag = [ones(n,1); -ones(n,1)]/2;
 for i = 1:N
   if seq.isRF(i) || seq.Pulse(i).ideal, continue; end
   tp = seq.Pulse(i).tp;
-  nu1 = seq.Pulse(i).Flip/(2*pi*tp);  % MHz
+  % nutation frequency of each transition (MHz): pulse amplitude times the
+  % transition moment |<a|S+|b>| (1 for S = 1/2 with all nuclei)
+  nu1 = seq.Pulse(i).Flip/(2*pi*tp)*ones(1,K);
+  if ~isempty(Ed.moment), nu1 = nu1.*Ed.moment; end
   phaseFactor = exp(-1i*seq.Pulse(i).Phase);
   U = zeros(2*n,2*n,K);
   for k = 1:K
@@ -840,7 +864,7 @@ for i = 1:N
       U(:,:,k) = U(:,:,j).';
       continue
     end
-    Hp = [diag(Ed.Ea(:,k)), Ed.M(:,:,k)*nu1/2; Ed.Mt(:,:,k)*nu1/2, diag(Ed.Eb(:,k))];
+    Hp = [diag(Ed.Ea(:,k)), Ed.M(:,:,k)*nu1(k)/2; Ed.Mt(:,:,k)*nu1(k)/2, diag(Ed.Eb(:,k))];
     Hp = Hp + diag((offsets(k)-seq.Pulse(i).Frequency)*Szdiag);
     [V,lam] = eig((Hp+Hp')/2,'vector');
     U(:,:,k) = (V.*exp(-2i*pi*tp*lam.'))*V';

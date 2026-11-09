@@ -1,11 +1,11 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Sys.initState in the saffron full-space engine
 
 tol = 1e-10;
 
 Pulse.tp = 0.02;
-Pulse.Flip = pi/4;
+Pulse.Amplitude = 6.25;  % MHz, flip angle pi/4 for S = 1/2 (S > 1/2 needs Amplitude)
 Exp.Sequence = {Pulse 0.05};
 Exp.Field = 340;
 Exp.mwFreq = 9.53;
@@ -58,14 +58,18 @@ SysT.initState = xyz;
 [~,y2] = saffron(SysT,Exp,OptD);
 ok(4) = areequal(y1,y2,tol,'rel');
 
-% Not supported: fast mode, relaxation
+% Not supported: subspace engine (S = 1/2 with a nucleus, since predefined
+% experiments are not available for S > 1/2), relaxation
+SysF = Sys;
+SysF.Nucs = '1H';
+SysF.A = [1 2];  % MHz
 ExpF.Sequence = '2pESEEM';
 ExpF.Field = 340;
 ExpF.dt = 0.01;
 ExpF.nPoints = 10;
 OptF.Method = 'subspace';
 try
-  saffron(SysT,ExpF,OptF);
+  saffron(SysF,ExpF,OptF);
   ok(5) = false;
 catch err
   ok(5) = contains(err.message,'initState');

@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % In a shifted simulation frame, saffron uses the secular Hamiltonian:
 % block-diagonal in the total electron spin projection, with the exact
@@ -24,7 +24,7 @@ ok(2) = areequal(eig(Hsec),eig(Hlab),1e-9,'rel');
 
 % saffron: independence of simulation frame and of chi
 Pulse.tp = 0.02;
-Pulse.Flip = pi/4;
+Pulse.Amplitude = 6.25;  % MHz, flip angle pi/4 for S = 1/2 (S > 1/2 needs Amplitude)
 Exp.Sequence = {Pulse 0.05};
 Exp.Field = 340;
 Exp.mwFreq = 9.53;

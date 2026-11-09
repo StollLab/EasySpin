@@ -16,7 +16,7 @@ Pulse.Type = 'quartersin/linear';
 Pulse.trise = 0.015; % µs
 Pulse.tp = 0.1;
 Pulse.Frequency = 1000* [-0.100 0.100];
-Pulse.Flip = pi;
+Pulse.Amplitude = 39.8942280401433;  % MHz, as pulse() gives for Flip = pi (S > 1/2 needs Amplitude)
 
 Exp.Sequence = {Pulse 0.5};
 Exp.Field = 1195;
