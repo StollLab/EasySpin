@@ -347,9 +347,6 @@ else
     E.geff = []; % no enhancement model for the general electron system
   end
 end
-if nSubSpaces==0
-  error('The subspace engine needs at least one nucleus with nuclear spin in the nuclear subspace (Opt.Nuclei).');
-end
 
 % Field-reversed partners, computed explicitly (M, Va, Vb -> conj)
 if reversedField=="compute"
@@ -380,22 +377,40 @@ end
 E.nE = nE;
 info.nEntries = nE;
 
-% Offsets (finite pulses): Gaussian distribution of each entry, FWHM from
-% Sys.lwAnisoG, on a uniform grid over +-2 widths
-if seq.finitePulses
-  anyInh = any(E.lw>0);
-  if ~isfield(Opt,'nOffsets') || isempty(Opt.nOffsets)
-    if anyInh, Opt.nOffsets = 291; else, Opt.nOffsets = 1; end
-  end
-  if Opt.nOffsets==1 || ~anyInh
-    offsetGrid = 0; offsetWeight = 1;
-  else
-    offsetGrid = linspace(-2,2,Opt.nOffsets);  % in units of the 1/e half width
-    offsetWeight = exp(-offsetGrid.^2);
-    offsetWeight = offsetWeight/sum(offsetWeight);
-  end
+% Resonance offsets of the excited spin packets of each entry: a Gaussian
+% distribution with FWHM from Sys.lwAnisoG, around the resonance offset
+% dE0. With ideal pulses and an excitation window of FWHM W
+% (Opt.IdealPulses), the excited packets follow the product of line and
+% window, with center dE0*W^2/(lw^2+W^2) and FWHM lw*W/sqrt(lw^2+W^2) (the
+% window weight is in E.w). With finite pulses, the pulses select the
+% packets from the whole line.
+if ~seq.finitePulses && OrientationSelection
+  W2 = seq.ExciteWidth^2;
+  E.offCenter = E.dE0.*W2./(E.lw.^2+W2);
+  E.offWidth = E.lw*seq.ExciteWidth./sqrt(E.lw.^2+W2);
 else
+  E.offCenter = E.dE0;
+  E.offWidth = E.lw;
+end
+% The distribution is sampled on a uniform grid over +-2 widths, when the
+% signal depends on it: with finite pulses, and with ideal pulses if a
+% pathway does not refocus at the detection point (only those pathways are
+% then evaluated on the grid, see pathwaySignal)
+pointwiseDelays = false;
+for d = find(seq.kind==3)
+  pointwiseDelays = pointwiseDelays || any([seq.mods{d}{:,1}]=='d');
+end
+needOffsets = any(E.offWidth>0) && ...
+  (seq.finitePulses || ~all(refocusedPathways(seq)) || pointwiseDelays);
+if ~isfield(Opt,'nOffsets') || isempty(Opt.nOffsets)
+  if needOffsets, Opt.nOffsets = 291; else, Opt.nOffsets = 1; end
+end
+if Opt.nOffsets==1 || ~needOffsets
   offsetGrid = 0; offsetWeight = 1;
+else
+  offsetGrid = linspace(-2,2,Opt.nOffsets);  % in units of the 1/e half width
+  offsetWeight = exp(-offsetGrid.^2);
+  offsetWeight = offsetWeight/sum(offsetWeight);
 end
 E.offsetGrid = offsetGrid;
 E.offsetWeight = offsetWeight;
@@ -500,11 +515,12 @@ end
 % Hstatic holds the terms that depend neither on the field nor on the
 % electron state: nuclear quadrupole (Q) and nuclear-nuclear couplings (nn,
 % with the coupled pairs in nnPairs and their molecular-frame tensors in
-% nnTensors).
+% nnTensors). Without nuclei in the subspace (no nuclei in the spin system,
+% or all of them in the core system), the nuclear subspace has a single
+% state: each EPR transition is a plain two-level system.
 function NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule,nnPairs,nnTensors)
 
 NucHams = struct('Hnzx',{},'Hnzy',{},'Hnzz',{},'Hhfx',{},'Hhfy',{},'Hhfz',{},'Hstatic',{});
-if isempty(shfNuclei), return; end
 I = Sys.I(shfNuclei);
 if ~productRule
   dim = prod(2*I+1);
@@ -636,6 +652,11 @@ end
 nSub = numel(E.Ea);
 if productRule
   % per pathway and subspace, time domain products, per entry
+  if numel(E.offsetGrid)>1
+    error(['Opt.ProductRule does not support pathways that do not refocus at the detection ' ...
+      'point together with an inhomogeneous line (Sys.lwAnisoG). Select echo pathways ' ...
+      '(Exp.Pathways = ''echo''), or omit Opt.ProductRule.']);
+  end
   y = 0;
   exact = prod(seq.nPointsInc)<=64;
   for e = 1:E.nE
@@ -643,6 +664,8 @@ if productRule
       td_ = 1;
       for s = 1:nSub
         Ed = entrySlice(E,s,e);
+        % the electron resonance offset enters once (ideal pulses only)
+        if s==1, Ed = addOffsets(Ed,Ed.offCenter); end
         if exact
           % few points: exact evaluation of each point
           if nDims==1, td1 = zeros(1,seq.nPointsInc); else, td1 = zeros(seq.nPointsInc); end
@@ -696,21 +719,28 @@ end
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
 nOff = numel(E.offsetGrid);
+% With ideal pulses, refocused pathways do not depend on the resonance
+% offset: they are evaluated once, with weight 1
+offsetFree = ~seq.finitePulses & refocusedPathways(seq);
 chunks = entryChunks(E,chunk);
 for iChunk = 1:numel(chunks)
   ec = chunks{iChunk};
-  Ed = entrySlice(E,1,ec);
+  Ed0 = entrySlice(E,1,ec);
   for iOff = 1:nOff
+    Ed = addOffsets(Ed0,Ed0.offCenter + E.offsetGrid(iOff)*Ed0.offWidth/(2*sqrt(log(2))));
     if seq.finitePulses
-      offsets = Ed.dE0 + E.offsetGrid(iOff)*Ed.lw/(2*sqrt(log(2)));
-      PulseSub = finitePulsePropagators(Ed,seq,offsets);
-      wOff = E.offsetWeight(iOff);
+      PulseSub = finitePulsePropagators(Ed,seq);
     else
       PulseSub = [];
-      wOff = 1;
     end
     memo = struct('keys',{{}},'vals',{{}});
     for p = 1:nP
+      if offsetFree(p)
+        if iOff>1, continue; end
+        wOff = 1;
+      else
+        wOff = E.offsetWeight(iOff);
+      end
       [G,D,BL,BR,memo] = evaluatePathways(Ed,seq,p,PulseSub,memo);
       wp = pref(p)*wOff*reshape(Ed.w,1,1,[]);
       if nDims==0
@@ -797,7 +827,8 @@ Ed.M = E.M{s}(:,:,ec);
 Ed.Mt = pagectranspose(Ed.M);
 Ed.w = E.w(ec);
 Ed.dE0 = E.dE0(ec);
-Ed.lw = E.lw(ec);
+Ed.offCenter = E.offCenter(ec);
+Ed.offWidth = E.offWidth(ec);
 if isempty(E.moment)
   Ed.moment = [];
 else
@@ -839,9 +870,35 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Pulse sub-propagators of the finite microwave pulses for all entries at
-% the given offsets (MHz): blocks 1 = aa, 2 = bb, 3 = ab, 4 = ba
-function PulseSub = finitePulsePropagators(Ed,seq,offsets)
+% Entry data in the frame rotating at Exp.mwFreq: the electron resonance
+% offset of each entry (MHz, including the offset within the inhomogeneous
+% line) shifts the energies of the two manifolds by +offset/2 (a) and
+% -offset/2 (b). Free evolution and pulses both use these energies.
+function Ed = addOffsets(Ed,offsets)
+Ed.Ea = Ed.Ea + offsets/2;
+Ed.Eb = Ed.Eb - offsets/2;
+Ed.Ea3 = reshape(Ed.Ea,Ed.n,1,Ed.K);
+Ed.Eb3 = reshape(Ed.Eb,Ed.n,1,Ed.K);
+end
+
+%-------------------------------------------------------------------------------
+% Pathways that refocus at the detection point for every point of the
+% incremented delays: zero net electron coherence time over the free
+% evolution (also during RF pulses), and in each incremented dimension.
+% With ideal pulses, their signal does not depend on the resonance offset.
+function refocused = refocusedPathways(seq)
+tFree = seq.t + seq.isRF.*[seq.Pulse.tp];
+refocused = abs(seq.co*tFree(:)) <= 1e-12*max([1 tFree]);
+for d = 1:numel(seq.kind1Dims)
+  refocused = refocused & sum(seq.co(:,seq.Inc==d),2)==0;
+end
+end
+
+%-------------------------------------------------------------------------------
+% Pulse sub-propagators of the finite microwave pulses for all entries, with
+% the energies of Ed (including the resonance offsets): blocks 1 = aa,
+% 2 = bb, 3 = ab, 4 = ba
+function PulseSub = finitePulsePropagators(Ed,seq)
 N = seq.N;
 n = Ed.n; K = Ed.K;
 PulseSub = cell(N,4);
@@ -858,14 +915,14 @@ for i = 1:N
   U = zeros(2*n,2*n,K);
   for k = 1:K
     j = Ed.original(k);
-    if j>0 && offsets(k)==offsets(j)
+    if j>0 && isequal(Ed.Ea(:,k),Ed.Ea(:,j)) && isequal(Ed.Eb(:,k),Ed.Eb(:,j))
       % Field-reversed partner: its pulse Hamiltonian is conj(Hp) = Hp.' of
       % the original entry, so its propagator is the transpose
       U(:,:,k) = U(:,:,j).';
       continue
     end
     Hp = [diag(Ed.Ea(:,k)), Ed.M(:,:,k)*nu1(k)/2; Ed.Mt(:,:,k)*nu1(k)/2, diag(Ed.Eb(:,k))];
-    Hp = Hp + diag((offsets(k)-seq.Pulse(i).Frequency)*Szdiag);
+    Hp = Hp - diag(seq.Pulse(i).Frequency*Szdiag);
     [V,lam] = eig((Hp+Hp')/2,'vector');
     U(:,:,k) = (V.*exp(-2i*pi*tp*lam.'))*V';
   end
@@ -1140,12 +1197,13 @@ yTransfer = zeros(1,nRfFreqs);  % change of the signal by the RF pulse
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
 nOff = numel(E.offsetGrid);
+offsetFree = ~seq.finitePulses & refocusedPathways(seq);  % see pathwaySignal
 [idxU,idxV] = find(triu(true(n),1));  % levels u<v of each NMR transition
 nTransitions = numel(idxU);
 chunks = entryChunks(E,chunk);
 for iChunk = 1:numel(chunks)
   ec = chunks{iChunk};
-  Ed = entrySlice(E,1,ec);
+  Ed0 = entrySlice(E,1,ec);
   K = numel(ec);
   % RF nutation frequencies (MHz) of the transitions in both manifolds
   if useB1
@@ -1155,14 +1213,19 @@ for iChunk = 1:numel(chunks)
   % of the RF pulse (1 = alpha, 2 = beta), summed over offsets and pathways
   transferAmp = {zeros(nTransitions,K),zeros(nTransitions,K)};
   for iOff = 1:nOff
+    Ed = addOffsets(Ed0,Ed0.offCenter + E.offsetGrid(iOff)*Ed0.offWidth/(2*sqrt(log(2))));
     if seq.finitePulses
-      offsets = Ed.dE0 + E.offsetGrid(iOff)*Ed.lw/(2*sqrt(log(2)));
-      PulseSub = finitePulsePropagators(Ed,seq,offsets);
-      wOff = E.offsetWeight(iOff);
+      PulseSub = finitePulsePropagators(Ed,seq);
     else
-      PulseSub = []; wOff = 1;
+      PulseSub = [];
     end
     for p = 1:nP
+      if offsetFree(p)
+        if iOff>1, continue; end
+        wOff = 1;
+      else
+        wOff = E.offsetWeight(iOff);
+      end
       [G,D] = evaluatePathways(Ed,seqG,p,PulseSub);
       wp = seq.pathwayprefactor(p)*wOff*reshape(Ed.w,1,1,[]);
       G = G.*wp;
@@ -1178,7 +1241,7 @@ for iChunk = 1:numel(chunks)
   % RF response: depends only on the NMR transition frequencies and
   % nutation frequencies, not on the offset or the pathway
   for iManifold = 1:2
-    if iManifold==1, Enuc = Ed.Ea; else, Enuc = Ed.Eb; end
+    if iManifold==1, Enuc = Ed0.Ea; else, Enuc = Ed0.Eb; end
     nuNMR = abs(Enuc(idxV,:)-Enuc(idxU,:));
     if useB1
       nu1Trans = nu1{iManifold};

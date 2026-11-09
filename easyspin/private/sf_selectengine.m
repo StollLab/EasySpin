@@ -60,9 +60,6 @@ for c = 1:numel(SysList)
   if (isfield(S_,'T1') && numel(S_.T1)>1) || (isfield(S_,'T2') && numel(S_.T2)>1)
     reasons{end+1} = 'transition-selective relaxation times (matrices in Sys.T1, Sys.T2)';
   end
-  if ~isfield(S_,'Nucs') || isempty(S_.Nucs)
-    reasons{end+1} = 'spin systems without nuclei';
-  end
 end
 if highSpin && ~strcmp(requested,'subspace')
   reasons{end+1} = 'electron spin S > 1/2 (use Opt.Method = ''subspace'' for the transition-selective approximation)';

@@ -240,6 +240,23 @@ if iscell(Exp.Sequence)
   end
 end
 
+% RF pulses act on nuclei
+if iscell(Exp.Sequence)
+  hasRF = false;
+  for k = find(cellfun(@isstruct,Exp.Sequence))
+    for p = Exp.Sequence{k}(:).'
+      hasRF = hasRF || (isfield(p,'Channel') && strcmpi(p.Channel,'rf'));
+    end
+  end
+  if hasRF
+    for c = 1:numel(SysList)
+      if ~isfield(SysList{c},'Nucs') || isempty(SysList{c}.Nucs)
+        error('The pulse sequence contains RF pulses, but the spin system has no nuclei (Sys.Nucs).');
+      end
+    end
+  end
+end
+
 % Detection window, default: single point at the end of the sequence
 if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)
   Exp.DetWindow = 0;
