@@ -87,6 +87,9 @@ pulseEvents = find(cellfun(@(E)strcmp(E.type,'pulse'),Events));
 if isempty(pathwayOrders)
   pathwayOrders = nan(1,numel(pulseEvents));
 end
+if size(pathwayOrders,1)>1
+  pathwayOrders = removeOverlaps(pathwayOrders,unique(round(Morder(:))));
+end
 nPathwayRuns = size(pathwayOrders,1);
 EventsList = cell(1,nPathwayRuns);
 for iRun = 1:nPathwayRuns
@@ -95,6 +98,8 @@ for iRun = 1:nPathwayRuns
     o = pathwayOrders(iRun,k);
     if isnan(o)
       E_{pulseEvents(k)}.Projection = [];
+    elseif isinf(o)  % +1 or -1
+      E_{pulseEvents(k)}.Projection = abs(abs(Morder)-1)<1e-10;
     else
       E_{pulseEvents(k)}.Projection = abs(Morder-o)<1e-10;
     end
@@ -270,6 +275,47 @@ else
 end
 info.EventTimes = evT;
 
+end
+
+
+%===============================================================================
+% removeOverlaps  Replace overlapping pathway selections by separate pathways
+%
+%   orders = removeOverlaps(orders,allOrders)
+%
+%   Each row of orders is propagated separately and the signals are added, so
+%   a pathway selected by two rows would count twice. If any rows overlap,
+%   the selections are expanded into fully specified pathways, each listed
+%   once. Selections without overlap are returned unchanged.
+%
+%   Input:
+%     orders     electron coherence order after each pulse (NaN = any, Inf =
+%                +1 or -1), one row per selection and one column per pulse
+%     allOrders  all electron coherence orders of the spin system, column
+%
+%   Output:
+%     orders     selections without overlap
+function orders = removeOverlaps(orders,allOrders)
+expanded = zeros(0,size(orders,2));
+for r = 1:size(orders,1)
+  rowPathways = zeros(1,0);
+  for k = 1:size(orders,2)
+    o = orders(r,k);
+    if isnan(o)
+      values = allOrders;
+    elseif isinf(o)
+      values = [-1; +1];
+    else
+      values = o;
+    end
+    rowPathways = [repelem(rowPathways,numel(values),1) repmat(values,size(rowPathways,1),1)];
+  end
+  expanded = [expanded; rowPathways]; %#ok<AGROW>
+end
+distinct = unique(expanded,'rows');
+if size(distinct,1)<size(expanded,1)
+  orders = distinct;
+end
 end
 
 

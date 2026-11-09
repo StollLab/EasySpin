@@ -24,7 +24,8 @@
 %     nPoints, Dim1, Dim2, ...   incrementation scheme (indirect dimensions)
 %     Pathways       coherence pathway selection: 'all' (default), 'echo',
 %                    a string of electron coherence orders per pulse
-%                    ('+0-', '.' = any), or a numeric matrix (NaN = any)
+%                    ('+0-', 'c' = + or -, '.' = any), or a numeric matrix
+%                    (NaN = any)
 %     PhaseCycle     phase cycle per pulse, rows [phase weight] or
 %                    [phase weight scale]
 %     DetWindow      detection window (µs) relative to the end of the
@@ -516,44 +517,44 @@ end
 %   Input:
 %     Exp     experiment; uses
 %       Pathways  'all', 'echo', a string of electron coherence orders per
-%                 pulse ('+', '-', '0', '.' = any), or a numeric matrix
+%                 pulse ('+', '-', '0', 'c' = + or -, '.' = any), or a
+%                 numeric matrix
 %       Sequence  pulse sequence
-%     Opt     options, passed on to sf_parsesequence for 'echo'
+%     Opt     options, passed on to sf_parsesequence
 %
 %   Output:
 %     orders  electron coherence order after each pulse (+1, -1, 0, NaN =
-%             any), one row per pathway and one column per pulse; empty if
-%             there is no selection
+%             any, Inf = +1 or -1), one row per pathway and one column per
+%             pulse; empty if there is no selection
 function orders = sf_pathwayorders(Exp,Opt)
 orders = [];
 if ~isfield(Exp,'Pathways') || isempty(Exp.Pathways), return; end
 pw = Exp.Pathways;
-nPulses = sum(cellfun(@isstruct,Exp.Sequence));
-if (ischar(pw) || isstring(pw)) && strcmp(pw,'all')
-  return
-end
-if (ischar(pw) || isstring(pw)) && strcmp(pw,'echo')
-  [seq,~] = sf_parsesequence(Exp,Opt);
-  orders = unique(seq.co,'rows');
-  return
-end
-if ischar(pw) || isstring(pw)
-  pw = char(pw);
+if isstring(pw), pw = char(pw); end
+if strcmp(pw,'all'), return; end
+
+% sf_parsesequence checks the selection in the same way for both engines. It
+% only knows coherence orders up to 1, higher ones need S>1/2 or several spins.
+higherOrders = isnumeric(pw) && any(abs(pw(:))>1 & isfinite(pw(:)));
+if higherOrders
+  nPulses = sum(cellfun(@isstruct,Exp.Sequence));
   if size(pw,2)~=nPulses
     error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(pw,2),nPulses);
   end
-  if any(~ismember(pw(:),'+-0.'))
-    error('Exp.Pathways can only contain ''+'', ''-'', ''0'' and ''.''.');
-  end
+else
+  seq = sf_parsesequence(Exp,Opt);
+end
+
+if strcmp(pw,'echo')
+  orders = unique(seq.echoOrders,'rows');
+elseif ischar(pw)
   orders = nan(size(pw));
   orders(pw=='+') = +1;
   orders(pw=='-') = -1;
   orders(pw=='0') = 0;
+  orders(pw=='c') = Inf;
 else
   orders = pw;
-  if size(orders,2)~=nPulses
-    error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(orders,2),nPulses);
-  end
 end
 end
 

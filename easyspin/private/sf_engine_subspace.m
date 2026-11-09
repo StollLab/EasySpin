@@ -485,6 +485,7 @@ else
       sub = cell(1,numel(kind3));
       [sub{:}] = ind2sub([nPts 1],iPt);
       Expk = Opt.fastExp;
+      if ~isempty(seq.echoOrders), Expk.Pathways = seq.echoOrders; end
       pulseIdx = find(cellfun(@isstruct,Expk.Sequence));
       delayIdx = find(~cellfun(@isstruct,Expk.Sequence));
       for j = 1:numel(kind3)

@@ -481,8 +481,8 @@ The output then contains the signal of each step, and you combine them yourself 
 Selects the coherence transfer pathways that contribute to the signal, in both methods. A pathway gives the electron coherence order after each pulse (<code>+1</code>, <code>-1</code> or <code>0</code>) and must end in <code>-1</code>, the detected coherence.
 <ul>
 <li><code>'all'</code> (default): all pathways, as in an experiment without phase cycle.</li>
-<li><code>'echo'</code>: the pathways that refocus at the detection point.</li>
-<li>A string with one character per pulse, <code>'+'</code>, <code>'-'</code>, <code>'0'</code>, or <code>'.'</code> for any order; several pathways as rows of a character array.</li>
+<li><code>'echo'</code>: the pathways that refocus at the detection point at all points of the experiment.</li>
+<li>A string with one character per pulse, <code>'+'</code>, <code>'-'</code>, <code>'0'</code>, <code>'c'</code> for either <code>+1</code> or <code>-1</code>, or <code>'.'</code> for any order; several pathways as rows of a character array.</li>
 <li>A numeric matrix with one row per pathway and one column per pulse, with <code>NaN</code> for any order.</li>
 </ul>
 <pre class="matlab">

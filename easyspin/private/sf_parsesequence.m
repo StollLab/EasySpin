@@ -56,6 +56,9 @@
 %       IncSchemeID      incrementation scheme of sf_peaks, NaN if unsupported
 %       ctp              coherence transfer pathways, nPathways x N
 %       co               electron coherence orders, nPathways x N
+%       echoOrders       orders selected by Exp.Pathways = 'echo', before
+%                        pathways with zero prefactor are removed (empty
+%                        otherwise)
 %       idxPulseL, idxPulseR   propagator blocks (1 = aa, 2 = bb, 3 = ab,
 %                        4 = ba) of the pulses, nPathways x N
 %       idxIncL, idxIncR manifolds (1 = alpha, 2 = beta) of the incremented
@@ -255,6 +258,8 @@ Inc = zeros(1,N);       % kind-1 dimension label of each interval (before relabe
 dt = zeros(1,nDims);
 kind = zeros(1,nDims);
 mods = cell(1,nDims);   % kind 3: {target type, index, field, values}
+dimTargets = cell(1,nDims);  % quantities changed by each dimension
+dimValues = cell(1,nDims);   % their values per point
 for d = 1:nDims
   dimField = sprintf('Dim%d',d);
   if ~isfield(Exp,dimField)
@@ -360,6 +365,8 @@ for d = 1:nDims
     end
     mods{d} = m;
   end
+  dimTargets{d} = targets;
+  dimValues{d} = vals;
 end
 if sum(kind==2)>1 || (any(kind==2) && (any(kind==1) || any(kind==3)))
   reasons{end+1} = 'RF frequency sweeps combined with other indirect dimensions';
@@ -404,91 +411,13 @@ else
 end
 
 % Coherence transfer pathways
-%-------------------------------------------------------------------------------
-% All pathways that end in electron coherence order -1 (detected by S+).
-% RF pulses don't change the electron state. The initial state is the
-% beta population (the -Sz state differs from it by the identity/2, which
-% gives no signal).
-coherenceOrder = [0 0 +1 -1];
-if N>1
-  [idx_{1:N-1}] = ndgrid(1:4);
-  ctp = fliplr(reshape(cat(N,idx_{:}),[],N-1));
-  ctp(:,N) = 4;
+if isfield(Exp,'Pathways') && ~isempty(Exp.Pathways)
+  pathways = Exp.Pathways;
 else
-  ctp = 4;
+  pathways = 'all';
 end
-keep = true(size(ctp,1),1);
-for k = find(isRF)
-  if k==1
-    before = 2*ones(size(ctp,1),1);
-  else
-    before = ctp(:,k-1);
-  end
-  keep = keep & ctp(:,k)==before;
-end
-ctp = ctp(keep,:);
-co = coherenceOrder(ctp);
-
-if ~isfield(Exp,'Pathways') || isempty(Exp.Pathways)
-  Exp.Pathways = 'all';
-end
-pw = Exp.Pathways;
-if (ischar(pw) || isstring(pw)) && any(strcmp(pw,{'all','echo'}))
-  if strcmp(pw,'echo')
-    % the spins evolve during RF pulses, so their lengths count as
-    % evolution time (the lengths of microwave pulses do not)
-    tEvol = t;
-    tEvol(isRF) = tEvol(isRF) + [P(isRF).tp];
-    sel = echoPathways(co,tEvol,seq.Inc);
-    ctp = ctp(sel,:);
-    co = co(sel,:);
-    if isempty(ctp)
-      error('No pathway refocuses at the detection point with this sequence and these delays.');
-    end
-  end
-else
-  if ischar(pw) || isstring(pw)
-    pw = char(pw);
-    if size(pw,2)~=N
-      error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(pw,2),N);
-    end
-    sel_ = nan(size(pw));
-    sel_(pw=='+') = +1;
-    sel_(pw=='-') = -1;
-    sel_(pw=='0') = 0;
-    bad = ~ismember(pw,'+-0.');
-    if any(bad(:))
-      error('Exp.Pathways can only contain ''+'', ''-'', ''0'' and ''.''.');
-    end
-  else
-    sel_ = pw;
-    if size(sel_,2)~=N
-      error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(sel_,2),N);
-    end
-  end
-  for k = find(isRF)
-    prev = 0;
-    if k>1, prev = sel_(:,k-1); end
-    if any(~isnan(sel_(:,k)) & ~isnan(prev) & sel_(:,k)~=prev)
-      error('Exp.Pathways: RF pulses (pulse %d) cannot change the electron coherence order.',k);
-    end
-  end
-  match = false(size(ctp,1),1);
-  for r = 1:size(sel_,1)
-    m_ = true(size(ctp,1),1);
-    for k = 1:N
-      if ~isnan(sel_(r,k))
-        m_ = m_ & co(:,k)==sel_(r,k);
-      end
-    end
-    match = match | m_;
-  end
-  ctp = ctp(match,:);
-  co = co(match,:);
-end
-if isempty(ctp)
-  error('No coherence transfer pathway is detectable (ending in -1) with Exp.Pathways.');
-end
+if isstring(pathways), pathways = char(pathways); end
+[ctp,co,seq.echoOrders] = selectPathways(pathways,seq,dimTargets,dimValues);
 
 % Pulse transfer prefactors (ideal mw pulses) and phase cycle weights
 [idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(ctp);
@@ -574,37 +503,133 @@ reasons = unique(reasons,'stable');
 end
 
 %-------------------------------------------------------------------------------
-% echoPathways  Find the pathways that give an echo at the detection point
+% selectPathways  Coherence transfer pathways selected by Exp.Pathways
 %
-%   sel = echoPathways(co,t,Inc)
+%   [ctp,co,echoOrders] = selectPathways(pathways,sequence,dimTargets,dimValues)
 %
-%   Selects the pathways that refocus at the detection point for all
-%   increments: at least one coherence order inversion, and zero net
-%   coherence evolution for the initial delays and for each incremented
-%   dimension.
+%   Enumerates the pathways that can be detected and applies Exp.Pathways.
+%   With 'echo', selects the pathways that refocus at the detection point at
+%   all points of the experiment: at least one coherence order inversion,
+%   zero net coherence evolution at the first point, and zero change of it
+%   at every point along each dimension. The contributions of the dimensions
+%   add up, so this holds for the entire grid.
 %
 %   Input:
-%     cohOrder   electron coherence orders, nPathways x N
-%     t          evolution time (µs) of each interval, 1xN
-%     Inc        incremented dimension of each interval (0: none), 1xN
+%     pathways    pathway selection (Exp.Pathways): 'all', 'echo', a character
+%                 array of orders per pulse ('+', '-', '0', 'c' = +1 or -1,
+%                 '.' = any), or a numeric matrix (NaN = any)
+%     sequence    parsed sequence; uses N, t, isRF, Pulse, delayInterval, nPoints
+%     dimTargets  quantities changed by each dimension, cell array with one
+%                 cell array of strings per dimension
+%     dimValues   values per point of these quantities, in the same layout
 %
 %   Output:
-%     sel  true for each selected pathway, nPathways x 1
-function refocused = echoPathways(cohOrder,t,Inc)
-nPathways = size(cohOrder,1);
-refocused = false(nPathways,1);
-threshold = 1e-12*max(1,max(t));
-for p = 1:nPathways
-  c = cohOrder(p,:);
-  c_nonzero = c(c~=0);
-  flipping = any(abs(diff(c_nonzero))==2);
-  t0 = c*t.';
-  ok = flipping && abs(t0)<threshold;
-  for d = 1:max([Inc 0])
-    ok = ok && sum(c(Inc==d))==0;
-  end
-  refocused(p) = ok;
+%     ctp         coherence transfer pathways, nPathways x nPulses
+%     co          electron coherence orders, nPathways x nPulses
+%     echoOrders  co for Exp.Pathways = 'echo', otherwise empty
+
+function [ctp,co,echoOrders] = selectPathways(pathways,sequence,dimTargets,dimValues)
+
+nPulses = sequence.N;
+isRF = sequence.isRF;  % whether a pulse is an RF pulse
+
+% Enumerate all pathways that end in electron coherence order -1 (S-, detected
+% by S+). Encoding: 1=aa (Salpha), 2=bb (Sbeta), 3=ab (S+), 4=ba (S-).
+ctp = 2;  % Sbeta (= identity/2-Sz) before first pulse
+for p = 1:nPulses-1  % loop over pulses
+  ctp = [repelem(ctp,4,1) repmat((1:4).',size(ctp,1),1)];  % each pulse gives 4 new states
 end
+ctp(:,nPulses+1) = 4;  % S- after last pulse
+
+% RF pulses don't change the electron state
+keep = all(ctp(:,[false isRF])==ctp(:,[isRF false]),2);
+ctp = ctp(keep,2:end);  % also remove initial state
+
+% Determine coherence orders for all intervals
+co = (ctp==3) - (ctp==4);  % +1 and -1 coherence, 0 for populations
+
+echoOrders = [];
+
+if strcmp(pathways,'all')
+  selected = true(size(co,1),1);
+
+elseif strcmp(pathways,'echo')
+  % Evolution time of each interval at the first point, and its change at
+  % each point along each dimension. The spins evolve during RF pulses, so their
+  % lengths count as evolution time (the lengths of microwave pulses do not).
+  tFirst = sequence.t + isRF.*[sequence.Pulse.tp];
+  changes = zeros(nPulses,0);
+  for d = 1:numel(dimTargets)
+    change = zeros(nPulses,sequence.nPoints(d));
+    for k = 1:numel(dimTargets{d})
+      target = dimTargets{d}{k};
+      pulseField = regexp(target,'^p(\d+)\.(tp?|Position)$','tokens','once');
+      signs = +1;
+      if ~isempty(regexp(target,'^d\d+$','once'))
+        intervals = sequence.delayInterval(str2double(target(2:end)));
+      elseif ~isempty(pulseField) && strcmp(pulseField{2},'Position')
+        % a moved pulse lengthens the delay before it and shortens the one after it
+        intervals = str2double(pulseField{1}) - [1 0];
+        signs = [+1 -1];
+      elseif ~isempty(pulseField) && isRF(str2double(pulseField{1}))
+        intervals = str2double(pulseField{1});
+      else
+        continue
+      end
+      signs = signs(intervals>0);  % delays before the first pulse have no effect
+      intervals = intervals(intervals>0);
+      if isempty(intervals), continue; end
+      v = dimValues{d}{k};
+      tFirst(intervals) = tFirst(intervals) + signs*v(1);
+      change(intervals,:) = change(intervals,:) + signs.'*(v-v(1));
+    end
+    changes = [changes change];
+  end
+
+  % Determine echo pathways with echoes that refocus at the end of the sequence
+  echo = any(co==+1,2);
+  times = [tFirst.' changes];
+  threshold = 1e-12*max([1; abs(times(:))]);
+  selected = echo & all(abs(co*times)<threshold,2);
+  if ~any(selected)
+    error('No pathway refocuses at the detection point at all points of this experiment.');
+  end
+  echoOrders = co(selected,:);
+
+else
+  if size(pathways,2)~=nPulses
+    error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(pathways,2),nPulses);
+  end
+  orders = pathways;
+  if ischar(pathways)
+    if any(~ismember(pathways(:),'+-0c.'))
+      error('Exp.Pathways can only contain ''+'', ''-'', ''0'', ''c'' and ''.''.');
+    end
+    orders = nan(size(pathways));  % NaN: any order
+    orders(pathways=='+') = +1;
+    orders(pathways=='-') = -1;
+    orders(pathways=='0') = 0;
+    orders(pathways=='c') = Inf;  % Inf: +1 or -1
+  end
+  before = [zeros(size(orders,1),1) orders(:,1:end-1)];
+  change = abs(orders-before);  % NaN or Inf if an order is not fixed
+  k = find(isRF & any(change>0 & change<Inf,1),1);
+  if ~isempty(k)
+    error('Exp.Pathways: RF pulses (pulse %d) cannot change the electron coherence order.',k);
+  end
+  selected = false(size(co,1),1);
+  for r = 1:size(orders,1)
+    o = orders(r,:);
+    selected = selected | all(co==o | isnan(o) | (isinf(o) & co~=0),2);
+  end
+end
+
+ctp = ctp(selected,:);
+co = co(selected,:);
+if isempty(ctp)
+  error('No coherence transfer pathway is detectable (ending in -1) with Exp.Pathways.');
+end
+
 end
 
 %-------------------------------------------------------------------------------
