@@ -414,9 +414,6 @@ end
 if isfield(Sys,'n') && any(Sys.n~=1)
   error('saffron does not support equivalent nuclei (Sys.n). Specify equivalent nuclei explicitly.');
 end
-if isfield(Sys,'nn') && any(Sys.nn(:)~=0) && subspaceEngine
-  error('The subspace engine does not support nuclear-nuclear couplings (Sys.nn).');
-end
 
 % Relaxation: on if not given and the spin system has nonzero relaxation times
 relaxation = (isfield(Sys,'T1') && any(Sys.T1(:))) || (isfield(Sys,'T2') && any(Sys.T2(:)));

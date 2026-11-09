@@ -60,9 +60,6 @@ for c = 1:numel(SysList)
   if (isfield(S_,'T1') && numel(S_.T1)>1) || (isfield(S_,'T2') && numel(S_.T2)>1)
     reasons{end+1} = 'transition-selective relaxation times (matrices in Sys.T1, Sys.T2)';
   end
-  if isfield(S_,'nn') && any(S_.nn(:)~=0)
-    reasons{end+1} = 'nuclear-nuclear couplings (Sys.nn)';
-  end
   if ~isfield(S_,'Nucs') || isempty(S_.Nucs)
     reasons{end+1} = 'spin systems without nuclei';
   end

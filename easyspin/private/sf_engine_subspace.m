@@ -70,11 +70,36 @@ isENDOR = any(seq.kind==2);
 
 % Nuclei included in the nuclear subspaces
 %-------------------------------------------------------------------------------
+% Nuclear-nuclear couplings (Sys.nn): coupled pairs and their tensors in
+% the molecular frame. Coupled nuclei must be in the nuclear subspace,
+% since the core system cannot hold these couplings.
+nnPairs = zeros(0,2);
+nnTensors = {};
+if Sys.nNuclei>=2 && any(Sys.nn(:))
+  allPairs = nchoosek(1:Sys.nNuclei,2);
+  for iPair = 1:size(allPairs,1)
+    if Sys.fullnn
+      J = Sys.nn(3*(iPair-1)+(1:3),:);
+    else
+      J = diag(Sys.nn(iPair,:));
+    end
+    if ~any(J(:)), continue; end
+    R_nn2M = erot(Sys.nnFrame(iPair,:)).';  % nn frame -> molecular frame
+    nnPairs(end+1,:) = allPairs(iPair,:); %#ok<AGROW>
+    nnTensors{end+1} = R_nn2M*J*R_nn2M.'; %#ok<AGROW>
+  end
+end
+nnCoupled = ismember(1:Sys.nNuclei,nnPairs(:));
 if isfield(Opt,'Nuclei') && ~isempty(Opt.Nuclei)
   if any(Opt.Nuclei>Sys.nNuclei) || any(Opt.Nuclei<1)
     error('Index in Opt.Nuclei out of range.');
   end
   shfNuclei = Opt.Nuclei;
+  missing = find(nnCoupled & ~ismember(1:Sys.nNuclei,shfNuclei));
+  if ~isempty(missing)
+    error('Opt.Nuclei must include all nuclei with nuclear-nuclear couplings (Sys.nn). Missing: %s.',...
+      num2str(missing));
+  end
 else
   shfNuclei = 1:Sys.nNuclei;
   % With ideal pulses and an excitation window (Opt.IdealPulses), nuclei
@@ -90,6 +115,11 @@ else
         A_ = Sys.A(iNuc,:);
       end
       strong(iNuc) = max(abs(A_(:)))>seq.ExciteWidth;
+    end
+    if any(strong & nnCoupled)
+      error(['Nucleus %s has a hyperfine coupling larger than the excitation window of Opt.IdealPulses ' ...
+        'and a nuclear-nuclear coupling (Sys.nn), so it cannot be moved to the core system. ' ...
+        'Use finite pulses (Opt.IdealPulses = false).'],num2str(find(strong & nnCoupled)));
     end
     shfNuclei(strong) = [];
   end
@@ -107,18 +137,24 @@ else
   if productRule && (seq.finitePulses || isENDOR)
     error('Opt.ProductRule requires ideal pulses and no RF pulses.');
   end
+  if productRule && any(nnCoupled)
+    error('Opt.ProductRule requires independent nuclei and cannot be used with nuclear-nuclear couplings (Sys.nn).');
+  end
 end
 if numel(shfNuclei)<=1, productRule = false; end
 info.ProductRule = productRule;
 
 % Nuclear sub-Hamiltonians
 %-------------------------------------------------------------------------------
-NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule);
+NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule,nnPairs,nnTensors);
 nSubSpaces = numel(NucHams);
 
 % Electronic core system (not needed for S = 1/2 with all nuclei)
 if ~twoElectronManifolds
-  coreSys = nucspinrmv(Sys,shfNuclei);
+  % all nn-coupled nuclei are in the nuclear subspace, so the core system
+  % has no nuclear-nuclear couplings
+  coreSys = rmfield(Sys,intersect(fieldnames(Sys),{'nn','nnFrame'}));
+  coreSys = nucspinrmv(coreSys,shfNuclei);
   coreSys.processed = false;
   coreSys.lw = 0;
   if isfield(coreSys,'A_'), coreSys = rmfield(coreSys,'A'); end
@@ -139,15 +175,19 @@ if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 if ~isfield(Sys,'lwAnisoG'), Sys.lwAnisoG = [0 0 0]; end
 lwAnisoG = Sys.lwAnisoG(:).'.*[1 1 1];
 
-% Field-reversed orientations (partial-sphere powder grids with nuclear
-% quadrupole interaction, see the symmetry probe below)
+% Field-reversed orientations, for partial-sphere powder grids. Reversing
+% the field direction keeps the nuclear energies and conjugates the overlap
+% matrices, M -> conj(M). Without static nuclear terms (Q, nn), M can be
+% made real for each nucleus, and the reversed orientations give the same
+% signal. With them, the reversed partners are needed (see
+% fieldReversalShortcut below).
 partialSphereGrid = ~Opt.crystalSample && isfield(Opt,'nOctants') && Opt.nOctants~=8;
-hasQ = nSubSpaces>0 && any(arrayfun(@(N)any(N.Hnq(:)~=0),NucHams));
+hasStaticTerms = nSubSpaces>0 && any(arrayfun(@(N)any(N.Hstatic(:)~=0),NucHams));
 reversedField = "none";
-if partialSphereGrid && hasQ
+if partialSphereGrid && hasStaticTerms
   reversedField = "compute";
   if ~seq.finitePulses && ~isENDOR
-    reversedField = symmetryProbe(seq);
+    reversedField = fieldReversalShortcut(seq);
   end
 end
 info.reversedField = reversedField;
@@ -201,7 +241,7 @@ if twoElectronManifolds
     for k = 1:nE
       iOri = oriList(k);
       q = geff(:,iOri).'/geffNorm(iOri);
-      Hnuc = Exp.Field*(zL(1,iOri)*NucHams(s).Hnzx + zL(2,iOri)*NucHams(s).Hnzy + zL(3,iOri)*NucHams(s).Hnzz) + NucHams(s).Hnq;
+      Hnuc = Exp.Field*(zL(1,iOri)*NucHams(s).Hnzx + zL(2,iOri)*NucHams(s).Hnzy + zL(3,iOri)*NucHams(s).Hnzz) + NucHams(s).Hstatic;
       % manifold a: <S> = +q/2, manifold b: <S> = -q/2
       Ha = Hnuc + 0.5*(q(1)*NucHams(s).Hhfx + q(2)*NucHams(s).Hhfy + q(3)*NucHams(s).Hhfz);
       Hb = Hnuc - 0.5*(q(1)*NucHams(s).Hhfx + q(2)*NucHams(s).Hhfy + q(3)*NucHams(s).Hhfz);
@@ -276,7 +316,7 @@ else
     if isENDOR, VaAll = M; VbAll = M; end
     for k = 1:nE
       zLab_M = rows{k,7};
-      Hnuc = Exp.Field*(zLab_M(1)*NucHams(s).Hnzx + zLab_M(2)*NucHams(s).Hnzy + zLab_M(3)*NucHams(s).Hnzz) + NucHams(s).Hnq;
+      Hnuc = Exp.Field*(zLab_M(1)*NucHams(s).Hnzx + zLab_M(2)*NucHams(s).Hnzy + zLab_M(3)*NucHams(s).Hnzz) + NucHams(s).Hstatic;
       SA = rows{k,5}; SB = rows{k,6};
       Ha = Hnuc + SA(1)*NucHams(s).Hhfx + SA(2)*NucHams(s).Hhfy + SA(3)*NucHams(s).Hhfz;
       Hb = Hnuc + SB(1)*NucHams(s).Hhfx + SB(2)*NucHams(s).Hhfy + SB(3)*NucHams(s).Hhfz;
@@ -440,19 +480,20 @@ end
 
 
 %===============================================================================
-% Nuclear sub-Hamiltonians (MHz, per mT for the nuclear Zeeman terms)
-function NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule)
+% Nuclear sub-Hamiltonians (MHz, per mT for the nuclear Zeeman terms).
+% Hstatic holds the terms that depend neither on the field nor on the
+% electron state: nuclear quadrupole (Q) and nuclear-nuclear couplings (nn,
+% with the coupled pairs in nnPairs and their molecular-frame tensors in
+% nnTensors).
+function NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule,nnPairs,nnTensors)
 
-NucHams = struct('Hnzx',{},'Hnzy',{},'Hnzz',{},'Hhfx',{},'Hhfy',{},'Hhfz',{},'Hnq',{});
+NucHams = struct('Hnzx',{},'Hnzy',{},'Hnzz',{},'Hhfx',{},'Hhfy',{},'Hhfz',{},'Hstatic',{});
 if isempty(shfNuclei), return; end
 I = Sys.I(shfNuclei);
-if productRule
-  nSub = numel(shfNuclei);
-else
-  nSub = 1;
+if ~productRule
   dim = prod(2*I+1);
   z = zeros(dim);
-  NucHams(1) = struct('Hnzx',z,'Hnzy',z,'Hnzz',z,'Hhfx',z,'Hhfy',z,'Hhfz',z,'Hnq',z);
+  NucHams(1) = struct('Hnzx',z,'Hnzy',z,'Hnzz',z,'Hhfx',z,'Hhfy',z,'Hhfz',z,'Hstatic',z);
 end
 for ii = 1:numel(shfNuclei)
   iNuc = shfNuclei(ii);
@@ -460,7 +501,7 @@ for ii = 1:numel(shfNuclei)
     Ix = sop(I(ii),[1,1]); Iy = sop(I(ii),[1,2]); Iz = sop(I(ii),[1,3]);
     s = ii;
     z = zeros(size(Ix));
-    NucHams(s) = struct('Hnzx',z,'Hnzy',z,'Hnzz',z,'Hhfx',z,'Hhfy',z,'Hhfz',z,'Hnq',z);
+    NucHams(s) = struct('Hnzx',z,'Hnzy',z,'Hnzz',z,'Hhfx',z,'Hhfy',z,'Hhfz',z,'Hstatic',z);
   else
     Ix = sop(I,[ii,1]); Iy = sop(I,[ii,2]); Iz = sop(I,[ii,3]);
     s = 1;
@@ -496,10 +537,25 @@ for ii = 1:numel(shfNuclei)
       Q = R_Q2M*diag(Sys.Q(iNuc,:))*R_Q2M.';
       Q = (Q+Q.')/2;
     end
-    NucHams(s).Hnq = NucHams(s).Hnq + ...
+    NucHams(s).Hstatic = NucHams(s).Hstatic + ...
       Ix*(Q(1,1)*Ix + Q(1,2)*Iy + Q(1,3)*Iz) + ...
       Iy*(Q(2,1)*Ix + Q(2,2)*Iy + Q(2,3)*Iz) + ...
       Iz*(Q(3,1)*Ix + Q(3,2)*Iy + Q(3,3)*Iz);
+  end
+end
+
+% Nuclear-nuclear couplings I1*nn*I2, the same in both electron manifolds.
+% The caller ensures that all coupled nuclei are in shfNuclei and that the
+% product rule is off.
+for iPair = 1:size(nnPairs,1)
+  J = nnTensors{iPair};
+  i1 = find(shfNuclei==nnPairs(iPair,1));
+  i2 = find(shfNuclei==nnPairs(iPair,2));
+  for c1 = 1:3
+    I1 = full(sop(I,[i1,c1]));
+    for c2 = 1:3
+      NucHams(1).Hstatic = NucHams(1).Hstatic + J(c1,c2)*I1*full(sop(I,[i2,c2]));
+    end
   end
 end
 end
@@ -624,8 +680,9 @@ end
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
 nOff = numel(E.offsetGrid);
-for e0 = 1:chunk:E.nE
-  ec = e0:min(e0+chunk-1,E.nE);
+chunks = entryChunks(E,chunk);
+for iChunk = 1:numel(chunks)
+  ec = chunks{iChunk};
   Ed = entrySlice(E,1,ec);
   for iOff = 1:nOff
     if seq.finitePulses
@@ -727,6 +784,37 @@ Ed.dE0 = E.dE0(ec);
 Ed.lw = E.lw(ec);
 Ed.n = n;
 Ed.K = K;
+% For field-reversed partners (E.rev, appended after the original entries):
+% position of the original entry in this slice, 0 if not present
+Ed.original = zeros(1,K);
+rev = E.rev(ec);
+if any(rev)
+  [found,loc] = ismember(ec(rev)-E.nE/2,ec);
+  idx = find(rev);
+  Ed.original(idx(found)) = loc(found);
+end
+end
+
+%-------------------------------------------------------------------------------
+% Entry indices in chunks of at most chunkSize entries. Field-reversed
+% partners go into the same chunk as their original entries.
+function chunks = entryChunks(E,chunkSize)
+if any(E.rev)
+  nOriginal = E.nE/2;
+  chunkSize = max(1,floor(chunkSize/2));
+  starts = 1:chunkSize:nOriginal;
+  chunks = cell(1,numel(starts));
+  for c = 1:numel(starts)
+    ec = starts(c):min(starts(c)+chunkSize-1,nOriginal);
+    chunks{c} = [ec ec+nOriginal];
+  end
+else
+  starts = 1:chunkSize:E.nE;
+  chunks = cell(1,numel(starts));
+  for c = 1:numel(starts)
+    chunks{c} = starts(c):min(starts(c)+chunkSize-1,E.nE);
+  end
+end
 end
 
 %-------------------------------------------------------------------------------
@@ -745,6 +833,13 @@ for i = 1:N
   phaseFactor = exp(-1i*seq.Pulse(i).Phase);
   U = zeros(2*n,2*n,K);
   for k = 1:K
+    j = Ed.original(k);
+    if j>0 && offsets(k)==offsets(j)
+      % Field-reversed partner: its pulse Hamiltonian is conj(Hp) = Hp.' of
+      % the original entry, so its propagator is the transpose
+      U(:,:,k) = U(:,:,j).';
+      continue
+    end
     Hp = [diag(Ed.Ea(:,k)), Ed.M(:,:,k)*nu1/2; Ed.Mt(:,:,k)*nu1/2, diag(Ed.Eb(:,k))];
     Hp = Hp + diag((offsets(k)-seq.Pulse(i).Frequency)*Szdiag);
     [V,lam] = eig((Hp+Hp')/2,'vector');
@@ -911,11 +1006,17 @@ end
 
 
 %===============================================================================
-% Symmetry probe for field reversal: evaluates the signal of a random
-% small system with M and conj(M) at a few points, without binning, and
-% checks whether the reversed signal is the complex conjugate ("conj") or
-% the conjugate transpose ("conjtranspose") of the detection-phased signal.
-function shortcut = symmetryProbe(seq)
+% Shortcut for the field-reversed partners of a partial-sphere grid.
+% Reversing the field keeps the energies and turns M into conj(M), so each
+% propagator becomes its transpose (conj(H) = H.' for Hermitian H). The
+% reversed signal is therefore that of the same orientation for the
+% time-reversed sequence, V(-n,seq) = V(n,seq'). If seq' is equivalent to
+% seq (e.g. 2p, 3p, 4p ESEEM with ideal pulses, square HYSCORE), the reversed
+% signal follows from the signal itself: as its complex conjugate ("conj"),
+% or its conjugate transpose ("conjtranspose"). Otherwise, the partners
+% have to be computed ("compute"). The check evaluates a random small system
+% with M and conj(M) at a few points, without binning.
+function shortcut = fieldReversalShortcut(seq)
 
 shortcut = "compute";
 rs = RandStream('mt19937ar','Seed',1);
@@ -1017,8 +1118,9 @@ chunk = max(1,floor(4e6/n^2));
 nOff = numel(E.offsetGrid);
 [idxU,idxV] = find(triu(true(n),1));  % levels u<v of each NMR transition
 nTransitions = numel(idxU);
-for e0 = 1:chunk:E.nE
-  ec = e0:min(e0+chunk-1,E.nE);
+chunks = entryChunks(E,chunk);
+for iChunk = 1:numel(chunks)
+  ec = chunks{iChunk};
   Ed = entrySlice(E,1,ec);
   K = numel(ec);
   % RF nutation frequencies (MHz) of the transitions in both manifolds

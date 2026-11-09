@@ -3,7 +3,7 @@ function ok = test() %#ok<FNDEF>
 % Subspace engine, powder: with a nuclear quadrupole interaction, the
 % signals of the field directions n and -n differ (complex-conjugated
 % eigenvectors). A partial-sphere grid (Ci) must give the same signal as the
-% full sphere (C1), for the shortcuts found by the symmetry probe (2pESEEM:
+% full sphere (C1), for the shortcuts found by fieldReversalShortcut (2pESEEM:
 % real part, HYSCORE: conjugate transpose) and for orientations computed a
 % second time with the field reversed (finite pulses, sequences that are
 % not mirror symmetric).

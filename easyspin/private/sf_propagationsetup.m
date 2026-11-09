@@ -22,10 +22,6 @@ if isfield(Sys,'n') && any(Sys.n~=1)
   error('saffron does not support Sys.n. Specify equivalent nuclei explicitly.')
 end
 
-if isfield(Sys,'nn') && any(Sys.nn(:)~=0)
-  error('saffron does not support nuclear-nuclear couplings (Sys.nn).');
-end
-
 logmsg(1,'  looking for and verifying fields related to relaxation');
 % Look for equilibrium state and issue a warning if an equilibrium state is
 % given, but no relaxation times
