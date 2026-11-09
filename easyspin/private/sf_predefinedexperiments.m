@@ -2,24 +2,36 @@
 %
 %   Exp = sf_predefinedexperiments(Exp)
 %
-% Expands a predefined experiment, given by name in Exp.Sequence, into a
-% user-defined sequence (pulses and delays), with indirect dimensions
-% (Exp.nPoints, Exp.Dim1, ...), coherence pathway selection (Exp.Pathways),
-% detection (Exp.DetWindow = 0, Exp.DetPhase) and, for ENDOR, the RF carrier
-% (Exp.rfFreq) and an RF on/off cycle. The result is the same for all
-% simulation engines, and saffron returns it in info.Exp.
+%   Expands a predefined experiment into a user-defined experiment. The
+%   result is the same for all simulation engines, and saffron returns it
+%   in info.Exp.
 %
-% Macro parameters (read only here, removed from the output):
-%   tau, T, t1, t2  initial delays (µs)
-%   dt              increment(s) (µs)
-%   tp              mw pulse length(s) (µs), 0 or absent = ideal pulses; a
-%                   scalar applies to all mw pulses, a vector gives one
-%                   length per mw pulse
-%   Range           RF range (MHz) for ENDOR
-%   tprf            RF pulse length (µs) for ENDOR (default 20)
+%   Input:
+%     Exp  experiment structure, with fields
+%       Sequence        name of the predefined experiment: '2pESEEM',
+%                       '3pESEEM', '4pESEEM', 'HYSCORE', 'MimsENDOR',
+%                       'DaviesENDOR'
+%       tau, T, t1, t2  initial delays (µs)
+%       dt              increment(s) (µs)
+%       tp              mw pulse length(s) (µs), 0 or absent = ideal pulses;
+%                       a scalar applies to all mw pulses, a vector gives
+%                       one length per mw pulse
+%       Range           RF range [min max] (MHz) for ENDOR
+%       tprf            RF pulse length (µs) for ENDOR (default 20)
+%       nPoints         number of points (default [256 256] for HYSCORE,
+%                       1001 for ENDOR, 512 otherwise)
+%       DetWindow       detection window (default 0)
 %
-% Macros: '2pESEEM', '3pESEEM', '4pESEEM', 'HYSCORE', 'MimsENDOR',
-% 'DaviesENDOR'.
+%   Output:
+%     Exp  experiment structure, with the macro parameters (tau, T, t1, t2,
+%          dt, tp, Range, tprf) removed, and with the fields
+%       Sequence        pulse sequence: cell array of pulses and delays (µs)
+%       nPoints, Dim1, Dim2   incrementation scheme
+%       Pathways        coherence pathway selection
+%       DetWindow, DetPhase   detection window and phase
+%       rfFreq          RF carrier frequency (MHz), for ENDOR
+%       PhaseCycle      RF on/off cycle, for ENDOR
+%       Macro           name of the predefined experiment
 
 function Exp = sf_predefinedexperiments(Exp)
 

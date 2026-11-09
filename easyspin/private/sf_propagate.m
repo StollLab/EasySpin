@@ -1,8 +1,43 @@
 % sf_propagate  Time domain evolution of density matrix
+%
+%   [TimeArray,SignalArray] = sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary)
+%   [TimeArray,SignalArray,FinalStates,StateTrajectories,Events,EventTimes] = sf_propagate(...)
+%
+%   Propagates a density matrix through a sequence of events, for all
+%   points of the indirect dimensions (full-space engine of saffron).
+%
+%   Input:
+%     Sigma       initial density matrix, n x n
+%     Ham0        static Hamiltonian in the simulation frame (MHz), n x n
+%     Det         detection structure, from sf_propagationsetup
+%     Events      cell array of events, from sf_buildevents and
+%                 sf_propagationsetup, with these optional fields
+%       Projection  logical matrix, elements of the density matrix to keep
+%                   after the pulse (coherence pathway selection)
+%       vertRes     vertical resolution of the pulse lookup table, default 1024
+%     Relaxation  relaxation structure, [] without relaxation, with fields
+%       Gamma             relaxation superoperator (1/µs), from
+%                         sf_relaxationsuperoperator
+%       equilibriumState  equilibrium density matrix
+%     Vary        indirect dimensions, from sf_buildevents, [] if there are none
+%
+%   Output (nPts: number of points per indirect dimension, 1 if there are none):
+%     TimeArray          time axes (µs from the start of the sequence),
+%                        [nPts..., nTime]; empty without detection
+%     SignalArray        signals in the detection frame, [nPts..., nDet, nTime];
+%                        empty without detection
+%     FinalStates        density matrices at the end of the sequence, in the
+%                        detection frame, [nPts..., n, n]
+%     StateTrajectories  cell array over the points, each element a cell
+%                        array of the density matrices stored during the
+%                        events; empty if none are stored
+%     Events             input events, with the Propagation field filled in
+%     EventTimes         [start end] of each event (rows in the order of
+%                        Events), in µs from the start of the sequence, for
+%                        the first acquisition point
+
 function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events, EventTimes] = ...
   sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary)
-% EventTimes: [start end] of each event (rows in the order of Events), in
-% µs from the start of the sequence, for the first acquisition point
 
 if nargin==0, help(mfilename); return; end
 
@@ -600,10 +635,19 @@ end
 end
 
 
+% eventStartTimes  Start times of all events
+%
+%   tStart = eventStartTimes(Events,Sequence)
+%
+%   Input:
+%     Events    cell array of events; a pulse lasts until the last point of
+%               its time axis
+%     Sequence  event indices, in temporal order
+%
+%   Output:
+%     tStart    start time of each event, in µs from the start of the
+%               sequence, in the order of Events
 function tStart = eventStartTimes(Events,Sequence)
-% Start times of all events in the order given by Sequence, with time
-% counted from the start of the sequence. A pulse lasts until the last
-% point of its time axis.
 tStart = zeros(1,numel(Events));
 t = 0;
 for iEvent = Sequence
@@ -613,12 +657,26 @@ end
 end
 
 
+% detectionFrameSignal  Signals in the detection frame
+%
+%   signal = detectionFrameSignal(rows,t,Det,detOrders)
+%
+%   Computes
+%     signal_k(t) = sum_m exp(-1i*m*(theta(t)+phi_k)) * row_{k,m}(t)
+%   with theta(t) = 2*pi*(DetFreq-SimFreq)*t and the detection phase phi_k.
+%
+%   Input:
+%     rows       rows of DetArray*Sigma(:) in the simulation frame: for each
+%                detection operator k, one row per electron coherence order
+%                m, one column per time point
+%     t          time points (µs from the start of the sequence)
+%     Det        detection structure; uses FrameOffset, Phase
+%     detOrders  electron coherence orders m of the rows
+%
+%   Output:
+%     signal     signals, one row per detection operator, one column per
+%                time point
 function signal = detectionFrameSignal(rows,t,Det,detOrders)
-% Signals in the detection frame, from the rows of DetArray*Sigma(:) (for
-% each detection operator k, one row per electron coherence order m) at
-% the times t (from the start of the sequence):
-%   signal_k(t) = sum_m exp(-1i*m*(theta(t)+phi_k)) * row_{k,m}(t)
-% with theta(t) = 2*pi*(DetFreq-SimFreq)*t and the detection phase phi_k
 nOrders = numel(detOrders);
 nDet = size(rows,1)/nOrders;
 theta = 2*pi*Det.FrameOffset*1e3*t(:).';  % GHz*µs -> rad
@@ -630,17 +688,35 @@ end
 end
 
 
+% detectionFrameState  Transform a density matrix to the detection frame
+%
+%   Sigma = detectionFrameState(Sigma,t,Det)
+%
+%   Input:
+%     Sigma  density matrix in the simulation frame
+%     t      time (µs from the start of the sequence)
+%     Det    detection structure; uses FrameOffset, M
+%
+%   Output:
+%     Sigma  density matrix in the detection frame
 function Sigma = detectionFrameState(Sigma,t,Det)
-% Density matrix in the detection frame at time t (from the start of the
-% sequence)
 Sigma = Sigma.*exp(2i*pi*Det.FrameOffset*1e3*t*Det.M);
 end
 
 
+% detectionTimes  Detected time points of a free evolution event
+%
+%   t = detectionTimes(Event)
+%
+%   Input:
+%     Event  free evolution event; uses t (length, in µs), DetTimeStep
+%
+%   Output:
+%     t      time points (µs) counted from the start of the event, evenly
+%            spaced from 0 to Event.t, with steps of Event.DetTimeStep, or
+%            slightly shorter steps if the event length is not a multiple
+%            of it
 function t = detectionTimes(Event)
-% Detected time points of a free evolution event, counted from its start:
-% evenly spaced from 0 to Event.t, with steps of Event.DetTimeStep, or
-% slightly shorter steps if the event length is not a multiple of it
 if Event.t==0
   t = 0;
   return
@@ -651,14 +727,40 @@ t(end) = Event.t;
 end
 
 
+% pulsePropagators  Propagators of a pulse event for each phase cycle step
+%
+%   Prop = pulsePropagators(Event,IQ,Ham0,Relaxation)
+%
+%   Computes the propagators (or Liouville-space propagators, with
+%   relaxation): one per time step, or, for a pulse without detection and
+%   relaxation, their product. The propagators are only rebuilt if IQ
+%   changed, and the lookup table of propagators is only rebuilt if its
+%   amplitudes changed.
+%
+%   Input:
+%     Event       pulse event; uses Propagation (results of an earlier
+%                 call), PhaseCycle, TimeStep, xOp, yOp, CoherenceOrder,
+%                 Relaxation, Detection, vertRes
+%     IQ          field of each time step in the simulation frame (MHz; rows:
+%                 phase cycle steps, columns: time steps), i.e. one value
+%                 fewer per row than the time points in Event.t
+%     Ham0        static Hamiltonian in the simulation frame (rad/µs)
+%     Relaxation  relaxation structure; uses Gamma, equilibriumState
+%
+%   Output:
+%     Prop        structure with the fields
+%       Utotal             propagators, cell array with one row per phase
+%                          cycle step and one column per time step (one
+%                          column for the product), without relaxation
+%       Ltotal, SigmaOffsetTotal  Liouville-space propagators and offsets,
+%                          same layout as Utotal, with relaxation
+%       PhaseTotal         rotations about the total electron Sz, one cell
+%                          per phase cycle step, with relaxation; empty if
+%                          not used
+%       IQ, TimeStep       IQ and time step of these propagators
+%       UTable or LTable, SigmaOffsetTable, amplitudes, tableTimeStep
+%                          lookup table over the amplitudes (if used)
 function Prop = pulsePropagators(Event,IQ,Ham0,Relaxation)
-% Propagators (or Liouvillians, with relaxation) of a pulse event for each
-% phase cycle step: one per time step, or, for a pulse without detection
-% and relaxation, their product. IQ contains the field of each time step
-% in the simulation frame (rows: phase cycle steps, columns: time steps),
-% i.e. one value fewer per row than the time points in Event.t. The
-% propagators are only rebuilt if IQ changed, and the lookup table of
-% propagators is only rebuilt if its amplitudes changed.
 Prop = Event.Propagation;
 if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ) && Prop.TimeStep==Event.TimeStep
   return
@@ -877,9 +979,17 @@ Prop.TimeStep = Event.TimeStep;
 end
 
 
+% productOfPropagators  Product of a stack of propagators
+%
+%   P = productOfPropagators(U)
+%
+%   Input:
+%     U  stack of propagators, n x n x nSteps
+%
+%   Output:
+%     P  product U(:,:,end)*...*U(:,:,1), obtained by repeatedly multiplying
+%        neighboring pairs
 function P = productOfPropagators(U)
-% Product U(:,:,end)*...*U(:,:,1) of a stack of propagators, obtained by
-% repeatedly multiplying neighboring pairs
 while size(U,3) > 1
   m = size(U,3);
   P = pagemtimes(U(:,:,2:2:m),U(:,:,1:2:m-1));
@@ -892,6 +1002,18 @@ P = U;
 end
 
 
+% buildPropagators  Lookup table of propagators over pulse amplitudes
+%
+%   UTable = buildPropagators(Ham0,xOp,dt,amplitudes)
+%
+%   Input:
+%     Ham0        static Hamiltonian (rad/µs)
+%     xOp         pulse excitation operator
+%     dt          time step (µs)
+%     amplitudes  pulse amplitudes (rad/µs)
+%
+%   Output:
+%     UTable      cell array with the propagator for each amplitude
 function UTable = buildPropagators(Ham0,xOp,dt,amplitudes)
 
 UTable = cell(1,numel(amplitudes));
@@ -903,11 +1025,38 @@ end
 end
 
 
+% Propagator  Hilbert-space propagator
+%
+%   U = Propagator(Ham,dt)
+%
+%   Input:
+%     Ham  Hamiltonian (rad/µs)
+%     dt   time step (µs)
+%
+%   Output:
+%     U    propagator expm(-1i*Ham*dt)
 function U = Propagator(Ham,dt)
 U = expm(-1i*Ham*dt);
 end
 
 
+% buildLiouvillians  Lookup table of Liouville-space propagators over pulse amplitudes
+%
+%   [LTable,SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,amplitudes)
+%
+%   Input:
+%     Ham0              static Hamiltonian (rad/µs)
+%     Gamma             relaxation superoperator (1/µs)
+%     equilibriumState  equilibrium density matrix as a column vector
+%     xOp               pulse excitation operator
+%     dt                time step (µs)
+%     amplitudes        pulse amplitudes (rad/µs)
+%
+%   Output:
+%     LTable            cell array with the propagator for each amplitude,
+%                       see Liouvillian
+%     SigmaOffsetTable  cell array with the offset for each amplitude, see
+%                       Liouvillian
 function [LTable, SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,xOp,dt,amplitudes)
 
 SigmaOffsetTable = cell(1,numel(amplitudes));
@@ -920,6 +1069,21 @@ end
 end
 
 
+% Liouvillian  Liouville-space propagator with relaxation
+%
+%   [L,SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt)
+%
+%   Input:
+%     Ham               Hamiltonian (rad/µs)
+%     Gamma             relaxation superoperator (1/µs)
+%     equilibriumState  equilibrium density matrix as a column vector
+%     dt                time step (µs)
+%
+%   Output:
+%     L                 propagator over dt, such that sigma(t+dt) =
+%                       L*sigma(t) + SigmaOffset, with sigma as a column
+%                       vector
+%     SigmaOffset       offset that describes the recovery toward equilibrium
 function [L, SigmaOffset] = Liouvillian(Ham,Gamma,equilibriumState,dt)
 
 n = size(Ham,1);
@@ -942,9 +1106,20 @@ SigmaOffset = expA(1:N,N+1);
 end
 
 
+% LoadfromArray  Load an element from an array
+%
+%   LoadedElement = LoadfromArray(Array,ArrayIndex)
+%
+%   Input:
+%     Array          numeric or cell array, varying only along some of the
+%                    dimensions
+%     ArrayIndex     vector of indices, one per indirect dimension; indices
+%                    beyond the size of Array along a dimension use the
+%                    first element along it
+%
+%   Output:
+%     LoadedElement  array element (the content of the cell, for cell arrays)
 function LoadedElement = LoadfromArray(Array, ArrayIndex)
-% This function loads an element from an Array (numeric or cell) for a
-% given ArrayIndex (vector)
 nPerDimension = size(Array);
 IndexToLoad = ones(1,length(ArrayIndex));
 if isscalar(ArrayIndex)
@@ -967,12 +1142,32 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Propagators of an ideal (instantaneous) pulse for all steps of its phase
-% cycle: rotation of all electron spins by the flip angle about an axis in
-% the xy plane, U = expm(-1i*Flip*(cos(phi)*Sx + sin(phi)*Sy)). The pulse is
-% encoded in Event.IQ as Flip*exp(1i*phase); phi adds the carrier phase at
-% the start time (phase-continuous carrier, as for finite pulses). Sx and
-% Sy are the total electron spin operators (Event.IdealOps).
+% idealPulsePropagators  Propagators of an ideal (instantaneous) pulse
+%
+%   Prop = idealPulsePropagators(Event,tStart,Relaxation)
+%
+%   Computes the propagators for all steps of the phase cycle: rotation of
+%   all electron spins by the flip angle about an axis in the xy plane,
+%   U = expm(-1i*Flip*(cos(phi)*Sx + sin(phi)*Sy)). The angle phi adds the
+%   carrier phase at the start time (phase-continuous carrier, as for finite
+%   pulses).
+%
+%   Input:
+%     Event       ideal pulse event; uses
+%       IQ          the pulse, encoded as Flip*exp(1i*phase), one row per
+%                   phase cycle step
+%       IdealOps    total electron spin operators {Sx,Sy}
+%       FrameOffset carrier frequency (GHz) in the simulation frame
+%       Relaxation  true if relaxation is on during the event
+%     tStart      start time of the pulse (µs from the start of the sequence)
+%     Relaxation  relaxation structure (not used)
+%
+%   Output:
+%     Prop        structure with the fields
+%       Utotal             propagators, cell array with one row per phase
+%                          cycle step
+%       Ltotal, SigmaOffsetTotal, PhaseTotal   Liouville-space propagators,
+%                          zero offsets and [], with relaxation
 function Prop = idealPulsePropagators(Event,tStart,Relaxation) %#ok<INUSD>
 c = Event.IQ(:,1);
 nPC = numel(c);

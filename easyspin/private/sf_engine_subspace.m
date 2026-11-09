@@ -2,39 +2,86 @@
 %
 %   [y,info] = sf_engine_subspace(Sys,Exp,Opt,Orientations)
 %
-% Simulates a pulse EPR signal as a sum over electron coherence transfer
-% pathways, in the nuclear subspaces of the electron spin manifolds. This
-% generalizes the formalism of Mims to arbitrary sequences:
-%   W. B. Mims, Phys. Rev. B 5, 2409 (1972), doi:10.1103/PhysRevB.5.2409
+%   Simulates a pulse EPR signal as a sum over electron coherence transfer
+%   pathways, in the nuclear subspaces of the electron spin manifolds. This
+%   generalizes the formalism of Mims to arbitrary sequences:
+%     W. B. Mims, Phys. Rev. B 5, 2409 (1972), doi:10.1103/PhysRevB.5.2409
 %
-% Input:
-%   Sys           validated spin system (single isotopologue)
-%   Exp           experiment, with Exp.OriWeights
-%   Opt           options, with the parsed sequence in Opt.fastSeq and the
-%                 canonical Exp in Opt.fastExp
-%   Orientations  orientations (phi,theta,chi), one per row
+%   Input:
+%     Sys           validated spin system (single isotopologue)
+%     Exp           experiment, parsed by saffron; uses
+%       Field         magnetic field (mT)
+%       mwFreq        microwave carrier frequency (GHz), optional
+%       OriWeights    weights of the orientations, sum 1
+%     Opt           options, parsed by saffron; uses
+%       fastSeq       parsed sequence, from sf_parsesequence
+%       fastExp       canonical experiment, for re-parsing the sequence at
+%                     each point of point-by-point dimensions
+%       Nuclei, ProductRule, Transitions, OriThreshold, nOffsets, Expand,
+%       Relaxation    see the saffron documentation
+%       crystalSample, nOctants   sample type and grid octants
+%     Orientations  orientations (phi,theta,chi) in radians, one per row
 %
-% Output:
-%   y     signal, with one array dimension per indirect dimension
-%         (Exp.Dim1, Exp.Dim2, ...), normalized and phased (Exp.DetPhase)
-%   info  structure with decay rates (for processing) and engine details
+%   Output:
+%     y     signal, with one array dimension per indirect dimension
+%           (Exp.Dim1, Exp.Dim2, ...), normalized and phased (Exp.DetPhase)
+%     info  structure with fields
+%       decayRates            decay rates (1/µs) of the pathway groups, for
+%                             processing; empty for ENDOR
+%       ProductRule           true if the product rule was used
+%       reversedField         handling of field-reversed partners: "none",
+%                             "compute", "conj" or "conjtranspose"
+%       nSkippedOrientations  number of orientations without excitation
+%       nEntries              number of entries (see below)
 %
-% Physics (see the saffron documentation and the redesign notes):
-% - Each excited EPR transition (b -> a) is a two-level electron system.
-%   The nuclear sub-Hamiltonians of the two manifolds use the expectation
-%   value <S> of the electron spin (high-field approximation). Their
-%   eigenvectors Va and Vb give the overlap matrix M = Va'*Vb.
-% - Ideal microwave pulses give pathway prefactors (sf_parsesequence);
-%   rectangular pulses are exact 2n x 2n propagators at each resonance
-%   offset. Free evolution is a diagonal phase factor.
-% - Linearly incremented delays: the signal of each pathway is a sum of
-%   exponentials, binned in the frequency domain (sf_peaks) and Fourier
-%   transformed.
-% - RF pulses (ENDOR, rectangular only): population transfer between the
-%   levels of each NMR transition, with the two-level response (Rabi
-%   formula) at the detuning from the RF carrier, averaged over the RF phase.
-% - Relaxation: exp(-t/T2) for intervals with electron coherence and
-%   exp(-t/T1) for intervals with electron populations.
+%   Physics (see the saffron documentation and the redesign notes):
+%   - Each excited EPR transition (b -> a) is a two-level electron system.
+%     The nuclear sub-Hamiltonians of the two manifolds use the expectation
+%     value <S> of the electron spin (high-field approximation). Their
+%     eigenvectors Va and Vb give the overlap matrix M = Va'*Vb.
+%   - Ideal microwave pulses give pathway prefactors (sf_parsesequence);
+%     rectangular pulses are exact 2n x 2n propagators at each resonance
+%     offset. Free evolution is a diagonal phase factor.
+%   - Linearly incremented delays: the signal of each pathway is a sum of
+%     exponentials, binned in the frequency domain (sf_peaks) and Fourier
+%     transformed.
+%   - RF pulses (ENDOR, rectangular only): population transfer between the
+%     levels of each NMR transition, with the two-level response (Rabi
+%     formula) at the detuning from the RF carrier, averaged over the RF
+%     phase.
+%   - Relaxation: exp(-t/T2) for intervals with electron coherence and
+%     exp(-t/T1) for intervals with electron populations.
+%
+%   Data structures of the local functions:
+%     E  entries, one per excited EPR transition and orientation (and
+%        reversed field), with n nuclear states and nE entries
+%       nE                number of entries
+%       w                 weight of each entry
+%       dE0               EPR resonance offset from Exp.mwFreq (MHz)
+%       lw                inhomogeneous FWHM (MHz)
+%       ori               orientation index
+%       rev               true for field-reversed partners (the second half
+%                         of the entries, if present)
+%       moment            transition moments |<a|S+|b>|, empty: all 1
+%       Ea{s}, Eb{s}      nuclear energies (MHz) of manifolds a and b, one
+%                         cell per subspace s, n x nE
+%       M{s}              overlap matrices Va'*Vb, n x n x nE
+%       Va{s}, Vb{s}      nuclear eigenvectors, n x n x nE (ENDOR only)
+%       geff, geffNorm, xL, yL, zL   effective g vector and its norm, and
+%                         lab axes in the molecular frame (ENDOR only)
+%       offCenter, offWidth   center and FWHM (MHz) of the resonance offset
+%                         distribution of the excited spin packets
+%       offsetGrid, offsetWeight   offset grid (in units of the 1/e half
+%                         width) and its normalized weights
+%     Ed  data of K entries of one subspace, from entrySlice
+%       Ea, Eb            nuclear energies (MHz), n x K
+%       Ea3, Eb3          same, n x 1 x K
+%       M, Mt             overlap matrices and their conjugate transposes,
+%                         n x n x K
+%       w, dE0, offCenter, offWidth, moment   as in E, 1 x K
+%       n, K              number of nuclear states and of entries
+%       original          position of the original entry of a field-reversed
+%                         partner in this slice, 0 if not present, 1 x K
 
 function [y,info] = sf_engine_subspace(Sys,Exp,Opt,Orientations)
 
@@ -511,13 +558,32 @@ end
 
 
 %===============================================================================
-% Nuclear sub-Hamiltonians (MHz, per mT for the nuclear Zeeman terms).
-% Hstatic holds the terms that depend neither on the field nor on the
-% electron state: nuclear quadrupole (Q) and nuclear-nuclear couplings (nn,
-% with the coupled pairs in nnPairs and their molecular-frame tensors in
-% nnTensors). Without nuclei in the subspace (no nuclei in the spin system,
-% or all of them in the core system), the nuclear subspace has a single
-% state: each EPR transition is a plain two-level system.
+% nuclearHamiltonians  Build the nuclear sub-Hamiltonians
+%
+%   NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule,nnPairs,nnTensors)
+%
+%   Without nuclei in the subspace (no nuclei in the spin system, or all of
+%   them in the core system), the nuclear subspace has a single state: each
+%   EPR transition is a plain two-level system.
+%
+%   Input:
+%     Sys          validated spin system
+%     shfNuclei    indices of the nuclei in the nuclear subspaces
+%     productRule  true: one subspace per nucleus; false: one subspace with
+%                  all nuclei
+%     nnPairs      nucleus indices of the coupled pairs, nPairs x 2
+%     nnTensors    molecular-frame nn tensor (3x3, MHz) of each pair, cell
+%                  array
+%
+%   Output:
+%     NucHams  structure array with one element per subspace, with fields
+%       Hnzx, Hnzy, Hnzz  nuclear Zeeman terms (MHz/mT) along the molecular
+%                         axes
+%       Hhfx, Hhfy, Hhfz  hyperfine terms (MHz) per unit of the electron
+%                         spin expectation value along the molecular axes
+%       Hstatic           terms (MHz) that depend neither on the field nor
+%                         on the electron state: nuclear quadrupole (Q) and
+%                         nuclear-nuclear couplings (nn)
 function NucHams = nuclearHamiltonians(Sys,shfNuclei,productRule,nnPairs,nnTensors)
 
 NucHams = struct('Hnzx',{},'Hnzy',{},'Hnzz',{},'Hhfx',{},'Hhfy',{},'Hhfz',{},'Hstatic',{});
@@ -594,8 +660,28 @@ end
 
 
 %===============================================================================
-% Signal over the linearly incremented dimensions (kind 1), for all
-% entries, offsets and pathways
+% pathwaySignal  Signal over the linearly incremented dimensions (kind 1)
+%
+%   [y,rates] = pathwaySignal(E,seq,Rel,productRule,expandFactor)
+%
+%   Sums the signal over all entries, resonance offsets and pathways. With
+%   up to 64 points, each point is evaluated exactly. Otherwise, the peaks
+%   are binned in the frequency domain (sf_peaks) and Fourier transformed.
+%
+%   Input:
+%     E             entries, see the header of sf_engine_subspace
+%     seq           parsed sequence, from sf_parsesequence
+%     Rel           relaxation, with fields T1, T2 (µs, Inf: no relaxation)
+%                   and on (true/false)
+%     productRule   true: multiply the signals of the nuclear subspaces
+%     expandFactor  the binning buffers are 2^expandFactor times longer
+%                   than the signal, along each dimension
+%
+%   Output:
+%     y      signal: scalar (no increments), row vector (1 dimension) or
+%            matrix (2 dimensions)
+%     rates  distinct decay rates (1/µs) of the pathways, one row per group
+%            of pathways and one column per dimension
 function [y,rates] = pathwaySignal(E,seq,Rel,productRule,expandFactor)
 
 N = seq.N;
@@ -803,6 +889,17 @@ end
 end
 
 %-------------------------------------------------------------------------------
+% applyDecay  Apply relaxation decays along the incremented dimensions
+%
+%   td = applyDecay(td,rate,seq)
+%
+%   Input:
+%     td    time-domain signal, row vector (1 dimension) or matrix (2 dimensions)
+%     rate  decay rate (1/µs) of each dimension
+%     seq   parsed sequence; uses dt, nPointsInc
+%
+%   Output:
+%     td    signal with the decays applied
 function td = applyDecay(td,rate,seq)
 if all(rate==0), return; end
 if numel(seq.nPointsInc)==1
@@ -815,7 +912,18 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Data of entries ec for subspace s, in page form (n x 1 x K, n x n x K)
+% entrySlice  Extract the data of some entries for one subspace
+%
+%   Ed = entrySlice(E,s,ec)
+%
+%   Input:
+%     E   entries, see the header of sf_engine_subspace
+%     s   subspace index
+%     ec  entry indices
+%
+%   Output:
+%     Ed  data of the entries, in page form (n x 1 x K, n x n x K), see the
+%         header of sf_engine_subspace
 function Ed = entrySlice(E,s,ec)
 K = numel(ec);
 n = size(E.Ea{s},1);
@@ -848,8 +956,19 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Entry indices in chunks of at most chunkSize entries. Field-reversed
-% partners go into the same chunk as their original entries.
+% entryChunks  Divide the entries into chunks
+%
+%   chunks = entryChunks(E,chunkSize)
+%
+%   Field-reversed partners go into the same chunk as their original
+%   entries.
+%
+%   Input:
+%     E          entries, see the header of sf_engine_subspace
+%     chunkSize  maximum number of entries per chunk
+%
+%   Output:
+%     chunks     cell array of vectors of entry indices
 function chunks = entryChunks(E,chunkSize)
 if any(E.rev)
   nOriginal = E.nE/2;
@@ -870,10 +989,21 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Entry data in the frame rotating at Exp.mwFreq: the electron resonance
-% offset of each entry (MHz, including the offset within the inhomogeneous
-% line) shifts the energies of the two manifolds by +offset/2 (a) and
-% -offset/2 (b). Free evolution and pulses both use these energies.
+% addOffsets  Shift entry energies by their electron resonance offsets
+%
+%   Ed = addOffsets(Ed,offsets)
+%
+%   Gives the entry data in the frame rotating at Exp.mwFreq. Free evolution
+%   and pulses both use the shifted energies.
+%
+%   Input:
+%     Ed       entry data, from entrySlice
+%     offsets  electron resonance offset of each entry (MHz, including the
+%              offset within the inhomogeneous line), 1 x K
+%
+%   Output:
+%     Ed       entry data, with the energies of the two manifolds shifted
+%              by +offsets/2 (a) and -offsets/2 (b)
 function Ed = addOffsets(Ed,offsets)
 Ed.Ea = Ed.Ea + offsets/2;
 Ed.Eb = Ed.Eb - offsets/2;
@@ -882,10 +1012,21 @@ Ed.Eb3 = reshape(Ed.Eb,Ed.n,1,Ed.K);
 end
 
 %-------------------------------------------------------------------------------
-% Pathways that refocus at the detection point for every point of the
-% incremented delays: zero net electron coherence time over the free
-% evolution (also during RF pulses), and in each incremented dimension.
-% With ideal pulses, their signal does not depend on the resonance offset.
+% refocusedPathways  Find the pathways that refocus at the detection point
+%
+%   refocused = refocusedPathways(seq)
+%
+%   A pathway refocuses at the detection point, for every point of the
+%   incremented delays, if it has zero net electron coherence time over the
+%   free evolution (also during RF pulses) and in each incremented
+%   dimension. With ideal pulses, its signal does not depend on the
+%   resonance offset.
+%
+%   Input:
+%     seq        parsed sequence; uses t, isRF, Pulse, co, kind1Dims, Inc
+%
+%   Output:
+%     refocused  true for each refocused pathway, nPathways x 1
 function refocused = refocusedPathways(seq)
 tFree = seq.t + seq.isRF.*[seq.Pulse.tp];
 refocused = abs(seq.co*tFree(:)) <= 1e-12*max([1 tFree]);
@@ -895,9 +1036,19 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Pulse sub-propagators of the finite microwave pulses for all entries, with
-% the energies of Ed (including the resonance offsets): blocks 1 = aa,
-% 2 = bb, 3 = ab, 4 = ba
+% finitePulsePropagators  Sub-propagators of the finite microwave pulses
+%
+%   PulseSub = finitePulsePropagators(Ed,seq)
+%
+%   Input:
+%     Ed        entry data, with the energies including the resonance
+%               offsets (see addOffsets)
+%     seq       parsed sequence; uses N, isRF, Pulse
+%
+%   Output:
+%     PulseSub  sub-propagators for all entries, n x n x K, in a cell array
+%               with one row per interval and one column per block (1 = aa,
+%               2 = bb, 3 = ab, 4 = ba); empty for RF and ideal pulses
 function PulseSub = finitePulsePropagators(Ed,seq)
 N = seq.N;
 n = Ed.n; K = Ed.K;
@@ -934,11 +1085,32 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Evaluate pathway p for all entries: G (state before the first
-% incremented delay), the transfer blocks between incremented delays, and
-% D (detection operator S+, propagated back from the end). Operands are
-% diagonal (n x 1 x K) or full (n x n x K). Products of prefixes are
-% shared between pathways (memo).
+% evaluatePathways  Evaluate one coherence transfer pathway for all entries
+%
+%   [G,D,BL,BR,memo] = evaluatePathways(Ed,seq,p,PulseSub)
+%   [G,D,BL,BR,memo] = evaluatePathways(Ed,seq,p,PulseSub,memo)
+%
+%   Operands are diagonal (n x 1 x K) or full (n x n x K). Products of
+%   prefixes are shared between pathways (memo).
+%
+%   Input:
+%     Ed        entry data, from entrySlice
+%     seq       parsed sequence
+%     p         pathway index
+%     PulseSub  finite pulse sub-propagators, from finitePulsePropagators;
+%               [] for ideal pulses
+%     memo      cache of the products of earlier pathways, optional, see
+%               memoGet
+%
+%   Output:
+%     G         state before the first incremented delay, n x n x K; empty
+%               without incremented delays
+%     D         detection operator S+, propagated back from the end,
+%               n x n x K (without incremented delays, trace(D) is the
+%               signal)
+%     BL, BR    left and right transfer blocks between consecutive
+%               incremented delays, cell arrays of n x n x K arrays
+%     memo      updated cache
 function [G,D,BL,BR,memo] = evaluatePathways(Ed,seq,p,PulseSub,memo)
 if nargin<5 || isempty(memo), memo = struct('keys',{{}},'vals',{{}}); end
 N = seq.N;
@@ -985,19 +1157,55 @@ for iSeg = 1:nSeg
 end
 end
 
+% memoGet  Look up a value in the cache of evaluatePathways
+%
+%   [hit,val] = memoGet(memo,key)
+%
+%   Input:
+%     memo  cache, structure with cell array fields keys and vals
+%     key   key string, identifying a product of propagator blocks
+%
+%   Output:
+%     hit   true if the key is in the cache
+%     val   cached value, empty if the key is not in the cache
 function [hit,val] = memoGet(memo,key)
 k = find(strcmp(memo.keys,key),1);
 hit = ~isempty(k);
 if hit, val = memo.vals{k}; else, val = []; end
 end
+
+% memoSet  Add a value to the cache of evaluatePathways
+%
+%   memo = memoSet(memo,key,val)
+%
+%   Input:
+%     memo  cache, see memoGet
+%     key   key string
+%     val   value to store
+%
+%   Output:
+%     memo  updated cache
 function memo = memoSet(memo,key,val)
 memo.keys{end+1} = key;
 memo.vals{end+1} = val;
 end
 
-% Propagator block of interval i (pulse, then free evolution over the
-% initial delay): blocks 1 = aa, 2 = bb, 3 = ab, 4 = ba. The free evolution
-% is in the manifold of the row index.
+% stepBlock  Propagator block of one interval
+%
+%   S = stepBlock(Ed,seq,PulseSub,i,c)
+%
+%   An interval is a pulse, followed by free evolution over the initial
+%   delay. The free evolution is in the manifold of the row index.
+%
+%   Input:
+%     Ed        entry data, from entrySlice
+%     seq       parsed sequence; uses t, isRF, Pulse
+%     PulseSub  finite pulse sub-propagators, from finitePulsePropagators
+%     i         interval index
+%     c         block index: 1 = aa, 2 = bb, 3 = ab, 4 = ba
+%
+%   Output:
+%     S         propagator block, diagonal (n x 1 x K) or full (n x n x K)
 function S = stepBlock(Ed,seq,PulseSub,i,c)
 t = seq.t(i);
 if seq.isRF(i)
@@ -1018,7 +1226,16 @@ else
 end
 end
 
-% P*L for operands that are empty (identity), diagonal or full
+% mulLeft  Compute P*L for stacks of matrices
+%
+%   X = mulLeft(P,L)
+%
+%   Input:
+%     P  stack of matrices, diagonal (n x 1 x K) or full (n x n x K)
+%     L  stack of matrices, empty (identity), diagonal or full
+%
+%   Output:
+%     X  product P*L, diagonal or full
 function X = mulLeft(P,L)
 if isempty(L), X = P; return; end
 if size(P,2)==1 || size(L,2)==1
@@ -1032,7 +1249,17 @@ else
 end
 end
 
-% R*P' for operands that are empty (identity), diagonal or full
+% mulRight  Compute R*P' for stacks of matrices
+%
+%   X = mulRight(R,P)
+%
+%   Input:
+%     R  stack of matrices, empty (identity), diagonal (n x 1 x K) or full
+%        (n x n x K)
+%     P  stack of matrices, diagonal or full
+%
+%   Output:
+%     X  product R*P', diagonal or full
 function X = mulRight(R,P)
 if size(P,2)==1
   Pt = conj(P);
@@ -1052,7 +1279,17 @@ else
 end
 end
 
-% A*B with diagonal/empty/full operands, full result
+% mulFull  Compute A*B for stacks of matrices, with a full result
+%
+%   X = mulFull(A,B,n)
+%
+%   Input:
+%     A, B  stacks of matrices, empty (identity), diagonal (n x 1 x K) or
+%           full (n x n x K)
+%     n     matrix dimension
+%
+%   Output:
+%     X     product A*B, full; empty if both A and B are empty
 function X = mulFull(A,B,n)
 if isempty(A) && isempty(B), X = []; return; end
 if isempty(A), X = toFull(B,n); return; end
@@ -1068,6 +1305,17 @@ else
 end
 end
 
+% toFull  Convert a stack of matrices to full form
+%
+%   X = toFull(A,n)
+%
+%   Input:
+%     A  stack of matrices, empty (identity), diagonal (n x 1 x K) or full
+%        (n x n x K)
+%     n  matrix dimension
+%
+%   Output:
+%     X  full matrices, n x n x K
 function X = toFull(A,n)
 if isempty(A)
   X = eye(n);
@@ -1078,6 +1326,15 @@ else
 end
 end
 
+% diag3  Diagonals of a stack of matrices
+%
+%   d = diag3(X)
+%
+%   Input:
+%     X  stack of matrices, n x n x K
+%
+%   Output:
+%     d  diagonals of the matrices, n x K
 function d = diag3(X)
 n = size(X,1);
 K = size(X,3);
@@ -1087,16 +1344,26 @@ end
 
 
 %===============================================================================
-% Shortcut for the field-reversed partners of a partial-sphere grid.
-% Reversing the field keeps the energies and turns M into conj(M), so each
-% propagator becomes its transpose (conj(H) = H.' for Hermitian H). The
-% reversed signal is therefore that of the same orientation for the
-% time-reversed sequence, V(-n,seq) = V(n,seq'). If seq' is equivalent to
-% seq (e.g. 2p, 3p, 4p ESEEM with ideal pulses, square HYSCORE), the reversed
-% signal follows from the signal itself: as its complex conjugate ("conj"),
-% or its conjugate transpose ("conjtranspose"). Otherwise, the partners
-% have to be computed ("compute"). The check evaluates a random small system
-% with M and conj(M) at a few points, without binning.
+% fieldReversalShortcut  Shortcut for the field-reversed partners
+%
+%   shortcut = fieldReversalShortcut(seq)
+%
+%   Determines how to obtain the field-reversed partners of a partial-sphere
+%   grid. Reversing the field keeps the energies and turns M into conj(M),
+%   so each propagator becomes its transpose (conj(H) = H.' for Hermitian
+%   H). The reversed signal is therefore that of the same orientation for
+%   the time-reversed sequence, V(-n,seq) = V(n,seq'). If seq' is equivalent
+%   to seq (e.g. 2p, 3p, 4p ESEEM with ideal pulses, square HYSCORE), the
+%   reversed signal follows from the signal itself. The check evaluates a
+%   random small system with M and conj(M) at a few points, without binning.
+%
+%   Input:
+%     seq       parsed sequence, from sf_parsesequence
+%
+%   Output:
+%     shortcut  "conj": the reversed signal is the complex conjugate of the
+%               signal; "conjtranspose": it is the conjugate transpose;
+%               "compute": the partners have to be computed
 function shortcut = fieldReversalShortcut(seq)
 
 shortcut = "compute";
@@ -1134,7 +1401,19 @@ elseif nDims==2 && seq.dt(1)==seq.dt(2) && seq.nPointsInc(1)==seq.nPointsInc(2) 
 end
 end
 
-% Signal at one point of the incremented dimensions, without binning
+% pointSignal  Signal at one point of the incremented dimensions
+%
+%   v = pointSignal(Ed,seq,k)
+%
+%   Evaluates the signal without binning.
+%
+%   Input:
+%     Ed   entry data of a single entry
+%     seq  parsed sequence
+%     k    number of increments along each incremented dimension, 0-based
+%
+%   Output:
+%     v    signal at this point
 function v = pointSignal(Ed,seq,k)
 s = seq;
 for i = find(seq.Inc~=0)
@@ -1150,13 +1429,28 @@ end
 
 
 %===============================================================================
-% ENDOR: echo as a function of the RF carrier frequency (kind-2 dimension),
-% for a single rectangular RF pulse. The RF pulse transfers population
-% between the two levels u,v of each NMR transition with probability
-% P(Delta) = (nu1/Omega)^2*sin(pi*Omega*tp)^2, Omega = sqrt(nu1^2+Delta^2),
-% at the detuning Delta = nu_uv - rfFreq - Frequency. Terms that depend on the absolute RF phase
-% average out (RF not phase-locked to the microwave, and the chi average of
-% powders), leaving the population transfer.
+% endorSweep  ENDOR signal as a function of the RF carrier frequency
+%
+%   y = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
+%
+%   Computes the echo over the RF carrier frequency (kind-2 dimension), for
+%   a single rectangular RF pulse. The RF pulse transfers population between
+%   the two levels u,v of each NMR transition with probability
+%   P(Delta) = (nu1/Omega)^2*sin(pi*Omega*tp)^2, Omega = sqrt(nu1^2+Delta^2),
+%   at the detuning Delta = nu_uv - rfFreq - Frequency. Terms that depend on
+%   the absolute RF phase average out (RF not phase-locked to the microwave,
+%   and the chi average of powders), leaving the population transfer.
+%
+%   Input:
+%     E           entries, see the header of sf_engine_subspace
+%     seq         parsed sequence, from sf_parsesequence
+%     Sys         spin system, for rfNutation
+%     Exp         experiment, for rfNutation
+%     NucHams     nuclear sub-Hamiltonians, from nuclearHamiltonians
+%     nSubSpaces  number of nuclear subspaces (must be 1)
+%
+%   Output:
+%     y           signal over the RF axis (seq.rfAxis), row vector
 function y = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
 
 if nSubSpaces>1
@@ -1266,12 +1560,28 @@ y = (seq.rfOn+seq.rfOff)*yBaseline + seq.rfOn*yTransfer;
 end
 
 %-------------------------------------------------------------------------------
-% RF nutation frequencies 2*B1*|<u|O|v>| (MHz) for the transitions (idxU,idxV)
-% of both manifolds, with the effective RF operator O (MHz/mT): nuclear
-% Zeeman along the RF field direction plus the hyperfine enhancement from
-% the tilt of <S> by the RF field. For powders, |<u|O|v>| is averaged
-% (in quadrature) over the RF field direction in the plane perpendicular
-% to the static field.
+% rfNutation  RF nutation frequencies of the NMR transitions
+%
+%   nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
+%
+%   Computes the nutation frequencies 2*B1*|<u|O|v>| with the effective RF
+%   operator O (MHz/mT): nuclear Zeeman along the RF field direction plus
+%   the hyperfine enhancement from the tilt of <S> by the RF field. For
+%   powders, |<u|O|v>| is averaged (in quadrature) over the RF field
+%   direction in the plane perpendicular to the static field.
+%
+%   Input:
+%     E           entries, see the header of sf_engine_subspace
+%     ec          entry indices
+%     NucHams     nuclear sub-Hamiltonians, from nuclearHamiltonians
+%     Sys         spin system; uses g, gFrame, fullg
+%     Exp         experiment; uses Field
+%     B1          RF field amplitude (mT)
+%     idxU, idxV  levels u and v of each NMR transition
+%
+%   Output:
+%     nu1         nutation frequencies (MHz), a cell array {a,b} with one
+%                 element per electron manifold, nTransitions x K
 function nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
 if isempty(E.geff)
   error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the subspace engine.');

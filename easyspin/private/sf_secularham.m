@@ -2,6 +2,23 @@
 %
 %   [Hsec,minWeight] = sf_secularham(H,Spins,nElectrons)
 %
+%   Returns a Hamiltonian with the same eigenvalues as H but no matrix
+%   elements between different total electron mS values, so that it can be
+%   transformed into a frame rotating about z. The eigenvectors of H are
+%   projected onto their dominant mS manifold and then minimally adjusted
+%   to be orthonormal again. Energy shifts caused by the removed couplings
+%   are retained.
+%
+%   Requires the electron Zeeman interaction to dominate. Energies are kept
+%   exactly, but admixtures between manifolds (e.g. from g anisotropy, which
+%   tilts the quantization axis away from z) are removed from the
+%   eigenvectors, which changes transition intensities slightly.
+%
+%   An error is issued if eigenvectors cannot be assigned one-to-one to the
+%   manifolds, or if any weight is below 0.7, since then the projection
+%   changes the eigenvectors too much. Callers should warn if a weight is
+%   below 0.9 (admixture amplitude above about 0.3).
+%
 %   Input:
 %     H           Hamiltonian (MHz) in the lab frame, field along z
 %     Spins       spin quantum numbers (Sys.Spins), electrons listed first
@@ -12,23 +29,6 @@
 %     minWeight   for each mS manifold (in increasing order of mS), the
 %                 smallest weight of an assigned eigenvector within the
 %                 manifold (1 = no mixing with other manifolds)
-%
-% Returns a Hamiltonian with the same eigenvalues as H but no matrix
-% elements between different total electron mS values, so that it can be
-% transformed into a frame rotating about z. The eigenvectors of H are
-% projected onto their dominant mS manifold and then minimally adjusted
-% to be orthonormal again. Energy shifts caused by the removed couplings
-% are retained.
-%
-% Requires the electron Zeeman interaction to dominate. Energies are kept
-% exactly, but admixtures between manifolds (e.g. from g anisotropy, which
-% tilts the quantization axis away from z) are removed from the
-% eigenvectors, which changes transition intensities slightly.
-%
-% An error is issued if eigenvectors cannot be assigned one-to-one to the
-% manifolds, or if any weight is below 0.7, since then the projection
-% changes the eigenvectors too much. Callers should warn if a weight is
-% below 0.9 (admixture amplitude above about 0.3).
 
 function [Hsec,minWeight] = sf_secularham(H,Spins,nElectrons)
 

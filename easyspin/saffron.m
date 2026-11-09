@@ -415,11 +415,31 @@ end
 
 
 %===============================================================================
-% Single-isotopologue simulation
-%===============================================================================
-% Exp and Opt have been parsed by saffron(), including the pulse sequence
-% (Opt.fastSeq for the subspace engine, Opt.propEvents and Opt.propVary
-% for the full-space engine).
+% saffron_single  Simulate a single isotopologue of a single component
+%
+%   [x_out,y_out,info] = saffron_single(Sys,Exp,Opt)
+%
+%   Validates the spin system, sets up the orientations, and runs the
+%   simulation engine. Called by saffron via compisoloop.
+%
+%   Input:
+%     Sys    spin system of a single isotopologue
+%     Exp    experiment, parsed by saffron
+%     Opt    options, parsed by saffron, including
+%       Method             'subspace' or 'fullspace'
+%       relaxationFromSys  true if the user did not give Opt.Relaxation
+%       fastSeq, fastExp   parsed sequence and experiment (subspace engine)
+%       propEvents, propVary, propPathways
+%                          events, indirect dimensions and electron
+%                          coherence orders of the selected pathways
+%                          (full-space engine)
+%
+%   Output:
+%     x_out  always empty (saffron computes the axes)
+%     y_out  signal, see sf_engine_subspace and sf_engine_fullspace
+%     info   structure from the engine, with additional fields
+%       SinglePointDetection  always true
+%       relaxation            true if relaxation is on (full-space engine)
 function [x_out,y_out,info] = saffron_single(Sys,Exp,Opt)
 
 subspaceEngine = strcmp(Opt.Method,'subspace');
@@ -486,9 +506,24 @@ end
 
 
 %===============================================================================
-% Electron coherence orders of the selected pathways (one row per
-% pathway, NaN = any order), for the full-space engine. Empty: no
-% selection.
+% sf_pathwayorders  Electron coherence orders of the selected pathways
+%
+%   orders = sf_pathwayorders(Exp,Opt)
+%
+%   Converts the pathway selection in Exp.Pathways to the numeric form used
+%   by the full-space engine.
+%
+%   Input:
+%     Exp     experiment; uses
+%       Pathways  'all', 'echo', a string of electron coherence orders per
+%                 pulse ('+', '-', '0', '.' = any), or a numeric matrix
+%       Sequence  pulse sequence
+%     Opt     options, passed on to sf_parsesequence for 'echo'
+%
+%   Output:
+%     orders  electron coherence order after each pulse (+1, -1, 0, NaN =
+%             any), one row per pathway and one column per pulse; empty if
+%             there is no selection
 function orders = sf_pathwayorders(Exp,Opt)
 orders = [];
 if ~isfield(Exp,'Pathways') || isempty(Exp.Pathways), return; end
@@ -523,7 +558,16 @@ end
 end
 
 %===============================================================================
-% Dimensions whose first target is the RF carrier frequency
+% rfFrequencyDims  Find the indirect dimensions that sweep the RF carrier
+%
+%   d = rfFrequencyDims(Exp)
+%
+%   Input:
+%     Exp  experiment; uses nPoints, Dim1, Dim2, ...
+%
+%   Output:
+%     d    indices of the dimensions whose first target is the RF carrier
+%          frequency ('rfFreq'); empty if there are none
 function d = rfFrequencyDims(Exp)
 d = [];
 if ~isfield(Exp,'nPoints'), return; end
@@ -536,8 +580,18 @@ end
 end
 
 %===============================================================================
-% Axes of the indirect dimensions: values of the first parameter listed in
-% each Exp.DimN (its initial value plus the increments)
+% dimensionAxes  Compute the axes of the indirect dimensions
+%
+%   x = dimensionAxes(Exp)
+%
+%   Input:
+%     Exp  experiment; uses nPoints, Dim1, Dim2, ..., Sequence, and the
+%          fields rfFreq, mwFreq, Field if they are incremented
+%
+%   Output:
+%     x    cell array with one axis per indirect dimension: the values of
+%          the first parameter listed in each Exp.DimN (its initial value
+%          plus the increments); empty if there are no indirect dimensions
 function x = dimensionAxes(Exp)
 x = {};
 if ~isfield(Exp,'nPoints') || isempty(Exp.nPoints), return; end
@@ -569,9 +623,30 @@ end
 end
 
 %===============================================================================
-% Processing: baseline correction, apodization and Fourier transform of
-% single-point signals along delay dimensions, giving info.f and info.fd;
-% ENDOR spectra are returned as info.fd
+% processSignal  Compute the spectrum of a simulated signal
+%
+%   info = processSignal(x,data,Exp,Opt,decayAdded,info)
+%
+%   Applies baseline correction, apodization and Fourier transform to
+%   single-point signals along one or two delay dimensions. For 1D RF
+%   frequency sweeps (ENDOR), the signal is returned as the spectrum. For
+%   all other signals, info is returned unchanged.
+%
+%   Input:
+%     x           axis, or cell array of axes, see dimensionAxes
+%     data        simulated signal
+%     Exp         experiment; uses nPoints, Dim1, Dim2
+%     Opt         options; uses Window, ZeroFillFactor
+%     decayAdded  true if the signal contains relaxation decays, which
+%                 are then removed by the baseline correction
+%     info        structure to add the results to
+%
+%   Output:
+%     info        input structure, with additional fields
+%       f         frequency axis (MHz) of a 1D spectrum, RF axis for ENDOR
+%       f1, f2    frequency axes (MHz) of a 2D spectrum
+%       td        time-domain signal (not for ENDOR)
+%       fd        spectrum
 function info = processSignal(x,data,Exp,Opt,decayAdded,info)
 if isempty(x) || isscalar(data) || ~isfield(Exp,'nPoints') || isempty(Exp.nPoints), return; end
 if ~iscell(x), x = {x}; end
@@ -623,8 +698,21 @@ info.fd = fd;
 end
 
 %===============================================================================
-% Plotting
-%===============================================================================
+% saffron_plot  Plot the simulated signal and spectrum
+%
+%   saffron_plot(x,data,info,Exp)
+%
+%   Input:
+%     x     axis, or cell array of axes: indirect dimensions, then the
+%           transient time axis (if any)
+%     data  simulated signal, as returned by saffron
+%     info  structure with the processed spectrum (f or f1, f2, and fd),
+%           see processSignal
+%     Exp   experiment; uses Macro, DetOperator, Field, nPoints, Dim1, ...
+%
+%   Output:
+%     none; plots into the current figure. Single points are printed, and
+%     outputs with more than two axes are not plotted.
 function saffron_plot(x,data,info,Exp)
 
 logmsg(1,'Plotting...');
@@ -749,7 +837,17 @@ if hasFD
 end
 end
 
-% Labels of the nAx axes: indirect dimensions, then the transient time
+% axisLabels  Axis labels for plotting
+%
+%   xl = axisLabels(Exp,nAx)
+%
+%   Input:
+%     Exp  experiment; uses nPoints, Dim1, Dim2, ...
+%     nAx  number of axes
+%
+%   Output:
+%     xl   cell array of label strings, at least two: indirect dimensions,
+%          then the transient time
 function xl = axisLabels(Exp,nAx)
 xl = repmat({'t (µs)'},1,max(nAx,2));
 if ~isfield(Exp,'nPoints'), return; end
@@ -767,12 +865,22 @@ end
 end
 
 %===============================================================================
-% Microwave pulses for spin systems with an electron spin S > 1/2. The pulse
-% Hamiltonian is H1 = nu1*Sx, with nu1 = Amplitude (MHz), and transition
-% a<->b nutates with nu1*|<a|S+|b>|. A flip angle (Flip, or Qcrit, which
-% sets the amplitude by a spin-1/2 criterion) has no unique meaning with
-% several transitions, so only Amplitude is accepted, and only for finite
-% pulses.
+% checkHighSpinPulses  Check microwave pulses for electron spins S > 1/2
+%
+%   checkHighSpinPulses(Exp,Opt)
+%
+%   The pulse Hamiltonian is H1 = nu1*Sx, with nu1 = Amplitude (MHz), and
+%   transition a<->b nutates with nu1*|<a|S+|b>|. A flip angle (Flip, or
+%   Qcrit, which sets the amplitude by a spin-1/2 criterion) has no unique
+%   meaning with several transitions, so only Amplitude is accepted, and
+%   only for finite pulses.
+%
+%   Input:
+%     Exp  experiment; uses Sequence and Dim1, Dim2, ...
+%     Opt  options; uses IdealPulses
+%
+%   Output:
+%     none; throws an error if a microwave pulse does not comply
 function checkHighSpinPulses(Exp,Opt)
 
 if ischar(Exp.Sequence) || isstring(Exp.Sequence)

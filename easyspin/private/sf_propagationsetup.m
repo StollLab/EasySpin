@@ -1,5 +1,43 @@
+% sf_propagationsetup  Spin system setup and input checking for the full-space engine
+%
+%   [Sys,Sigma0,Det,Events,Relaxation] = sf_propagationsetup(Sys,Events,Opt)
+%
+%   Validates the spin system and sets up the initial state, the excitation
+%   operators of the pulses, the detection operators and the equilibrium
+%   state for sf_propagate (full-space engine of saffron).
+%
+%   Input:
+%     Sys     spin system, including optional T1, T2 (µs), eqState, initState
+%     Events  cell array of events, from sf_buildevents
+%     Opt     options structure, with fields
+%       DetOperator  detection operators (cell array of sop strings or
+%                    matrices), default S+ of all electrons
+%       DetFreq      detection frame frequency (GHz)
+%       DetPhase     detection phase (radians) of each detection operator
+%       Relaxation   relaxation on/off
+%
+%   Output:
+%     Sys         validated spin system, with T1 and T2 (0 if not given)
+%     Sigma0      initial density matrix, -Sz of all electrons; empty for
+%                 Sys.initState, then set up by the caller
+%     Det         detection structure, with fields
+%       Ops          detection operators, cell array
+%       M            electron coherence order of each matrix element
+%       Phase        detection phase (radians) of each detection operator
+%       FrameOffset  detection frame frequency relative to the simulation
+%                    frame (GHz)
+%     Events      input events, for pulses with the additional fields
+%       xOp, yOp        excitation operators; yOp is empty if the pulse
+%                       Hamiltonian has a single operator
+%       CoherenceOrder  electron coherence orders of the elements of xOp in
+%                       a shifted frame, otherwise empty
+%       IdealOps        ideal pulses: total electron Sx and Sy, cell array
+%     Relaxation  relaxation structure, [] without relaxation, with fields
+%       Gamma             empty, set up by the caller
+%       equilibriumState  equilibrium density matrix (empty if set up by
+%                         the caller)
+
 function [Sys,Sigma0,Det,Events,Relaxation] = sf_propagationsetup(Sys,Events,Opt)
-% Spin system setup and input checking for the full-space engine of saffron
 
 % Check spin system structure
 % --------------------------------------------------------------------------------------

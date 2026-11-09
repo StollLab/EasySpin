@@ -1,58 +1,78 @@
-% This function parses the pulse sequence specified in the Exp structure and
-% additionally using settings from the Opt structure to create the Event and
-% Vary structures needed for the simulation by sf_propagate (full-space
-% engine of saffron). Predefined experiments (macros) are expanded by
-% saffron before.
+% sf_buildevents  Build events and indirect dimensions for the full-space engine
 %
-% Input:
-%   Exp - structure with the following fields
-%     Sequence
-%     DetWindow  - detection window (one or two numbers, in µs, relative
-%                  to the end of the sequence), or 'sequence' for the
-%                  whole sequence
-%     Dim1, Dim2, etc
-%     mwFreq
-%     DetFreq
-%     DetTimeStep
-%     nPoints
-%     mwPolarization
-%     ResonatorFrequency
-%     ResonatorQL
-%     FrequencyResponse
-%     ResonatorMode
-%     PhaseCycle
-%   Opt - structure with the following fields
-%     rfGammaRef - gyromagnetic ratio (MHz/mT) for nominal RF flip angles
-%     SimFreq
-%     IntTimeStep
-%     dt
-%     Relaxation  - bool or array of bool to turn on relaxation during
-%        evolution periods
+%   [Events,Vary,Opt] = sf_buildevents(Exp,Opt)
 %
-% Output
-%   Events - cell array of structures with the following fields
-%     type
-%     Ringing
-%     IQ
-%     t
-%     PhaseCycle
-%     Polarization
-%     Relaxation
-%     Detection
-%     StateTrajectories - store the density matrices during the event
-%         (always false here; set by callers of sf_propagate, e.g. tests)
-%     Propagation
-%     FrameShift
-%     TimeStep
-%     DetTimeStep
-%   Vary - structure with the following fields
-%     Points
-%     IncrementationTable
-%     Pulses
-%   Opt - strucure with the following fields
-%     SinglePointDetection
-%     FrameShift
-%     %FreqShift
+%   Parses the pulse sequence specified in Exp, using settings from Opt, to
+%   create the Events and Vary structures needed for the simulation by
+%   sf_propagate (full-space engine of saffron). Predefined experiments
+%   (macros) are expanded by saffron before.
+%
+%   Input:
+%     Exp  experiment structure, with fields
+%       Sequence            pulse sequence: cell array of pulses and delays (µs)
+%       DetWindow           detection window (one or two numbers, in µs,
+%                           relative to the end of the sequence), or
+%                           'sequence' for the whole sequence
+%       nPoints             number of points of the indirect dimensions
+%       Dim1, Dim2, ...     incrementation scheme
+%       mwFreq              microwave carrier frequency (GHz), optional
+%       rfFreq              RF carrier frequency (MHz), for RF pulses
+%       DetTimeStep         detection time step (µs), optional
+%       mwPolarization      'linear' (default) or 'circular'
+%       ResonatorFrequency, ResonatorQL, FrequencyResponse, ResonatorMode
+%                           resonator, see resonator()
+%       PhaseCycle          phase cycle of each pulse, cell array
+%     Opt  options structure, with fields
+%       rfGammaRef          gyromagnetic ratio (MHz/mT) for nominal RF flip
+%                           angles
+%       SimFreq             simulation frame frequency (GHz), optional
+%       IntTimeStep         integration time step (µs), optional
+%       Relaxation          true/false, or one value per element of
+%                           Exp.Sequence, to turn on relaxation during
+%                           the events
+%
+%   Output:
+%     Events  cell array of structures, one per event (the elements of
+%             Exp.Sequence, plus events appended for the detection window),
+%             with the fields
+%       type                'pulse' or 'free evolution'
+%       t                   pulses: time axis (µs); free evolution: length (µs)
+%       Relaxation          true if relaxation is on during this event
+%       Detection           true if the signal is detected during this event
+%       StateTrajectories   store the density matrices during the event
+%                           (always false here; set by callers of
+%                           sf_propagate, e.g. tests)
+%       Propagation         empty, filled in by sf_propagate
+%       TimeStep            time step (µs) of the integration
+%       DetTimeStep         detection time step (µs)
+%       FrameShift          simulation frame frequency (GHz)
+%      and, for pulses only,
+%       IQ                  waveform in the simulation frame, one row per
+%                           phase cycle step; ideal pulses: Flip*exp(1i*phase)
+%       Ideal               true for ideal pulses
+%       Channel             'mw' or 'rf'
+%       PhaseCycle          rows [phase weight] or [phase weight scale], 0
+%                           if there is no phase cycle
+%       FrameOffset         carrier frequency (GHz) in the simulation frame
+%       Polarization        'linear' or 'circular'
+%       Ringing             duration (µs) of the resonator ringing, if any
+%     Vary    structure with the indirect dimensions, [] if there are none,
+%             with the fields
+%       Points              number of points of each dimension
+%       IncrementationTable cell array with one element per dimension: array
+%                           of the changes in event lengths (µs), one row
+%                           per event and one column per point; empty if
+%                           no event lengths change
+%       Pulses              cell array with one element per pulse, empty if
+%                           the pulse is not varied; otherwise, a structure
+%                           with cell arrays over the points of IQs and ts
+%                           (waveforms and time axes), array Ringing (if
+%                           any), and, for RF pulses, FrameOffsets and
+%                           TimeSteps
+%     Opt     input structure, with the fields
+%       SinglePointDetection  true for single-point detection
+%       FrameShift            simulation frame frequency (GHz)
+%       IntTimeStep           integration time step (µs)
 
 
 function varargout = sf_buildevents(Exp,Opt)
@@ -1158,17 +1178,41 @@ logmsg(1,'  pulse sequence parsed successfully!');
 end
 
 %-------------------------------------------------------------------------------
-% Wave form of a pulse for one step of its phase cycle, in the simulation
-% frame. Phase cycle rows are [phase weight] or [phase weight scale].
-% - Ideal microwave pulses: t = 0 and a single complex number
-%   IQ = Flip*exp(1i*phase), from which sf_propagate builds the instantaneous
-%   rotation.
-% - RF pulses: lab-frame waveform (carrier at Pulse.rfCarrier, MHz, from
-%   the start of the pulse) in units of the RF field (mT). Without B1, the
-%   amplitude is nominal: the flip angle of a bare nucleus with the
-%   gyromagnetic ratio Pulse.rfGammaRef (MHz/mT).
-% - Finite microwave pulses: from pulse(), through the resonator, shifted
-%   to the simulation frame.
+% pulseWaveform  Wave form of a pulse for one step of its phase cycle
+%
+%   [t,IQ,ringing] = pulseWaveform(Pulse,iPCstep,Opt,freqShift,includeResonator,Resonator,Exp)
+%
+%   Computes the wave form in the simulation frame:
+%   - Ideal microwave pulses: t = 0 and a single complex number
+%     IQ = Flip*exp(1i*phase), from which sf_propagate builds the
+%     instantaneous rotation.
+%   - RF pulses: lab-frame waveform (carrier at Pulse.rfCarrier, MHz, from
+%     the start of the pulse) in units of the RF field (mT). Without B1, the
+%     amplitude is nominal: the flip angle of a bare nucleus with the
+%     gyromagnetic ratio Pulse.rfGammaRef (MHz/mT).
+%   - Finite microwave pulses: from pulse(), through the resonator, shifted
+%     to the simulation frame.
+%
+%   Input:
+%     Pulse             pulse parameters (see pulse()), with additional fields
+%       isIdeal, isRF     pulse type
+%       PhaseCycle        rows [phase weight] or [phase weight scale]
+%       rfCarrier         RF carrier frequency (MHz), RF pulses
+%       B1                RF field amplitude (mT), RF pulses, optional
+%       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B1
+%     iPCstep           index of the phase cycle step
+%     Opt               options; uses IntTimeStep
+%     freqShift         frequency (GHz) of the microwave carrier in the
+%                       simulation frame
+%     includeResonator  true to include the resonator
+%     Resonator         resonator parameters, fields Arg1, Arg2, Arg3 are
+%                       the arguments of resonator()
+%     Exp               experiment; uses mwFreq
+%
+%   Output:
+%     t        time axis (µs); [0 0] for ideal pulses
+%     IQ       wave form; single number for ideal pulses
+%     ringing  duration (µs) of the resonator ringing, empty without resonator
 function [t,IQ,ringing] = pulseWaveform(Pulse,iPCstep,Opt,freqShift,includeResonator,Resonator,Exp)
 ringing = [];
 pc = Pulse.PhaseCycle;
@@ -1215,10 +1259,21 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% Time step for RF pulses (µs): at least 40 points per period of the
-% highest RF frequency in the lab frame, and at least 100 steps per pulse
-% (needed for RF frequencies near zero). The step divides the pulse length,
-% so that the waveform ends at tp.
+% rfTimeStep  Time step for RF pulses
+%
+%   dt = rfTimeStep(rfFreq,Frequency,tp)
+%
+%   Input:
+%     rfFreq     RF carrier frequency (MHz)
+%     Frequency  frequency offset(s) of the pulse from the carrier (MHz)
+%     tp         pulse length (µs)
+%
+%   Output:
+%     dt         time step (µs): at least 40 points per period of the
+%                highest RF frequency in the lab frame, and at least 100
+%                steps per pulse (needed for RF frequencies near zero). The
+%                step divides the pulse length, so that the waveform ends
+%                at tp.
 function dt = rfTimeStep(rfFreq,Frequency,tp)
 dt = tp/max(100,ceil(40*(abs(rfFreq)+max(abs(Frequency)))*tp));
 end

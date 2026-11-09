@@ -2,15 +2,38 @@
 %
 %   [y,info] = sf_engine_fullspace(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
 %
-% Propagates the density matrix of the full spin system in time (with
-% sf_propagate), for each orientation, and averages over orientations.
-% Events, Vary and the electron coherence orders of the selected pathways
-% come from saffron in Opt.propEvents, Opt.propVary and Opt.propPathways.
+%   Propagates the density matrix of the full spin system in time (with
+%   sf_propagate), for each orientation, and averages over orientations.
 %
-% Output
-%   y     signal, [indirect dimensions..., time, detection operator],
-%         singleton dimensions removed
-%   info  structure with field transientAxis
+%   Input:
+%     Sys             spin system (single isotopologue)
+%     Exp             experiment, parsed by saffron; uses
+%       Field           magnetic field (mT)
+%       OriWeights      weights of the orientations
+%       mwFreq, DetFreq, DetPhase  microwave and detection frame frequency
+%                       (GHz), and detection phases
+%       nPoints, DetWindow, DetIntegrate, Sequence
+%     Opt             options, parsed by saffron, including
+%       propEvents      events, from sf_buildevents
+%       propVary        indirect dimensions, from sf_buildevents
+%       propPathways    electron coherence orders of the selected pathways,
+%                       from sf_pathwayorders in saffron
+%       FrameShift      simulation frame frequency (GHz), from sf_buildevents
+%       Relaxation      relaxation on/off, one value or one per event
+%       relaxationFromSys  true if the user did not give Opt.Relaxation
+%     Orientations    orientations (phi,theta,chi) in radians, one per row
+%     nOrientations   number of orientations
+%     averageOverChi  true if the orientations are averaged over the third
+%                     Euler angle (powder); used for Sys.initState
+%
+%   Output:
+%     y     signal, [indirect dimensions..., time, detection operator],
+%           singleton dimensions removed
+%     info  structure with fields
+%       transientAxis  time axis of the transient (µs), empty for single
+%                      points
+%       EventTimes     [start end] of each element of Exp.Sequence (µs), one
+%                      row per element, on the time axis of the transient
 
 function [y,info] = sf_engine_fullspace(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
 
@@ -251,7 +274,16 @@ end
 
 
 %===============================================================================
-% Remove singleton dimensions, keep 1D results as row vectors
+% squeezeSignal  Remove singleton dimensions of the signal
+%
+%   y = squeezeSignal(y)
+%
+%   Input:
+%     y  signal array
+%
+%   Output:
+%     y  signal array without singleton dimensions; 1D results are row
+%        vectors
 function y = squeezeSignal(y)
 sz = size(y);
 sz(sz==1) = [];
@@ -265,9 +297,18 @@ end
 end
 
 %===============================================================================
-% Returns spin system Sys transformed from the molecular frame to the lab
-% frame, with Euler angles angles_M2L = [phi theta chi] that describe the
-% transformation from molecular frame to lab frame.
+% rotatesystem  Transform a spin system from the molecular to the lab frame
+%
+%   Sys_L = rotatesystem(Sys_M,angles_M2L)
+%
+%   Input:
+%     Sys_M       spin system in the molecular frame
+%     angles_M2L  Euler angles [phi theta chi] (radians) of the
+%                 transformation from the molecular frame to the lab frame
+%
+%   Output:
+%     Sys_L       spin system with all tensor frames (gFrame, AFrame, ...)
+%                 relative to the lab frame
 function Sys_L = rotatesystem(Sys_M,angles_M2L)
 
 Sys_L = Sys_M;
@@ -296,8 +337,18 @@ end
 end
 
 %===============================================================================
-% Spin rotation operator for the mol->lab frame transformation, such that
-% H_L = U'*H_M*U and rho_L = U'*rho_M*U, consistent with rotatesystem
+% spinrotation  Spin rotation operator for the mol->lab frame transformation
+%
+%   U = spinrotation(Spins,angles_M2L)
+%
+%   Input:
+%     Spins       spin quantum numbers of all spins (Sys.Spins)
+%     angles_M2L  Euler angles [phi theta chi] (radians) of the
+%                 transformation from the molecular frame to the lab frame
+%
+%   Output:
+%     U           rotation operator such that H_L = U'*H_M*U and
+%                 rho_L = U'*rho_M*U, consistent with rotatesystem
 function U = spinrotation(Spins,angles_M2L)
 U = 1;
 for S = Spins

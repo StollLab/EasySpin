@@ -1,3 +1,21 @@
+% sf_reorder_events  Sort events by start time, and check for pulse overlap
+%
+%   [NewSequence,NewEventLengths] = sf_reorder_events(EventLengths,PulseList)
+%
+%   Negative delays can move an event in front of earlier ones. This
+%   function determines the order of the events in time and their durations
+%   in this order, and throws an error if pulses overlap.
+%
+%   Input:
+%     EventLengths     length of each event (µs), in the order of the
+%                      sequence, 1 x nEvents
+%     PulseList        1 for pulses and 0 for free evolution, 1 x nEvents
+%
+%   Output:
+%     NewSequence      event indices in the order of their start times
+%     NewEventLengths  time (µs) from the start of each event in the new
+%                      order to the start of the next, rounded to 10 decimal
+%                      places
 function [NewSequence, NewEventLengths] = sf_reorder_events(EventLengths,PulseList)
 
 nEvents = numel(EventLengths);

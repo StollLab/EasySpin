@@ -1,5 +1,39 @@
 /*
-sf_peaks(IncSchemeID,bufferRe,bufferIm,dt,idxFreeL,idxFreeR,Ea,Eb,G,D,M1p,M1m)
+sf_peaks  Bin the peaks of a coherence transfer pathway into a buffer
+
+  sf_peaks(IncSchemeID,bufferRe,bufferIm,dt,idxFreeL,idxFreeR,Ea,Eb,G,D)
+  sf_peaks(...,M1L,M1R)
+  sf_peaks(...,M1L,M2L,M1R,M2R)
+  sf_peaks(...,M1L,M2L,M3L,M1R,M2R,M3R)
+
+  Computes the amplitude and frequency of each peak of a coherence transfer
+  pathway with incremented delays, and adds the amplitudes to the
+  frequency-domain buffer at the bins of the peak frequencies.
+
+  Input:
+    IncSchemeID  incrementation scheme, the dimension of each incremented
+                 delay:
+                    1   [1]        3   [1 -1]      14   [1 1 2]
+                    2   [1 1]     11   [1 2]       15   [1 2 2 1]
+                   12   [1 2 1]                    17   [1 1 2 2]
+    bufferRe     buffer, real part: 1 dimension: vector; 2 dimensions:
+                 nPoints1 x nPoints2 matrix
+    bufferIm     buffer, imaginary part, same size as bufferRe
+    dt           time increment of each dimension (microseconds)
+    idxFreeL     left-side manifold (1 = alpha, 2 = beta) of each incremented
+                 delay
+    idxFreeR     right-side manifold (1 = alpha, 2 = beta) of each
+                 incremented delay
+    Ea, Eb       energies of the alpha and beta manifolds (MHz), real
+                 vectors with nStates elements
+    G            state before the first incremented delay, nStates x nStates
+    D            detection operator, nStates x nStates
+    M1L, M2L,... left-side mixing matrices between consecutive incremented
+                 delays, nStates x nStates; one less than incremented delays
+    M1R, M2R,... right-side mixing matrices, same as for the left side
+
+  Output:
+    none; bufferRe and bufferIm are modified in place
  */
 
 #include "mex.h"

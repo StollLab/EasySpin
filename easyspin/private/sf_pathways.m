@@ -1,21 +1,26 @@
 % sf_pathways  Determine refocusing coherence transfer pathways
 %
-%  pw = sf_pathways(t,inc)
+%   pw = sf_pathways(t,inc)
+%   sf_pathways(t,inc)
+%   sf_pathways
 %
-% Detemines a list of refocusing pathways given an incrementation scheme
-% and initial inter-pulse delays. The analysis assumes zero-length pulses.
+%   Determines a list of refocusing pathways given an incrementation scheme
+%   and initial inter-pulse delays. The analysis assumes zero-length pulses.
+%   Without output, prints a summary of the pathways. Without input, uses a
+%   built-in example sequence and prints the summary.
 %
-% Input:
-%   t      list of initial inter-pulse delays, in microseconds
-%   inc    incrementation scheme, vector of integers
+%   Input:
+%     t    list of initial inter-pulse delays, in microseconds
+%     inc  incrementation scheme, vector of integers
 %             0           constant delay
 %             +1, +2, ... delay incremented along first, second, etc dimension
 %             -1, -2, ... delay decremented along first, second, etc dimension
 %
-% Output:
-%   pw     list of pathways that lead to an echo at the end of the pulse
-%          sequence that does not move with delay incrementation
-%          1 = alpha, 2 = beta, 3 = +1, 4 = -1
+%   Output:
+%     pw   list of pathways that lead to an echo at the end of the pulse
+%          sequence that does not move with delay incrementation, one row
+%          per pathway and one column per interval, with 1 = alpha, 2 = beta,
+%          3 = +1, 4 = -1
 
 function refocusingPathways = sf_pathways(t,inc)
 

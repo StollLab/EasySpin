@@ -2,28 +2,40 @@
 %
 %   [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 %
-% Checks which features of the request the subspace engine supports and
-% returns the engine to use:
-%   method   'subspace' or 'fullspace'
-%   reason   why the full-space engine is used ('' for subspace)
-%   seq      parsed sequence for the subspace engine (empty for fullspace)
-%   reasons  cell array of the features the subspace engine does not
-%            support (empty if the full-space engine was requested)
+%   Checks which features of the request the subspace engine supports and
+%   returns the engine to use. Opt.Method = 'auto' (default) uses the
+%   subspace engine whenever it supports every feature, and the full-space
+%   engine otherwise. An explicit 'subspace' errors with the list of
+%   unsupported features.
 %
-% Opt.Method = 'auto' (default) uses the subspace engine whenever it
-% supports every feature, and the full-space engine otherwise. An explicit
-% 'subspace' errors with the list of unsupported features.
+%   Capability table: the subspace engine supports one electron spin with
+%   S = 1/2 (S > 1/2 only when requested explicitly, as a transition-selective
+%   approximation), ideal and rectangular microwave pulses, single rectangular
+%   RF pulses with an RF frequency sweep, linear delay increments in the
+%   binning schemes, other pulse parameters point by point, coherence pathway
+%   selection, phase cycles, scalar T1/T2 and single-point S+ detection at
+%   the end of the sequence. Everything else needs the full-space engine (see
+%   sf_parsesequence for the sequence features). Conversely, inhomogeneous
+%   broadening (Sys.lwAnisoG) and ideal pulses with an excitation window
+%   (Opt.IdealPulses) are only supported by the subspace engine.
 %
-% Capability table: the subspace engine supports one electron spin with
-% S = 1/2 (S > 1/2 only when requested explicitly, as a transition-selective
-% approximation), ideal and rectangular microwave pulses, single rectangular
-% RF pulses with an RF frequency sweep, linear delay increments in the binning
-% schemes, other pulse parameters point by point, coherence pathway
-% selection, phase cycles, scalar T1/T2 and single-point S+ detection at
-% the end of the sequence. Everything else needs the full-space engine (see
-% sf_parsesequence for the sequence features). Conversely, inhomogeneous
-% broadening (Sys.lwAnisoG) and ideal pulses with an excitation window
-% (Opt.IdealPulses) are only supported by the subspace engine.
+%   Input:
+%     Sys  spin system, or cell array of spin systems (components)
+%     Exp  experiment, passed on to sf_parsesequence
+%     Opt  options structure, with fields
+%       Method       'auto' (default), 'subspace', 'fullspace'
+%       Relaxation   relaxation on/off, one value or one per event
+%       IdealPulses  true: treat finite pulses as ideal
+%
+%   Output:
+%     method   engine to use, 'subspace' or 'fullspace'
+%     reason   why this engine is used, for the log; '' if the subspace
+%              engine is selected automatically
+%     seq      parsed sequence for the subspace engine (empty for fullspace)
+%     reasons  cell array of the features the subspace engine does not
+%              support; if the full-space engine was requested, the
+%              sequence is not parsed and only spin system features are
+%              listed
 
 function [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 

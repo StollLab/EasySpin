@@ -2,23 +2,69 @@
 %
 %   [seq,reasons] = sf_parsesequence(Exp,Opt)
 %
-% Converts a user-defined experiment (the pulse sequence in Exp.Sequence as
-% a cell array of pulses and delays, the incrementation scheme in
-% Exp.nPoints, Exp.Dim1, ..., and Exp.Pathways, Exp.PhaseCycle,
-% Exp.DetPhase) into the representation used by the subspace engine
-% (sf_engine_subspace). Each interval is a pulse followed by a (possibly zero)
-% delay. reasons is a cell array of strings that list the features the
-% subspace engine does not support (empty if it supports all of them).
+%   Converts a user-defined experiment into the representation used by the
+%   subspace engine (sf_engine_subspace). Each interval is a pulse followed
+%   by a (possibly zero) delay.
 %
-% Indirect dimensions are of three kinds:
-%   1  linear increments of delays, computed by frequency-domain binning
-%      (sf_peaks); dimensions are relabeled 1,2 in order of appearance
-%   2  the RF carrier frequency (Exp.rfFreq) with a single RF pulse,
-%      computed from the analytic response of each NMR transition
-%   3  any other parameter of the pulses or delays, computed point by point
+%   Indirect dimensions are of three kinds:
+%     1  linear increments of delays, computed by frequency-domain binning
+%        (sf_peaks); dimensions are relabeled 1,2 in order of appearance
+%     2  the RF carrier frequency (Exp.rfFreq) with a single RF pulse,
+%        computed from the analytic response of each NMR transition
+%     3  any other parameter of the pulses or delays, computed point by point
 %
-% Coherence transfer pathways are coded per interval as 1 = alpha
-% population, 2 = beta population, 3 = +1 coherence, 4 = -1 coherence.
+%   Coherence transfer pathways are coded per interval as 1 = alpha
+%   population, 2 = beta population, 3 = +1 coherence, 4 = -1 coherence.
+%
+%   Input:
+%     Exp  experiment structure, with fields
+%       Sequence         pulse sequence: cell array of pulses and delays (µs)
+%       nPoints, Dim1, Dim2, ...   incrementation scheme
+%       Pathways         coherence pathway selection, default 'all'
+%       PhaseCycle       phase cycle of each pulse
+%       DetPhase         detection phase (radians), default 0
+%       rfFreq           RF carrier frequency (MHz), for RF pulses
+%       mwFreq           microwave carrier frequency (GHz), optional
+%       DetWindow, DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
+%       ResonatorQL, FrequencyResponse, rfPhaseLocked
+%                        only checked for unsupported features
+%     Opt  options structure, with fields
+%       IdealPulses      true: treat finite pulses as ideal
+%
+%   Output:
+%     seq  sequence structure (N intervals, nPathways pathways), with fields
+%       N                number of intervals (number of pulses)
+%       Pulse            1xN structure array, with fields Channel ('mw' or
+%                        'rf'), Phase, tp, Frequency, Type, Par (the pulse
+%                        as given), Flip, ideal, B1 (RF pulses)
+%       t                delay after each pulse (µs), 1xN
+%       delayInterval    interval of each delay in Exp.Sequence (0: before
+%                        the first pulse)
+%       isRF, nRF        true for RF pulses (1xN), number of RF pulses
+%       rfFreq, rfAxis   RF carrier (MHz), and RF axis (MHz) of an RF sweep
+%       ExciteWidth      excitation window (MHz) for Opt.IdealPulses, or []
+%       finitePulses     true if there are finite microwave pulses
+%       DetPhase         detection phase (radians)
+%       nPoints, kind    number of points and kind (1, 2, 3) of each dimension
+%       mods             cell array with one element per dimension; kind 3:
+%                        rows {'d' or 'p', delay or pulse index, pulse
+%                        field, values}
+%       Inc              relabeled kind-1 dimension of each interval (0:
+%                        not incremented), 1xN
+%       kind1Dims        original dimension of the relabeled dimensions
+%       dt, nPointsInc   increments (µs) and points of the relabeled dimensions
+%       IncSchemeID      incrementation scheme of sf_peaks, NaN if unsupported
+%       ctp              coherence transfer pathways, nPathways x N
+%       co               electron coherence orders, nPathways x N
+%       idxPulseL, idxPulseR   propagator blocks (1 = aa, 2 = bb, 3 = ab,
+%                        4 = ba) of the pulses, nPathways x N
+%       idxIncL, idxIncR manifolds (1 = alpha, 2 = beta) of the incremented
+%                        free evolutions, one row per pathway
+%       pathwayprefactor pulse and phase cycle prefactor of each pathway
+%       nPathways        number of pathways
+%       rfOn, rfOff      phase cycle weights with RF on and off
+%     reasons   cell array of strings that list the features the subspace
+%               engine does not support (empty if it supports all of them)
 
 function [seq,reasons] = sf_parsesequence(Exp,Opt)
 
@@ -528,29 +574,54 @@ reasons = unique(reasons,'stable');
 end
 
 %-------------------------------------------------------------------------------
-% Pathways that refocus at the detection point for all increments (echo
-% pathways): at least one coherence order inversion, zero net coherence
-% evolution for the initial delays and for each incremented dimension
-function sel = echoPathways(co,t,Inc)
-nP = size(co,1);
-sel = false(nP,1);
-for p = 1:nP
-  c = co(p,:);
-  cnz = c(c~=0);
-  flipping = any(abs(diff(cnz))==2);
+% echoPathways  Find the pathways that give an echo at the detection point
+%
+%   sel = echoPathways(co,t,Inc)
+%
+%   Selects the pathways that refocus at the detection point for all
+%   increments: at least one coherence order inversion, and zero net
+%   coherence evolution for the initial delays and for each incremented
+%   dimension.
+%
+%   Input:
+%     cohOrder   electron coherence orders, nPathways x N
+%     t          evolution time (µs) of each interval, 1xN
+%     Inc        incremented dimension of each interval (0: none), 1xN
+%
+%   Output:
+%     sel  true for each selected pathway, nPathways x 1
+function refocused = echoPathways(cohOrder,t,Inc)
+nPathways = size(cohOrder,1);
+refocused = false(nPathways,1);
+threshold = 1e-12*max(1,max(t));
+for p = 1:nPathways
+  c = cohOrder(p,:);
+  c_nonzero = c(c~=0);
+  flipping = any(abs(diff(c_nonzero))==2);
   t0 = c*t.';
-  ok = flipping && abs(t0)<1e-12*max(1,max(t));
+  ok = flipping && abs(t0)<threshold;
   for d = 1:max([Inc 0])
     ok = ok && sum(c(Inc==d))==0;
   end
-  sel(p) = ok;
+  refocused(p) = ok;
 end
 end
 
 %-------------------------------------------------------------------------------
-% Coherence transfer pathway parser: indices of the propagator blocks
-% (1 = aa, 2 = bb, 3 = ab, 4 = ba) for the left and right side of each
-% pulse and free evolution
+% pathwayparser  Propagator blocks of coherence transfer pathways
+%
+%   [FreeL,FreeR,PulsL,PulsR] = pathwayparser(ctp)
+%
+%   Input:
+%     ctp           coherence transfer pathways, nPathways x N, with 1 =
+%                   alpha population, 2 = beta population, 3 = +1 coherence,
+%                   4 = -1 coherence
+%
+%   Output:
+%     FreeL, FreeR  left and right manifolds (1 = alpha, 2 = beta) of each
+%                   free evolution, nPathways x N
+%     PulsL, PulsR  left and right propagator blocks (1 = aa, 2 = bb, 3 =
+%                   ab, 4 = ba) of each pulse, nPathways x N
 function [FreeL,FreeR,PulsL,PulsR] = pathwayparser(ctp)
 
 % General superpropagator
