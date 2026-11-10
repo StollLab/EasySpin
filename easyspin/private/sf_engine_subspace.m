@@ -516,7 +516,8 @@ else
         Expk.(sprintf('Dim%d',j)) = Opt.fastExp.(sprintf('Dim%d',keepDims(j)));
       end
       if isempty(Expk.nPoints), Expk = rmfield(Expk,'nPoints'); end
-      [seqk,reasons] = sf_parsesequence(Expk,Opt);
+      idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
+      [seqk,reasons] = sf_parsesequence(Expk,idealPulses);
       if ~isempty(reasons)
         error('The subspace engine cannot simulate point %d: %s.',iPt,strjoin(reasons,', '));
       end

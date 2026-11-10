@@ -43,7 +43,7 @@ end
 
 function co = orders(Exp,pathways)
 Exp.Pathways = pathways;
-seq = runprivate('sf_parsesequence',Exp,struct);
+seq = runprivate('sf_parsesequence',Exp,false);
 co = unique(seq.co,'rows');  % alpha and beta populations both have order 0
 end
 

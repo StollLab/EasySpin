@@ -49,7 +49,8 @@ requested = char(Opt.Method);
 seq = [];
 reasons = {};
 if ~strcmp(requested,'fullspace')
-  [seq,reasons] = sf_parsesequence(Exp,Opt);
+  idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
+  [seq,reasons] = sf_parsesequence(Exp,idealPulses);
 end
 
 % Spin system features

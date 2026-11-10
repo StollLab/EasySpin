@@ -1,10 +1,10 @@
 % sf_parsesequence  Parse a user-defined experiment for the subspace engine
 %
-%   [seq,reasons] = sf_parsesequence(Exp,Opt)
+%   [sequence,reasons] = sf_parsesequence(Exp,idealPulses)
 %
 %   Converts a user-defined experiment into the representation used by the
 %   subspace engine (sf_engine_subspace). Each interval is a pulse followed
-%   by a (possibly zero) delay.
+%   by a (possibly zero-length) delay.
 %
 %   Indirect dimensions are of three kinds:
 %     1  linear increments of delays, computed by frequency-domain binning
@@ -28,8 +28,7 @@
 %       DetWindow, DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
 %       ResonatorQL, FrequencyResponse, rfPhaseLocked
 %                        only checked for unsupported features
-%     Opt  options structure, with fields
-%       IdealPulses      true: treat finite pulses as ideal
+%     idealPulses        true: treat finite pulses as ideal
 %
 %   Output:
 %     seq  sequence structure (N intervals, nPathways pathways), with fields
@@ -42,7 +41,7 @@
 %                        the first pulse)
 %       isRF, nRF        true for RF pulses (1xN), number of RF pulses
 %       rfFreq, rfAxis   RF carrier (MHz), and RF axis (MHz) of an RF sweep
-%       ExciteWidth      excitation window (MHz) for Opt.IdealPulses, or []
+%       ExciteWidth      excitation window (MHz) for idealPulses, or []
 %       finitePulses     true if there are finite microwave pulses
 %       DetPhase         detection phase (radians)
 %       nPoints, kind    number of points and kind (1, 2, 3) of each dimension
@@ -69,10 +68,10 @@
 %     reasons   cell array of strings that list the features the subspace
 %               engine does not support (empty if it supports all of them)
 
-function [seq,reasons] = sf_parsesequence(Exp,Opt)
+function [sequence,reasons] = sf_parsesequence(Exp,idealPulses)
 
 reasons = {};
-seq = struct;
+sequence = struct;
 
 Sequence = Exp.Sequence;
 if ~iscell(Sequence)
@@ -83,13 +82,13 @@ isPulse = cellfun(@isstruct,Sequence);
 if ~any(isPulse)
   error('Exp.Sequence contains no pulses.');
 end
-for k = find(isPulse)
-  if numel(Sequence{k})>1
+for p = find(isPulse)
+  if numel(Sequence{p})>1
     reasons{end+1} = 'simultaneous pulses';
   end
 end
-for k = find(~isPulse)
-  if ~isnumeric(Sequence{k}) || ~isscalar(Sequence{k}) || Sequence{k}<0
+for p = find(~isPulse)
+  if ~isnumeric(Sequence{p}) || ~isscalar(Sequence{p}) || Sequence{p}<0
     error('Delays in Exp.Sequence must be single nonnegative numbers (in µs).');
   end
 end
@@ -97,127 +96,128 @@ end
 % Intervals: pulse k and the delays after it. Delays before the first
 % pulse have no effect on the initial state -Sz (no relaxation is applied
 % before the first pulse).
-pulseIdx = find(isPulse);
-N = numel(pulseIdx);
-delayIdx = find(~isPulse);
-delayInterval = zeros(1,numel(delayIdx));  % interval of each delay (0: before first pulse)
-t = zeros(1,N);
-for iD = 1:numel(delayIdx)
-  iInt = sum(pulseIdx<delayIdx(iD));
+idxPulse = find(isPulse);
+nPulses = numel(idxPulse);
+idxDelay = find(~isPulse);
+delayInterval = zeros(1,numel(idxDelay));  % interval of each delay (0: before first pulse)
+t = zeros(1,nPulses);
+for iD = 1:numel(idxDelay)
+  iInt = sum(idxPulse<idxDelay(iD));
   delayInterval(iD) = iInt;
   if iInt>0
-    t(iInt) = t(iInt) + Sequence{delayIdx(iD)};
+    t(iInt) = t(iInt) + Sequence{idxDelay(iD)};
   end
 end
-seq.delayInterval = delayInterval;
+sequence.delayInterval = delayInterval;
+sequence.t = t;
 
 % Pulses
-idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
-P = struct('Channel',cell(1,N));
-for k = 1:N
-  p_ = Sequence{pulseIdx(k)};
-  p_ = p_(1);
-  if isfield(p_,'Channel') && ~isempty(p_.Channel)
-    ch = lower(char(p_.Channel));
+Pulses = struct('Channel',cell(1,nPulses));
+for k = 1:nPulses
+  pulse_ = Sequence{idxPulse(k)};
+  pulse_ = pulse_(1);
+  if isfield(pulse_,'Channel') && ~isempty(pulse_.Channel)
+    ch = lower(char(pulse_.Channel));
     if ~any(strcmp(ch,{'mw','rf'}))
       error('Pulse %d: Channel must be ''mw'' or ''rf''.',k);
     end
   else
     ch = 'mw';
   end
-  P(k).Channel = ch;
-  if isfield(p_,'IQ')
+  Pulses(k).Channel = ch;
+  if isfield(pulse_,'IQ')
     reasons{end+1} = 'user-defined pulse waveforms (IQ)'; %#ok<*AGROW>
   end
-  if ~isfield(p_,'Phase') || isempty(p_.Phase), p_.Phase = 0; end
-  P(k).Phase = p_.Phase;
-  if ~isfield(p_,'tp') || isempty(p_.tp), p_.tp = 0; end
-  P(k).tp = p_.tp;
-  if ~isfield(p_,'Frequency') || isempty(p_.Frequency), p_.Frequency = 0; end
-  P(k).Frequency = p_.Frequency;
-  if isfield(p_,'Type') && ~isempty(p_.Type)
-    P(k).Type = char(p_.Type);
+  if ~isfield(pulse_,'Phase') || isempty(pulse_.Phase), pulse_.Phase = 0; end
+  Pulses(k).Phase = pulse_.Phase;
+  if ~isfield(pulse_,'tp') || isempty(pulse_.tp), pulse_.tp = 0; end
+  Pulses(k).tp = pulse_.tp;
+  if ~isfield(pulse_,'Frequency') || isempty(pulse_.Frequency), pulse_.Frequency = 0; end
+  Pulses(k).Frequency = pulse_.Frequency;
+  if isfield(pulse_,'Type') && ~isempty(pulse_.Type)
+    Pulses(k).Type = char(pulse_.Type);
   else
-    P(k).Type = 'rectangular';
+    Pulses(k).Type = 'rectangular';
   end
-  P(k).Par = p_;
-  rect = any(strcmp(P(k).Type,{'rectangular','rectangular/none'}));
+  Pulses(k).Par = pulse_;
+  rect = any(strcmp(Pulses(k).Type,{'rectangular','rectangular/none'}));
   switch ch
     case 'mw'
       if ~rect
         reasons{end+1} = 'shaped or frequency-swept microwave pulses';
       end
-      if numel(P(k).Frequency)>1 && P(k).Frequency(1)~=P(k).Frequency(end)
+      if numel(Pulses(k).Frequency)>1 && Pulses(k).Frequency(1)~=Pulses(k).Frequency(end)
         reasons{end+1} = 'frequency-swept microwave pulses';
       end
-      P(k).Frequency = P(k).Frequency(1);
-      if isfield(p_,'Flip') && ~isempty(p_.Flip)
-        P(k).Flip = p_.Flip;
-      elseif isfield(p_,'Amplitude') && P(k).tp>0
-        P(k).Flip = 2*pi*p_.Amplitude*P(k).tp;
-      elseif rect && ~isfield(p_,'IQ')
+      Pulses(k).Frequency = Pulses(k).Frequency(1);
+      if isfield(pulse_,'Flip') && ~isempty(pulse_.Flip)
+        Pulses(k).Flip = pulse_.Flip;
+      elseif isfield(pulse_,'Amplitude') && Pulses(k).tp>0
+        Pulses(k).Flip = 2*pi*pulse_.Amplitude*Pulses(k).tp;
+      elseif rect && ~isfield(pulse_,'IQ')
         error('Pulse %d: the flip angle (Flip) is missing.',k);
       else
-        P(k).Flip = pi;  % placeholder, shaped and IQ pulses are not supported
+        Pulses(k).Flip = pi;  % placeholder, shaped and IQ pulses are not supported
       end
-      P(k).ideal = P(k).tp==0 || idealPulses;
+      Pulses(k).ideal = Pulses(k).tp==0 || idealPulses;
     case 'rf'
-      if P(k).tp<=0
+      if Pulses(k).tp<=0
         error('Pulse %d: RF pulses need a pulse length (tp>0).',k);
       end
       if ~rect
         reasons{end+1} = 'shaped or frequency-swept RF pulses';
       end
-      if numel(P(k).Frequency)>1 && P(k).Frequency(1)~=P(k).Frequency(end)
+      if numel(Pulses(k).Frequency)>1 && Pulses(k).Frequency(1)~=Pulses(k).Frequency(end)
         reasons{end+1} = 'frequency-swept RF pulses';
       end
-      P(k).Frequency = P(k).Frequency(1);
-      P(k).ideal = false;
-      P(k).Flip = [];
-      P(k).B1 = [];
-      if isfield(p_,'B1') && ~isempty(p_.B1)
-        P(k).B1 = p_.B1;
-      elseif isfield(p_,'Flip') && ~isempty(p_.Flip)
-        P(k).Flip = p_.Flip;
+      Pulses(k).Frequency = Pulses(k).Frequency(1);
+      Pulses(k).ideal = false;
+      Pulses(k).Flip = [];
+      Pulses(k).B1 = [];
+      if isfield(pulse_,'B1') && ~isempty(pulse_.B1)
+        Pulses(k).B1 = pulse_.B1;
+      elseif isfield(pulse_,'Flip') && ~isempty(pulse_.Flip)
+        Pulses(k).Flip = pulse_.Flip;
       elseif ~rect
-        P(k).Flip = pi;  % placeholder, shaped RF pulses are not supported
+        Pulses(k).Flip = pi;  % placeholder, shaped RF pulses are not supported
       else
         error('Pulse %d: RF pulses need Flip (nominal) or B1 (in mT).',k);
       end
   end
 end
-seq.Pulse = P;
-seq.N = N;
-seq.t = t;
-isRF = strcmp({P.Channel},'rf');
-seq.isRF = isRF;
-seq.nRF = sum(isRF);
-if seq.nRF>1
+sequence.Pulse = Pulses;
+sequence.N = nPulses;
+
+% RF pulses
+isRF = strcmp({Pulses.Channel},'rf');
+sequence.isRF = isRF;
+sequence.nRFpulses = sum(isRF);
+if sequence.nRFpulses>1
   reasons{end+1} = 'more than one RF pulse';
 end
-if seq.nRF>0 && ~isfield(Exp,'rfFreq')
+if sequence.nRFpulses>0 && ~isfield(Exp,'rfFreq')
   error('Exp.rfFreq (RF carrier frequency, in MHz) is required for RF pulses.');
 end
-if seq.nRF>0
-  seq.rfFreq = Exp.rfFreq;
+if sequence.nRFpulses>0
+  sequence.rfFreq = Exp.rfFreq;
 end
 
-% Excitation window for ideal-pulse orientation selection (Opt.IdealPulses)
-mwFinite = ~isRF & [P.tp]>0;
+% Excitation window for ideal-pulse orientation selection (idealPulses)
+mwFinite = ~isRF & [Pulses.tp]>0;
 if idealPulses && any(mwFinite)
-  seq.ExciteWidth = 1/min([P(mwFinite).tp]);  % MHz
+  sequence.ExciteWidth = 1/min([Pulses(mwFinite).tp]);  % MHz
 else
-  seq.ExciteWidth = [];
+  sequence.ExciteWidth = [];
 end
-seq.finitePulses = any(~[P.ideal] & ~isRF);
+sequence.finitePulses = any(~[Pulses.ideal] & ~isRF);
 
 % Without Exp.mwFreq, the subspace engine puts finite microwave pulses on
 % resonance with every orientation (no orientation selection). A pulse
 % frequency is then absolute (carrier at 0), which needs the full-space
 % engine.
 if ~isfield(Exp,'mwFreq')
-  for k = find(~isRF & ~[P.ideal])
-    if any(P(k).Par.Frequency~=0)
+  for p = find(~isRF & ~[Pulses.ideal])
+    if any(Pulses(p).Par.Frequency~=0)
       reasons{end+1} = 'absolute pulse frequencies (no Exp.mwFreq)';
       break
     end
@@ -241,9 +241,9 @@ if any(isfield(Exp,{'ResonatorFrequency','ResonatorQL','FrequencyResponse'}))
   reasons{end+1} = 'resonator';
 end
 if isfield(Exp,'DetPhase') && ~isempty(Exp.DetPhase)
-  seq.DetPhase = Exp.DetPhase;
+  sequence.DetPhase = Exp.DetPhase;
 else
-  seq.DetPhase = 0;
+  sequence.DetPhase = 0;
 end
 
 % Indirect dimensions
@@ -254,7 +254,7 @@ else
   nPoints = [];
 end
 nDims = numel(nPoints);
-Inc = zeros(1,N);       % kind-1 dimension label of each interval (before relabeling)
+Inc = zeros(1,nPulses);       % kind-1 dimension label of each interval (before relabeling)
 dt = zeros(1,nDims);
 kind = zeros(1,nDims);
 mods = cell(1,nDims);   % kind 3: {target type, index, field, values}
@@ -270,52 +270,45 @@ for d = 1:nDims
   values = {};
   for iLine = 1:size(Dim,1)
     tg = regexp(Dim{iLine,1},',','split');
-    for k = 1:numel(tg)
-      targets{end+1} = strtrim(tg{k});
+    for q = 1:numel(tg)
+      targets{end+1} = strtrim(tg{q});
       values{end+1} = Dim{iLine,2};
     end
   end
   % values per point for each target
   vals = cell(1,numel(targets));
   linStep = nan(1,numel(targets));
-  for k = 1:numel(targets)
-    v = values{k};
-    if size(v,2)>1 && ~isempty(regexp(targets{k},'\.Frequency$','once'))
+  for q = 1:numel(targets)
+    v = values{q};
+    if size(v,2)>1 && endsWith(targets{q},'.Frequency')
       % several values per point: a row of band-edge increments, or one
       % frequency band per row (as read by sf_buildevents); a column of
       % per-point offsets is handled below
       reasons{end+1} = 'indirect dimensions over frequency bands of pulses';
-      vals{k} = [];
-      continue
-    end
-    if ~isempty(regexp(targets{k},'\.IQ$','once'))
+    elseif endsWith(targets{q},'.IQ')
       % one user-defined waveform per point, given in the pulse (no values);
       % the full-space reason is added below (pulse field 'IQ')
-      vals{k} = [];
-      continue
-    end
-    if isscalar(v)
-      vals{k} = v*(0:nPoints(d)-1);
-      linStep(k) = v;
+    elseif isscalar(v)
+      vals{q} = v*(0:nPoints(d)-1);
+      linStep(q) = v;
     else
       if numel(v)~=nPoints(d)
         error('Exp.%s: the number of values (%d) does not match Exp.nPoints(%d) = %d.',dimField,numel(v),d,nPoints(d));
       end
-      vals{k} = v(:).';
+      vals{q} = v(:).';
       if nPoints(d)>1 && v(1)==0 && all(abs(diff(v,2))<=1e-12*max(abs(v)))
-        linStep(k) = v(2);
+        linStep(q) = v(2);
       end
     end
   end
   isDelay = ~cellfun(@isempty,regexp(targets,'^d\d+$','once'));
-  isRFfreq = strcmp(targets,'rfFreq');
-  if all(isDelay) && all(~isnan(linStep)) && numel(unique(linStep))==1 && linStep(1)>0
+  if all(isDelay) && linStep(1)>0 && all(linStep==linStep(1))
     kind(d) = 1;
     dt(d) = linStep(1);
-    for k = 1:numel(targets)
-      iD = str2double(targets{k}(2:end));
-      if iD<1 || iD>numel(delayIdx)
-        error('Exp.%s: delay %s does not exist.',dimField,targets{k});
+    for q = 1:numel(targets)
+      iD = str2double(targets{q}(2:end));
+      if iD<1 || iD>numel(idxDelay)
+        error('Exp.%s: delay %s does not exist.',dimField,targets{q});
       end
       iInt = delayInterval(iD);
       if iInt==0
@@ -326,24 +319,24 @@ for d = 1:nDims
       end
       Inc(iInt) = d;
     end
-  elseif all(isRFfreq)
+  elseif all(strcmp(targets,'rfFreq'))
     kind(d) = 2;
     if isnan(linStep(1))
-      seq.rfAxis = Exp.rfFreq + vals{1};
+      sequence.rfAxis = Exp.rfFreq + vals{1};
     else
-      seq.rfAxis = Exp.rfFreq + linStep(1)*(0:nPoints(d)-1);
+      sequence.rfAxis = Exp.rfFreq + linStep(1)*(0:nPoints(d)-1);
     end
   else
     kind(d) = 3;
     m = {};
-    for k = 1:numel(targets)
-      tg = targets{k};
-      if isDelay(k)
+    for q = 1:numel(targets)
+      tg = targets{q};
+      if isDelay(q)
         iD = str2double(tg(2:end));
-        if iD<1 || iD>numel(delayIdx)
+        if iD<1 || iD>numel(idxDelay)
           error('Exp.%s: delay %s does not exist.',dimField,tg);
         end
-        m(end+1,:) = {'d',iD,'',vals{k}};
+        m(end+1,:) = {'d',iD,'',vals{q}};
       else
         tok = regexp(tg,'^p(\d+)\.(\w+)$','tokens','once');
         if isempty(tok)
@@ -351,7 +344,7 @@ for d = 1:nDims
           continue
         end
         iP = str2double(tok{1});
-        if iP<1 || iP>N
+        if iP<1 || iP>nPulses
           error('Exp.%s: pulse p%d does not exist.',dimField,iP);
         end
         field = tok{2};
@@ -360,7 +353,7 @@ for d = 1:nDims
         elseif ~any(strcmp(field,{'Flip','Phase','tp','Frequency','Amplitude'}))
           reasons{end+1} = sprintf('indirect dimension over pulse field ''%s''',field);
         end
-        m(end+1,:) = {'p',iP,field,vals{k}};
+        m(end+1,:) = {'p',iP,field,vals{q}};
       end
     end
     mods{d} = m;
@@ -371,18 +364,18 @@ end
 if sum(kind==2)>1 || (any(kind==2) && (any(kind==1) || any(kind==3)))
   reasons{end+1} = 'RF frequency sweeps combined with other indirect dimensions';
 end
-if any(kind==2) && seq.nRF~=1
+if any(kind==2) && sequence.nRFpulses~=1
   reasons{end+1} = 'RF frequency sweeps need exactly one RF pulse';
 end
-if seq.nRF>0 && ~any(kind==2)
+if sequence.nRFpulses>0 && ~any(kind==2)
   reasons{end+1} = 'RF pulses without an RF frequency sweep';
 end
 if isfield(Exp,'rfPhaseLocked') && Exp.rfPhaseLocked
   reasons{end+1} = 'phase-locked RF (Exp.rfPhaseLocked)';
 end
-seq.nPoints = nPoints;
-seq.kind = kind;
-seq.mods = mods;
+sequence.nPoints = nPoints;
+sequence.kind = kind;
+sequence.mods = mods;
 
 % Relabel kind-1 dimensions 1,2 in order of appearance, determine the
 % incrementation scheme ID used by sf_peaks
@@ -391,11 +384,11 @@ order = unique(incDims,'stable');
 relabel = zeros(1,nDims);
 relabel(order) = 1:numel(order);
 IncScheme = relabel(incDims);
-seq.Inc = zeros(1,N);
-seq.Inc(Inc~=0) = IncScheme;
-seq.kind1Dims = order;              % original dimension of relabeled dims 1,2
-seq.dt = dt(order);
-seq.nPointsInc = nPoints(order);
+sequence.Inc = zeros(1,nPulses);
+sequence.Inc(Inc~=0) = IncScheme;
+sequence.kind1Dims = order;              % original dimension of relabeled dims 1,2
+sequence.dt = dt(order);
+sequence.nPointsInc = nPoints(order);
 schemes = {[],1,[1 1],[1 2],[1 2 1],[1 1 2],[1 2 2 1],[1 1 2 2]};
 schemeIDs = [0 1 2 11 12 14 15 17];
 if isempty(IncScheme)
@@ -405,98 +398,100 @@ else
 end
 if isempty(idx)
   reasons{end+1} = 'this combination of incremented delays';
-  seq.IncSchemeID = NaN;
+  sequence.IncSchemeID = NaN;
 else
-  seq.IncSchemeID = schemeIDs(idx);
+  sequence.IncSchemeID = schemeIDs(idx);
 end
 
-% Coherence transfer pathways
+% Parse/generate coherence transfer pathways
 if isfield(Exp,'Pathways') && ~isempty(Exp.Pathways)
   pathways = Exp.Pathways;
 else
   pathways = 'all';
 end
-if isstring(pathways), pathways = char(pathways); end
-[ctp,co,seq.echoOrders] = selectPathways(pathways,seq,dimTargets,dimValues);
+[ctp,co,sequence.echoOrders] = selectPathways(pathways,sequence,dimTargets,dimValues);
+nPathways = size(ctp,1);
+
+% Block information for left and right propagation
+[idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(ctp);
 
 % Pulse transfer prefactors (ideal mw pulses) and phase cycle weights
-[idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(ctp);
-nPathways = size(ctp,1);
-pref = ones(nPathways,1);
+prefactor = ones(nPathways,1);
 rfOn = 1; rfOff = 0;
 PC = {};
 if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
   PC = Exp.PhaseCycle;
   if ~iscell(PC), PC = {PC}; end
-  if numel(PC)>N
-    error('Exp.PhaseCycle has more entries (%d) than there are pulses (%d).',numel(PC),N);
+  if numel(PC)>nPulses
+    error('Exp.PhaseCycle has more entries (%d) than there are pulses (%d).',numel(PC),nPulses);
   end
 end
-coPrev = [zeros(nPathways,1) co(:,1:end-1)];
-for k = 1:N
-  if k<=numel(PC) && ~isempty(PC{k})
-    cyc = PC{k};
-    if size(cyc,2)==2, cyc(:,3) = 1; end
-    if size(cyc,2)~=3
-      error('Exp.PhaseCycle{%d} must have 2 columns [phase weight] or 3 columns [phase weight scale].',k);
-    end
-  else
-    cyc = [0 1 1];
+PC(end+1:nPulses) = {[]};
+PC(cellfun(@isempty,PC)) = {[0 1 1]};
+dco = diff([zeros(nPathways,1) co],1,2);  % change in coherence order at each pulse
+for p = 1:nPulses
+  PCstep = PC{p};
+  if size(PCstep,2)==2, PCstep(:,3) = 1; end
+  if size(PCstep,2)~=3
+    error('Exp.PhaseCycle{%d} must have 2 columns [phase weight] or 3 columns [phase weight scale].',p);
   end
-  norm_ = sum(abs(cyc(:,2)));
-  if isRF(k)
-    on = cyc(:,3)~=0;
-    if any(cyc(on,3)~=1)
+  cycPhase = PCstep(:,1);
+  cycWeight = PCstep(:,2)/sum(abs(PCstep(:,2)));
+  cycOnOff = PCstep(:,3);
+
+  if isRF(p)
+    on = cycOnOff~=0;
+    if any(cycOnOff(on)~=1)
       reasons{end+1} = 'RF amplitude scales other than 0 and 1 in phase cycles';
     end
-    rfOn = sum(cyc(on,2))/norm_;
-    rfOff = sum(cyc(~on,2))/norm_;
-    continue
-  end
-  if P(k).ideal
-    f = zeros(nPathways,1);
-    for s = 1:size(cyc,1)
-      theta = P(k).Flip*cyc(s,3);
-      phi = P(k).Phase + cyc(s,1);
-      c = cos(theta/2);
-      sn = sin(theta/2);
-      pL = [c c -1i*sn*exp(-1i*phi) -1i*sn*exp(+1i*phi)];
-      pR = [c c +1i*sn*exp(+1i*phi) +1i*sn*exp(-1i*phi)];
-      f = f + cyc(s,2)*pL(idxPulseL(:,k)).'.*pR(idxPulseR(:,k)).';
-    end
-    pref = pref.*f/norm_;
+    rfOn = sum(cycWeight(on));
+    rfOff = sum(cycWeight(~on));
+  elseif Pulses(p).ideal
+    theta = Pulses(p).Flip*cycOnOff;
+    phi = Pulses(p).Phase + cycPhase;
+    c = cos(theta/2);
+    sn = sin(theta/2);
+    U = [c c -1i*sn.*exp(-1i*phi) -1i*sn.*exp(1i*phi)];  % blocks aa, bb, ab, ba; one row per cycle step
+    f = (U(:,idxPulseL(:,p)).*conj(U(:,idxPulseR(:,p)))).'*cycWeight;
+    prefactor = prefactor.*f;
   else
-    if any(cyc(:,3)~=1)
+    if any(cycOnOff~=1)
       reasons{end+1} = 'amplitude scales in phase cycles of finite microwave pulses';
     end
-    dp = co(:,k)-coPrev(:,k);
-    f = exp(-1i*dp*cyc(:,1).')*cyc(:,2);
-    pref = pref.*f/norm_;
+    f = exp(-1i*dco(:,p)*cycPhase.')*cycWeight;
+    prefactor = prefactor.*f;
   end
 end
-rmv = abs(pref)<1e-10;
+
+% Remove pathways with negligible prefactor
+rmv = abs(prefactor)<1e-10;
 if all(rmv)
   % no signal (e.g. a pi pulse creates no coherence): keep one pathway
   % with zero amplitude
   rmv(1) = false;
-  pref(1) = 0;
+  prefactor(1) = 0;
 end
-ctp(rmv,:) = []; co(rmv,:) = [];
-idxFreeL(rmv,:) = []; idxFreeR(rmv,:) = [];
-idxPulseL(rmv,:) = []; idxPulseR(rmv,:) = [];
-pref(rmv) = [];
+if any(rmv)
+  ctp(rmv,:) = [];
+  co(rmv,:) = [];
+  idxFreeL(rmv,:) = [];
+  idxFreeR(rmv,:) = [];
+  idxPulseL(rmv,:) = [];
+  idxPulseR(rmv,:) = [];
+  prefactor(rmv) = [];
+end
 
-seq.ctp = ctp;
-seq.co = co;
-seq.idxPulseL = idxPulseL;
-seq.idxPulseR = idxPulseR;
-seq.idxIncL = idxFreeL(:,seq.Inc~=0);
-seq.idxIncR = idxFreeR(:,seq.Inc~=0);
+sequence.ctp = ctp;
+sequence.co = co;
+sequence.idxPulseL = idxPulseL;
+sequence.idxPulseR = idxPulseR;
+sequence.idxIncL = idxFreeL(:,sequence.Inc~=0);
+sequence.idxIncR = idxFreeR(:,sequence.Inc~=0);
 % order the incremented-interval free indices by sequence order (as sf_peaks)
-seq.pathwayprefactor = pref;
-seq.nPathways = numel(pref);
-seq.rfOn = rfOn;
-seq.rfOff = rfOff;
+sequence.pathwayprefactor = prefactor;
+sequence.nPathways = numel(prefactor);
+sequence.rfOn = rfOn;
+sequence.rfOff = rfOff;
 
 reasons = unique(reasons,'stable');
 
@@ -635,19 +630,19 @@ end
 %-------------------------------------------------------------------------------
 % pathwayparser  Propagator blocks of coherence transfer pathways
 %
-%   [FreeL,FreeR,PulsL,PulsR] = pathwayparser(ctp)
+%   [freeL,freeR,pulseL,pulseR] = pathwayparser(ctp)
 %
 %   Input:
-%     ctp           coherence transfer pathways, nPathways x N, with 1 =
-%                   alpha population, 2 = beta population, 3 = +1 coherence,
-%                   4 = -1 coherence
+%     ctp             coherence transfer pathways, nPathways x nPulses array, with
+%                     1 = Salpha, 2 = Sbeta, 3 = S+, 4 = S-
 %
 %   Output:
-%     FreeL, FreeR  left and right manifolds (1 = alpha, 2 = beta) of each
-%                   free evolution, nPathways x N
-%     PulsL, PulsR  left and right propagator blocks (1 = aa, 2 = bb, 3 =
-%                   ab, 4 = ba) of each pulse, nPathways x N
-function [FreeL,FreeR,PulsL,PulsR] = pathwayparser(ctp)
+%     freeL, freeR    left and right manifolds (1 = alpha, 2 = beta) of each
+%                     free evolution, nPathways x nPulses array
+%     pulseL, pulseR  left and right propagator blocks (1 = aa, 2 = bb, 3 =
+%                     ab, 4 = ba) of each pulse, nPathways x nPulses array
+
+function [freeL,freeR,pulseL,pulseR] = pathwayparser(ctp)
 
 % General superpropagator
 %      Sa  Sb  S+  S-
@@ -655,16 +650,16 @@ function [FreeL,FreeR,PulsL,PulsR] = pathwayparser(ctp)
 % Sb   --  bb  -b  b-
 % S+   a-  +b  ab  +-
 % S-   -a  b+  -+  ba
-PropL = [1 3 1 3; 4 2 4 2; 1 3 1 3; 4 2 4 2];
-PropR = [1 3 3 1; 4 2 2 4; 4 2 2 4; 1 3 3 1];
+propL = [1 3 1 3; 4 2 4 2; 1 3 1 3; 4 2 4 2];
+propR = [1 3 3 1; 4 2 2 4; 4 2 2 4; 1 3 3 1];
 
 before = [ones(size(ctp,1),1)*2 ctp(:,1:end-1)];
 idx = ctp + (before-1)*4;
-PulsL = PropL(idx);
-PulsR = PropR(idx);
+pulseL = propL(idx);
+pulseR = propR(idx);
 
 idx = 5*ctp - 4;
-FreeL = PropL(idx);
-FreeR = PropR(idx);
+freeL = propL(idx);
+freeR = propR(idx);
 
 end

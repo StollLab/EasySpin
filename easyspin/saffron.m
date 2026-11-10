@@ -357,7 +357,7 @@ else
   [Events,Vary,Opt] = sf_buildevents(ExpProp,Opt);
   Opt.propEvents = Events;
   Opt.propVary = Vary;
-  Opt.propPathways = sf_pathwayorders(Exp,Opt);
+  Opt.propPathways = sf_pathwayorders(Exp,Opt.IdealPulses);
 end
 
 %===============================================================================
@@ -509,7 +509,7 @@ end
 %===============================================================================
 % sf_pathwayorders  Electron coherence orders of the selected pathways
 %
-%   orders = sf_pathwayorders(Exp,Opt)
+%   orders = sf_pathwayorders(Exp,idealPulses)
 %
 %   Converts the pathway selection in Exp.Pathways to the numeric form used
 %   by the full-space engine.
@@ -520,13 +520,13 @@ end
 %                 pulse ('+', '-', '0', 'c' = + or -, '.' = any), or a
 %                 numeric matrix
 %       Sequence  pulse sequence
-%     Opt     options, passed on to sf_parsesequence
+%     idealPulses passed on to sf_parsesequence
 %
 %   Output:
 %     orders  electron coherence order after each pulse (+1, -1, 0, NaN =
 %             any, Inf = +1 or -1), one row per pathway and one column per
 %             pulse; empty if there is no selection
-function orders = sf_pathwayorders(Exp,Opt)
+function orders = sf_pathwayorders(Exp,idealPulses)
 orders = [];
 if ~isfield(Exp,'Pathways') || isempty(Exp.Pathways), return; end
 pw = Exp.Pathways;
@@ -542,7 +542,7 @@ if higherOrders
     error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(pw,2),nPulses);
   end
 else
-  seq = sf_parsesequence(Exp,Opt);
+  seq = sf_parsesequence(Exp,idealPulses);
 end
 
 if strcmp(pw,'echo')
