@@ -8,15 +8,15 @@ function ok = test() %#ok<FNDEF>
 Sys.Nucs = '1H';
 Sys.A = [2 3 9];  % MHz
 
-p90.Flip = pi/2;
-p180.Flip = pi;
+p90.Flip = pi/2;  % rad
+p180.Flip = pi;  % rad
 
 Exp.Field = 350;  % mT
 Exp.mwFreq = 9.8;  % GHz
 Exp.MolFrame = [0 0.3 0.2];
-Exp.CrystalSymmetry = 1;
-Exp.Sequence = {p90 0.15 p180 0.15};
-Exp.DetPhase = -pi/2;
+tau = 0.15;  % µs
+Exp.Sequence = {p90 tau p180 tau};
+Exp.DetPhase = -pi/2;  % rad
 Exp.Pathways = '+-';
 
 % nutation of the first pulse

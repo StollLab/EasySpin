@@ -2,9 +2,10 @@ function ok = test() %#ok<FNDEF>
 
 % Without Exp.Field, saffron gives an informative error
 
-Pulse.tp = 0.02;  % µs
-Pulse.Flip = pi/2;
-Exp.Sequence = {Pulse 0.1};
+p90.tp = 0.02;  % µs
+p90.Flip = pi/2;  % rad
+tau = 0.1;  % µs
+Exp.Sequence = {p90 tau};
 Exp.mwFreq = 9.5;  % GHz
 
 Sys.S = 1/2;

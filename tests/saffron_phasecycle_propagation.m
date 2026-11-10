@@ -1,4 +1,4 @@
-function ok = test() %#ok<FNDEF>
+function ok = test()  %#ok<FNDEF>
 
 % Exp.PhaseCycle works in both engines. With finite pulses, the pathways
 % engine weights each coherence pathway with the cycle, so the echo-selecting
@@ -12,12 +12,13 @@ Sys.A = [2 6];  % MHz
 
 p90 = struct('tp',0.016,'Flip',pi/2);
 p180 = struct('tp',0.032,'Flip',pi);
+tau = 0.1;  % µs
 
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = unitconvert(Exp.mwFreq,'GHz->mT',gfree);
 Exp.MolFrame = [0 0 0];
 Exp.SampleFrame = [0 pi/4 0];
-Exp.Sequence = {p90 0.1 p180 0.1};
+Exp.Sequence = {p90 tau p180 tau};
 Exp.Dim1 = {'d1,d2' 0.02};
 Exp.nPoints = 3;
 
