@@ -56,8 +56,9 @@
 %                    of Exp.Sequence (fullspace)
 %     GridSize, GridSymmetry, GridFrame, Sites
 %     IntTimeStep, SimFreq (fullspace)
-%     nOffsets, OriThreshold, Nuclei, Transitions, ProductRule, Expand
-%     (subspace)
+%     OffsetTolerance  error target of the average over the inhomogeneous
+%                    line (Sys.lwAnisoG), default 1e-6 (subspace)
+%     OriThreshold, Nuclei, Transitions, ProductRule, Expand (subspace)
 %     separate, Window, ZeroFillFactor, Verbosity
 %
 %  Outputs:
@@ -67,8 +68,10 @@
 %             time, detection operator], singletons removed
 %     info    structure with the expanded experiment (Exp), the engine
 %             (Method, MethodReason), the processed spectrum (f, fd, or
-%             f1, f2, fd), and the start and end times of the elements of
-%             Exp.Sequence on the time axis of x (EventTimes, fullspace)
+%             f1, f2, fd), the start and end times of the elements of
+%             Exp.Sequence on the time axis of x (EventTimes, fullspace),
+%             and the number of resonance offsets in the average over the
+%             inhomogeneous line (nOffsets, subspace)
 
 function varargout = saffron(Sys,Exp,Opt)
 
@@ -176,6 +179,10 @@ if isfield(Opt,'lwOffset')
 end
 if isfield(Opt,'EndorMethod')
   error('Opt.EndorMethod is no longer supported. ENDOR is simulated with the RF pulse in the sequence.');
+end
+if isfield(Opt,'nOffsets')
+  error(['Opt.nOffsets is no longer supported. The number of resonance offsets is chosen ' ...
+    'automatically; use Opt.OffsetTolerance to set the accuracy.']);
 end
 for f = {'TimeDomain','PartialIFFT','logplot','ExcOperator'}
   if isfield(Opt,f{1})
@@ -316,6 +323,13 @@ end
 if ~isfield(Opt,'Window'), Opt.Window = 'ham+'; end
 if ~isfield(Opt,'ZeroFillFactor'), Opt.ZeroFillFactor = 2; end
 if ~isfield(Opt,'IdealPulses'), Opt.IdealPulses = false; end
+if ~isfield(Opt,'OffsetTolerance') || isempty(Opt.OffsetTolerance)
+  Opt.OffsetTolerance = 1e-6;
+end
+if ~isnumeric(Opt.OffsetTolerance) || ~isscalar(Opt.OffsetTolerance) || ...
+    ~isreal(Opt.OffsetTolerance) || ~(Opt.OffsetTolerance>0 && Opt.OffsetTolerance<1)
+  error('Opt.OffsetTolerance must be a number between 0 and 1, e.g. 1e-6.');
+end
 
 % Choose the simulation engine
 %===============================================================================

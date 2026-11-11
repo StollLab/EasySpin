@@ -97,8 +97,7 @@ ok(end+1) = areequal(ySub,yFull,1e-3,'rel');
 
 % FID on resonance with an inhomogeneous line of FWHM lw: Gaussian decay
 % exp(-(pi*w*t)^2/(4*ln2)), with w = lw for ideal pulses, and w =
-% lw*W/sqrt(lw^2+W^2) for an excitation window of FWHM W = 1/tp. The
-% tolerance covers the quadrature of the offset distribution.
+% lw*W/sqrt(lw^2+W^2) for an excitation window of FWHM W = 1/tp.
 lw = 10;  % MHz
 SysL.g = gfree;
 SysL.lwAnisoG = lw;
@@ -110,13 +109,13 @@ t = (0:E.nPoints-1)*0.02;  % µs
 p = struct('Flip',pi/2,'tp',0);
 E.Sequence = {p 0};
 [~,y] = saffron(SysL,E,struct('Method','subspace'));
-ok(end+1) = areequal(abs(y)/abs(y(1)),exp(-(pi*lw*t).^2/(4*log(2))),1e-2,'abs');
+ok(end+1) = areequal(abs(y)/abs(y(1)),exp(-(pi*lw*t).^2/(4*log(2))),1e-5,'abs');
 p.tp = 0.05;  % µs, window W = 20 MHz
 E.Sequence = {p 0};
 [~,y] = saffron(SysL,E,struct('Method','subspace','IdealPulses',true));
 W = 1/p.tp;
 w = lw*W/sqrt(lw^2+W^2);
-ok(end+1) = areequal(abs(y)/abs(y(1)),exp(-(pi*w*t).^2/(4*log(2))),1e-2,'abs');
+ok(end+1) = areequal(abs(y)/abs(y(1)),exp(-(pi*w*t).^2/(4*log(2))),1e-5,'abs');
 
 % Errors
 E = ExpF;

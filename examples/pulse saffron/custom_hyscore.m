@@ -35,6 +35,5 @@ Exp.Dim1 = {'d2' dt}; % increment of t1 in dimension 1, µs
 Exp.Dim2 = {'d3' dt}; % increment of t2 in dimension 2, µs
 
 Opt.GridSize = 91;
-Opt.nOffsets = 30; % number of resonance offsets across the EPR line
 
 saffron(Sys,Exp,Opt);

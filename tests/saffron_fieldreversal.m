@@ -17,7 +17,6 @@ Base.Field = 324.9;  % mT
 
 Opt.Method = 'subspace';
 Opt.GridSize = 7;
-Opt.nOffsets = 5;
 
 p90.Flip = pi/2;
 p180.Flip = pi;

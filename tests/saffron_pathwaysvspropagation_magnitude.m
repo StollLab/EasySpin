@@ -74,7 +74,6 @@ end
 function y = fast(Sys,Exp)
 Exp.Pathways = 'echo';
 Opt.Method = 'subspace';
-Opt.nOffsets = 1;
 [~,y] = saffron(Sys,Exp,Opt);
 y = y(:);
 end

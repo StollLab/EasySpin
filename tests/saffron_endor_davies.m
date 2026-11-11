@@ -19,7 +19,6 @@ Exp.Range = [8 22];  % MHz
 Exp.nPoints = 351;
 
 Opt.GridSize = 7;
-Opt.nOffsets = 41;
 
 [x,y,info] = saffron(Sys,Exp,Opt);
 nuI = larmorfrq('1H',Exp.Field);
