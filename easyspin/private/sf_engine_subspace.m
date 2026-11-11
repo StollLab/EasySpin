@@ -35,7 +35,7 @@
 %       nEntries              number of entries (see below)
 %       nOffsets              largest number of resonance offsets in the
 %                             average over the inhomogeneous line (1: no
-%                             average needed)
+%                             line, or the exact average for ideal pulses)
 %
 %   Physics (see the saffron documentation and the redesign notes):
 %   - Each excited EPR transition (b -> a) is a two-level electron system.
@@ -48,6 +48,13 @@
 %   - Linearly incremented delays: the signal of each pathway is a sum of
 %     exponentials, binned in the frequency domain (sf_peaks) and Fourier
 %     transformed.
+%   - Inhomogeneous line (Sys.lwAnisoG): a Gaussian distribution of
+%     resonance offsets per entry, with 1/e half width sigma. With ideal
+%     pulses, the offset enters a pathway only as a phase over its net
+%     electron coherence time Tnet, and the average over the line is
+%     exp(-(pi*sigma*Tnet)^2). This is used wherever the signal is not
+%     binned (single points, product rule, ENDOR). Otherwise, the average
+%     uses the trapezoid rule (offsetQuadrature).
 %   - RF pulses (ENDOR, rectangular only): population transfer between the
 %     levels of each NMR transition, with the two-level response (Rabi
 %     formula) at the detuning from the RF carrier, averaged over the RF
@@ -661,7 +668,9 @@ end
 %   Sums the signal over all entries, resonance offsets and pathways. With
 %   up to 64 points, each point is evaluated exactly (each with the offsets
 %   it needs). Otherwise, the peaks are binned in the frequency domain
-%   (sf_peaks) and Fourier transformed.
+%   (sf_peaks) and Fourier transformed. With ideal pulses, the average over
+%   the inhomogeneous line is exact where the signal is not binned (single
+%   points, product rule), see the header of sf_engine_subspace.
 %
 %   Input:
 %     E             entries, see the header of sf_engine_subspace
@@ -680,8 +689,7 @@ end
 %     nOff   number of resonance offsets (largest over the points)
 function [y,rates,nOff] = pathwaySignal(E,seq,Rel,productRule,expandFactor)
 
-[offsets,offsetWeights] = offsetQuadrature(seq,E.offWidth,E.offsetTolerance);
-nOff = numel(offsets);
+nOff = 1;
 N = seq.N;
 nP = seq.nPathways;
 incIntervals = find(seq.Inc~=0);
@@ -735,13 +743,10 @@ if nDims>0
 end
 
 nSub = numel(E.Ea);
+[t0,tStep] = netCoherenceTimes(seq);
+sigma = E.offWidth/(2*sqrt(log(2)));  % 1/e half width of the line (MHz)
 if productRule
   % per pathway and subspace, time domain products, per entry
-  if nOff>1
-    error(['Opt.ProductRule does not support pathways that do not refocus at the detection ' ...
-      'point together with an inhomogeneous line (Sys.lwAnisoG). Select echo pathways ' ...
-      '(Exp.Pathways = ''echo''), or omit Opt.ProductRule.']);
-  end
   y = 0;
   exact = prod(seq.nPointsInc)<=64;
   for e = 1:E.nE
@@ -784,6 +789,12 @@ if productRule
         end
         td_ = td_.*td1;
       end
+      % exact average over the inhomogeneous line (ideal pulses), with the
+      % net electron coherence time Tnet at each point
+      Tnet = t0(p);
+      if nDims>0, Tnet = Tnet + tStep(p,1)*(0:seq.nPointsInc(1)-1); end
+      if nDims>1, Tnet = Tnet.' + tStep(p,2)*(0:seq.nPointsInc(2)-1); end
+      td_ = td_.*exp(-(pi*sigma(e)*Tnet).^2);
       td_ = applyDecay(td_,rates(group(p),:),seq);
       y = y + td_;
     end
@@ -803,15 +814,24 @@ end
 
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
-% With ideal pulses, refocused pathways do not depend on the resonance
-% offset: they are evaluated once, with weight 1
+% Average over the inhomogeneous line: exact for ideal pulses at a single
+% point (exp(-(pi*sigma*Tnet)^2) per pathway and entry); otherwise over
+% the offsets from offsetQuadrature. With ideal pulses, refocused pathways
+% do not depend on the offset: they are evaluated once, with weight 1.
+exactLineAverage = ~seq.finitePulses && nDims==0;
+if exactLineAverage
+  offsets = 0; offsetWeights = 1;
+else
+  [offsets,offsetWeights] = offsetQuadrature(seq,E.offWidth,E.offsetTolerance);
+end
+nOff = numel(offsets);
 offsetFree = ~seq.finitePulses & refocusedPathways(seq);
 chunks = entryChunks(E,chunk);
 for iChunk = 1:numel(chunks)
   ec = chunks{iChunk};
   Ed0 = entrySlice(E,1,ec);
   for iOff = 1:nOff
-    Ed = addOffsets(Ed0,Ed0.offCenter + offsets(iOff)*Ed0.offWidth/(2*sqrt(log(2))));
+    Ed = addOffsets(Ed0,Ed0.offCenter + offsets(iOff)*sigma(ec));
     if seq.finitePulses
       PulseSub = finitePulsePropagators(Ed,seq);
     else
@@ -827,6 +847,9 @@ for iChunk = 1:numel(chunks)
       end
       [G,D,BL,BR,memo] = evaluatePathways(Ed,seq,p,PulseSub,memo);
       wp = pref(p)*wOff*reshape(Ed.w,1,1,[]);
+      if exactLineAverage
+        wp = wp.*reshape(exp(-(pi*sigma(ec)*t0(p)).^2),1,1,[]);
+      end
       if nDims==0
         % no increments: G is the identity, signal = trace(D)
         v = sum(diag3(D).*reshape(wp,1,[]),'all');
@@ -1021,15 +1044,39 @@ end
 %   resonance offset.
 %
 %   Input:
-%     seq        parsed sequence; uses t, isRF, Pulse, co, kind1Dims, Inc
+%     seq        parsed sequence; uses t and the fields used by
+%                netCoherenceTimes
 %
 %   Output:
 %     refocused  true for each refocused pathway, nPathways x 1
 function refocused = refocusedPathways(seq)
+[t0,tStep] = netCoherenceTimes(seq);
+refocused = abs(t0)<=1e-12*max([1 seq.t]) & all(tStep==0,2);
+end
+
+%-------------------------------------------------------------------------------
+% netCoherenceTimes  Net electron coherence time of each pathway
+%
+%   [t0,tStep] = netCoherenceTimes(seq)
+%
+%   The net electron coherence time of a pathway is the sum of the free
+%   evolution times (also during RF pulses), each multiplied by the
+%   electron coherence order of its interval. It changes linearly with the
+%   increments of the incremented delays.
+%
+%   Input:
+%     seq    parsed sequence; uses co, t, isRF, Pulse, Inc, dt, nPointsInc
+%
+%   Output:
+%     t0     net coherence time (µs) at the first point, nPathways x 1
+%     tStep  change (µs) per increment, nPathways x nDims
+function [t0,tStep] = netCoherenceTimes(seq)
 tFree = seq.t + seq.isRF.*[seq.Pulse.tp];
-refocused = abs(seq.co*tFree(:)) <= 1e-12*max([1 tFree]);
-for d = 1:numel(seq.kind1Dims)
-  refocused = refocused & sum(seq.co(:,seq.Inc==d),2)==0;
+t0 = seq.co*tFree(:);
+nDims = numel(seq.nPointsInc);
+tStep = zeros(numel(t0),nDims);
+for d = 1:nDims
+  tStep(:,d) = sum(seq.co(:,seq.Inc==d),2)*seq.dt(d);
 end
 end
 
@@ -1061,8 +1108,8 @@ end
 %     largest sigma.
 %
 %   Input:
-%     seq       parsed sequence; uses finitePulses, co, t, isRF, Pulse,
-%               Inc, dt, nPointsInc, kind1Dims
+%     seq       parsed sequence; uses finitePulses, isRF, Pulse, nPointsInc
+%               and the fields used by netCoherenceTimes
 %     offWidth  FWHM (MHz) of the offset distribution of each entry, 1 x nE
 %     tol       error target (Opt.OffsetTolerance)
 %
@@ -1077,19 +1124,15 @@ if sigma==0 || ~any(offsetDependent)
   return
 end
 
-% Net electron coherence time of the free evolution of each pathway: from
-% t0 at the first point, it changes linearly by dT over the range of each
-% incremented dimension, so its extremes are tMin and tMax
-tp = [seq.Pulse.tp];
-tFree = seq.t + seq.isRF.*tp;
-co = seq.co(offsetDependent,:);
-t0 = co*tFree(:);
-dT = zeros(size(co,1),numel(seq.nPointsInc));
-for d = 1:numel(seq.nPointsInc)
-  dT(:,d) = sum(co(:,seq.Inc==d),2)*(seq.nPointsInc(d)-1)*seq.dt(d);
-end
+% Net electron coherence time of each pathway: from t0 at the first point,
+% it changes linearly by dT over the range of each incremented dimension,
+% so its extremes are tMin and tMax
+[t0,tStep] = netCoherenceTimes(seq);
+t0 = t0(offsetDependent);
+dT = tStep(offsetDependent,:).*(seq.nPointsInc(:).'-1);
 tMin = t0 + sum(min(dT,0),2);
 tMax = t0 + sum(max(dT,0),2);
+tp = [seq.Pulse.tp];
 Teff = max(abs([tMin; tMax])) + sum(tp(~seq.isRF & ~[seq.Pulse.ideal]));
 
 % Trapezoid rule
@@ -1558,9 +1601,17 @@ yBaseline = 0;  % signal without RF pulse
 yTransfer = zeros(1,nRfFreqs);  % change of the signal by the RF pulse
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
-[offsets,offsetWeights] = offsetQuadrature(seq,E.offWidth,E.offsetTolerance);
+% Average over the inhomogeneous line: exact for ideal pulses
+% (exp(-(pi*sigma*Tnet)^2) per pathway and entry), otherwise over the
+% offsets from offsetQuadrature
+sigma = E.offWidth/(2*sqrt(log(2)));  % 1/e half width of the line (MHz)
+if seq.finitePulses
+  [offsets,offsetWeights] = offsetQuadrature(seq,E.offWidth,E.offsetTolerance);
+else
+  offsets = 0; offsetWeights = 1;
+  Tnet = netCoherenceTimes(seq);
+end
 nOff = numel(offsets);
-offsetFree = ~seq.finitePulses & refocusedPathways(seq);  % see pathwaySignal
 [idxU,idxV] = find(triu(true(n),1));  % levels u<v of each NMR transition
 nTransitions = numel(idxU);
 chunks = entryChunks(E,chunk);
@@ -1576,21 +1627,18 @@ for iChunk = 1:numel(chunks)
   % of the RF pulse (1 = alpha, 2 = beta), summed over offsets and pathways
   transferAmp = {zeros(nTransitions,K),zeros(nTransitions,K)};
   for iOff = 1:nOff
-    Ed = addOffsets(Ed0,Ed0.offCenter + offsets(iOff)*Ed0.offWidth/(2*sqrt(log(2))));
+    Ed = addOffsets(Ed0,Ed0.offCenter + offsets(iOff)*sigma(ec));
     if seq.finitePulses
       PulseSub = finitePulsePropagators(Ed,seq);
     else
       PulseSub = [];
     end
     for p = 1:nP
-      if offsetFree(p)
-        if iOff>1, continue; end
-        wOff = 1;
-      else
-        wOff = offsetWeights(iOff);
-      end
       [G,D] = evaluatePathways(Ed,seqG,p,PulseSub);
-      wp = seq.pathwayprefactor(p)*wOff*reshape(Ed.w,1,1,[]);
+      wp = seq.pathwayprefactor(p)*offsetWeights(iOff)*reshape(Ed.w,1,1,[]);
+      if ~seq.finitePulses
+        wp = wp.*reshape(exp(-(pi*sigma(ec)*Tnet(p)).^2),1,1,[]);
+      end
       G = G.*wp;
       % baseline: trace(D*G)
       yBaseline = yBaseline + sum(G.*permute(D,[2 1 3]),'all');

@@ -12,8 +12,7 @@ function ok = test() %#ok<FNDEF>
 % - with ideal pulses, an FID decays with the inhomogeneous line
 %   (Sys.lwAnisoG), and with Opt.IdealPulses with the excited part of it
 %   (product of line and window)
-% - errors: RF pulses without nuclei; the product rule with unrefocused
-%   pathways and an inhomogeneous line
+% - errors: RF pulses without nuclei
 
 Sys.g = [2.00 2.01 2.03];
 Exp.mwFreq = 9.5;  % GHz
@@ -123,14 +122,6 @@ rf = struct('Channel','rf','tp',1,'Flip',pi);
 E.Sequence = {p90 0.2 rf 0.1 p90 0.2};
 E.rfFreq = 14;  % MHz
 ok(end+1) = throwsWith(@() saffron(SysF,E),'no nuclei');
-SysP = SysL;
-SysP.Nucs = '1H,1H';
-SysP.A = [1 2 3; 2 3 4];  % MHz
-E = ExpF;
-E.Sequence = {p90 0.1 p180 0.1};
-E.Dim1 = {'d1' 0.02};  % FID-like pathways do not refocus
-E.nPoints = 4;
-ok(end+1) = throwsWith(@() saffron(SysP,E,struct('Method','subspace','ProductRule',true)),'ProductRule');
 
 end
 

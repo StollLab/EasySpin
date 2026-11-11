@@ -842,7 +842,7 @@ The following options are only used by the <em>subspace</em> method:
 
 <div class="optionfield"><code>OffsetTolerance</code></div>
 <div class="optiondescr">
-Accuracy of the average over the inhomogeneous line (<code>Sys.lwAnisoG</code>), default <code>1e-6</code>. The average is needed with finite pulses and, with ideal pulses, for coherence pathways that do not refocus at the detection point. <code>saffron</code> chooses the number of resonance offsets automatically, from the line width, the pulse lengths and the longest time a pathway spends with electron coherence that is not refocused, so that the error of the average is of the order of <code>OffsetTolerance</code> times the signal amplitude. A smaller value needs more offsets, but only a few more: going from <code>1e-3</code> to <code>1e-9</code> roughly doubles their number. <code>info.nOffsets</code> gives the number used. To check that a simulation has converged, run it again with a smaller value and compare.
+Accuracy of the average over the inhomogeneous line (<code>Sys.lwAnisoG</code>), default <code>1e-6</code>. It applies to finite pulses. With ideal pulses, the average is exact, except for signals with more than 64 points that include coherence pathways that do not refocus at the detection point. <code>saffron</code> chooses the number of resonance offsets automatically, from the line width, the pulse lengths and the longest time a pathway spends with electron coherence that is not refocused, so that the error of the average is of the order of <code>OffsetTolerance</code> times the signal amplitude. A smaller value needs more offsets, but only a few more: going from <code>1e-3</code> to <code>1e-9</code> roughly doubles their number. <code>info.nOffsets</code> gives the number used. To check that a simulation has converged, run it again with a smaller value and compare.
 </div>
 
 <div class="optionfield"><code>OriThreshold</code></div>
@@ -934,7 +934,7 @@ A structure with additional information:
 <li><code>info.Method</code>, <code>info.MethodReason</code>: the simulation method used, and why the <em>full-space</em> method was needed.</li>
 <li><code>info.f</code>, <code>info.fd</code>: the frequency axis (in MHz) and the spectrum obtained by Fourier transform of the signal along delay increments (ESEEM); for 2D (HYSCORE), <code>info.f1</code>, <code>info.f2</code> and <code>info.fd</code>. For ENDOR, <code>info.f</code> is the RF axis and <code>info.fd</code> the spectrum.</li>
 <li><code>info.EventTimes</code>: start and end times of the elements of <code>Exp.Sequence</code> (<em>full-space</em> method, see <code>Exp.DetWindow</code>).</li>
-<li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>subspace</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no average is needed.</li>
+<li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>subspace</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no offsets are needed (no inhomogeneous line, or the exact average with ideal pulses).</li>
 </ul>
 </div>
 
