@@ -781,12 +781,12 @@ With <code>'auto'</code>, <code>saffron</code> uses <code>'subspace'</code> when
 
 <div class="optionfield"><code>Relaxation</code></div>
 <div class="optiondescr">
-Switches relaxation on or off. A single value applies to the whole sequence, in both methods. With the <em>full-space</em> method, relaxation can also be set for each element of <code>Exp.Sequence</code>:
+Switches relaxation on or off. A single value applies to the whole sequence. Relaxation can also be set for each element of <code>Exp.Sequence</code>:
 <pre class="matlab">
 Opt.Relaxation = true;      % relaxation during the whole sequence
 Opt.Relaxation = [0 0 1];   % relaxation only during the third element of the sequence
 </pre>
-If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The detection events added for <code>Exp.DetWindow</code> take the setting of the last delay of the sequence.
+If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The <em>subspace</em> method has no relaxation during pulses, so there the entries for pulses have no effect. With the <em>full-space</em> method, the detection events added for <code>Exp.DetWindow</code> take the setting of the last delay of the sequence.
 </div>
 
 <div class="optionfield"><code>GridSize</code></div>
@@ -953,7 +953,7 @@ A structure with additional information:
 <tr><td>Indirect dimensions</td><td>delays, pulse flip angle, phase, length, frequency and amplitude, RF frequency</td><td>any field, also <code>Position</code>, frequency bands and user-defined waveforms</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub></td><td>also transients, <code>'sequence'</code>, other detection operators and frames, echo integration</td></tr>
-<tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
+<tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
 <tr><td>Initial state (<code>initState</code>)</td><td>no</td><td>yes</td></tr>
 <tr><td>Resonator</td><td>no</td><td>yes</td></tr>
 <tr><td>Inhomogeneous line (<code>lwAnisoG</code>)</td><td>yes</td><td>no</td></tr>

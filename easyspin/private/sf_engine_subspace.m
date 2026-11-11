@@ -60,7 +60,9 @@
 %     formula) at the detuning from the RF carrier, averaged over the RF
 %     phase.
 %   - Relaxation: exp(-t/T2) for intervals with electron coherence and
-%     exp(-t/T1) for intervals with electron populations.
+%     exp(-t/T1) for intervals with electron populations, over the delays
+%     with relaxation on (Opt.Relaxation, one value or one per element of
+%     Exp.Sequence); none during pulses.
 %
 %   Data structures of the local functions:
 %     E  entries, one per excited EPR transition and orientation (and
@@ -510,7 +512,7 @@ else
       end
       if isempty(Expk.nPoints), Expk = rmfield(Expk,'nPoints'); end
       idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
-      [seqk,reasons] = sf_parsesequence(Expk,idealPulses);
+      [seqk,reasons] = sf_parsesequence(Expk,idealPulses,Opt.Relaxation);
       if ~isempty(reasons)
         error('The subspace engine cannot simulate point %d: %s.',iPt,strjoin(reasons,', '));
       end
@@ -697,17 +699,19 @@ nDims = numel(seq.kind1Dims);
 scheme = seq.IncSchemeID;
 
 % Relaxation: fixed decay factor per pathway and decay rates per dimension;
-% pathways with the same rates share a buffer
+% pathways with the same rates share a buffer. Only delays with relaxation
+% on (Opt.Relaxation) contribute: tRelax, and the incremented delays with
+% incRelax.
 coh = seq.co~=0;
 rateInt = zeros(nP,N);
 if Rel.on
   rateInt(coh) = 1/Rel.T2;
   rateInt(~coh) = 1/Rel.T1;
 end
-fixedDecay = exp(-rateInt*seq.t.');
+fixedDecay = exp(-rateInt*seq.tRelax.');
 pRates = zeros(nP,nDims);
 for d = 1:nDims
-  pRates(:,d) = sum(rateInt(:,seq.Inc==d),2);
+  pRates(:,d) = sum(rateInt(:,seq.Inc==d & seq.incRelax),2);
 end
 [rates,~,group] = unique(pRates,'rows');
 nGroups = size(rates,1);
@@ -722,6 +726,7 @@ if nDims>0 && prod(seq.nPointsInc)<=64 && ~productRule
     s = seq;
     for i = incIntervals
       s.t(i) = seq.t(i) + k(seq.Inc(i))*seq.dt(seq.Inc(i));
+      if seq.incRelax(i), s.tRelax(i) = seq.tRelax(i) + k(seq.Inc(i))*seq.dt(seq.Inc(i)); end
     end
     s.Inc(:) = 0;
     s.kind1Dims = [];

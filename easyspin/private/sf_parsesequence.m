@@ -1,6 +1,7 @@
 % sf_parsesequence  Parse a user-defined experiment for the subspace engine
 %
 %   [sequence,reasons] = sf_parsesequence(Exp,idealPulses)
+%   [sequence,reasons] = sf_parsesequence(Exp,idealPulses,relaxation)
 %
 %   Converts a user-defined experiment into the representation used by the
 %   subspace engine (sf_engine_subspace). Each interval is a pulse followed
@@ -29,6 +30,9 @@
 %       ResonatorQL, FrequencyResponse, rfPhaseLocked
 %                        only checked for unsupported features
 %     idealPulses        true: treat finite pulses as ideal
+%     relaxation         relaxation on/off per element of Exp.Sequence
+%                        (Opt.Relaxation); a single value or omitted: on
+%                        during all delays
 %
 %   Output:
 %     seq  sequence structure (N intervals, nPathways pathways), with fields
@@ -37,6 +41,9 @@
 %                        'rf'), Phase, tp, Frequency, Type, Par (the pulse
 %                        as given), Flip, ideal, B1 (RF pulses)
 %       t                delay after each pulse (µs), 1xN
+%       tRelax           part of t with relaxation on (µs), 1xN
+%       incRelax         true if the incremented delay of the interval
+%                        has relaxation on, 1xN
 %       delayInterval    interval of each delay in Exp.Sequence (0: before
 %                        the first pulse)
 %       isRF, nRF        true for RF pulses (1xN), number of RF pulses
@@ -68,7 +75,7 @@
 %     reasons   cell array of strings that list the features the subspace
 %               engine does not support (empty if it supports all of them)
 
-function [sequence,reasons] = sf_parsesequence(Exp,idealPulses)
+function [sequence,reasons] = sf_parsesequence(Exp,idealPulses,relaxation)
 
 reasons = {};
 sequence = struct;
@@ -95,21 +102,34 @@ end
 
 % Intervals: pulse k and the delays after it. Delays before the first
 % pulse have no effect on the initial state -Sz (no relaxation is applied
-% before the first pulse).
+% before the first pulse). tRelax is the part of the delays of each
+% interval with relaxation on (Opt.Relaxation per element of Exp.Sequence;
+% entries for pulses have no effect, since there is no relaxation during
+% pulses).
+if nargin<3 || isempty(relaxation) || isscalar(relaxation)
+  relaxed = true(1,numel(Sequence));
+else
+  relaxed = logical(relaxation(:).');
+end
 idxPulse = find(isPulse);
 nPulses = numel(idxPulse);
 idxDelay = find(~isPulse);
 delayInterval = zeros(1,numel(idxDelay));  % interval of each delay (0: before first pulse)
 t = zeros(1,nPulses);
+tRelax = zeros(1,nPulses);
 for iD = 1:numel(idxDelay)
   iInt = sum(idxPulse<idxDelay(iD));
   delayInterval(iD) = iInt;
   if iInt>0
     t(iInt) = t(iInt) + Sequence{idxDelay(iD)};
+    if relaxed(idxDelay(iD))
+      tRelax(iInt) = tRelax(iInt) + Sequence{idxDelay(iD)};
+    end
   end
 end
 sequence.delayInterval = delayInterval;
 sequence.t = t;
+sequence.tRelax = tRelax;
 
 % Pulses
 Pulses = struct('Channel',cell(1,nPulses));
@@ -255,6 +275,7 @@ else
 end
 nDims = numel(nPoints);
 Inc = zeros(1,nPulses);       % kind-1 dimension label of each interval (before relabeling)
+incRelax = true(1,nPulses);   % relaxation on for the incremented delay of each interval
 dt = zeros(1,nDims);
 kind = zeros(1,nDims);
 mods = cell(1,nDims);   % kind 3: {target type, index, field, values}
@@ -318,6 +339,7 @@ for d = 1:nDims
         reasons{end+1} = 'several incremented delays in one interval';
       end
       Inc(iInt) = d;
+      incRelax(iInt) = relaxed(idxDelay(iD));
     end
   elseif all(strcmp(targets,'rfFreq'))
     kind(d) = 2;
@@ -386,6 +408,7 @@ relabel(order) = 1:numel(order);
 IncScheme = relabel(incDims);
 sequence.Inc = zeros(1,nPulses);
 sequence.Inc(Inc~=0) = IncScheme;
+sequence.incRelax = incRelax;
 sequence.kind1Dims = order;              % original dimension of relabeled dims 1,2
 sequence.dt = dt(order);
 sequence.nPointsInc = nPoints(order);

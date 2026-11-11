@@ -453,7 +453,7 @@ To add relaxation, give longitudinal and transverse relaxation times (T<sub>1</s
 </p>
 
 <p>
-The <em>subspace</em> method multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence (e.g. during the two inter-pulse delays &tau;), and with T<sub>1</sub> over the time it is in a population state (e.g. T in three-pulse ESEEM, or t<sub>1</sub> and t<sub>2</sub> in HYSCORE). The decay is the same for all orientations and does not depend on the nuclear coherences, so the ESEEM modulations decay along with the echo. This is done for ESEEM and HYSCORE experiments, predefined or user-defined. For ENDOR, relaxation has no effect in the <em>subspace</em> method.
+The <em>subspace</em> method multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence (e.g. during the two inter-pulse delays &tau;), and with T<sub>1</sub> over the time it is in a population state (e.g. T in three-pulse ESEEM, or t<sub>1</sub> and t<sub>2</sub> in HYSCORE). The decay is the same for all orientations and does not depend on the nuclear coherences, so the ESEEM modulations decay along with the echo. This is done for ESEEM and HYSCORE experiments, predefined or user-defined. For ENDOR, relaxation has no effect in the <em>subspace</em> method. To limit relaxation to some delays, give one entry of <code>Opt.Relaxation</code> per element of <code>Exp.Sequence</code>, e.g. <code>Opt.Relaxation = [0 1 0 0 0 1]</code> for relaxation only during the two &tau; delays of <code>{p90 tau p90 T p90 tau}</code>. Entries for pulses have no effect, since the <em>subspace</em> method has no relaxation during pulses.
 </p>
 
 <p>

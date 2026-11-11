@@ -53,7 +53,7 @@
 %                    selection by an excitation window of width 1/tp
 %                    (subspace)
 %     Relaxation     relaxation on/off, a single value or one per element
-%                    of Exp.Sequence (fullspace)
+%                    of Exp.Sequence
 %     GridSize, GridSymmetry, GridFrame, Sites
 %     IntTimeStep, SimFreq (fullspace)
 %     OffsetTolerance  error target of the average over the inhomogeneous
@@ -309,8 +309,8 @@ if ~isfield(Opt,'Sites'), Opt.Sites = []; end
 if isfield(Opt,'nKnots')
   error('Options.nKnots is obsolete. Use Options.GridSize instead, e.g. Options.GridSize = 91.');
 end
-if isfield(Opt,'Relaxation') && ~isscalar(Opt.Relaxation)
-  % event-specific relaxation (full-space engine only)
+if isfield(Opt,'Relaxation') && ~isscalar(Opt.Relaxation) && numel(Opt.Relaxation)~=numel(Exp.Sequence)
+  error('Opt.Relaxation must be a single value or have one entry per element of Exp.Sequence (%d).',numel(Exp.Sequence));
 end
 Opt.relaxationFromSys = ~isfield(Opt,'Relaxation');
 if ~isfield(Opt,'GridSize'), Opt.GridSize = 30+1; end

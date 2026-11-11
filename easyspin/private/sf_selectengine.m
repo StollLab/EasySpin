@@ -13,7 +13,8 @@
 %   approximation), ideal and rectangular microwave pulses, single rectangular
 %   RF pulses with an RF frequency sweep, linear delay increments in the
 %   binning schemes, other pulse parameters point by point, coherence pathway
-%   selection, phase cycles, scalar T1/T2 and single-point S+ detection at
+%   selection, phase cycles, scalar T1/T2 (also only during some delays,
+%   Opt.Relaxation) and single-point S+ detection at
 %   the end of the sequence. Everything else needs the full-space engine (see
 %   sf_parsesequence for the sequence features). Conversely, inhomogeneous
 %   broadening (Sys.lwAnisoG) and ideal pulses with an excitation window
@@ -24,7 +25,8 @@
 %     Exp  experiment, passed on to sf_parsesequence
 %     Opt  options structure, with fields
 %       Method       'auto' (default), 'subspace', 'fullspace'
-%       Relaxation   relaxation on/off, one value or one per event
+%       Relaxation   relaxation on/off, one value or one per element of
+%                    Exp.Sequence, passed on to sf_parsesequence
 %       IdealPulses  true: treat finite pulses as ideal
 %
 %   Output:
@@ -50,7 +52,9 @@ seq = [];
 reasons = {};
 if ~strcmp(requested,'fullspace')
   idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
-  [seq,reasons] = sf_parsesequence(Exp,idealPulses);
+  relaxation = [];
+  if isfield(Opt,'Relaxation'), relaxation = Opt.Relaxation; end
+  [seq,reasons] = sf_parsesequence(Exp,idealPulses,relaxation);
 end
 
 % Spin system features
@@ -76,9 +80,6 @@ for c = 1:numel(SysList)
 end
 if highSpin && ~strcmp(requested,'subspace')
   reasons{end+1} = 'electron spin S > 1/2 (use Opt.Method = ''subspace'' for the transition-selective approximation)';
-end
-if isfield(Opt,'Relaxation') && numel(Opt.Relaxation)>1
-  reasons{end+1} = 'event-specific relaxation (Opt.Relaxation)';
 end
 reasons = unique(reasons,'stable');
 

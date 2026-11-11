@@ -126,11 +126,8 @@ finitemwPulsePositions = pulsePositions(~isRFEvent(pulsePositions) & ~isIdealEve
 
 % Event-specific relaxation (Opt.Relaxation) refers to the elements of
 % Exp.Sequence as given by the user, before detection events are appended
-% below
+% below (its length is checked by saffron)
 nUserEvents = numel(Exp.Sequence);
-if isfield(Opt,'Relaxation') && ~isscalar(Opt.Relaxation) && numel(Opt.Relaxation)~=nUserEvents
-  error('Opt.Relaxation must be a single value or have one entry per element of Exp.Sequence (%d).',nUserEvents);
-end
 
 % Set up detection
 %-------------------------------------------------------------------------------
