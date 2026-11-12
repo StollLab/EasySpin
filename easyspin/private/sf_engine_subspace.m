@@ -240,13 +240,17 @@ lwAnisoG = Sys.lwAnisoG(:).'.*[1 1 1];
 % matrices, M -> conj(M). Without static nuclear terms (Q, nn), M can be
 % made real for each nucleus, and the reversed orientations give the same
 % signal. With them, the reversed partners are needed (see
-% fieldReversalShortcut below).
+% fieldReversalShortcut below). The shortcut is checked on the parsed
+% sequence, i.e. with the pulses and delays of Exp.Sequence as given,
+% without the changes of the point-by-point (kind 3) dimensions. These can
+% break the symmetry (e.g. a changed delay), so with them the partners are
+% computed.
 partialSphereGrid = ~Opt.crystalSample && isfield(Opt,'nOctants') && Opt.nOctants~=8;
 hasStaticTerms = nSubSpaces>0 && any(arrayfun(@(N)any(N.Hstatic(:)~=0),NucHams));
 reversedField = "none";
 if partialSphereGrid && hasStaticTerms
   reversedField = "compute";
-  if ~seq.finitePulses && ~isENDOR
+  if ~seq.finitePulses && ~isENDOR && ~any(seq.kind==3)
     reversedField = fieldReversalShortcut(seq);
   end
 end
