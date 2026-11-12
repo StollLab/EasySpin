@@ -46,11 +46,14 @@ sf_peaks  Bin the peaks of a coherence transfer pathway into a buffer
 
 /*-------------------------------------------------------------------*/
 /* bin of a peak with phase x = -nu*dt (in cycles): fmod(x,1)*nPoints,
-   rounded toward zero, negative bins wrapped around; x-trunc(x) is exact
-   and equal to fmod(x,1) */
+   rounded toward zero, negative bins wrapped around; for finite x and
+   nPoints>0, 0 <= bin < nPoints. The fractional part x-trunc(x) is exact
+   and equal to fmod(x,1), but faster; doubles with |x| >= 2^52 are
+   integers (fractional part 0), and the cast to long long needs |x| < 2^63 */
 static int binIndex(double x, int nPoints)
 {
-  int b = (int)((x - (double)(long long)x)*nPoints);
+  double frac = (fabs(x)<4503599627370496.0) ? x - (double)(long long)x : 0.0;
+  int b = (int)(frac*nPoints);
   if (b<0) b += nPoints;
   if (b>=nPoints) b -= nPoints;  /* fractional part rounded up to 1 */
   return b;
@@ -83,7 +86,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double rAmp, iAmp, rAmp0,iAmp0, rAmp1, iAmp1, rAmp2, iAmp2, rAmp3, iAmp3, rAmp4, iAmp4, rAmp5, iAmp5;
   double *rSpec, *iSpec, *rCol, *iCol;
   double *freeL, *freeR;
-  int id1, id2, idx, q, *nu1, *nu2, *bins1;
+  int id2, idx, q, *nu1, *nu2, *bins1;
 
   int a;
   mxArray *imagZeros;
@@ -136,6 +139,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     nPoints1 = mxGetM(prhs[a]);
     nPoints2 = mxGetN(prhs[a]);
   }
+  if ((nPoints1<1)||(nPoints2<1))
+    mexErrMsgTxt("bufferRe must not be empty.");
 
   a++;
   /* Spec: spectral storage array */
@@ -177,6 +182,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (mxIsComplex(prhs[a])) mexErrMsgTxt("Eb must be real!");
   if (nStates!=mxGetNumberOfElements(prhs[a]))
     mexErrMsgTxt("Ea and Eb must have the same number of elements.");
+
+  /* with finite energies and time increments, binIndex keeps all bins
+     within the buffer, so the binning loops need no range checks */
+  for (i=0;i<nStates;i++)
+    if (!mxIsFinite(Ea[i]) || !mxIsFinite(Eb[i]))
+      mexErrMsgTxt("Ea and Eb must be finite.");
+  for (i=0;i<nDimensions;i++)
+    if (!mxIsFinite(dt[i]))
+      mexErrMsgTxt("dt must be finite.");
 
   imagZeros = mxCreateDoubleMatrix(nStates,nStates,mxREAL);
   
@@ -369,15 +383,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           /* the - signs here account for the fact the the quantum
            * evolution goes with (-omega_ij)t, but Fourier theory
            * uses (+omega_ij)t */
-          id1 = binIndex(-(E1left[i]-E1right[j])*dt1,nPoints1);
-          id2 = binIndex(-(E2left[i]-E2right[j])*dt2,nPoints2);
-
-          nu1[idx] = id1;
-          nu2[idx] = id2;
-          if ((id1<0)||(id1>nPoints1-1))
-            mexErrMsgTxt("id1 is out of range.");
-          if ((id2<0)||(id2>nPoints2-1))
-            mexErrMsgTxt("id2 is out of range.");
+          nu1[idx] = binIndex(-(E1left[i]-E1right[j])*dt1,nPoints1);
+          nu2[idx] = binIndex(-(E2left[i]-E2right[j])*dt2,nPoints2);
 
           idx++;
         }
@@ -496,11 +503,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
                   
                   /* nu1 = E1l[k]-E1r[l] + E3l[i]-E3r[n] */
-                  id1 = bins1[q + i*nStates + n];
-                  
-                  idx = id1 + id2*nPoints1;
-                  if ((idx<0)||(idx>nPoints1*nPoints2))
-                    mexErrMsgTxt("idx out of range.");
+                  idx = bins1[q + i*nStates + n] + id2*nPoints1;
                   
                   rSpec[idx] += rAmp;
                   iSpec[idx] += iAmp;
@@ -562,8 +565,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   iAmp = rAmp5*iT1r[lm] + iAmp5*rT1r[lm];
 
                   idx = bins1[q++] + id2*nPoints1;
-                  if ((idx<0)||(idx>nPoints1*nPoints2))
-                    mexErrMsgTxt("idx out of range.");
                   
                   rSpec[idx] += rAmp;
                   iSpec[idx] += iAmp;
@@ -634,14 +635,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       rAmp4 = rAmp3*rD[pi] - iAmp3*iD[pi];
                       iAmp4 = rAmp3*iD[pi] + iAmp3*rD[pi];
                       rAmp = rAmp4*rT3r[op] - iAmp4*iT3r[op];
-                      iAmp = rAmp4*iT2r[op] + iAmp4*rT3r[op];
+                      iAmp = rAmp4*iT3r[op] + iAmp4*rT3r[op];
                       
-                      id1 = bins1[q++];
-                      if ((id1<0)||(id1>nPoints1-1))
-                        mexErrMsgTxt("id1 is out of range.");
-                      if ((id2<0)||(id2>nPoints2-1))
-                        mexErrMsgTxt("id2 is out of range.");
-                      idx = id1 + id2*nPoints1;
+                      idx = bins1[q++] + id2*nPoints1;
                       
                       rSpec[idx] += rAmp;
                       iSpec[idx] += iAmp;
@@ -717,8 +713,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       iAmp = rAmp5*iT1r[mn] + iAmp5*rT1r[mn];
 
                       idx = bins1[q++] + id2*nPoints1;
-                      if ((idx<0)||(idx>nPoints1*nPoints2))
-                        mexErrMsgTxt("idx out of range.");
                       
                       rSpec[idx] += rAmp;
                       iSpec[idx] += iAmp;
