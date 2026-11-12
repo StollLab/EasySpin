@@ -3,13 +3,15 @@ function ok = test() %#ok<FNDEF>
 % sf_peaks bins the peaks of each incrementation scheme like the direct sum
 % over all state indices: the amplitude is the product of the matrix
 % elements along the pathway (see the sf_peaks header), and the bin is
-% fmod(-nu*dt,1)*nPoints, rounded toward zero, with negative bins wrapped
-% around.
+% fmod(-nu*dt,1)*nPoints, rounded to the nearest integer with ties away
+% from zero, with negative bins wrapped around.
 % - random complex, non-Hermitian matrices, so that every matrix element
 %   must enter with the right indices (no symmetry hides an error)
 % - random manifolds (alpha/beta) per incremented delay, buffer sizes that
 %   are not powers of 2
-% - non-finite energies or time increments and empty buffers are rejected
+% - exact ties (frequencies on a grid of half bins, exact in binary)
+% - non-finite energies or time increments, empty buffers and the
+%   unsupported scheme 13 are rejected
 
 rng(1);
 n = 3;  % number of nuclear states
@@ -68,6 +70,17 @@ runprivate('sf_peaks',1,bufferRe,bufferIm,dt(1),1,2,EaL,EbL,G,D);
 Bref = accumarray(bins(nu1,dt(1),10)+1,amp,[10 1]).';
 ok(end+1) = areequal(complex(bufferRe,bufferIm),Bref,1e-12,'rel');
 
+% exact ties: with dt = 1/4 and nPoints = 8, energies that are multiples of
+% 1/4 MHz put every peak at an integer or half-integer bin position
+EaT = [0; 0.25; 1.75];  % MHz
+EbT = [0.5; -1.25; 3];  % MHz
+bufferRe = zeros(1,8);
+bufferIm = zeros(1,8);
+runprivate('sf_peaks',2,bufferRe,bufferIm,0.25,[1 2],[2 1],EaT,EbT,G,D,ML{1},MR{1});
+[amp,nu1] = peaks(2,EaT,EbT,[1 2],[2 1],G,D,ML(1),MR(1));
+Bref = accumarray(bins(nu1,0.25,8)+1,amp,[8 1]).';
+ok(end+1) = areequal(complex(bufferRe,bufferIm),Bref,1e-12,'rel');
+
 % invalid inputs: non-finite energies or time increment, empty buffer
 Ea = [1; 2; 3];  % MHz
 Eb = [-1; 0; 4];  % MHz
@@ -84,12 +97,21 @@ for k = 1:numel(args)
   end
 end
 
+% scheme 13 is not supported
+try
+  runprivate('sf_peaks',13,zeros(10),zeros(10),dt,[1 1 1],[1 1 1],Ea,Eb,G,D,G,G,G,G);
+  ok(end+1) = false;
+catch err
+  ok(end+1) = contains(err.message,'Unrecognized incrementation scheme');
+end
+
 end
 
 %-------------------------------------------------------------------------------
-% bins: fmod(-nu*dt,1)*nPoints, rounded toward zero, negative bins wrapped
+% bins: fmod(-nu*dt,1)*nPoints, rounded to the nearest integer with ties
+% away from zero (MATLAB round), negative bins wrapped around
 function b = bins(nu,dt,nPoints)
-b = mod(fix(rem(-nu*dt,1)*nPoints),nPoints);
+b = mod(round(rem(-nu*dt,1)*nPoints),nPoints);
 end
 
 %-------------------------------------------------------------------------------

@@ -36,9 +36,10 @@ sf_peaks  Bin the peaks of a coherence transfer pathway into a buffer
     none; bufferRe and bufferIm are modified in place
 
   Binning: a peak with frequency nu goes into bin fmod(-nu*dt,1)*nPoints,
-  rounded toward zero, with negative bins wrapped around. This rounding is
-  odd in nu, so peaks at -nu and +nu land in mirrored bins and conjugate
-  peak pairs (nu,a), (-nu,conj(a)) give exactly conjugate-symmetric buffers.
+  rounded to the nearest integer with ties away from zero, with negative
+  bins wrapped around. This rounding is odd in nu, so peaks at -nu and +nu
+  land in mirrored bins and conjugate peak pairs (nu,a), (-nu,conj(a)) give
+  exactly conjugate-symmetric buffers.
  */
 
 #include "mex.h"
@@ -46,16 +47,21 @@ sf_peaks  Bin the peaks of a coherence transfer pathway into a buffer
 
 /*-------------------------------------------------------------------*/
 /* bin of a peak with phase x = -nu*dt (in cycles): fmod(x,1)*nPoints,
-   rounded toward zero, negative bins wrapped around; for finite x and
-   nPoints>0, 0 <= bin < nPoints. The fractional part x-trunc(x) is exact
-   and equal to fmod(x,1), but faster; doubles with |x| >= 2^52 are
-   integers (fractional part 0), and the cast to long long needs |x| < 2^63 */
+   rounded to the nearest integer with ties away from zero, negative bins
+   wrapped around; for finite x and nPoints>0, 0 <= bin < nPoints. The
+   fractional part x-trunc(x) is exact and equal to fmod(x,1), but faster;
+   doubles with |x| >= 2^52 are integers (fractional part 0), and the cast
+   to long long needs |x| < 2^63. y-b is exact, so the rounding is exact and
+   odd in x. */
 static int binIndex(double x, int nPoints)
 {
   double frac = (fabs(x)<4503599627370496.0) ? x - (double)(long long)x : 0.0;
-  int b = (int)(frac*nPoints);
+  double y = frac*nPoints;
+  int b = (int)y;
+  if (y-b>=0.5) b++;
+  else if (y-b<=-0.5) b--;
   if (b<0) b += nPoints;
-  if (b>=nPoints) b -= nPoints;  /* fractional part rounded up to 1 */
+  if (b>=nPoints) b -= nPoints;
   return b;
 }
 
@@ -79,7 +85,7 @@ static int *pairSumBins(const double *El1, const double *Er1,
 /*===================================================================*/
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  int nPeaks, nStates, nPoints1, nPoints2, nFreeEvolutions, nDimensions;
+  int nStates, nPoints1, nPoints2, nFreeEvolutions, nDimensions;
   double *rG, *iG, *rD, *iD, *rT1l, *iT1l, *rT1r, *iT1r;
   double *rT2l, *iT2l, *rT2r, *iT2r, *rT3l, *iT3l, *rT3r, *iT3r;
   double *Ea, *Eb, *E1left, *E1right, *E2left, *E2right, *E3left, *E3right, *E4left, *E4right;
@@ -120,7 +126,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     case  3: nFreeEvolutions = 2; nDimensions = 1; break;
     case 11: nFreeEvolutions = 2; nDimensions = 2; break;
     case 12: nFreeEvolutions = 3; nDimensions = 2; break;
-    case 13: nFreeEvolutions = 3; nDimensions = 2; break;
     case 14: nFreeEvolutions = 3; nDimensions = 2; break;
     case 15: nFreeEvolutions = 4; nDimensions = 2; break;
     case 17: nFreeEvolutions = 4; nDimensions = 2; break;
@@ -297,7 +302,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   else
     mexErrMsgTxt("Unsupported number of free evolution periods.");
   
-  nPeaks = 0;
   switch (IncSchemeID) {
 
     case 1: /* [1], e.g. three-pulse ESEEM */
@@ -311,7 +315,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           jk = j+k*nStates;
           kj = k+j*nStates;
           
-          /* the - signs here account for the fact the the quantum
+          /* the - signs here account for the fact that the quantum
            * evolution goes with (-omega_ij)t, but Fourier theory
            * uses (+omega_ij)t */
           idx = binIndex(-(E1left[j]-E1right[k])*dt1,nPoints1);
@@ -322,7 +326,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           
           rSpec[idx] += rAmp;
           iSpec[idx] += iAmp;
-          nPeaks++;
         }
       }
       break;
@@ -356,7 +359,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               
               rSpec[idx] += rAmp2;
               iSpec[idx] += iAmp2;
-              nPeaks++;
             }
           }
         }
@@ -380,7 +382,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       for (j=0;j<nStates;j++) {
         for (i=0;i<nStates;i++) {
 
-          /* the - signs here account for the fact the the quantum
+          /* the - signs here account for the fact that the quantum
            * evolution goes with (-omega_ij)t, but Fourier theory
            * uses (+omega_ij)t */
           nu1[idx] = binIndex(-(E1left[i]-E1right[j])*dt1,nPoints1);
@@ -394,7 +396,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       /* Amp = Mp[ij]*S[jk]*Mm[kl]*T[li]; */
       /* the outer loops (i,l) fix the buffer column (dimension 2), the
          inner loops (j,k) stay within it */
-      nPeaks = 0;
       for (i=0;i<nStates;i++) {
         for (l=0;l<nStates;l++) {
           li = l+i*nStates;
@@ -414,7 +415,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               iAmp2 = rAmp1*iT1r[kl] + iAmp1*rT1r[kl];
               rCol[nu1[jk]] += rAmp2;
               iCol[nu1[jk]] += iAmp2;
-              nPeaks++;
             }
           }
         }
@@ -450,7 +450,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               
               rSpec[idx] += rAmp2;
               iSpec[idx] += iAmp2;
-              nPeaks++;
             }
           }
         }
@@ -507,7 +506,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   
                   rSpec[idx] += rAmp;
                   iSpec[idx] += iAmp;
-                  nPeaks++;
                 }
               }
               
@@ -568,7 +566,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   
                   rSpec[idx] += rAmp;
                   iSpec[idx] += iAmp;
-                  nPeaks++;
                 }
               }
             }
@@ -641,7 +638,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       
                       rSpec[idx] += rAmp;
                       iSpec[idx] += iAmp;
-                      nPeaks++;
                     }
                   }
                 }
@@ -716,7 +712,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       
                       rSpec[idx] += rAmp;
                       iSpec[idx] += iAmp;
-                      nPeaks++;
                     }
                   }
                 }

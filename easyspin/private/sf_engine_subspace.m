@@ -463,7 +463,7 @@ E.offsetTolerance = Opt.OffsetTolerance;
 % Simulation
 %-------------------------------------------------------------------------------
 Rel.T1 = T1; Rel.T2 = T2; Rel.on = relaxation;
-expandFactor = 4;  % 2^expandFactor buffer expansion for binning
+expandFactor = 6;  % 2^expandFactor buffer expansion for binning
 if numel(seq.kind1Dims)==2, expandFactor = 2; end
 if isfield(Opt,'Expand') && ~isempty(Opt.Expand), expandFactor = Opt.Expand; end
 

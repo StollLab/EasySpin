@@ -867,7 +867,7 @@ Determines whether the product rule is used or not (<code>true</code> or <code>f
 
 <div class="optionfield"><code>Expand</code></div>
 <div class="optiondescr">
-Expansion factor used in the simulation, should be 0, 1, 2, 3, or 4. The higher the factor, the more accurate the simulation, but the slower it becomes, especially for 2D simulations. Default values are 4 for 1D and 2 for 2D.
+Expansion factor of the subspace method, a non-negative integer. The signal is computed via a frequency-domain buffer that is 2<sup><code>Expand</code></sup> times longer than the signal along each dimension. The higher the factor, the more accurate the simulation, but the more memory and time it needs, especially for 2D simulations. Default values are 6 for 1D and 2 for 2D.
 </div>
 
 <p>
