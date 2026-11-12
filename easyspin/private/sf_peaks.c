@@ -34,10 +34,27 @@ sf_peaks  Bin the peaks of a coherence transfer pathway into a buffer
 
   Output:
     none; bufferRe and bufferIm are modified in place
+
+  Binning: a peak with frequency nu goes into bin fmod(-nu*dt,1)*nPoints,
+  rounded toward zero, with negative bins wrapped around. This rounding is
+  odd in nu, so peaks at -nu and +nu land in mirrored bins and conjugate
+  peak pairs (nu,a), (-nu,conj(a)) give exactly conjugate-symmetric buffers.
  */
 
 #include "mex.h"
 #include <math.h>
+
+/*-------------------------------------------------------------------*/
+/* bin of a peak with phase x = -nu*dt (in cycles): fmod(x,1)*nPoints,
+   rounded toward zero, negative bins wrapped around; x-trunc(x) is exact
+   and equal to fmod(x,1) */
+static int binIndex(double x, int nPoints)
+{
+  int b = (int)((x - (double)(long long)x)*nPoints);
+  if (b<0) b += nPoints;
+  if (b>=nPoints) b -= nPoints;  /* fractional part rounded up to 1 */
+  return b;
+}
 
 /*===================================================================*/
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -49,8 +66,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double rAmp, iAmp, rAmp0,iAmp0, rAmp1, iAmp1, rAmp2, iAmp2, rAmp3, iAmp3, rAmp4, iAmp4, rAmp5, iAmp5;
   double *rSpec, *iSpec;
   double *freeL, *freeR;
-  double id1, id2, nu, nu1_, nu2_;
-  int idx, *nu1, *nu2;
+  int id1, id2, idx, *nu1, *nu2;
 
   int a;
   mxArray *imagZeros;
@@ -267,11 +283,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           /* the - signs here account for the fact the the quantum
            * evolution goes with (-omega_ij)t, but Fourier theory
            * uses (+omega_ij)t */
-          nu = E1left[j]-E1right[k];
-          id1 = fmod(-nu*dt1,1.0)*nPoints1;
-          if (id1>=0) id1 = floor(id1);
-          else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-          idx = id1;
+          idx = binIndex(-(E1left[j]-E1right[k])*dt1,nPoints1);
       
           /* compute amplitude T[kj]*S[jk] */
           rAmp = rD[kj]*rG[jk] - iD[kj]*iG[jk];
@@ -304,12 +316,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               li = l+i*nStates;
               il = i+l*nStates;
 
-              nu = (E2left[i]-E2right[l])+(E1left[j]-E1right[k]);
-
-              id1 = fmod(-nu*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              idx = id1;
+              idx = binIndex(-((E2left[i]-E2right[l])+(E1left[j]-E1right[k]))*dt1,nPoints1);
 
               rAmp1 = rAmp*rT1r[kl] - iAmp*iT1r[kl];
               iAmp1 = rAmp*iT1r[kl] + iAmp*rT1r[kl];
@@ -345,13 +352,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           /* the - signs here account for the fact the the quantum
            * evolution goes with (-omega_ij)t, but Fourier theory
            * uses (+omega_ij)t */
-          id1 = fmod(-(E1left[i]-E1right[j])*dt1,1.0)*nPoints1;
-          id2 = fmod(-(E2left[i]-E2right[j])*dt2,1.0)*nPoints2;
-
-          if (id1>=0) id1 = floor(id1);
-          else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-          if (id2>=0) id2 = floor(id2);
-          else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
+          id1 = binIndex(-(E1left[i]-E1right[j])*dt1,nPoints1);
+          id2 = binIndex(-(E2left[i]-E2right[j])*dt2,nPoints2);
 
           nu1[idx] = id1;
           nu2[idx] = id2;
@@ -412,12 +414,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               li = l+i*nStates;
               il = i+l*nStates;
 
-              nu = -E2left[i]+E1left[j]-E1right[k]+E2right[l];
-
-              id1 = fmod(-nu*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              idx = id1;
+              idx = binIndex(-(-E2left[i]+E1left[j]-E1right[k]+E2right[l])*dt1,nPoints1);
 
               rAmp1 = rAmp*rT1r[kl] - iAmp*iT1r[kl];
               iAmp1 = rAmp*iT1r[kl] + iAmp*rT1r[kl];
@@ -458,10 +455,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               iAmp1 = rAmp0*iT1r[lm] + iAmp0*rT1r[lm];
               
               /* nu2 = (E2l[j]-E2r[m]) */
-              nu2_ = (E2left[j]-E2right[m]);
-              id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-              if (id2>=0) id2 = floor(id2);
-              else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
+              id2 = binIndex(-(E2left[j]-E2right[m])*dt2,nPoints2);
               
               for (i=0;i<nStates;i++) {
                 ij = i + j*nStates;
@@ -478,10 +472,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
                   
                   /* nu1 = E1l[k]-E1r[l] + E3l[i]-E3r[n] */
-                  nu1_ = (E1left[k]-E1right[l]) + (E3left[i]-E3right[n]);
-                  id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-                  if (id1>=0) id1 = floor(id1);
-                  else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
+                  id1 = binIndex(-((E1left[k]-E1right[l]) + (E3left[i]-E3right[n]))*dt1,nPoints1);
                   
                   idx = id1 + id2*nPoints1;
                   if ((idx<0)||(idx>nPoints1*nPoints2))
@@ -523,10 +514,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
               rAmp1 = rAmp0*rT1r[lm] - iAmp0*iT1r[lm];
               iAmp1 = rAmp0*iT1r[lm] + iAmp0*rT1r[lm];
               /* nu1 = E1l[k]-E1r[l]+E2l[j]-E2r[m] */
-              nu1_ = (E1left[k]-E1right[l]) + (E2left[j]-E2right[m]);
-              id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
+              id1 = binIndex(-((E1left[k]-E1right[l]) + (E2left[j]-E2right[m]))*dt1,nPoints1);
               
               for (i=0;i<nStates;i++) {
                 ij = i + j*nStates;
@@ -543,10 +531,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
                   
                   /* nu2 = (E3l[i]-E3r[n]) */
-                  nu2_ = (E3left[i]-E3right[n]);
-                  id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-                  if (id2>=0) id2 = floor(id2);
-                  else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
+                  id2 = binIndex(-(E3left[i]-E3right[n])*dt2,nPoints2);
                   
                   idx = id1 + id2*nPoints1;
                   if ((idx<0)||(idx>nPoints1*nPoints2))
@@ -584,10 +569,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for (p=0;p<nStates;p++) {
               pi = p + i*nStates;
               /* nu1 = E1l[l]-E1r[m]+E4l[i]-E4r[p] */
-              nu1_ = (E1left[l]-E1right[m]) + (E4left[i]-E4right[p]);
-              id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
+              id1 = binIndex(-((E1left[l]-E1right[m]) + (E4left[i]-E4right[p]))*dt1,nPoints1);
               
               for (k=0;k<nStates;k++) {
                 kl = k + l*nStates;
@@ -620,10 +602,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       iAmp = rAmp3*iT2r[op] + iAmp3*rT3r[op];
                       
                       /* nu2 = E2l[k]-E2r[n] + E3l[j]-E3r[o] */
-                      nu2_ = (E2left[k]-E2right[n]) + (E3left[j]-E3right[o]);
-                      id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-                      if (id2>=0) id2 = floor(id2);
-                      else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
+                      id2 = binIndex(-((E2left[k]-E2right[n]) + (E3left[j]-E3right[o]))*dt2,nPoints2);
                       if ((id1<0)||(id1>nPoints1-1))
                         mexErrMsgTxt("id1 is out of range.");
                       if ((id2<0)||(id2>nPoints2-1))
@@ -668,10 +647,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for (n=0;n<nStates;n++) {
               mn = m + n*nStates;
               /* nu1 = E1l[l]-E1r[m]+E2l[k]-E2r[n] */
-              nu1_ = (E1left[l]-E1right[m]) + (E2left[k]-E2right[n]);
-              id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
+              id1 = binIndex(-((E1left[l]-E1right[m]) + (E2left[k]-E2right[n]))*dt1,nPoints1);
               /* Amp1 = Amp0*T1r[mn] */
               rAmp1 = rAmp0*rT1r[mn] - iAmp0*iT1r[mn];
               iAmp1 = rAmp0*iT1r[mn] + iAmp0*rT1r[mn];
@@ -701,11 +677,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       rAmp = rD[pi]*rAmp5 - iD[pi]*iAmp5;
                       iAmp = rD[pi]*iAmp5 + iD[pi]*rAmp5;
                       
-                      /* nu2 = (E3l[k]-E3r[n]) + (E4l[j]-E4r[o]) */
-                      nu2_ = (E3left[j]-E3right[o]) + (E4left[i]-E4right[p]);
-                      id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-                      if (id2>=0) id2 = floor(id2);
-                      else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
+                      /* nu2 = (E3l[j]-E3r[o]) + (E4l[i]-E4r[p]) */
+                      id2 = binIndex(-((E3left[j]-E3right[o]) + (E4left[i]-E4right[p]))*dt2,nPoints2);
               
                       idx = id1 + id2*nPoints1;
                       if ((idx<0)||(idx>nPoints1*nPoints2))
