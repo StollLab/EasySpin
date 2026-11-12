@@ -56,6 +56,23 @@ static int binIndex(double x, int nPoints)
   return b;
 }
 
+/*-------------------------------------------------------------------*/
+/* bins of nu = (El1[a]-Er1[b]) + (El2[c]-Er2[d]) for all states a,b,c,d,
+   in the order bins[((a*nStates+b)*nStates+c)*nStates+d], allocated with
+   mxMalloc */
+static int *pairSumBins(const double *El1, const double *Er1,
+  const double *El2, const double *Er2, int nStates, double dt, int nPoints)
+{
+  int a, b, c, d, q = 0;
+  int *bins = mxMalloc((size_t)nStates*nStates*nStates*nStates*sizeof(int));
+  for (a=0;a<nStates;a++)
+    for (b=0;b<nStates;b++)
+      for (c=0;c<nStates;c++)
+        for (d=0;d<nStates;d++)
+          bins[q++] = binIndex(-((El1[a]-Er1[b]) + (El2[c]-Er2[d]))*dt,nPoints);
+  return bins;
+}
+
 /*===================================================================*/
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -64,9 +81,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   double *rT2l, *iT2l, *rT2r, *iT2r, *rT3l, *iT3l, *rT3r, *iT3r;
   double *Ea, *Eb, *E1left, *E1right, *E2left, *E2right, *E3left, *E3right, *E4left, *E4right;
   double rAmp, iAmp, rAmp0,iAmp0, rAmp1, iAmp1, rAmp2, iAmp2, rAmp3, iAmp3, rAmp4, iAmp4, rAmp5, iAmp5;
-  double *rSpec, *iSpec;
+  double *rSpec, *iSpec, *rCol, *iCol;
   double *freeL, *freeR;
-  int id1, id2, idx, *nu1, *nu2;
+  int id1, id2, idx, q, *nu1, *nu2, *bins1;
 
   int a;
   mxArray *imagZeros;
@@ -158,7 +175,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   /* Eb ... energies for beta manifold */
   Eb = mxGetPr(prhs[a]);
   if (mxIsComplex(prhs[a])) mexErrMsgTxt("Eb must be real!");
-  if (nStates!=mxGetNumberOfElements(prhs[a])) 
+  if (nStates!=mxGetNumberOfElements(prhs[a]))
     mexErrMsgTxt("Ea and Eb must have the same number of elements.");
 
   imagZeros = mxCreateDoubleMatrix(nStates,nStates,mxREAL);
@@ -368,25 +385,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
       /* compute amplitudes and bin peaks */
       /* Amp = Mp[ij]*S[jk]*Mm[kl]*T[li]; */
+      /* the outer loops (i,l) fix the buffer column (dimension 2), the
+         inner loops (j,k) stay within it */
       nPeaks = 0;
-      for (j=0;j<nStates;j++) {
-        for (k=0;k<nStates;k++) {
-          jk = j+k*nStates;
-          for (i=0;i<nStates;i++) {
+      for (i=0;i<nStates;i++) {
+        for (l=0;l<nStates;l++) {
+          li = l+i*nStates;
+          il = i+l*nStates;
+          rCol = rSpec + nu2[il]*nPoints1;
+          iCol = iSpec + nu2[il]*nPoints1;
+          for (j=0;j<nStates;j++) {
             ij = i+j*nStates;
-            rAmp = rT1l[ij]*rG[jk] - iT1l[ij]*iG[jk];
-            iAmp = rT1l[ij]*iG[jk] + iT1l[ij]*rG[jk];
-            for (l=0;l<nStates;l++) {
+            rAmp = rD[li]*rT1l[ij] - iD[li]*iT1l[ij];
+            iAmp = rD[li]*iT1l[ij] + iD[li]*rT1l[ij];
+            for (k=0;k<nStates;k++) {
+              jk = j+k*nStates;
               kl = k+l*nStates;
-              li = l+i*nStates;
-              il = i+l*nStates;
-              rAmp1 = rAmp*rT1r[kl] - iAmp*iT1r[kl];
-              iAmp1 = rAmp*iT1r[kl] + iAmp*rT1r[kl];
-              rAmp2 = rAmp1*rD[li] - iAmp1*iD[li];
-              iAmp2 = rAmp1*iD[li] + iAmp1*rD[li];
-              idx = nu1[jk] + nu2[il]*nPoints1;
-              rSpec[idx] += rAmp2;
-              iSpec[idx] += iAmp2;
+              rAmp1 = rAmp*rG[jk] - iAmp*iG[jk];
+              iAmp1 = rAmp*iG[jk] + iAmp*rG[jk];
+              rAmp2 = rAmp1*rT1r[kl] - iAmp1*iT1r[kl];
+              iAmp2 = rAmp1*iT1r[kl] + iAmp1*rT1r[kl];
+              rCol[nu1[jk]] += rAmp2;
+              iCol[nu1[jk]] += iAmp2;
               nPeaks++;
             }
           }
@@ -440,9 +460,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       E2right = (freeR[1]==1) ? Ea : Eb;
       E3right = (freeR[2]==1) ? Ea : Eb;
       
+      /* bins of nu1 = E1l[k]-E1r[l] + E3l[i]-E3r[n], in the order (k,l,i,n) */
+      bins1 = pairSumBins(E1left,E1right,E3left,E3right,nStates,dt1,nPoints1);
+
       for (k=0;k<nStates;k++) {
         for (l=0;l<nStates;l++) {
           kl = k + l*nStates;
+          q = (k*nStates + l)*nStates*nStates;
           for (j=0;j<nStates;j++) {
             jk = j + k*nStates;
             /* Amp0 = T1l[jk]*G[kl] */
@@ -472,7 +496,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
                   
                   /* nu1 = E1l[k]-E1r[l] + E3l[i]-E3r[n] */
-                  id1 = binIndex(-((E1left[k]-E1right[l]) + (E3left[i]-E3right[n]))*dt1,nPoints1);
+                  id1 = bins1[q + i*nStates + n];
                   
                   idx = id1 + id2*nPoints1;
                   if ((idx<0)||(idx>nPoints1*nPoints2))
@@ -488,6 +512,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
           }
         }
       }
+      mxFree(bins1);
       break;
     
     case 14: /* [1 1 2], e.g. Hubrich's CF-NF(2) */
@@ -497,43 +522,46 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       E2left  = (freeL[1]==1) ? Ea : Eb;
       E3left  = (freeL[2]==1) ? Ea : Eb;
       E1right = (freeR[0]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;      
-      E3right = (freeR[2]==1) ? Ea : Eb;      
+      E2right = (freeR[1]==1) ? Ea : Eb;
+      E3right = (freeR[2]==1) ? Ea : Eb;
       
-      for (k=0;k<nStates;k++) {
-        for (l=0;l<nStates;l++) {
-          kl = k + l*nStates;
+      /* bins of nu1 = E1l[k]-E1r[l]+E2l[j]-E2r[m], in the order (j,m,k,l)
+         of the inner loops below */
+      bins1 = pairSumBins(E2left,E2right,E1left,E1right,nStates,dt1,nPoints1);
+
+      /* the outer loops (i,n) fix the buffer column (dimension 2), the
+         inner loops (j,m,k,l) stay within it */
+      for (i=0;i<nStates;i++) {
+        for (n=0;n<nStates;n++) {
+          ni = n + i*nStates;
+          /* nu2 = (E3l[i]-E3r[n]) */
+          id2 = binIndex(-(E3left[i]-E3right[n])*dt2,nPoints2);
+          q = 0;
           for (j=0;j<nStates;j++) {
-            jk = j + k*nStates;
-            /* Amp0 = T1l[jk]*G[kl] */
-            rAmp0 = rT1l[jk]*rG[kl] - iT1l[jk]*iG[kl];
-            iAmp0 = rT1l[jk]*iG[kl] + iT1l[jk]*rG[kl];
+            ij = i + j*nStates;
+            /* Amp0 = D[ni]*T2l[ij] */
+            rAmp0 = rD[ni]*rT2l[ij] - iD[ni]*iT2l[ij];
+            iAmp0 = rD[ni]*iT2l[ij] + iD[ni]*rT2l[ij];
             for (m=0;m<nStates;m++) {
-              lm = l + m*nStates;
-              /* Amp1 = Amp0*T1r[lm] */
-              rAmp1 = rAmp0*rT1r[lm] - iAmp0*iT1r[lm];
-              iAmp1 = rAmp0*iT1r[lm] + iAmp0*rT1r[lm];
-              /* nu1 = E1l[k]-E1r[l]+E2l[j]-E2r[m] */
-              id1 = binIndex(-((E1left[k]-E1right[l]) + (E2left[j]-E2right[m]))*dt1,nPoints1);
-              
-              for (i=0;i<nStates;i++) {
-                ij = i + j*nStates;
-                /* Amp2 = T2l[ij]*Amp1 */
-                rAmp2 = rT2l[ij]*rAmp1 - iT2l[ij]*iAmp1;
-                iAmp2 = rT2l[ij]*iAmp1 + iT2l[ij]*rAmp1;
-                for (n=0;n<nStates;n++) {
-                  mn = m + n*nStates;
-                  ni = n + i*nStates;
-                  /* Amp3 = Amp2*T2r[mn] */
-                  rAmp3 = rAmp2*rT2r[mn] - iAmp2*iT2r[mn];
-                  iAmp3 = rAmp2*iT2r[mn] + iAmp2*rT2r[mn];
-                  rAmp = rD[ni]*rAmp3 - iD[ni]*iAmp3;
-                  iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
-                  
-                  /* nu2 = (E3l[i]-E3r[n]) */
-                  id2 = binIndex(-(E3left[i]-E3right[n])*dt2,nPoints2);
-                  
-                  idx = id1 + id2*nPoints1;
+              mn = m + n*nStates;
+              /* Amp1 = Amp0*T2r[mn] */
+              rAmp1 = rAmp0*rT2r[mn] - iAmp0*iT2r[mn];
+              iAmp1 = rAmp0*iT2r[mn] + iAmp0*rT2r[mn];
+              for (k=0;k<nStates;k++) {
+                jk = j + k*nStates;
+                /* Amp2 = Amp1*T1l[jk] */
+                rAmp2 = rAmp1*rT1l[jk] - iAmp1*iT1l[jk];
+                iAmp2 = rAmp1*iT1l[jk] + iAmp1*rT1l[jk];
+                for (l=0;l<nStates;l++) {
+                  kl = k + l*nStates;
+                  lm = l + m*nStates;
+                  /* Amp = Amp2*G[kl]*T1r[lm], via Amp5 = Amp2*G[kl] */
+                  rAmp5 = rAmp2*rG[kl] - iAmp2*iG[kl];
+                  iAmp5 = rAmp2*iG[kl] + iAmp2*rG[kl];
+                  rAmp = rAmp5*rT1r[lm] - iAmp5*iT1r[lm];
+                  iAmp = rAmp5*iT1r[lm] + iAmp5*rT1r[lm];
+
+                  idx = bins1[q++] + id2*nPoints1;
                   if ((idx<0)||(idx>nPoints1*nPoints2))
                     mexErrMsgTxt("idx out of range.");
                   
@@ -542,11 +570,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                   nPeaks++;
                 }
               }
-              
             }
           }
         }
       }
+      mxFree(bins1);
       break;
 
     case 15: /* [1 2 2 1], e.g. 2D-CP */
@@ -562,47 +590,53 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       E3right = (freeR[2]==1) ? Ea : Eb;
       E4right = (freeR[3]==1) ? Ea : Eb;
       
-      for (l=0;l<nStates;l++) {
-        for (m=0;m<nStates;m++) {
-          lm = l + m*nStates;
-          for (i=0;i<nStates;i++) {
-            for (p=0;p<nStates;p++) {
-              pi = p + i*nStates;
-              /* nu1 = E1l[l]-E1r[m]+E4l[i]-E4r[p] */
-              id1 = binIndex(-((E1left[l]-E1right[m]) + (E4left[i]-E4right[p]))*dt1,nPoints1);
+      /* bins of nu1 = E1l[l]-E1r[m]+E4l[i]-E4r[p], in the order (l,m,i,p)
+         of the inner loops below */
+      bins1 = pairSumBins(E1left,E1right,E4left,E4right,nStates,dt1,nPoints1);
               
-              for (k=0;k<nStates;k++) {
+      /* the outer loops (k,n,j,o) fix the buffer column (dimension 2), the
+         inner loops (l,m,i,p) stay within it */
+      for (k=0;k<nStates;k++) {
+        for (n=0;n<nStates;n++) {
+          for (j=0;j<nStates;j++) {
+            jk = j + k*nStates;
+            for (o=0;o<nStates;o++) {
+              no = n + o*nStates;
+              /* nu2 = E2l[k]-E2r[n] + E3l[j]-E3r[o] */
+              id2 = binIndex(-((E2left[k]-E2right[n]) + (E3left[j]-E3right[o]))*dt2,nPoints2);
+              /* Amp0 = T2l[jk]*T2r[no] */
+              rAmp0 = rT2l[jk]*rT2r[no] - iT2l[jk]*iT2r[no];
+              iAmp0 = rT2l[jk]*iT2r[no] + iT2l[jk]*rT2r[no];
+              q = 0;
+              for (l=0;l<nStates;l++) {
                 kl = k + l*nStates;
-                /* Amp0 = T1l[kl]*G[lm] */
-                rAmp0 = rT1l[kl]*rG[lm] - iT1l[kl]*iG[lm];
-                iAmp0 = rT1l[kl]*iG[lm] + iT1l[kl]*rG[lm];     
-                for (n=0;n<nStates;n++) {
+                /* Amp1 = Amp0*T1l[kl] */
+                rAmp1 = rAmp0*rT1l[kl] - iAmp0*iT1l[kl];
+                iAmp1 = rAmp0*iT1l[kl] + iAmp0*rT1l[kl];
+                for (m=0;m<nStates;m++) {
+                  lm = l + m*nStates;
                   mn = m + n*nStates;
-                  /* Amp1 = Amp0*T1r[mn] */
-                  rAmp1 = rAmp0*rT1r[mn] - iAmp0*iT1r[mn];
-                  iAmp1 = rAmp0*iT1r[mn] + iAmp0*rT1r[mn];
-                  for (j=0;j<nStates;j++) {
+                  /* Amp2 = Amp1*G[lm]*T1r[mn], via Amp5 = Amp1*G[lm] */
+                  rAmp5 = rAmp1*rG[lm] - iAmp1*iG[lm];
+                  iAmp5 = rAmp1*iG[lm] + iAmp1*rG[lm];
+                  rAmp2 = rAmp5*rT1r[mn] - iAmp5*iT1r[mn];
+                  iAmp2 = rAmp5*iT1r[mn] + iAmp5*rT1r[mn];
+                  for (i=0;i<nStates;i++) {
                     ij = i + j*nStates;
-                    jk = j + k*nStates;
-                    /* Amp2 = D[pi]*T3l[ij]*T2l[jk]*Amp1 */
-                    rAmp2 = rT2l[jk]*rAmp1 - iT2l[jk]*iAmp1;
-                    iAmp2 = rT2l[jk]*iAmp1 + iT2l[jk]*rAmp1;
-                    rAmp3 = rT3l[ij]*rAmp2 - iT3l[ij]*iAmp2;
-                    iAmp3 = rT3l[ij]*iAmp2 + iT3l[ij]*rAmp2;
-                    rAmp2 = rD[pi]*rAmp3 - iD[pi]*iAmp3;
-                    iAmp2 = rD[pi]*iAmp3 + iD[pi]*rAmp3;
-                    for (o=0;o<nStates;o++) {
-                      no = n + o*nStates;
+                    /* Amp3 = Amp2*T3l[ij] */
+                    rAmp3 = rAmp2*rT3l[ij] - iAmp2*iT3l[ij];
+                    iAmp3 = rAmp2*iT3l[ij] + iAmp2*rT3l[ij];
+                    for (p=0;p<nStates;p++) {
+                      pi = p + i*nStates;
                       op = o + p*nStates;
                       
-                      /* Amp = Amp2*T2r[no]*T3r[op] */
-                      rAmp3 = rAmp2*rT2r[no] - iAmp2*iT2r[no];
-                      iAmp3 = rAmp2*iT2r[no] + iAmp2*rT2r[no];
-                      rAmp = rAmp3*rT3r[op] - iAmp3*iT3r[op];
-                      iAmp = rAmp3*iT2r[op] + iAmp3*rT3r[op];
+                      /* Amp4 = Amp3*D[pi], Amp = Amp4*T3r[op] */
+                      rAmp4 = rAmp3*rD[pi] - iAmp3*iD[pi];
+                      iAmp4 = rAmp3*iD[pi] + iAmp3*rD[pi];
+                      rAmp = rAmp4*rT3r[op] - iAmp4*iT3r[op];
+                      iAmp = rAmp4*iT2r[op] + iAmp4*rT3r[op];
                       
-                      /* nu2 = E2l[k]-E2r[n] + E3l[j]-E3r[o] */
-                      id2 = binIndex(-((E2left[k]-E2right[n]) + (E3left[j]-E3right[o]))*dt2,nPoints2);
+                      id1 = bins1[q++];
                       if ((id1<0)||(id1>nPoints1-1))
                         mexErrMsgTxt("id1 is out of range.");
                       if ((id2<0)||(id2>nPoints2-1))
@@ -611,16 +645,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                       
                       rSpec[idx] += rAmp;
                       iSpec[idx] += iAmp;
-                      nPeaks++;                    
+                      nPeaks++;
                     }
                   }
                 }
               }
-              
             }
           }
         }
       }
+      mxFree(bins1);
       break;
       
     /*-------------------------------------------------------------------*/
@@ -632,75 +666,77 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       E3left  = (freeL[2]==1) ? Ea : Eb;
       E4left  = (freeL[3]==1) ? Ea : Eb;
       E1right = (freeR[0]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;      
-      E3right = (freeR[2]==1) ? Ea : Eb;      
-      E4right = (freeR[3]==1) ? Ea : Eb;      
+      E2right = (freeR[1]==1) ? Ea : Eb;
+      E3right = (freeR[2]==1) ? Ea : Eb;
+      E4right = (freeR[3]==1) ? Ea : Eb;
       
-      for (l=0;l<nStates;l++) {
-        for (m=0;m<nStates;m++) {
-          lm = l + m*nStates;
-          for (k=0;k<nStates;k++) {
-            kl = k + l*nStates;
-            /* Amp0 = T1l[kl]*G[lm] */
-            rAmp0 = rT1l[kl]*rG[lm] - iT1l[kl]*iG[lm];
-            iAmp0 = rT1l[kl]*iG[lm] + iT1l[kl]*rG[lm];
-            for (n=0;n<nStates;n++) {
-              mn = m + n*nStates;
-              /* nu1 = E1l[l]-E1r[m]+E2l[k]-E2r[n] */
-              id1 = binIndex(-((E1left[l]-E1right[m]) + (E2left[k]-E2right[n]))*dt1,nPoints1);
-              /* Amp1 = Amp0*T1r[mn] */
-              rAmp1 = rAmp0*rT1r[mn] - iAmp0*iT1r[mn];
-              iAmp1 = rAmp0*iT1r[mn] + iAmp0*rT1r[mn];
+      /* bins of nu1 = E1l[l]-E1r[m]+E2l[k]-E2r[n], in the order (k,n,l,m)
+         of the inner loops below */
+      bins1 = pairSumBins(E2left,E2right,E1left,E1right,nStates,dt1,nPoints1);
               
-              for (j=0;j<nStates;j++) {
+      /* the outer loops (j,o,i,p) fix the buffer column (dimension 2), the
+         inner loops (k,n,l,m) stay within it */
+      for (j=0;j<nStates;j++) {
+        for (o=0;o<nStates;o++) {
+          for (i=0;i<nStates;i++) {
+            ij = i + j*nStates;
+            for (p=0;p<nStates;p++) {
+              op = o + p*nStates;
+              pi = p + i*nStates;
+              /* nu2 = (E3l[j]-E3r[o]) + (E4l[i]-E4r[p]) */
+              id2 = binIndex(-((E3left[j]-E3right[o]) + (E4left[i]-E4right[p]))*dt2,nPoints2);
+              /* Amp0 = D[pi]*T3l[ij]*T3r[op], via Amp5 = D[pi]*T3l[ij] */
+              rAmp5 = rD[pi]*rT3l[ij] - iD[pi]*iT3l[ij];
+              iAmp5 = rD[pi]*iT3l[ij] + iD[pi]*rT3l[ij];
+              rAmp0 = rAmp5*rT3r[op] - iAmp5*iT3r[op];
+              iAmp0 = rAmp5*iT3r[op] + iAmp5*rT3r[op];
+              q = 0;
+              for (k=0;k<nStates;k++) {
                 jk = j + k*nStates;
-                /* Amp2 = T2l[jk]*Amp1 */
-                rAmp2 = rT2l[jk]*rAmp1 - iT2l[jk]*iAmp1;
-                iAmp2 = rT2l[jk]*iAmp1 + iT2l[jk]*rAmp1;
-                for (o=0;o<nStates;o++) {
+                /* Amp1 = Amp0*T2l[jk] */
+                rAmp1 = rAmp0*rT2l[jk] - iAmp0*iT2l[jk];
+                iAmp1 = rAmp0*iT2l[jk] + iAmp0*rT2l[jk];
+                for (n=0;n<nStates;n++) {
                   no = n + o*nStates;
-                  /* Amp3 = Amp2*T2r[no] */
-                  rAmp3 = rAmp2*rT2r[no] - iAmp2*iT2r[no];
-                  iAmp3 = rAmp2*iT2r[no] + iAmp2*rT2r[no];
-                  for (i=0;i<nStates;i++) {
-                    ij = i + j*nStates;
-                    /* Amp4 = T3l[ij]*Amp3 */
-                    rAmp4 = rT3l[ij]*rAmp3 - iT3l[ij]*iAmp3;
-                    iAmp4 = rT3l[ij]*iAmp3 + iT3l[ij]*rAmp3;
-                    for (p=0;p<nStates;p++) {
-                      op = o + p*nStates;
-                      pi = p + i*nStates;
-                      
-                      /* Amp = D[pi*Amp4*T3r[op] */
-                      rAmp5 = rAmp4*rT3r[op] - iAmp4*iT3r[op];
-                      iAmp5 = rAmp4*iT3r[op] + iAmp4*rT3r[op];
-                      rAmp = rD[pi]*rAmp5 - iD[pi]*iAmp5;
-                      iAmp = rD[pi]*iAmp5 + iD[pi]*rAmp5;
-                      
-                      /* nu2 = (E3l[j]-E3r[o]) + (E4l[i]-E4r[p]) */
-                      id2 = binIndex(-((E3left[j]-E3right[o]) + (E4left[i]-E4right[p]))*dt2,nPoints2);
-              
-                      idx = id1 + id2*nPoints1;
+                  /* Amp2 = Amp1*T2r[no] */
+                  rAmp2 = rAmp1*rT2r[no] - iAmp1*iT2r[no];
+                  iAmp2 = rAmp1*iT2r[no] + iAmp1*rT2r[no];
+                  for (l=0;l<nStates;l++) {
+                    kl = k + l*nStates;
+                    /* Amp3 = Amp2*T1l[kl] */
+                    rAmp3 = rAmp2*rT1l[kl] - iAmp2*iT1l[kl];
+                    iAmp3 = rAmp2*iT1l[kl] + iAmp2*rT1l[kl];
+                    for (m=0;m<nStates;m++) {
+                      lm = l + m*nStates;
+                      mn = m + n*nStates;
+
+                      /* Amp = Amp3*G[lm]*T1r[mn], via Amp5 = Amp3*G[lm] */
+                      rAmp5 = rAmp3*rG[lm] - iAmp3*iG[lm];
+                      iAmp5 = rAmp3*iG[lm] + iAmp3*rG[lm];
+                      rAmp = rAmp5*rT1r[mn] - iAmp5*iT1r[mn];
+                      iAmp = rAmp5*iT1r[mn] + iAmp5*rT1r[mn];
+
+                      idx = bins1[q++] + id2*nPoints1;
                       if ((idx<0)||(idx>nPoints1*nPoints2))
                         mexErrMsgTxt("idx out of range.");
                       
                       rSpec[idx] += rAmp;
                       iSpec[idx] += iAmp;
-                      nPeaks++;                    
+                      nPeaks++;
                     }
                   }
                 }
               }
-              
             }
           }
         }
       }
+      mxFree(bins1);
       break;
 
       default:
       mexErrMsgTxt("Incrementation scheme is currently not supported.");
-      break;      
+      break;
 
   }
 
