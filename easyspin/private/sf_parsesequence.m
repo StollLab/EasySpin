@@ -12,7 +12,10 @@
 %        (sf_peaks); dimensions are relabeled 1,2 in order of appearance
 %     2  the RF carrier frequency (Exp.rfFreq) with a single RF pulse,
 %        computed from the analytic response of each NMR transition
-%     3  any other parameter of the pulses or delays, computed point by point
+%     3  any other parameter of the pulses or delays, computed point by
+%        point; also linear delay increments that do not fit a binning
+%        scheme of sf_peaks (several incremented delays in one interval,
+%        other combinations of incremented intervals)
 %
 %   Coherence transfer pathways are coded per interval as 1 = alpha
 %   population, 2 = beta population, 3 = +1 coherence, 4 = -1 coherence.
@@ -52,14 +55,14 @@
 %       finitePulses     true if there are finite microwave pulses
 %       DetPhase         detection phase (radians)
 %       nPoints, kind    number of points and kind (1, 2, 3) of each dimension
-%       mods             cell array with one element per dimension; kind 3:
-%                        rows {'d' or 'p', delay or pulse index, pulse
-%                        field, values}
+%       mods             cell array with one element per dimension; kinds 1
+%                        and 3: rows {'d' or 'p', delay or pulse index,
+%                        pulse field, values}
 %       Inc              relabeled kind-1 dimension of each interval (0:
 %                        not incremented), 1xN
 %       kind1Dims        original dimension of the relabeled dimensions
 %       dt, nPointsInc   increments (µs) and points of the relabeled dimensions
-%       IncSchemeID      incrementation scheme of sf_peaks, NaN if unsupported
+%       IncSchemeID      incrementation scheme of sf_peaks
 %       ctp              coherence transfer pathways, nPathways x N
 %       co               electron coherence orders, nPathways x N
 %       echoOrders       orders selected by Exp.Pathways = 'echo', before
@@ -324,23 +327,23 @@ for d = 1:nDims
   end
   isDelay = ~cellfun(@isempty,regexp(targets,'^d\d+$','once'));
   if all(isDelay) && linStep(1)>0 && all(linStep==linStep(1))
+    % linear delay increments: binned (kind 1) if they fit a scheme of
+    % sf_peaks (decided below), otherwise point by point (kind 3, with the
+    % delay modifications in mods)
     kind(d) = 1;
     dt(d) = linStep(1);
+    m = cell(numel(targets),4);
     for q = 1:numel(targets)
       iD = str2double(targets{q}(2:end));
       if iD<1 || iD>numel(idxDelay)
         error('Exp.%s: delay %s does not exist.',dimField,targets{q});
       end
-      iInt = delayInterval(iD);
-      if iInt==0
+      if delayInterval(iD)==0
         error('Exp.%s: incrementing a delay before the first pulse has no effect.',dimField);
       end
-      if Inc(iInt)~=0
-        reasons{end+1} = 'several incremented delays in one interval';
-      end
-      Inc(iInt) = d;
-      incRelax(iInt) = relaxed(idxDelay(iD));
+      m(q,:) = {'d',iD,'',vals{q}};
     end
+    mods{d} = m;
   elseif all(strcmp(targets,'rfFreq'))
     kind(d) = 2;
     if isnan(linStep(1))
@@ -395,6 +398,32 @@ end
 if isfield(Exp,'rfPhaseLocked') && Exp.rfPhaseLocked
   reasons{end+1} = 'phase-locked RF (Exp.rfPhaseLocked)';
 end
+
+% Binned delay increments: sf_peaks needs at most one incremented delay per
+% interval, and the incremented intervals, labeled with their dimensions
+% relabeled 1,2 in order of appearance, must form one of its schemes. The
+% dimensions are added in the order of decreasing number of points, so that
+% the larger ones stay binned. A dimension that does not fit is computed
+% point by point (kind 3), which is exact but slower.
+schemes = {[],1,[1 1],[1 2],[1 2 1],[1 1 2],[1 2 2 1],[1 1 2 2]};
+schemeIDs = [0 1 2 11 12 14 15 17];
+linDims = find(kind==1);
+[~,bySize] = sort(nPoints(linDims),'descend');
+for d = linDims(bySize)
+  iD = [mods{d}{:,2}];
+  intervals = delayInterval(iD);
+  IncTrial = Inc;
+  IncTrial(intervals) = d;
+  [~,~,labels] = unique(IncTrial(IncTrial~=0),'stable');
+  fits = numel(unique(intervals))==numel(intervals) && all(Inc(intervals)==0) && ...
+    any(cellfun(@(s)isequal(s,labels.'),schemes));
+  if fits
+    Inc = IncTrial;
+    incRelax(intervals) = relaxed(idxDelay(iD));
+  else
+    kind(d) = 3;
+  end
+end
 sequence.nPoints = nPoints;
 sequence.kind = kind;
 sequence.mods = mods;
@@ -412,18 +441,10 @@ sequence.incRelax = incRelax;
 sequence.kind1Dims = order;              % original dimension of relabeled dims 1,2
 sequence.dt = dt(order);
 sequence.nPointsInc = nPoints(order);
-schemes = {[],1,[1 1],[1 2],[1 2 1],[1 1 2],[1 2 2 1],[1 1 2 2]};
-schemeIDs = [0 1 2 11 12 14 15 17];
 if isempty(IncScheme)
-  idx = 1;
+  sequence.IncSchemeID = 0;
 else
-  idx = find(cellfun(@(s)isequal(s,IncScheme),schemes));
-end
-if isempty(idx)
-  reasons{end+1} = 'this combination of incremented delays';
-  sequence.IncSchemeID = NaN;
-else
-  sequence.IncSchemeID = schemeIDs(idx);
+  sequence.IncSchemeID = schemeIDs(cellfun(@(s)isequal(s,IncScheme),schemes));
 end
 
 % Parse/generate coherence transfer pathways
