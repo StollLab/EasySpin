@@ -785,10 +785,9 @@ if productRule
         end
         [G,D,BL,BR] = evaluatePathways(Ed,seq,p,[]);
         if s==1, G = G*pref(p)*E.w(e); end
-        bRe = zeros(siz); bIm = zeros(siz);
-        sf_peaks(scheme,bRe,bIm,seq.dt,seq.idxIncL(p,:),seq.idxIncR(p,:),...
+        buff = complex(zeros(siz));  % sf_peaks adds to it in place
+        sf_peaks(scheme,buff,seq.dt,seq.idxIncL(p,:),seq.idxIncR(p,:),...
           Ed.Ea,Ed.Eb,G,D,BL{:},BR{:});
-        buff = complex(bRe,bIm);
         if nDims==1
           td1 = ifft(buff)*numel(buff);
           td1 = td1(1:seq.nPointsInc);
@@ -813,9 +812,10 @@ end
 
 % Without product rule: one subspace
 if nDims>0
-  bRe = cell(1,nGroups); bIm = cell(1,nGroups);
+  % complex buffers, one per group; sf_peaks adds to them in place
+  buffers = cell(1,nGroups);
   for iG = 1:nGroups
-    bRe{iG} = zeros(siz); bIm{iG} = zeros(siz);
+    buffers{iG} = complex(zeros(siz));
   end
 else
   yScalar = zeros(1,nGroups);
@@ -866,29 +866,29 @@ for iChunk = 1:numel(chunks)
       else
         G = G.*wp;
         iG = group(p);
-        bRe_ = bRe{iG}; bIm_ = bIm{iG};
+        buff = buffers{iG};  % shares its data with buffers{iG}
         iL = seq.idxIncL(p,:); iR = seq.idxIncR(p,:);
         switch numel(BL)
           case 0
             for k = 1:numel(ec)
-              sf_peaks(scheme,bRe_,bIm_,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k));
+              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k));
             end
           case 1
             L1 = BL{1}; R1 = BR{1};
             for k = 1:numel(ec)
-              sf_peaks(scheme,bRe_,bIm_,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
+              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
                 L1(:,:,k),R1(:,:,k));
             end
           case 2
             L1 = BL{1}; R1 = BR{1}; L2 = BL{2}; R2 = BR{2};
             for k = 1:numel(ec)
-              sf_peaks(scheme,bRe_,bIm_,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
+              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
                 L1(:,:,k),L2(:,:,k),R1(:,:,k),R2(:,:,k));
             end
           case 3
             L1 = BL{1}; R1 = BR{1}; L2 = BL{2}; R2 = BR{2}; L3 = BL{3}; R3 = BR{3};
             for k = 1:numel(ec)
-              sf_peaks(scheme,bRe_,bIm_,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
+              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
                 L1(:,:,k),L2(:,:,k),L3(:,:,k),R1(:,:,k),R2(:,:,k),R3(:,:,k));
             end
         end
@@ -904,7 +904,7 @@ if nDims==0
 end
 y = 0;
 for iG = 1:nGroups
-  buff = complex(bRe{iG},bIm{iG});
+  buff = buffers{iG};
   if nDims==1
     td_ = ifft(buff)*numel(buff);
     td_ = td_(1:seq.nPointsInc);

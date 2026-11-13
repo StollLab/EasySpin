@@ -10,7 +10,8 @@ function ok = test() %#ok<FNDEF>
 % - random manifolds (alpha/beta) per incremented delay, buffer sizes that
 %   are not powers of 2
 % - exact ties (frequencies on a grid of half bins, exact in binary)
-% - non-finite energies or time increments, empty buffers and the
+% - real (not complex) matrices
+% - non-finite energies or time increments, empty or real buffers and the
 %   unsupported scheme 13 are rejected
 
 rng(1);
@@ -44,10 +45,8 @@ for s = 1:numel(schemes)
     d = dt(1);
     siz = [1 nPoints(1)];
   end
-  bufferRe = zeros(siz);
-  bufferIm = zeros(siz);
-  runprivate('sf_peaks',scheme,bufferRe,bufferIm,d,iL,iR,Ea,Eb,G,D,ML{:},MR{:});
-  B = complex(bufferRe,bufferIm);
+  B = complex(zeros(siz));
+  runprivate('sf_peaks',scheme,B,d,iL,iR,Ea,Eb,G,D,ML{:},MR{:});
 
   [amp,nu1,nu2] = peaks(scheme,Ea,Eb,iL,iR,G,D,ML,MR);
   b1 = bins(nu1,dt(1),siz(1+(scheme<10)));
@@ -63,34 +62,44 @@ end
 % very large phases (|nu*dt| >= 2^52 cycles, integers): all peaks in bin 0
 EaL = 1e20*[1; 2; 3];  % MHz
 EbL = 1e20*[3; 1; 2];  % MHz
-bufferRe = zeros(1,10);
-bufferIm = zeros(1,10);
-runprivate('sf_peaks',1,bufferRe,bufferIm,dt(1),1,2,EaL,EbL,G,D);
+B = complex(zeros(1,10));
+runprivate('sf_peaks',1,B,dt(1),1,2,EaL,EbL,G,D);
 [amp,nu1] = peaks(1,EaL,EbL,1,2,G,D,{},{});
 Bref = accumarray(bins(nu1,dt(1),10)+1,amp,[10 1]).';
-ok(end+1) = areequal(complex(bufferRe,bufferIm),Bref,1e-12,'rel');
+ok(end+1) = areequal(B,Bref,1e-12,'rel');
 
 % exact ties: with dt = 1/4 and nPoints = 8, energies that are multiples of
 % 1/4 MHz put every peak at an integer or half-integer bin position
 EaT = [0; 0.25; 1.75];  % MHz
 EbT = [0.5; -1.25; 3];  % MHz
-bufferRe = zeros(1,8);
-bufferIm = zeros(1,8);
-runprivate('sf_peaks',2,bufferRe,bufferIm,0.25,[1 2],[2 1],EaT,EbT,G,D,ML{1},MR{1});
+B = complex(zeros(1,8));
+runprivate('sf_peaks',2,B,0.25,[1 2],[2 1],EaT,EbT,G,D,ML{1},MR{1});
 [amp,nu1] = peaks(2,EaT,EbT,[1 2],[2 1],G,D,ML(1),MR(1));
 Bref = accumarray(bins(nu1,0.25,8)+1,amp,[8 1]).';
-ok(end+1) = areequal(complex(bufferRe,bufferIm),Bref,1e-12,'rel');
+ok(end+1) = areequal(B,Bref,1e-12,'rel');
 
-% invalid inputs: non-finite energies or time increment, empty buffer
+% real (not complex) matrices, as with mixed real and complex inputs
+GR = real(G);
+MR1 = real(MR{1});
+B = complex(zeros(1,nPoints(1)));
+runprivate('sf_peaks',2,B,dt(1),[1 2],[2 1],Ea,Eb,GR,D,ML{1},MR1);
+[amp,nu1] = peaks(2,Ea,Eb,[1 2],[2 1],GR,D,ML(1),{MR1});
+Bref = accumarray(bins(nu1,dt(1),nPoints(1))+1,amp,[nPoints(1) 1]).';
+ok(end+1) = areequal(B,Bref,1e-12,'rel');
+
+% invalid inputs: non-finite energies or time increment, empty or real
+% buffer
 Ea = [1; 2; 3];  % MHz
 Eb = [-1; 0; 4];  % MHz
-args = {{[1; NaN; 3],Eb,dt(1),zeros(1,10)}, {Ea,[-1; Inf; 4],dt(1),zeros(1,10)}, ...
-  {Ea,Eb,NaN,zeros(1,10)}, {Ea,Eb,dt(1),zeros(1,0)}};
-messages = {'must be finite','must be finite','must be finite','must not be empty'};
+buffer = complex(zeros(1,10));
+args = {{[1; NaN; 3],Eb,dt(1),buffer}, {Ea,[-1; Inf; 4],dt(1),buffer}, ...
+  {Ea,Eb,NaN,buffer}, {Ea,Eb,dt(1),complex(zeros(1,0))}, {Ea,Eb,dt(1),zeros(1,10)}};
+messages = {'must be finite','must be finite','must be finite','must not be empty',...
+  'must be a complex double array'};
 for k = 1:numel(args)
   [Ea_,Eb_,dt_,buffer] = args{k}{:};
   try
-    runprivate('sf_peaks',1,buffer,zeros(size(buffer)),dt_,1,1,Ea_,Eb_,G,D);
+    runprivate('sf_peaks',1,buffer,dt_,1,1,Ea_,Eb_,G,D);
     ok(end+1) = false; %#ok<AGROW>
   catch err
     ok(end+1) = contains(err.message,messages{k}); %#ok<AGROW>
@@ -99,7 +108,7 @@ end
 
 % scheme 13 is not supported
 try
-  runprivate('sf_peaks',13,zeros(10),zeros(10),dt,[1 1 1],[1 1 1],Ea,Eb,G,D,G,G,G,G);
+  runprivate('sf_peaks',13,complex(zeros(10)),dt,[1 1 1],[1 1 1],Ea,Eb,G,D,G,G,G,G);
   ok(end+1) = false;
 catch err
   ok(end+1) = contains(err.message,'Unrecognized incrementation scheme');
