@@ -58,6 +58,10 @@
 %     IntTimeStep, SimFreq (fullspace)
 %     OffsetTolerance  error target of the average over the inhomogeneous
 %                    line (Sys.lwAnisoG), default 1e-6 (subspace)
+%     Binning        'auto' (default), true, false, or one true/false per
+%                    dimension: delay dimensions computed by binning the
+%                    peaks (fast, approximate) or point by point (exact)
+%                    (subspace)
 %     OriThreshold, Nuclei, Transitions, ProductRule, Expand (subspace)
 %     separate, Window, ZeroFillFactor, Verbosity
 %
@@ -70,8 +74,9 @@
 %             (Method, MethodReason), the processed spectrum (f, fd, or
 %             f1, f2, fd), the start and end times of the elements of
 %             Exp.Sequence on the time axis of x (EventTimes, fullspace),
-%             and the number of resonance offsets in the average over the
-%             inhomogeneous line (nOffsets, subspace)
+%             the number of resonance offsets in the average over the
+%             inhomogeneous line (nOffsets, subspace), and the binned
+%             dimensions (binnedDims, subspace)
 
 function varargout = saffron(Sys,Exp,Opt)
 

@@ -18,7 +18,7 @@
 %       fastExp       canonical experiment, for re-parsing the sequence at
 %                     each point of point-by-point dimensions
 %       Nuclei, ProductRule, Transitions, OriThreshold, OffsetTolerance,
-%       Expand, Relaxation    see the saffron documentation
+%       Expand, Binning, Relaxation    see the saffron documentation
 %       crystalSample, nOctants   sample type and grid octants
 %     Orientations  orientations (phi,theta,chi) in radians, one per row
 %
@@ -33,6 +33,8 @@
 %                             "compute", "conj" or "conjtranspose"
 %       nSkippedOrientations  number of orientations without excitation
 %       nEntries              number of entries (see below)
+%       binnedDims            dimensions binned in the frequency domain
+%                             (the other delay dimensions are stepped)
 %       nOffsets              largest number of resonance offsets in the
 %                             average over the inhomogeneous line (1: no
 %                             line, or the exact average for ideal pulses)
@@ -45,9 +47,13 @@
 %   - Ideal microwave pulses give pathway prefactors (sf_parsesequence);
 %     rectangular pulses are exact 2n x 2n propagators at each resonance
 %     offset. Free evolution is a diagonal phase factor.
-%   - Linearly incremented delays: the signal of each pathway is a sum of
-%     exponentials, binned in the frequency domain (sf_peaks) and Fourier
-%     transformed.
+%   - Linearly incremented delays: each interval gets longer by a fixed
+%     amount per step (incrementation scheme, seq.incScheme). Along a
+%     binned dimension, the signal
+%     of each pathway is a sum of exponentials, binned in the frequency
+%     domain (sf_peaks) and Fourier transformed. Along a stepped dimension,
+%     the delays are fixed at each point and the signal is computed point
+%     by point (Opt.Binning, chooseBinning).
 %   - Inhomogeneous line (Sys.lwAnisoG): a Gaussian distribution of
 %     resonance offsets per entry, with 1/e half width sigma. With ideal
 %     pulses, the offset enters a pathway only as a phase over its net
@@ -463,8 +469,16 @@ E.offsetTolerance = Opt.OffsetTolerance;
 % Simulation
 %-------------------------------------------------------------------------------
 Rel.T1 = T1; Rel.T2 = T2; Rel.on = relaxation;
+
+% Linear delay increments (kind 1): binned in the frequency domain or
+% stepped point by point, per dimension (Opt.Binning)
+if ~isfield(Opt,'Binning') || isempty(Opt.Binning), Opt.Binning = 'auto'; end
+nStates = max([1 cellfun(@(Ea)size(Ea,1),E.Ea)]);
+binnedDims = chooseBinning(Opt.Binning,seq,nStates,E.nE,productRule);
+seq.binned = binnedDims(seq.kind1Dims);
+info.binnedDims = find(binnedDims);
 expandFactor = 6;  % 2^expandFactor buffer expansion for binning
-if numel(seq.kind1Dims)==2, expandFactor = 2; end
+if sum(seq.binned)==2, expandFactor = 2; end
 if isfield(Opt,'Expand') && ~isempty(Opt.Expand), expandFactor = Opt.Expand; end
 
 if isENDOR
@@ -520,6 +534,7 @@ else
       if ~isempty(reasons)
         error('The subspace engine cannot simulate point %d: %s.',iPt,strjoin(reasons,', '));
       end
+      seqk.binned = binnedDims(keepDims(seqk.kind1Dims));
       [yk{iPt},rates,nOffk] = pathwaySignal(E,seqk,Rel,productRule,expandFactor);
       nOffsets = max(nOffsets,nOffk);
     end
@@ -671,41 +686,44 @@ end
 %
 %   [y,rates,nOff] = pathwaySignal(E,seq,Rel,productRule,expandFactor)
 %
-%   Sums the signal over all entries, resonance offsets and pathways. With
-%   up to 64 points, each point is evaluated exactly (each with the offsets
-%   it needs). Otherwise, the peaks are binned in the frequency domain
-%   (sf_peaks) and Fourier transformed. With ideal pulses, the average over
-%   the inhomogeneous line is exact where the signal is not binned (single
-%   points, product rule), see the header of sf_engine_subspace.
+%   Sums the signal over all entries, resonance offsets and pathways. Along
+%   the binned dimensions (seq.binned), the peaks of each pathway are binned
+%   in the frequency domain (sf_peaks) and Fourier transformed. Along the
+%   stepped dimensions, the signal is computed point by point: at each
+%   point, the incremented delays have fixed lengths (steppedSignal). With
+%   ideal pulses, the average over the inhomogeneous line is exact where
+%   the signal is not binned (stepped points, product rule), see the header
+%   of sf_engine_subspace.
 %
 %   Input:
 %     E             entries, see the header of sf_engine_subspace
-%     seq           parsed sequence, from sf_parsesequence
+%     seq           parsed sequence, from sf_parsesequence, with the field
+%                   binned (true for each binned kind-1 dimension)
 %     Rel           relaxation, with fields T1, T2 (µs, Inf: no relaxation)
 %                   and on (true/false)
 %     productRule   true: multiply the signals of the nuclear subspaces
 %     expandFactor  the binning buffers are 2^expandFactor times longer
-%                   than the signal, along each dimension
+%                   than the signal, along each binned dimension
 %
 %   Output:
 %     y      signal: scalar (no increments), row vector (1 dimension) or
-%            matrix (2 dimensions)
+%            array with one array dimension per kind-1 dimension
 %     rates  distinct decay rates (1/µs) of the pathways, one row per group
-%            of pathways and one column per dimension
+%            of pathways and one column per kind-1 dimension
 %     nOff   number of resonance offsets (largest over the points)
 function [y,rates,nOff] = pathwaySignal(E,seq,Rel,productRule,expandFactor)
 
 nOff = 1;
 N = seq.N;
 nP = seq.nPathways;
-incIntervals = find(seq.Inc~=0);
 nDims = numel(seq.kind1Dims);
-scheme = seq.IncSchemeID;
 
 % Relaxation: fixed decay factor per pathway and decay rates per dimension;
 % pathways with the same rates share a buffer. Only delays with relaxation
-% on (Opt.Relaxation) contribute: tRelax, and the incremented delays with
-% incRelax.
+% on (Opt.Relaxation) contribute: tRelax, and incSchemeRelax for the
+% incremented delays. The decay rate along a dimension is the sum of the
+% rates of the incremented intervals, each weighted with how fast it gets
+% longer.
 coh = seq.co~=0;
 rateInt = zeros(nP,N);
 if Rel.on
@@ -713,37 +731,20 @@ if Rel.on
   rateInt(~coh) = 1/Rel.T1;
 end
 fixedDecay = exp(-rateInt*seq.tRelax.');
-pRates = zeros(nP,nDims);
-for d = 1:nDims
-  pRates(:,d) = sum(rateInt(:,seq.Inc==d & seq.incRelax),2);
-end
+pRates = rateInt*seq.incSchemeRelax;
 [rates,~,group] = unique(pRates,'rows');
 nGroups = size(rates,1);
 pref = seq.pathwayprefactor(:).*fixedDecay;
 
-% Few points: evaluate each point exactly (no frequency binning)
-if nDims>0 && prod(seq.nPointsInc)<=64 && ~productRule
-  if nDims==1, y = zeros(1,seq.nPointsInc); else, y = zeros(seq.nPointsInc); end
-  for iPt = 1:prod(seq.nPointsInc)
-    [i1,i2] = ind2sub([seq.nPointsInc 1],iPt);
-    k = [i1 i2]-1;
-    s = seq;
-    for i = incIntervals
-      s.t(i) = seq.t(i) + k(seq.Inc(i))*seq.dt(seq.Inc(i));
-      if seq.incRelax(i), s.tRelax(i) = seq.tRelax(i) + k(seq.Inc(i))*seq.dt(seq.Inc(i)); end
-    end
-    s.Inc(:) = 0;
-    s.kind1Dims = [];
-    s.dt = [];
-    s.nPointsInc = [];
-    s.IncSchemeID = 0;
-    s.idxIncL = zeros(nP,0);
-    s.idxIncR = zeros(nP,0);
-    [y(iPt),~,nOffPt] = pathwaySignal(E,s,Rel,false,expandFactor);
-    nOff = max(nOff,nOffPt);
-  end
+% Stepped dimensions: point by point, with fixed delays at each point
+if any(~seq.binned) && ~productRule
+  [y,nOff] = steppedSignal(E,seq,Rel,expandFactor);
   return
 end
+
+% Binned dimensions: incremented intervals and their incrementation scheme
+incIntervals = find(any(seq.incScheme~=0,2)).';
+incScheme = seq.incScheme(incIntervals,:);
 
 % Buffers
 if nDims>0
@@ -757,7 +758,7 @@ sigma = E.offWidth/(2*sqrt(log(2)));  % 1/e half width of the line (MHz)
 if productRule
   % per pathway and subspace, time domain products, per entry
   y = 0;
-  exact = prod(seq.nPointsInc)<=64;
+  stepped = ~any(seq.binned);
   for e = 1:E.nE
     for p = 1:nP
       td_ = 1;
@@ -765,20 +766,15 @@ if productRule
         Ed = entrySlice(E,s,e);
         % the electron resonance offset enters once (ideal pulses only)
         if s==1, Ed = addOffsets(Ed,Ed.offCenter); end
-        if exact
-          % few points: exact evaluation of each point
-          if nDims==1, td1 = zeros(1,seq.nPointsInc); else, td1 = zeros(seq.nPointsInc); end
+        if stepped
+          % point by point, with fixed delays at each point
+          td1 = zeros([seq.nPointsInc 1 1]);
           for iPt = 1:numel(td1)
-            [i1,i2] = ind2sub([seq.nPointsInc 1],iPt);
-            k = [i1 i2]-1;
-            sk = seq;
-            for i = incIntervals
-              sk.t(i) = seq.t(i) + k(seq.Inc(i))*seq.dt(seq.Inc(i));
-            end
-            sk.Inc(:) = 0;
+            sk = fixDelays(seq,1:nDims,stepsAtPoint(seq.nPointsInc,iPt));
             [~,D] = evaluatePathways(Ed,sk,p,[]);
             td1(iPt) = trace(D);
           end
+          if nDims==1, td1 = td1.'; end
           if s==1, td1 = td1*pref(p)*E.w(e); end
           td_ = td_.*td1;
           continue
@@ -786,7 +782,7 @@ if productRule
         [G,D,BL,BR] = evaluatePathways(Ed,seq,p,[]);
         if s==1, G = G*pref(p)*E.w(e); end
         buff = complex(zeros(siz));  % sf_peaks adds to it in place
-        sf_peaks(scheme,buff,seq.dt,seq.idxIncL(p,:),seq.idxIncR(p,:),...
+        sf_peaks(buff,seq.dt,incScheme,seq.idxFreeL(p,incIntervals),seq.idxFreeR(p,incIntervals),...
           Ed.Ea,Ed.Eb,G,D,BL{:},BR{:});
         if nDims==1
           td1 = ifft(buff)*numel(buff);
@@ -867,30 +863,16 @@ for iChunk = 1:numel(chunks)
         G = G.*wp;
         iG = group(p);
         buff = buffers{iG};  % shares its data with buffers{iG}
-        iL = seq.idxIncL(p,:); iR = seq.idxIncR(p,:);
-        switch numel(BL)
-          case 0
-            for k = 1:numel(ec)
-              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k));
-            end
-          case 1
-            L1 = BL{1}; R1 = BR{1};
-            for k = 1:numel(ec)
-              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
-                L1(:,:,k),R1(:,:,k));
-            end
-          case 2
-            L1 = BL{1}; R1 = BR{1}; L2 = BL{2}; R2 = BR{2};
-            for k = 1:numel(ec)
-              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
-                L1(:,:,k),L2(:,:,k),R1(:,:,k),R2(:,:,k));
-            end
-          case 3
-            L1 = BL{1}; R1 = BR{1}; L2 = BL{2}; R2 = BR{2}; L3 = BL{3}; R3 = BR{3};
-            for k = 1:numel(ec)
-              sf_peaks(scheme,buff,seq.dt,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),...
-                L1(:,:,k),L2(:,:,k),L3(:,:,k),R1(:,:,k),R2(:,:,k),R3(:,:,k));
-            end
+        % manifolds of the incremented free evolutions of this pathway, and
+        % the transfer matrices between them, for one entry at a time
+        iL = seq.idxFreeL(p,incIntervals); iR = seq.idxFreeR(p,incIntervals);
+        ML = cell(1,numel(BL)); MR = cell(1,numel(BR));
+        for k = 1:numel(ec)
+          for m = 1:numel(BL)
+            ML{m} = BL{m}(:,:,k);
+            MR{m} = BR{m}(:,:,k);
+          end
+          sf_peaks(buff,seq.dt,incScheme,iL,iR,Ed.Ea(:,k),Ed.Eb(:,k),G(:,:,k),D(:,:,k),ML{:},MR{:});
         end
       end
     end
@@ -916,6 +898,235 @@ for iG = 1:nGroups
   y = y + applyDecay(td_,rates(iG,:),seq);
 end
 
+end
+
+%-------------------------------------------------------------------------------
+% chooseBinning  Binned or stepped computation of each kind-1 dimension
+%
+%   binnedDims = chooseBinning(OptBinning,seq,nStates,nEntries,productRule)
+%
+%   Along a binned dimension, the peaks of each pathway are binned in the
+%   frequency domain (sf_peaks). With K incremented intervals, a pathway
+%   has nStates^(2K) peaks per entry, independent of the number of points.
+%   Along a stepped dimension, the signal is computed point by point, with
+%   fixed delays at each point (steppedSignal); this is exact and costs a
+%   pathway evaluation per point.
+%
+%   With 'auto', the dimensions are stepped if all kind-1 dimensions
+%   together have at most 64 points (exact, cheap). Otherwise, of the
+%   possible choices (binningProblem), the one with the smallest estimated
+%   run time is used (binningCost).
+%
+%   Input:
+%     OptBinning   Opt.Binning: 'auto', true or false for all kind-1
+%                  dimensions, or one true/false per dimension of the
+%                  experiment (Exp.nPoints)
+%     seq          parsed sequence
+%     nStates      number of nuclear states (largest subspace)
+%     nEntries     number of entries
+%     productRule  true: product rule
+%
+%   Output:
+%     binnedDims   true for each binned dimension of the experiment, 1 x
+%                  numel(seq.kind)
+function binnedDims = chooseBinning(OptBinning,seq,nStates,nEntries,productRule)
+
+nDimsExp = numel(seq.kind);
+kind1 = seq.kind1Dims;
+binnedDims = false(1,nDimsExp);
+
+if ischar(OptBinning) || isstring(OptBinning)
+  if ~strcmp(OptBinning,'auto')
+    error('Opt.Binning must be ''auto'', true, false, or one true/false per dimension.');
+  end
+  if prod(seq.nPointsInc)<=64, return; end  % few points: all stepped (exact)
+  % all choices of binned kind-1 dimensions
+  best = Inf;
+  for c = 0:2^numel(kind1)-1
+    binned = logical(bitget(c,1:numel(kind1)));
+    if ~isempty(binningProblem(seq,binned,productRule)), continue; end
+    cost = binningCost(seq,binned,nStates,nEntries);
+    if cost<best
+      best = cost;
+      binnedDims(:) = false;
+      binnedDims(kind1(binned)) = true;
+    end
+  end
+  return
+end
+
+% user choice: one value for all kind-1 dimensions, or one per dimension
+if ~(islogical(OptBinning) || isnumeric(OptBinning)) || ...
+    ~(isscalar(OptBinning) || numel(OptBinning)==nDimsExp)
+  error('Opt.Binning must be ''auto'', true, false, or one true/false per dimension (%d).',nDimsExp);
+end
+if isscalar(OptBinning)
+  binnedDims(kind1) = logical(OptBinning);
+else
+  binnedDims = logical(OptBinning(:).');
+  notDelays = find(binnedDims & seq.kind~=1);
+  if ~isempty(notDelays)
+    error('Opt.Binning: dimension %d does not change delays linearly and cannot be binned.',notDelays(1));
+  end
+end
+msg = binningProblem(seq,binnedDims(kind1),productRule);
+if ~isempty(msg)
+  error('Opt.Binning: %s.',msg);
+end
+
+end
+
+%-------------------------------------------------------------------------------
+% binningProblem  Why a choice of binned dimensions is not possible
+%
+%   msg = binningProblem(seq,binned,productRule)
+%
+%   Binning is limited to 2 dimensions and to K <= 4 incremented intervals
+%   (nStates^(2K) peaks per pathway and entry). With the product rule, all
+%   dimensions are binned or none.
+%
+%   Input:
+%     seq          parsed sequence
+%     binned       true for each binned kind-1 dimension
+%     productRule  true: product rule
+%
+%   Output:
+%     msg          the reason, '' if the choice is possible
+function msg = binningProblem(seq,binned,productRule)
+msg = '';
+K = sum(any(seq.incScheme(:,binned)~=0,2));
+if sum(binned)>2
+  msg = 'at most 2 dimensions can be binned';
+elseif K>4
+  msg = sprintf(['binning is limited to 4 incremented intervals, but the binned ' ...
+    'dimensions change %d intervals; compute a dimension point by point (false)'],K);
+elseif productRule && any(binned) && ~all(binned)
+  msg = 'with Opt.ProductRule, all dimensions must be binned or all computed point by point';
+end
+end
+
+%-------------------------------------------------------------------------------
+% binningCost  Estimated run time of a choice of binned dimensions
+%
+%   cost = binningCost(seq,binned,nStates,nEntries)
+%
+%   Model of the run time of pathwaySignal per pathway. The signal is
+%   evaluated once for each point of the stepped dimensions (once if none
+%   is stepped):
+%   - evaluating the pathway: cPoint + nEntries*(cEntry0 + cEntry*nStates^3)
+%     (matrix products of the transfer matrices)
+%   - with binned dimensions, in addition: cBin (Fourier transform) and,
+%     per entry, cCall + cPeak*nStates^(2K) for K binned intervals
+%   The constants were fitted to saffron run times (2026-11-13; 1D and 2D
+%   ESEEM, HYSCORE, Carr-Purcell and 2D-CP with 1 to 4 protons; MATLAB
+%   R2024b, Windows). Only their ratios matter for the choice. The model
+%   picks the faster method wherever the two differ by more than about 2x.
+%
+%   Input:
+%     seq       parsed sequence
+%     binned    true for each binned kind-1 dimension
+%     nStates   number of nuclear states
+%     nEntries  number of entries
+%
+%   Output:
+%     cost      estimated run time per pathway (s)
+function cost = binningCost(seq,binned,nStates,nEntries)
+cPoint = 8e-4;    % s, evaluating a pathway at a point
+cEntry0 = 7e-6;   % s, per entry
+cEntry = 7e-9;    % s, per entry and nStates^3
+cBin = 1e-3;      % s, Fourier transform of the binned buffer
+cCall = 1.2e-5;   % s, one sf_peaks call (one entry)
+cPeak = 8e-9;     % s, one peak
+K = sum(any(seq.incScheme(:,binned)~=0,2));
+perPoint = cPoint + nEntries*(cEntry0 + cEntry*nStates^3);
+if any(binned)
+  perPoint = perPoint + cBin + nEntries*(cCall + cPeak*nStates^(2*K));
+end
+cost = prod(seq.nPointsInc(~binned))*perPoint;
+end
+
+%-------------------------------------------------------------------------------
+% steppedSignal  Signal along the stepped kind-1 dimensions, point by point
+%
+%   [y,nOff] = steppedSignal(E,seq,Rel,expandFactor)
+%
+%   At each point along the stepped dimensions, the incremented delays have
+%   fixed lengths, so the sequence is an ordinary one with only the binned
+%   dimensions left. Its signal over the binned dimensions is computed by
+%   pathwaySignal. Exact along the stepped dimensions.
+%
+%   Input:
+%     E, seq, Rel, expandFactor   see pathwaySignal
+%
+%   Output:
+%     y     signal, with one array dimension per kind-1 dimension, row
+%           vector for a single dimension
+%     nOff  number of resonance offsets (largest over the points)
+function [y,nOff] = steppedSignal(E,seq,Rel,expandFactor)
+
+stepDims = find(~seq.binned);
+nPointsStep = seq.nPointsInc(stepDims);
+y = zeros([seq.nPointsInc 1 1]);
+at = repmat({':'},1,numel(seq.nPointsInc));  % position in y: all binned points
+nOff = 1;
+for iPt = 1:prod(nPointsStep)
+  k = stepsAtPoint(nPointsStep,iPt);
+  s = fixDelays(seq,stepDims,k);
+  [yPt,~,nOffPt] = pathwaySignal(E,s,Rel,false,expandFactor);
+  at(stepDims) = num2cell(k+1);
+  y(at{:}) = yPt;
+  nOff = max(nOff,nOffPt);
+end
+if isscalar(seq.nPointsInc), y = y.'; end  % row vector
+
+end
+
+%-------------------------------------------------------------------------------
+% fixDelays  Sequence at a point along some kind-1 dimensions
+%
+%   s = fixDelays(seq,dims,k)
+%
+%   Lengthens the intervals by k steps along the kind-1 dimensions dims and
+%   removes these dimensions: in s, the delays at this point are ordinary
+%   delays with fixed lengths.
+%
+%   Input:
+%     seq   parsed sequence
+%     dims  kind-1 dimensions (indices into seq.kind1Dims)
+%     k     number of steps along each of them, 0-based
+%
+%   Output:
+%     s     sequence with fixed delays along dims
+function s = fixDelays(seq,dims,k)
+s = seq;
+stepTime = k(:).*seq.dt(dims).';  % time (µs) along each dimension
+s.t = seq.t + (seq.incScheme(:,dims)*stepTime).';
+s.tRelax = seq.tRelax + (seq.incSchemeRelax(:,dims)*stepTime).';
+keep = setdiff(1:numel(seq.kind1Dims),dims);
+s.kind1Dims = seq.kind1Dims(keep);
+s.incScheme = seq.incScheme(:,keep);
+s.incSchemeRelax = seq.incSchemeRelax(:,keep);
+s.dt = seq.dt(keep);
+s.nPointsInc = seq.nPointsInc(keep);
+if isfield(seq,'binned'), s.binned = seq.binned(keep); end
+end
+
+%-------------------------------------------------------------------------------
+% stepsAtPoint  Number of steps along each dimension at a point of a grid
+%
+%   k = stepsAtPoint(nPoints,iPt)
+%
+%   Input:
+%     nPoints  number of points along each dimension
+%     iPt      linear index of the point (1-based, first dimension fastest)
+%
+%   Output:
+%     k        number of steps along each dimension, 0-based, row vector
+function k = stepsAtPoint(nPoints,iPt)
+k = cell(1,numel(nPoints));
+if isempty(k), k = zeros(1,0); return; end
+[k{:}] = ind2sub([nPoints 1],iPt);
+k = [k{:}]-1;
 end
 
 %-------------------------------------------------------------------------------
@@ -1074,7 +1285,7 @@ end
 %   increments of the incremented delays.
 %
 %   Input:
-%     seq    parsed sequence; uses co, t, isRF, Pulse, Inc, dt, nPointsInc
+%     seq    parsed sequence; uses co, t, isRF, Pulse, incScheme, dt, nPointsInc
 %
 %   Output:
 %     t0     net coherence time (µs) at the first point, nPathways x 1
@@ -1085,7 +1296,7 @@ t0 = seq.co*tFree(:);
 nDims = numel(seq.nPointsInc);
 tStep = zeros(numel(t0),nDims);
 for d = 1:nDims
-  tStep(:,d) = sum(seq.co(:,seq.Inc==d),2)*seq.dt(d);
+  tStep(:,d) = seq.co*seq.incScheme(:,d)*seq.dt(d);
 end
 end
 
@@ -1233,7 +1444,7 @@ end
 function [G,D,BL,BR,memo] = evaluatePathways(Ed,seq,p,PulseSub,memo)
 if nargin<5 || isempty(memo), memo = struct('keys',{{}},'vals',{{}}); end
 N = seq.N;
-incIntervals = find(seq.Inc~=0);
+incIntervals = find(any(seq.incScheme~=0,2)).';
 segStart = [1 incIntervals+1];
 segEnd = [incIntervals N];
 nSeg = numel(segStart);
@@ -1534,11 +1745,7 @@ end
 %   Output:
 %     v    signal at this point
 function v = pointSignal(Ed,seq,k)
-s = seq;
-for i = find(seq.Inc~=0)
-  s.t(i) = seq.t(i) + k(seq.Inc(i))*seq.dt(seq.Inc(i));
-end
-s.Inc(:) = 0;
+s = fixDelays(seq,1:numel(seq.kind1Dims),k);
 v = 0;
 for p = 1:seq.nPathways
   [~,D] = evaluatePathways(Ed,s,p,[]);
@@ -1595,9 +1802,11 @@ if any(seq.ctp(:,iRF)>2)
     'during the RF pulse. Select them with Exp.Pathways (e.g. ''+00-'' for Mims ENDOR), ' ...
     'or use Opt.Method = ''fullspace''.']);
 end
+% split point: G = state at the end of interval iRF-1 (evaluatePathways
+% splits the pathway after each incremented interval)
 seqG = seq;
-seqG.Inc = zeros(1,N);
-seqG.Inc(iRF-1) = 1;  % split point: G = state at the end of interval iRF-1
+seqG.incScheme = zeros(N,1);
+seqG.incScheme(iRF-1) = 1;
 
 % RF nutation frequency: nominal from the flip angle, or per transition
 % from B1 (shaped RF pulses are excluded by sf_parsesequence)

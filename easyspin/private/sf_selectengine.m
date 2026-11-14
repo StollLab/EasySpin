@@ -11,9 +11,9 @@
 %   Capability table: the subspace engine supports one electron spin with
 %   S = 1/2 (S > 1/2 only when requested explicitly, as a transition-selective
 %   approximation), ideal and rectangular microwave pulses, single rectangular
-%   RF pulses with an RF frequency sweep, linear delay increments (binned
-%   where they fit a scheme of sf_peaks), other delay and pulse parameter
-%   increments point by point, coherence pathway
+%   RF pulses with an RF frequency sweep, linear delay increments (also
+%   moving pulses, binned or point by point, see Opt.Binning), other delay
+%   and pulse parameter increments point by point, coherence pathway
 %   selection, phase cycles, scalar T1/T2 (also only during some delays,
 %   Opt.Relaxation) and single-point S+ detection at
 %   the end of the sequence. Everything else needs the full-space engine (see

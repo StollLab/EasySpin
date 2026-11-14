@@ -8,14 +8,15 @@
 %   by a (possibly zero-length) delay.
 %
 %   Indirect dimensions are of three kinds:
-%     1  linear increments of delays, computed by frequency-domain binning
-%        (sf_peaks); dimensions are relabeled 1,2 in order of appearance
+%     1  linear increments of delays (also several delays, with any steps,
+%        and moved pulses, 'pK.Position'): each interval gets longer by a
+%        fixed amount per step. The subspace engine bins these dimensions
+%        in the frequency domain (sf_peaks) or computes them point by point
+%        with fixed delays (Opt.Binning).
 %     2  the RF carrier frequency (Exp.rfFreq) with a single RF pulse,
 %        computed from the analytic response of each NMR transition
 %     3  any other parameter of the pulses or delays, computed point by
-%        point; also linear delay increments that do not fit a binning
-%        scheme of sf_peaks (several incremented delays in one interval,
-%        other combinations of incremented intervals)
+%        point by re-parsing the sequence
 %
 %   Coherence transfer pathways are coded per interval as 1 = alpha
 %   population, 2 = beta population, 3 = +1 coherence, 4 = -1 coherence.
@@ -45,8 +46,6 @@
 %                        as given), Flip, ideal, B1 (RF pulses)
 %       t                delay after each pulse (µs), 1xN
 %       tRelax           part of t with relaxation on (µs), 1xN
-%       incRelax         true if the incremented delay of the interval
-%                        has relaxation on, 1xN
 %       delayInterval    interval of each delay in Exp.Sequence (0: before
 %                        the first pulse)
 %       isRF, nRF        true for RF pulses (1xN), number of RF pulses
@@ -58,11 +57,15 @@
 %       mods             cell array with one element per dimension; kinds 1
 %                        and 3: rows {'d' or 'p', delay or pulse index,
 %                        pulse field, values}
-%       Inc              relabeled kind-1 dimension of each interval (0:
-%                        not incremented), 1xN
-%       kind1Dims        original dimension of the relabeled dimensions
-%       dt, nPointsInc   increments (µs) and points of the relabeled dimensions
-%       IncSchemeID      incrementation scheme of sf_peaks
+%       kind1Dims        dimensions of kind 1, in increasing order
+%       dt, nPointsInc   time increment (µs) and number of points of each
+%                        kind-1 dimension
+%       incScheme        incrementation scheme of the kind-1 dimensions,
+%                        N x numel(kind1Dims): interval i gets longer by
+%                        incScheme(i,d)*dt(d) per step along kind-1
+%                        dimension d (several delays in an interval add up;
+%                        negative for delays that get shorter)
+%       incSchemeRelax   the part of incScheme from delays with relaxation on
 %       ctp              coherence transfer pathways, nPathways x N
 %       co               electron coherence orders, nPathways x N
 %       echoOrders       orders selected by Exp.Pathways = 'echo', before
@@ -70,8 +73,8 @@
 %                        otherwise)
 %       idxPulseL, idxPulseR   propagator blocks (1 = aa, 2 = bb, 3 = ab,
 %                        4 = ba) of the pulses, nPathways x N
-%       idxIncL, idxIncR manifolds (1 = alpha, 2 = beta) of the incremented
-%                        free evolutions, one row per pathway
+%       idxFreeL, idxFreeR   manifolds (1 = alpha, 2 = beta) of the free
+%                        evolution after each pulse, nPathways x N
 %       pathwayprefactor pulse and phase cycle prefactor of each pathway
 %       nPathways        number of pathways
 %       rfOn, rfOff      phase cycle weights with RF on and off
@@ -277,13 +280,17 @@ else
   nPoints = [];
 end
 nDims = numel(nPoints);
-Inc = zeros(1,nPulses);       % kind-1 dimension label of each interval (before relabeling)
-incRelax = true(1,nPulses);   % relaxation on for the incremented delay of each interval
 dt = zeros(1,nDims);
 kind = zeros(1,nDims);
-mods = cell(1,nDims);   % kind 3: {target type, index, field, values}
+mods = cell(1,nDims);   % kinds 1 and 3: {target type, index, field, values}
 dimTargets = cell(1,nDims);  % quantities changed by each dimension
 dimValues = cell(1,nDims);   % their values per point
+% Incrementation scheme of the linear delay increments (kind 1): interval
+% i gets longer by incScheme(i,d)*dt(d) per step along dimension d.
+% incSchemeRelax is the part of incScheme from delays with relaxation on.
+incScheme = zeros(nPulses,nDims);
+incSchemeRelax = zeros(nPulses,nDims);
+minChange = zeros(numel(idxDelay),nDims);  % smallest change of each delay along each dimension
 for d = 1:nDims
   dimField = sprintf('Dim%d',d);
   if ~isfield(Exp,dimField)
@@ -325,25 +332,49 @@ for d = 1:nDims
       end
     end
   end
-  isDelay = ~cellfun(@isempty,regexp(targets,'^d\d+$','once'));
-  if all(isDelay) && linStep(1)>0 && all(linStep==linStep(1))
-    % linear delay increments: binned (kind 1) if they fit a scheme of
-    % sf_peaks (decided below), otherwise point by point (kind 3, with the
-    % delay modifications in mods)
+  % Delay changes: 'dK' changes delay K, 'pK.Position' moves pulse K, which
+  % lengthens the delay before it and shortens the delay after it. One row
+  % per changed delay, {'d', delay index, '', values per point}, and the
+  % change per step (NaN if not linear)
+  delayMods = cell(0,4);
+  delayStep = zeros(1,0);
+  changesDelays = false(1,numel(targets));
+  for q = 1:numel(targets)
+    [iD,sgn] = delaysOfTarget(targets{q},dimField,isPulse,idxDelay);
+    changesDelays(q) = ~isempty(iD);
+    for j = 1:numel(iD)
+      delayMods(end+1,:) = {'d',iD(j),'',sgn(j)*vals{q}};
+      delayStep(end+1) = sgn(j)*linStep(q);
+    end
+  end
+  for r = 1:size(delayMods,1)
+    iD = delayMods{r,2};
+    minChange(iD,d) = minChange(iD,d) + min(delayMods{r,4});
+  end
+
+  if all(changesDelays) && ~any(isnan(delayStep)) && any(delayStep~=0)
+    % linear delay increments (kind 1): binned, or computed point by point,
+    % along this dimension in the subspace engine
     kind(d) = 1;
-    dt(d) = linStep(1);
-    m = cell(numel(targets),4);
-    for q = 1:numel(targets)
-      iD = str2double(targets{q}(2:end));
-      if iD<1 || iD>numel(idxDelay)
-        error('Exp.%s: delay %s does not exist.',dimField,targets{q});
+    mods{d} = delayMods;
+    dt(d) = abs(delayStep(find(delayStep~=0,1)));
+    for r = 1:size(delayMods,1)
+      iD = delayMods{r,2};
+      iInt = delayInterval(iD);
+      if iInt==0, continue; end  % before the first pulse: no effect
+      incScheme(iInt,d) = incScheme(iInt,d) + delayStep(r)/dt(d);
+      if relaxed(idxDelay(iD))
+        incSchemeRelax(iInt,d) = incSchemeRelax(iInt,d) + delayStep(r)/dt(d);
       end
-      if delayInterval(iD)==0
+    end
+    if ~any(incScheme(:,d))
+      if all(delayInterval([delayMods{:,2}])==0)
         error('Exp.%s: incrementing a delay before the first pulse has no effect.',dimField);
       end
-      m(q,:) = {'d',iD,'',vals{q}};
+      % the changes cancel within each interval: no interval changes
+      kind(d) = 3;
+      incSchemeRelax(:,d) = 0;
     end
-    mods{d} = m;
   elseif all(strcmp(targets,'rfFreq'))
     kind(d) = 2;
     if isnan(linStep(1))
@@ -353,33 +384,25 @@ for d = 1:nDims
     end
   else
     kind(d) = 3;
-    m = {};
-    for q = 1:numel(targets)
+    m = delayMods;
+    for q = find(~changesDelays)
       tg = targets{q};
-      if isDelay(q)
-        iD = str2double(tg(2:end));
-        if iD<1 || iD>numel(idxDelay)
-          error('Exp.%s: delay %s does not exist.',dimField,tg);
-        end
-        m(end+1,:) = {'d',iD,'',vals{q}};
-      else
-        tok = regexp(tg,'^p(\d+)\.(\w+)$','tokens','once');
-        if isempty(tok)
-          reasons{end+1} = sprintf('indirect dimension over ''%s''',tg);
-          continue
-        end
-        iP = str2double(tok{1});
-        if iP<1 || iP>nPulses
-          error('Exp.%s: pulse p%d does not exist.',dimField,iP);
-        end
-        field = tok{2};
-        if isRF(iP)
-          reasons{end+1} = 'indirect dimensions over RF pulse parameters';
-        elseif ~any(strcmp(field,{'Flip','Phase','tp','Frequency','Amplitude'}))
-          reasons{end+1} = sprintf('indirect dimension over pulse field ''%s''',field);
-        end
-        m(end+1,:) = {'p',iP,field,vals{q}};
+      tok = regexp(tg,'^p(\d+)\.(\w+)$','tokens','once');
+      if isempty(tok)
+        reasons{end+1} = sprintf('indirect dimension over ''%s''',tg);
+        continue
       end
+      iP = str2double(tok{1});
+      if iP<1 || iP>nPulses
+        error('Exp.%s: pulse p%d does not exist.',dimField,iP);
+      end
+      field = tok{2};
+      if isRF(iP)
+        reasons{end+1} = 'indirect dimensions over RF pulse parameters';
+      elseif ~any(strcmp(field,{'Flip','Phase','tp','Frequency','Amplitude'}))
+        reasons{end+1} = sprintf('indirect dimension over pulse field ''%s''',field);
+      end
+      m(end+1,:) = {'p',iP,field,vals{q}};
     end
     mods{d} = m;
   end
@@ -399,53 +422,22 @@ if isfield(Exp,'rfPhaseLocked') && Exp.rfPhaseLocked
   reasons{end+1} = 'phase-locked RF (Exp.rfPhaseLocked)';
 end
 
-% Binned delay increments: sf_peaks needs at most one incremented delay per
-% interval, and the incremented intervals, labeled with their dimensions
-% relabeled 1,2 in order of appearance, must form one of its schemes. The
-% dimensions are added in the order of decreasing number of points, so that
-% the larger ones stay binned. A dimension that does not fit is computed
-% point by point (kind 3), which is exact but slower.
-schemes = {[],1,[1 1],[1 2],[1 2 1],[1 1 2],[1 2 2 1],[1 1 2 2]};
-schemeIDs = [0 1 2 11 12 14 15 17];
-linDims = find(kind==1);
-[~,bySize] = sort(nPoints(linDims),'descend');
-for d = linDims(bySize)
-  iD = [mods{d}{:,2}];
-  intervals = delayInterval(iD);
-  IncTrial = Inc;
-  IncTrial(intervals) = d;
-  [~,~,labels] = unique(IncTrial(IncTrial~=0),'stable');
-  fits = numel(unique(intervals))==numel(intervals) && all(Inc(intervals)==0) && ...
-    any(cellfun(@(s)isequal(s,labels.'),schemes));
-  if fits
-    Inc = IncTrial;
-    incRelax(intervals) = relaxed(idxDelay(iD));
-  else
-    kind(d) = 3;
-  end
+% Delays must stay nonnegative at all points (the changes along the
+% dimensions add up). Pulses that cross need the full-space engine.
+delayLengths = [Sequence{idxDelay}];
+if any(delayLengths(:) + sum(minChange,2) < -1e-12*max([1; delayLengths(:)]))
+  reasons{end+1} = 'delays that become negative (crossing pulses)';
 end
+
 sequence.nPoints = nPoints;
 sequence.kind = kind;
 sequence.mods = mods;
-
-% Relabel kind-1 dimensions 1,2 in order of appearance, determine the
-% incrementation scheme ID used by sf_peaks
-incDims = Inc(Inc~=0);
-order = unique(incDims,'stable');
-relabel = zeros(1,nDims);
-relabel(order) = 1:numel(order);
-IncScheme = relabel(incDims);
-sequence.Inc = zeros(1,nPulses);
-sequence.Inc(Inc~=0) = IncScheme;
-sequence.incRelax = incRelax;
-sequence.kind1Dims = order;              % original dimension of relabeled dims 1,2
-sequence.dt = dt(order);
-sequence.nPointsInc = nPoints(order);
-if isempty(IncScheme)
-  sequence.IncSchemeID = 0;
-else
-  sequence.IncSchemeID = schemeIDs(cellfun(@(s)isequal(s,IncScheme),schemes));
-end
+kind1Dims = find(kind==1);
+sequence.kind1Dims = kind1Dims;
+sequence.incScheme = incScheme(:,kind1Dims);
+sequence.incSchemeRelax = incSchemeRelax(:,kind1Dims);
+sequence.dt = dt(kind1Dims);
+sequence.nPointsInc = nPoints(kind1Dims);
 
 % Parse/generate coherence transfer pathways
 if isfield(Exp,'Pathways') && ~isempty(Exp.Pathways)
@@ -529,9 +521,8 @@ sequence.ctp = ctp;
 sequence.co = co;
 sequence.idxPulseL = idxPulseL;
 sequence.idxPulseR = idxPulseR;
-sequence.idxIncL = idxFreeL(:,sequence.Inc~=0);
-sequence.idxIncR = idxFreeR(:,sequence.Inc~=0);
-% order the incremented-interval free indices by sequence order (as sf_peaks)
+sequence.idxFreeL = idxFreeL;
+sequence.idxFreeR = idxFreeR;
 sequence.pathwayprefactor = prefactor;
 sequence.nPathways = numel(prefactor);
 sequence.rfOn = rfOn;
@@ -705,5 +696,53 @@ pulseR = propR(idx);
 idx = 5*ctp - 4;
 freeL = propL(idx);
 freeR = propR(idx);
+
+end
+
+%-------------------------------------------------------------------------------
+% delaysOfTarget  Delays changed by a target of an indirect dimension
+%
+%   [iDelay,sgn] = delaysOfTarget(target,dimField,isPulse,idxDelay)
+%
+%   'dK' changes delay K. 'pK.Position' moves pulse K: the delay before it
+%   gets longer and the delay after it shorter, by the same amount (both
+%   must be delays). Other targets change no delay. Delays before the first
+%   pulse are included; they have no effect on the signal.
+%
+%   Input:
+%     target         target name, e.g. 'd2' or 'p3.Position'
+%     dimField       'Dim1', 'Dim2', ..., for error messages
+%     isPulse        true for the pulses in Exp.Sequence
+%     idxDelay       element of Exp.Sequence of each delay
+%
+%   Output:
+%     iDelay  indices of the changed delays, empty if none
+%     sgn     +1 (longer) or -1 (shorter) for each of them
+
+function [iDelay,sgn] = delaysOfTarget(target,dimField,isPulse,idxDelay)
+
+iDelay = [];
+sgn = [];
+if ~isempty(regexp(target,'^d\d+$','once'))
+  iDelay = str2double(target(2:end));
+  if iDelay<1 || iDelay>numel(idxDelay)
+    error('Exp.%s: delay %s does not exist.',dimField,target);
+  end
+  sgn = +1;
+  return
+end
+tok = regexp(target,'^p(\d+)\.Position$','tokens','once');
+if isempty(tok), return; end
+idxPulse = find(isPulse);
+iP = str2double(tok{1});
+if iP<1 || iP>numel(idxPulse)
+  error('Exp.%s: pulse p%d does not exist.',dimField,iP);
+end
+element = idxPulse(iP) + [-1 +1];  % elements of Exp.Sequence before and after the pulse
+[isDelay,iDelay] = ismember(element,idxDelay);
+if ~all(isDelay)
+  error('Exp.%s: moving pulse p%d needs a delay before and after it in Exp.Sequence.',dimField,iP);
+end
+sgn = [+1 -1];
 
 end

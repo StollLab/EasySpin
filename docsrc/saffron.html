@@ -842,7 +842,7 @@ The following options are only used by the <em>subspace</em> method:
 
 <div class="optionfield"><code>OffsetTolerance</code></div>
 <div class="optiondescr">
-Accuracy of the average over the inhomogeneous line (<code>Sys.lwAnisoG</code>), default <code>1e-6</code>. It applies to finite pulses. With ideal pulses, the average is exact, except for signals with more than 64 points that include coherence pathways that do not refocus at the detection point. <code>saffron</code> chooses the number of resonance offsets automatically, from the line width, the pulse lengths and the longest time a pathway spends with electron coherence that is not refocused, so that the error of the average is of the order of <code>OffsetTolerance</code> times the signal amplitude. A smaller value needs more offsets, but only a few more: going from <code>1e-3</code> to <code>1e-9</code> roughly doubles their number. <code>info.nOffsets</code> gives the number used. To check that a simulation has converged, run it again with a smaller value and compare.
+Accuracy of the average over the inhomogeneous line (<code>Sys.lwAnisoG</code>), default <code>1e-6</code>. It applies to finite pulses. With ideal pulses, the average is exact, except for binned signals (see <code>Binning</code>) that include coherence pathways that do not refocus at the detection point. <code>saffron</code> chooses the number of resonance offsets automatically, from the line width, the pulse lengths and the longest time a pathway spends with electron coherence that is not refocused, so that the error of the average is of the order of <code>OffsetTolerance</code> times the signal amplitude. A smaller value needs more offsets, but only a few more: going from <code>1e-3</code> to <code>1e-9</code> roughly doubles their number. <code>info.nOffsets</code> gives the number used. To check that a simulation has converged, run it again with a smaller value and compare.
 </div>
 
 <div class="optionfield"><code>OriThreshold</code></div>
@@ -865,9 +865,24 @@ For S &gt; 1/2: list of the EPR transitions to include, as rows of level pairs <
 Determines whether the product rule is used or not (<code>true</code> or <code>false</code>). By default, it is not used. It needs ideal pulses and no RF pulses. The result is independent of this choice, up to small numerical differences.
 </div>
 
+<div class="optionfield"><code>Binning</code>
+<code>'auto'</code> (default), <code>true</code>, <code>false</code>, or one <code>true</code>/<code>false</code> per dimension</div>
+<div class="optiondescr">
+<p>
+How the subspace method computes dimensions in which delays change by fixed steps (delays, or pulses moved with <code>Position</code>). With binning, it computes the frequencies and amplitudes of all the peaks of the signal and builds the signal from a histogram of the peaks (see <code>Expand</code>). This is fast for most experiments, since the effort does not depend on the number of points, but it is approximate. Without binning, it computes the signal point by point, with the delays fixed at each point. This is exact, but takes longer for many points.
+</p>
+<p>
+With <code>'auto'</code>, signals with up to 64 points are computed point by point, and otherwise <code>saffron</code> uses whichever it estimates to be faster. The effort of binning grows steeply with the number of delays between pulses that change: e.g. for 2D-CP (four changing delays) and larger spin systems, point by point is faster. Binning is possible for at most two dimensions and at most four changing delays between pulses. <code>info.binnedDims</code> lists the binned dimensions.
+</p>
+<pre class="matlab">
+Opt.Binning = false;          % all dimensions point by point (exact)
+Opt.Binning = [true false];   % first dimension binned, second point by point
+</pre>
+</div>
+
 <div class="optionfield"><code>Expand</code></div>
 <div class="optiondescr">
-Expansion factor of the subspace method, a non-negative integer. The signal is computed via a frequency-domain buffer that is 2<sup><code>Expand</code></sup> times longer than the signal along each dimension. The higher the factor, the more accurate the simulation, but the more memory and time it needs, especially for 2D simulations. Default values are 6 for 1D and 2 for 2D.
+Expansion factor of the subspace method for binned dimensions (see <code>Binning</code>), a non-negative integer. The signal is computed via a frequency-domain buffer that is 2<sup><code>Expand</code></sup> times longer than the signal along each binned dimension. The higher the factor, the more accurate the simulation, but the more memory and time it needs, especially for 2D simulations. Default values are 6 for one binned dimension and 2 for two.
 </div>
 
 <p>
@@ -935,6 +950,7 @@ A structure with additional information:
 <li><code>info.f</code>, <code>info.fd</code>: the frequency axis (in MHz) and the spectrum obtained by Fourier transform of the signal along delay increments (ESEEM); for 2D (HYSCORE), <code>info.f1</code>, <code>info.f2</code> and <code>info.fd</code>. For ENDOR, <code>info.f</code> is the RF axis and <code>info.fd</code> the spectrum.</li>
 <li><code>info.EventTimes</code>: start and end times of the elements of <code>Exp.Sequence</code> (<em>full-space</em> method, see <code>Exp.DetWindow</code>).</li>
 <li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>subspace</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no offsets are needed (no inhomogeneous line, or the exact average with ideal pulses).</li>
+<li><code>info.binnedDims</code>: the dimensions computed by binning (<em>subspace</em> method, see <code>Opt.Binning</code>); the other dimensions are computed point by point.</li>
 </ul>
 </div>
 
@@ -950,7 +966,7 @@ A structure with additional information:
 <tr><td>Spin system</td><td>one electron spin with S = 1/2, with or without nuclei (S &gt; 1/2 only on request, approximately)</td><td>any number of electron spins and nuclei, any S, also without nuclei</td></tr>
 <tr><td>Microwave pulses</td><td>ideal and rectangular</td><td>any shape: rectangular, shaped, frequency-swept, user-defined waveforms</td></tr>
 <tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code>; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes</td></tr>
-<tr><td>Indirect dimensions</td><td>delays, pulse flip angle, phase, length, frequency and amplitude, RF frequency</td><td>any field, also <code>Position</code>, frequency bands and user-defined waveforms</td></tr>
+<tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub></td><td>also transients, <code>'sequence'</code>, other detection operators and frames, echo integration</td></tr>
 <tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
@@ -960,7 +976,7 @@ A structure with additional information:
 </table>
 
 <p>
-<b>The <em>subspace</em> method</b> uses matrix-based methods similar to those employed by Mims (1972) to compute the frequencies and amplitudes of all peaks for ESEEM and ENDOR. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform. For systems with several nuclei, it simulates without product rules by default. To generate the spectrum from the time-domain signal (<code>info.fd</code>), <code>saffron</code> performs (1) baseline correction, (2) apodization, (3) zero-filling, and (4) Fourier transform.
+<b>The <em>subspace</em> method</b> uses matrix-based methods similar to those employed by Mims (1972) to compute the frequencies and amplitudes of all peaks for ESEEM and ENDOR. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform. Alternatively, it computes the signal point by point, with the delays fixed at each point (see <code>Opt.Binning</code>). For systems with several nuclei, it simulates without product rules by default. To generate the spectrum from the time-domain signal (<code>info.fd</code>), <code>saffron</code> performs (1) baseline correction, (2) apodization, (3) zero-filling, and (4) Fourier transform.
 </p>
 
 <p>
