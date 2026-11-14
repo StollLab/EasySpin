@@ -62,7 +62,8 @@ for S = [1 3/2]
     Es = E; Es.Pathways = 'echo';
     [~,ySub] = saffron(Sys,Es,struct('Method','subspace'));
     Ef = E; Ef.PhaseCycle = {sel}; Ef.DetWindow = 0;
-    [~,yFull] = saffron(Sys,Ef,struct('Method','fullspace'));
+    % simulation frame close to the microwave frequency: long time steps
+    [~,yFull] = saffron(Sys,Ef,struct('Method','fullspace','SimFreq',9.4));
     % high-field approximation of the subspace engine, ~(D/nu_e)^2
     ok(end+1) = areequal(ySub,yFull,1e-2,'rel'); %#ok<AGROW>
   end

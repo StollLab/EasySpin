@@ -1,8 +1,12 @@
-function [ok,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata) %#ok<FNDEF>
+
+% Chirp echo with one indirect dimension (both delays) and with two
+% indirect dimensions (both delays, flip angle of the first pulse), powder.
+% Axial g gives a small orientational grid.
 
 % Spin System
 Sys.S = 1/2;
-Sys.g = [2.00906 2.0062 2.0023];
+Sys.g = [2.0076 2.0076 2.0023];
 Sys.A = [11.5 11.5 95];
 Sys.Nucs = '14N';
 Sys.lwpp = 10;
@@ -12,18 +16,18 @@ Exp.mwFreq = 34.78;
 
 Chirp90.Type = 'quartersin/linear';
 Chirp90.trise = 0.030;
-Chirp90.tp = 0.200;
+Chirp90.tp = 0.100;
 Chirp90.Flip = pi/2;
-Chirp90.Frequency = [-300 300]; % excitation band, GHz
+Chirp90.Frequency = [-300 300]; % excitation band, MHz
 
 Chirp180.Type = 'quartersin/linear';
-Chirp180.trise = 0.030;
-Chirp180.tp = 0.100;
+Chirp180.trise = 0.015;
+Chirp180.tp = 0.050;
 Chirp180.Flip = pi;
 Chirp180.Frequency = [-300 300];
 
-Exp.Sequence = {Chirp90 0.25 Chirp180 0.25}; 
-Exp.DetWindow = [-0.1 0.1] + Chirp180.tp;
+Exp.Sequence = {Chirp90 0.25 Chirp180 0.25};
+Exp.DetWindow = [-0.05 0.05] + Chirp180.tp;
 Exp.DetPhase = 0;
 
 Exp.nPoints = 2;
@@ -63,7 +67,7 @@ if opt.Display
 end
 
 if ~isempty(olddata)
-  ok = areequal(y1,olddata.y1,1e-3,'abs') && areequal(y2,olddata.y2,1e-3,'abs');
+  ok = [areequal(y1,olddata.y1,1e-3,'abs') areequal(y2,olddata.y2,1e-3,'abs')];
 else
   ok = [];
 end

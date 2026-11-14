@@ -734,8 +734,9 @@ end
 %   Computes the propagators (or Liouville-space propagators, with
 %   relaxation): one per time step, or, for a pulse without detection and
 %   relaxation, their product. The propagators are only rebuilt if IQ
-%   changed, and the lookup table of propagators is only rebuilt if its
-%   amplitudes changed.
+%   changed. The lookup table of propagators holds only the entries for the
+%   amplitudes that occurred in the wave forms so far (other entries are
+%   empty), and is only reset if its amplitudes changed.
 %
 %   Input:
 %     Event       pulse event; uses Propagation (results of an earlier
@@ -834,18 +835,36 @@ useTable = rotated || ~twoOperators;
 
 %----------------------------------------------------------
 % Build the Propagator table - increases speed by
-% precomputing all propagators and later loading them,
-% instead of calculating them at each way point (true as
-% long as length(Wave) > vertical resolution)
+% precomputing the propagators and later loading them,
+% instead of calculating them at each way point. Only the
+% amplitudes that occur in the wave form are computed (e.g.
+% a single one for a rectangular pulse in a shifted frame);
+% entries computed for an earlier wave form with the same
+% table are kept.
 %----------------------------------------------------------
-if useTable && ~(isfield(Prop,'amplitudes') && isequal(Prop.amplitudes,amplitudes) && Prop.tableTimeStep==Event.TimeStep)
-  if ~Event.Relaxation
-    Prop.UTable = buildPropagators(Ham0,Event.xOp,Event.TimeStep,amplitudes);
-  else
-    [Prop.LTable, Prop.SigmaOffsetTable] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,amplitudes);
+if useTable
+  if ~(isfield(Prop,'amplitudes') && isequal(Prop.amplitudes,amplitudes) && Prop.tableTimeStep==Event.TimeStep)
+    if ~Event.Relaxation
+      Prop.UTable = cell(1,numel(amplitudes));
+    else
+      Prop.LTable = cell(1,numel(amplitudes));
+      Prop.SigmaOffsetTable = cell(1,numel(amplitudes));
+    end
+    Prop.amplitudes = amplitudes;
+    Prop.tableTimeStep = Event.TimeStep;
   end
-  Prop.amplitudes = amplitudes;
-  Prop.tableTimeStep = Event.TimeStep;
+  % table entries of this wave form, and the position of each time step
+  % among them
+  [used,~,stackIndex] = unique(tableIndex(:));
+  used = used.';
+  stackIndex = reshape(stackIndex,size(tableIndex));
+  if ~Event.Relaxation
+    missing = used(cellfun(@isempty,Prop.UTable(used)));
+    Prop.UTable(missing) = buildPropagators(Ham0,Event.xOp,Event.TimeStep,amplitudes(missing));
+  else
+    missing = used(cellfun(@isempty,Prop.LTable(used)));
+    [Prop.LTable(missing), Prop.SigmaOffsetTable(missing)] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,amplitudes(missing));
+  end
 end
 
 % Set up structures for the actual propagators
@@ -876,12 +895,12 @@ if rotated
 end
 % Without detection and relaxation, only the product of the propagators
 % is needed. The propagators of all time steps are taken from the table
-% as a stack of matrices and multiplied with pagemtimes, in chunks to
-% limit memory.
+% entries of this wave form (used), stacked as matrices, and multiplied
+% with pagemtimes, in chunks to limit memory.
 productOnly = useTable && ~relaxation && ~detection;
 if productOnly
   n = size(Ham0,1);
-  UTableStack = cat(3,UTable{:});
+  UTableStack = cat(3,UTable{used});
   chunkSize = max(2,floor(2^22/n^2));
 end
 
@@ -896,7 +915,7 @@ for iPhaseStep = 1 : nPhaseSteps
     Uproduct = eye(n);
     for k0 = 1:chunkSize:nWavePoints
       k = k0:min(k0+chunkSize-1,nWavePoints);
-      U = UTableStack(:,:,tableIndex(iPhaseStep,k));
+      U = UTableStack(:,:,stackIndex(iPhaseStep,k));
       if rotated
         U = U.*reshape(D(:,k),n,1,[]).*reshape(conj(D(:,k)),1,n,[]);
       end

@@ -29,7 +29,8 @@ Exp.DetWindow = 'sequence';
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
-Opt.SimFreq = 32;
+% simulation frame at the microwave frequency: long time steps
+Opt.SimFreq = 33.5;
 
 % To test I --------------------------
 Exp.nPoints = 3;

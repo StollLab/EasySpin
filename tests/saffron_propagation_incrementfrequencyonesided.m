@@ -22,21 +22,23 @@ Exp.DetWindow = 'sequence';
 
 % Options ---------------------------
 Exp.DetOperator = {'z1'};
+% simulation frame at the microwave frequency: long time steps
+Opt.SimFreq = 33.5;
 
 % To test I --------------------------
 Exp.nPoints = 3;
 Exp.Dim1 = {'p1.Frequency' [-0.05 0]};
 
-[~, signal1] = saffron(Sys,Exp);
+[~, signal1] = saffron(Sys,Exp,Opt);
 
 % To test II --------------------------
 Exp.Dim1 = {'p1.Frequency(1)' -0.05};
 
-[~, signal2] = saffron(Sys,Exp);
+[~, signal2] = saffron(Sys,Exp,Opt);
 
 % To test III -------------------------
 Exp.Dim1 = {'p1.Frequency(1)' [0 -0.05 -0.1]};
 
-[~, signal3] = saffron(Sys,Exp);
+[~, signal3] = saffron(Sys,Exp,Opt);
 
 ok = [areequal(signal1,signal2,1e-4,'abs') areequal(signal1,signal3,1e-4,'abs')];

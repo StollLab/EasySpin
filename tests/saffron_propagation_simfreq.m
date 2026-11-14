@@ -1,9 +1,12 @@
-function [ok,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata) %#ok<FNDEF>
 
-clear Sys Opt
+% Chirp echo in a user-provided simulation frame (Opt.SimFreq) below the
+% default one (32 GHz here), powder. Axial g gives a small orientational
+% grid.
+
 % Spin System
 Sys.S = 1/2;
-Sys.g = [2.00906 2.0062 2.0023];
+Sys.g = [2.0076 2.0076 2.0023];
 Sys.A = [11.5 11.5 95];
 Sys.Nucs = '14N';
 Sys.lwpp = 10;
@@ -13,23 +16,22 @@ Exp.mwFreq = 34.78;
 
 Pulse1.Type = 'quartersin/linear';
 Pulse1.trise = 0.030;
-Pulse1.tp = 0.200;
+Pulse1.tp = 0.100;
 Pulse1.Flip = pi/2;
 Pulse1.Frequency = [-300 300];
 
 Pulse2.Type = 'quartersin/linear';
-Pulse2.trise = 0.030;
-Pulse2.tp = 0.100;
+Pulse2.trise = 0.015;
+Pulse2.tp = 0.050;
 Pulse2.Flip = pi;
 Pulse2.Frequency = [-300 300];
 
-Exp.Sequence = {Pulse1 0.25 Pulse2 0.25}; 
+Exp.Sequence = {Pulse1 0.25 Pulse2 0.25};
 Exp.DetWindow = [-0.05 0.05] + Pulse2.tp;
 Exp.DetPhase = 0;
 
 Opt.GridSize = 7;
-% Opt.Method = 'fullspace';
-Opt.SimFreq = 15;
+Opt.SimFreq = 30;
 
 [x, y] = saffron(Sys,Exp,Opt);
 

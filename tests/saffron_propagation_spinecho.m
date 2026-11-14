@@ -1,4 +1,7 @@
-function [ok,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata) %#ok<FNDEF>
+
+% Chirp echo of a nitroxide with rhombic g (powder), Q band, default
+% simulation frame
 
 % Spin system
 Sys.S = 1/2;
@@ -14,13 +17,13 @@ Exp.Field = 1240;  % mT
 % Define pulses
 Pulse1.Type = 'quartersin/linear';
 Pulse1.trise = 0.030;  % µs
-Pulse1.tp = 0.200;  % µs
+Pulse1.tp = 0.100;  % µs
 Pulse1.Flip = pi/2;  % rad
 Pulse1.Frequency = [-300 300]; % MHz
 
 Pulse2.Type = 'quartersin/linear';
-Pulse2.trise = 0.030;  % µs
-Pulse2.tp = 0.100;  % µs
+Pulse2.trise = 0.015;  % µs
+Pulse2.tp = 0.050;  % µs
 Pulse2.Flip = pi;  % rad
 Pulse2.Frequency = [-300 300];  % MHz
 
@@ -29,7 +32,7 @@ tau = 0.25;  % µs
 Exp.Sequence = {Pulse1 tau Pulse2 tau}; 
 
 % Define detection
-Exp.DetWindow = [-0.1 0.1] + Pulse2.tp;
+Exp.DetWindow = [-0.05 0.05] + Pulse2.tp;
 Exp.DetPhase = 0;
 
 % Options
