@@ -424,7 +424,7 @@ Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 <p>
 The list of steps can be any phase cycle, e.g. one where several pulses change phase together.
 For a nested phase cycle, saffron adds up the steps of each pulse right after the pulse, so the simulation takes about as long as for a single step.
-Other phase cycles are simulated step by step.
+Other phase cycles are simulated step by step, but the steps share the pulse propagators.
 </p>
 
 <p>

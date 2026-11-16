@@ -509,7 +509,7 @@ Any list of steps is possible, including steps in which several pulses change th
 Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 </pre>
 With a detection window or <code>'sequence'</code> (see <code>DetWindow</code>), the whole detected signal is phase-cycled, including the signal before and during the cycled pulses. Signal that is the same in all steps is removed if the receiver phases cancel it.
-Both methods support phase cycles. The <em>full-space</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles take as long as simulating each step separately.
+Both methods support phase cycles. The <em>full-space</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles are propagated step by step, which takes longer, but the steps share the pulse propagators.
 Predefined experiments set their pathways themselves, so <code>PhaseCycle</code> cannot be used with them.
 </div>
 

@@ -1,25 +1,39 @@
 % sf_propagate  Time domain evolution of density matrix
 %
-%   [TimeArray,SignalArray] = sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary)
+%   [TimeArray,SignalArray] = sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary,Runs)
 %   [TimeArray,SignalArray,FinalStates,StateTrajectories,Events,EventTimes] = sf_propagate(...)
 %
 %   Propagates a density matrix through a sequence of events, for all
 %   points of the indirect dimensions (full-space engine of saffron).
+%
+%   The result is the weighted sum of propagation runs. Each run uses some
+%   of the settings of each pulse in the phase cycle (rows of its IQ and
+%   PhaseCycle), adds up the states after the pulse with the weights of
+%   these settings, and can select coherence pathways. The propagators are
+%   computed once for all settings and shared by the runs.
 %
 %   Input:
 %     Sigma       initial density matrix, n x n
 %     Ham0        static Hamiltonian in the simulation frame (MHz), n x n
 %     Det         detection structure, from sf_propagationsetup
 %     Events      cell array of events, from sf_buildevents and
-%                 sf_propagationsetup, with these optional fields
-%       Projection  logical matrix, elements of the density matrix to keep
-%                   after the pulse (coherence pathway selection)
+%                 sf_propagationsetup, with the optional field
 %       vertRes     vertical resolution of the pulse lookup table, default 1024
 %     Relaxation  relaxation structure, [] without relaxation, with fields
 %       Gamma             relaxation superoperator (1/µs), from
 %                         sf_relaxationsuperoperator
 %       equilibriumState  equilibrium density matrix
 %     Vary        indirect dimensions, from sf_buildevents, [] if there are none
+%     Runs        propagation runs, structure array with fields (cell arrays
+%                 with one element per pulse, in the order of the pulses in
+%                 Events, except weight)
+%       rows        settings of the pulse used in the run (rows of its IQ
+%                   and PhaseCycle)
+%       factors     weights of these settings, column
+%       Projection  logical matrix, elements of the density matrix to keep
+%                   after the pulse (coherence pathway selection), [] to
+%                   keep all
+%       weight      weight of the signal of the run (number)
 %
 %   Output (nPts: number of points per indirect dimension, 1 if there are none):
 %     TimeArray          time axes (µs from the start of the sequence),
@@ -27,22 +41,24 @@
 %     SignalArray        signals in the detection frame, [nPts..., nDet, nTime];
 %                        empty without detection
 %     FinalStates        density matrices at the end of the sequence, in the
-%                        detection frame, [nPts..., n, n]
+%                        detection frame, [nPts..., n, n] (weighted sum
+%                        over the runs)
 %     StateTrajectories  cell array over the points, each element a cell
 %                        array of the density matrices stored during the
-%                        events; empty if none are stored
+%                        events (weighted sum over the runs); empty if none
+%                        are stored
 %     Events             input events, with the Propagation field filled in
 %     EventTimes         [start end] of each event (rows in the order of
 %                        Events), in µs from the start of the sequence, for
 %                        the first acquisition point
 
 function [TimeArray, SignalArray, FinalStates, StateTrajectories, Events, EventTimes] = ...
-  sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary)
+  sf_propagate(Sigma,Ham0,Det,Events,Relaxation,Vary,Runs)
 
 if nargin==0, help(mfilename); return; end
 
 if nargout>6, error('Too many output arguments.'); end
-if nargin<4 || nargin>6, error('Wrong number of input arguments!'); end
+if nargin~=7, error('Wrong number of input arguments!'); end
 
 nEvents = length(Events);
 
@@ -93,7 +109,6 @@ Resonator = false;
 % Creates the pulse list, that is needed for reordering events
 %----------------------------------------------------------------------
 isPulse = zeros(1,nEvents);
-sumPCWeight = ones(1,nEvents);
 nPulses = 0;
 for iEvent = 1 : nEvents
   switch Events{iEvent}.type
@@ -101,13 +116,23 @@ for iEvent = 1 : nEvents
       isPulse(iEvent) = 1;
       nPulses = nPulses + 1;
       PulsePositions(nPulses) = iEvent; %#ok<AGROW>
-      if size(Events{iEvent}.PhaseCycle,1)>1
-        sumPCWeight(iEvent) = sum(Events{iEvent}.PhaseCycle(:,2));
-      end
       % If ringing is found, resonator is set to on
       if isfield(Events{iEvent},'Ringing')
         Resonator = true;
       end
+  end
+end
+
+pulseIndex = zeros(1,nEvents);  % pulse number of each pulse event
+pulseIndex(isPulse==1) = 1:nPulses;
+
+% Sum of the weights of the settings of each pulse in each run (rows: runs,
+% columns: events; 1 for free evolutions)
+nRuns = numel(Runs);
+sumPCWeights = ones(nRuns,nEvents);
+for iRun = 1 : nRuns
+  for iPulse = 1 : nPulses
+    sumPCWeights(iRun,PulsePositions(iPulse)) = sum(Runs(iRun).factors{iPulse});
   end
 end
 
@@ -135,9 +160,7 @@ end
 % Dimension
 %----------------------------------------------------------------------
 for iPoints = 1 : nPoints
-  
-  Sigma = initialSigma;
-  
+
   %--------------------------------------------------------------------
   % Set the pulse shapes and event lengths of the current acquisition
   % point
@@ -196,23 +219,6 @@ for iPoints = 1 : nPoints
     EventTimes = tStart(:) + [zeros(nEvents,1) cellfun(@(E)E.t(end),Events(:))];
   end
 
-  % Weight of the recovery toward equilibrium (SigmaOffset) in the
-  % relaxation steps of each event. By linearity, each phase cycle step is
-  % a separate experiment, and the weighted sum of their steps
-  % L*sigma + SigmaOffset weights SigmaOffset with the sum of the cycle
-  % weights. So the weight is the product of the summed weights of the
-  % phase cycles of all earlier pulses.
-  recoveryWeight = ones(1,nEvents);
-  recoveryWeight(Sequence) = cumprod([1 sumPCWeight(Sequence(1:end-1))]);
-
-  % Weight of the signal detected during each event. The signal before a
-  % pulse is the same in all steps of the phase cycle of that pulse, so the
-  % steps add up to the signal times the sum of their weights. So the
-  % weight is the product of the summed weights of the phase cycles of all
-  % later pulses (the signal during a pulse includes its own cycle).
-  detectionWeight = ones(1,nEvents);
-  detectionWeight(Sequence) = fliplr(cumprod([1 fliplr(sumPCWeight(Sequence(2:end)))]));
-
   %--------------------------------------------------------------------
   % Update the propagators of the pulses (free evolution propagators are
   % built during propagation)
@@ -235,334 +241,381 @@ for iPoints = 1 : nPoints
     Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
   end
   
-  %--------------------------------------------------------------------
-  % Preparing for the actual propagation step
-  %--------------------------------------------------------------------
-  % Setting up some initial variables
-  
-  % bookkeping to keep track of when the first event is detected and
-  % what should be stored, needed for proper arrangment of the output
-  % later
-  firstDetection = true;
-  firstDensityMatrix = true;
-  CurrentStateTrajectories = [];
-  startTrace = 2;
-  
   % Get the data points in all dimensions of the current acquistion,
   % will be used to store the output at the correct position in the
   % multidimensional arrays
   AcquisitionIndex = num2cell(DimensionIndices);
-  
+
   %--------------------------------------------------------------------
-  % Loop over events
+  % Loop over the propagation runs, which share the propagators
   %--------------------------------------------------------------------
-  for iEvent = Sequence
-    
-    currentEvent = Events{iEvent};
-    
+  SignalSum = 0;
+  SigmaSum = 0;
+  StateTrajectoriesSum = [];
+  for iRun = 1 : nRuns
+    sumPCWeight = sumPCWeights(iRun,:);
+
+    % Weight of the recovery toward equilibrium (SigmaOffset) in the
+    % relaxation steps of each event. By linearity, each phase cycle step is
+    % a separate experiment, and the weighted sum of their steps
+    % L*sigma + SigmaOffset weights SigmaOffset with the sum of the cycle
+    % weights. So the weight is the product of the summed weights of the
+    % phase cycles of all earlier pulses.
+    recoveryWeight = ones(1,nEvents);
+    recoveryWeight(Sequence) = cumprod([1 sumPCWeight(Sequence(1:end-1))]);
+
+    % Weight of the signal detected during each event. The signal before a
+    % pulse is the same in all steps of the phase cycle of that pulse, so the
+    % steps add up to the signal times the sum of their weights. So the
+    % weight is the product of the summed weights of the phase cycles of all
+    % later pulses (the signal during a pulse includes its own cycle).
+    detectionWeight = ones(1,nEvents);
+    detectionWeight(Sequence) = fliplr(cumprod([1 fliplr(sumPCWeight(Sequence(2:end)))]));
+
+    Sigma = initialSigma;
+
+    % bookkeping to keep track of when the first event is detected and
+    % what should be stored, needed for proper arrangment of the output
+    % later
+    firstDetection = true;
+    firstDensityMatrix = true;
+    CurrentStateTrajectories = [];
+    startTrace = 2;
+
     %------------------------------------------------------------------
-    % This computes the normalization values for the detection as well
-    % as the first expectation value and the stores the state at the
-    % beginning of this event in form of a density matrix if requested
+    % Loop over events
     %------------------------------------------------------------------
-    if currentEvent.Detection
-      switch currentEvent.type
-        case 'pulse'
-          tvector = currentEvent.t;
-        case 'free evolution'
-          tvector = detectionTimes(currentEvent);
-          if numel(tvector)>1
-            currentEvent.TimeStep = tvector(2)-tvector(1);
-          end
-      end
-      currentSignal = zeros(nDetRows,numel(tvector));
-      currentSignal(:,1) = DetArray*Sigma(:);
-      
-    else
-      switch currentEvent.type
-        case 'pulse'
-          tvector = currentEvent.t;
-        case 'free evolution'
-          tvector = [0 currentEvent.t];
-          currentEvent.TimeStep = currentEvent.t;
-      end
-      
-      currentSignal = [];
-    end
+    for iEvent = Sequence
     
-    if currentEvent.StateTrajectories
+      currentEvent = Events{iEvent};
+    
+      %------------------------------------------------------------------
+      % This computes the normalization values for the detection as well
+      % as the first expectation value and the stores the state at the
+      % beginning of this event in form of a density matrix if requested
+      %------------------------------------------------------------------
       if currentEvent.Detection
-        DensityMatrices  =cell(1,length(currentEvent.t));
+        switch currentEvent.type
+          case 'pulse'
+            tvector = currentEvent.t;
+          case 'free evolution'
+            tvector = detectionTimes(currentEvent);
+            if numel(tvector)>1
+              currentEvent.TimeStep = tvector(2)-tvector(1);
+            end
+        end
+        currentSignal = zeros(nDetRows,numel(tvector));
+        currentSignal(:,1) = DetArray*Sigma(:);
+      
       else
-        DensityMatrices = cell(1,2);
+        switch currentEvent.type
+          case 'pulse'
+            tvector = currentEvent.t;
+          case 'free evolution'
+            tvector = [0 currentEvent.t];
+            currentEvent.TimeStep = currentEvent.t;
+        end
+      
+        currentSignal = [];
       end
-      DensityMatrices{1} = Sigma;
-    else
-      DensityMatrices = [];
-    end
-    %------------------------------------------------------------------
     
-    switch currentEvent.type
-      case 'pulse'
-        %--------------------------------------------------------------
-        % The time points of the pulse are the boundaries of the
-        % propagation steps: the first point is the state before the
-        % pulse, the last one the state at the end of the pulse.
-        %--------------------------------------------------------------
-        tvector = currentEvent.t;
-        
-        nPhaseSteps = size(currentEvent.PhaseCycle,1);
-        
-        %--------------------------------------------------------------
-        % Phase cycle of this pulse (rows [phase weight scale], see
-        % saffron): the states after the steps are added up with their
-        % weights
-        %--------------------------------------------------------------
-        if nPhaseSteps>1
-          stateBeforePC = Sigma;
-          SigmaPC = zeros(size(Sigma));
-          PCSignal = 0;
-        end
-        
-        %--------------------------------------------------------------
-        % Propagation Starts Here, and loops over all steps of the
-        % phase cycle
-        %--------------------------------------------------------------
-        for iPhaseStep = 1 : nPhaseSteps
-          
-          if ~currentEvent.Relaxation
-            nSteps = size(currentEvent.Propagation.Utotal,2);
-          else
-            nSteps = size(currentEvent.Propagation.Ltotal,2);
-            SigmaVector = reshape(Sigma,n*n,1);
-            if ~isempty(currentEvent.Propagation.PhaseTotal)
-              phaseFactors = currentEvent.Propagation.PhaseTotal{iPhaseStep};
-            end
-          end
-          
-          %------------------------------------------------------------
-          % Loop over the number of necessary propagation steps (1 if
-          % detection during the pulse is not requested
-          %------------------------------------------------------------
-          for iWavePoint = 1 : nSteps
-            if ~currentEvent.Relaxation
-              U = currentEvent.Propagation.Utotal{iPhaseStep,iWavePoint};
-              Sigma = U*Sigma*U';
-            elseif currentEvent.Relaxation
-              L = currentEvent.Propagation.Ltotal{iPhaseStep,iWavePoint};
-              SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal{iPhaseStep,iWavePoint};
-              if isempty(currentEvent.Propagation.PhaseTotal)
-                SigmaVector = L*SigmaVector + recoveryWeight(iEvent)*SigmaOffset;
-              else
-                % table Liouvillian rotated about the electron Sz (see pulsePropagators)
-                % phase factors d(i)*conj(d(j)) of the vectorized state
-                d = phaseFactors(:,iWavePoint);
-                p = d.*d';
-                p = p(:);
-                SigmaVector = p.*(L*(conj(p).*SigmaVector) + recoveryWeight(iEvent)*SigmaOffset);
-              end
-              
-              Sigma = reshape(SigmaVector,n,n);
-            end
-            
-            %----------------------------------------------------------
-            % Store expectation values and density matrix if requested
-            %----------------------------------------------------------
-            if currentEvent.Detection
-              currentSignal(:,iWavePoint+1) = DetArray*Sigma(:);
-            end
-            
-            if currentEvent.StateTrajectories
-              DensityMatrices{iWavePoint+1} = Sigma;
-            end
-            %----------------------------------------------------------
-          end
-          
-          %------------------------------------------------------------
-          % Combine results from current phase cycle step with previous ones
-          %------------------------------------------------------------
-          if nPhaseSteps > 1
-            PCweight = currentEvent.PhaseCycle(iPhaseStep,2);
-            SigmaPC = SigmaPC + PCweight*Sigma;
-            if currentEvent.Detection
-              PCSignal = PCSignal + PCweight*currentSignal;
-            end
-            if iPhaseStep ~= nPhaseSteps
-              Sigma = stateBeforePC;
-            end
-          end
-          %------------------------------------------------------------
-          
-        end
-        
-        %--------------------------------------------------------------
-        % If phase cycling was requested, the results from combining
-        % the individual signals and density matrices are used to
-        % overwrite Sigma and currentSignal
-        %--------------------------------------------------------------
-        if nPhaseSteps > 1
-          Sigma = SigmaPC;
-          if currentEvent.Detection
-            currentSignal = PCSignal;
-          end
-        end
-
-        % Coherence pathway selection (Exp.Pathways): keep only the
-        % elements of the selected electron coherence order
-        if isfield(currentEvent,'Projection') && ~isempty(currentEvent.Projection)
-          Sigma(~currentEvent.Projection) = 0;
-        end
-        %--------------------------------------------------------------
-        
-      case 'free evolution'
-        if currentEvent.Detection && ~currentEvent.Relaxation && ~currentEvent.StateTrajectories
-          %--------------------------------------------------------------
-          % Evolution in the eigenbasis of Ham0, for all detected time
-          % points at once: element (k,l) of the state in the eigenbasis
-          % evolves with exp(-1i*(E(k)-E(l))*t)
-          %--------------------------------------------------------------
-          if isempty(eigVectors)
-            [eigVectors,E] = eig(full(Ham0+Ham0')/2,'vector');
-            eigOmega = E-E.';
-            eigOmega = eigOmega(:);
-          end
-          V = eigVectors;
-          SigmaEig = V'*Sigma*V;
-          % detection operators in the eigenbasis, using
-          % sum(R.*Sigma) = sum((V.'*R*conj(V)).*SigmaEig)
-          Coeff = zeros(nDetRows,n^2);
-          for iRow = 1:nDetRows
-            R = V.'*reshape(DetArray(iRow,:),n,n)*conj(V);
-            Coeff(iRow,:) = R(:).'.*SigmaEig(:).';
-          end
-          chunkSize = max(1,floor(2^22/n^2));
-          for k0 = 2:chunkSize:numel(tvector)
-            k = k0:min(k0+chunkSize-1,numel(tvector));
-            currentSignal(:,k) = Coeff*exp(-1i*eigOmega*tvector(k));
-          end
-          Sigma = V*(SigmaEig.*reshape(exp(-1i*eigOmega*tvector(end)),n,n))*V';
-
+      if currentEvent.StateTrajectories
+        if currentEvent.Detection
+          DensityMatrices  =cell(1,length(currentEvent.t));
         else
+          DensityMatrices = cell(1,2);
+        end
+        DensityMatrices{1} = Sigma;
+      else
+        DensityMatrices = [];
+      end
+      %------------------------------------------------------------------
+    
+      switch currentEvent.type
+        case 'pulse'
           %--------------------------------------------------------------
-          % Loads or computes the Propagator/Liouvillian if necessary
+          % The time points of the pulse are the boundaries of the
+          % propagation steps: the first point is the state before the
+          % pulse, the last one the state at the end of the pulse.
           %--------------------------------------------------------------
-          if ~currentEvent.Relaxation
-            if isfield(currentEvent.Propagation,'Utotal')
-              U = currentEvent.Propagation.Utotal;
-            else
-              U = Propagator(Ham0,currentEvent.TimeStep);
-              Events{iEvent}.Propagation.Utotal = U;
-            end
-          elseif currentEvent.Relaxation
-            n = size(Sigma,1);
-            SigmaVector = reshape(Sigma,n*n,1);
-            if isfield(currentEvent.Propagation,'Ltotal')
-              L = currentEvent.Propagation.Ltotal;
-              SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal;
-            else
-              Gamma = Relaxation.Gamma;
-              equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
-              [L, SigmaOffset] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
-              Events{iEvent}.Propagation.Ltotal = L;
-              Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffset;
-            end
-            SigmaOffset = recoveryWeight(iEvent)*SigmaOffset;
-          end
-          %--------------------------------------------------------------
+          tvector = currentEvent.t;
+        
+          % Settings of this pulse in this run (rows of its propagators),
+          % and their weights
+          iPulse = pulseIndex(iEvent);
+          pcRows = Runs(iRun).rows{iPulse};
+          pcFactors = Runs(iRun).factors{iPulse};
+          nPhaseSteps = numel(pcRows);
 
           %--------------------------------------------------------------
-          % Loops over the time axis for propagation
+          % Phase cycle of this pulse: the states after the settings are
+          % added up with their weights
           %--------------------------------------------------------------
-          for itvector=2:length(tvector)
+          cycled = nPhaseSteps>1 || pcFactors~=1;
+          if cycled
+            stateBeforePC = Sigma;
+            SigmaPC = zeros(size(Sigma));
+            PCSignal = 0;
+          end
+        
+          %--------------------------------------------------------------
+          % Propagation Starts Here, and loops over all steps of the
+          % phase cycle
+          %--------------------------------------------------------------
+          for iStep = 1 : nPhaseSteps
+            iPhaseStep = pcRows(iStep);
+
             if ~currentEvent.Relaxation
-              Sigma = U*Sigma*U';
-            elseif currentEvent.Relaxation
-              SigmaVector = L*SigmaVector + SigmaOffset;
-              Sigma = reshape(SigmaVector,n,n);
+              nSteps = size(currentEvent.Propagation.Utotal,2);
+            else
+              nSteps = size(currentEvent.Propagation.Ltotal,2);
+              SigmaVector = reshape(Sigma,n*n,1);
+              if ~isempty(currentEvent.Propagation.PhaseTotal)
+                phaseFactors = currentEvent.Propagation.PhaseTotal{iPhaseStep};
+              end
             end
-
+          
             %------------------------------------------------------------
-            % Stores expectation values and denisty matrices if requested
+            % Loop over the number of necessary propagation steps (1 if
+            % detection during the pulse is not requested
             %------------------------------------------------------------
+            for iWavePoint = 1 : nSteps
+              if ~currentEvent.Relaxation
+                U = currentEvent.Propagation.Utotal{iPhaseStep,iWavePoint};
+                Sigma = U*Sigma*U';
+              elseif currentEvent.Relaxation
+                L = currentEvent.Propagation.Ltotal{iPhaseStep,iWavePoint};
+                SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal{iPhaseStep,iWavePoint};
+                if isempty(currentEvent.Propagation.PhaseTotal)
+                  SigmaVector = L*SigmaVector + recoveryWeight(iEvent)*SigmaOffset;
+                else
+                  % table Liouvillian rotated about the electron Sz (see pulsePropagators)
+                  % phase factors d(i)*conj(d(j)) of the vectorized state
+                  d = phaseFactors(:,iWavePoint);
+                  p = d.*d';
+                  p = p(:);
+                  SigmaVector = p.*(L*(conj(p).*SigmaVector) + recoveryWeight(iEvent)*SigmaOffset);
+                end
+              
+                Sigma = reshape(SigmaVector,n,n);
+              end
+            
+              %----------------------------------------------------------
+              % Store expectation values and density matrix if requested
+              %----------------------------------------------------------
+              if currentEvent.Detection
+                currentSignal(:,iWavePoint+1) = DetArray*Sigma(:);
+              end
+            
+              if currentEvent.StateTrajectories
+                DensityMatrices{iWavePoint+1} = Sigma;
+              end
+              %----------------------------------------------------------
+            end
+          
+            %------------------------------------------------------------
+            % Combine results from current phase cycle step with previous ones
+            %------------------------------------------------------------
+            if cycled
+              PCweight = pcFactors(iStep);
+              SigmaPC = SigmaPC + PCweight*Sigma;
+              if currentEvent.Detection
+                PCSignal = PCSignal + PCweight*currentSignal;
+              end
+              if iStep ~= nPhaseSteps
+                Sigma = stateBeforePC;
+              end
+            end
+            %------------------------------------------------------------
+          
+          end
+        
+          %--------------------------------------------------------------
+          % If phase cycling was requested, the results from combining
+          % the individual signals and density matrices are used to
+          % overwrite Sigma and currentSignal
+          %--------------------------------------------------------------
+          if cycled
+            Sigma = SigmaPC;
             if currentEvent.Detection
-              currentSignal(:,itvector) = DetArray*Sigma(:);
+              currentSignal = PCSignal;
             end
+          end
 
-            if currentEvent.StateTrajectories
-              DensityMatrices{itvector} = Sigma;
+          % Coherence pathway selection (Exp.Pathways): keep only the
+          % elements of the selected electron coherence order
+          if ~isempty(Runs(iRun).Projection{iPulse})
+            Sigma(~Runs(iRun).Projection{iPulse}) = 0;
+          end
+          %--------------------------------------------------------------
+        
+        case 'free evolution'
+          if currentEvent.Detection && ~currentEvent.Relaxation && ~currentEvent.StateTrajectories
+            %--------------------------------------------------------------
+            % Evolution in the eigenbasis of Ham0, for all detected time
+            % points at once: element (k,l) of the state in the eigenbasis
+            % evolves with exp(-1i*(E(k)-E(l))*t)
+            %--------------------------------------------------------------
+            if isempty(eigVectors)
+              [eigVectors,E] = eig(full(Ham0+Ham0')/2,'vector');
+              eigOmega = E-E.';
+              eigOmega = eigOmega(:);
             end
-            %------------------------------------------------------------
+            V = eigVectors;
+            SigmaEig = V'*Sigma*V;
+            % detection operators in the eigenbasis, using
+            % sum(R.*Sigma) = sum((V.'*R*conj(V)).*SigmaEig)
+            Coeff = zeros(nDetRows,n^2);
+            for iRow = 1:nDetRows
+              R = V.'*reshape(DetArray(iRow,:),n,n)*conj(V);
+              Coeff(iRow,:) = R(:).'.*SigmaEig(:).';
+            end
+            chunkSize = max(1,floor(2^22/n^2));
+            for k0 = 2:chunkSize:numel(tvector)
+              k = k0:min(k0+chunkSize-1,numel(tvector));
+              currentSignal(:,k) = Coeff*exp(-1i*eigOmega*tvector(k));
+            end
+            Sigma = V*(SigmaEig.*reshape(exp(-1i*eigOmega*tvector(end)),n,n))*V';
+
+          else
+            %--------------------------------------------------------------
+            % Loads or computes the Propagator/Liouvillian if necessary
+            %--------------------------------------------------------------
+            if ~currentEvent.Relaxation
+              if isfield(currentEvent.Propagation,'Utotal')
+                U = currentEvent.Propagation.Utotal;
+              else
+                U = Propagator(Ham0,currentEvent.TimeStep);
+                Events{iEvent}.Propagation.Utotal = U;
+              end
+            elseif currentEvent.Relaxation
+              n = size(Sigma,1);
+              SigmaVector = reshape(Sigma,n*n,1);
+              if isfield(currentEvent.Propagation,'Ltotal')
+                L = currentEvent.Propagation.Ltotal;
+                SigmaOffset = currentEvent.Propagation.SigmaOffsetTotal;
+              else
+                Gamma = Relaxation.Gamma;
+                equilibriumState = reshape(Relaxation.equilibriumState,n*n,1);
+                [L, SigmaOffset] = Liouvillian(Ham0,Gamma,equilibriumState,currentEvent.TimeStep);
+                Events{iEvent}.Propagation.Ltotal = L;
+                Events{iEvent}.Propagation.SigmaOffsetTotal = SigmaOffset;
+              end
+              SigmaOffset = recoveryWeight(iEvent)*SigmaOffset;
+            end
+            %--------------------------------------------------------------
+
+            %--------------------------------------------------------------
+            % Loops over the time axis for propagation
+            %--------------------------------------------------------------
+            for itvector=2:length(tvector)
+              if ~currentEvent.Relaxation
+                Sigma = U*Sigma*U';
+              elseif currentEvent.Relaxation
+                SigmaVector = L*SigmaVector + SigmaOffset;
+                Sigma = reshape(SigmaVector,n,n);
+              end
+
+              %------------------------------------------------------------
+              % Stores expectation values and denisty matrices if requested
+              %------------------------------------------------------------
+              if currentEvent.Detection
+                currentSignal(:,itvector) = DetArray*Sigma(:);
+              end
+
+              if currentEvent.StateTrajectories
+                DensityMatrices{itvector} = Sigma;
+              end
+              %------------------------------------------------------------
+            end
           end
+      end
+    
+      %------------------------------------------------------------------
+      % This combines the signals and time axes from all detected events
+      % and prepares the output
+      %------------------------------------------------------------------
+      if ~isempty(currentSignal)
+        currentSignal = detectionWeight(iEvent)*detectionFrameSignal(currentSignal,tvector+tStart(iEvent),Det,detOrders);
+        if firstDetection
+          Signal = [];
+          t = [];
+          % store first point of the first signal
+          Signal(:,1) = currentSignal(:,1);
+          t(1,1) = tStart(iEvent);
+        
+          % now add all the others timepoints
+          nSignal = size(currentSignal,2);
+          endTrace = startTrace+nSignal-2;
+          Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
+          t(1,startTrace:endTrace) = tvector(2:end)+tStart(iEvent);
+          startTrace = endTrace+1;
+          firstDetection = false;
+        
+        else
+          % adding other signals. this slightly confusing index is
+          % necessary in order to avoid double counting the last point of
+          % the previously detected event and the first point of the
+          % current signal
+          nSignal = size(currentSignal,2);
+          endTrace = startTrace+nSignal-2;
+          Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
+          t(1,startTrace:endTrace) = tvector(2:end)+tStart(iEvent);
+          startTrace = endTrace+1;
         end
-    end
+      end
     
-    %------------------------------------------------------------------
-    % This combines the signals and time axes from all detected events
-    % and prepares the output
-    %------------------------------------------------------------------
-    if ~isempty(currentSignal)
-      currentSignal = detectionWeight(iEvent)*detectionFrameSignal(currentSignal,tvector+tStart(iEvent),Det,detOrders);
-      if firstDetection
-        Signal = [];
-        t = [];
-        % store first point of the first signal
-        Signal(:,1) = currentSignal(:,1);
-        t(1,1) = tStart(iEvent);
-        
-        % now add all the others timepoints
-        nSignal = size(currentSignal,2);
-        endTrace = startTrace+nSignal-2;
-        Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
-        t(1,startTrace:endTrace) = tvector(2:end)+tStart(iEvent);
-        startTrace = endTrace+1;
-        firstDetection = false;
-        
-      else
-        % adding other signals. this slightly confusing index is
-        % necessary in order to avoid double counting the last point of
-        % the previously detected event and the first point of the
-        % current signal
-        nSignal = size(currentSignal,2);
-        endTrace = startTrace+nSignal-2;
-        Signal(:,startTrace:endTrace) = currentSignal(:,2:end);
-        t(1,startTrace:endTrace) = tvector(2:end)+tStart(iEvent);
-        startTrace = endTrace+1;
-      end
-    end
-    
-    % If StateTrajectories are required, they are stored in a temporary
-    % cell array, which will later be stored to the output
-    if currentEvent.StateTrajectories
-      % Density matrices in the detection frame: an event stores either
-      % all its time points or only its start and end
-      if numel(DensityMatrices)==numel(tvector)
-        tStates = tvector + tStart(iEvent);
-      else
-        tStates = [0 tvector(end)] + tStart(iEvent);
-      end
-      for iCell = 1 : length(DensityMatrices)
-        DensityMatrices{iCell} = detectionFrameState(DensityMatrices{iCell},tStates(iCell),Det);
-      end
-      if firstDensityMatrix
+      % If StateTrajectories are required, they are stored in a temporary
+      % cell array, which will later be stored to the output
+      if currentEvent.StateTrajectories
+        % Density matrices in the detection frame: an event stores either
+        % all its time points or only its start and end
+        if numel(DensityMatrices)==numel(tvector)
+          tStates = tvector + tStart(iEvent);
+        else
+          tStates = [0 tvector(end)] + tStart(iEvent);
+        end
         for iCell = 1 : length(DensityMatrices)
-          CurrentStateTrajectories{iCell} = DensityMatrices{iCell}; %#ok<AGROW>
+          DensityMatrices{iCell} = detectionFrameState(DensityMatrices{iCell},tStates(iCell),Det);
         end
-        firstDensityMatrix = false;
-        counter = length(DensityMatrices);
-      else
-        if currentEvent.Detection || iEvent == Sequence(end)
-          iStart = counter;
-          nElements = length(DensityMatrices);
-          for iDensity = 2 : nElements
-            CurrentStateTrajectories{iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
+        if firstDensityMatrix
+          for iCell = 1 : length(DensityMatrices)
+            CurrentStateTrajectories{iCell} = DensityMatrices{iCell}; %#ok<AGROW>
           end
-          counter = counter + length(DensityMatrices) - 1;
+          firstDensityMatrix = false;
+          counter = length(DensityMatrices);
+        else
+          if currentEvent.Detection || iEvent == Sequence(end)
+            iStart = counter;
+            nElements = length(DensityMatrices);
+            for iDensity = 2 : nElements
+              CurrentStateTrajectories{iStart+iDensity-1} = DensityMatrices{iDensity}; %#ok<AGROW>
+            end
+            counter = counter + length(DensityMatrices) - 1;
+          end
         end
       end
-    end
-    %------------------------------------------------------------------
+      %------------------------------------------------------------------
     
+    end
+
+    % Add up the runs with their weights
+    runWeight = Runs(iRun).weight;
+    if ~firstDetection
+      SignalSum = SignalSum + runWeight*Signal;
+    end
+    SigmaSum = SigmaSum + runWeight*Sigma;
+    if ~isempty(CurrentStateTrajectories)
+      if isempty(StateTrajectoriesSum)
+        StateTrajectoriesSum = cellfun(@(S)runWeight*S,CurrentStateTrajectories,'UniformOutput',false);
+      else
+        StateTrajectoriesSum = cellfun(@(S0,S)S0+runWeight*S,StateTrajectoriesSum,CurrentStateTrajectories,'UniformOutput',false);
+      end
+    end
   end
+  Signal = SignalSum;
+  Sigma = SigmaSum;
+  CurrentStateTrajectories = StateTrajectoriesSum;
   
   %--------------------------------------------------------------------
   % Store the time trace in a numeric array that contains all the time

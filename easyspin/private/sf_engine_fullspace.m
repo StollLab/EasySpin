@@ -86,8 +86,9 @@ for iSpin = 1:Sys.nElectrons
 end
 
 % Coherence pathway selection: projection onto the electron coherence
-% order after each pulse, one propagation per selected pathway. Each
-% propagation run is one run of the phase cycle with one pathway selection.
+% order after each pulse, one propagation run per selected pathway. Each
+% propagation run is one run of the phase cycle with one pathway selection;
+% sf_propagate computes the propagators once for all runs.
 mS = full(diag(Sz_total));
 Morder = mS - mS.';
 pulseEvents = find(cellfun(@(E)strcmp(E.type,'pulse'),Events));
@@ -98,47 +99,25 @@ if size(pathwayOrders,1)>1
   pathwayOrders = removeOverlaps(pathwayOrders,unique(round(Morder(:))));
 end
 nPathwayRuns = size(pathwayOrders,1);
-nRuns = nCycleRuns*nPathwayRuns;
-EventsList = cell(1,nRuns);
-VaryList = cell(1,nRuns);
-runWeights = zeros(1,nRuns);
-iRun = 0;
-for iCycle = 1:nCycleRuns
-  % settings of the pulses in this run of the phase cycle, with their
-  % weights
-  cycleEvents = Events;
-  cycleVary = Vary;
-  cycleRun = cycleRuns(iCycle);
-  for k = 1:numel(pulseEvents)
-    iEvent = pulseEvents(k);
-    rows = cycleRun.rows{k};
-    cycleEvents{iEvent}.IQ = Events{iEvent}.IQ(rows,:);
-    pc = Events{iEvent}.PhaseCycle(rows,:);
-    cycleEvents{iEvent}.PhaseCycle = [pc(:,1) cycleRun.factors{k} pc(:,3)];
-    if ~isempty(Vary) && ~isempty(Vary.Pulses{k})
-      IQs = Vary.Pulses{k}.IQs;
-      for j = 1:numel(IQs)
-        if ~isempty(IQs{j}), IQs{j} = IQs{j}(rows,:); end
-      end
-      cycleVary.Pulses{k}.IQs = IQs;
+nPulses = numel(pulseEvents);
+Projections = cell(nPathwayRuns,nPulses);
+for iPathway = 1:nPathwayRuns
+  for k = 1:nPulses
+    o = pathwayOrders(iPathway,k);
+    if isinf(o)  % +1 or -1
+      Projections{iPathway,k} = abs(abs(Morder)-1)<1e-10;
+    elseif ~isnan(o)
+      Projections{iPathway,k} = abs(Morder-o)<1e-10;
     end
   end
+end
+Runs = struct('rows',{},'factors',{},'Projection',{},'weight',{});
+for iCycle = 1:nCycleRuns
   for iPathway = 1:nPathwayRuns
-    E_ = cycleEvents;
-    for k = 1:numel(pulseEvents)
-      o = pathwayOrders(iPathway,k);
-      if isnan(o)
-        E_{pulseEvents(k)}.Projection = [];
-      elseif isinf(o)  % +1 or -1
-        E_{pulseEvents(k)}.Projection = abs(abs(Morder)-1)<1e-10;
-      else
-        E_{pulseEvents(k)}.Projection = abs(Morder-o)<1e-10;
-      end
-    end
-    iRun = iRun + 1;
-    EventsList{iRun} = E_;
-    VaryList{iRun} = cycleVary;
-    runWeights(iRun) = cycleRun.weight;
+    Runs(end+1).rows = cycleRuns(iCycle).rows; %#ok<AGROW>
+    Runs(end).factors = cycleRuns(iCycle).factors;
+    Runs(end).Projection = Projections(iPathway,:);
+    Runs(end).weight = cycleRuns(iCycle).weight;
   end
 end
 
@@ -221,13 +200,7 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
     end
   end
 
-  sig = 0;
-  tAx = [];
-  evT = [];
-  for iRun = 1:nRuns
-    [tAx, sig_, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, EventsList{iRun}, Relaxation_, VaryList{iRun});
-    sig = sig + runWeights(iRun)*sig_;
-  end
+  [tAx, sig, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, Events, Relaxation_, Vary, Runs);
   timeAxis{iOrientation} = tAx;
   rawSignals{iOrientation} = sig;
   eventTimes{iOrientation} = evT;
