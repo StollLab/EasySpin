@@ -60,7 +60,7 @@ Number of points. The defaults are given below.
 </div>
 
 <p>
-The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code>, <code>Exp.DetPhase</code> and <code>Exp.rfFreq</code>. To change them, start from the equivalent user-defined experiment.
+The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code>, <code>Exp.OnOff</code>, <code>Exp.DetPhase</code> and <code>Exp.rfFreq</code>. To change them, start from the equivalent user-defined experiment.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -304,7 +304,7 @@ Length of the RF pulse, in µs, default 20. It sets the RF excitation bandwidth.
 </div>
 
 <p>
-Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points. The phase cycle of the RF pulse switches it on and off (third column: amplitude scale) and takes the difference.
+Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points. The RF pulse is switched on and off (<code>Exp.OnOff</code>), and the signal is the difference. Since the RF pulse reduces the stimulated echo, the detection phase makes this ENDOR effect positive.
 </p>
 
 <pre class="matlab">
@@ -317,8 +317,8 @@ Exp.rfFreq = 10;
 Exp.nPoints = 21;
 Exp.Dim1 = {'rfFreq' 0.5};
 Exp.Pathways = '+00-';
-Exp.PhaseCycle = {[],[],[0 -1 1; 0 1 0],[]};
-Exp.DetPhase = -pi/2;
+Exp.OnOff = 3;
+Exp.DetPhase = +pi/2;
 </pre>
 
 <div class="subtitle">DaviesENDOR</div>
@@ -384,7 +384,7 @@ Exp.rfFreq = 10;
 Exp.nPoints = 21;
 Exp.Dim1 = {'rfFreq' 0.5};
 Exp.Pathways = '00+-';
-Exp.PhaseCycle = {[],[0 1 1; 0 -1 0],[],[]};
+Exp.OnOff = 2;
 Exp.DetPhase = -pi/2;
 </pre>
 

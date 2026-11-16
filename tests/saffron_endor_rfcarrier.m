@@ -23,7 +23,7 @@ Exp.Sequence = {p90 0.15 p90 0 rf 0 p90 0.15};
 Exp.nPoints = 101;
 Exp.Dim1 = {'rfFreq',0.05};
 Exp.Pathways = '+00-';
-Exp.PhaseCycle = {[],[],[0 -1 1; 0 1 0],[]};
+Exp.OnOff = 3;  % ENDOR effect: echo with RF pulse minus echo without
 
 [x,y0] = saffron(Sys,Exp);
 

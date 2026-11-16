@@ -369,7 +369,7 @@ This gives you complete freedom with designing your experiment or running pulse 
 </a>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> gives you a simple way to phase-cycle pulses with <code>Exp.PhaseCycle</code>.
+<a class="esf" href="saffron.html">saffron</a> can phase-cycle the pulses with <code>Exp.PhaseCycle</code>.
 Let us have a look at the three-pulse ESEEM sequence:
 </p>
 
@@ -391,47 +391,40 @@ Exp.DetWindow = [-0.1 0.1];
 Besides the stimulated echo, the three pulses create other signals, such as free induction decays and unrefocused echoes.
 In a real sample, the unrefocused signals decay quickly because the spins precess at many different frequencies.
 In the simulation, each orientation is a single set of spins without this spread, so these signals do not decay and the phase cycle has to remove them.
-To keep only the stimulated echo, cycle the first pulse in four steps of 90&deg; with detection phases 1, i, -1, -i, and the third pulse in two steps of 180&deg; with detection phases +1 and -1:
+To keep only the stimulated echo, cycle the first pulse in four steps of 90&deg; and the third pulse in two steps of 180&deg;, with all eight combinations.
+In each step, the receiver phase is the negative of the sum of the two pulse phases.
+</p>
+
+<p>
+<code>Exp.PhaseCycle</code> lists the steps as rows. Each row gives the phase of each pulse, added to its <code>Phase</code>, and the receiver phase, all in radians:
 </p>
 
 <pre class="matlab">
-Exp.PhaseCycle{1} = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i];
-Exp.PhaseCycle{3} = [0, 1; pi, -1];
+%                 pulse 1  pulse 2  pulse 3  receiver
+Exp.PhaseCycle = [0        0        0        0
+                  pi/2     0        0        -pi/2
+                  pi       0        0        -pi
+                  3*pi/2   0        0        -3*pi/2
+                  0        0        pi       -pi
+                  pi/2     0        pi       -3*pi/2
+                  pi       0        pi       -2*pi
+                  3*pi/2   0        pi       -5*pi/2];
 </pre>
 
 <p>
-where the indexing corresponds to the pulse index, e.g. <code>Exp.PhaseCycle{3}</code> corresponds to the third pulse.
-</p>
-
-<p>
-An alternative way to write this phase cycle is:
+The signal is the average over the steps, each multiplied by e<sup>-i&phi;</sup> with its receiver phase &phi;.
+Such a nested phase cycle, with all combinations of the phase steps of the individual pulses, can also be generated with <code>ndgrid</code>:
 </p>
 
 <pre class="matlab">
-sel = [0, 1; pi/2, 1i; pi, -1; 3*pi/2, -1i];
-odd = [0, 1; pi, -1];
-Exp.PhaseCycle = {sel [] odd};
+[ph1,ph3] = ndgrid((0:3)*pi/2,[0 pi]);
+Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 </pre>
 
 <p>
-Here, the explicit declaration of the empty brackets <code>[]</code> means no phase cycle for the second pulse.
-</p>
-
-<p>
-It is not possible to phase cycle pulses simultaneously with <code>Exp.PhaseCycle</code>.
-However, simultaneous phase cycling can be done through an additional indirect dimension.
-If, for example, you want to phase cycle the second and third pulse together, you could write:
-</p>
-
-<pre class="matlab">
-Exp.nPoints = 4;
-Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};
-</pre>
-
-After the simulation has finished, you need to sum up the signals with the correct detection phase manually.
-
-<p>
-Although <code>Exp.Dim1</code> etc. can be used for phase-cycling of single pulses as well, this is not recommended, as using <code>Exp.PhaseCycle</code> significantly improves performance.
+The list of steps can be any phase cycle, e.g. one where several pulses change phase together.
+For a nested phase cycle, saffron adds up the steps of each pulse right after the pulse, so the simulation takes about as long as for a single step.
+Other phase cycles are simulated step by step.
 </p>
 
 <p>

@@ -21,7 +21,10 @@
 %       mwPolarization      'linear' (default) or 'circular'
 %       ResonatorFrequency, ResonatorQL, FrequencyResponse, ResonatorMode
 %                           resonator, see resonator()
-%       PhaseCycle          phase cycle of each pulse, cell array
+%       pulseCycles         settings of each pulse in the phase cycle, cell
+%                           array with one element per pulse, rows [phase
+%                           weight scale] (phase in radians, added to
+%                           Pulse.Phase); optional, default [0 1 1]
 %     Opt  options structure, with fields
 %       rfGammaRef          gyromagnetic ratio (MHz/mT) for nominal RF flip
 %                           angles
@@ -51,8 +54,8 @@
 %                           phase cycle step; ideal pulses: Flip*exp(1i*phase)
 %       Ideal               true for ideal pulses
 %       Channel             'mw' or 'rf'
-%       PhaseCycle          rows [phase weight] or [phase weight scale], 0
-%                           if there is no phase cycle
+%       PhaseCycle          rows [phase weight scale], one per phase cycle
+%                           step (from Exp.pulseCycles)
 %       FrameOffset         carrier frequency (GHz) in the simulation frame
 %       Polarization        'linear' or 'circular'
 %       Ringing             duration (µs) of the resonator ringing, if any
@@ -403,15 +406,13 @@ for iEvent = 1:length(Exp.Sequence)
   if isPulse(iEvent)
     Events{iEvent}.type = 'pulse';
     
-    % Gets the PhaseCycle for the current Pulse, if none is provided, phase
-    % cycling is switched off for this event
-    if isfield(Exp,'PhaseCycle') &&  iPulse <= length(Exp.PhaseCycle) && ~isempty(Exp.PhaseCycle{iPulse})
-      thisPhaseCycle = Exp.PhaseCycle{iPulse};
-      nPhaseSteps = size(thisPhaseCycle,1);
+    % Settings of this pulse in the phase cycle, rows [phase weight scale]
+    if isfield(Exp,'pulseCycles') && ~isempty(Exp.pulseCycles)
+      thisPhaseCycle = Exp.pulseCycles{iPulse};
     else
-      thisPhaseCycle = 0;
-      nPhaseSteps = 1;
+      thisPhaseCycle = [0 1 1];
     end
+    nPhaseSteps = size(thisPhaseCycle,1);
     
     if ~isfield(Exp.Sequence{iEvent},'IQ') % Pulse.IQ is being used for userdefined IQs
       % ---------------------------------------------------------------------
@@ -491,28 +492,16 @@ for iEvent = 1:length(Exp.Sequence)
       end
 
     else
-      % in case user provided their own IQ(s)
-      
-      % determine input format:
+      % User-defined waveform (Pulse.IQ): a single waveform, or a cell
+      % array with one waveform per point of an indirect dimension (the
+      % first one is used here)
       if iscell(Exp.Sequence{iEvent}.IQ)
         userIQ = Exp.Sequence{iEvent}.IQ{1};
-      elseif ismatrix(Exp.Sequence{iEvent}.IQ)
-        userIQ = Exp.Sequence{iEvent}.IQ;
       else
-        errMsg = ['The data structure of the userdefined IQ of pulse on position ' num2str(iEvent) ' in Exp.Sequence is not recognized.'];
-        error(errMsg);
+        userIQ = Exp.Sequence{iEvent}.IQ;
       end
-      
-      [d1, d2] = size(userIQ);
-      % look for phase cycle and if found, verify that the IQ contains the
-      % phase cycle
-      if d1 ~= nPhaseSteps && d2 ~= nPhaseSteps
-        errMsg = ['The dimensionality of the IQ signal provided of the pulse on position ' num2str(iEvent) ' in Exp.Sequence  is not in agreement with the phasecycle for this pulse. For user-defined waveforms the array must contain all IQs.'];
-        error(errMsg);
-      elseif d2 == nPhaseSteps
-        userIQ =  userIQ';
-      end
-      
+      checkUserIQ(userIQ,iEvent);
+
       % look for the time axis Pulse.t that corresponds to Pulse.IQ
       if ~isfield(Exp.Sequence{iEvent},'t')
         errMsg = ['A userdefined IQ was used for the pulse on position ' num2str(iEvent) ' in Exp.Sequence but the time axis is missing. Please provide it through Pulse.t.' ];
@@ -528,21 +517,11 @@ for iEvent = 1:length(Exp.Sequence)
         Pulse.userIQ.t = Exp.Sequence{iEvent}.t;
       end
       
-      % Shifts IQ of the pulse if necessary...
-      for iPhaseStep = 1 : nPhaseSteps
-        Opt.dt = Opt.IntTimeStep;
-        if includeResonator
-          % but first if resonator is requested, pulses are elongated due to ringing.
-          % the duration of ringing is stored in an additional field
-          tOrig = t(end);
-          [tIQ,currentIQ] = resonator(t,userIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
-          Events{iEvent}.Ringing = t(end) - tOrig;
-        else
-          currentIQ = userIQ(iPhaseStep,:);
-        end
-        [t, shiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
+      % Wave forms of all steps of the phase cycle
+      [t,Events{iEvent}.IQ,ringing] = userWaveforms(tIQ,userIQ,thisPhaseCycle,Opt,includeResonator,Resonator,Exp);
+      if ~isempty(ringing)
+        Events{iEvent}.Ringing = ringing;
       end
-      Events{iEvent}.IQ =  shiftedUserIQ;
       
       Pulse.userIQ.IQ = Exp.Sequence{iEvent}.IQ;
       Pulse.PhaseCycle = thisPhaseCycle;
@@ -1009,7 +988,7 @@ if isfield(Exp,'nPoints')
           if size(PulseModifications{iPulse},1) == 1
             Dimension = PulseModifications{iPulse}{1,1};
             IndexToLoad = DimensionIndices(Dimension);
-            IndexToSave = ones(length(DimensionIndices));
+            IndexToSave = ones(1,length(DimensionIndices));
             IndexToSave(Dimension) = DimensionIndices(Dimension);
             ArrayIndex = num2cell(IndexToSave);
             
@@ -1017,7 +996,7 @@ if isfield(Exp,'nPoints')
             
             tIQ = pulses{iPulse}.userIQ.t{IndexToLoad};
           else
-            IndexToLoad = ones(length(DimensionIndices));
+            IndexToLoad = ones(1,length(DimensionIndices));
             
             for iModification = 1 : size(PulseModifications{iPulse},1)
               Dimension = PulseModifications{iPulse}{iModification,1};
@@ -1031,35 +1010,13 @@ if isfield(Exp,'nPoints')
             
           end
           
-          % get phase cycle
-          nPhaseSteps = size(pulses{iPulse}.PhaseCycle,1);
-          [d1, d2] = size(userIQ);
-          
-          % validate phase cycle
-          if d1 ~= nPhaseSteps && d2 ~= nPhaseSteps
-            errMsg = ['The dimensionality of the IQ signal provided for event ' num2str(iEvent) ' is not in agreement with the phasecycle for this pulse. For user-defined waveforms the array must contain all IQs.'];
-            error(errMsg);
-          elseif d2 == nPhaseSteps
-            userIQ =  userIQ';
+          % Wave forms of all steps of the phase cycle
+          checkUserIQ(userIQ,pulses{iPulse}.EventIndex);
+          [t,Vary.Pulses{iPulse}.IQs{ArrayIndex{:}},ringing] = userWaveforms(tIQ,userIQ,...
+            pulses{iPulse}.PhaseCycle,Opt,includeResonator,Resonator,Exp);
+          if ~isempty(ringing)
+            Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = ringing;
           end
-          
-          % Shifts IQ of the pulse if necessary...
-          shiftedUserIQ = [];
-          for iPhaseStep = 1 : nPhaseSteps
-            Opt.dt = Opt.IntTimeStep;
-            if includeResonator
-              % if resonator is requested, pulses are elongated due to ringing.
-              % the duration of ringing is stored in an additional field
-              tOrig = tIQ(end);
-              [tIQ,currentIQ] = resonator(tIQ,userIQ(iPhaseStep,:),Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
-              Vary.Pulses{iPulse}.Ringing(ArrayIndex{:}) = tIQ(end) - tOrig;
-            else
-              currentIQ = userIQ(iPhaseStep,:);
-            end
-            [t, shiftedUserIQ(iPhaseStep,:)] = rfmixer(tIQ,currentIQ,-Opt.FrameShift,'IQshift',Opt);
-          end
-          
-          Vary.Pulses{iPulse}.IQs{ArrayIndex{:}} = shiftedUserIQ;
           
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
           
@@ -1193,7 +1150,7 @@ end
 %   Input:
 %     Pulse             pulse parameters (see pulse()), with additional fields
 %       isIdeal, isRF     pulse type
-%       PhaseCycle        rows [phase weight] or [phase weight scale]
+%       PhaseCycle        rows [phase weight scale]
 %       rfCarrier         RF carrier frequency (MHz), RF pulses
 %       B1                RF field amplitude (mT), RF pulses, optional
 %       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B1
@@ -1212,11 +1169,8 @@ end
 %     ringing  duration (µs) of the resonator ringing, empty without resonator
 function [t,IQ,ringing] = pulseWaveform(Pulse,iPCstep,Opt,freqShift,includeResonator,Resonator,Exp)
 ringing = [];
-pc = Pulse.PhaseCycle;
-if size(pc,2)<2, pc = [0 1]; end
-phase = Pulse.Phase + pc(iPCstep,1);
-scale = 1;
-if size(pc,2)>=3, scale = pc(iPCstep,3); end
+phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
+scale = Pulse.PhaseCycle(iPCstep,3);
 if Pulse.isIdeal
   t = [0 0];  % zero duration (two time points for detection bookkeeping)
   IQ = scale*Pulse.Flip*exp(1i*phase);
@@ -1252,6 +1206,64 @@ end
 if freqShift~=0
   Opt.dt = Opt.IntTimeStep;
   [t,IQ] = rfmixer(t,IQ,freqShift,'IQshift',Opt);
+end
+end
+
+%-------------------------------------------------------------------------------
+% userWaveforms  Wave forms of a user-defined pulse for all phase cycle steps
+%
+%   [t,IQ,ringing] = userWaveforms(tIQ,userIQ,PhaseCycle,Opt,includeResonator,Resonator,Exp)
+%
+%   Each step of the phase cycle shifts the phase of the waveform and scales
+%   it. The waveform, upconverted with the carrier at Exp.mwFreq, is passed
+%   through the resonator and shifted to the simulation frame.
+%
+%   Input:
+%     tIQ               time axis of the waveform (µs)
+%     userIQ            waveform (Pulse.IQ), vector
+%     PhaseCycle        rows [phase weight scale], one per step
+%     Opt               options; uses IntTimeStep, FrameShift
+%     includeResonator  true to include the resonator
+%     Resonator         resonator parameters, fields Arg1, Arg2, Arg3 are
+%                       the arguments of resonator()
+%     Exp               experiment; uses mwFreq
+%
+%   Output:
+%     t        time axis (µs)
+%     IQ       wave forms in the simulation frame, one row per step
+%     ringing  duration (µs) of the resonator ringing, empty without resonator
+function [t,IQ,ringing] = userWaveforms(tIQ,userIQ,PhaseCycle,Opt,includeResonator,Resonator,Exp)
+ringing = [];
+Opt.dt = Opt.IntTimeStep;
+nSteps = size(PhaseCycle,1);
+IQ = [];
+for iStep = 1:nSteps
+  tStep = tIQ;
+  IQstep = PhaseCycle(iStep,3)*exp(1i*PhaseCycle(iStep,1))*userIQ(:).';
+  if includeResonator
+    % the pulse is elongated by the ringing
+    [tStep,IQstep] = resonator(tStep,IQstep,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);
+    ringing = tStep(end) - tIQ(end);
+  end
+  [t,IQstep] = rfmixer(tStep,IQstep,-Opt.FrameShift,'IQshift',Opt);
+  if iStep==1, IQ = zeros(nSteps,numel(IQstep)); end
+  IQ(iStep,:) = IQstep;
+end
+end
+
+%-------------------------------------------------------------------------------
+% checkUserIQ  Check a user-defined waveform
+%
+%   checkUserIQ(userIQ,iEvent)
+%
+%   Input:
+%     userIQ  waveform (Pulse.IQ)
+%     iEvent  position of the pulse in Exp.Sequence
+function checkUserIQ(userIQ,iEvent)
+if ~isnumeric(userIQ) || ~isvector(userIQ)
+  error(['Pulse.IQ of the pulse at position %d in Exp.Sequence must be a single waveform (a vector), ' ...
+    'or a cell array of waveforms for an indirect dimension. To change its phase in a phase cycle, ' ...
+    'use Exp.PhaseCycle.'],iEvent);
 end
 end
 

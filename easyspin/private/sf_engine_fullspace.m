@@ -14,8 +14,12 @@
 %                       (GHz), and detection phases
 %       nPoints, DetWindow, DetIntegrate, Sequence
 %     Opt             options, parsed by saffron, including
-%       propEvents      events, from sf_buildevents
+%       propEvents      events, with the wave forms of all settings of the
+%                       pulses in the phase cycle, from sf_buildevents
 %       propVary        indirect dimensions, from sf_buildevents
+%       propCycleRuns   propagation runs of the phase cycle: settings of
+%                       each pulse and signal weight, from phaseCycleRuns
+%                       in saffron
 %       propPathways    electron coherence orders of the selected pathways,
 %                       from sf_pathwayorders in saffron
 %       FrameShift      simulation frame frequency (GHz), from sf_buildevents
@@ -40,8 +44,10 @@ function [y,info] = sf_engine_fullspace(Sys,Exp,Opt,Orientations,nOrientations,a
 info = struct;
 Events = Opt.propEvents;
 Vary = Opt.propVary;
+cycleRuns = Opt.propCycleRuns;
 pathwayOrders = Opt.propPathways;
-Opt = rmfield(Opt,{'propEvents','propVary','propPathways'});
+Opt = rmfield(Opt,{'propEvents','propVary','propCycleRuns','propPathways'});
+nCycleRuns = numel(cycleRuns);
 
 if ~isscalar(Opt.Relaxation) || Opt.relaxationFromSys
   for iEvent = 1:numel(Events)
@@ -80,7 +86,8 @@ for iSpin = 1:Sys.nElectrons
 end
 
 % Coherence pathway selection: projection onto the electron coherence
-% order after each pulse, one propagation per selected pathway
+% order after each pulse, one propagation per selected pathway. Each
+% propagation run is one run of the phase cycle with one pathway selection.
 mS = full(diag(Sz_total));
 Morder = mS - mS.';
 pulseEvents = find(cellfun(@(E)strcmp(E.type,'pulse'),Events));
@@ -91,20 +98,48 @@ if size(pathwayOrders,1)>1
   pathwayOrders = removeOverlaps(pathwayOrders,unique(round(Morder(:))));
 end
 nPathwayRuns = size(pathwayOrders,1);
-EventsList = cell(1,nPathwayRuns);
-for iRun = 1:nPathwayRuns
-  E_ = Events;
+nRuns = nCycleRuns*nPathwayRuns;
+EventsList = cell(1,nRuns);
+VaryList = cell(1,nRuns);
+runWeights = zeros(1,nRuns);
+iRun = 0;
+for iCycle = 1:nCycleRuns
+  % settings of the pulses in this run of the phase cycle, with their
+  % weights
+  cycleEvents = Events;
+  cycleVary = Vary;
+  cycleRun = cycleRuns(iCycle);
   for k = 1:numel(pulseEvents)
-    o = pathwayOrders(iRun,k);
-    if isnan(o)
-      E_{pulseEvents(k)}.Projection = [];
-    elseif isinf(o)  % +1 or -1
-      E_{pulseEvents(k)}.Projection = abs(abs(Morder)-1)<1e-10;
-    else
-      E_{pulseEvents(k)}.Projection = abs(Morder-o)<1e-10;
+    iEvent = pulseEvents(k);
+    rows = cycleRun.rows{k};
+    cycleEvents{iEvent}.IQ = Events{iEvent}.IQ(rows,:);
+    pc = Events{iEvent}.PhaseCycle(rows,:);
+    cycleEvents{iEvent}.PhaseCycle = [pc(:,1) cycleRun.factors{k} pc(:,3)];
+    if ~isempty(Vary) && ~isempty(Vary.Pulses{k})
+      IQs = Vary.Pulses{k}.IQs;
+      for j = 1:numel(IQs)
+        if ~isempty(IQs{j}), IQs{j} = IQs{j}(rows,:); end
+      end
+      cycleVary.Pulses{k}.IQs = IQs;
     end
   end
-  EventsList{iRun} = E_;
+  for iPathway = 1:nPathwayRuns
+    E_ = cycleEvents;
+    for k = 1:numel(pulseEvents)
+      o = pathwayOrders(iPathway,k);
+      if isnan(o)
+        E_{pulseEvents(k)}.Projection = [];
+      elseif isinf(o)  % +1 or -1
+        E_{pulseEvents(k)}.Projection = abs(abs(Morder)-1)<1e-10;
+      else
+        E_{pulseEvents(k)}.Projection = abs(Morder-o)<1e-10;
+      end
+    end
+    iRun = iRun + 1;
+    EventsList{iRun} = E_;
+    VaryList{iRun} = cycleVary;
+    runWeights(iRun) = cycleRun.weight;
+  end
 end
 
 % User-provided initial state (Sys.initState), set up for each orientation
@@ -143,7 +178,8 @@ minWeight = ones(1,nOrientations);
 minOverlap = ones(1,nOrientations);
 
 logmsg(1,'-starting orientation loop-----------------------------');
-logmsg(1,'  propagating %d orientations, %d pathway run(s)',nOrientations,nPathwayRuns);
+logmsg(1,'  propagating %d orientations, %d phase cycle run(s), %d pathway run(s)',...
+  nOrientations,nCycleRuns,nPathwayRuns);
 Field = Exp.Field;
 
 % A parallel pool only pays off for several orientations (starting one
@@ -188,9 +224,9 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
   sig = 0;
   tAx = [];
   evT = [];
-  for iRun = 1:nPathwayRuns
-    [tAx, sig_, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, EventsList{iRun}, Relaxation_, Vary);
-    sig = sig + sig_;
+  for iRun = 1:nRuns
+    [tAx, sig_, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, EventsList{iRun}, Relaxation_, VaryList{iRun});
+    sig = sig + runWeights(iRun)*sig_;
   end
   timeAxis{iOrientation} = tAx;
   rawSignals{iOrientation} = sig;

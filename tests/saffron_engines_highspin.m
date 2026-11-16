@@ -44,7 +44,8 @@ ok = ok(:).';
 
 % Engine agreement on the allowed transitions, primary echo with selective
 % rectangular pulses (two-level systems for the subspace engine)
-sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];  % echo pathway by phase cycle
+ph = (0:3).'*pi/2;
+sel = [ph 0*ph -ph];  % echo pathway by phase cycle: first pulse in steps of 90°
 a90.tp = 0.06; a90.Amplitude = 2;  % µs, MHz
 a180.tp = 0.12; a180.Amplitude = 2;
 Exp.Sequence = {a90 0.15 a180 0.15};
@@ -61,7 +62,7 @@ for S = [1 3/2]
     E.Field = B(iB);
     Es = E; Es.Pathways = 'echo';
     [~,ySub] = saffron(Sys,Es,struct('Method','subspace'));
-    Ef = E; Ef.PhaseCycle = {sel}; Ef.DetWindow = 0;
+    Ef = E; Ef.PhaseCycle = sel; Ef.DetWindow = 0;
     % simulation frame close to the microwave frequency: long time steps
     [~,yFull] = saffron(Sys,Ef,struct('Method','fullspace','SimFreq',9.4));
     % high-field approximation of the subspace engine, ~(D/nu_e)^2

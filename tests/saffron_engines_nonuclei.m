@@ -20,9 +20,13 @@ Exp.Field = 338;  % mT
 Exp.MolFrame = [0.2 0.8 0.1];
 Exp.CrystalSymmetry = 1;
 
-% Echo pathway selection by phase cycles in the full-space engine
-sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
-odd = [0 1; pi -1];
+% Echo pathway selection by phase cycles in the full-space engine: the
+% first pulse in four steps of 90°, and for the stimulated echo also the
+% third pulse in two steps of 180°, with the receiver phase following
+ph = (0:3).'*pi/2;
+sel2 = [ph 0*ph -ph];
+[ph1,ph3] = ndgrid((0:3)*pi/2,[0 pi]);
+sel3 = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 p90.Flip = pi/2;
 p180.Flip = pi;
 f90 = p90; f90.tp = 0.01;  % µs
@@ -34,7 +38,7 @@ Exps = {E2 E2 E3};
 Exps{1}.Sequence = {p90 0.2 p180 0.2};
 Exps{2}.Sequence = {f90 0.2 f180 0.2};
 Exps{3}.Sequence = {f90 0.2 f90 0.1 f90 0.2};
-PhaseCycles = {{sel} {sel} {sel [] odd}};
+PhaseCycles = {sel2 sel2 sel3};
 tol = [1e-10 1e-3 1e-3];  % finite pulses: time step of the full-space engine
 
 for k = 1:3

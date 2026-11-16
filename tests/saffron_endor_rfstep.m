@@ -20,7 +20,7 @@ Exp.MolFrame = [0 0 0];
 Exp.CrystalSymmetry = 1;
 Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 Exp.Pathways = '+00-';
-Exp.PhaseCycle = {[],[],[0 -1 1; 0 1 0],[]};
+Exp.OnOff = 3;  % ENDOR effect: echo with RF pulse minus echo without
 Exp.DetPhase = -pi/2;
 
 Opt.Method = 'fullspace';

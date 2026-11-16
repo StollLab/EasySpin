@@ -1,7 +1,8 @@
 function [ok,data] = test(opt,olddata) %#ok<FNDEF>
 
 % Phase cycles on the first and last pulse, Sz detected over the whole
-% sequence (single orientation)
+% sequence (single orientation). The receiver phase of the last pulse
+% cancels the signal before it.
 
 orig_state = warning;
 warning('off','all');
@@ -17,7 +18,6 @@ Pulse.Flip = pi;
 Pulse2 = Pulse;
 Pulse2.Phase = pi;
 
-PC = [0, 1; pi, -1];
 
 Exp.Sequence = {Pulse Pulse2 Pulse};
 Opt.IntTimeStep = 0.0001; % µs
@@ -25,7 +25,8 @@ Exp.mwFreq = 33.5;
 Exp.Field = mhz2mt(33500);  % mT, resonance field for g = gfree
 Exp.MolFrame = [0 0 0];  % single orientation
 Exp.DetWindow = 'sequence';
-Exp.PhaseCycle = {PC [] PC};
+[ph1,ph3] = ndgrid([0 pi],[0 pi]);
+Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 Exp.DetPhase = 0;
 
 % Options ---------------------------

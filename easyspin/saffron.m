@@ -26,8 +26,11 @@
 %                    a string of electron coherence orders per pulse
 %                    ('+0-', 'c' = + or -, '.' = any), or a numeric matrix
 %                    (NaN = any)
-%     PhaseCycle     phase cycle per pulse, rows [phase weight] or
-%                    [phase weight scale]
+%     PhaseCycle     phase cycle, one row per step: the phase of each pulse
+%                    and the receiver phase (radians); the signal is the
+%                    average over the steps
+%     OnOff          pulses switched on and off (pulse numbers); the signal
+%                    is the difference signal(on) - signal(off)
 %     DetWindow      detection window (µs) relative to the end of the
 %                    sequence: 0 (default, single point), [a b] (transient),
 %                    or 'sequence' (whole sequence)
@@ -270,6 +273,11 @@ if iscell(Exp.Sequence)
   end
 end
 
+% Phase cycle and pulses switched on and off
+if iscell(Exp.Sequence)
+  Exp = parsePhaseCycle(Exp,sum(cellfun(@isstruct,Exp.Sequence)));
+end
+
 % Detection window, default: single point at the end of the sequence
 if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)
   Exp.DetWindow = 0;
@@ -373,9 +381,16 @@ else
     catch
     end
   end
+  % Propagation runs of the phase cycle, and events and indirect dimensions
+  % with the wave forms of all settings of each pulse in the phase cycle
+  [cycleSettings,cycleRuns] = phaseCycleRuns(ExpProp,sum(cellfun(@isstruct,Exp.Sequence)));
+  logmsg(1,'  phase cycle: %d propagation run(s)',numel(cycleRuns));
+  ExpProp = rmfield(ExpProp,intersect(fieldnames(ExpProp),{'PhaseCycle','OnOff'}));
+  ExpProp.pulseCycles = cellfun(@(s)[s(:,1) ones(size(s,1),1) s(:,2)],cycleSettings,'UniformOutput',false);
   [Events,Vary,Opt] = sf_buildevents(ExpProp,Opt);
   Opt.propEvents = Events;
   Opt.propVary = Vary;
+  Opt.propCycleRuns = cycleRuns;
   Opt.propPathways = sf_pathwayorders(Exp,Opt.IdealPulses);
 end
 
@@ -449,10 +464,12 @@ end
 %       Method             'subspace' or 'fullspace'
 %       relaxationFromSys  true if the user did not give Opt.Relaxation
 %       fastSeq, fastExp   parsed sequence and experiment (subspace engine)
-%       propEvents, propVary, propPathways
-%                          events, indirect dimensions and electron
-%                          coherence orders of the selected pathways
-%                          (full-space engine)
+%       propEvents, propVary, propCycleRuns, propPathways
+%                          events and indirect dimensions with all
+%                          settings of the pulses in the phase cycle, the
+%                          propagation runs of the phase cycle (see
+%                          phaseCycleRuns), and electron coherence orders
+%                          of the selected pathways (full-space engine)
 %
 %   Output:
 %     x_out  always empty (saffron computes the axes)
@@ -575,6 +592,184 @@ elseif ischar(pw)
 else
   orders = pw;
 end
+end
+
+%===============================================================================
+% parsePhaseCycle  Check the phase cycle and the pulses switched on and off
+%
+%   Exp = parsePhaseCycle(Exp,nPulses)
+%
+%   Checks Exp.PhaseCycle and Exp.OnOff.
+%
+%   Input:
+%     Exp      experiment; uses PhaseCycle, OnOff
+%     nPulses  number of pulses in Exp.Sequence
+%
+%   Output:
+%     Exp      experiment with OnOff as a row of pulse numbers, if given
+function Exp = parsePhaseCycle(Exp,nPulses)
+
+if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
+  PC = Exp.PhaseCycle;
+  if iscell(PC)
+    error(['Exp.PhaseCycle with one phase cycle per pulse (cell array) is no longer supported. ' ...
+      'Give the phase cycle as a matrix with one row per step, containing the phases of all ' ...
+      'pulses and the receiver phase (in radians).']);
+  end
+  if ~isnumeric(PC) || ~isreal(PC) || ~ismatrix(PC) || any(~isfinite(PC(:)))
+    error('Exp.PhaseCycle must be a matrix of phases (in radians).');
+  end
+  if size(PC,2)~=nPulses+1
+    error(['Exp.PhaseCycle must have one row per step and %d columns: the phases of the ' ...
+      '%d pulses and the receiver phase (in radians). It has %d columns.'],...
+      nPulses+1,nPulses,size(PC,2));
+  end
+end
+
+if isfield(Exp,'OnOff') && ~isempty(Exp.OnOff)
+  onOff = Exp.OnOff;
+  if ~isnumeric(onOff) || ~isvector(onOff) || any(onOff<1 | onOff>nPulses | mod(onOff,1)~=0)
+    error('Exp.OnOff must contain pulse numbers between 1 and %d.',nPulses);
+  end
+  if numel(unique(onOff))<numel(onOff)
+    error('Exp.OnOff contains a pulse number more than once.');
+  end
+  Exp.OnOff = onOff(:).';
+end
+
+end
+
+%===============================================================================
+% phaseCycleRuns  Propagation runs of the phase cycle (full-space engine)
+%
+%   [settings,runs] = phaseCycleRuns(Exp,nPulses)
+%
+%   The signal is a weighted sum over acquisition steps: the steps of the
+%   phase cycle, each with the weight exp(-1i*receiver phase)/nSteps, and,
+%   with Exp.OnOff, the same steps with the listed pulses switched off and
+%   the opposite weight. Steps with identical pulse settings are combined.
+%   Phases are compared modulo 2*pi, and the phase of a pulse that is
+%   switched off is ignored.
+%
+%   If the steps form a nested phase cycle, i.e. all combinations of the
+%   settings (phase, on/off) of the individual pulses, with weights that are
+%   products of one factor per setting of each pulse, the sum is computed in
+%   a single run: since propagation is linear, sf_propagate adds up the
+%   weighted states of the settings of each pulse right after the pulse.
+%   Otherwise, each step with nonzero weight is propagated in a run of its
+%   own.
+%
+%   Input:
+%     Exp      experiment; uses PhaseCycle and OnOff (from parsePhaseCycle)
+%     nPulses  number of pulses in Exp.Sequence
+%
+%   Output:
+%     settings  cell array with one element per pulse: its settings in the
+%               phase cycle, rows [phase scale] (phase in radians, added to
+%               Pulse.Phase; scale 1 for on and 0 for off)
+%     runs      structure array, one element per run, with fields
+%       rows      cell array with one element per pulse: the settings used
+%                 in the run (row indices into settings{p})
+%       factors   cell array with one element per pulse: the weights of
+%                 these settings (column)
+%       weight    weight of the signal of the run
+function [settings,runs] = phaseCycleRuns(Exp,nPulses)
+
+% Acquisition steps: phases and scales of the pulses, signal weights
+if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
+  phases = Exp.PhaseCycle(:,1:nPulses);
+  weights = exp(-1i*Exp.PhaseCycle(:,end))/size(Exp.PhaseCycle,1);
+else
+  phases = zeros(1,nPulses);
+  weights = 1;
+end
+scales = ones(size(phases));
+if isfield(Exp,'OnOff') && ~isempty(Exp.OnOff)
+  off = scales;
+  off(:,Exp.OnOff) = 0;
+  phases = [phases; phases];
+  scales = [scales; off];
+  weights = [weights; -weights];
+end
+
+% No pulses: a single run
+if nPulses==0
+  settings = cell(1,0);
+  runs = struct('rows',{cell(1,0)},'factors',{cell(1,0)},'weight',sum(weights));
+  return
+end
+
+% Phases modulo 2*pi; the phase of a pulse that is switched off has no
+% effect
+tol = 1e-10;
+phases = mod(phases,2*pi);
+phases(abs(phases-2*pi)<tol | scales==0) = 0;
+
+% Settings of each pulse, and the setting of each pulse in each step;
+% identical steps are combined, and weights that cancel up to rounding
+% errors are set to zero
+settings = cell(1,nPulses);
+idx = zeros(numel(weights),nPulses);
+for p = 1:nPulses
+  [settings{p},~,idx(:,p)] = uniquetol([phases(:,p) scales(:,p)],tol,'ByRows',true,'DataScale',1);
+end
+weightTol = 1e-12*sum(abs(weights));
+[idx,~,iStep] = unique(idx,'rows');
+weights = accumarray(iStep,weights);
+weights(abs(weights)<=weightTol) = 0;
+nSettings = cellfun(@(s)size(s,1),settings);
+
+% Nested phase cycle: the array of the weights of all combinations of the
+% settings (one dimension per pulse) is an outer product of one factor
+% vector per pulse
+nested = size(idx,1)==prod(nSettings);
+if nested
+  W = accumarray([idx ones(size(idx,1),1)],weights,[nSettings 1]);
+  [~,iRef] = max(abs(W(:)));
+  ref = cell(1,nPulses);
+  [ref{:}] = ind2sub([nSettings 1],iRef);
+  factors = cell(1,nPulses);
+  Wnested = W(iRef);
+  for p = 1:nPulses
+    sub = ref;
+    sub{p} = ':';
+    factors{p} = reshape(W(sub{:}),[],1)/W(iRef);
+    Wnested = Wnested.*reshape(factors{p},[ones(1,p-1) nSettings(p) 1]);
+  end
+  nested = W(iRef)~=0 && norm(Wnested(:)-W(:))<=1e-10*norm(W(:));
+end
+
+if nested
+  % settings with factor zero do not contribute (the setting at iRef has
+  % factor 1, so each pulse keeps at least one)
+  rows = cell(1,nPulses);
+  for p = 1:nPulses
+    rows{p} = find(factors{p}~=0);
+    factors{p} = factors{p}(rows{p});
+  end
+  runs = struct('rows',{rows},'factors',{factors},'weight',W(iRef));
+else
+  keep = find(weights~=0);
+  if isempty(keep), keep = 1; end  % no signal: one run with zero weight
+  runs = struct('rows',cell(1,numel(keep)),'factors',[],'weight',[]);
+  for r = 1:numel(keep)
+    runs(r).rows = num2cell(idx(keep(r),:));
+    runs(r).factors = num2cell(ones(1,nPulses));
+    runs(r).weight = weights(keep(r));
+  end
+end
+
+% Keep only the settings that are used in the runs
+for p = 1:nPulses
+  used = unique(cell2mat(arrayfun(@(r)r.rows{p}(:),runs(:),'UniformOutput',false)));
+  newRow = zeros(nSettings(p),1);
+  newRow(used) = 1:numel(used);
+  settings{p} = settings{p}(used,:);
+  for r = 1:numel(runs)
+    runs(r).rows{p} = newRow(runs(r).rows{p});
+  end
+end
+
 end
 
 %===============================================================================

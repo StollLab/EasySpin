@@ -41,7 +41,7 @@ signal1 = saffron(Sys,Exp,Opt);
 Opt.dt = Opt.IntTimeStep/10;
 [t, IQ] = rfmixer(t,IQ,Exp.mwFreq,'IQshift',Opt);
 
-IQ = IQ';
+IQ = IQ.';
 
 %  Exp with userdefined IQ
 Exp2 = Exp;

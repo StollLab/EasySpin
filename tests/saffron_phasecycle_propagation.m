@@ -22,7 +22,8 @@ Exp.Sequence = {p90 tau p180 tau};
 Exp.Dim1 = {'d1,d2' 0.02};
 Exp.nPoints = 3;
 
-E1 = Exp; E1.PhaseCycle = {[0 1; pi/2 1i; pi -1; 3*pi/2 -1i]};
+ph = (0:3).'*pi/2;
+E1 = Exp; E1.PhaseCycle = [ph 0*ph -ph];
 E2 = Exp; E2.Pathways = '+-';
 
 [~,y1,info] = saffron(Sys,E1);

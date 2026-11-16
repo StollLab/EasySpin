@@ -34,9 +34,13 @@ p180.Flip = pi;
 f90 = p90; f90.tp = 0.002;  % µs
 f180 = p180; f180.tp = 0.004;  % µs
 
-% Echo pathway selection by phase cycles in the full-space engine
-sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
-odd = [0 1; pi -1];
+% Echo pathway selection by phase cycles in the full-space engine: the
+% first pulse in four steps of 90°, and for the stimulated echo also the
+% third pulse in two steps of 180°, with the receiver phase following
+ph = (0:3).'*pi/2;
+sel2 = [ph 0*ph -ph];
+[ph1,ph3] = ndgrid((0:3)*pi/2,[0 pi]);
+sel3 = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 
 E2 = Exp; E2.Dim1 = {'d1,d2' dt}; E2.nPoints = 32; E2.DetPhase = -pi/2;
 E3 = Exp; E3.Dim1 = {'d2' dt}; E3.nPoints = 32; E3.DetPhase = -pi/2;
@@ -45,7 +49,7 @@ Exps{1}.Sequence = {p90 tau p180 tau};
 Exps{2}.Sequence = {p90 tau p90 T p90 tau};
 Exps{3}.Sequence = {f90 tau f180 tau};
 Exps{4}.Sequence = {f90 tau f90 T f90 tau};
-PhaseCycles = {{sel} {sel [] odd} {sel} {sel [] odd}};
+PhaseCycles = {sel2 sel3 sel2 sel3};
 % ideal pulses: high-field approximation of the subspace engine (A^2/nu_e);
 % finite pulses: also the time step of the full-space engine
 tol = [1e-5 1e-5 1e-4 1e-4];

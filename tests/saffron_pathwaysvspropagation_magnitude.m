@@ -19,11 +19,16 @@ tau = 0.15;  % µs
 T = 0.1;  % µs
 dt = 0.02;  % µs
 
-% Phase cycles: sel keeps Delta p = +1 (echo pathway after the first pulse),
-% odd keeps odd and even keeps even Delta p
-sel = [0 1; pi/2 1i; pi -1; 3*pi/2 -1i];
-odd = [0 1; pi -1];
-even = [0 1; pi 1];
+% Phase cycles (rows: pulse phases, receiver phase): the first pulse in
+% four steps of 90° keeps Delta p = +1 (echo pathway after the first pulse);
+% the last pulse in two steps of 180° keeps odd Delta p, and, without
+% receiver phase change, the third HYSCORE pulse keeps even Delta p
+ph = (0:3).'*pi/2;
+pc2 = [ph 0*ph -ph];
+[ph1,ph3] = ndgrid((0:3)*pi/2,[0 pi]);
+pc3 = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
+[ph1,ph3,ph4] = ndgrid((0:3)*pi/2,[0 pi],[0 pi]);
+pcH = [ph1(:) 0*ph1(:) ph3(:) ph4(:) -ph1(:)-ph4(:)];
 
 tp = 0.001;  % µs, finite pulse length
 p90.Flip = pi/2;
@@ -46,9 +51,9 @@ E3.Sequence = {f90 tau f90 T f90 tau};
 EH.Sequence = {f90 tau f90 T f180 T f90 tau};
 yFinite = {fast(Sys,E2) fast(Sys,E3) fast(Sys,EH)};
 
-E2.PhaseCycle = {sel};
-E3.PhaseCycle = {sel [] odd};
-EH.PhaseCycle = {sel [] even odd};
+E2.PhaseCycle = pc2;
+E3.PhaseCycle = pc3;
+EH.PhaseCycle = pcH;
 yProp = {propagate(Sys,E2) propagate(Sys,E3) propagate(Sys,EH)};
 
 for k = 1:3

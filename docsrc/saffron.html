@@ -133,7 +133,7 @@ A pulse without length (<code>tp</code> absent or 0) is ideal: it rotates all sp
 <li><code>Phase</code>: pulse phase, in radians. <code>Phase = 0</code> is along x.</li>
 <li><code>Type</code>: pulse shape, e.g. <code>'rectangular'</code> (default), <code>'gaussian'</code>, <code>'quartersin/linear'</code> or <code>'sech/tanh'</code>, with their parameters as in <a class="esf" href="pulse.html">pulse</a>.</li>
 <li><code>Frequency</code>: frequency offset from <code>Exp.mwFreq</code>, in MHz, or <code>[start end]</code> for a frequency sweep.</li>
-<li><code>IQ</code> and <code>t</code>: a user-defined waveform and its time axis (needs <code>Opt.IntTimeStep</code>).</li>
+<li><code>IQ</code> and <code>t</code>: a user-defined waveform and its time axis (needs <code>Opt.IntTimeStep</code>). The waveform is complex, like the waveforms of <a class="esf" href="pulse.html">pulse</a>; a phase step in <code>Exp.PhaseCycle</code> multiplies it by e<sup>i&phi;</sup>.</li>
 <li><code>Channel</code>: <code>'mw'</code> (default) or <code>'rf'</code> for radiofrequency pulses (see <code>Exp.rfFreq</code>).</li>
 </ul>
 
@@ -463,15 +463,12 @@ Exp.nPoints = 2;
 Exp.Dim1 = {'p1.IQ' []};
 </pre>
 <p>
-An indirect dimension also allows stepping the phases of two or more pulses together, which <code>Exp.PhaseCycle</code> does not:
+Pulse phases can be stepped along an indirect dimension, too. The output then contains the signal of each step. To combine the steps into a phase-cycled signal, use <code>Exp.PhaseCycle</code> instead.
 </p>
 <pre class="matlab">
 Exp.nPoints = 4;
 Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd pulse by pi/4 each step
 </pre>
-<p>
-The output then contains the signal of each step, and you combine them yourself (with the appropriate signs) to obtain the phase-cycled signal.
-</p>
 </div>
 
 <div class="subtitle2">Coherence pathways and phase cycles</div>
@@ -494,17 +491,37 @@ Predefined experiments set their pathways themselves, so <code>Pathways</code> c
 
 <div class="optionfield"><code>PhaseCycle</code></div>
 <div class="optiondescr">
-Cell array that specifies the phase cycle, with one entry for each pulse. To cycle the phase of a pulse, provide an array with each phase step in a separate row. In each row, the first element is the pulse phase (in radians), and the second element the weight of the signal of this step (e.g. +1, -1, 1i or -1i). An optional third element scales the pulse amplitude in this step (e.g. 0 to switch an RF pulse off).
+The phase cycle, as a matrix with one row per step. Each row gives the phases of all pulses in <code>Exp.Sequence</code>, in their order, followed by the receiver phase, all in radians. In each step, the pulse phases are added to the phases of the pulses (<code>Pulse.Phase</code>), and the signal is multiplied by e<sup>-i&phi;</sup>, where &phi; is the receiver phase, in the same way as by <code>Exp.DetPhase</code>. The result is the average of the signals of all steps.
 <pre class="matlab">
-PC2 = [0, +1; pi, -1];   % step 1: pulse phase 0, weight +1
-                         % step 2: pulse phase pi, weight -1
+% two pulses: first pulse along +x and -x, receiver phase 0 and pi
+Exp.PhaseCycle = [0  0  0
+                  pi 0  pi];
 
-Exp.PhaseCycle = {[0 +1] PC2};  % phase cycle only second pulse; use [0 1] for non-cycled pulses
-Exp.PhaseCycle = {[] PC2};      % alternative: [] for non-cycled pulses
+% two pulses: first pulse in four steps of 90 degrees, receiver phase following
+ph = (0:3).'*pi/2;
+Exp.PhaseCycle = [ph 0*ph -ph];
 </pre>
-The phase cycle is built from the individual phase steps for each pulse in a nested fashion, where each pulse is cycled separately. To step several pulses together, use an indirect dimension (see <code>Dim1</code>).
-Both methods support phase cycles. Amplitude scales other than 0 and 1, and scales of finite microwave pulses, need the <em>full-space</em> method.
+Any list of steps is possible, including steps in which several pulses change their phases together. A nested phase cycle, which runs through all combinations of the phase steps of the individual pulses, lists all these combinations. They can be generated with <code>ndgrid</code>:
+<pre class="matlab">
+% three pulses: first pulse in four steps of 90 degrees,
+% third pulse in two steps of 180 degrees
+[ph1,ph3] = ndgrid((0:3)*pi/2,[0 pi]);
+Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
+</pre>
+With a detection window or <code>'sequence'</code> (see <code>DetWindow</code>), the whole detected signal is phase-cycled, including the signal before and during the cycled pulses. Signal that is the same in all steps is removed if the receiver phases cancel it.
+Both methods support phase cycles. The <em>full-space</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles take as long as simulating each step separately.
 Predefined experiments set their pathways themselves, so <code>PhaseCycle</code> cannot be used with them.
+</div>
+
+<div class="optionfield"><code>OnOff</code></div>
+<div class="optiondescr">
+Pulses that are switched on and off, as a list of pulse numbers (<code>1</code> for the first pulse in <code>Exp.Sequence</code>, <code>2</code> for the second, etc.). saffron simulates the experiment with all pulses on, and with the listed pulses off, and returns the difference between the two signals. This removes all signal that does not depend on the listed pulses. For example, in ENDOR, the difference between the echo with and without the RF pulse is the ENDOR effect.
+<pre class="matlab">
+Exp.Sequence = {p90 tau p90 T RF 0 p90 tau};
+Exp.OnOff = 3;   % signal with the RF pulse (pulse 3) minus signal without it
+</pre>
+Switching finite microwave pulses, or RF and microwave pulses together, needs the <em>full-space</em> method.
+Predefined experiments set this field themselves, so <code>OnOff</code> cannot be used with them.
 </div>
 
 <div class="subtitle2">Detection</div>
@@ -968,6 +985,7 @@ A structure with additional information:
 <tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code>; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes</td></tr>
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
+<tr><td>Pulses switched on and off (<code>OnOff</code>)</td><td>RF pulses or ideal microwave pulses</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub></td><td>also transients, <code>'sequence'</code>, other detection operators and frames, echo integration</td></tr>
 <tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
 <tr><td>Initial state (<code>initState</code>)</td><td>no</td><td>yes</td></tr>

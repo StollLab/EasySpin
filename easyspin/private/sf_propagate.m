@@ -93,7 +93,7 @@ Resonator = false;
 % Creates the pulse list, that is needed for reordering events
 %----------------------------------------------------------------------
 isPulse = zeros(1,nEvents);
-meanPCWeight = ones(1,nEvents);
+sumPCWeight = ones(1,nEvents);
 nPulses = 0;
 for iEvent = 1 : nEvents
   switch Events{iEvent}.type
@@ -102,7 +102,7 @@ for iEvent = 1 : nEvents
       nPulses = nPulses + 1;
       PulsePositions(nPulses) = iEvent; %#ok<AGROW>
       if size(Events{iEvent}.PhaseCycle,1)>1
-        meanPCWeight(iEvent) = mean(Events{iEvent}.PhaseCycle(:,2));
+        sumPCWeight(iEvent) = sum(Events{iEvent}.PhaseCycle(:,2));
       end
       % If ringing is found, resonator is set to on
       if isfield(Events{iEvent},'Ringing')
@@ -199,12 +199,20 @@ for iPoints = 1 : nPoints
   % Weight of the recovery toward equilibrium (SigmaOffset) in the
   % relaxation steps of each event. By linearity, each phase cycle step is
   % a separate experiment, and the weighted sum of their steps
-  % L*sigma + SigmaOffset weights SigmaOffset with the mean of the cycle
-  % weights. So the weight is the product of the mean weights of the phase
-  % cycles of all earlier pulses.
+  % L*sigma + SigmaOffset weights SigmaOffset with the sum of the cycle
+  % weights. So the weight is the product of the summed weights of the
+  % phase cycles of all earlier pulses.
   recoveryWeight = ones(1,nEvents);
-  recoveryWeight(Sequence) = cumprod([1 meanPCWeight(Sequence(1:end-1))]);
-  
+  recoveryWeight(Sequence) = cumprod([1 sumPCWeight(Sequence(1:end-1))]);
+
+  % Weight of the signal detected during each event. The signal before a
+  % pulse is the same in all steps of the phase cycle of that pulse, so the
+  % steps add up to the signal times the sum of their weights. So the
+  % weight is the product of the summed weights of the phase cycles of all
+  % later pulses (the signal during a pulse includes its own cycle).
+  detectionWeight = ones(1,nEvents);
+  detectionWeight(Sequence) = fliplr(cumprod([1 fliplr(sumPCWeight(Sequence(2:end)))]));
+
   %--------------------------------------------------------------------
   % Update the propagators of the pulses (free evolution propagators are
   % built during propagation)
@@ -306,13 +314,13 @@ for iPoints = 1 : nPoints
         nPhaseSteps = size(currentEvent.PhaseCycle,1);
         
         %--------------------------------------------------------------
-        % If phasecycling is requested for this event, a few variables
-        % need to be defined
+        % Phase cycle of this pulse (rows [phase weight scale], see
+        % saffron): the states after the steps are added up with their
+        % weights
         %--------------------------------------------------------------
         if nPhaseSteps>1
           stateBeforePC = Sigma;
           SigmaPC = zeros(size(Sigma));
-          PCnorm = sum(abs(currentEvent.PhaseCycle(:,2)));
           PCSignal = 0;
         end
         
@@ -374,7 +382,7 @@ for iPoints = 1 : nPoints
           % Combine results from current phase cycle step with previous ones
           %------------------------------------------------------------
           if nPhaseSteps > 1
-            PCweight = currentEvent.PhaseCycle(iPhaseStep,2)/PCnorm;
+            PCweight = currentEvent.PhaseCycle(iPhaseStep,2);
             SigmaPC = SigmaPC + PCweight*Sigma;
             if currentEvent.Detection
               PCSignal = PCSignal + PCweight*currentSignal;
@@ -493,7 +501,7 @@ for iPoints = 1 : nPoints
     % and prepares the output
     %------------------------------------------------------------------
     if ~isempty(currentSignal)
-      currentSignal = detectionFrameSignal(currentSignal,tvector+tStart(iEvent),Det,detOrders);
+      currentSignal = detectionWeight(iEvent)*detectionFrameSignal(currentSignal,tvector+tStart(iEvent),Det,detOrders);
       if firstDetection
         Signal = [];
         t = [];
@@ -776,6 +784,9 @@ nPhaseSteps = size(Event.PhaseCycle,1);
 % The amplitude scale does not depend on the phase of the pulse, so that
 % the lookup table can be reused for different start times
 MaxWave = max(abs(IQ(:)));
+if MaxWave==0
+  MaxWave = 1;  % no field (e.g. pulse switched off): only amplitude 0 is used
+end
 
 if isfield(Event,'vertRes')
   % undocumented feature, you can provide your pulses with

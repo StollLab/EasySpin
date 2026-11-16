@@ -40,7 +40,7 @@ end
 Exp = rmfield(Exp,'DetSequence');
 
 % Exp.PhaseCycle cannot be used with predefined experiments
-Exp.PhaseCycle = {[0 1; pi -1]};
+Exp.PhaseCycle = [0 0 0; pi 0 pi];
 try
   saffron(Sys,Exp,Opt);
   ok(4) = false;
