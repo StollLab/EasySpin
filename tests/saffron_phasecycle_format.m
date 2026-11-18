@@ -1,18 +1,15 @@
 function ok = test() %#ok<FNDEF>
 
-% Exp.PhaseCycle and Exp.OnOff
+% Exp.PhaseCycle
 % - the order of the steps does not matter
-% - Exp.OnOff with an ideal microwave pulse: the signal with the pulse
-%   minus the signal without it, in both engines
 % - full-space method: phases are compared modulo 2*pi and with a
-%   tolerance; finite microwave and RF pulses switched on and off together
+%   tolerance
 % - errors for wrong input
 
 Sys.Nucs = '1H';
 Sys.A = [2 3 9];  % MHz
 
 p90.Flip = pi/2;  % rad
-p180.Flip = pi;  % rad
 
 Exp.Field = 350;  % mT
 Exp.mwFreq = 9.8;  % GHz
@@ -36,21 +33,8 @@ for m = 1:2
   % order of the steps
   E.PhaseCycle = PC(end:-1:1,:);
   [~,yRev] = saffron(Sys,E,Opt);
-  ok(m,1) = areequal(yRev,y,tol,'rel'); %#ok<AGROW>
-
-  % pulse 2 switched on and off: two-pulse sequence with an echo, plus the
-  % FID of the first pulse, which the difference removes
-  E = Exp;
-  E.Sequence = {p90 0.12 p180 0.12};
-  E.OnOff = 2;
-  [~,yDiff] = saffron(Sys,E,Opt);
-  E = rmfield(E,'OnOff');
-  [~,yOn] = saffron(Sys,E,Opt);
-  E.Sequence{3}.Flip = 0;
-  [~,yOff] = saffron(Sys,E,Opt);
-  ok(m,2) = areequal(yDiff,yOn-yOff,tol,'abs') && abs(yOff)>0.1; %#ok<AGROW>
+  ok(m) = areequal(yRev,y,tol,'rel'); %#ok<AGROW>
 end
-ok = ok(:).';
 
 % Full-space method: phases that differ by 2*pi or by rounding errors are
 % the same setting, so the cycle stays nested (a single propagation run)
@@ -69,31 +53,10 @@ Opt.Verbosity = 1;
 [logText,yMod] = evalc('saffron(Sys,E,Opt)');
 ok(end+1) = areequal(yMod,y,1e-10,'rel') && contains(logText,'phase cycle: 1 propagation run(s)');
 
-% Full-space method: a finite microwave pulse and an RF pulse switched on
-% and off together (not nested: only all on and all off), compared with
-% the difference of two simulations; switched-off pulses have no field
-SysN = struct('Nucs','1H','A',[1 1 3],'g',2.0023);
-rf = struct('Channel','rf','tp',2,'B1',0.5/(2*0.04258));
-E = Exp;
-E.MolFrame = [0 0 0];
-E.rfFreq = 13;  % MHz
-E.Sequence = {p90f 0.2 p90f 0 rf 0.1 p90f 0.2};
-Opt = struct('Method','fullspace');
-[~,yOn] = saffron(SysN,E,Opt);
-E.OnOff = [2 3];
-[~,yDiff] = saffron(SysN,E,Opt);
-E = rmfield(E,'OnOff');
-E.Sequence{3}.Flip = 0;
-E.Sequence{5}.B1 = 0;
-[~,yOff] = saffron(SysN,E,Opt);
-ok(end+1) = areequal(yDiff,yOn-yOff,1e-10,'abs') && abs(yOff)>0.05;
-
 % Errors
 errorCases = {
   {'PhaseCycle',[0 0; pi pi]}, '4 columns'
   {'PhaseCycle',{[0 1; pi -1]}}, 'no longer supported'
-  {'OnOff',4}, 'pulse numbers between 1 and 3'
-  {'OnOff',[1 1]}, 'more than once'
   };
 for k = 1:size(errorCases,1)
   E = Exp;
@@ -106,11 +69,11 @@ for k = 1:size(errorCases,1)
   end
 end
 
-% Predefined experiments set Exp.OnOff themselves
-E = struct('Field',350,'Sequence','MimsENDOR','tau',0.1,'Range',[10 20],'OnOff',3);
+% Predefined experiments set their pathways themselves
+E = struct('Field',350,'Sequence','MimsENDOR','tau',0.1,'Range',[10 20],'PhaseCycle',PC);
 try
   saffron(Sys,E);
   ok(end+1) = false;
 catch err
-  ok(end+1) = contains(err.message,'Exp.OnOff cannot be used with predefined experiments');
+  ok(end+1) = contains(err.message,'Exp.PhaseCycle cannot be used with predefined experiments');
 end

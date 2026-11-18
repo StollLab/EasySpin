@@ -21,7 +21,6 @@ Exp.rfFreq = 12;  % MHz
 Exp.Sequence = {p90 0.2 p90 0 rf 0 p90 0.2};
 Exp.nPoints = 41;
 Exp.Dim1 = {'rfFreq',0.1};
-Exp.OnOff = 3;  % ENDOR effect: echo with RF pulse minus echo without
 
 % all pathways (default): error
 try

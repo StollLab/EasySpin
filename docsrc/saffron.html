@@ -530,17 +530,7 @@ Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 With a detection window or <code>'sequence'</code> (see <code>DetWindow</code>), the whole detected signal is phase-cycled, including the signal before and during the cycled pulses. Signal that is the same in all steps is removed if the receiver phases cancel it.
 Both methods support phase cycles. The <em>full-space</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles are propagated step by step, which takes longer, but the steps share the pulse propagators.
 Predefined experiments set their pathways themselves, so <code>PhaseCycle</code> cannot be used with them.
-</div>
-
-<div class="optionfield"><code>OnOff</code></div>
-<div class="optiondescr">
-Pulses that are switched on and off, as a list of pulse numbers (<code>1</code> for the first pulse in <code>Exp.Sequence</code>, <code>2</code> for the second, etc.). saffron simulates the experiment with all pulses on, and with the listed pulses off, and returns the difference between the two signals. This removes all signal that does not depend on the listed pulses. For example, in ENDOR, the difference between the echo with and without the RF pulse is the ENDOR effect.
-<pre class="matlab">
-Exp.Sequence = {p90 tau p90 T RF 0 p90 tau};
-Exp.OnOff = 3;   % signal with the RF pulse (pulse 3) minus signal without it
-</pre>
-Switching finite microwave pulses, or RF and microwave pulses together, needs the <em>full-space</em> method.
-Predefined experiments set this field themselves, so <code>OnOff</code> cannot be used with them.
+To remove all signal that does not depend on a pulse, as with a pulse switched on and off on a spectrometer, simulate the experiment a second time with the strength of that pulse set to zero (whichever of <code>Flip</code>, <code>Amplitude</code> or <code>B1</code> the pulse uses), and subtract the two signals.
 </div>
 
 <div class="subtitle2">Detection</div>
@@ -1006,7 +996,6 @@ A structure with additional information:
 <tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code>; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes</td></tr>
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
-<tr><td>Pulses switched on and off (<code>OnOff</code>)</td><td>RF pulses or ideal microwave pulses</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>
 <tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
 <tr><td>Initial state (<code>initState</code>)</td><td>no</td><td>yes</td></tr>

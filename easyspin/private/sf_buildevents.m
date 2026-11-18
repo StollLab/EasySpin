@@ -21,10 +21,10 @@
 %       mwPolarization      'linear' (default) or 'circular'
 %       ResonatorFrequency, ResonatorQL, FrequencyResponse, ResonatorMode
 %                           resonator, see resonator()
-%       pulseCycles         settings of each pulse in the phase cycle, cell
-%                           array with one element per pulse, rows [phase
-%                           weight scale] (phase in radians, added to
-%                           Pulse.Phase); optional, default [0 1 1]
+%       pulseCycles         phases of each pulse in the phase cycle, cell
+%                           array with one element per pulse, one phase
+%                           (radians, added to Pulse.Phase) per row;
+%                           optional, default 0
 %     Opt  options structure, with fields
 %       rfGammaRef          gyromagnetic ratio (MHz/mT) for nominal RF flip
 %                           angles
@@ -54,8 +54,8 @@
 %                           phase cycle step; ideal pulses: Flip*exp(1i*phase)
 %       Ideal               true for ideal pulses
 %       Channel             'mw' or 'rf'
-%       PhaseCycle          rows [phase weight scale], one per phase cycle
-%                           step (from Exp.pulseCycles)
+%       PhaseCycle          phases (radians), one row per phase cycle step
+%                           (from Exp.pulseCycles)
 %       FrameOffset         carrier frequency (GHz) in the simulation frame
 %       Polarization        'linear' or 'circular'
 %       Ringing             duration (µs) of the resonator ringing, if any
@@ -406,11 +406,11 @@ for iEvent = 1:length(Exp.Sequence)
   if isPulse(iEvent)
     Events{iEvent}.type = 'pulse';
     
-    % Settings of this pulse in the phase cycle, rows [phase weight scale]
+    % Phases of this pulse in the phase cycle, one per row
     if isfield(Exp,'pulseCycles') && ~isempty(Exp.pulseCycles)
       thisPhaseCycle = Exp.pulseCycles{iPulse};
     else
-      thisPhaseCycle = [0 1 1];
+      thisPhaseCycle = 0;
     end
     nPhaseSteps = size(thisPhaseCycle,1);
     
@@ -1150,7 +1150,7 @@ end
 %   Input:
 %     Pulse             pulse parameters (see pulse()), with additional fields
 %       isIdeal, isRF     pulse type
-%       PhaseCycle        rows [phase weight scale]
+%       PhaseCycle        phases (radians), one row per phase cycle step
 %       rfCarrier         RF carrier frequency (MHz), RF pulses
 %       B1                RF field amplitude (mT), RF pulses, optional
 %       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B1
@@ -1169,11 +1169,10 @@ end
 %     ringing  duration (µs) of the resonator ringing, empty without resonator
 function [t,IQ,ringing] = pulseWaveform(Pulse,iPCstep,Opt,freqShift,includeResonator,Resonator,Exp)
 ringing = [];
-phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep,1);
-scale = Pulse.PhaseCycle(iPCstep,3);
+phase = Pulse.Phase + Pulse.PhaseCycle(iPCstep);
 if Pulse.isIdeal
   t = [0 0];  % zero duration (two time points for detection bookkeeping)
-  IQ = scale*Pulse.Flip*exp(1i*phase);
+  IQ = Pulse.Flip*exp(1i*phase);
   return
 end
 Par = Pulse;
@@ -1192,11 +1191,10 @@ if Pulse.isRF
     [t,IQ] = pulse(Par);
     IQ = IQ/Pulse.rfGammaRef;  % MHz -> mT
   end
-  IQ = scale*IQ.*exp(2i*pi*Pulse.rfCarrier*t);
+  IQ = IQ.*exp(2i*pi*Pulse.rfCarrier*t);
   return
 end
 [t,IQ] = pulse(Par);
-IQ = scale*IQ;
 if includeResonator
   % pulses are elongated due to ringing; its duration is returned
   tOrig = t(end);
@@ -1214,14 +1212,14 @@ end
 %
 %   [t,IQ,ringing] = userWaveforms(tIQ,userIQ,PhaseCycle,Opt,includeResonator,Resonator,Exp)
 %
-%   Each step of the phase cycle shifts the phase of the waveform and scales
-%   it. The waveform, upconverted with the carrier at Exp.mwFreq, is passed
+%   Each step of the phase cycle shifts the phase of the waveform. The
+%   waveform, upconverted with the carrier at Exp.mwFreq, is passed
 %   through the resonator and shifted to the simulation frame.
 %
 %   Input:
 %     tIQ               time axis of the waveform (µs)
 %     userIQ            waveform (Pulse.IQ), vector
-%     PhaseCycle        rows [phase weight scale], one per step
+%     PhaseCycle        phases (radians), one row per step
 %     Opt               options; uses IntTimeStep, FrameShift
 %     includeResonator  true to include the resonator
 %     Resonator         resonator parameters, fields Arg1, Arg2, Arg3 are
@@ -1239,7 +1237,7 @@ nSteps = size(PhaseCycle,1);
 IQ = [];
 for iStep = 1:nSteps
   tStep = tIQ;
-  IQstep = PhaseCycle(iStep,3)*exp(1i*PhaseCycle(iStep,1))*userIQ(:).';
+  IQstep = exp(1i*PhaseCycle(iStep))*userIQ(:).';
   if includeResonator
     % the pulse is elongated by the ringing
     [tStep,IQstep] = resonator(tStep,IQstep,Exp.mwFreq,Resonator.Arg1,Resonator.Arg2,Resonator.Arg3);

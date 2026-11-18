@@ -1893,7 +1893,7 @@ for iChunk = 1:numel(chunks)
       nu1Trans = nu1Nominal*ones(size(nuNMR));
     end
     amp = transferAmp{iManifold}(:); nuNMR = nuNMR(:); nu1Trans = nu1Trans(:);
-    nonzero = abs(amp)>0;
+    nonzero = abs(amp)>0 & nu1Trans~=0;  % no RF field: no transfer
     amp = amp(nonzero); nuNMR = nuNMR(nonzero); nu1Trans = nu1Trans(nonzero);
     % accumulate over the RF axis in chunks
     chunkRF = max(1,floor(2e6/nRfFreqs));
@@ -1906,7 +1906,7 @@ for iChunk = 1:numel(chunks)
     end
   end
 end
-y = (seq.rfOn+seq.rfOff)*yBaseline + seq.rfOn*yTransfer;
+y = yBaseline + yTransfer;
 end
 
 %-------------------------------------------------------------------------------

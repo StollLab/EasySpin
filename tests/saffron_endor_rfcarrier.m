@@ -23,7 +23,6 @@ Exp.Sequence = {p90 0.15 p90 0 rf 0 p90 0.15};
 Exp.nPoints = 101;
 Exp.Dim1 = {'rfFreq',0.05};
 Exp.Pathways = '+00-';
-Exp.OnOff = 3;  % ENDOR effect: echo with RF pulse minus echo without
 
 [x,y0] = saffron(Sys,Exp);
 
@@ -50,8 +49,17 @@ E2.Sequence{5} = chirp;
 E2.nPoints = 51;
 E2.Dim1 = {'rfFreq',0.1};
 [x2,y2,info] = saffron(Sys,E2);
+% ENDOR effects: echoes minus the echoes without RF field (Flip = 0), with
+% RF pulses of the same lengths
+Eoff = Exp;
+Eoff.Sequence{5}.Flip = 0;
+Eoff.nPoints = 1;
+[~,y0off] = saffron(Sys,Eoff);
+Eoff.Sequence{5}.tp = chirp.tp;
+[~,y2off] = saffron(Sys,Eoff);
+y2 = y2 - y2off;
 x0 = x(1:2:end);
-y0 = y0(1:2:end);
+y0 = y0(1:2:end) - y0off;
 c0 = sum(x0.*abs(y0))/sum(abs(y0));
 c2 = sum(x2.*abs(y2))/sum(abs(y2));
 ok(2) = strcmp(info.Method,'fullspace') && contains(info.MethodReason,'shaped or frequency-swept RF pulses');

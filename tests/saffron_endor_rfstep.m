@@ -4,7 +4,9 @@ function ok = test() %#ok<FNDEF>
 % follows the RF frequency of each point. A sweep starting at 0 MHz runs,
 % and on the common points it agrees with a linear sweep starting at
 % 12 MHz. The RF pulse has its full length, also when 40 steps per RF
-% period do not fit into it a whole number of times.
+% period do not fit into it a whole number of times. The RF pulse at 0 MHz
+% is far from the NMR transitions, so that echo is the echo without RF
+% pulse, and the ENDOR effects are compared relative to it.
 
 Sys.Nucs = '1H';
 Sys.A = [1 1 3];  % MHz
@@ -20,7 +22,6 @@ Exp.MolFrame = [0 0 0];
 Exp.CrystalSymmetry = 1;
 Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 Exp.Pathways = '+00-';
-Exp.OnOff = 3;  % ENDOR effect: echo with RF pulse minus echo without
 Exp.DetPhase = -pi/2;
 
 Opt.Method = 'fullspace';
@@ -41,6 +42,6 @@ ExpB.nPoints = 9;
 
 common = 2:10;
 ok(1) = areequal(xA(common),xB,1e-12,'abs');
-ok(2) = areequal(yA(common),yB,1e-6,'rel');
+ok(2) = areequal(yA(common)-yA(1),yB-yA(1),1e-6,'rel');
 ok(3) = all(isfinite(yA));
 ok(4) = areequal(diff(infoB.EventTimes(5,:)),rf.tp,1e-12,'abs');

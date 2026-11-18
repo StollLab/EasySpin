@@ -8,7 +8,7 @@ function ok = test()  %#ok<FNDEF>
 % - 'echo' with a transient: the echoes within the window (full-space)
 % - predefined experiment: its pathways
 % - full-space engine: the same list for S = 1/2, empty for S = 1
-% - finite pulses: user-defined waveforms, pulses switched on and off
+% - finite pulses: user-defined waveforms and rectangular pulses
 
 Sys.g = 2;
 p.Flip = pi/2;
@@ -77,14 +77,6 @@ Opt = struct('IntTimeStep',1e-4);  % µs
 Ef.Sequence = {pR 0.1 pR 0.1};
 [~,~,infoRect] = saffron(Sys,Ef,setfield(Opt,'Method','fullspace')); %#ok<SFLD>
 ok(end+1) = isequal(infoIQ.Pathways,['+-'; '0-'; '--']) && isequal(infoRect.Pathways,infoIQ.Pathways);
-
-% A finite pulse switched on and off: the pathways that the phase cycle keeps
-% (no phase cycle: all 9 combinations of +, 0, - after the first two pulses)
-Eo = Exp;
-Eo.Sequence = {pR 0.1 struct('Flip',pi,'tp',0.032) 0.2 pR 0.1};
-Eo.OnOff = 2;
-[~,y,info] = saffron(Sys,Eo,Opt);
-ok(end+1) = strcmp(info.Method,'fullspace') && abs(y)>0.1 && size(info.Pathways,1)==9;
 
 % Full-space engine with S = 1: no pathway list
 Sys1.S = 1;

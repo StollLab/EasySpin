@@ -60,7 +60,7 @@ Number of points. The defaults are given below.
 </div>
 
 <p>
-The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code>, <code>Exp.OnOff</code>, <code>Exp.DetPhase</code> and <code>Exp.rfFreq</code>. To change them, start from the equivalent user-defined experiment.
+The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code>, <code>Exp.DetPhase</code> and <code>Exp.rfFreq</code>. To change them, start from the equivalent user-defined experiment.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -265,7 +265,7 @@ Exp.DetPhase = pi/2;
 <div class="subtitle">MimsENDOR</div>
 
 <p>
-&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The signal is the ENDOR effect: the difference between the echo without and with the RF pulse.
+&pi;/2 &ndash; &tau; &ndash; &pi;/2 &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The signal is the echo amplitude. The echo is positive, and the RF pulse reduces it where it is resonant with a nuclear transition, so the ENDOR lines are dips.
 </p>
 
 <pre class="matlab">
@@ -304,7 +304,7 @@ Length of the RF pulse, in µs, default 20. It sets the RF excitation bandwidth.
 </div>
 
 <p>
-Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points. The RF pulse is switched on and off (<code>Exp.OnOff</code>), and the signal is the difference. Since the RF pulse reduces the stimulated echo, the detection phase makes this ENDOR effect positive.
+Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points:
 </p>
 
 <pre class="matlab">
@@ -317,14 +317,13 @@ Exp.rfFreq = 10;
 Exp.nPoints = 21;
 Exp.Dim1 = {'rfFreq' 0.5};
 Exp.Pathways = '+00-';
-Exp.OnOff = 3;
-Exp.DetPhase = +pi/2;
+Exp.DetPhase = -pi/2;
 </pre>
 
 <div class="subtitle">DaviesENDOR</div>
 
 <p>
-&pi; &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; &pi; &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The microwave pulses must be selective, so their lengths must be given in <code>Exp.tp</code>. The signal is the ENDOR effect: the difference between the echo with and without the RF pulse.
+&pi; &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; &pi; &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The microwave pulses must be selective, so their lengths must be given in <code>Exp.tp</code>. The signal is the echo amplitude. The inversion pulse makes the echo negative, and the RF pulse reduces the inversion where it is resonant with a nuclear transition, so the ENDOR lines are peaks toward zero.
 </p>
 
 <pre class="matlab">
@@ -384,7 +383,6 @@ Exp.rfFreq = 10;
 Exp.nPoints = 21;
 Exp.Dim1 = {'rfFreq' 0.5};
 Exp.Pathways = '00+-';
-Exp.OnOff = 2;
 Exp.DetPhase = -pi/2;
 </pre>
 

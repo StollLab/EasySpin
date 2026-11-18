@@ -1,8 +1,11 @@
 function ok = test() %#ok<FNDEF>
 
 % Davies ENDOR (predefined) needs selective microwave pulses (Exp.tp) and
-% an inhomogeneous EPR line (Sys.lwAnisoG). Large couplings give peaks at
-% nuI -+ A/2; small couplings (A << 1/tp) are suppressed.
+% an inhomogeneous EPR line (Sys.lwAnisoG). The echo is negative (inverted),
+% and the RF pulse reduces the inversion. Large couplings give peaks at
+% nuI -+ A/2; small couplings (A << 1/tp) are suppressed. The ends of the
+% RF range are far from the lines, so the echo there is the echo without
+% RF pulse.
 
 Sys.Nucs = '1H';
 Sys.A = 6;  % MHz
@@ -22,21 +25,23 @@ Opt.GridSize = 7;
 
 [x,y,info] = saffron(Sys,Exp,Opt);
 nuI = larmorfrq('1H',Exp.Field);
-peaks = x(islocalmax(real(y)) & real(y)>0.3*max(real(y)));
+endor = real(y-y(1));  % reduction of the inversion by the RF pulse
+peaks = x(islocalmax(endor) & endor>0.3*max(endor));
 
 ok(1) = strcmp(info.Method,'subspace');
 ok(2) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*Sys.A/2))<0.1);
+ok(3) = real(y(1))<0 && all(endor>-1e-3*max(endor));
 
 % small coupling: suppressed relative to the large one
 Sys.A = 0.4;  % MHz
 [~,ySmall] = saffron(Sys,Exp,Opt);
-ok(3) = max(real(ySmall)) < 0.2*max(real(y));
+ok(4) = max(real(ySmall-ySmall(1))) < 0.2*max(endor);
 
 % ideal pulses are rejected
 Exp.tp = 0;
 try
   saffron(Sys,Exp,Opt);
-  ok(4) = false;
+  ok(5) = false;
 catch
-  ok(4) = true;
+  ok(5) = true;
 end

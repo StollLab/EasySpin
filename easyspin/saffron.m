@@ -29,8 +29,6 @@
 %     PhaseCycle     phase cycle, one row per step: the phase of each pulse
 %                    and the receiver phase (radians); the signal is the
 %                    average over the steps
-%     OnOff          pulses switched on and off (pulse numbers); the signal
-%                    is the difference signal(on) - signal(off)
 %     DetWindow      detection window (µs) relative to the end of the
 %                    sequence: 0 (default, single point), [a b] (transient),
 %                    or 'sequence' (whole sequence)
@@ -276,9 +274,9 @@ if iscell(Exp.Sequence)
   end
 end
 
-% Phase cycle and pulses switched on and off
+% Phase cycle
 if iscell(Exp.Sequence)
-  Exp = parsePhaseCycle(Exp,sum(cellfun(@isstruct,Exp.Sequence)));
+  parsePhaseCycle(Exp,sum(cellfun(@isstruct,Exp.Sequence)));
 end
 
 % Detection window, default: single point at the end of the sequence
@@ -401,8 +399,8 @@ else
   % with the wave forms of all settings of each pulse in the phase cycle
   [cycleSettings,cycleRuns] = phaseCycleRuns(ExpProp,sum(cellfun(@isstruct,Exp.Sequence)));
   logmsg(1,'  phase cycle: %d propagation run(s)',numel(cycleRuns));
-  ExpProp = rmfield(ExpProp,intersect(fieldnames(ExpProp),{'PhaseCycle','OnOff'}));
-  ExpProp.pulseCycles = cellfun(@(s)[s(:,1) ones(size(s,1),1) s(:,2)],cycleSettings,'UniformOutput',false);
+  ExpProp = rmfield(ExpProp,intersect(fieldnames(ExpProp),{'PhaseCycle'}));
+  ExpProp.pulseCycles = cycleSettings;
   [Events,Vary,Opt] = sf_buildevents(ExpProp,Opt);
   Opt.propEvents = Events;
   Opt.propVary = Vary;
@@ -562,12 +560,18 @@ else
   info.relaxation = any(Opt.Relaxation);
 end
 
-% ENDOR line broadening along RF carrier sweeps
+% ENDOR line broadening along RF carrier sweeps. The signal is the echo,
+% whose baseline (the echo without RF pulse) does not depend on the RF
+% frequency. convspec continues the signal with zeros beyond the RF range,
+% so the straight line through the end points is subtracted before the
+% convolution and added back after it; the baseline is then unchanged if
+% the end points are far from the ENDOR lines.
 rfDims = rfFrequencyDims(Exp);
 if isscalar(rfDims) && isvector(y_out) && isfield(Sys,'lwEndor') && any(Sys.lwEndor>0)
   df = Exp.(sprintf('Dim%d',rfDims)){1,2};
   if ~isscalar(df), df = df(2)-df(1); end
-  y_out = convspec(y_out,abs(df),Sys.lwEndor(1));
+  edgeLine = reshape(linspace(y_out(1),y_out(end),numel(y_out)),size(y_out));
+  y_out = edgeLine + convspec(y_out-edgeLine,abs(df),Sys.lwEndor(1));
 end
 
 info.SinglePointDetection = true;
@@ -637,19 +641,16 @@ if ~spinHalf, seq = []; end
 end
 
 %===============================================================================
-% parsePhaseCycle  Check the phase cycle and the pulses switched on and off
+% parsePhaseCycle  Check the phase cycle
 %
-%   Exp = parsePhaseCycle(Exp,nPulses)
+%   parsePhaseCycle(Exp,nPulses)
 %
-%   Checks Exp.PhaseCycle and Exp.OnOff.
+%   Checks Exp.PhaseCycle.
 %
 %   Input:
-%     Exp      experiment; uses PhaseCycle, OnOff
+%     Exp      experiment; uses PhaseCycle
 %     nPulses  number of pulses in Exp.Sequence
-%
-%   Output:
-%     Exp      experiment with OnOff as a row of pulse numbers, if given
-function Exp = parsePhaseCycle(Exp,nPulses)
+function parsePhaseCycle(Exp,nPulses)
 
 if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
   PC = Exp.PhaseCycle;
@@ -668,17 +669,6 @@ if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
   end
 end
 
-if isfield(Exp,'OnOff') && ~isempty(Exp.OnOff)
-  onOff = Exp.OnOff;
-  if ~isnumeric(onOff) || ~isvector(onOff) || any(onOff<1 | onOff>nPulses | mod(onOff,1)~=0)
-    error('Exp.OnOff must contain pulse numbers between 1 and %d.',nPulses);
-  end
-  if numel(unique(onOff))<numel(onOff)
-    error('Exp.OnOff contains a pulse number more than once.');
-  end
-  Exp.OnOff = onOff(:).';
-end
-
 end
 
 %===============================================================================
@@ -686,29 +676,24 @@ end
 %
 %   [settings,runs] = phaseCycleRuns(Exp,nPulses)
 %
-%   The signal is a weighted sum over acquisition steps: the steps of the
-%   phase cycle, each with the weight exp(-1i*receiver phase)/nSteps, and,
-%   with Exp.OnOff, the same steps with the listed pulses switched off and
-%   the opposite weight. Steps with identical pulse settings are combined.
-%   Phases are compared modulo 2*pi, and the phase of a pulse that is
-%   switched off is ignored.
+%   The signal is a weighted sum over the steps of the phase cycle, each
+%   with the weight exp(-1i*receiver phase)/nSteps. Steps with identical
+%   pulse phases are combined. Phases are compared modulo 2*pi.
 %
 %   If the steps form a nested phase cycle, i.e. all combinations of the
-%   settings (phase, on/off) of the individual pulses, with weights that are
-%   products of one factor per setting of each pulse, the sum is computed in
-%   a single run: since propagation is linear, sf_propagate adds up the
-%   weighted states of the settings of each pulse right after the pulse.
-%   Otherwise, each step with nonzero weight is propagated in a run of its
-%   own.
+%   phases of the individual pulses, with weights that are products of one
+%   factor per phase of each pulse, the sum is computed in a single run:
+%   since propagation is linear, sf_propagate adds up the weighted states
+%   of the phases of each pulse right after the pulse. Otherwise, each step
+%   with nonzero weight is propagated in a run of its own.
 %
 %   Input:
-%     Exp      experiment; uses PhaseCycle and OnOff (from parsePhaseCycle)
+%     Exp      experiment; uses PhaseCycle
 %     nPulses  number of pulses in Exp.Sequence
 %
 %   Output:
-%     settings  cell array with one element per pulse: its settings in the
-%               phase cycle, rows [phase scale] (phase in radians, added to
-%               Pulse.Phase; scale 1 for on and 0 for off)
+%     settings  cell array with one element per pulse: its phases in the
+%               phase cycle (radians, added to Pulse.Phase), column
 %     runs      structure array, one element per run, with fields
 %       rows      cell array with one element per pulse: the settings used
 %                 in the run (row indices into settings{p})
@@ -717,21 +702,13 @@ end
 %       weight    weight of the signal of the run
 function [settings,runs] = phaseCycleRuns(Exp,nPulses)
 
-% Acquisition steps: phases and scales of the pulses, signal weights
+% Steps: phases of the pulses, signal weights
 if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
   phases = Exp.PhaseCycle(:,1:nPulses);
   weights = exp(-1i*Exp.PhaseCycle(:,end))/size(Exp.PhaseCycle,1);
 else
   phases = zeros(1,nPulses);
   weights = 1;
-end
-scales = ones(size(phases));
-if isfield(Exp,'OnOff') && ~isempty(Exp.OnOff)
-  off = scales;
-  off(:,Exp.OnOff) = 0;
-  phases = [phases; phases];
-  scales = [scales; off];
-  weights = [weights; -weights];
 end
 
 % No pulses: a single run
@@ -741,19 +718,18 @@ if nPulses==0
   return
 end
 
-% Phases modulo 2*pi; the phase of a pulse that is switched off has no
-% effect
+% Phases modulo 2*pi
 tol = 1e-10;
 phases = mod(phases,2*pi);
-phases(abs(phases-2*pi)<tol | scales==0) = 0;
+phases(abs(phases-2*pi)<tol) = 0;
 
-% Settings of each pulse, and the setting of each pulse in each step;
-% identical steps are combined, and weights that cancel up to rounding
-% errors are set to zero
+% Phases of each pulse, and the phase of each pulse in each step; identical
+% steps are combined, and weights that cancel up to rounding errors are set
+% to zero
 settings = cell(1,nPulses);
 idx = zeros(numel(weights),nPulses);
 for p = 1:nPulses
-  [settings{p},~,idx(:,p)] = uniquetol([phases(:,p) scales(:,p)],tol,'ByRows',true,'DataScale',1);
+  [settings{p},~,idx(:,p)] = uniquetol(phases(:,p),tol,'DataScale',1);
 end
 weightTol = 1e-12*sum(abs(weights));
 [idx,~,iStep] = unique(idx,'rows');
@@ -1031,7 +1007,7 @@ isENDOR = ~isempty(rfFrequencyDims(Exp));
 if isENDOR && isvector(data)
   plot(x,real(data));
   xlabel('RF frequency (MHz)');
-  ylabel('ENDOR effect');
+  ylabel('echo amplitude');
   title(sprintf('%s, %g mT',name,Exp.Field));
   axis tight
   return

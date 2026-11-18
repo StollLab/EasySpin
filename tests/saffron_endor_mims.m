@@ -1,7 +1,9 @@
 function ok = test() %#ok<FNDEF>
 
-% Mims ENDOR (predefined), isotropic 1H: peaks at the nuclear transition
-% frequencies nuI -+ A/2, and blind spots at tau = k/A.
+% Mims ENDOR (predefined), isotropic 1H: the echo is positive and has dips
+% at the nuclear transition frequencies nuI -+ A/2, and none at the blind
+% spots tau = k/A. The ends of the RF range are far from the lines, so the
+% echo there is the echo without RF pulse.
 
 Sys.Nucs = '1H';
 Sys.A = 6;  % MHz
@@ -17,13 +19,16 @@ Opt.GridSize = 7;
 
 [x,y,info] = saffron(Sys,Exp,Opt);
 nuI = larmorfrq('1H',Exp.Field);
-peaks = x(islocalmax(real(y)) & real(y)>0.3*max(real(y)));
+echoOff = real(y(1));
+endor = echoOff - real(y);  % reduction of the echo by the RF pulse
+peaks = x(islocalmax(endor) & endor>0.3*max(endor));
 
 ok(1) = strcmp(info.Method,'subspace');
 ok(2) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*Sys.A/2))<0.05);
-ok(3) = all(real(y)>-1e-3*max(real(y)));  % positive ENDOR effect
+ok(3) = echoOff>0 && all(endor>-1e-3*max(endor)) && max(endor)>0.05*echoOff;
+ok(4) = areequal(y(end),y(1),1e-6,'rel');
 
 % blind spot
 Exp.tau = 1/Sys.A;
 [~,y] = saffron(Sys,Exp,Opt);
-ok(4) = max(abs(y))<1e-12;
+ok(5) = max(abs(y-y(1)))<1e-10*abs(y(1));

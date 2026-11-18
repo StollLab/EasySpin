@@ -838,7 +838,7 @@ nPhaseSteps = size(Event.PhaseCycle,1);
 % the lookup table can be reused for different start times
 MaxWave = max(abs(IQ(:)));
 if MaxWave==0
-  MaxWave = 1;  % no field (e.g. pulse switched off): only amplitude 0 is used
+  MaxWave = 1;  % no field (e.g. Flip = 0): only amplitude 0 is used
 end
 
 if isfield(Event,'vertRes')

@@ -30,7 +30,6 @@
 %       Pathways        coherence pathway selection
 %       DetWindow, DetPhase   detection window and phase
 %       rfFreq          RF carrier frequency (MHz), for ENDOR
-%       OnOff           RF pulse switched on and off, for ENDOR
 %       Macro           name of the predefined experiment
 
 function Exp = sf_predefinedexperiments(Exp)
@@ -42,10 +41,8 @@ if ~any(strcmp(name,macros))
     name,strjoin(macros,', '));
 end
 
-for f = {'PhaseCycle','OnOff'}
-  if isfield(Exp,f{1}) && ~isempty(Exp.(f{1}))
-    error('Exp.%s cannot be used with predefined experiments. Use a user-defined experiment instead.',f{1});
-  end
+if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
+  error('Exp.PhaseCycle cannot be used with predefined experiments. Use a user-defined experiment instead.');
 end
 if isfield(Exp,'DetPhase')
   error('Exp.DetPhase cannot be used with predefined experiments. Use a user-defined experiment instead.');
@@ -163,9 +160,9 @@ end
 % phase makes the echo real and positive for ideal pulses: the pulse
 % transfer prefactors of the echo pathways are -i/2 (2pESEEM), -i/8
 % (3pESEEM, Mims ENDOR) and +i/8 (4pESEEM, HYSCORE). The ENDOR signal is
-% the difference between the echoes with the RF pulse on and off
-% (Exp.OnOff). This ENDOR effect is positive: in Mims ENDOR, the RF pulse
-% reduces the stimulated echo, so the detection phase is inverted.
+% the echo: in Mims ENDOR, the RF pulse reduces the stimulated echo; in
+% Davies ENDOR, the inversion pulse makes the echo negative, and the RF
+% pulse reduces the inversion.
 switch name
   case '2pESEEM'
     Exp.Sequence = {P{1} Exp.tau P{2} Exp.tau};
@@ -193,15 +190,11 @@ switch name
     Exp.Sequence = {P{1} Exp.tau P{2} Exp.T RF 0 P{3} Exp.tau};
     Exp.Dim1 = {'rfFreq' rfStep};
     Exp.Pathways = '+00-';
-    Exp.OnOff = 3;
-    Exp.DetPhase = +pi/2;
+    Exp.DetPhase = -pi/2;
   case 'DaviesENDOR'
     Exp.Sequence = {P{1} Exp.T RF 0 P{2} Exp.tau P{3} Exp.tau};
     Exp.Dim1 = {'rfFreq' rfStep};
     Exp.Pathways = '00+-';
-    % the inverted spin packets give a negative echo; the RF pulse reduces
-    % the inversion, so the ENDOR effect echo(on) - echo(off) is positive
-    Exp.OnOff = 2;
     Exp.DetPhase = -pi/2;
 end
 if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)

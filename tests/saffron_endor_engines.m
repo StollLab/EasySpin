@@ -24,12 +24,32 @@ Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 Exp.nPoints = 21;
 Exp.Dim1 = {'rfFreq',0.2};
 Exp.Pathways = '+00-';
-Exp.OnOff = 3;  % ENDOR effect: echo with RF pulse minus echo without
 Exp.DetPhase = -pi/2;
 
-[x,y1,info1] = saffron(Sys,Exp,struct('Method','subspace'));
-[~,y2,info2] = saffron(Sys,Exp,struct('Method','fullspace'));
+% echo without RF field (B1 = 0): the same at all RF frequencies, so a
+% single point suffices
+Eoff = Exp;
+Eoff.Sequence{5}.B1 = 0;
+Eoff.nPoints = 1;
+
+Opt1 = struct('Method','subspace');
+Opt2 = struct('Method','fullspace');
+[x,y1,info1] = saffron(Sys,Exp,Opt1);
+[~,y2,info2] = saffron(Sys,Exp,Opt2);
+[~,y1off] = saffron(Sys,Eoff,Opt1);
+[~,y2off] = saffron(Sys,Eoff,Opt2);
+
+% ENDOR effect: reduction of the echo by the RF pulse
+endor1 = real(y1off-y1);
+endor2 = real(y2off-y2);
 
 ok(1) = strcmp(info1.Method,'subspace') && strcmp(info2.Method,'fullspace');
-ok(2) = areequal(real(y1),real(y2),0.03,'rel');
+ok(2) = areequal(endor1,endor2,0.03,'rel') && max(endor1)>0.1*abs(y1off);
 ok(3) = areequal(x,13+0.2*(0:20));
+ok(4) = areequal(y1off,y2off,1e-4,'rel');
+
+% the sign of the RF field does not change the population transfer
+Eneg = Exp;
+Eneg.Sequence{5}.B1 = -rf.B1;
+[~,y1neg] = saffron(Sys,Eneg,Opt1);
+ok(5) = areequal(y1neg,y1,1e-10,'rel');

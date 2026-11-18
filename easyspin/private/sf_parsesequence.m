@@ -28,7 +28,6 @@
 %       Pathways         coherence pathway selection, default 'all'
 %       PhaseCycle       phase cycle, one row per step: phase of each pulse
 %                        and receiver phase (radians), checked by saffron
-%       OnOff            pulses switched on and off (pulse numbers)
 %       DetPhase         detection phase (radians), default 0
 %       rfFreq           RF carrier frequency (MHz), for RF pulses
 %       mwFreq           microwave carrier frequency (GHz), optional
@@ -95,8 +94,6 @@
 %                        evolution after each pulse, nPathways x N
 %       pathwayprefactor pulse and phase cycle prefactor of each pathway
 %       nPathways        number of pathways
-%       rfOn, rfOff      signal weights with the RF pulse on and off (1 and
-%                        -1 for an RF pulse in Exp.OnOff, 1 and 0 otherwise)
 %     reasons   cell array of strings that list the features the subspace
 %               engine does not support (empty if it supports all of them)
 
@@ -522,13 +519,11 @@ nPathways = size(ctp,1);
 
 % Pulse transfer prefactors (ideal mw pulses) and phase cycle weights. The
 % signal is the average over the steps of the phase cycle, each step with
-% its pulse phases and the receiver phase (Exp.PhaseCycle). With
-% Exp.OnOff, the signal with the listed pulses switched off is subtracted.
-% A pathway gets the factor exp(-1i*dco*phase) from the phase of a finite
-% microwave pulse (dco: change in coherence order), and the transfer
-% amplitude of its propagator blocks from an ideal pulse. The RF pulses
-% transfer populations, independent of their phase; RF pulses switched
-% on and off enter through rfOn and rfOff.
+% its pulse phases and the receiver phase (Exp.PhaseCycle). A pathway gets
+% the factor exp(-1i*dco*phase) from the phase of a finite microwave pulse
+% (dco: change in coherence order), and the transfer amplitude of its
+% propagator blocks from an ideal pulse. The RF pulses transfer
+% populations, independent of their phase.
 if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
   cycPhases = Exp.PhaseCycle(:,1:nPulses);
   cycWeights = exp(-1i*Exp.PhaseCycle(:,end))/size(Exp.PhaseCycle,1);
@@ -537,42 +532,21 @@ else
   cycWeights = 1;
 end
 nSteps = numel(cycWeights);
-if isfield(Exp,'OnOff'), onOff = Exp.OnOff; else, onOff = []; end
-switchedRF = onOff(isRF(onOff));
-switchedMW = onOff(~isRF(onOff));
-if ~isempty(switchedRF) && ~isempty(switchedMW)
-  reasons{end+1} = 'RF and microwave pulses switched on and off together (Exp.OnOff)';
-end
-if any(~[Pulses(switchedMW).ideal])
-  reasons{end+1} = 'finite microwave pulses switched on and off (Exp.OnOff)';
-end
 dco = diff([zeros(nPathways,1) co],1,2);  % change in coherence order at each pulse
-prefactor = zeros(nPathways,1);
-% The transfer amplitudes of finite pulses are not known here, so for
-% finite pulses switched on and off (full-space engine) the off term is
-% left out: the prefactors then only mark the pathways that the phase
-% cycle keeps (for info.Pathways)
-subtractOff = ~isempty(switchedMW) && all([Pulses(switchedMW).ideal]);
-for offTerm = 0:subtractOff
-  on = true(1,nPulses);
-  if offTerm, on(switchedMW) = false; end
-  f = ones(nPathways,nSteps);  % one column per step
-  for p = find(~isRF)
-    if Pulses(p).ideal
-      theta = Pulses(p).Flip*on(p);
-      phi = Pulses(p).Phase + cycPhases(:,p).';
-      c = cos(theta/2)*ones(1,nSteps);
-      sn = sin(theta/2);
-      U = [c; c; -1i*sn*exp(-1i*phi); -1i*sn*exp(1i*phi)];  % blocks aa, bb, ab, ba; one column per step
-      f = f.*U(idxPulseL(:,p),:).*conj(U(idxPulseR(:,p),:));
-    else
-      f = f.*exp(-1i*dco(:,p)*cycPhases(:,p).');
-    end
+f = ones(nPathways,nSteps);  % one column per step
+for p = find(~isRF)
+  if Pulses(p).ideal
+    theta = Pulses(p).Flip;
+    phi = Pulses(p).Phase + cycPhases(:,p).';
+    c = cos(theta/2)*ones(1,nSteps);
+    sn = sin(theta/2);
+    U = [c; c; -1i*sn*exp(-1i*phi); -1i*sn*exp(1i*phi)];  % blocks aa, bb, ab, ba; one column per step
+    f = f.*U(idxPulseL(:,p),:).*conj(U(idxPulseR(:,p),:));
+  else
+    f = f.*exp(-1i*dco(:,p)*cycPhases(:,p).');
   end
-  prefactor = prefactor + (1-2*offTerm)*(f*cycWeights);
 end
-rfOn = 1;
-rfOff = -double(~isempty(switchedRF));
+prefactor = f*cycWeights;
 
 % Remove pathways with negligible prefactor
 rmv = abs(prefactor)<1e-10;
@@ -606,8 +580,6 @@ sequence.idxFreeL = idxFreeL;
 sequence.idxFreeR = idxFreeR;
 sequence.pathwayprefactor = prefactor;
 sequence.nPathways = numel(prefactor);
-sequence.rfOn = rfOn;
-sequence.rfOff = rfOff;
 
 reasons = unique(reasons,'stable');
 
