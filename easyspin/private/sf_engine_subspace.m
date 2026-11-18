@@ -1385,6 +1385,15 @@ end
 %
 %   PulseSub = finitePulsePropagators(Ed,seq)
 %
+%   A pulse with frequency offset f (Pulse.Frequency) from Exp.mwFreq is
+%   static in the frame rotating at mwFreq + f, where the Hamiltonian is
+%   Hp = H0 - f*Sz + pulse term, with the pulse phase referenced to the
+%   start of the pulse (as in pulse.m). The propagator is computed in that
+%   frame and transformed back to the frame rotating at mwFreq, in which the
+%   free evolution and the detection are computed:
+%   U = exp(-2i*pi*f*tp*Sz)*exp(-2i*pi*Hp*tp). Without pulse term (Flip = 0),
+%   this is the free evolution exp(-2i*pi*H0*tp).
+%
 %   Input:
 %     Ed        entry data, with the energies including the resonance
 %               offsets (see addOffsets)
@@ -1408,6 +1417,8 @@ for i = 1:N
   nu1 = seq.Pulse(i).Flip/(2*pi*tp)*ones(1,K);
   if ~isempty(Ed.moment), nu1 = nu1.*Ed.moment; end
   phaseFactor = exp(-1i*seq.Pulse(i).Phase);
+  f = seq.Pulse(i).Frequency;  % MHz, offset from Exp.mwFreq
+  % propagators in the frame of the pulse
   U = zeros(2*n,2*n,K);
   for k = 1:K
     j = Ed.original(k);
@@ -1418,9 +1429,15 @@ for i = 1:N
       continue
     end
     Hp = [diag(Ed.Ea(:,k)), Ed.M(:,:,k)*nu1(k)/2; Ed.Mt(:,:,k)*nu1(k)/2, diag(Ed.Eb(:,k))];
-    Hp = Hp - diag(seq.Pulse(i).Frequency*Szdiag);
+    Hp = Hp - diag(f*Szdiag);
     [V,lam] = eig((Hp+Hp')/2,'vector');
     U(:,:,k) = (V.*exp(-2i*pi*tp*lam.'))*V';
+  end
+  % back to the frame rotating at Exp.mwFreq: exp(-2i*pi*f*tp*Sz)*U, for
+  % all entries (after the transposes of the field-reversed partners, whose
+  % pulse-frame propagators are the transposes)
+  if f~=0
+    U = exp(-2i*pi*f*tp*Szdiag).*U;
   end
   PulseSub{i,1} = U(idxa,idxa,:);
   PulseSub{i,2} = U(idxb,idxb,:);
