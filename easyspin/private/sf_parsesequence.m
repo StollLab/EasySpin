@@ -36,7 +36,8 @@
 %                        checked for unsupported features
 %       DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
 %       ResonatorQL, FrequencyResponse, rfPhaseLocked
-%                        only checked for unsupported features
+%                        only checked for unsupported features (DetFreq
+%                        is applied by sf_engine_subspace)
 %     idealPulses        true: treat finite pulses as ideal
 %     relaxation         relaxation on/off per element of Exp.Sequence
 %                        (Opt.Relaxation); a single value or omitted: on
@@ -59,6 +60,10 @@
 %       ExciteWidth      excitation window (MHz) for idealPulses, or []
 %       finitePulses     true if there are finite microwave pulses
 %       DetPhase         detection phase (radians)
+%       tLength          length of the sequence (µs) up to the detection
+%                        point, at the first point
+%       tLengthChange    its change along each dimension, cell array with
+%                        one row vector (one value per point) per dimension
 %       nPoints, kind    number of points and kind (1, 2, 3) of each dimension
 %       prePulseDims     dimensions that only change delays before the first
 %                        pulse (no effect on the initial state -Sz; the
@@ -304,8 +309,8 @@ end
 if isfield(Exp,'DetIntegrate') && Exp.DetIntegrate
   reasons{end+1} = 'echo integration (Exp.DetIntegrate)';
 end
-if isfield(Exp,'DetFreq') && ~(isfield(Exp,'mwFreq') && isequal(Exp.DetFreq,Exp.mwFreq))
-  reasons{end+1} = 'Exp.DetFreq different from Exp.mwFreq';
+if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq) && ~isfield(Exp,'mwFreq')
+  reasons{end+1} = 'Exp.DetFreq without Exp.mwFreq';
 end
 if any(isfield(Exp,{'ResonatorFrequency','ResonatorQL','FrequencyResponse'}))
   reasons{end+1} = 'resonator';
@@ -474,6 +479,22 @@ end
 delayLengths = [Sequence{idxDelay}];
 if any(delayLengths(:) + sum(minChange,2) < -1e-12*max([1; delayLengths(:)]))
   reasons{end+1} = 'delays that become negative (crossing pulses)';
+end
+
+% Length of the sequence (µs), from its start to the detection point: all
+% delays (also before the first pulse) and pulse lengths, at the first point,
+% and its change at each point along each dimension (delays and pulse
+% lengths; moved pulses keep it)
+sequence.tLength = sum(delayLengths) + sum([Pulses.tp]);
+sequence.tLengthChange = cell(1,nDims);
+for d = 1:nDims
+  change = zeros(1,nPoints(d));
+  for r = 1:size(mods{d},1)
+    if mods{d}{r,1}=='d' || any(strcmp(mods{d}{r,3},{'tp','t'}))
+      change = change + mods{d}{r,4}(:).';
+    end
+  end
+  sequence.tLengthChange{d} = change;
 end
 
 sequence.nPoints = nPoints;

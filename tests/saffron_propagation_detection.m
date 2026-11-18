@@ -1,9 +1,9 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Detection fields in the full-space engine: Exp.DetFreq defines the
-% detection frame, Exp.DetOperator gives other detection operators, the
-% subspace engine only supports Exp.DetFreq = Exp.mwFreq, and
-% Exp.DetSequence is replaced by Exp.DetWindow = 'sequence'
+% detection frame (also in the subspace engine), Exp.DetOperator gives other
+% detection operators, and Exp.DetSequence is replaced by
+% Exp.DetWindow = 'sequence'
 
 Sys.S = 1/2;
 Sys.g = 2;
@@ -43,11 +43,13 @@ ExpD = rmfield(Exp,'DetWindow');
 ExpD.DetSequence = 'last';
 ok(4) = throwsWith(@() saffron(Sys,ExpD,Opt),'DetSequence');
 
-% The fast mode gives signals in the frame rotating at Exp.mwFreq
+% The subspace engine gives a single point in the same detection frame
 ExpF = rmfield(Exp,'DetWindow');
 OptF = Opt;
 OptF.Method = 'subspace';
-ok(5) = throwsWith(@() saffron(Sys,ExpF,OptF),'DetFreq');
+yF = saffron(Sys,ExpF,Opt);
+yS = saffron(Sys,ExpF,OptF);
+ok(5) = areequal(yS,yF,1e-3,'rel');
 
 end
 

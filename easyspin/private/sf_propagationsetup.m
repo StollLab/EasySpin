@@ -298,13 +298,5 @@ if isfield(Opt,'DetPhase') && ~isempty(Opt.DetPhase)
 else
   Det.Phase = zeros(1,numel(DetOps));
 end
-if ~isscalar(Opt.DetFreq) || ~isreal(Opt.DetFreq)
-  error(['Exp.DetFreq must be a single frequency (in GHz). All signals and ' ...
-    'density matrices are given in one detection frame; operators without ' ...
-    'electron coherence, such as Sz, are not affected by it.']);
-end
-if Opt.DetFreq<0
-  error('Exp.DetFreq cannot be negative.');
-end
 Det.FrameOffset = Opt.DetFreq - Events{1}.FrameShift;  % GHz
 logmsg(1,'  spin system validation finished successfully!');

@@ -304,6 +304,18 @@ if isfield(Exp,'DetPhase') && ~isempty(Exp.DetPhase)
   end
 end
 
+% Detection frame: one frequency for all detection operators
+if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq)
+  if ~isnumeric(Exp.DetFreq) || ~isscalar(Exp.DetFreq) || ~isreal(Exp.DetFreq)
+    error(['Exp.DetFreq must be a single frequency (in GHz). All signals and ' ...
+      'density matrices are given in one detection frame; operators without ' ...
+      'electron coherence, such as Sz, are not affected by it.']);
+  end
+  if Exp.DetFreq<0
+    error('Exp.DetFreq cannot be negative.');
+  end
+end
+
 % Temperature
 if p_temperature(Exp)
   error('Exp.Temperature is not supported for pulse EPR simulations.');

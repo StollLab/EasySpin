@@ -631,13 +631,13 @@ The signal of an operator is its expectation value, divided by the squared norm 
 
 <div class="optionfield"><code>DetFreq</code></div>
 <div class="optiondescr">
-Frequency of the detection frame, in GHz, optional (<em>full-space</em> method).
+Frequency of the detection frame, in GHz, optional, for both methods.
 The signal is given in a frame that rotates at <code>DetFreq</code> about the static field, like the signal after down-conversion with a reference oscillator at <code>DetFreq</code> in a spectrometer.
-The default is <code>Exp.mwFreq</code>, so that the signal oscillates only at the frequency offsets of the spins. Without <code>Exp.mwFreq</code>, the default is 0 (lab frame).
+The default is <code>Exp.mwFreq</code>, so that the signal oscillates only at the frequency offsets of the spins. Without <code>Exp.mwFreq</code>, the default is 0 (lab frame); giving <code>DetFreq</code> without <code>Exp.mwFreq</code> needs the <em>full-space</em> method.
 <pre class="matlab">
 Exp.DetFreq = 33.5; % detection frame at 33.5 GHz
 </pre>
-The <em>subspace</em> method always uses <code>Exp.mwFreq</code>. If <code>DetFreq</code> differs from it, the <em>full-space</em> method is used.
+The reference oscillator runs continuously from the start of the sequence. Relative to detection at <code>Exp.mwFreq</code>, the electron coherence signal is multiplied by e<sup>-2&pi;i(<code>DetFreq</code>-<code>mwFreq</code>)t</sup>, with t the time from the start of the sequence to the detection point. Along an indirect dimension that changes the length of the sequence, this shifts the signal in frequency.
 </div>
 
 <div class="optionfield"><code>DetPhase</code></div>
@@ -1007,7 +1007,7 @@ A structure with additional information:
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Pulses switched on and off (<code>OnOff</code>)</td><td>RF pulses or ideal microwave pulses</td><td>yes</td></tr>
-<tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub></td><td>also transients, <code>'sequence'</code>, other detection operators and frames, echo integration</td></tr>
+<tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>
 <tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
 <tr><td>Initial state (<code>initState</code>)</td><td>no</td><td>yes</td></tr>
 <tr><td>Resonator</td><td>no</td><td>yes</td></tr>

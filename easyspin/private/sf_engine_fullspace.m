@@ -61,8 +61,8 @@ end
 
 logmsg(1,'-processing Sys structure------------------------------');
 
-% Detection frame (validated in sf_propagationsetup)
-if isfield(Exp,'DetFreq')
+% Detection frame (validated in saffron)
+if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq)
   Opt.DetFreq = Exp.DetFreq;
 elseif isfield(Exp,'mwFreq')
   Opt.DetFreq = Exp.mwFreq;

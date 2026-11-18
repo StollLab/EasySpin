@@ -12,6 +12,8 @@
 %     Exp           experiment, parsed by saffron; uses
 %       Field         magnetic field (mT)
 %       mwFreq        microwave carrier frequency (GHz), optional
+%       DetFreq       detection frame frequency (GHz), optional, default
+%                     mwFreq (needs mwFreq)
 %       OriWeights    weights of the orientations, sum 1
 %     Opt           options, parsed by saffron; uses
 %       fastSeq       parsed sequence, from sf_parsesequence
@@ -568,6 +570,19 @@ switch reversedField
     y = real(y);
   case "conjtranspose"
     y = (y + y')/2;
+end
+
+% Detection frame (Exp.DetFreq): the signal is computed in the frame rotating
+% at Exp.mwFreq. In a frame rotating at DetFreq, the detected -1 coherence
+% has the phase factor exp(-2i*pi*(DetFreq-mwFreq)*t), with t the time from
+% the start of the sequence to the detection point. The factor is the same
+% for all orientations and field-reversed partners.
+if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq) && Exp.DetFreq~=Exp.mwFreq
+  t = seq.tLength;
+  for d = 1:numel(seq.nPoints)
+    t = t + reshape(seq.tLengthChange{d},[ones(1,d-1) seq.nPoints(d) 1]);
+  end
+  y = y.*reshape(exp(-2i*pi*(Exp.DetFreq-Exp.mwFreq)*1e3*t),size(y));  % GHz*µs -> rad
 end
 % Normalization: echo amplitude Tr(S+*rho)/Tr(S+'*S+) for the initial state
 % -Sz, as in the full-space engine. Each transition contributes with its
