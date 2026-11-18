@@ -51,9 +51,16 @@ for iSpin = 1:Sys.nElectrons
   Sz_total = Sz_total + sop(Sys.Spins,[iSpin,3]);
 end
 H = H - Opt.FrameShift*1e3*Sz_total;  % simulation frame (MHz)
-[~,sig] = runprivate('sf_propagate',Sigma,H,Det,Events,Relaxation,Vary);
+% A single propagation run: no phase cycle (the only setting of each pulse)
+% and no pathway selection
+nPulses = sum(cellfun(@(ev)strcmp(ev.type,'pulse'),Events));
+Runs.rows = repmat({1},1,nPulses);
+Runs.factors = repmat({1},1,nPulses);
+Runs.Projection = cell(1,nPulses);
+Runs.weight = 1;
+[~,sig] = runprivate('sf_propagate',Sigma,H,Det,Events,Relaxation,Vary,Runs);
 for k = 1:numel(Events)
   Events{k}.StateTrajectories = true;
 end
-[~,sigStep] = runprivate('sf_propagate',Sigma,H,Det,Events,Relaxation,Vary);
+[~,sigStep] = runprivate('sf_propagate',Sigma,H,Det,Events,Relaxation,Vary,Runs);
 end
