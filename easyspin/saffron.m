@@ -22,10 +22,10 @@
 %                    'DaviesENDOR' (macro parameters tau, T, t1, t2, dt,
 %                    tp, Range, tprf)
 %     nPoints, Dim1, Dim2, ...   incrementation scheme (indirect dimensions)
-%     Pathways       coherence pathway selection: 'all' (default), 'echo',
-%                    a string of electron coherence orders per pulse
-%                    ('+0-', 'c' = + or -, '.' = any), or a numeric matrix
-%                    (NaN = any)
+%     Pathways       coherence pathway selection: 'all' (default), 'echo'
+%                    (echoes within the detection window), a string of
+%                    electron coherence orders per pulse ('+0-', 'c' = + or
+%                    -, '.' = any), or a numeric matrix (NaN = any)
 %     PhaseCycle     phase cycle, one row per step: the phase of each pulse
 %                    and the receiver phase (radians); the signal is the
 %                    average over the steps
@@ -77,7 +77,10 @@
 %             (Method, MethodReason), the processed spectrum (f, fd, or
 %             f1, f2, fd), the start and end times of the elements of
 %             Exp.Sequence on the time axis of x (EventTimes, fullspace),
-%             the number of resonance offsets in the average over the
+%             the contributing coherence pathways (Pathways, in the
+%             syntax of Exp.Pathways) and their echo times after the end
+%             of the sequence (EchoTimes, µs, NaN without echo), the
+%             number of resonance offsets in the average over the
 %             inhomogeneous line (nOffsets, subspace), and the binned
 %             dimensions (binnedDims, subspace)
 
@@ -361,6 +364,7 @@ subspaceEngine = strcmp(Opt.Method,'subspace');
 if subspaceEngine
   Opt.fastSeq = seq;
   Opt.fastExp = Exp;
+  pathwaySeq = seq;
 else
   % Full-space engine: set up events and indirect dimensions
   ExpProp = Exp;
@@ -391,7 +395,11 @@ else
   Opt.propEvents = Events;
   Opt.propVary = Vary;
   Opt.propCycleRuns = cycleRuns;
-  Opt.propPathways = sf_pathwayorders(Exp,Opt.IdealPulses);
+  % Pathways of a single EPR transition (info.Pathways): one electron spin
+  % with S = 1/2 in each component
+  if iscell(Sys), SysList = Sys; else, SysList = {Sys}; end
+  spinHalf = all(cellfun(@(S_) ~isfield(S_,'S') || isequal(S_.S,1/2),SysList));
+  [Opt.propPathways,pathwaySeq] = sf_pathwayorders(Exp,Opt.IdealPulses,spinHalf);
 end
 
 %===============================================================================
@@ -414,6 +422,19 @@ if isempty(x), x = []; end
 info.Exp = Exp;
 info.Method = Opt.Method;
 info.MethodReason = methodReason;
+
+% Contributing coherence pathways (alpha and beta populations both have
+% order 0), in the order of their echo times (pathways without echo last)
+info.Pathways = [];
+info.EchoTimes = [];
+if ~isempty(pathwaySeq)
+  contributing = pathwaySeq.pathwayprefactor~=0;
+  [co,iFirst] = unique(pathwaySeq.co(contributing,:),'rows','stable');
+  echoTimes = pathwaySeq.echoTimes(contributing);
+  [info.EchoTimes,idx] = sort(echoTimes(iFirst));
+  symbols = '-0+';
+  info.Pathways = reshape(symbols(co(idx,:)+2),size(co));
+end
 if isfield(info,'transientAxis'), info = rmfield(info,'transientAxis'); end
 if isfield(info,'decayRates')
   decayAdded = ~isempty(info.decayRates) && any(info.decayRates(:)>0);
@@ -557,31 +578,39 @@ end
 %                 numeric matrix
 %       Sequence  pulse sequence
 %     idealPulses passed on to sf_parsesequence
+%     spinHalf    true if the spin system has one electron spin with S = 1/2
 %
 %   Output:
 %     orders  electron coherence order after each pulse (+1, -1, 0, NaN =
 %             any, Inf = +1 or -1), one row per pathway and one column per
 %             pulse; empty if there is no selection
-function orders = sf_pathwayorders(Exp,idealPulses)
+%     seq     parsed sequence with the pathways of the single EPR
+%             transition (from sf_parsesequence), for info.Pathways; empty
+%             if the spin system has other electron spins or the selection
+%             has coherence orders beyond 1
+function [orders,seq] = sf_pathwayorders(Exp,idealPulses,spinHalf)
 orders = [];
-if ~isfield(Exp,'Pathways') || isempty(Exp.Pathways), return; end
-pw = Exp.Pathways;
+seq = [];
+pw = 'all';
+if isfield(Exp,'Pathways') && ~isempty(Exp.Pathways), pw = Exp.Pathways; end
 if isstring(pw), pw = char(pw); end
-if strcmp(pw,'all'), return; end
 
-% sf_parsesequence checks the selection in the same way for both engines. It
-% only knows coherence orders up to 1, higher ones need S>1/2 or several spins.
+% sf_parsesequence checks the selection in the same way for both engines,
+% and gives the pathways of a single EPR transition. It only knows coherence
+% orders up to 1, higher ones need S>1/2 or several spins.
 higherOrders = isnumeric(pw) && any(abs(pw(:))>1 & isfinite(pw(:)));
 if higherOrders
   nPulses = sum(cellfun(@isstruct,Exp.Sequence));
   if size(pw,2)~=nPulses
     error('Exp.Pathways has %d entries per pathway, but the sequence has %d pulses.',size(pw,2),nPulses);
   end
-else
+elseif ~strcmp(pw,'all') || (spinHalf && any(cellfun(@isstruct,Exp.Sequence)))
   seq = sf_parsesequence(Exp,idealPulses);
 end
 
-if strcmp(pw,'echo')
+if strcmp(pw,'all')
+  % no selection
+elseif strcmp(pw,'echo')
   orders = unique(seq.echoOrders,'rows');
 elseif ischar(pw)
   orders = nan(size(pw));
@@ -592,6 +621,7 @@ elseif ischar(pw)
 else
   orders = pw;
 end
+if ~spinHalf, seq = []; end
 end
 
 %===============================================================================

@@ -106,6 +106,12 @@ switch requested
 end
 if ~strcmp(method,'subspace'), seq = []; end
 
+% Increments of delays before the first pulse have no effect on the initial
+% state of the subspace engine (-Sz)
+if strcmp(method,'subspace') && ~isempty(seq.prePulseDims)
+  error('Exp.Dim%d: incrementing a delay before the first pulse has no effect.',seq.prePulseDims(1));
+end
+
 % Features only the subspace engine supports: inhomogeneous broadening of
 % the EPR line (Sys.lwAnisoG, or its deprecated name Sys.HStrain)
 if strcmp(method,'fullspace')

@@ -478,7 +478,7 @@ Exp.Dim1 = {'p2.Phase,p3.Phase' pi/4};   % changes the phase of the 2nd and 3rd 
 Selects the coherence transfer pathways that contribute to the signal, in both methods. A pathway gives the electron coherence order after each pulse (<code>+1</code>, <code>-1</code> or <code>0</code>) and must end in <code>-1</code>, the detected coherence.
 <ul>
 <li><code>'all'</code> (default): all pathways, as in an experiment without phase cycle.</li>
-<li><code>'echo'</code>: the pathways that refocus at the detection point at all points of the experiment.</li>
+<li><code>'echo'</code>: the pathways whose echo forms within the detection window (<code>Exp.DetWindow</code>) at all points of the experiment, or exactly at the detection point for single-point detection. Finite pulses shift echoes slightly, so with finite microwave pulses, echoes up to the total length of these pulses outside the window are also included. <code>'echo'</code> cannot be used with <code>Exp.DetWindow = 'sequence'</code>.</li>
 <li>A string with one character per pulse, <code>'+'</code>, <code>'-'</code>, <code>'0'</code>, <code>'c'</code> for either <code>+1</code> or <code>-1</code>, or <code>'.'</code> for any order; several pathways as rows of a character array.</li>
 <li>A numeric matrix with one row per pathway and one column per pulse, with <code>NaN</code> for any order.</li>
 </ul>
@@ -486,7 +486,26 @@ Selects the coherence transfer pathways that contribute to the signal, in both m
 Exp.Pathways = '+-';     % two-pulse echo
 Exp.Pathways = '+0-';    % stimulated echo
 </pre>
+With <code>'echo'</code>, the echo position can be given in <code>Exp.Sequence</code> or in <code>Exp.DetWindow</code>. These two give the same stimulated echo, 100 ns after the third pulse:
+<pre class="matlab">
+Exp.Pathways = 'echo';
+Exp.Sequence = {p90 0.1 p90 0.5 p90 0.1};   % detect at the end of the sequence
+Exp.Sequence = {p90 0.1 p90 0.5 p90};       % or: detect 100 ns after the last pulse
+Exp.DetWindow = 0.1;
+</pre>
+<code>saffron</code> returns the pathways that contribute to the signal in <code>info.Pathways</code>, and the times at which they form echoes, after the end of the sequence, in <code>info.EchoTimes</code>. For example, a transient after the three pulses above contains four echoes:
+<pre class="matlab">
+Exp.Sequence = {p90 0.1 p90 0.5 p90};
+Exp.DetWindow = [0 2];       % detect for 2 µs after the last pulse
+Exp.Pathways = 'echo';
+[t,y,info] = saffron(Sys,Exp);
+info.Pathways                % '+0-', '-+-', '0+-', '++-'
+info.EchoTimes               % 0.1, 0.4, 0.5, 0.6 µs
+</pre>
+<code>info.Pathways</code> has the same form as <code>Exp.Pathways</code>, so it can be used as a starting point for an explicit selection, e.g. <code>Exp.Pathways = info.Pathways(1,:)</code> for the stimulated echo alone.
+<p>
 Predefined experiments set their pathways themselves, so <code>Pathways</code> cannot be used with them.
+</p>
 </div>
 
 <div class="optionfield"><code>PhaseCycle</code></div>
@@ -966,6 +985,8 @@ A structure with additional information:
 <li><code>info.Method</code>, <code>info.MethodReason</code>: the simulation method used, and why the <em>full-space</em> method was needed.</li>
 <li><code>info.f</code>, <code>info.fd</code>: the frequency axis (in MHz) and the spectrum obtained by Fourier transform of the signal along delay increments (ESEEM); for 2D (HYSCORE), <code>info.f1</code>, <code>info.f2</code> and <code>info.fd</code>. For ENDOR, <code>info.f</code> is the RF axis and <code>info.fd</code> the spectrum.</li>
 <li><code>info.EventTimes</code>: start and end times of the elements of <code>Exp.Sequence</code> (<em>full-space</em> method, see <code>Exp.DetWindow</code>).</li>
+<li><code>info.Pathways</code>: the coherence transfer pathways that contribute to the signal, one row per pathway, in the form of <code>Exp.Pathways</code> (see there), sorted by echo time, with pathways without echo last. These are the selected pathways that the phase cycle and ideal pulses don't cancel, at the first point of the indirect dimensions. Empty if the spin system has several electron spins, or (<em>full-space</em> method) an electron spin with S &gt; 1/2.</li>
+<li><code>info.EchoTimes</code>: for each row of <code>info.Pathways</code>, the time (in µs) after the end of the sequence at which the pathway forms its echo, at the first point; negative values are before the end. <code>NaN</code> for pathways without echo (e.g. a free induction decay).</li>
 <li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>subspace</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no offsets are needed (no inhomogeneous line, or the exact average with ideal pulses).</li>
 <li><code>info.binnedDims</code>: the dimensions computed by binning (<em>subspace</em> method, see <code>Opt.Binning</code>); the other dimensions are computed point by point.</li>
 </ul>

@@ -32,7 +32,9 @@
 %       DetPhase         detection phase (radians), default 0
 %       rfFreq           RF carrier frequency (MHz), for RF pulses
 %       mwFreq           microwave carrier frequency (GHz), optional
-%       DetWindow, DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
+%       DetWindow        detection window, for Exp.Pathways = 'echo'; also
+%                        checked for unsupported features
+%       DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
 %       ResonatorQL, FrequencyResponse, rfPhaseLocked
 %                        only checked for unsupported features
 %     idealPulses        true: treat finite pulses as ideal
@@ -45,7 +47,9 @@
 %       N                number of intervals (number of pulses)
 %       Pulse            1xN structure array, with fields Channel ('mw' or
 %                        'rf'), Phase, tp, Frequency, Type, Par (the pulse
-%                        as given), Flip, ideal, B1 (RF pulses)
+%                        as given), Flip, ideal, B1 (RF pulses); tp of a
+%                        user-defined waveform (IQ) from its time axis t
+%       idealPulses      true: finite pulses treated as ideal (input)
 %       t                delay after each pulse (µs), 1xN
 %       tRelax           part of t with relaxation on (µs), 1xN
 %       delayInterval    interval of each delay in Exp.Sequence (0: before
@@ -56,6 +60,9 @@
 %       finitePulses     true if there are finite microwave pulses
 %       DetPhase         detection phase (radians)
 %       nPoints, kind    number of points and kind (1, 2, 3) of each dimension
+%       prePulseDims     dimensions that only change delays before the first
+%                        pulse (no effect on the initial state -Sz; the
+%                        subspace engine rejects them)
 %       mods             cell array with one element per dimension; kinds 1
 %                        and 3: rows {'d' or 'p', delay or pulse index,
 %                        pulse field, values}
@@ -70,9 +77,13 @@
 %       incSchemeRelax   the part of incScheme from delays with relaxation on
 %       ctp              coherence transfer pathways, nPathways x N
 %       co               electron coherence orders, nPathways x N
-%       echoOrders       orders selected by Exp.Pathways = 'echo', before
-%                        pathways with zero prefactor are removed (empty
-%                        otherwise)
+%       echoOrders       orders selected by Exp.Pathways = 'echo' (echoes
+%                        within the detection window), before pathways with
+%                        zero prefactor are removed (empty otherwise)
+%       echoTimes        echo time of each pathway (µs): its net electron
+%                        coherence time at the end of the sequence, at the
+%                        first point, so the echo forms this long after the
+%                        end; NaN for pathways without +1 coherence
 %       idxPulseL, idxPulseR   propagator blocks (1 = aa, 2 = bb, 3 = ab,
 %                        4 = ba) of the pulses, nPathways x N
 %       idxFreeL, idxFreeR   manifolds (1 = alpha, 2 = beta) of the free
@@ -159,7 +170,16 @@ for k = 1:nPulses
   end
   if ~isfield(pulse_,'Phase') || isempty(pulse_.Phase), pulse_.Phase = 0; end
   Pulses(k).Phase = pulse_.Phase;
-  if ~isfield(pulse_,'tp') || isempty(pulse_.tp), pulse_.tp = 0; end
+  if ~isfield(pulse_,'tp') || isempty(pulse_.tp)
+    if isfield(pulse_,'IQ') && isfield(pulse_,'t') && ~isempty(pulse_.t)
+      % user-defined waveform, or one per point (cell array): the longest
+      tAxes = pulse_.t;
+      if ~iscell(tAxes), tAxes = {tAxes}; end
+      pulse_.tp = max(cellfun(@(t_) t_(end)-t_(1),tAxes),[],'all');
+    else
+      pulse_.tp = 0;
+    end
+  end
   Pulses(k).tp = pulse_.tp;
   if ~isfield(pulse_,'Frequency') || isempty(pulse_.Frequency), pulse_.Frequency = 0; end
   Pulses(k).Frequency = pulse_.Frequency;
@@ -183,12 +203,19 @@ for k = 1:nPulses
         Pulses(k).Flip = pulse_.Flip;
       elseif isfield(pulse_,'Amplitude') && Pulses(k).tp>0
         Pulses(k).Flip = 2*pi*pulse_.Amplitude*Pulses(k).tp;
-      elseif rect && ~isfield(pulse_,'IQ')
+      elseif rect && ~isfield(pulse_,'IQ') && Pulses(k).tp==0
         error('Pulse %d: the flip angle (Flip) is missing.',k);
       else
-        Pulses(k).Flip = pi;  % placeholder, shaped and IQ pulses are not supported
+        % placeholder: shaped and IQ pulses are not supported, and finite
+        % pulses with other amplitude fields (e.g. Qcrit) need the
+        % full-space engine
+        if rect && ~isfield(pulse_,'IQ')
+          reasons{end+1} = 'microwave pulses without Flip or Amplitude';
+        end
+        Pulses(k).Flip = pi;
       end
-      Pulses(k).ideal = Pulses(k).tp==0 || idealPulses;
+      % user-defined waveforms are finite pulses, also without a time axis
+      Pulses(k).ideal = (Pulses(k).tp==0 && ~isfield(pulse_,'IQ')) || idealPulses;
     case 'rf'
       if Pulses(k).tp<=0
         error('Pulse %d: RF pulses need a pulse length (tp>0).',k);
@@ -207,15 +234,19 @@ for k = 1:nPulses
         Pulses(k).B1 = pulse_.B1;
       elseif isfield(pulse_,'Flip') && ~isempty(pulse_.Flip)
         Pulses(k).Flip = pulse_.Flip;
-      elseif ~rect
-        Pulses(k).Flip = pi;  % placeholder, shaped RF pulses are not supported
       else
-        error('Pulse %d: RF pulses need Flip (nominal) or B1 (in mT).',k);
+        % placeholder: shaped RF pulses are not supported, and RF pulses
+        % with other amplitude fields (Amplitude) need the full-space engine
+        if rect
+          reasons{end+1} = 'RF pulses without Flip or B1';
+        end
+        Pulses(k).Flip = pi;
       end
   end
 end
 sequence.Pulse = Pulses;
 sequence.N = nPulses;
+sequence.idealPulses = idealPulses;
 
 % RF pulses
 isRF = strcmp({Pulses.Channel},'rf');
@@ -257,6 +288,16 @@ end
 if isfield(Exp,'DetWindow') && ~(isnumeric(Exp.DetWindow) && all(Exp.DetWindow==0))
   reasons{end+1} = 'transient or shifted detection (Exp.DetWindow)';
 end
+% Detection window [start end] relative to the end of the sequence (µs), a
+% single point for start = end; empty for detection during the whole
+% sequence ('sequence')
+if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)
+  detWindow = [0 0];
+elseif isnumeric(Exp.DetWindow)
+  detWindow = [min(Exp.DetWindow) max(Exp.DetWindow)];
+else
+  detWindow = [];
+end
 if isfield(Exp,'DetOperator') && ~isempty(Exp.DetOperator)
   reasons{end+1} = 'detection operators (Exp.DetOperator)';
 end
@@ -294,6 +335,7 @@ dimValues = cell(1,nDims);   % their values per point
 incScheme = zeros(nPulses,nDims);
 incSchemeRelax = zeros(nPulses,nDims);
 minChange = zeros(numel(idxDelay),nDims);  % smallest change of each delay along each dimension
+prePulseDims = zeros(1,0);  % dimensions that only change delays before the first pulse
 for d = 1:nDims
   dimField = sprintf('Dim%d',d);
   if ~isfield(Exp,dimField)
@@ -371,10 +413,12 @@ for d = 1:nDims
       end
     end
     if ~any(incScheme(:,d))
+      % the changes cancel within each interval, or only change delays
+      % before the first pulse (no effect on the initial state -Sz, but on
+      % other initial states in the full-space engine): no interval changes
       if all(delayInterval([delayMods{:,2}])==0)
-        error('Exp.%s: incrementing a delay before the first pulse has no effect.',dimField);
+        prePulseDims(end+1) = d;
       end
-      % the changes cancel within each interval: no interval changes
       kind(d) = 3;
       incSchemeRelax(:,d) = 0;
     end
@@ -434,6 +478,7 @@ end
 
 sequence.nPoints = nPoints;
 sequence.kind = kind;
+sequence.prePulseDims = prePulseDims;
 sequence.mods = mods;
 kind1Dims = find(kind==1);
 sequence.kind1Dims = kind1Dims;
@@ -448,7 +493,7 @@ if isfield(Exp,'Pathways') && ~isempty(Exp.Pathways)
 else
   pathways = 'all';
 end
-[ctp,co,sequence.echoOrders] = selectPathways(pathways,sequence,dimTargets,dimValues);
+[ctp,co,sequence.echoOrders,tNet] = selectPathways(pathways,sequence,dimTargets,dimValues,detWindow);
 nPathways = size(ctp,1);
 
 % Block information for left and right propagation
@@ -482,7 +527,12 @@ if any(~[Pulses(switchedMW).ideal])
 end
 dco = diff([zeros(nPathways,1) co],1,2);  % change in coherence order at each pulse
 prefactor = zeros(nPathways,1);
-for offTerm = 0:~isempty(switchedMW)
+% The transfer amplitudes of finite pulses are not known here, so for
+% finite pulses switched on and off (full-space engine) the off term is
+% left out: the prefactors then only mark the pathways that the phase
+% cycle keeps (for info.Pathways)
+subtractOff = ~isempty(switchedMW) && all([Pulses(switchedMW).ideal]);
+for offTerm = 0:subtractOff
   on = true(1,nPulses);
   if offTerm, on(switchedMW) = false; end
   f = ones(nPathways,nSteps);  % one column per step
@@ -519,10 +569,16 @@ if any(rmv)
   idxPulseL(rmv,:) = [];
   idxPulseR(rmv,:) = [];
   prefactor(rmv) = [];
+  tNet(rmv) = [];
 end
+
+% Echo time of each pathway: its net electron coherence time at the end of
+% the sequence; NaN for pathways without echo (no +1 coherence)
+tNet(~any(co==+1,2)) = NaN;
 
 sequence.ctp = ctp;
 sequence.co = co;
+sequence.echoTimes = tNet;
 sequence.idxPulseL = idxPulseL;
 sequence.idxPulseR = idxPulseR;
 sequence.idxFreeL = idxFreeL;
@@ -539,30 +595,45 @@ end
 %-------------------------------------------------------------------------------
 % selectPathways  Coherence transfer pathways selected by Exp.Pathways
 %
-%   [ctp,co,echoOrders] = selectPathways(pathways,sequence,dimTargets,dimValues)
+%   [ctp,co,echoOrders,tNet] = selectPathways(pathways,sequence,dimTargets,dimValues,detWindow)
 %
 %   Enumerates the pathways that can be detected and applies Exp.Pathways.
-%   With 'echo', selects the pathways that refocus at the detection point at
-%   all points of the experiment: at least one coherence order inversion,
-%   zero net coherence evolution at the first point, and zero change of it
-%   at every point along each dimension. The contributions of the dimensions
-%   add up, so this holds for the entire grid.
+%
+%   The net electron coherence time tNet of a pathway is the sum of its
+%   evolution times, each multiplied by the coherence order. During
+%   detection, the last interval has order -1, so the net coherence time
+%   decreases and the echo of the pathway forms tNet after the end of the
+%   sequence.
+%
+%   With 'echo', selects the pathways with at least one coherence order
+%   inversion whose echo forms within the detection window at all points
+%   of the experiment (exactly at the detection point for single-point
+%   detection). The changes along the dimensions add up, so the range of
+%   tNet over the grid follows from its range along each dimension. Finite
+%   microwave pulses shift the echo by up to their total length, so the
+%   window is widened by it (the largest length over the experiment).
 %
 %   Input:
 %     pathways    pathway selection (Exp.Pathways): 'all', 'echo', a character
 %                 array of orders per pulse ('+', '-', '0', 'c' = +1 or -1,
 %                 '.' = any), or a numeric matrix (NaN = any)
-%     sequence    parsed sequence; uses N, t, isRF, Pulse, delayInterval, nPoints
+%     sequence    parsed sequence; uses N, t, isRF, Pulse, idealPulses,
+%                 delayInterval, nPoints
 %     dimTargets  quantities changed by each dimension, cell array with one
 %                 cell array of strings per dimension
 %     dimValues   values per point of these quantities, in the same layout
+%     detWindow   detection window [start end] (µs) relative to the end of
+%                 the sequence, start = end for a single point; empty for
+%                 detection during the whole sequence
 %
 %   Output:
 %     ctp         coherence transfer pathways, nPathways x nPulses
 %     co          electron coherence orders, nPathways x nPulses
 %     echoOrders  co for Exp.Pathways = 'echo', otherwise empty
+%     tNet        net electron coherence time (µs) of each pathway at the
+%                 end of the sequence, at the first point, nPathways x 1
 
-function [ctp,co,echoOrders] = selectPathways(pathways,sequence,dimTargets,dimValues)
+function [ctp,co,echoOrders,tNet] = selectPathways(pathways,sequence,dimTargets,dimValues,detWindow)
 
 nPulses = sequence.N;
 isRF = sequence.isRF;  % whether a pulse is an RF pulse
@@ -582,51 +653,76 @@ ctp = ctp(keep,2:end);  % also remove initial state
 % Determine coherence orders for all intervals
 co = (ctp==3) - (ctp==4);  % +1 and -1 coherence, 0 for populations
 
+% Evolution time of each interval at the first point, and its change at
+% each point along each dimension. The spins evolve during RF pulses, so their
+% lengths count as evolution time (the lengths of microwave pulses do not).
+% tpMax is the largest length of each pulse over the experiment.
+tFirst = sequence.t + isRF.*[sequence.Pulse.tp];
+tpMax = [sequence.Pulse.tp];
+nDims = numel(dimTargets);
+changes = cell(1,nDims);
+for d = 1:nDims
+  change = zeros(nPulses,sequence.nPoints(d));
+  for k = 1:numel(dimTargets{d})
+    target = dimTargets{d}{k};
+    pulseField = regexp(target,'^p(\d+)\.(tp?|Position)$','tokens','once');
+    signs = +1;
+    if ~isempty(regexp(target,'^d\d+$','once'))
+      intervals = sequence.delayInterval(str2double(target(2:end)));
+    elseif ~isempty(pulseField) && strcmp(pulseField{2},'Position')
+      % a moved pulse lengthens the delay before it and shortens the one after it
+      intervals = str2double(pulseField{1}) - [1 0];
+      signs = [+1 -1];
+    elseif ~isempty(pulseField)
+      iP = str2double(pulseField{1});
+      tpMax(iP) = tpMax(iP) + max(dimValues{d}{k});
+      if ~isRF(iP), continue; end
+      intervals = iP;
+    else
+      continue
+    end
+    signs = signs(intervals>0);  % delays before the first pulse have no effect
+    intervals = intervals(intervals>0);
+    if isempty(intervals), continue; end
+    v = dimValues{d}{k};
+    tFirst(intervals) = tFirst(intervals) + signs*v(1);
+    change(intervals,:) = change(intervals,:) + signs.'*(v-v(1));
+  end
+  changes{d} = change;
+end
+
+% Net electron coherence time at the end of the sequence (first point): the
+% echo of a pathway forms tNet after the end of the sequence
+tNet = co*tFirst(:);
+
 echoOrders = [];
 
 if strcmp(pathways,'all')
   selected = true(size(co,1),1);
 
 elseif strcmp(pathways,'echo')
-  % Evolution time of each interval at the first point, and its change at
-  % each point along each dimension. The spins evolve during RF pulses, so their
-  % lengths count as evolution time (the lengths of microwave pulses do not).
-  tFirst = sequence.t + isRF.*[sequence.Pulse.tp];
-  changes = zeros(nPulses,0);
-  for d = 1:numel(dimTargets)
-    change = zeros(nPulses,sequence.nPoints(d));
-    for k = 1:numel(dimTargets{d})
-      target = dimTargets{d}{k};
-      pulseField = regexp(target,'^p(\d+)\.(tp?|Position)$','tokens','once');
-      signs = +1;
-      if ~isempty(regexp(target,'^d\d+$','once'))
-        intervals = sequence.delayInterval(str2double(target(2:end)));
-      elseif ~isempty(pulseField) && strcmp(pulseField{2},'Position')
-        % a moved pulse lengthens the delay before it and shortens the one after it
-        intervals = str2double(pulseField{1}) - [1 0];
-        signs = [+1 -1];
-      elseif ~isempty(pulseField) && isRF(str2double(pulseField{1}))
-        intervals = str2double(pulseField{1});
-      else
-        continue
-      end
-      signs = signs(intervals>0);  % delays before the first pulse have no effect
-      intervals = intervals(intervals>0);
-      if isempty(intervals), continue; end
-      v = dimValues{d}{k};
-      tFirst(intervals) = tFirst(intervals) + signs*v(1);
-      change(intervals,:) = change(intervals,:) + signs.'*(v-v(1));
-    end
-    changes = [changes change];
+  if isempty(detWindow)
+    error(['Exp.Pathways = ''echo'' needs a detection window or a single detection point. ' ...
+      'With Exp.DetWindow = ''sequence'', give the pathways explicitly.']);
   end
-
-  % Determine echo pathways with echoes that refocus at the end of the sequence
-  echo = any(co==+1,2);
-  times = [tFirst.' changes];
+  % Range of the echo time over all points
+  tMin = tNet;
+  tMax = tNet;
+  for d = 1:nDims
+    tChange = co*changes{d};
+    tMin = tMin + min(tChange,[],2);
+    tMax = tMax + max(tChange,[],2);
+  end
+  % Finite microwave pulses shift the echo by up to their total length; a
+  % pulse counts as finite if it is finite at any point
+  finiteMW = ~isRF & tpMax>0 & ~sequence.idealPulses;
+  tol = sum(tpMax(finiteMW));
+  times = [tFirst(:) changes{:}];
   threshold = 1e-12*max([1; abs(times(:))]);
-  selected = echo & all(abs(co*times)<threshold,2);
+  echo = any(co==+1,2);
+  selected = echo & tMin>=detWindow(1)-tol-threshold & tMax<=detWindow(2)+tol+threshold;
   if ~any(selected)
-    error('No pathway refocuses at the detection point at all points of this experiment.');
+    error('No pathway has its echo within the detection window (Exp.DetWindow) at all points of this experiment.');
   end
   echoOrders = co(selected,:);
 
@@ -660,6 +756,7 @@ end
 
 ctp = ctp(selected,:);
 co = co(selected,:);
+tNet = tNet(selected);
 if isempty(ctp)
   error('No coherence transfer pathway is detectable (ending in -1) with Exp.Pathways.');
 end
