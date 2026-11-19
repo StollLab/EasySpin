@@ -576,18 +576,11 @@ else
   info.relaxation = any(Opt.Relaxation);
 end
 
-% ENDOR line broadening along RF carrier sweeps. The signal is the echo,
-% whose baseline (the echo without RF pulse) does not depend on the RF
-% frequency. convspec continues the signal with zeros beyond the RF range,
-% so the straight line through the end points is subtracted before the
-% convolution and added back after it; the baseline is then unchanged if
-% the end points are far from the ENDOR lines.
-rfDims = rfFrequencyDims(Exp);
-if isscalar(rfDims) && isvector(y_out) && isfield(Sys,'lwEndor') && any(Sys.lwEndor>0)
-  df = Exp.(sprintf('Dim%d',rfDims)){1,2};
-  if ~isscalar(df), df = df(2)-df(1); end
-  edgeLine = reshape(linspace(y_out(1),y_out(end),numel(y_out)),size(y_out));
-  y_out = edgeLine + convspec(y_out-edgeLine,abs(df),Sys.lwEndor(1));
+% ENDOR line broadening along all dimensions that sweep an RF frequency
+if any(Sys.lwEndor>0)
+  for d = rfFrequencyDims(Exp)
+    y_out = endorBroadening(y_out,Exp,d,Sys.lwEndor);
+  end
 end
 
 info.SinglePointDetection = true;
@@ -807,25 +800,88 @@ end
 end
 
 %===============================================================================
-% rfFrequencyDims  Find the indirect dimensions that sweep the RF carrier
+% rfFrequencyDims  Find the indirect dimensions that sweep an RF frequency
 %
 %   d = rfFrequencyDims(Exp)
 %
 %   Input:
-%     Exp  experiment; uses nPoints, Dim1, Dim2, ...
+%     Exp  experiment; uses nPoints, Dim1, Dim2, ..., Sequence
 %
 %   Output:
-%     d    indices of the dimensions whose first target is the RF carrier
-%          frequency ('rfFreq'); empty if there are none
+%     d    indices of the dimensions whose first target is an RF frequency:
+%          the RF carrier frequency ('rfFreq') or the frequency offset of
+%          an RF pulse ('pN.Frequency'); empty if there are none
 function d = rfFrequencyDims(Exp)
 d = [];
 if ~isfield(Exp,'nPoints'), return; end
+pulseIdx = find(cellfun(@isstruct,Exp.Sequence));
 for k = 1:numel(Exp.nPoints)
   f = sprintf('Dim%d',k);
-  if isfield(Exp,f) && strcmp(strtrim(Exp.(f){1,1}),'rfFreq')
+  if ~isfield(Exp,f), continue; end
+  target = strtrim(regexp(Exp.(f){1,1},',','split'));
+  isRF = strcmp(target{1},'rfFreq');
+  tok = regexp(target{1},'^p(\d+)\.Frequency$','tokens','once');
+  if ~isempty(tok) && str2double(tok{1})<=numel(pulseIdx)
+    p = Exp.Sequence{pulseIdx(str2double(tok{1}))};
+    isRF = isfield(p,'Channel') && strcmpi(p(1).Channel,'rf');
+  end
+  if isRF
     d(end+1) = k; %#ok<AGROW>
   end
 end
+end
+
+%===============================================================================
+% endorBroadening  Convolve the signal along an RF frequency dimension
+%
+%   y = endorBroadening(y,Exp,d,fwhmGL)
+%
+%   The ENDOR signal is the echo, whose baseline (the echo without RF pulse)
+%   does not depend on the RF frequency. convspec continues the signal with
+%   zeros beyond the RF range, so the straight line through the end points
+%   is subtracted before the convolution and added back after it. The
+%   baseline is then unchanged if the end points are far from the ENDOR
+%   lines.
+%
+%   Input:
+%     y       signal, dimensions [Dim1, Dim2, ..., transient time,
+%             detection operator], singletons removed
+%     Exp     experiment; uses nPoints and Dim1, Dim2, ...
+%     d       index of the RF frequency dimension
+%     fwhmGL  [Gaussian Lorentzian] FWHM (MHz), from Sys.lwEndor
+%
+%   Output:
+%     y       broadened signal, same size as the input
+function y = endorBroadening(y,Exp,d,fwhmGL)
+n = Exp.nPoints(d);
+if n<2, return; end
+v = Exp.(sprintf('Dim%d',d)){1,2};
+if isscalar(v)
+  df = abs(v);
+else
+  steps = diff(v(:));
+  if any(abs(steps-steps(1))>1e-6*abs(steps(1)))
+    error('Sys.lwEndor needs equally spaced RF frequencies in Exp.Dim%d.',d);
+  end
+  df = abs(steps(1));
+end
+if df==0, return; end  % all points at the same RF frequency
+
+% Position of dimension d in y: the indirect dimensions come first, and
+% singleton dimensions are removed
+sz = size(y);
+nonSingleton = find(sz>1);
+ax = nonSingleton(nnz(Exp.nPoints(1:d)>1));
+
+% One RF trace per column
+perm = [ax setdiff(1:ndims(y),ax)];
+Y = reshape(permute(y,perm),n,[]);
+s = (0:n-1).'/(n-1);
+edgeLine = Y(1,:) + (Y(end,:)-Y(1,:)).*s;
+Y = Y - edgeLine;
+if fwhmGL(2)>0, Y = convspec(Y,[df 1],[fwhmGL(2) 0],0,0); end  % Lorentzian
+if fwhmGL(1)>0, Y = convspec(Y,[df 1],[fwhmGL(1) 0],0,1); end  % Gaussian
+y = ipermute(reshape(Y + edgeLine,sz(perm)),perm);
 end
 
 %===============================================================================
@@ -1022,7 +1078,7 @@ end
 isENDOR = ~isempty(rfFrequencyDims(Exp));
 if isENDOR && isvector(data)
   plot(x,real(data));
-  xlabel('RF frequency (MHz)');
+  xlabel(xl{1});
   ylabel('echo amplitude');
   title(sprintf('%s, %g mT',name,Exp.Field));
   axis tight
@@ -1100,11 +1156,17 @@ end
 function xl = axisLabels(Exp,nAx)
 xl = repmat({'t (µs)'},1,max(nAx,2));
 if ~isfield(Exp,'nPoints'), return; end
+rfDims = rfFrequencyDims(Exp);
 for d = 1:min(numel(Exp.nPoints),nAx)
   Dim = Exp.(sprintf('Dim%d',d));
   target = strtrim(Dim{1,1});
-  if strcmp(target,'rfFreq')
-    xl{d} = 'RF frequency (MHz)';
+  if ismember(d,rfDims)
+    target = strtrim(regexp(target,',','split'));
+    if strcmp(target{1},'rfFreq')
+      xl{d} = 'RF frequency (MHz)';
+    else
+      xl{d} = sprintf('%s (MHz)',target{1});  % RF pulse frequency offset
+    end
   elseif target(1)=='d'
     xl{d} = sprintf('%s (µs)',target);
   else

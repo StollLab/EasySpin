@@ -219,7 +219,7 @@ Inhomogeneous width of the EPR line (see <a href="broadenings.html#lwanisog">bro
 
 <div class="optionfield"><code>lwEndor</code></div>
 <div class="optiondescr">
-Line width for ENDOR spectra, applied by convolution. See <a href="broadenings.html">line width parameters</a>.
+Line widths (FWHM, in MHz) for ENDOR spectra, applied by convolution: <code>[Gaussian Lorentzian]</code>, or a single number for a Gaussian. The broadening is applied along every indirect dimension that sweeps an RF frequency, i.e. the RF carrier frequency (<code>'rfFreq'</code>) or the frequency of an RF pulse (e.g. <code>'p3.Frequency'</code>), for predefined and user-defined experiments. The RF frequencies must be equally spaced. The ends of the RF range are kept unchanged, as the echo without RF pulse, so the RF range should extend beyond the ENDOR lines by a few line widths. See <a href="broadenings.html">line width parameters</a>.
 </div>
 
 <p>
