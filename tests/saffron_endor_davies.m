@@ -18,7 +18,7 @@ Exp.mwFreq = 9.8;  % GHz
 Exp.Sequence = 'DaviesENDOR';
 Exp.tau = 0.3;  % µs
 Exp.tp = [0.2 0.1 0.2];  % µs
-Exp.Range = [8 22];  % MHz
+Exp.rfFreq = [8 22];  % MHz
 Exp.nPoints = 351;
 
 Opt.GridSize = 7;
@@ -56,7 +56,7 @@ ok(6) = strcmp(warnId,'EasySpin:saffron:ENDORFlat') && ...
 % 14N (I = 1): the lines at mI = 0 and +-1 are inverted differently, so the
 % spectrum is not flat, and there is no warning
 SysC.Nucs = '14N';
-ExpC.Range = [0 8];  % MHz
+ExpC.rfFreq = [0.2 8];  % MHz
 lastwarn('');
 [~,yN] = saffron(SysC,ExpC,Opt);
 ok(7) = isempty(lastwarn) && max(abs(yN-yN(1)))>0.1*abs(yN(1));

@@ -76,7 +76,20 @@ for iS = 1:numel(Sys)
 end
 % Mims ENDOR (new code uses a different RF model: timing only)
 Se = struct('Nucs','1H','A',[2 3 9],'g',[2.0 2.01 2.02],'lwEndor',0.1);
-Ee = struct('Field',350,'Sequence','MimsENDOR','tau',0.2,'Range',[10 20],'nPoints',1001);
+Ee = struct('Field',350,'Sequence','MimsENDOR','tau',0.2,'nPoints',1001);
+% RF range: Exp.rfFreq, or Exp.Range in older code
+Etry = Ee;
+Etry.rfFreq = [10 20];
+Etry.nPoints = 2;
+try
+  saffron(Se,Etry,struct('GridSize',7));
+  Ee.rfFreq = [10 20];
+catch err
+  if ~contains(err.message,{'Exp.Range','Exp.rfFreq'})
+    rethrow(err);
+  end
+  Ee.Range = [10 20];
+end
 cases{end+1} = {sprintf('%-10s %-8s plain','1H','MimsENDOR'),Se,Ee,struct('GridSize',31)};
 
 nCases = numel(cases);

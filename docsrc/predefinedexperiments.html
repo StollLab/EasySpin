@@ -60,7 +60,7 @@ Number of points. The defaults are given below.
 </div>
 
 <p>
-The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code>, <code>Exp.DetPhase</code> and <code>Exp.rfFreq</code>. To change them, start from the equivalent user-defined experiment.
+The following fields cannot be used with predefined experiments, since the experiments set them themselves: <code>Exp.Dim1</code>, <code>Exp.Dim2</code>, <code>Exp.Pathways</code>, <code>Exp.PhaseCycle</code> and <code>Exp.DetPhase</code>, and <code>Exp.rfFreq</code> except as the RF range of the ENDOR experiments. To change them, start from the equivalent user-defined experiment.
 </p>
 
 <div class="subtitle">2pESEEM</div>
@@ -271,7 +271,7 @@ Exp.DetPhase = pi/2;
 <pre class="matlab">
 Exp.Sequence = 'MimsENDOR';
 Exp.tau = 0.1;  % tau, µs
-Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % RF range, MHz
+Exp.rfFreq = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % RF range, MHz
 </pre>
 
 <p>
@@ -283,9 +283,9 @@ Parameters:
 &tau;, in µs.
 </div>
 
-<div class="optionfield"><code>Exp.Range</code></div>
+<div class="optionfield"><code>Exp.rfFreq</code></div>
 <div class="optiondescr">
-Lower and upper limits of the RF range, in MHz, e.g. <code>[0 30]</code>.
+Lower and upper limits of the RF range, in MHz, e.g. <code>[1 30]</code>. Both must be positive.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
@@ -304,7 +304,7 @@ Length of the RF pulse, in µs, default 20. It sets the RF excitation bandwidth.
 </div>
 
 <p>
-Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points:
+Equivalent user-defined experiment, for <code>Exp.rfFreq = [10 20]</code> and 21 points:
 </p>
 
 <pre class="matlab">
@@ -334,7 +334,7 @@ Davies ENDOR works only if the inversion pulse inverts the two hyperfine lines o
 Exp.Sequence = 'DaviesENDOR';
 Exp.tau = 0.3;              % tau, µs
 Exp.tp = [0.2 0.1 0.2];     % lengths of the inversion, pi/2 and pi pulses, µs
-Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % RF range, MHz
+Exp.rfFreq = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % RF range, MHz
 </pre>
 
 <p>
@@ -351,9 +351,9 @@ Parameters:
 Lengths of the three microwave pulses, in µs. Required.
 </div>
 
-<div class="optionfield"><code>Exp.Range</code></div>
+<div class="optionfield"><code>Exp.rfFreq</code></div>
 <div class="optiondescr">
-Lower and upper limits of the RF range, in MHz.
+Lower and upper limits of the RF range, in MHz. Both must be positive.
 </div>
 
 <div class="optionfield"><code>Exp.nPoints</code></div>
@@ -372,7 +372,7 @@ Length of the RF pulse, in µs, default 20.
 </div>
 
 <p>
-Equivalent user-defined experiment, for <code>Exp.Range = [10 20]</code> and 21 points:
+Equivalent user-defined experiment, for <code>Exp.rfFreq = [10 20]</code> and 21 points:
 </p>
 
 <pre class="matlab">

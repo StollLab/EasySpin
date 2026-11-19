@@ -12,7 +12,7 @@ Sys.lwEndor = 0.05;  % MHz
 Exp.Field = 350;  % mT
 Exp.Sequence = 'MimsENDOR';
 Exp.tau = 0.1;  % µs
-Exp.Range = [8 22];  % MHz
+Exp.rfFreq = [8 22];  % MHz
 Exp.nPoints = 701;
 
 Opt.GridSize = 7;

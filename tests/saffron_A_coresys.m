@@ -14,7 +14,7 @@ Exp.Sequence = 'MimsENDOR';
 Sys.A_ = [200 20; 3 2];
 
 Exp.tau = 444;
-Exp.Range = [13 16.4];
+Exp.rfFreq = [13 16.4];
 Exp.mwFreq = 9.7;
 Exp.tp = 0.02;  % µs, excitation window 1/tp = 50 MHz
 Opt.IdealPulses = true;

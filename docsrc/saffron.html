@@ -94,7 +94,7 @@ saffron(Sys,Exp);
 </pre>
 
 <p>
-The predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code> and <code>'DaviesENDOR'</code>. Their parameters (<code>tau</code>, <code>T</code>, <code>t1</code>, <code>t2</code>, <code>dt</code>, <code>nPoints</code>, <code>tp</code>, <code>Range</code>, <code>tprf</code>) are listed on the page on <a href="predefinedexperiments.html">predefined experiments</a>. By default, the microwave pulses are ideal. To give them a length, set <code>Exp.tp</code> (in µs). <code>'DaviesENDOR'</code> needs selective pulses, so <code>Exp.tp</code> is required for it. The pulses are along x, and the detection phase is chosen so that the echo is real and positive: -&pi;/2 for <code>'2pESEEM'</code> and <code>'3pESEEM'</code>, and +&pi;/2 for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
+The predefined experiments are <code>'2pESEEM'</code>, <code>'3pESEEM'</code>, <code>'4pESEEM'</code>, <code>'HYSCORE'</code>, <code>'MimsENDOR'</code> and <code>'DaviesENDOR'</code>. Their parameters (<code>tau</code>, <code>T</code>, <code>t1</code>, <code>t2</code>, <code>dt</code>, <code>nPoints</code>, <code>tp</code>, <code>tprf</code>, and the RF range <code>rfFreq</code> for ENDOR) are listed on the page on <a href="predefinedexperiments.html">predefined experiments</a>. By default, the microwave pulses are ideal. To give them a length, set <code>Exp.tp</code> (in µs). <code>'DaviesENDOR'</code> needs selective pulses, so <code>Exp.tp</code> is required for it. The pulses are along x, and the detection phase is chosen so that the echo is real and positive: -&pi;/2 for <code>'2pESEEM'</code> and <code>'3pESEEM'</code>, and +&pi;/2 for <code>'4pESEEM'</code> and <code>'HYSCORE'</code>.
 </p>
 
 <p>
@@ -132,7 +132,7 @@ A pulse without length (<code>tp</code> absent or 0) is ideal: it rotates all sp
 <li><code>tp</code>: pulse length, in µs.</li>
 <li><code>Phase</code>: pulse phase, in radians. <code>Phase = 0</code> is along x.</li>
 <li><code>Type</code>: pulse shape, e.g. <code>'rectangular'</code> (default), <code>'gaussian'</code>, <code>'quartersin/linear'</code> or <code>'sech/tanh'</code>, with their parameters as in <a class="esf" href="pulse.html">pulse</a>.</li>
-<li><code>Frequency</code>: frequency offset from <code>Exp.mwFreq</code>, in MHz, or <code>[start end]</code> for a frequency sweep.</li>
+<li><code>Frequency</code>: frequency offset from the carrier (<code>Exp.mwFreq</code> or <code>Exp.rfFreq</code>), in MHz, or <code>[start end]</code> for a frequency sweep. Without a carrier, it is the absolute frequency (see <a href="#carriers">pulse frequencies and carriers</a>).</li>
 <li><code>IQ</code> and <code>t</code>: a user-defined waveform and its time axis (needs <code>Opt.IntTimeStep</code>). The waveform is complex, like the waveforms of <a class="esf" href="pulse.html">pulse</a>; a phase step in <code>Exp.PhaseCycle</code> multiplies it by e<sup>i&phi;</sup>.</li>
 <li><code>Channel</code>: <code>'mw'</code> (default) or <code>'rf'</code> for radiofrequency pulses (see <code>Exp.rfFreq</code>).</li>
 </ul>
@@ -141,9 +141,27 @@ A pulse without length (<code>tp</code> absent or 0) is ideal: it rotates all sp
 <b>Electron spins with S &gt; 1/2.</b> With several EPR transitions, a flip angle has no unique meaning: each transition nutates at its own frequency. For example, with &nu;<sub>1</sub> = <code>Amplitude</code>, at high field a transition between levels m and m&minus;1 nutates at &radic;(S(S+1)&minus;m(m&minus;1))&middot;&nu;<sub>1</sub>: &radic;2&nu;<sub>1</sub> for both transitions of S = 1, and 2&nu;<sub>1</sub> for the central and &radic;3&nu;<sub>1</sub> for the outer transitions of S = 3/2. Therefore, for spin systems with an electron spin S &gt; 1/2, microwave pulses need <code>tp</code> and <code>Amplitude</code>. <code>Flip</code>, <code>Qcrit</code>, ideal pulses, increments of flip angles, <code>Opt.IdealPulses</code> and predefined experiments are not available. To build the explicit sequence of a predefined experiment, run it for an S = 1/2 system and use <code>info.Exp</code> as a template.
 </p>
 
-<p>
-The microwave carrier at <code>Exp.mwFreq</code> runs continuously through the whole sequence, as in a spectrometer. The phase of a pulse is relative to this carrier, and frequency offsets and sweeps of a pulse start at the beginning of that pulse.
+<p id="carriers">
+<b>Pulse frequencies and carriers.</b> Microwave and RF pulses follow the same rule. Each channel has a carrier: <code>Exp.mwFreq</code> (in GHz) for microwave pulses and <code>Exp.rfFreq</code> (in MHz) for RF pulses. The frequency of a pulse is the carrier plus <code>Pulse.Frequency</code> (in MHz). Without a carrier, <code>Pulse.Frequency</code> is the absolute frequency of the pulse.
 </p>
+
+<p>
+The carrier runs continuously through the whole sequence, as in a spectrometer. The phase of a pulse (<code>Pulse.Phase</code>, plus its phase in <code>Exp.PhaseCycle</code>) is relative to this carrier, while the frequency offset and the frequency sweep of a pulse start at the beginning of that pulse. As a result:
+</p>
+<ul>
+<li>Pulses at the carrier frequency (offset 0) keep their phases relative to each other, for any delay between them. For example, two pulses with phases 0 and &pi; on resonance undo each other.</li>
+<li>A pulse at an offset f from the carrier, starting at time t after the start of the sequence, has the phase &phi; &minus; 2&pi;&middot;f&middot;t relative to a source running at the frequency of the pulse. For two such pulses to undo each other, the second one needs the phase &pi; + 2&pi;&middot;f&middot;&Delta;t, where &Delta;t is the time between the starts of the two pulses.</li>
+<li>Without a carrier, the same holds with the absolute frequency f. For example, in a time-domain ENDOR experiment with two RF pulses, the signal then oscillates with the NMR frequencies themselves, not with their differences from the RF frequency.</li>
+</ul>
+
+<p>
+For RF pulses, this covers the common ways in which spectrometers generate them:
+</p>
+<ul>
+<li>RF source with an IQ mixer, or a two-channel AWG: give <code>Exp.rfFreq</code>, and the offsets of the pulses in <code>Pulse.Frequency</code>.</li>
+<li>Phase-continuous synthesizer at one frequency: give <code>Exp.rfFreq</code>, and no <code>Pulse.Frequency</code> (offset 0). For ENDOR, sweep <code>'rfFreq'</code>.</li>
+<li>Synthesizer whose phase restarts with each pulse, or an AWG at the RF frequency: give no <code>Exp.rfFreq</code>, and the absolute frequency in <code>Pulse.Frequency</code>.</li>
+</ul>
 
 <p>
 By default, a single point is detected at the end of the sequence. Use <code>Exp.DetWindow</code> to detect a transient, e.g. an echo or an FID, or the signal during the whole sequence, and <code>Exp.DetOperator</code> to detect other quantities than the electron coherence.
@@ -219,7 +237,7 @@ Inhomogeneous width of the EPR line (see <a href="broadenings.html#lwanisog">bro
 
 <div class="optionfield"><code>lwEndor</code></div>
 <div class="optiondescr">
-Line widths (FWHM, in MHz) for ENDOR spectra, applied by convolution: <code>[Gaussian Lorentzian]</code>, or a single number for a Gaussian. The broadening is applied along every indirect dimension that sweeps an RF frequency, i.e. the RF carrier frequency (<code>'rfFreq'</code>) or the frequency of an RF pulse (e.g. <code>'p3.Frequency'</code>), for predefined and user-defined experiments. The RF frequencies must be equally spaced. The ends of the RF range are kept unchanged, as the echo without RF pulse, so the RF range should extend beyond the ENDOR lines by a few line widths. See <a href="broadenings.html">line width parameters</a>.
+Line widths (FWHM, in MHz) for ENDOR spectra, applied by convolution: <code>[Gaussian Lorentzian]</code>, or a single number for a Gaussian. The broadening is applied along every indirect dimension that sweeps an RF frequency, i.e. the RF carrier frequency (<code>'rfFreq'</code>) or the frequency of an RF pulse (e.g. <code>'p3.Frequency'</code>, an offset from <code>Exp.rfFreq</code> or an absolute frequency), for predefined and user-defined experiments. The RF frequencies must be equally spaced. The ends of the RF range are kept unchanged, as the echo without RF pulse, so the RF range should extend beyond the ENDOR lines by a few line widths. See <a href="broadenings.html">line width parameters</a>.
 </div>
 
 <p>
@@ -289,7 +307,7 @@ Magnetic field, in mT. Required.
 <div class="optionfield"><code>mwFreq</code></div>
 <div class="optiondescr">
 <p>
-Microwave carrier frequency in GHz, optional. All frequencies in the pulse definition (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.mwFreq</code>:
+Microwave carrier frequency in GHz, optional. All frequencies in the definition of microwave pulses (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.mwFreq</code> (see <a href="#carriers">pulse frequencies and carriers</a>):
 </p>
 <pre class="matlab">
 Exp.mwFreq = 33.5;
@@ -336,15 +354,29 @@ Exp.Sequence = {Pulse1 0.2 Pulse2 0.4};
 
 <div class="optionfield"><code>rfFreq</code></div>
 <div class="optiondescr">
-RF carrier frequency in MHz, needed for RF pulses (<code>Pulse.Channel = 'rf'</code>). RF pulses need a length (<code>tp</code>). Their strength is given by <code>B1</code> (RF field amplitude, in mT), or by <code>Flip</code>, which then refers to the first nucleus of the spin system. To sweep the RF frequency (ENDOR), use an indirect dimension over <code>'rfFreq'</code>:
+RF carrier frequency in MHz, optional, for RF pulses (<code>Pulse.Channel = 'rf'</code>). The frequencies of RF pulses (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.rfFreq</code>. Without it, they are absolute (see <a href="#carriers">pulse frequencies and carriers</a>). RF pulses need a length (<code>tp</code>). Their strength is given by <code>B1</code> (RF field amplitude, in mT), or by <code>Flip</code>, which then refers to the first nucleus of the spin system. To sweep the RF frequency (ENDOR), use an indirect dimension over <code>'rfFreq'</code>, or over the frequency of the RF pulse:
 <pre class="matlab">
 RF.Channel = 'rf';
 RF.tp = 20;                   % µs
 RF.Flip = pi;
 Exp.rfFreq = 10;              % MHz
+Exp.Sequence = {p90 0.2 p90 1 RF 1 p90 0.2};
 Exp.nPoints = 201;
 Exp.Dim1 = {'rfFreq' 0.05};   % RF sweep from 10 MHz in steps of 50 kHz
 </pre>
+<p>
+The same sweep, without carrier, with the absolute frequency of the RF pulse (the third pulse). <code>Exp.rfFreq</code> must not be given, since <code>RF.Frequency</code> would then be an offset from it:
+</p>
+<pre class="matlab">
+Exp = rmfield(Exp,'rfFreq');  % no carrier
+RF.Frequency = 10;            % MHz
+Exp.Sequence = {p90 0.2 p90 1 RF 1 p90 0.2};
+Exp.nPoints = 201;
+Exp.Dim1 = {'p3.Frequency' 0.05};
+</pre>
+<p>
+For the predefined ENDOR experiments, <code>Exp.rfFreq = [min max]</code> gives the RF range.
+</p>
 </div>
 
 <div class="subtitle2" id="indirect_dimensions">Indirect dimensions</div>
@@ -993,7 +1025,7 @@ A structure with additional information:
 <tr><th></th><th><em>subspace</em> (fast)</th><th><em>full-space</em> (general)</th></tr>
 <tr><td>Spin system</td><td>one electron spin with S = 1/2, with or without nuclei (S &gt; 1/2 only on request, approximately)</td><td>any number of electron spins and nuclei, any S, also without nuclei</td></tr>
 <tr><td>Microwave pulses</td><td>ideal and rectangular</td><td>any shape: rectangular, shaped, frequency-swept, user-defined waveforms</td></tr>
-<tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code>; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes</td></tr>
+<tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code> or of the frequency of the RF pulse; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes</td></tr>
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point (<code>DetWindow</code> a single number, or two equal numbers), <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>

@@ -16,7 +16,7 @@
 %       tp              mw pulse length(s) (µs), 0 or absent = ideal pulses;
 %                       a scalar applies to all mw pulses, a vector gives
 %                       one length per mw pulse
-%       Range           RF range [min max] (MHz) for ENDOR
+%       rfFreq          RF range [min max] (MHz) for ENDOR
 %       tprf            RF pulse length (µs) for ENDOR (default 20)
 %       nPoints         number of points (default [256 256] for HYSCORE,
 %                       1001 for ENDOR, 512 otherwise)
@@ -24,12 +24,13 @@
 %
 %   Output:
 %     Exp  experiment structure, with the parameters (tau, T, t1, t2,
-%          dt, tp, Range, tprf) removed, and with the fields
+%          dt, tp, tprf) removed, and with the fields
 %       Sequence        pulse sequence: cell array of pulses and delays (µs)
 %       nPoints, Dim1, Dim2   incrementation scheme
 %       Pathways        coherence pathway selection
 %       DetWindow, DetPhase   detection window and phase
-%       rfFreq          RF carrier frequency (MHz), for ENDOR
+%       rfFreq          RF carrier frequency (MHz) at the first point, for
+%                       ENDOR (replaces the range)
 %       predefinedExp   name of the predefined experiment
 
 function Exp = sf_predefinedexperiments(Exp)
@@ -50,13 +51,22 @@ end
 if isfield(Exp,'Pathways')
   error('Exp.Pathways cannot be used with predefined experiments. Use a user-defined experiment instead.');
 end
-for f = {'Dim1','Dim2','rfFreq'}
+isENDOR = any(strcmp(name,{'MimsENDOR','DaviesENDOR'}));
+
+forbidden = {'Dim1','Dim2'};
+if ~isENDOR, forbidden{end+1} = 'rfFreq'; end
+for f = forbidden
   if isfield(Exp,f{1})
     error('Exp.%s cannot be used with predefined experiments. Use a user-defined experiment instead.',f{1});
   end
 end
-
-isENDOR = any(strcmp(name,{'MimsENDOR','DaviesENDOR'}));
+if isfield(Exp,'Range')
+  if isENDOR
+    error('Exp.Range is no longer supported. Give the RF range in Exp.rfFreq = [min max] (MHz).');
+  else
+    error('Exp.Range is not a parameter of %s.',name);
+  end
+end
 
 % Delays
 if ~isfield(Exp,'tau')
@@ -138,19 +148,20 @@ end
 
 % RF pulse for ENDOR
 if isENDOR
-  if ~isfield(Exp,'Range')
-    error('Frequency range (Exp.Range, in MHz) must be given for an ENDOR experiment.');
+  if ~isfield(Exp,'rfFreq')
+    error('The RF range (Exp.rfFreq = [min max], in MHz) must be given for an ENDOR experiment.');
   end
-  if numel(Exp.Range)~=2 || Exp.Range(2)<=Exp.Range(1)
-    error('Exp.Range must be [min max], in MHz.');
+  rfRange = Exp.rfFreq;
+  if ~isnumeric(rfRange) || numel(rfRange)~=2 || ~(rfRange(1)>0) || ~(rfRange(2)>rfRange(1))
+    error('Exp.rfFreq must be the RF range [min max], in MHz, with 0 < min < max.');
   end
   if ~isfield(Exp,'tprf'), Exp.tprf = 20; end
   RF.Channel = 'rf';
   RF.Flip = pi;
   RF.tp = Exp.tprf;
-  Exp.rfFreq = Exp.Range(1);
+  Exp.rfFreq = rfRange(1);  % RF carrier, swept over the range
   if Exp.nPoints>1
-    rfStep = diff(Exp.Range)/(Exp.nPoints-1);
+    rfStep = diff(rfRange)/(Exp.nPoints-1);
   else
     rfStep = 0;
   end
@@ -203,6 +214,6 @@ end
 Exp.predefinedExp = name;
 
 % Remove parameters for predefined experiments
-Exp = rmfield(Exp,intersect(fieldnames(Exp),{'tau','T','t1','t2','dt','tp','Range','tprf'}));
+Exp = rmfield(Exp,intersect(fieldnames(Exp),{'tau','T','t1','t2','dt','tp','tprf'}));
 
 end

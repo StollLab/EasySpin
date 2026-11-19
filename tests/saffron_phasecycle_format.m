@@ -70,7 +70,7 @@ for k = 1:size(errorCases,1)
 end
 
 % Predefined experiments set their pathways themselves
-E = struct('Field',350,'Sequence','MimsENDOR','tau',0.1,'Range',[10 20],'PhaseCycle',PC);
+E = struct('Field',350,'Sequence','MimsENDOR','tau',0.1,'rfFreq',[10 20],'PhaseCycle',PC);
 try
   saffron(Sys,E);
   ok(end+1) = false;

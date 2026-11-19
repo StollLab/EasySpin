@@ -3,7 +3,7 @@ function [ok,data] = test(opt,olddata)
 Exp.Sequence = 'MimsENDOR';
 Exp.Field = 325;
 Exp.tau = 0.1;
-Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;
+Exp.rfFreq = larmorfrq('1H',Exp.Field) + [-1 1]*10;
 
 Sys.Nucs = '1H';
 Sys.A = [1 1 5];

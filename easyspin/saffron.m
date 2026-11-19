@@ -13,14 +13,14 @@
 %
 %  Exp fields:
 %     Field          magnetic field (mT)
-%     mwFreq         microwave carrier frequency (GHz)
-%     rfFreq         RF carrier frequency (MHz), for RF pulses
+%     mwFreq         microwave carrier frequency (GHz), optional
+%     rfFreq         RF carrier frequency (MHz), optional
 %     Sequence       pulse sequence: cell array of pulses (structures) and
 %                    delays (µs); or the name of a predefined experiment,
 %                    which sets the sequence and its incrementation scheme:
 %                    '2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR',
 %                    'DaviesENDOR' (parameters tau, T, t1, t2, dt,
-%                    tp, Range, tprf)
+%                    tp, tprf, and for ENDOR the RF range rfFreq = [min max])
 %     nPoints, Dim1, Dim2, ...   incrementation scheme (indirect dimensions)
 %     Pathways       coherence pathway selection: 'all' (default), 'echo'
 %                    (echoes within the detection window), a string of
@@ -41,12 +41,14 @@
 %     default; Exp.MolFrame = [0 0 0] for a single orientation)
 %
 %  Pulse fields: Flip, tp (0 or absent: ideal pulse), Phase, Type,
-%     Frequency (offset from the carrier, or [start end] for chirps),
-%     Amplitude, Channel ('mw' or 'rf'), B1 (RF field, mT), and the
-%     parameters of pulse(). For electron spins S > 1/2, microwave pulses
-%     need tp and Amplitude (nutation frequency in MHz, pulse Hamiltonian
-%     Amplitude*Sx); Flip, ideal pulses and predefined experiments are not
-%     available.
+%     Frequency (MHz, or [start end] for chirps), Amplitude, Channel ('mw'
+%     or 'rf'), B1 (RF field, mT), and the parameters of pulse(). On both
+%     channels, Frequency is the offset from the carrier (Exp.mwFreq or
+%     Exp.rfFreq), or the absolute frequency if the carrier is not given.
+%     The carrier phase runs continuously from the start of the sequence.
+%     For electron spins S > 1/2, microwave pulses need tp and Amplitude
+%     (nutation frequency in MHz, pulse Hamiltonian Amplitude*Sx); Flip,
+%     ideal pulses and predefined experiments are not available.
 %
 %  Opt fields:
 %     Method         'auto' (default), 'subspace', 'fullspace'
@@ -271,6 +273,9 @@ if iscell(Exp.Sequence)
         error('The pulse sequence contains RF pulses, but the spin system has no nuclei (Sys.Nucs).');
       end
     end
+  end
+  if hasRF || isfield(Exp,'rfFreq')
+    checkRFFrequencies(Exp);
   end
 end
 
@@ -1156,23 +1161,184 @@ end
 function xl = axisLabels(Exp,nAx)
 xl = repmat({'t (µs)'},1,max(nAx,2));
 if ~isfield(Exp,'nPoints'), return; end
-rfDims = rfFrequencyDims(Exp);
+pulseIdx = find(cellfun(@isstruct,Exp.Sequence));
 for d = 1:min(numel(Exp.nPoints),nAx)
   Dim = Exp.(sprintf('Dim%d',d));
-  target = strtrim(Dim{1,1});
-  if ismember(d,rfDims)
-    target = strtrim(regexp(target,',','split'));
-    if strcmp(target{1},'rfFreq')
-      xl{d} = 'RF frequency (MHz)';
-    else
-      xl{d} = sprintf('%s (MHz)',target{1});  % RF pulse frequency offset
+  targets = strtrim(Dim{1,1});
+  target = strtrim(regexp(targets,',','split'));
+  target = target{1};
+  tok = regexp(target,'^p(\d+)\.Frequency$','tokens','once');
+  if strcmp(target,'rfFreq')
+    % carrier values: the RF frequency, unless an RF pulse has an offset
+    rfOffset = false;
+    for k = pulseIdx
+      p = Exp.Sequence{k};
+      if isfield(p,'Channel') && strcmpi(p(1).Channel,'rf') && ...
+          isfield(p,'Frequency') && any(p(1).Frequency~=0)
+        rfOffset = true;
+      end
     end
-  elseif target(1)=='d'
-    xl{d} = sprintf('%s (µs)',target);
+    if rfOffset
+      xl{d} = 'RF carrier frequency (MHz)';
+    else
+      xl{d} = 'RF frequency (MHz)';
+    end
+  elseif ~isempty(tok) && str2double(tok{1})<=numel(pulseIdx)
+    % pulse frequency: offset from the carrier, or absolute without it
+    p = Exp.Sequence{pulseIdx(str2double(tok{1}))};
+    if isfield(p,'Channel') && strcmpi(p(1).Channel,'rf')
+      channel = 'RF';
+      hasCarrier = isfield(Exp,'rfFreq');
+    else
+      channel = 'mw';
+      hasCarrier = isfield(Exp,'mwFreq');
+    end
+    if hasCarrier
+      xl{d} = sprintf('%s frequency offset (MHz)',channel);
+    else
+      xl{d} = sprintf('%s frequency (MHz)',channel);
+    end
+  elseif targets(1)=='d'
+    xl{d} = sprintf('%s (µs)',targets);
   else
-    xl{d} = target;
+    xl{d} = targets;
   end
 end
+end
+
+%===============================================================================
+% checkRFFrequencies  Check the carrier and the frequencies of the RF pulses
+%
+%   checkRFFrequencies(Exp)
+%
+%   RF pulses follow the same rule as microwave pulses: their frequency is
+%   the carrier Exp.rfFreq plus the offset Pulse.Frequency, or, without
+%   Exp.rfFreq, the absolute Pulse.Frequency. The frequency of each RF
+%   pulse must be positive at all points of the incrementation scheme.
+%
+%   Input:
+%     Exp  experiment; uses rfFreq, Sequence, nPoints, Dim1, Dim2, ...
+%
+%   Output:
+%     none; throws an error for invalid RF frequencies
+function checkRFFrequencies(Exp)
+
+hasCarrier = isfield(Exp,'rfFreq');
+if hasCarrier
+  if ~isnumeric(Exp.rfFreq) || ~isscalar(Exp.rfFreq) || ~isreal(Exp.rfFreq) || ~(Exp.rfFreq>0)
+    error('Exp.rfFreq (RF carrier frequency, in MHz) must be a single positive number.');
+  end
+  carrier = Exp.rfFreq;
+else
+  carrier = 0;
+end
+
+% lines of the incrementation scheme: dimension, targets, values
+dimLines = cell(0,3);
+if isfield(Exp,'nPoints')
+  for d = 1:numel(Exp.nPoints)
+    f = sprintf('Dim%d',d);
+    if ~isfield(Exp,f), continue; end
+    for iLine = 1:size(Exp.(f),1)
+      targets = strtrim(regexp(Exp.(f){iLine,1},',','split'));
+      dimLines(end+1,:) = {d,targets,Exp.(f){iLine,2}}; %#ok<AGROW>
+      if ~hasCarrier && any(strcmp(targets,'rfFreq'))
+        error('Exp.%s sweeps the RF carrier frequency rfFreq, so Exp.rfFreq (MHz) is needed.',f);
+      end
+    end
+  end
+end
+
+% lowest frequency of each RF pulse over all points: for each band edge
+% ([start end]), the changes add up over the lines of a dimension at each
+% point, and the smallest changes add up over the dimensions
+pulseIdx = find(cellfun(@isstruct,Exp.Sequence));
+for iP = 1:numel(pulseIdx)
+  p = Exp.Sequence{pulseIdx(iP)};
+  if ~isfield(p,'Channel') || ~strcmpi(p(1).Channel,'rf'), continue; end
+  p = p(1);
+  hasFrequency = isfield(p,'Frequency') && ~isempty(p.Frequency);
+  if ~hasCarrier && ~hasFrequency
+    error(['Without Exp.rfFreq, the frequencies of RF pulses are absolute: ' ...
+      'give a positive Pulse.Frequency (in MHz) for every RF pulse, or give Exp.rfFreq.']);
+  end
+  lowest = carrier*[1 1];
+  if hasFrequency, lowest = lowest + p.Frequency([1 end]); end
+  dims = unique([dimLines{:,1}]);
+  for d = dims(:).'
+    n = Exp.nPoints(d);
+    change = zeros(n,2);
+    for iLine = find([dimLines{:,1}]==d)
+      for q = 1:numel(dimLines{iLine,2})
+        change = change + rfFrequencyChange(dimLines{iLine,2}{q},dimLines{iLine,3},iP,n,d);
+      end
+    end
+    lowest = lowest + min(change,[],1);
+  end
+  if ~(min(lowest)>0)
+    error('RF pulse p%d: its frequency must be positive, but it reaches %g MHz.',iP,min(lowest));
+  end
+end
+
+end
+
+%===============================================================================
+% rfFrequencyChange  Change of the frequency of an RF pulse along a dimension
+%
+%   C = rfFrequencyChange(target,v,iP,n,d)
+%
+%   Reads the values of a line of Exp.DimN in the same way as sf_buildevents:
+%   'rfFreq' changes the carrier (scalar: step, vector: value per point).
+%   'pK.Frequency' changes both band edges: a scalar or a row ([start end])
+%   is the change per step, a column or an n x 2 matrix gives the change at
+%   each point. 'pK.Frequency(i)' changes band edge i (scalar: step,
+%   vector: value per point).
+%
+%   Input:
+%     target  target of the line, e.g. 'rfFreq', 'p3.Frequency'
+%     v       values of the line
+%     iP      index of the RF pulse (among the pulses)
+%     n       number of points of the dimension
+%     d       dimension index, for error messages
+%
+%   Output:
+%     C       change (MHz) of the two band edges, n x 2 (zeros if the
+%             target does not change the frequency of pulse iP)
+function C = rfFrequencyChange(target,v,iP,n,d)
+C = zeros(n,2);
+k = (0:n-1).';
+perPoint = @(v) checkedColumn(v,n,d);
+if strcmp(target,'rfFreq')
+  if isscalar(v), c = v*k; else, c = perPoint(v); end
+  C = [c c];
+  return
+end
+tokBand = regexp(target,'^p(\d+)\.Frequency$','tokens','once');
+tokEdge = regexp(target,'^p(\d+)\.Frequency\((\d+)\)$','tokens','once');
+if ~isempty(tokBand) && str2double(tokBand{1})==iP
+  if isscalar(v)
+    C = v*[k k];
+  elseif size(v,1)==1 && numel(v)==2
+    C = k*v;
+  elseif size(v,1)==n && any(size(v,2)==[1 2])
+    C = v.*[1 1];
+  else
+    error(['Exp.Dim%d: the values for %s must be a step (a number, or [start end] ' ...
+      'for the band edges), or one value per point (a column, or one row [start end] per point).'],d,target);
+  end
+elseif ~isempty(tokEdge) && str2double(tokEdge{1})==iP
+  iEdge = str2double(tokEdge{2});
+  if iEdge>2, return; end
+  if isscalar(v), C(:,iEdge) = v*k; else, C(:,iEdge) = perPoint(v); end
+end
+end
+
+% checkedColumn  Values per point of a dimension with n points, as a column
+function c = checkedColumn(v,n,d)
+if numel(v)~=n
+  error('Exp.Dim%d: the number of values (%d) does not match Exp.nPoints(%d) = %d.',d,numel(v),d,n);
+end
+c = v(:);
 end
 
 %===============================================================================

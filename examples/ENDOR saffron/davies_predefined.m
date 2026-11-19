@@ -31,7 +31,7 @@ Exp.Sequence = 'DaviesENDOR';
 Exp.tau = 0.3;       % µs
 Exp.tp = [0.2 0.1 0.2];  % lengths of the three microwave pulses, µs
 
-Exp.Range = [8 22];  % RF sweep range, MHz
+Exp.rfFreq = [8 22]; % RF sweep range, MHz
 Exp.nPoints = 281;
 
 Opt.GridSize = 181;  % fine powder integration grid

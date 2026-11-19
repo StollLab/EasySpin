@@ -19,7 +19,7 @@ Sys.lwEndor = 0.05;  % ENDOR line width, MHz
 Exp.Field = 350;     % mT
 Exp.Sequence = 'MimsENDOR';
 Exp.tau = 0.1;       % µs
-Exp.Range = [11 19]; % RF range, MHz
+Exp.rfFreq = [11 19]; % RF range, MHz
 Exp.nPoints = 401;
 
 Opt.GridSize = 91;   % fine powder integration grid

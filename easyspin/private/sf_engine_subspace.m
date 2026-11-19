@@ -1948,15 +1948,16 @@ end
 
 
 %===============================================================================
-% endorSweep  ENDOR signal as a function of the RF carrier frequency
+% endorSweep  ENDOR signal as a function of the RF frequency
 %
 %   [y,nOff] = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
 %
-%   Computes the echo over the RF carrier frequency (kind-2 dimension), for
-%   a single rectangular RF pulse. The RF pulse transfers population between
-%   the two levels u,v of each NMR transition with probability
+%   Computes the echo over the RF frequency (kind-2 dimension), for a single
+%   rectangular RF pulse. The RF pulse transfers population between the two
+%   levels u,v of each NMR transition with probability
 %   P(Delta) = (nu1/Omega)^2*sin(pi*Omega*tp)^2, Omega = sqrt(nu1^2+Delta^2),
-%   at the detuning Delta = nu_uv - rfFreq - Frequency. Terms that depend on
+%   at the detuning Delta = nu_uv - nu_RF from the absolute RF frequency
+%   nu_RF (carrier plus pulse frequency, seq.rfAxis). Terms that depend on
 %   the absolute RF phase average out (RF not phase-locked to the microwave,
 %   and the chi average of powders), leaving the population transfer.
 %
@@ -2079,7 +2080,7 @@ for iChunk = 1:numel(chunks)
     chunkRF = max(1,floor(2e6/nRfFreqs));
     for j0 = 1:chunkRF:numel(amp)
       idx = j0:min(j0+chunkRF-1,numel(amp));
-      Delta = nuNMR(idx) - rfFreqs - rfPulse.Frequency;  % pulse offset from the carrier
+      Delta = nuNMR(idx) - rfFreqs;  % detuning from the absolute RF frequency
       Omega = sqrt(nu1Trans(idx).^2 + Delta.^2);
       Ptransfer = (nu1Trans(idx)./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
       yTransfer = yTransfer + amp(idx).'*Ptransfer;

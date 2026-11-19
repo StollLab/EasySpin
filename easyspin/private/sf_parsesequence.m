@@ -13,8 +13,9 @@
 %        fixed amount per step. The subspace engine bins these dimensions
 %        in the frequency domain (sf_peaks) or computes them point by point
 %        with fixed delays (Opt.Binning).
-%     2  the RF carrier frequency (Exp.rfFreq) with a single RF pulse,
-%        computed from the analytic response of each NMR transition
+%     2  the RF frequency of a single RF pulse, swept by the carrier
+%        ('rfFreq') or by the pulse frequency ('pK.Frequency'), computed
+%        from the analytic response of each NMR transition
 %     3  any other parameter of the pulses or delays, computed point by
 %        point by re-parsing the sequence
 %
@@ -29,7 +30,8 @@
 %       PhaseCycle       phase cycle, one row per step: phase of each pulse
 %                        and receiver phase (radians), checked by saffron
 %       DetPhase         detection phase (radians), default 0
-%       rfFreq           RF carrier frequency (MHz), for RF pulses
+%       rfFreq           RF carrier frequency (MHz), optional; without it,
+%                        RF pulse frequencies are absolute
 %       mwFreq           microwave carrier frequency (GHz), optional
 %       DetWindow        detection window: a single point shifts the end of
 %                        the last interval; also used for Exp.Pathways =
@@ -58,7 +60,7 @@
 %       delayInterval    interval of each delay in Exp.Sequence (0: before
 %                        the first pulse)
 %       isRF, nRF        true for RF pulses (1xN), number of RF pulses
-%       rfFreq, rfAxis   RF carrier (MHz), and RF axis (MHz) of an RF sweep
+%       rfAxis           absolute RF frequencies (MHz) of an RF sweep (kind 2)
 %       ExciteWidth      excitation window (MHz) for idealPulses, or []
 %       finitePulses     true if there are finite microwave pulses
 %       DetPhase         detection phase (radians)
@@ -260,11 +262,11 @@ sequence.nRFpulses = sum(isRF);
 if sequence.nRFpulses>1
   reasons{end+1} = 'more than one RF pulse';
 end
-if sequence.nRFpulses>0 && ~isfield(Exp,'rfFreq')
-  error('Exp.rfFreq (RF carrier frequency, in MHz) is required for RF pulses.');
-end
-if sequence.nRFpulses>0
-  sequence.rfFreq = Exp.rfFreq;
+% RF carrier (MHz): Exp.rfFreq, or 0 without it (absolute pulse frequencies)
+if isfield(Exp,'rfFreq')
+  rfCarrier = Exp.rfFreq;
+else
+  rfCarrier = 0;
 end
 
 % Excitation window for ideal-pulse orientation selection (idealPulses)
@@ -412,6 +414,16 @@ for d = 1:nDims
     iD = delayMods{r,2};
     minChange(iD,d) = minChange(iD,d) + min(delayMods{r,4});
   end
+  % RF frequency sweep (kind 2): the carrier ('rfFreq'), or the frequency of
+  % an RF pulse as the only target ('pK.Frequency')
+  iRFswept = 0;
+  if isscalar(targets)
+    tok = regexp(targets{1},'^p(\d+)\.Frequency$','tokens','once');
+    if ~isempty(tok), iRFswept = str2double(tok{1}); end
+  end
+  rfPulseSweep = iRFswept>=1 && iRFswept<=nPulses && isRF(iRFswept) && ...
+    ~isempty(vals{1});
+  rfCarrierSweep = all(strcmp(targets,'rfFreq'));
 
   if all(changesDelays) && ~any(isnan(delayStep)) && any(delayStep~=0)
     % linear delay increments (kind 1): binned, or computed point by point,
@@ -438,13 +450,20 @@ for d = 1:nDims
       kind(d) = 3;
       incSchemeRelax(:,d) = 0;
     end
-  elseif all(strcmp(targets,'rfFreq'))
+  elseif rfCarrierSweep || rfPulseSweep
     kind(d) = 2;
-    if isnan(linStep(1))
-      sequence.rfAxis = Exp.rfFreq + vals{1};
+    % absolute RF frequencies: carrier (or 0) + pulse frequency + sweep
+    % (the changes of several 'rfFreq' lines add up, as in sf_buildevents)
+    if rfPulseSweep
+      iRF = iRFswept;
     else
-      sequence.rfAxis = Exp.rfFreq + linStep(1)*(0:nPoints(d)-1);
+      iRF = find(isRF,1);
     end
+    rfAxis = rfCarrier + sum(cat(1,vals{:}),1);
+    if ~isempty(iRF)
+      rfAxis = rfAxis + Pulses(iRF).Frequency;
+    end
+    sequence.rfAxis = rfAxis;
   else
     kind(d) = 3;
     m = delayMods;

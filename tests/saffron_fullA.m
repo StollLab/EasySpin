@@ -6,7 +6,6 @@ Exp.Sequence = '3pESEEM';
 Exp.tau = 0.001;
 Exp.dt = 0.010;
 Exp.Field = 350;
-Exp.Range =  [0 30];
 
 Opt.GridSymmetry = 'Ci';
 Opt.GridFrame = [0 0 0];

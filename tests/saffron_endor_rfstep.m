@@ -1,10 +1,10 @@
 function ok = test() %#ok<FNDEF>
 
 % Full-space engine, RF frequency sweep: the time step of the RF waveform
-% follows the RF frequency of each point. A sweep starting at 0 MHz runs,
-% and on the common points it agrees with a linear sweep starting at
-% 12 MHz. The RF pulse has its full length, also when 40 steps per RF
-% period do not fit into it a whole number of times. The RF pulse at 0 MHz
+% follows the RF frequency of each point. A sweep that starts at 1 MHz and
+% jumps to 12 MHz agrees on the common points with a linear sweep starting
+% at 12 MHz. The RF pulse has its full length, also when 40 steps per RF
+% period do not fit into it a whole number of times. The RF pulse at 1 MHz
 % is far from the NMR transitions, so that echo is the echo without RF
 % pulse, and the ENDOR effects are compared relative to it.
 
@@ -26,10 +26,10 @@ Exp.DetPhase = -pi/2;
 
 Opt.Method = 'fullspace';
 
-% 0 MHz, then 12 ... 16 MHz
+% 1 MHz, then 12 ... 16 MHz
 ExpA = Exp;
-ExpA.rfFreq = 0;  % MHz
-ExpA.Dim1 = {'rfFreq',[0 12:0.5:16]};
+ExpA.rfFreq = 1;  % MHz
+ExpA.Dim1 = {'rfFreq',[0 11:0.5:15]};
 ExpA.nPoints = 10;
 [xA,yA] = saffron(Sys,ExpA,Opt);
 

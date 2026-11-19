@@ -16,7 +16,7 @@
 %       nPoints             number of points of the indirect dimensions
 %       Dim1, Dim2, ...     incrementation scheme
 %       mwFreq              microwave carrier frequency (GHz), optional
-%       rfFreq              RF carrier frequency (MHz), for RF pulses
+%       rfFreq              RF carrier frequency (MHz), optional
 %       DetTimeStep         detection time step (µs), optional
 %       mwPolarization      'linear' (default) or 'circular'
 %       ResonatorFrequency, ResonatorQL, FrequencyResponse, ResonatorMode
@@ -87,6 +87,13 @@ Vary = [];
 % Without Exp.mwFreq, the microwave carrier is at 0: pulse frequencies
 % (Pulse.Frequency, in MHz) are absolute
 noCarrier = ~isfield(Exp,'mwFreq');
+% The same for RF pulses: carrier Exp.rfFreq (MHz), or 0 without it (checked
+% by saffron)
+if isfield(Exp,'rfFreq')
+  rfCarrier = Exp.rfFreq;
+else
+  rfCarrier = 0;
+end
 
 Opt.SinglePointDetection = false;
 
@@ -103,9 +110,6 @@ for Pos = pulsePositions
   end
   if isfield(p_,'Channel') && strcmpi(p_.Channel,'rf')
     isRFEvent(Pos) = true;
-    if ~isfield(Exp,'rfFreq')
-      error('Exp.rfFreq (RF carrier frequency, in MHz) is required for RF pulses.');
-    end
     if ~isfield(p_,'tp') || p_.tp<=0
       error('RF pulses need a pulse length (tp>0).');
     end
@@ -418,17 +422,19 @@ for iEvent = 1:length(Exp.Sequence)
         
         % First check for field frequency and correct it
         if ~isfield(Exp.Sequence{iEvent},'Frequency')
-          % if no frequency is defined, frequency is set to 0 (Exp.mwFreq
+          % if no frequency is defined, frequency is set to 0 (the carrier
           % will be added later)
           Exp.Sequence{iEvent}.Frequency = 0;
           Exp.Sequence{iEvent}.Type = 'rectangular';
-          if ~isfield(Exp,'mwFreq')
+          if ~isfield(Exp,'mwFreq') && ~isRFEvent(iEvent)
             error('If you do not provide a frequency for the pulse, you need to give Exp.mwFreq.')
           end
         elseif ~isscalar(Exp.Sequence{iEvent}.Frequency) && (Exp.Sequence{iEvent}.Frequency(2) ~= Exp.Sequence{iEvent}.Frequency(1))
           % make sure that, if a frequency was provided, it is not a frequency sweep
           msg = ['Pulse at position ' num2str(iEvent) ' in Exp.Sequence: no Pulse.Type specified, assuming a monochromatice rectangular pulse, but the field Pulse.Frequency looks like a frequency-swept pulse.'];
           error(msg);
+        else
+          Exp.Sequence{iEvent}.Type = 'rectangular';
         end
       elseif strcmp(Exp.Sequence{iEvent}.Type,'rectangular') && ~isfield(Exp.Sequence{iEvent},'Frequency')
         Exp.Sequence{iEvent}.Frequency = 0;
@@ -462,8 +468,8 @@ for iEvent = 1:length(Exp.Sequence)
       Pulse.isIdeal = isIdealEvent(iEvent);
       Pulse.isRF = isRFEvent(iEvent);
       if Pulse.isRF
-        Pulse.rfCarrier = Exp.rfFreq;  % MHz
-        Pulse.TimeStep = rfTimeStep(Exp.rfFreq,Pulse.Frequency,Pulse.tp);
+        Pulse.rfCarrier = rfCarrier;  % MHz
+        Pulse.TimeStep = rfTimeStep(rfCarrier,Pulse.Frequency,Pulse.tp);
         if ~isfield(Pulse,'B1') && isfield(Opt,'rfGammaRef')
           Pulse.rfGammaRef = Opt.rfGammaRef;
         end
@@ -538,10 +544,10 @@ for iEvent = 1:length(Exp.Sequence)
     % pulse, so that the carrier is continuous over the sequence. This
     % includes user-supplied lab-frame waveforms, which are taken to be
     % upconverted with the carrier at Exp.mwFreq.
-    % RF pulses have their own carrier (absolute RF frequency, GHz), on the
-    % same sequence clock.
+    % RF pulses have their own carrier (Exp.rfFreq, or 0 without it, in
+    % GHz), on the same sequence clock.
     if Pulse.isRF
-      Events{iEvent}.FrameOffset = Exp.rfFreq/1e3;
+      Events{iEvent}.FrameOffset = rfCarrier/1e3;
     else
       Events{iEvent}.FrameOffset = freqShift;
     end
@@ -1135,7 +1141,8 @@ end
 %     IQ = Flip*exp(1i*phase), from which sf_propagate builds the
 %     instantaneous rotation.
 %   - RF pulses: lab-frame waveform (carrier at Pulse.rfCarrier, MHz, from
-%     the start of the pulse) in units of the RF field (mT). Without B1, the
+%     the start of the pulse, plus the pulse's Frequency, which is absolute
+%     if the carrier is 0) in units of the RF field (mT). Without B1, the
 %     amplitude is nominal: the flip angle of a bare nucleus with the
 %     gyromagnetic ratio Pulse.rfGammaRef (MHz/mT).
 %   - Finite microwave pulses: from pulse(), through the resonator, shifted
@@ -1145,7 +1152,8 @@ end
 %     Pulse             pulse parameters (see pulse()), with additional fields
 %       isIdeal, isRF     pulse type
 %       PhaseCycle        phases (radians), one row per phase cycle step
-%       rfCarrier         RF carrier frequency (MHz), RF pulses
+%       rfCarrier         RF carrier frequency (MHz, 0 without a carrier),
+%                         RF pulses
 %       B1                RF field amplitude (mT), RF pulses, optional
 %       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B1
 %     iPCstep           index of the phase cycle step
@@ -1265,8 +1273,9 @@ end
 %   dt = rfTimeStep(rfFreq,Frequency,tp)
 %
 %   Input:
-%     rfFreq     RF carrier frequency (MHz)
-%     Frequency  frequency offset(s) of the pulse from the carrier (MHz)
+%     rfFreq     RF carrier frequency (MHz), 0 without a carrier
+%     Frequency  frequency offset(s) of the pulse from the carrier, or
+%                absolute frequencies without a carrier (MHz)
 %     tp         pulse length (µs)
 %
 %   Output:
