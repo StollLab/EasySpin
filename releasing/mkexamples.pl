@@ -6,7 +6,7 @@ chdir($ExamplesMain);
 
 # Get list of example subdirectories
 opendir(ED,$ExamplesMain);
-@allcategories = sort grep {-d && !/^\.\.?\z/} readdir(ED);
+@allcategories = sort {lc($a) cmp lc($b)} grep {-d && !/^\.\.?\z/} readdir(ED);
 closedir(ED);
 
 foreach $subdir (@allcategories) {
@@ -14,7 +14,8 @@ foreach $subdir (@allcategories) {
 }
 
 $Description{'analysis'} = 'Data analysis';
-$Description{'endor'} = 'ENDOR simulations';
+$Description{'ENDOR salt'} = 'ENDOR simulations (salt)';
+$Description{'ENDOR saffron'} = 'ENDOR simulations (saffron)';
 $Description{'fitting'} = 'Least-squares fitting';
 $Description{'liquids'} = 'Isotropic cw EPR simulations';
 $Description{'magnetometry'} = 'Magnetometry';
@@ -74,7 +75,8 @@ The examples are organized in the following groups:
 
 <ul>
 <li><a href="#analysis">Data analysis</a></li>
-<li><a href="#endor">ENDOR simulations</a></li>
+<li><a href="#ENDOR saffron">ENDOR simulations (saffron)</a></li>
+<li><a href="#ENDOR salt">ENDOR simulations (salt)</a></li>
 <li><a href="#fitting">Least-squares fitting</a></li>
 <li><a href="#liquids">Isotropic cw EPR simulations</a></li>
 <li><a href="#magnetometry">Magnetometry</a></li>
