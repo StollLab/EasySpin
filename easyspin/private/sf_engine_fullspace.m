@@ -150,6 +150,9 @@ if userInitState
   end
 end
 
+% RF pulses: their excitation operator is set up for each orientation
+rfEvents = find(cellfun(@(E) strcmp(E.type,'pulse') && isfield(E,'Channel') && strcmp(E.Channel,'rf'),Events));
+
 rawSignals = cell(1,nOrientations);
 timeAxis = cell(1,nOrientations);
 eventTimes = cell(1,nOrientations);
@@ -170,6 +173,20 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
   Sys_L = rotatesystem(Sys,Orientations(iOrientation,:)); % mol->lab frame
 
   Ham = ham(Sys_L,Field*[0 0 1]);  % lab frame
+
+  % RF excitation operator (MHz/mT): nuclear Zeeman interaction (with
+  % gnscale and chemical shielding) with an RF field along x(Lab), H1 =
+  % 2*Re(IQ)*X0 with the lab-frame RF waveform IQ (mT) and X0 = -mux. It
+  % has electron coherence order 0, so it is the same in shifted frames.
+  % The hyperfine enhancement via the electron Zeeman interaction with the
+  % RF field is not included.
+  Events_ = Events;
+  if ~isempty(rfEvents)
+    [muxL,~,~] = ham_nz(Sys_L);
+    for iEvent = rfEvents
+      Events_{iEvent}.xOp = -2*muxL;
+    end
+  end
   if shiftedFrame
     [Ham,mSweights] = sf_secularham(Ham,Sys.Spins,Sys.nElectrons);  % high-field approximation
     minWeight(iOrientation) = min(mSweights);
@@ -200,7 +217,7 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
     end
   end
 
-  [tAx, sig, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, Events, Relaxation_, Vary, Runs);
+  [tAx, sig, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, Events_, Relaxation_, Vary, Runs);
   timeAxis{iOrientation} = tAx;
   rawSignals{iOrientation} = sig;
   eventTimes{iOrientation} = evT;
@@ -371,7 +388,7 @@ Sys_L = Sys_M;
 R_M2L = erot(angles_M2L);  % molecular frame -> lab frame
 R_L2M = R_M2L.'; % lab frame -> molecular frame
 
-tensors = {'g', 'A', 'Q', 'D', 'ee', 'nn'};
+tensors = {'g', 'A', 'Q', 'D', 'ee', 'nn', 'sigma'};
 tensors2rotate = tensors(isfield(Sys_M,tensors));
 
 for t = 1:numel(tensors2rotate)

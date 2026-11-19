@@ -407,12 +407,16 @@ else
     ExpProp = rmfield(ExpProp,'DetOperator');
   end
   % Reference gyromagnetic ratio (MHz/mT) for nominal RF flip angles: the
-  % first nucleus of the first component
+  % first nucleus of the first component, with its gnscale (the chemical
+  % shielding is not included)
   if iscell(Sys), Sys1 = Sys{1}; else, Sys1 = Sys; end
   if isfield(Sys1,'Nucs') && ~isempty(Sys1.Nucs)
     nuc1 = regexp(Sys1.Nucs,',','split');
     try
       Opt.rfGammaRef = abs(nucgval(strtrim(nuc1{1})))*nmagn/1e3/planck/1e6;
+      if isfield(Sys1,'gnscale') && ~isempty(Sys1.gnscale)
+        Opt.rfGammaRef = Opt.rfGammaRef*abs(Sys1.gnscale(1));
+      end
     catch
     end
   end

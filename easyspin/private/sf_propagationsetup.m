@@ -28,7 +28,9 @@
 %                    frame (GHz)
 %     Events      input events, for pulses with the additional fields
 %       xOp, yOp        excitation operators; yOp is empty if the pulse
-%                       Hamiltonian has a single operator
+%                       Hamiltonian has a single operator; both empty for
+%                       RF pulses (set up by the caller for each
+%                       orientation)
 %       CoherenceOrder  electron coherence orders of the elements of xOp in
 %                       a shifted frame, otherwise empty
 %       IdealOps        ideal pulses: total electron Sx and Sy, cell array
@@ -200,17 +202,6 @@ rotPhases = exp(-1i*pi/2*(mTotal-mTotal.'));
 mS = full(diag(totSpinOps{3}));
 M = mS-mS.';
 
-% RF excitation operator (MHz/mT): nuclear Zeeman interaction with an RF
-% field along x(Lab), H1 = 2*Re(IQ)*X0 with the lab-frame RF waveform IQ
-% (mT). It has electron coherence order 0, so it is the same in shifted
-% frames. The hyperfine enhancement via the electron Zeeman interaction
-% with the RF field is not included.
-X0 = 0;
-for iNuc = 1:Sys.nNuclei
-  X0 = X0 - Sys.gn(iNuc)*nmagn/1e3/planck/1e6*sop(Sys.Spins,[Sys.nElectrons+iNuc,1]);
-end
-X0 = full(X0);
-
 % Excitation operators of the pulses
 for iEvent = 1: length(Events)
   if strcmp(Events{iEvent}.type,'pulse') && isfield(Events{iEvent},'Ideal') && Events{iEvent}.Ideal
@@ -225,7 +216,9 @@ for iEvent = 1: length(Events)
     if Sys.nNuclei==0
       error('RF pulses need nuclei in the spin system.');
     end
-    Events{iEvent}.xOp = 2*X0;
+    % The RF excitation operator depends on the orientation (chemical
+    % shielding) and is set up by sf_engine_fullspace for each orientation.
+    Events{iEvent}.xOp = [];
     Events{iEvent}.yOp = [];
     Events{iEvent}.CoherenceOrder = [];
     continue

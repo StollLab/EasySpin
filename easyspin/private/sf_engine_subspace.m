@@ -776,7 +776,8 @@ end
 %   Output:
 %     NucHams  structure array with one element per subspace, with fields
 %       Hnzx, Hnzy, Hnzz  nuclear Zeeman terms (MHz/mT) along the molecular
-%                         axes
+%                         axes, with chemical shielding (sigma) and gnscale,
+%                         as in ham_nz
 %       Hhfx, Hhfy, Hhfz  hyperfine terms (MHz) per unit of the electron
 %                         spin expectation value along the molecular axes
 %       Hstatic           terms (MHz) that depend neither on the field nor
@@ -803,10 +804,18 @@ for ii = 1:numel(shfNuclei)
     s = 1;
   end
   Ix = full(Ix); Iy = full(Iy); Iz = full(Iz);
-  pre = -Sys.gn(iNuc)*nmagn/1e3/planck/1e6;  % MHz/mT
-  NucHams(s).Hnzx = NucHams(s).Hnzx + pre*Ix;
-  NucHams(s).Hnzy = NucHams(s).Hnzy + pre*Iy;
-  NucHams(s).Hnzz = NucHams(s).Hnzz + pre*Iz;
+  % Nuclear Zeeman interaction -gn*muN*B*sigma*I, with the chemical
+  % shielding tensor sigma (1 = no shielding) in the molecular frame
+  if Sys.fullsigma
+    sigma = Sys.sigma((iNuc-1)*3+(1:3),:);
+  else
+    R_CS2M = erot(Sys.sigmaFrame(iNuc,:)).';
+    sigma = R_CS2M*diag(Sys.sigma(iNuc,:))*R_CS2M.';
+  end
+  pre = -Sys.gn(iNuc)*Sys.gnscale(iNuc)*nmagn/1e3/planck/1e6;  % MHz/mT
+  NucHams(s).Hnzx = NucHams(s).Hnzx + pre*(sigma(1,1)*Ix + sigma(1,2)*Iy + sigma(1,3)*Iz);
+  NucHams(s).Hnzy = NucHams(s).Hnzy + pre*(sigma(2,1)*Ix + sigma(2,2)*Iy + sigma(2,3)*Iz);
+  NucHams(s).Hnzz = NucHams(s).Hnzz + pre*(sigma(3,1)*Ix + sigma(3,2)*Iy + sigma(3,3)*Iz);
   if Sys.fullA
     A = Sys.A((iNuc-1)*3+(1:3),:);
   else
