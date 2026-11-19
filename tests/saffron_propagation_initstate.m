@@ -51,18 +51,20 @@ SysT.initState = zf;
 [~,y2] = saffron(SysT,ExpC,Opt);
 ok(3) = areequal(y1,y2,tol,'rel');
 
-% The full-space engine is used by default if Sys.initState is given
+% The full-space engine is used by default for this triplet (S > 1/2)
 OptD = rmfield(OptP,'Method');
 SysT.initState = xyz;
 [~,y1] = saffron(SysT,Exp,OptP);
 [~,y2] = saffron(SysT,Exp,OptD);
 ok(4) = areequal(y1,y2,tol,'rel');
 
-% Not supported: subspace engine (S = 1/2 with a nucleus, since predefined
-% experiments are not available for S > 1/2), relaxation
+% Not supported: subspace engine with a state that has a nuclear part (S =
+% 1/2 with a nucleus, since predefined experiments are not available for
+% S > 1/2), relaxation
 SysF = Sys;
 SysF.Nucs = '1H';
 SysF.A = [1 2];  % MHz
+SysF.initState = {[1 0 0 0],'eigen'};
 ExpF.Sequence = '2pESEEM';
 ExpF.Field = 340;
 ExpF.dt = 0.01;

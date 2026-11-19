@@ -255,7 +255,7 @@ The <em>subspace</em> method does not include relaxation in the spin dynamics. I
 <div class="optiondescr">
 Initial state of the spin system, e.g. populations of zero-field, high-field or coupled states, or a density matrix. All forms described on the <a href="spinsystem.html#pop">spin system page</a> are accepted. If not given, the initial state is -S<sub>z</sub> of all electron spins (high-temperature approximation).
 <p>
-<code>initState</code> is only supported with the <em>full-space</em> method, which <code>saffron</code> then uses. <code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>).
+<code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>). The <em>subspace</em> method supports states of the electron spin only (with equal populations of all nuclear sublevels) in powders. For each EPR transition, it uses the populations of its two levels. In the <code>'eigen'</code> basis, the levels are assigned without the hyperfine couplings. States that also involve the nuclei, and crystals, need the <em>full-space</em> method, which <code>saffron</code> then uses.
 </p>
 <p>
 A state given in the molecular frame (e.g. <code>'xyz'</code> populations or a density matrix) is rotated into the lab frame for each orientation. For powders, coherences between states with different total electron spin projection along the field are removed from the initial state, since they average out over all rotations of the molecule around the magnetic field.
@@ -802,7 +802,7 @@ If set to <code>'compensate'</code>, the pulse shape is adapted such that it com
 <code>'auto'</code> (default), <code>'subspace'</code>, <code>'fullspace'</code></div>
 <div class="optiondescr">
 Simulation method. <code>'subspace'</code> is fast: it treats the electron spin as a two-level system and computes the nuclear spin dynamics separately within each electron spin state. <code>'fullspace'</code> is slower but general: it follows the state of the complete spin system step by step in time.
-With <code>'auto'</code>, <code>saffron</code> uses <code>'subspace'</code> whenever it supports all requested features exactly, and <code>'fullspace'</code> otherwise. If you request <code>'subspace'</code> but the experiment needs <code>'fullspace'</code> (e.g. shaped microwave pulses, <code>Sys.initState</code> or transition-specific relaxation times), <code>saffron</code> gives an error that names the feature. The method used, and why, is returned in <code>info.Method</code> and <code>info.MethodReason</code>. See <a href="#algorithms">simulation methods</a>.
+With <code>'auto'</code>, <code>saffron</code> uses <code>'subspace'</code> whenever it supports all requested features exactly, and <code>'fullspace'</code> otherwise. If you request <code>'subspace'</code> but the experiment needs <code>'fullspace'</code> (e.g. shaped microwave pulses, <code>Sys.initState</code> in crystals, or transition-specific relaxation times), <code>saffron</code> gives an error that names the feature. The method used, and why, is returned in <code>info.Method</code> and <code>info.MethodReason</code>. See <a href="#algorithms">simulation methods</a>.
 </div>
 
 <div class="optionfield"><code>Relaxation</code></div>
@@ -998,7 +998,7 @@ A structure with additional information:
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>
 <tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
-<tr><td>Initial state (<code>initState</code>)</td><td>no</td><td>yes</td></tr>
+<tr><td>Initial state (<code>initState</code>)</td><td>electron spin only, powders</td><td>yes</td></tr>
 <tr><td>Resonator</td><td>no</td><td>yes</td></tr>
 <tr><td>Inhomogeneous line (<code>lwAnisoG</code>)</td><td>yes</td><td>no</td></tr>
 </table>

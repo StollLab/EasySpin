@@ -46,6 +46,9 @@
 %     The nuclear sub-Hamiltonians of the two manifolds use the expectation
 %     value <S> of the electron spin (high-field approximation). Their
 %     eigenvectors Va and Vb give the overlap matrix M = Va'*Vb.
+%   - Initial state: -Sz, or an electron-only state (Sys.initState), with
+%     equal populations of the nuclear sublevels. Each transition enters
+%     with the population difference of its two levels (in E.w).
 %   - Ideal microwave pulses give pathway prefactors (sf_parsesequence);
 %     rectangular pulses are exact 2n x 2n propagators at each resonance
 %     offset. Free evolution is a diagonal phase factor.
@@ -76,7 +79,9 @@
 %     E  entries, one per excited EPR transition and orientation (and
 %        reversed field), with n nuclear states and nE entries
 %       nE                number of entries
-%       w                 weight of each entry
+%       w                 weight of each entry (orientation weight, selection
+%                         weight, population difference of the initial
+%                         state)
 %       dE0               EPR resonance offset from Exp.mwFreq (MHz)
 %       lw                inhomogeneous FWHM (MHz)
 %       ori               orientation index
@@ -87,8 +92,9 @@
 %                         cell per subspace s, n x nE
 %       M{s}              overlap matrices Va'*Vb, n x n x nE
 %       Va{s}, Vb{s}      nuclear eigenvectors, n x n x nE (ENDOR only)
-%       geff, geffNorm, xL, yL, zL   effective g vector and its norm, and
-%                         lab axes in the molecular frame (ENDOR only)
+%       geff, geffNorm, xL, yL, zL   effective g vector g.'*zL and its
+%                         norm, and lab axes in the molecular frame (ENDOR
+%                         only)
 %       offCenter, offWidth   center and FWHM (MHz) of the resonance offset
 %                         distribution of the excited spin packets
 %       offsetTolerance   error target of the average over this
@@ -238,6 +244,44 @@ else
   end
 end
 
+% Initial state (Sys.initState): an electron-only state, expanded with equal
+% populations of the nuclear sublevels (sf_selectengine rejects states with
+% a nuclear part). Only the populations of the two levels of each EPR
+% transition enter, as the weight rho_bb - rho_aa of the transition; for
+% -Sz, this is <a|Sz|a> - <b|Sz|b>. These populations of the eigenstates
+% do not change when the molecule is rotated about the field (third Euler
+% angle chi), while the coherences rho_ab between the two levels average
+% out over chi in powders (sf_selectengine rejects crystals). The
+% full-space engine instead removes all coherences between different
+% electron mS from the state, which is the same with its secular
+% Hamiltonian, whose eigenstates have pure mS along the field. The two
+% differ by the deviation of the eigenstates from pure mS: to first order
+% in D/nu_e for S > 1/2, and for S = 1/2 with anisotropic g by the factor
+% q.zL, the cosine of the angle between the quantization axis q and the
+% field. Eigenstates ('eigen' basis) are those of the electron
+% Hamiltonian without hyperfine couplings, to first order as in the
+% nuclear sub-Hamiltonians. The states are in the molecular frame, with
+% the trace of the electron state divided by the number of nuclear
+% states, as in the full-space engine.
+userInitState = ~isempty(Sys.initState);
+if userInitState
+  SysE = rmfield(Sys,intersect(fieldnames(Sys),{'nn','nnFrame'}));
+  SysE = nucspinrmv(SysE,1:Sys.nNuclei);
+  SysE.processed = false;
+  [SysE,err] = validatespinsys(SysE);
+  error(err);
+  nNucStates = prod(2*Sys.I+1);
+  % 'eigen': the state depends on the field direction, through the
+  % eigenstates of the electron Hamiltonian H0e - B*mu.zL; otherwise it is
+  % the same state rhoE at all orientations
+  eigenBasis = strcmp(Sys.initState{2},'eigen');
+  if eigenBasis
+    [H0e,muxE,muyE,muzE] = ham(SysE);
+  else
+    rhoE = initstate(SysE)/nNucStates;
+  end
+end
+
 OrientationSelection = isfield(Exp,'mwFreq') && ~isempty(seq.ExciteWidth);
 if ~isfield(Opt,'OriThreshold'), Opt.OriThreshold = 0.005; end
 if ~isfield(Sys,'lwAnisoG'), Sys.lwAnisoG = [0 0 0]; end
@@ -253,22 +297,28 @@ lwAnisoG = Sys.lwAnisoG(:).'.*[1 1 1];
 % without the changes of the point-by-point (kind 3) dimensions. These can
 % break the symmetry (e.g. a changed delay), so with them the partners are
 % computed.
+% An initial state can also differ between n and -n (time-odd states, e.g.
+% an electron polarization along a molecular axis): the weights of the
+% reversed orientations are computed (reversedWeights). The shortcuts need
+% equal weights, so with an initial state they are chosen once the weights
+% are known (below).
 partialSphereGrid = ~Opt.crystalSample && isfield(Opt,'nOctants') && Opt.nOctants~=8;
 hasStaticTerms = nSubSpaces>0 && any(arrayfun(@(N)any(N.Hstatic(:)~=0),NucHams));
+reversedWeights = partialSphereGrid && userInitState;
+shortcutAllowed = ~seq.finitePulses && ~isENDOR && ~any(seq.kind==3);
 reversedField = "none";
 if partialSphereGrid && hasStaticTerms
   reversedField = "compute";
-  if ~seq.finitePulses && ~isENDOR && ~any(seq.kind==3)
+  if shortcutAllowed && ~userInitState
     reversedField = fieldReversalShortcut(seq);
   end
 end
-info.reversedField = reversedField;
 
 % Entries: one per excited EPR transition and orientation (and reversed
 % field), with nuclear energies and overlap matrices of all subspaces
 %-------------------------------------------------------------------------------
 E = struct;
-E.w = zeros(1,0);            % weight (orientation weight x selection weight)
+E.w = zeros(1,0);            % weight (orientation, selection, population difference)
 E.dE0 = zeros(1,0);          % EPR resonance offset from mwFreq (MHz)
 E.lw = zeros(1,0);           % inhomogeneous FWHM (MHz)
 E.ori = zeros(1,0);
@@ -283,7 +333,9 @@ if twoElectronManifolds
   for iOri = 1:nOrientations
     [xL(:,iOri),yL(:,iOri),zL(:,iOri)] = erot(Orientations(iOri,:),'rows');
   end
-  geff = g*zL;
+  % Zeeman term bmagn*B*zL.'*g*S: the electron spin is quantized along
+  % g.'*zL (also for a non-symmetric g)
+  geff = g.'*zL;
   geffNorm = sqrt(sum(geff.^2,1));
   nuEPR = geffNorm*bmagn*Exp.Field/1e3/planck/1e6;  % MHz
   lwInh = sqrt(sum((lwAnisoG(:).*zL).^2,1));
@@ -298,6 +350,32 @@ if twoElectronManifolds
   oriList = find(keepOri);
   nE = numel(oriList);
   E.w = Exp.OriWeights(oriList).*oriSel(oriList);
+  if userInitState
+    % levels a and b: electron spin along +q and -q (q = geff/|geff|), so
+    % that rho_bb - rho_aa = -2*Re(trace(rho*(q.S))); the reversed
+    % orientation -n has -q. The eigenstates of the 'eigen' basis are the
+    % two levels themselves, so their weight is the same at all
+    % orientations, and at -n.
+    Sops = {full(sop(1/2,'x')),full(sop(1/2,'y')),full(sop(1/2,'z'))};
+    wRev = E.w;
+    for k = 1:nE
+      iOri = oriList(k);
+      q = geff(:,iOri)/geffNorm(iOri);
+      qS = q(1)*Sops{1} + q(2)*Sops{2} + q(3)*Sops{3};
+      if eigenBasis
+        if k==1
+          zL1 = zL(:,iOri);
+          rho = initstate(SysE,H0e-Exp.Field*(zL1(1)*muxE+zL1(2)*muyE+zL1(3)*muzE))/nNucStates;
+          dPop = -2*real(trace(rho*qS));
+        end
+        E.w(k) = E.w(k)*dPop;
+        wRev(k) = wRev(k)*dPop;
+      else
+        E.w(k) = E.w(k)*(-2)*real(trace(rhoE*qS));
+        wRev(k) = wRev(k)*2*real(trace(rhoE*qS));
+      end
+    end
+  end
   if isfield(Exp,'mwFreq')
     E.dE0 = nuEPR(oriList) - 1000*Exp.mwFreq;
   else
@@ -306,7 +384,6 @@ if twoElectronManifolds
   E.lw = lwInh(oriList);
   E.ori = oriList;
   E.rev = false(1,nE);
-  E.a = 2*ones(1,nE); E.b = ones(1,nE);
   for s = 1:nSubSpaces
     n = size(NucHams(s).Hnzz,1);
     Ea = zeros(n,nE); Eb = zeros(n,nE); M = zeros(n,n,nE);
@@ -341,7 +418,30 @@ else
   % S = 1/2 here, with nuclei in the core system) use the nominal flip
   % angle, since |<a|S+|b>| = 1 for the allowed transitions up to the
   % hyperfine mixing in the core system.
+  % With an initial state, the core system holds the state of the electron
+  % and the core nuclei. The eigenstates at the reversed orientation -n are
+  % the time-reversed ones, Theta*|a>, with Theta = Uy*K (K: complex
+  % conjugation, Uy = exp(-1i*pi*Sy) of all spins), since the zero-field
+  % Hamiltonian is time-even and the Zeeman terms are time-odd. Their
+  % populations of the state rho at -n are those of conj(Uy'*rho*Uy) in
+  % the eigenstates at n.
+  if userInitState
+    nCoreNuc = size(H0,1)/prod(2*Sys.S+1);
+    if reversedWeights
+      SyTotal = 0;
+      for iSpin = 1:1+Sys.nNuclei-numel(shfNuclei)
+        SyTotal = SyTotal + sop(coreSys,[iSpin,2]);
+      end
+      Uy = expm(-1i*pi*full(SyTotal));
+    end
+    if ~eigenBasis
+      % the same state at all orientations
+      rhoCore = kron(rhoE,eye(nCoreNuc));
+      if reversedWeights, rhoCoreRev = conj(Uy'*rhoCore*Uy); end
+    end
+  end
   rows = {};
+  wRev = zeros(1,0);  % weights at -n (reversedWeights)
   for iOri = 1:nOrientations
     [xLab_M,yLab_M,zLab_M] = erot(Orientations(iOri,:),'rows');
     muzL = zLab_M(1)*mux + zLab_M(2)*muy + zLab_M(3)*muz;
@@ -373,12 +473,31 @@ else
       selWeight(rmvTransition) = 0;
     end
     [v,u,wSel] = find(tril(selWeight,-1));
+    if userInitState && eigenBasis && ~isempty(u)
+      % initial state in the core system, from the eigenstates of the
+      % electron Hamiltonian at this orientation and, time-reversed, at the
+      % reversed one (field -zL)
+      muzE_L = zLab_M(1)*muxE + zLab_M(2)*muyE + zLab_M(3)*muzE;
+      rhoCore = kron(initstate(SysE,H0e-Exp.Field*muzE_L)/nNucStates,eye(nCoreNuc));
+      if reversedWeights
+        rhoCoreRev = kron(initstate(SysE,H0e+Exp.Field*muzE_L)/nNucStates,eye(nCoreNuc));
+        rhoCoreRev = conj(Uy'*rhoCoreRev*Uy);
+      end
+    end
     for iT = 1:numel(u)
       b = u(iT); a = v(iT);
       vecA = eV(:,a); vecB = eV(:,b);
       SA = real([vecA'*Sx*vecA; vecA'*Sy*vecA; vecA'*Sz*vecA]);
       SB = real([vecB'*Sx*vecB; vecB'*Sy*vecB; vecB'*Sz*vecB]);
-      dPop = zLab_M(:).'*(SA-SB);  % population difference from -Sz
+      if userInitState
+        dPop = real(vecB'*rhoCore*vecB - vecA'*rhoCore*vecA);
+        if reversedWeights
+          dPopRev = real(vecB'*rhoCoreRev*vecB - vecA'*rhoCoreRev*vecA);
+          wRev(end+1) = Exp.OriWeights(iOri)*wSel(iT)*dPopRev; %#ok<AGROW>
+        end
+      else
+        dPop = zLab_M(:).'*(SA-SB);  % population difference from -Sz
+      end
       rows(end+1,:) = {iOri, Exp.OriWeights(iOri)*wSel(iT)*dPop, eE(a)-eE(b), ...
         sqrt(lwInh2), SA, SB, zLab_M, transMoment(a,b)}; %#ok<AGROW>
     end
@@ -420,9 +539,51 @@ else
   end
 end
 
-% Field-reversed partners, computed explicitly (M, Va, Vb -> conj)
+% Field-reversed partners, computed explicitly (M, Va, Vb -> conj). With
+% an initial state, the reversed orientations have their own weights
+% wRev. Without partners (no static nuclear terms), both orientations give
+% the same signal per unit weight, so the weights are averaged. With equal
+% weights (time-even states, e.g. populations of eigenstates), the
+% shortcuts apply as without initial state.
+if ~reversedWeights, wRev = E.w; end
+wScale = max([abs(E.w) abs(wRev) 0]);
+if reversedWeights && reversedField=="none"
+  E.w = (E.w + wRev)/2;
+  wRev = E.w;
+elseif reversedWeights && shortcutAllowed && all(abs(wRev-E.w)<=1e-12*wScale)
+  reversedField = fieldReversalShortcut(seq);
+end
+info.reversedField = reversedField;
+
+% Entries without weight do not contribute: transitions between levels with
+% equal populations of the initial state, and orientations whose weights at
+% n and -n cancel (time-odd states, without partners). At least one entry
+% is kept.
+if userInitState && nE>0
+  keep = abs(E.w)>1e-12*wScale | abs(wRev)>1e-12*wScale;
+  if ~any(keep), keep(1) = true; end
+  if ~all(keep)
+    rowFields = intersect(fieldnames(E),{'w','dE0','lw','ori','rev','moment','geff','geffNorm','xL','yL','zL'});
+    for iField = 1:numel(rowFields)
+      fld = rowFields{iField};
+      if ~isempty(E.(fld)), E.(fld) = E.(fld)(:,keep); end
+    end
+    wRev = wRev(keep);
+    for s = 1:nSubSpaces
+      E.Ea{s} = E.Ea{s}(:,keep);
+      E.Eb{s} = E.Eb{s}(:,keep);
+      E.M{s} = E.M{s}(:,:,keep);
+      if isENDOR
+        E.Va{s} = E.Va{s}(:,:,keep);
+        E.Vb{s} = E.Vb{s}(:,:,keep);
+      end
+    end
+    nE = nnz(keep);
+  end
+end
+
 if reversedField=="compute"
-  E.w = [E.w E.w]/2;
+  E.w = [E.w wRev]/2;
   E.dE0 = [E.dE0 E.dE0];
   E.lw = [E.lw E.lw];
   E.ori = [E.ori E.ori];
