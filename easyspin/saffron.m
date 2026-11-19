@@ -19,7 +19,7 @@
 %                    delays (µs); or the name of a predefined experiment,
 %                    which sets the sequence and its incrementation scheme:
 %                    '2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR',
-%                    'DaviesENDOR' (macro parameters tau, T, t1, t2, dt,
+%                    'DaviesENDOR' (parameters tau, T, t1, t2, dt,
 %                    tp, Range, tprf)
 %     nPoints, Dim1, Dim2, ...   incrementation scheme (indirect dimensions)
 %     Pathways       coherence pathway selection: 'all' (default), 'echo'
@@ -239,12 +239,12 @@ if highSpin
   checkHighSpinPulses(Exp,Opt);
 end
 
-% Predefined experiments are macros that expand into user-defined
-% experiments (pulse sequence and incrementation scheme)
+% Predefined experiments expand into user-defined experiments
+% (pulse sequence and incrementation scheme)
 if ischar(Exp.Sequence) || isstring(Exp.Sequence)
   Exp.Sequence = char(Exp.Sequence);
   Exp = sf_predefinedexperiments(Exp);
-  logmsg(1,'Predefined experiment %s, expanded.',Exp.Macro);
+  logmsg(1,'Predefined experiment %s, expanded.',Exp.predefinedExp);
 end
 
 % Custom excitation operators are not supported (all pulses act on the
@@ -957,7 +957,7 @@ end
 %     data  simulated signal, as returned by saffron
 %     info  structure with the processed spectrum (f or f1, f2, and fd),
 %           see processSignal
-%     Exp   experiment; uses Macro, DetOperator, Field, nPoints, Dim1, ...
+%     Exp   experiment; uses predefinedExp, DetOperator, Field, nPoints, Dim1, ...
 %
 %   Output:
 %     none; plots into the current figure. Single points are printed, and
@@ -965,7 +965,7 @@ end
 function saffron_plot(x,data,info,Exp)
 
 logmsg(1,'Plotting...');
-if isfield(Exp,'Macro'), name = Exp.Macro; else, name = 'User-defined experiment'; end
+if isfield(Exp,'predefinedExp'), name = Exp.predefinedExp; else, name = 'User-defined experiment'; end
 
 % Axes: indirect dimensions, then the transient time axis (if any)
 if isempty(x), ax = {}; elseif iscell(x), ax = x; else, ax = {x}; end

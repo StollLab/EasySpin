@@ -20,7 +20,7 @@ Exp.T = 0.1;  % µs
 Exp.dt = 0.02;  % µs
 Exp.nPoints = 64;
 [~,y1,info] = saffron(Sys,Exp,Opt);
-[~,y2] = saffron(Sys,rmfield(info.Exp,'Macro'),Opt);
+[~,y2] = saffron(Sys,rmfield(info.Exp,'predefinedExp'),Opt);
 ok(1) = areequal(y1,y2,1e-12,'rel');
 
 % two-pulse echo, single orientation, no modulation (isotropic A, high field)

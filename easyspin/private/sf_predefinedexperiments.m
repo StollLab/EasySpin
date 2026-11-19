@@ -1,4 +1,4 @@
-% sf_predefinedexperiments  Expand a predefined pulse experiment (macro)
+% sf_predefinedexperiments  Expand a predefined pulse experiment
 %
 %   Exp = sf_predefinedexperiments(Exp)
 %
@@ -23,22 +23,22 @@
 %       DetWindow       detection window (default 0)
 %
 %   Output:
-%     Exp  experiment structure, with the macro parameters (tau, T, t1, t2,
+%     Exp  experiment structure, with the parameters (tau, T, t1, t2,
 %          dt, tp, Range, tprf) removed, and with the fields
 %       Sequence        pulse sequence: cell array of pulses and delays (µs)
 %       nPoints, Dim1, Dim2   incrementation scheme
 %       Pathways        coherence pathway selection
 %       DetWindow, DetPhase   detection window and phase
 %       rfFreq          RF carrier frequency (MHz), for ENDOR
-%       Macro           name of the predefined experiment
+%       predefinedExp   name of the predefined experiment
 
 function Exp = sf_predefinedexperiments(Exp)
 
 name = Exp.Sequence;
-macros = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR','DaviesENDOR'};
-if ~any(strcmp(name,macros))
+predefined = {'2pESEEM','3pESEEM','4pESEEM','HYSCORE','MimsENDOR','DaviesENDOR'};
+if ~any(strcmp(name,predefined))
   error('Exp.Sequence = ''%s'' is not a predefined experiment. Use one of: %s.',...
-    name,strjoin(macros,', '));
+    name,strjoin(predefined,', '));
 end
 
 if isfield(Exp,'PhaseCycle') && ~isempty(Exp.PhaseCycle)
@@ -108,7 +108,7 @@ end
 
 % mw pulses (along x)
 nmwPulses = [2 3 4 4 3 3];
-nmwPulses = nmwPulses(strcmp(name,macros));
+nmwPulses = nmwPulses(strcmp(name,predefined));
 if ~isfield(Exp,'tp') || isempty(Exp.tp)
   tp = zeros(1,nmwPulses);
 else
@@ -127,7 +127,7 @@ if strcmp(name,'DaviesENDOR') && any(tp==0)
 end
 flips = {[pi/2 pi],[pi/2 pi/2 pi/2],[pi/2 pi/2 pi pi/2],[pi/2 pi/2 pi pi/2],...
   [pi/2 pi/2 pi/2],[pi pi/2 pi]};
-flips = flips{strcmp(name,macros)};
+flips = flips{strcmp(name,predefined)};
 P = cell(1,nmwPulses);
 for k = 1:nmwPulses
   P{k}.Flip = flips(k);
@@ -200,9 +200,9 @@ end
 if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)
   Exp.DetWindow = 0;
 end
-Exp.Macro = name;
+Exp.predefinedExp = name;
 
-% Remove macro parameters
+% Remove parameters for predefined experiments
 Exp = rmfield(Exp,intersect(fieldnames(Exp),{'tau','T','t1','t2','dt','tp','Range','tprf'}));
 
 end

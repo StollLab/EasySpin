@@ -34,7 +34,7 @@
 
 <pre class="matlab">
 [x,y,info] = saffron(Sys,Exp);
-ExpCustom = rmfield(info.Exp,'Macro');   % gives the same result as Exp
+ExpCustom = rmfield(info.Exp,'predefinedExp');   % gives the same result as Exp
 </pre>
 
 <p>
@@ -397,7 +397,7 @@ With rectangular pulses of finite length (<code>Exp.tp</code>), the echo peaks s
 </p>
 
 <pre class="matlab">
-ExpCustom = rmfield(info.Exp,'Macro');
+ExpCustom = rmfield(info.Exp,'predefinedExp');
 ExpCustom.DetWindow = 2*Exp.tp(1)/pi;   % echo position, µs
 </pre>
 

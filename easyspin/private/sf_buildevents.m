@@ -5,7 +5,7 @@
 %   Parses the pulse sequence specified in Exp, using settings from Opt, to
 %   create the Events and Vary structures needed for the simulation by
 %   sf_propagate (full-space engine of saffron). Predefined experiments
-%   (macros) are expanded by saffron before.
+%   are expanded by saffron before.
 %
 %   Input:
 %     Exp  experiment structure, with fields

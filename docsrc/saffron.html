@@ -161,7 +161,7 @@ Exp.Sequence = 'HYSCORE';
 Exp.tau = 0.136; Exp.dt = 0.016; Exp.nPoints = [128 128];
 [~,~,info] = saffron(Sys,Exp);
 
-ExpCustom = rmfield(info.Exp,'Macro');
+ExpCustom = rmfield(info.Exp,'predefinedExp');
 ExpCustom.Sequence{5}.tp = 0.024;    % length of the inversion pulse, µs
 [x,y] = saffron(Sys,ExpCustom);
 </pre>

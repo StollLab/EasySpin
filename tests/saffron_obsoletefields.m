@@ -30,7 +30,7 @@ for iField = 1:numel(obsoleteFields)
   calls = {@() saffron(Sys,ExpP), @() saffron(Sys,ExpC)};
   for k = 1:numel(calls)
     if strcmp(field_,'tp') && k==1
-      % Exp.tp is a macro parameter of saffron's predefined experiments
+      % Exp.tp is a parameter of saffron's predefined experiments
       ok(iField,k) = true;
       continue
     end

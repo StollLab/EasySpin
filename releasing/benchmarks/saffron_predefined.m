@@ -19,8 +19,8 @@ if nargin<1, R0 = []; end
 
 warning('off','all');
 
-% New interface: Opt.Method, macros with Exp.tp + Opt.IdealPulses instead
-% of Exp.ExciteWidth
+% New interface: Opt.Method, predefined experiments with Exp.tp +
+% Opt.IdealPulses instead of Exp.ExciteWidth
 newInterface = exist(fullfile(fileparts(which('saffron')),'private','sf_engine_subspace.m'),'file')==2;
 
 % Spin systems

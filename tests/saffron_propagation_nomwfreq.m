@@ -69,7 +69,7 @@ ExpN.dt = 0.02;  % µs
 ExpN.nPoints = 16;
 [~,~,info] = saffron(SysN,ExpN,struct('GridSize',7));
 ok(5) = strcmp(info.Method,'subspace');
-ExpN.tp = 0.016;  % µs, finite macro pulses
+ExpN.tp = 0.016;  % µs, finite pulses
 [~,~,info] = saffron(SysN,ExpN,struct('GridSize',7));
 ok(6) = strcmp(info.Method,'subspace');
 

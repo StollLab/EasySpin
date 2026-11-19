@@ -391,7 +391,7 @@ A predefined experiment is a shortcut for such a user-defined experiment. <a cla
 <pre class="matlab">
 Exp.Sequence = '3pESEEM'; Exp.tau = 0.4; Exp.dt = 0.1;
 [~,~,info] = saffron(Sys,Exp);
-ExpCustom = rmfield(info.Exp,'Macro');   % the equivalent user-defined experiment
+ExpCustom = rmfield(info.Exp,'predefinedExp');   % the equivalent user-defined experiment
 </pre>
 
 <!-- ============================================================= -->

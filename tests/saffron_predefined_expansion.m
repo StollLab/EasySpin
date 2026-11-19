@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% A predefined experiment is a macro: the expanded experiment returned in
+% A predefined experiment is a shorthand: the expanded experiment returned in
 % info.Exp, run as a user-defined experiment, gives the same result, and the
 % axis is the value of the first parameter in Exp.Dim1.
 
@@ -18,7 +18,7 @@ Exp.nPoints = 64;
 Opt.GridSize = 7;
 
 [x1,y1,info] = saffron(Sys,Exp,Opt);
-ExpCustom = rmfield(info.Exp,'Macro');
+ExpCustom = rmfield(info.Exp,'predefinedExp');
 [x2,y2] = saffron(Sys,ExpCustom,Opt);
 
 ok(1) = areequal(y1,y2,1e-12,'rel');
