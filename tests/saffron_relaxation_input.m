@@ -11,19 +11,18 @@ Exp.Sequence = '2pESEEM';
 Exp.tau = 0.1;
 Exp.dt = 0.02;
 Exp.nPoints = 5;
-Exp.ExciteWidth = Inf;
 
 Opt.GridSize = 7;
 
-% Sys.T1T2 is rejected in both simulation modes
+% Sys.T1T2 is rejected by both engines
 SysR = Sys;
 SysR.T1 = 1;
 SysR.T1T2 = [1 1];
 ok(1) = throws(@() saffron(SysR,Exp,Opt));
-Opt.SimulationMode = 'thyme';
+Opt.Method = 'fullspace';
 ok(2) = throws(@() saffron(SysR,Exp,Opt));
 
-% Zero relaxation times are ignored in thyme mode
+% Zero relaxation times are ignored by the full-space engine
 SysR = Sys;
 SysR.T1 = 0;
 SysR.T2 = 0;
@@ -31,12 +30,12 @@ SysR.T2 = 0;
 [~,y] = saffron(SysR,Exp,Opt);
 ok(3) = areequal(y,y0,1e-10,'rel');
 
-% Matrix relaxation times select thyme mode by default and error in fast mode
+% Matrix relaxation times select propagation by default and error with the subspace engine
 SysR = Sys;
 SysR.T2 = [0 1; 0 0];
-Opt = rmfield(Opt,'SimulationMode');
+Opt = rmfield(Opt,'Method');
 ok(4) = ~throws(@() saffron(SysR,Exp,Opt));
-Opt.SimulationMode = 'fast';
+Opt.Method = 'subspace';
 ok(5) = throws(@() saffron(SysR,Exp,Opt));
 
 end

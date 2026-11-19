@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Check that line widths narrower than two increments give the same error for
 % isotropic spectra (line templates) as for powder spectra (convolution)
@@ -24,7 +24,7 @@ end
 % A wide line is fine
 Sys = struct('g',2,'lw',[0 5*dx]);
 try
-  pepper(Sys,Exp);
+  [~] = pepper(Sys,Exp);
   ok(end+1) = true;
 catch
   ok(end+1) = false;

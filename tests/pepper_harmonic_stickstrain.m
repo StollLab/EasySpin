@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Check the harmonic of a brute-force stick spectrum when only strains are
 % given. The stick summation ignores the strains, so the default harmonic is
@@ -12,7 +12,7 @@ Opt.BruteForce = true;
 
 % Default harmonic
 try
-  pepper(Sys,Exp,Opt);
+  [~] = pepper(Sys,Exp,Opt);
   ok(1) = true;
 catch
   ok(1) = false;

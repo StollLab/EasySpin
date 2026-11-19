@@ -1,703 +1,527 @@
 /*
-sf_peaks(IncSchemeID,bufferRe,bufferIm,dt,idxFreeL,idxFreeR,Ea,Eb,G,D,M1p,M1m)
+sf_peaks  Bin all peaks of a coherence transfer pathway into a spectral buffer
+
+  sf_peaks(buffer,dt,IncScheme,idxL,idxR,Ea,Eb,G,D)
+  sf_peaks(...,M1L,...,M(K-1)L,M1R,...,M(K-1)R)
+
+  Input:
+    buffer      complex frequency-domain buffer, modified in place: vector
+                (1 dimension) or nPoints1 x nPoints2 matrix (2 dimensions)
+    dt          time increment of each dimension (microseconds)
+    IncScheme   incrementation scheme, K x nDimensions: interval k gets
+                longer by IncScheme(k,d)*dt(d) per step along dimension d;
+                one row per incremented interval (K <= 4), in sequence
+                order. Examples:
+                  3p ESEEM     [1]
+                  2p ESEEM     [1; 1]
+                  HYSCORE      [1 0; 0 1]
+                  2D-CP        [1 0; 0 1; 0 1; 1 0]
+                  Carr-Purcell [1; 2; 1]
+                An interval can change along more than one dimension.
+    idxL, idxR  left and right manifold index (1 = alpha, 2 = beta) of
+                each incremented interval
+    Ea, Eb      energies of the alpha and beta manifolds (MHz)
+    G           density matrix before the first incremented interval
+    D           detection operator matrix
+    MkL, MkR    left and right transfer matrices between intervals k and
+                k+1 (G, D, MkL, MkR: nStates x nStates)
+
+  During interval k, the density matrix element rho(l,r), with left
+  state l in manifold idxL(k) and right state r in manifold idxR(k),
+  oscillates with the frequency EL_k(l)-ER_k(r), where EL_k and ER_k are
+  the energies (Ea or Eb) of these two manifolds. Transfers between
+  intervals are rho -> MkL*rho*MkR, and the signal is trace(D*rho).
+  Expanded, the signal is a sum of peaks, one for each choice of states
+  l1,r1,...,lK,rK, with the amplitude
+
+    D(rK,lK) * M(K-1)L(lK,l(K-1)) * ... * M1L(l2,l1) * G(l1,r1)
+             * M1R(r1,r2) * ... * M(K-1)R(r(K-1),rK)
+
+  and the frequency nu_d = sum_k IncScheme(k,d)*(EL_k(lk)-ER_k(rk)) along
+  dimension d. There are nStates^(2K) peaks. For more than 4 incremented
+  intervals, direct point-by-point evaluation in the time domain is more
+  efficient (see Opt.Binning in saffron).
+
+  A peak goes into bin fmod(-nu*dt,1)*nPoints, rounded to the nearest integer
+  with ties away from zero, negative bins wrapped around.
+  The - sign accounts for quantum evolution going with exp(-i*omega*t),
+  whereas Fourier theory uses exp(+i*omega*t). The rounding is odd in nu,
+  so conjugate peak pairs (nu,A), (-nu,conj(A)) give exactly a
+  conjugate-symmetric spectrum.
+
+  Algorithm: Nested loops over the left and right state of each interval.
+  Each matrix element of the amplitude is multiplied in within the inner
+  one of the two loops over its states. Intervals that change dimension 2
+  are looped outside, so that the innermost loops add to one buffer column.
+
+  Shortcuts: peaks with zero amplitude are skipped early (pulses that keep
+  the electron in its manifold give diagonal transfer matrices). For
+  K >= 2, where the outer loops reuse them, the two matrix elements with
+  the innermost right state are tabulated as one product, and the
+  dimension-1 bins are tabulated if only the innermost interval, or (for
+  K >= 3) the two innermost intervals, change dimension 1. For K = 1, each
+  table entry would be used once, so nothing is tabulated.
+
+  Tabulated bins vs bins computed per peak: the bin along a dimension
+  depends on the states of all intervals that change that dimension. If
+  these are only the innermost one or two intervals, the bins form a table
+  over their states (nStates^2 or nStates^4 entries). The table is the same
+  for all states of the outer intervals, so it is computed once per call,
+  and each peak looks up its bin. Otherwise, the bin also depends on the
+  outer states, a table would have as many entries as there are peaks, and
+  binIndex is evaluated for each peak. Examples are 2p ESEEM [1; 1],
+  Carr-Purcell [1; 2; 1], and an innermost interval that changes dimension
+  2. Along dimension 2, the bin is otherwise computed once per buffer
+  column. Tables and per-peak evaluation use the same expression, so the
+  bins are identical.
  */
 
 #include "mex.h"
 #include <math.h>
 
-/*===================================================================*/
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{
-  int nPeaks, nStates, nPoints1, nPoints2, nFreeEvolutions, nDimensions;
-  double *rG, *iG, *rD, *iD, *rT1l, *iT1l, *rT1r, *iT1r;
-  double *rT2l, *iT2l, *rT2r, *iT2r, *rT3l, *iT3l, *rT3r, *iT3r;
-  double *Ea, *Eb, *E1left, *E1right, *E2left, *E2right, *E3left, *E3right, *E4left, *E4right;
-  double rAmp, iAmp, rAmp0,iAmp0, rAmp1, iAmp1, rAmp2, iAmp2, rAmp3, iAmp3, rAmp4, iAmp4, rAmp5, iAmp5;
-  double *rSpec, *iSpec;
-  double *freeL, *freeR;
-  double id1, id2, nu, nu1_, nu2_;
-  int idx, *nu1, *nu2;
+/* For K incremented intervals, there are nStates^(2K) peaks. Binning is
+   limited to K <= 4; for larger K, time-domain evaluation is more efficient */
+#define MAX_INTERVALS 4
 
-  int a;
-  mxArray *imagZeros;
+/* Each interval has a left state l and a right state r. The current
+   states are kept in one array, state[]: state[LEFT(k)] is the left state
+   of interval k, state[RIGHT(k)] its right state. */
+#define LEFT(k)  (2*(k))
+#define RIGHT(k) (2*(k)+1)
 
-  int IncSchemeID;
-  int i, j, k, l, ij, jk, kl, li, kj, il;
-  int m, n, o, p, lm, mn, no, op, pi, ni;
-  double *dt, dt1, dt2;
-  
-  /*-----------------------------------------------------------------
-     Check number of input and output arguments
-    ----------------------------------------------------------------- */
-  if (nrhs<10)
-    mexErrMsgTxt("Insufficient number of input arguments.");
-  
-  /*-----------------------------------------------------------------
-     Read input arguments
-    ----------------------------------------------------------------- */
+typedef mxComplexDouble Complex;
 
-  a = 0;
-  /* IncSchemeID ... identifies the incrementation scheme */
-  /*    1    [1]         */
-  /*    2    [1 1]       */
-  /*   11    [1 2]       */
-  IncSchemeID = mxGetScalar(prhs[a]);
-  if (mxGetNumberOfElements(prhs[a])!=1)
-    mexErrMsgTxt("IncSchemeID must be a scalar!");
-  switch (IncSchemeID) {
-    case  1: nFreeEvolutions = 1; nDimensions = 1; break;
-    case  2: nFreeEvolutions = 2; nDimensions = 1; break;
-    case  3: nFreeEvolutions = 2; nDimensions = 1; break;
-    case 11: nFreeEvolutions = 2; nDimensions = 2; break;
-    case 12: nFreeEvolutions = 3; nDimensions = 2; break;
-    case 13: nFreeEvolutions = 3; nDimensions = 2; break;
-    case 14: nFreeEvolutions = 3; nDimensions = 2; break;
-    case 15: nFreeEvolutions = 4; nDimensions = 2; break;
-    case 17: nFreeEvolutions = 4; nDimensions = 2; break;
-    default: mexErrMsgTxt("Unrecognized incrementation scheme.");
+static Complex cmul(Complex x, Complex y) {
+  Complex z;
+  z.real = x.real*y.real - x.imag*y.imag;
+  z.imag = x.real*y.imag + x.imag*y.real;
+  return z;
+}
+
+static int isZero(Complex x) {
+  return x.real==0 && x.imag==0;
+}
+
+/* adds the amplitude of a peak to its bin */
+static void addPeak(Complex *bin, Complex peak) {
+  bin->real += peak.real;
+  bin->imag += peak.imag;
+}
+
+/* One matrix of the pathway (G, D, or a transfer matrix MkL, MkR), with
+   the positions in state[] of the states that select its row and its
+   column, e.g. G(l1,r1): row LEFT(0), col RIGHT(0) */
+typedef struct {
+  const Complex *M;
+  int row, col;
+} PathwayMatrix;
+
+typedef struct {
+  int nStates, nIntervals;
+  /* In 1D, dimension 2 has nPoints 1, dt 0 and IncScheme 0, so its bin is 0 */
+  int nPoints[2];                /* buffer size along each dimension */
+  double dt[2];                  /* time increment of each dimension (µs) */
+  Complex *buffer;
+
+  /* Incremented intervals, numbered in sequence order */
+  const double *EL[MAX_INTERVALS];   /* energies of the left manifold (MHz) */
+  const double *ER[MAX_INTERVALS];   /* energies of the right manifold (MHz) */
+  double incScheme[MAX_INTERVALS][2];  /* incrementation scheme, IncScheme(k,d) */
+  int loopOrder[MAX_INTERVALS];      /* intervals from outer to inner loop */
+
+  /* Current states, and the matrices multiplied in within the loop over
+     each state (at most two per state) */
+  PathwayMatrix matrices[2*MAX_INTERVALS][2];
+  int nMatrices[2*MAX_INTERVALS];
+  int state[2*MAX_INTERVALS];
+
+  /* Innermost interval: its right state r appears in two matrix elements
+     of the amplitude. For K >= 2, their product is tabulated over r and
+     the other states u, v of the two elements (u = state[rightOther[0]],
+     v = state[rightOther[1]]) at rightProduct[(u*nStates+v)*nStates+r].
+     Example HYSCORE: the innermost interval is t1, r1 appears in G(l1,r1)
+     and M1R(r1,r2), so u = l1 and v = r2. NULL for K = 1: the two
+     elements G(l1,r1), D(r1,l1) are multiplied in per peak. */
+  Complex *rightProduct;
+  int rightOther[2];
+  const Complex *G, *D;          /* density matrix before the first interval, detection operator */
+
+  /* Tabulated dimension-1 bins of the innermost one or two intervals, or
+     NULL (always for K = 1); with two intervals, one n x n block per state
+     pair of the second-innermost interval */
+  int *bins1;
+  int bins1Intervals;
+
+  int bin2PerPeak;               /* 1 if the innermost interval changes dimension 2 */
+} Pathway;
+
+/* Bin of a peak with phase x = -nu*dt (in cycles): fmod(x,1)*nPoints,
+   rounded to the nearest integer with ties away from zero, negative bins
+   wrapped around; for finite x and nPoints>0, 0 <= bin < nPoints. The
+   fractional part x-trunc(x) is exact and equal to fmod(x,1), but faster;
+   doubles with |x| >= 2^52 are integers (fractional part 0), and the cast
+   to long long needs |x| < 2^63. y-b is exact, so the rounding is exact
+   and odd in x. */
+static int binIndex(double x, int nPoints) {
+  double frac = (fabs(x)<4503599627370496.0) ? x - (double)(long long)x : 0.0;  /* 2^52 */
+  double y = frac*nPoints;
+  int b = (int)y;
+  if (y-b>=0.5) b++;
+  else if (y-b<=-0.5) b--;
+  if (b<0) b += nPoints;
+  if (b>=nPoints) b -= nPoints;
+  return b;
+}
+
+/* Multiplies amp by the matrix elements assigned to the loop over state[s]
+   (all their states are set) */
+static Complex multiplyMatrices(const Pathway *P, int s, Complex amp) {
+  int i, n = P->nStates;
+  for (i=0;i<P->nMatrices[s];i++) {
+    const PathwayMatrix *m = &P->matrices[s][i];
+    amp = cmul(amp,m->M[P->state[m->row] + P->state[m->col]*n]);
   }
-  
-  a++;
-  /* Spec: spectral storage array */
-  rSpec = mxGetPr(prhs[a]);
-  if (nDimensions==1) {
-    nPoints1 = mxGetM(prhs[a]);
-    if (nPoints1==1) nPoints1 = mxGetN(prhs[a]);
-    nPoints2 = 1;
+  return amp;
+}
+
+/* Loops over the states of the innermost interval and adds the peaks to
+   the buffer. amp is the amplitude of the outer intervals, nu1 and nu2
+   the frequency sums of the outer intervals. */
+static void innermostInterval(Pathway *P, Complex amp, double nu1, double nu2) {
+  /* Loop constants as local variables: the compiler cannot keep them in
+     registers if they are read via P, since the buffer writes might change
+     them */
+  const int n = P->nStates, k = P->loopOrder[P->nIntervals-1];
+  const double *EL = P->EL[k], *ER = P->ER[k];
+  const double scheme1 = P->incScheme[k][0], scheme2 = P->incScheme[k][1];
+  const double dt1 = P->dt[0], dt2 = P->dt[1];
+  const int nPoints1 = P->nPoints[0], nPoints2 = P->nPoints[1];
+  const int bin2PerPeak = P->bin2PerPeak;
+  const int *bins1Block = P->bins1;  /* tabulated bins of this interval, n x n */
+  const Complex *G = P->G, *D = P->D;
+  Complex *column = P->buffer;
+  int l, r;
+
+  /* The dimension-2 frequency is complete unless this interval changes it */
+  if (!bin2PerPeak)
+    column += (size_t)binIndex(-nu2*dt2,nPoints2)*nPoints1;
+
+  /* bins tabulated over two intervals: the block for the current states
+     of the second-innermost interval */
+  if (P->bins1Intervals==2) {
+    int outer = P->loopOrder[P->nIntervals-2];
+    bins1Block += ((size_t)P->state[LEFT(outer)]*n + P->state[RIGHT(outer)])*n*n;
+  }
+
+  for (l=0;l<n;l++) {
+    const Complex *products = NULL;
+    const int *bins1 = NULL;
+    Complex ampL;
+    P->state[LEFT(k)] = l;
+    ampL = multiplyMatrices(P,LEFT(k),amp);
+    if (isZero(ampL)) continue;
+    /* rows of the tables for the current states (NULL if not tabulated) */
+    if (P->rightProduct) {
+      int u = P->state[P->rightOther[0]], v = P->state[P->rightOther[1]];
+      products = P->rightProduct + ((size_t)u*n + v)*n;
+    }
+    if (bins1Block) bins1 = bins1Block + (size_t)l*n;
+
+    if (P->nIntervals==1) {
+      /* K = 1, nothing tabulated: the peak amplitude is G(l1,r1)*D(r1,l1),
+         the bins are computed from the peak frequencies */
+      for (r=0;r<n;r++) {
+        double nu = EL[l]-ER[r];
+        int bin1 = binIndex(-(nu1 + scheme1*nu)*dt1,nPoints1);
+        int bin2 = bin2PerPeak ? binIndex(-(nu2 + scheme2*nu)*dt2,nPoints2) : 0;
+        addPeak(&column[bin1 + (size_t)bin2*nPoints1],cmul(G[l+r*n],D[r+l*n]));
+      }
+    }
+    else if (bins1 && !bin2PerPeak) {
+      /* tabulated dimension-1 bins, one buffer column (e.g. HYSCORE, 2D-CP) */
+      for (r=0;r<n;r++)
+        addPeak(&column[bins1[r]],cmul(ampL,products[r]));
+    }
+    else {
+      /* bins computed from the peak frequencies (e.g. 2p ESEEM,
+         Carr-Purcell), except tabulated dimension-1 bins */
+      for (r=0;r<n;r++) {
+        double nu = EL[l]-ER[r];
+        int bin1 = bins1 ? bins1[r] : binIndex(-(nu1 + scheme1*nu)*dt1,nPoints1);
+        int bin2 = bin2PerPeak ? binIndex(-(nu2 + scheme2*nu)*dt2,nPoints2) : 0;
+        addPeak(&column[bin1 + (size_t)bin2*nPoints1],cmul(ampL,products[r]));
+      }
+    }
+  }
+}
+
+/* Loops (recursively) over the states of the interval at loop position pos,
+   then over the intervals inside it. amp is the amplitude so far, nu1 and nu2
+   are the frequency sums of the intervals so far. */
+static void loopInterval(Pathway *P, int pos, Complex amp, double nu1, double nu2) {
+  int n = P->nStates, k, l, r;
+
+  if (pos==P->nIntervals-1) {
+    innermostInterval(P,amp,nu1,nu2);
+    return;
+  }
+
+  k = P->loopOrder[pos];
+  for (l=0;l<n;l++) {
+    Complex ampL;
+    P->state[LEFT(k)] = l;
+    ampL = multiplyMatrices(P,LEFT(k),amp);
+    if (isZero(ampL)) continue;
+    for (r=0;r<n;r++) {
+      Complex ampR;
+      double nu = P->EL[k][l] - P->ER[k][r];
+      P->state[RIGHT(k)] = r;
+      ampR = multiplyMatrices(P,RIGHT(k),ampL);
+      if (isZero(ampR)) continue;
+      loopInterval(P,pos+1,ampR,nu1 + P->incScheme[k][0]*nu,nu2 + P->incScheme[k][1]*nu);
+    }
+  }
+}
+
+/* Assigns matrix M(row,col) to the inner one of the loops over its two
+   states, the first point where both states are set */
+static void addPathwayMatrix(Pathway *P, const int *loopDepth, const Complex *M, int row, int col) {
+  int s = (loopDepth[row]>loopDepth[col]) ? row : col;
+  PathwayMatrix *m;
+  if (P->nMatrices[s]>=2) mexErrMsgTxt("Internal error: more than two pathway matrices per state.");
+  m = &P->matrices[s][P->nMatrices[s]];
+  m->M = M;
+  m->row = row;
+  m->col = col;
+  P->nMatrices[s]++;
+}
+
+/* Element of matrix m for state r at position s in state[] and state u
+   at its other position */
+static Complex matrixElement(const PathwayMatrix *m, int s, int r, int u, int n) {
+  return (m->row==s) ? m->M[r + u*n] : m->M[u + r*n];
+}
+
+/* Complex n x n matrix from an input argument; real input is copied with
+   zero imaginary parts (mxCalloc, freed when the MEX function returns) */
+static const Complex *getMatrix(const mxArray *A, int n, const char *name) {
+  size_t q, N = mxGetNumberOfElements(A);
+  const double *re;
+  Complex *X;
+  if (!mxIsDouble(A) || N!=(size_t)n*n)
+    mexErrMsgIdAndTxt("EasySpin:sf_peaks","%s must be a double array with nStates x nStates elements.",name);
+  if (mxIsComplex(A)) return mxGetComplexDoubles(A);
+  re = mxGetDoubles(A);
+  X = mxCalloc(N,sizeof(Complex));
+  for (q=0;q<N;q++) X[q].real = re[q];
+  return X;
+}
+
+/*===================================================================*/
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+  Pathway P;
+  int i, k, pos, d, K, n, nDims, loopDepth[2*MAX_INTERVALS];
+  const double *dt, *incScheme, *idxL, *idxR, *Ea, *Eb;
+  const Complex *ML[MAX_INTERVALS], *MR[MAX_INTERVALS];
+  Complex unitAmplitude = {1.0, 0.0};
+
+  /* Check input arguments */
+  if (nrhs<9)
+    mexErrMsgTxt("At least 9 input arguments are required.");
+  if (!mxIsDouble(prhs[0]) || !mxIsComplex(prhs[0]))
+    mexErrMsgTxt("buffer (1st input) must be a complex double array.");
+  for (i=1;i<=6;i++)
+    if (!mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]))
+      mexErrMsgTxt("dt, IncScheme, idxL, idxR, Ea and Eb (inputs 2-7) must be real double arrays.");
+
+  /* Read and check buffer, dt, incrementation scheme, number of points */
+  P.buffer = mxGetComplexDoubles(prhs[0]);
+  dt = mxGetDoubles(prhs[1]);
+  nDims = (int)mxGetNumberOfElements(prhs[1]);
+  if (nDims<1 || nDims>2)
+    mexErrMsgTxt("dt (2nd input) must have 1 or 2 elements.");
+  incScheme = mxGetDoubles(prhs[2]);
+  K = (int)mxGetM(prhs[2]);
+  if ((int)mxGetN(prhs[2])!=nDims)
+    mexErrMsgTxt("IncScheme must have one column per element of dt.");
+  if (K<1 || K>MAX_INTERVALS)
+    mexErrMsgTxt("IncScheme must have 1 to 4 rows (incremented intervals).");
+  if (nrhs!=9+2*(K-1))
+    mexErrMsgTxt("Wrong number of transfer matrices for the given incrementation scheme.");
+  P.nIntervals = K;
+  if (nDims==1) {
+    P.nPoints[0] = (int)mxGetNumberOfElements(prhs[0]);
+    P.nPoints[1] = 1;
   }
   else {
-    nPoints1 = mxGetM(prhs[a]);
-    nPoints2 = mxGetN(prhs[a]);
+    P.nPoints[0] = (int)mxGetM(prhs[0]);
+    P.nPoints[1] = (int)mxGetN(prhs[0]);
   }
+  if (P.nPoints[0]<1 || P.nPoints[1]<1)
+    mexErrMsgTxt("buffer must not be empty.");
+  /* In 1D, dimension 2 has one point and time increment zero */
+  P.dt[0] = dt[0];
+  P.dt[1] = (nDims==2) ? dt[1] : 0;
 
-  a++;
-  /* Spec: spectral storage array */
-  iSpec = mxGetPr(prhs[a]);
-  if (mxGetNumberOfElements(prhs[a])!=nPoints1*nPoints2)
-      mexErrMsgTxt("buffIm has wrong number of elements!");
+  /* Read and check left and right manifold of each incremented interval */
+  idxL = mxGetDoubles(prhs[3]);
+  idxR = mxGetDoubles(prhs[4]);
+  if ((int)mxGetNumberOfElements(prhs[3])!=K || (int)mxGetNumberOfElements(prhs[4])!=K)
+    mexErrMsgTxt("idxL and idxR must have one element per incremented interval.");
+  for (k=0;k<K;k++)
+    if ((idxL[k]!=1 && idxL[k]!=2) || (idxR[k]!=1 && idxR[k]!=2))
+      mexErrMsgTxt("idxL and idxR must be 1 (alpha) or 2 (beta).");
 
-  
-  a++;
-  /* dt ... time increment */
-  dt = mxGetPr(prhs[a]);
-  if (mxGetNumberOfElements(prhs[a])!=nDimensions)
-      mexErrMsgTxt("dt has wrong number of elements!");
-  dt1 = dt[0];
-  if (nDimensions==2) dt2 = dt[1];
-    
-
-  a++;
-  /* freeL ... index for left-side propagators (1=alpha,2=beta) */
-  freeL = mxGetPr(prhs[a]);
-  if (mxGetNumberOfElements(prhs[a])!=nFreeEvolutions)
-    mexErrMsgTxt("Wrong number of left evolution intervals.");
-  
-  a++;
-  /* freeR ... index for right-side propagators (1=alpha,2=beta) */
-  freeR = mxGetPr(prhs[a]);
-  if (mxGetNumberOfElements(prhs[a])!=nFreeEvolutions)
-    mexErrMsgTxt("Wrong number of right evolution intervals.");
-
-  a++;
-  /* Ea ... energies for alpha manifold */
-  Ea = mxGetPr(prhs[a]);
-  if (mxIsComplex(prhs[a])) mexErrMsgTxt("Ea must be real!");
-  nStates = mxGetNumberOfElements(prhs[a]);
-  
-  a++;
-  /* Eb ... energies for beta manifold */
-  Eb = mxGetPr(prhs[a]);
-  if (mxIsComplex(prhs[a])) mexErrMsgTxt("Eb must be real!");
-  if (nStates!=mxGetNumberOfElements(prhs[a])) 
+  /* Get energies of the alpha and beta manifolds */
+  Ea = mxGetDoubles(prhs[5]);
+  Eb = mxGetDoubles(prhs[6]);
+  n = (int)mxGetNumberOfElements(prhs[5]);
+  if ((int)mxGetNumberOfElements(prhs[6])!=n)
     mexErrMsgTxt("Ea and Eb must have the same number of elements.");
+  P.nStates = n;
 
-  imagZeros = mxCreateDoubleMatrix(nStates,nStates,mxREAL);
-  
-  a++;
-  /* G ... Start coherence matrix */
-  if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-    mexErrMsgTxt("G has wrong size!");
-  rG = mxGetPr(prhs[a]);
-  iG = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-  
-  a++;
-  /* D ... detection matrix */
-  if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-    mexErrMsgTxt("D has wrong size!");
-  rD = mxGetPr(prhs[a]);
-  iD = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-  
-  /* get mixing matrices if necessary */
-  if (nFreeEvolutions==2) {
-    
-    if (nrhs!=12) mexErrMsgTxt("Wrong number of input arguments.");
-    
-    /* T1l, T1r ... mixing matrices */
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M1l has wrong size!");
-    rT1l = mxGetPr(prhs[a]);
-    iT1l = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M1r has wrong size!");
-    rT1r = mxGetPr(prhs[a]);
-    iT1r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-  }
-  else if (nFreeEvolutions==1) {
-    if (nrhs!=10) mexErrMsgTxt("Wrong number of input arguments.");
-  }
-  else if (nFreeEvolutions==4) {
-    if (nrhs!=16) mexErrMsgTxt("Wrong number of input arguments.");
+  /* Assert energies and time increments are finite */
+  for (i=0;i<n;i++)
+    if (!mxIsFinite(Ea[i]) || !mxIsFinite(Eb[i]))
+      mexErrMsgTxt("Ea and Eb must be finite.");
+  for (d=0;d<nDims;d++)
+    if (!mxIsFinite(dt[d]))
+      mexErrMsgTxt("dt must be finite.");
+  for (i=0;i<K*nDims;i++)
+    if (!mxIsFinite(incScheme[i]))
+      mexErrMsgTxt("IncScheme must be finite.");
 
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M1l has wrong size!");
-    rT1l = mxGetPr(prhs[a]);
-    iT1l = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M2l has wrong size!");
-    rT2l = mxGetPr(prhs[a]);
-    iT2l = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M3l has wrong size!");
-    rT3l = mxGetPr(prhs[a]);
-    iT3l = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M1r has wrong size!");
-    rT1r = mxGetPr(prhs[a]);
-    iT1r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M2r has wrong size!");
-    rT2r = mxGetPr(prhs[a]);
-    iT2r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M3r has wrong size!");
-    rT3r = mxGetPr(prhs[a]);
-    iT3r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-  }
-  else if (nFreeEvolutions==3) {
-    if (nrhs!=14) mexErrMsgTxt("Wrong number of input arguments.");
-
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M1l has wrong size!");
-    rT1l = mxGetPr(prhs[a]);
-    iT1l = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M2l has wrong size!");
-    rT2l = mxGetPr(prhs[a]);
-    iT2l = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M1r has wrong size!");
-    rT1r = mxGetPr(prhs[a]);
-    iT1r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-    
-    a++;
-    if (mxGetNumberOfElements(prhs[a])!=nStates*nStates)
-      mexErrMsgTxt("M2r has wrong size!");
-    rT2r = mxGetPr(prhs[a]);
-    iT2r = mxIsComplex(prhs[a]) ? mxGetPi(prhs[a]) : mxGetPr(imagZeros);
-  }
-  else
-    mexErrMsgTxt("Unsupported number of free evolution periods.");
-  
-  nPeaks = 0;
-  switch (IncSchemeID) {
-
-    case 1: /* [1], e.g. three-pulse ESEEM */
-      /*-------------------------------------------------------------*/
-      /* Compute amplitudes and bin peaks */
-      /* Amp = T[kj]*S[jk]; */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      for (j=0;j<nStates;j++) {
-        for (k=0;k<nStates;k++) {
-          jk = j+k*nStates;
-          kj = k+j*nStates;
-          
-          /* the - signs here account for the fact the the quantum
-           * evolution goes with (-omega_ij)t, but Fourier theory
-           * uses (+omega_ij)t */
-          nu = E1left[j]-E1right[k];
-          id1 = fmod(-nu*dt1,1.0)*nPoints1;
-          if (id1>=0) id1 = floor(id1);
-          else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-          idx = id1;
-      
-          /* compute amplitude T[kj]*S[jk] */
-          rAmp = rD[kj]*rG[jk] - iD[kj]*iG[jk];
-          iAmp = rD[kj]*iG[jk] + iD[kj]*rG[jk];
-          
-          rSpec[idx] += rAmp;
-          iSpec[idx] += iAmp;
-          nPeaks++;
-        }
-      }
-      break;
-    
-    case 2: /* [1 1], e.g. two-pulse ESEEM, 1D-CP */
-      /*-------------------------------------------------------------*/
-      /* compute amplitudes and frequencies and bin peaks */
-      /* Amp = M1L[ij]*S[jk]*M1R[kl]*T[li]; */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;
-      for (j=0;j<nStates;j++) {
-        for (k=0;k<nStates;k++) {
-          jk = j+k*nStates;
-          for (i=0;i<nStates;i++) {
-            ij = i+j*nStates;
-            rAmp = rT1l[ij]*rG[jk] - iT1l[ij]*iG[jk];
-            iAmp = rT1l[ij]*iG[jk] + iT1l[ij]*rG[jk];
-            for (l=0;l<nStates;l++) {
-              kl = k+l*nStates;
-              li = l+i*nStates;
-              il = i+l*nStates;
-
-              nu = (E2left[i]-E2right[l])+(E1left[j]-E1right[k]);
-
-              id1 = fmod(-nu*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              idx = id1;
-
-              rAmp1 = rAmp*rT1r[kl] - iAmp*iT1r[kl];
-              iAmp1 = rAmp*iT1r[kl] + iAmp*rT1r[kl];
-              rAmp2 = rAmp1*rD[li] - iAmp1*iD[li];
-              iAmp2 = rAmp1*iD[li] + iAmp1*rD[li];
-              
-              rSpec[idx] += rAmp2;
-              iSpec[idx] += iAmp2;
-              nPeaks++;
-            }
-          }
-        }
-      }
-      break;
-      
-    case 11: /* [1 2], e.g. HYSCORE*/
-      /*-------------------------------------------------------------*/
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;
-      
-      nu1 = mxCalloc(nStates*nStates,sizeof(int));
-      nu2 = mxCalloc(nStates*nStates,sizeof(int));
-      if ((!nu1) || (!nu2))
-        mexErrMsgTxt("Could not allocate memory for binning.");
-
-      /* pre-compute nuclear frequencies */
-      idx = 0;
-      for (j=0;j<nStates;j++) {
-        for (i=0;i<nStates;i++) {
-
-          /* the - signs here account for the fact the the quantum
-           * evolution goes with (-omega_ij)t, but Fourier theory
-           * uses (+omega_ij)t */
-          id1 = fmod(-(E1left[i]-E1right[j])*dt1,1.0)*nPoints1;
-          id2 = fmod(-(E2left[i]-E2right[j])*dt2,1.0)*nPoints2;
-
-          if (id1>=0) id1 = floor(id1);
-          else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-          if (id2>=0) id2 = floor(id2);
-          else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
-
-          nu1[idx] = id1;
-          nu2[idx] = id2;
-          if ((id1<0)||(id1>nPoints1-1))
-            mexErrMsgTxt("id1 is out of range.");
-          if ((id2<0)||(id2>nPoints2-1))
-            mexErrMsgTxt("id2 is out of range.");
-
-          idx++;
-        }
-      }
-
-      /* compute amplitudes and bin peaks */
-      /* Amp = Mp[ij]*S[jk]*Mm[kl]*T[li]; */
-      nPeaks = 0;
-      for (j=0;j<nStates;j++) {
-        for (k=0;k<nStates;k++) {
-          jk = j+k*nStates;
-          for (i=0;i<nStates;i++) {
-            ij = i+j*nStates;
-            rAmp = rT1l[ij]*rG[jk] - iT1l[ij]*iG[jk];
-            iAmp = rT1l[ij]*iG[jk] + iT1l[ij]*rG[jk];
-            for (l=0;l<nStates;l++) {
-              kl = k+l*nStates;
-              li = l+i*nStates;
-              il = i+l*nStates;
-              rAmp1 = rAmp*rT1r[kl] - iAmp*iT1r[kl];
-              iAmp1 = rAmp*iT1r[kl] + iAmp*rT1r[kl];
-              rAmp2 = rAmp1*rD[li] - iAmp1*iD[li];
-              iAmp2 = rAmp1*iD[li] + iAmp1*rD[li];
-              idx = nu1[jk] + nu2[il]*nPoints1;
-              rSpec[idx] += rAmp2;
-              iSpec[idx] += iAmp2;
-              nPeaks++;
-            }
-          }
-        }
-      }
-
-      mxFree(nu1);
-      mxFree(nu2);
-      break;
-    
-    case 3: /* [1, -1] */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;
-      for (j=0;j<nStates;j++) {
-        for (k=0;k<nStates;k++) {
-          jk = j+k*nStates;
-          for (i=0;i<nStates;i++) {
-            ij = i+j*nStates;
-            rAmp = rT1l[ij]*rG[jk] - iT1l[ij]*iG[jk];
-            iAmp = rT1l[ij]*iG[jk] + iT1l[ij]*rG[jk];
-            for (l=0;l<nStates;l++) {
-              kl = k+l*nStates;
-              li = l+i*nStates;
-              il = i+l*nStates;
-
-              nu = -E2left[i]+E1left[j]-E1right[k]+E2right[l];
-
-              id1 = fmod(-nu*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              idx = id1;
-
-              rAmp1 = rAmp*rT1r[kl] - iAmp*iT1r[kl];
-              iAmp1 = rAmp*iT1r[kl] + iAmp*rT1r[kl];
-              rAmp2 = rAmp1*rD[li] - iAmp1*iD[li];
-              iAmp2 = rAmp1*iD[li] + iAmp1*rD[li];
-              
-              rSpec[idx] += rAmp2;
-              iSpec[idx] += iAmp2;
-              nPeaks++;
-            }
-          }
-        }
-      }
-      break;
-      
-    case 12: /* [1 2 1], e.g. 2D three-pulse ESEEM */
-      
-      /* Amp = D[ni]*T2l[ij]*T1l[jk]*G[kl]*T1r[lm]*T2r[mn] */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E3left  = (freeL[2]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;
-      E3right = (freeR[2]==1) ? Ea : Eb;
-      
-      for (k=0;k<nStates;k++) {
-        for (l=0;l<nStates;l++) {
-          kl = k + l*nStates;
-          for (j=0;j<nStates;j++) {
-            jk = j + k*nStates;
-            /* Amp0 = T1l[jk]*G[kl] */
-            rAmp0 = rT1l[jk]*rG[kl] - iT1l[jk]*iG[kl];
-            iAmp0 = rT1l[jk]*iG[kl] + iT1l[jk]*rG[kl];
-            for (m=0;m<nStates;m++) {
-              lm = l + m*nStates;
-              /* Amp1 = Amp0*T1r[lm] */
-              rAmp1 = rAmp0*rT1r[lm] - iAmp0*iT1r[lm];
-              iAmp1 = rAmp0*iT1r[lm] + iAmp0*rT1r[lm];
-              
-              /* nu2 = (E2l[j]-E2r[m]) */
-              nu2_ = (E2left[j]-E2right[m]);
-              id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-              if (id2>=0) id2 = floor(id2);
-              else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
-              
-              for (i=0;i<nStates;i++) {
-                ij = i + j*nStates;
-                /* Amp2 = T2l[ij]*Amp1 */
-                rAmp2 = rT2l[ij]*rAmp1 - iT2l[ij]*iAmp1;
-                iAmp2 = rT2l[ij]*iAmp1 + iT2l[ij]*rAmp1;
-                for (n=0;n<nStates;n++) {
-                  mn = m + n*nStates;
-                  ni = n + i*nStates;
-                  /* Amp3 = Amp2*T2r[mn] */
-                  rAmp3 = rAmp2*rT2r[mn] - iAmp2*iT2r[mn];
-                  iAmp3 = rAmp2*iT2r[mn] + iAmp2*rT2r[mn];
-                  rAmp = rD[ni]*rAmp3 - iD[ni]*iAmp3;
-                  iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
-                  
-                  /* nu1 = E1l[k]-E1r[l] + E3l[i]-E3r[n] */
-                  nu1_ = (E1left[k]-E1right[l]) + (E3left[i]-E3right[n]);
-                  id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-                  if (id1>=0) id1 = floor(id1);
-                  else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-                  
-                  idx = id1 + id2*nPoints1;
-                  if ((idx<0)||(idx>nPoints1*nPoints2))
-                    mexErrMsgTxt("idx out of range.");
-                  
-                  rSpec[idx] += rAmp;
-                  iSpec[idx] += iAmp;
-                  nPeaks++;
-                }
-              }
-              
-            }
-          }
-        }
-      }
-      break;
-    
-    case 14: /* [1 1 2], e.g. Hubrich's CF-NF(2) */
-      
-      /* Amp = D[ni]*T2l[ij]*T1l[jk]*G[kl]*T1r[lm]*T2r[mn] */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E3left  = (freeL[2]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;      
-      E3right = (freeR[2]==1) ? Ea : Eb;      
-      
-      for (k=0;k<nStates;k++) {
-        for (l=0;l<nStates;l++) {
-          kl = k + l*nStates;
-          for (j=0;j<nStates;j++) {
-            jk = j + k*nStates;
-            /* Amp0 = T1l[jk]*G[kl] */
-            rAmp0 = rT1l[jk]*rG[kl] - iT1l[jk]*iG[kl];
-            iAmp0 = rT1l[jk]*iG[kl] + iT1l[jk]*rG[kl];
-            for (m=0;m<nStates;m++) {
-              lm = l + m*nStates;
-              /* Amp1 = Amp0*T1r[lm] */
-              rAmp1 = rAmp0*rT1r[lm] - iAmp0*iT1r[lm];
-              iAmp1 = rAmp0*iT1r[lm] + iAmp0*rT1r[lm];
-              /* nu1 = E1l[k]-E1r[l]+E2l[j]-E2r[m] */
-              nu1_ = (E1left[k]-E1right[l]) + (E2left[j]-E2right[m]);
-              id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              
-              for (i=0;i<nStates;i++) {
-                ij = i + j*nStates;
-                /* Amp2 = T2l[ij]*Amp1 */
-                rAmp2 = rT2l[ij]*rAmp1 - iT2l[ij]*iAmp1;
-                iAmp2 = rT2l[ij]*iAmp1 + iT2l[ij]*rAmp1;
-                for (n=0;n<nStates;n++) {
-                  mn = m + n*nStates;
-                  ni = n + i*nStates;
-                  /* Amp3 = Amp2*T2r[mn] */
-                  rAmp3 = rAmp2*rT2r[mn] - iAmp2*iT2r[mn];
-                  iAmp3 = rAmp2*iT2r[mn] + iAmp2*rT2r[mn];
-                  rAmp = rD[ni]*rAmp3 - iD[ni]*iAmp3;
-                  iAmp = rD[ni]*iAmp3 + iD[ni]*rAmp3;
-                  
-                  /* nu2 = (E3l[i]-E3r[n]) */
-                  nu2_ = (E3left[i]-E3right[n]);
-                  id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-                  if (id2>=0) id2 = floor(id2);
-                  else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
-                  
-                  idx = id1 + id2*nPoints1;
-                  if ((idx<0)||(idx>nPoints1*nPoints2))
-                    mexErrMsgTxt("idx out of range.");
-                  
-                  rSpec[idx] += rAmp;
-                  iSpec[idx] += iAmp;
-                  nPeaks++;
-                }
-              }
-              
-            }
-          }
-        }
-      }
-      break;
-
-    case 15: /* [1 2 2 1], e.g. 2D-CP */
-
-      /* Amp = D[pi]*T3l[ij]*T2l[jk]*T1l[kl]*G[lm]*T1r[mn]*T2r[no]*T3r[op] */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E3left  = (freeL[2]==1) ? Ea : Eb;
-      E4left  = (freeL[3]==1) ? Ea : Eb;
-      
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;
-      E3right = (freeR[2]==1) ? Ea : Eb;
-      E4right = (freeR[3]==1) ? Ea : Eb;
-      
-      for (l=0;l<nStates;l++) {
-        for (m=0;m<nStates;m++) {
-          lm = l + m*nStates;
-          for (i=0;i<nStates;i++) {
-            for (p=0;p<nStates;p++) {
-              pi = p + i*nStates;
-              /* nu1 = E1l[l]-E1r[m]+E4l[i]-E4r[p] */
-              nu1_ = (E1left[l]-E1right[m]) + (E4left[i]-E4right[p]);
-              id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              
-              for (k=0;k<nStates;k++) {
-                kl = k + l*nStates;
-                /* Amp0 = T1l[kl]*G[lm] */
-                rAmp0 = rT1l[kl]*rG[lm] - iT1l[kl]*iG[lm];
-                iAmp0 = rT1l[kl]*iG[lm] + iT1l[kl]*rG[lm];     
-                for (n=0;n<nStates;n++) {
-                  mn = m + n*nStates;
-                  /* Amp1 = Amp0*T1r[mn] */
-                  rAmp1 = rAmp0*rT1r[mn] - iAmp0*iT1r[mn];
-                  iAmp1 = rAmp0*iT1r[mn] + iAmp0*rT1r[mn];
-                  for (j=0;j<nStates;j++) {
-                    ij = i + j*nStates;
-                    jk = j + k*nStates;
-                    /* Amp2 = D[pi]*T3l[ij]*T2l[jk]*Amp1 */
-                    rAmp2 = rT2l[jk]*rAmp1 - iT2l[jk]*iAmp1;
-                    iAmp2 = rT2l[jk]*iAmp1 + iT2l[jk]*rAmp1;
-                    rAmp3 = rT3l[ij]*rAmp2 - iT3l[ij]*iAmp2;
-                    iAmp3 = rT3l[ij]*iAmp2 + iT3l[ij]*rAmp2;
-                    rAmp2 = rD[pi]*rAmp3 - iD[pi]*iAmp3;
-                    iAmp2 = rD[pi]*iAmp3 + iD[pi]*rAmp3;
-                    for (o=0;o<nStates;o++) {
-                      no = n + o*nStates;
-                      op = o + p*nStates;
-                      
-                      /* Amp = Amp2*T2r[no]*T3r[op] */
-                      rAmp3 = rAmp2*rT2r[no] - iAmp2*iT2r[no];
-                      iAmp3 = rAmp2*iT2r[no] + iAmp2*rT2r[no];
-                      rAmp = rAmp3*rT3r[op] - iAmp3*iT3r[op];
-                      iAmp = rAmp3*iT2r[op] + iAmp3*rT3r[op];
-                      
-                      /* nu2 = E2l[k]-E2r[n] + E3l[j]-E3r[o] */
-                      nu2_ = (E2left[k]-E2right[n]) + (E3left[j]-E3right[o]);
-                      id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-                      if (id2>=0) id2 = floor(id2);
-                      else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
-                      if ((id1<0)||(id1>nPoints1-1))
-                        mexErrMsgTxt("id1 is out of range.");
-                      if ((id2<0)||(id2>nPoints2-1))
-                        mexErrMsgTxt("id2 is out of range.");
-                      idx = id1 + id2*nPoints1;
-                      
-                      rSpec[idx] += rAmp;
-                      iSpec[idx] += iAmp;
-                      nPeaks++;                    
-                    }
-                  }
-                }
-              }
-              
-            }
-          }
-        }
-      }
-      break;
-      
-    /*-------------------------------------------------------------------*/
-    case 17: /* [1 1 2 2] e.g. 2D refocused primary ESEEM */
-      
-      /* Amp = D[pi]*T3l[ij]*T2l[jk]*T1l[kl]*G[lm]*T1r[mn]*T2r[no]*T3r[op] */
-      E1left  = (freeL[0]==1) ? Ea : Eb;
-      E2left  = (freeL[1]==1) ? Ea : Eb;
-      E3left  = (freeL[2]==1) ? Ea : Eb;
-      E4left  = (freeL[3]==1) ? Ea : Eb;
-      E1right = (freeR[0]==1) ? Ea : Eb;
-      E2right = (freeR[1]==1) ? Ea : Eb;      
-      E3right = (freeR[2]==1) ? Ea : Eb;      
-      E4right = (freeR[3]==1) ? Ea : Eb;      
-      
-      for (l=0;l<nStates;l++) {
-        for (m=0;m<nStates;m++) {
-          lm = l + m*nStates;
-          for (k=0;k<nStates;k++) {
-            kl = k + l*nStates;
-            /* Amp0 = T1l[kl]*G[lm] */
-            rAmp0 = rT1l[kl]*rG[lm] - iT1l[kl]*iG[lm];
-            iAmp0 = rT1l[kl]*iG[lm] + iT1l[kl]*rG[lm];
-            for (n=0;n<nStates;n++) {
-              mn = m + n*nStates;
-              /* nu1 = E1l[l]-E1r[m]+E2l[k]-E2r[n] */
-              nu1_ = (E1left[l]-E1right[m]) + (E2left[k]-E2right[n]);
-              id1 = fmod(-nu1_*dt1,1.0)*nPoints1;
-              if (id1>=0) id1 = floor(id1);
-              else { id1 = ceil(id1); if (id1<0) id1 += nPoints1; }
-              /* Amp1 = Amp0*T1r[mn] */
-              rAmp1 = rAmp0*rT1r[mn] - iAmp0*iT1r[mn];
-              iAmp1 = rAmp0*iT1r[mn] + iAmp0*rT1r[mn];
-              
-              for (j=0;j<nStates;j++) {
-                jk = j + k*nStates;
-                /* Amp2 = T2l[jk]*Amp1 */
-                rAmp2 = rT2l[jk]*rAmp1 - iT2l[jk]*iAmp1;
-                iAmp2 = rT2l[jk]*iAmp1 + iT2l[jk]*rAmp1;
-                for (o=0;o<nStates;o++) {
-                  no = n + o*nStates;
-                  /* Amp3 = Amp2*T2r[no] */
-                  rAmp3 = rAmp2*rT2r[no] - iAmp2*iT2r[no];
-                  iAmp3 = rAmp2*iT2r[no] + iAmp2*rT2r[no];
-                  for (i=0;i<nStates;i++) {
-                    ij = i + j*nStates;
-                    /* Amp4 = T3l[ij]*Amp3 */
-                    rAmp4 = rT3l[ij]*rAmp3 - iT3l[ij]*iAmp3;
-                    iAmp4 = rT3l[ij]*iAmp3 + iT3l[ij]*rAmp3;
-                    for (p=0;p<nStates;p++) {
-                      op = o + p*nStates;
-                      pi = p + i*nStates;
-                      
-                      /* Amp = D[pi*Amp4*T3r[op] */
-                      rAmp5 = rAmp4*rT3r[op] - iAmp4*iT3r[op];
-                      iAmp5 = rAmp4*iT3r[op] + iAmp4*rT3r[op];
-                      rAmp = rD[pi]*rAmp5 - iD[pi]*iAmp5;
-                      iAmp = rD[pi]*iAmp5 + iD[pi]*rAmp5;
-                      
-                      /* nu2 = (E3l[k]-E3r[n]) + (E4l[j]-E4r[o]) */
-                      nu2_ = (E3left[j]-E3right[o]) + (E4left[i]-E4right[p]);
-                      id2 = fmod(-nu2_*dt2,1.0)*nPoints2;
-                      if (id2>=0) id2 = floor(id2);
-                      else { id2 = ceil(id2); if (id2<0) id2 += nPoints2; }
-              
-                      idx = id1 + id2*nPoints1;
-                      if ((idx<0)||(idx>nPoints1*nPoints2))
-                        mexErrMsgTxt("idx out of range.");
-                      
-                      rSpec[idx] += rAmp;
-                      iSpec[idx] += iAmp;
-                      nPeaks++;                    
-                    }
-                  }
-                }
-              }
-              
-            }
-          }
-        }
-      }
-      break;
-
-      default:
-      mexErrMsgTxt("Incrementation scheme is currently not supported.");
-      break;      
-
+  /* Get initial density matrix, detection operator, transfer matrices */
+  P.G = getMatrix(prhs[7],n,"G");
+  P.D = getMatrix(prhs[8],n,"D");
+  for (k=0;k<K-1;k++) {
+    ML[k] = getMatrix(prhs[9+k],n,"MkL");
+    MR[k] = getMatrix(prhs[9+(K-1)+k],n,"MkR");
   }
 
-  
-  mxDestroyArray(imagZeros);
-  
+  /* Get energies of the left and right manifold for each interval */
+  for (k=0;k<K;k++) {
+    P.EL[k] = (idxL[k]==1) ? Ea : Eb;
+    P.ER[k] = (idxR[k]==1) ? Ea : Eb;
+  }
+
+  /* Copy the incrementation scheme (K x nDims, column-major) to the
+     K x 2 array P.incScheme, with IncScheme(k,d) at P.incScheme[k][d].
+     In 1D, dimension 2 is set to zero, so the code can always use both
+     dimensions. */
+  for (k=0;k<K;k++) {
+    P.incScheme[k][0] = incScheme[k];
+    P.incScheme[k][1] = (nDims==2) ? incScheme[k+K] : 0;
+  }
+
+  /* Determine canonical loop order (from outermost to innermost): first all
+     intervals that change along dimension 2 (outer loops), then the others
+     (inner loops), all in sequence order */
+  pos = 0;
+  for (k=0;k<K;k++)
+    if (P.incScheme[k][1]!=0) {  /* dimension 2 changes interval k */
+      P.loopOrder[pos] = k;
+      pos++;
+    }
+  for (k=0;k<K;k++)
+    if (P.incScheme[k][1]==0) {  /* dimension 2 does not change interval k */
+      P.loopOrder[pos] = k;
+      pos++;
+    }
+
+  /* Nesting depth of the loop over each state, 0 = outermost */
+  for (pos=0;pos<K;pos++) {
+    loopDepth[LEFT(P.loopOrder[pos])] = 2*pos;      /* loop over l */
+    loopDepth[RIGHT(P.loopOrder[pos])] = 2*pos+1;   /* loop over r, inside */
+  }
+
+  /* Dimension-2 bin per peak or per buffer column: if the innermost
+     interval does not change dimension 2, the dimension-2 bin is fixed
+     within the innermost loops, and all their peaks go into one buffer
+     column. If it changes dimension 2, the dimension-2 bin differs between
+     these peaks and is computed for each peak. With the loop order above,
+     this happens only if all intervals change dimension 2, e.g. [1 1] or
+     [0 1; 1 1]. */
+  P.bin2PerPeak = P.incScheme[P.loopOrder[K-1]][1]!=0;
+
+  /* G, D and transfer matrices, each assigned to the inner one of its two
+     loops */
+  for (i=0;i<2*K;i++) P.nMatrices[i] = 0;
+  addPathwayMatrix(&P,loopDepth,P.G,LEFT(0),RIGHT(0));               /* G(l1,r1) */
+  for (k=0;k<K-1;k++) {
+    addPathwayMatrix(&P,loopDepth,ML[k],LEFT(k+1),LEFT(k));        /* MkL(l(k+1),lk) */
+    addPathwayMatrix(&P,loopDepth,MR[k],RIGHT(k),RIGHT(k+1));      /* MkR(rk,r(k+1)) */
+  }
+  addPathwayMatrix(&P,loopDepth,P.D,RIGHT(K-1),LEFT(K-1));           /* D(rK,lK) */
+
+  /* Products of the two matrix elements that contain the right state r
+     of the innermost interval (K >= 2) */
+  P.rightProduct = NULL;
+  if (K>=2) {
+    int s = RIGHT(P.loopOrder[K-1]), u, v, r;
+    const PathwayMatrix *m1 = &P.matrices[s][0], *m2 = &P.matrices[s][1];
+    if (P.nMatrices[s]!=2)
+      mexErrMsgTxt("Internal error: the innermost right state must be in two pathway matrices.");
+    P.rightOther[0] = (m1->row==s) ? m1->col : m1->row;
+    P.rightOther[1] = (m2->row==s) ? m2->col : m2->row;
+    P.rightProduct = mxMalloc((size_t)n*n*n*sizeof(Complex));
+    for (u=0;u<n;u++)
+      for (v=0;v<n;v++)
+        for (r=0;r<n;r++)
+          P.rightProduct[((size_t)u*n+v)*n+r] = cmul(matrixElement(m1,s,r,u,n),matrixElement(m2,s,r,v,n));
+    P.nMatrices[s] = 0;  /* multiplied in via rightProduct */
+  }
+
+  /* Dimension-1 bins (K >= 2). They depend on the states of the intervals
+     from the outermost one that changes dimension 1 inwards. If these are
+     the innermost one or two intervals, the bins are tabulated (see the
+     header). The expressions are the same as in innermostInterval, so the
+     bins are identical. */
+  P.bins1 = NULL;
+  P.bins1Intervals = 0;
+  if (K>=2) {
+    const int inner = P.loopOrder[K-1];
+    const double *EL = P.EL[inner], *ER = P.ER[inner];
+    const double scheme1 = P.incScheme[inner][0], dt1 = P.dt[0];
+    const int nPoints1 = P.nPoints[0];
+    int nIntervals1 = 1;  /* number of innermost intervals the bins depend on */
+    int l, r, l2, r2;
+    for (pos=0;pos<K-1;pos++)
+      if (P.incScheme[P.loopOrder[pos]][0]!=0) {
+        nIntervals1 = K-pos;
+        break;
+      }
+
+    if (nIntervals1==1) {
+      /* only the innermost interval: n x n table */
+      P.bins1Intervals = 1;
+      P.bins1 = mxMalloc((size_t)n*n*sizeof(int));
+      for (l=0;l<n;l++)
+        for (r=0;r<n;r++)
+          P.bins1[l*n+r] = binIndex(-scheme1*(EL[l]-ER[r])*dt1,nPoints1);
+    }
+    else if (nIntervals1==2 && K>=3) {
+      /* The two innermost intervals, reused for the states of the outer
+         ones: n^4 table, one n x n block per state pair (l2,r2) of the
+         second-innermost interval. For K = 2, each entry would be used
+         once, so nothing is tabulated. */
+      const int outer = P.loopOrder[K-2];
+      P.bins1Intervals = 2;
+      P.bins1 = mxMalloc((size_t)n*n*n*n*sizeof(int));
+      for (l2=0;l2<n;l2++)
+        for (r2=0;r2<n;r2++) {
+          double nu1 = P.incScheme[outer][0]*(P.EL[outer][l2]-P.ER[outer][r2]);
+          int *block = P.bins1 + (size_t)(l2*n+r2)*n*n;
+          for (l=0;l<n;l++)
+            for (r=0;r<n;r++)
+              block[l*n+r] = binIndex(-(nu1 + scheme1*(EL[l]-ER[r]))*dt1,nPoints1);
+        }
+    }
+  }
+
+  /* Peaks */
+  loopInterval(&P,0,unitAmplitude,0.0,0.0);
+
+  if (P.bins1) mxFree(P.bins1);
+  if (P.rightProduct) mxFree(P.rightProduct);
 }

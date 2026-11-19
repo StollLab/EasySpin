@@ -5,7 +5,7 @@ function ok = test(opt)
 
 Exp.Sequence = '3pESEEM';
 Exp.Field = 340.2; % mT
-Exp.ExciteWidth = 30; % MHz
+Exp.tp = 1/30; % µs, excitation window 30 MHz
 Exp.mwFreq = 9.738; % GHz
 
 Exp.dt = 0.016; % µs
@@ -15,7 +15,7 @@ Exp.nPoints = 500;
 Exp.SampleFrame = [1.1234 2.534 0.5];
 
 Opt.GridSize = 101;
-Opt.TimeDomain = 1;
+Opt.IdealPulses = true;
 Opt.ProductRule = 1;
 
 A_63Cu = [96 96 570];

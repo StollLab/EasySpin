@@ -30,8 +30,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
   double meanAmp, rmeanAmp, imeanAmp;
   double delta, left, right, dum;
   double Height, rHeight, iHeight;
-  double *Position, *Ampl, *rAmpl, *iAmpl, *SegWeights, *x;
-  double *Spectrum, *rSpectrum, *iSpectrum;
+  double *Position, *Ampl, *SegWeights, *x;
+  double *Spectrum;
+  mxComplexDouble *cAmpl, *cSpectrum;
   long iSeg, nSeg, idx, first, last, nPoints, nPeaks, nAmpl;
 
   if (nrhs!=4)
@@ -61,13 +62,11 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
   /* allocate result array */
   if (Cplx) {
-    rAmpl = mxGetPr(prhs[1]);
-    iAmpl = mxGetPi(prhs[1]);
-    rmeanAmp = rAmpl[0]/delta;
-    imeanAmp = iAmpl[0]/delta;
+    cAmpl = mxGetComplexDoubles(prhs[1]);
+    rmeanAmp = cAmpl[0].real/delta;
+    imeanAmp = cAmpl[0].imag/delta;
     plhs[0] = mxCreateDoubleMatrix(1,nPoints,mxCOMPLEX);
-    rSpectrum = mxGetPr(plhs[0]);
-    iSpectrum = mxGetPi(plhs[0]);
+    cSpectrum = mxGetComplexDoubles(plhs[0]);
   }
   else {
     Ampl = mxGetPr(prhs[1]);
@@ -100,12 +99,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     if (Cplx) {
       /* get possible separate amplitude for this segment */
       if (anisoAmp) {
-        rmeanAmp = (rAmpl[iSeg]+rAmpl[iSeg+1])/2/delta;
-        imeanAmp = (iAmpl[iSeg]+iAmpl[iSeg+1])/2/delta;
+        rmeanAmp = (cAmpl[iSeg].real+cAmpl[iSeg+1].real)/2/delta;
+        imeanAmp = (cAmpl[iSeg].imag+cAmpl[iSeg+1].imag)/2/delta;
       }
       if (first==last) {
-        rSpectrum[first] += rmeanAmp*SegWeights[iSeg];
-        iSpectrum[first] += imeanAmp*SegWeights[iSeg];
+        cSpectrum[first].real += rmeanAmp*SegWeights[iSeg];
+        cSpectrum[first].imag += imeanAmp*SegWeights[iSeg];
       }
       else {
         /* compute height of projection rectangle */
@@ -113,21 +112,21 @@ void mexFunction(int nlhs, mxArray *plhs[],
         iHeight = imeanAmp*SegWeights[iSeg]/(right-left);
         /* set first element or chop */
         if (first>=0) {
-          rSpectrum[first] += rHeight*(first+1-left);
-          iSpectrum[first] += iHeight*(first+1-left);
+          cSpectrum[first].real += rHeight*(first+1-left);
+          cSpectrum[first].imag += iHeight*(first+1-left);
         }
         else first = -1;
         /* set last element or chop */
         if (last<nPoints) {
-          rSpectrum[last] += rHeight*(right-last);
-          iSpectrum[last] += iHeight*(right-last);
+          cSpectrum[last].real += rHeight*(right-last);
+          cSpectrum[last].imag += iHeight*(right-last);
         }
         else last = nPoints;
 
         /* set possible intermediate elements */
         for (idx=first+1; idx<last; idx++) {
-          rSpectrum[idx] += rHeight;
-          iSpectrum[idx] += iHeight;
+          cSpectrum[idx].real += rHeight;
+          cSpectrum[idx].imag += iHeight;
         }
       } /* if (first==last) else */
     }

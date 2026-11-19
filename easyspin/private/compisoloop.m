@@ -142,20 +142,13 @@ if thirdOutput
   if isfield(info,'resfields') && numel(info.resfields)==1
     info.resfields = info.resfields{1};
   end
-  if includeInverseDomain % for saffron
-    if isfield(info_,'SinglePointDetection') % SimulationMode = 'thyme'
-      info.SinglePointDetection = info_.SinglePointDetection;
-    else  % SimulationMode = 'fast'
-      if ~isempty(info_.td)
-        info_.td = spec;
-      end
-      if fdProvided
-        info_.fd = data_invdomain;
-      end
-      info_fields = fieldnames(info_);
-      for i = 1:numel(info_fields)
-        info.(info_fields{i}) = info_.(info_fields{i});
-      end
+  if includeInverseDomain % for saffron: run information of the last isotopologue
+    if fdProvided
+      info_.fd = data_invdomain;
+    end
+    info_fields = setdiff(fieldnames(info_),fieldnames(info));
+    for i = 1:numel(info_fields)
+      info.(info_fields{i}) = info_.(info_fields{i});
     end
   end
 end

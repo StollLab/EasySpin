@@ -1,13 +1,20 @@
 function [ok,data] = saffron_hyscore_ganiso(opt,olddata)
 
-Sys.g = [2 6];
+% Regression test: powder HYSCORE of one 1H coupled to an electron spin with
+% strongly anisotropic g. The g anisotropy tilts the electron spin
+% quantization axis away from the magnetic field, which changes the
+% hyperfine field at the nucleus. Without Exp.mwFreq, all orientations are
+% excited. The real part of the normalized signal is compared, so the test
+% checks the shape of the signal, not its absolute amplitude.
+
+Sys.g = [2 6];  % axial, unrealistically anisotropic
 Sys.Nucs = '1H';
-Sys.A = [2 25];
+Sys.A = [2 25];  % MHz
 
 Exp.Sequence = 'HYSCORE';
-Exp.Field = 330;
-Exp.tau = 0.001;
-Exp.dt = 0.01;
+Exp.Field = 330;  % mT
+Exp.tau = 0.001;  % µs, short enough to avoid blind spots
+Exp.dt = 0.01;  % µs
 Exp.nPoints = 200;
 
 Opt.GridSize = 181;
@@ -18,7 +25,6 @@ y = y/max(abs(y(:)));
 y = real(y);
 
 if (opt.Display)
-  xlabel('time (µs)');
   if ~isempty(olddata)
     figure;
     subplot(1,2,1);

@@ -1,4 +1,4 @@
-function ok = test()
+function ok = test() %#ok<FNDEF>
 
 % Strains on nuclear parameters are rewritten for each isotopologue
 
@@ -27,7 +27,7 @@ i15 = find(strcmp(Nucs,'15N'));
 ok(6) = isequal(iso(i14).StrainPars,{'Q(1,1)'}) && isempty(iso(i15).StrainPars);
 Exp = struct('mwFreq',9.5,'Range',[330 350]);
 try
-  pepper(Sys,Exp);
+  [~] = pepper(Sys,Exp);
   ok(7) = true;
 catch
   ok(7) = false;

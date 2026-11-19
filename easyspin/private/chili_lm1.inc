@@ -353,25 +353,24 @@ for (L1=0;L1<=Lemax;L1++) {
                                 /* Store element values and indices           */
                                 /*------------------------------------------- */
                                 if ((GammaElement!=0) || (LiouvilleElement!=0)) {
-                                  MatrixRe[iElement] = GammaElement;
-                                  MatrixIm[iElement] = -LiouvilleElement;
+                                  Matrix[iElement].real = GammaElement;
+                                  Matrix[iElement].imag = -LiouvilleElement;
                                   ridx[iElement] = iRow;
                                   cidx[iElement] = iCol;
                                   iElement++;
                                   if (!diagRC) {
-                                    MatrixRe[iElement] = GammaElement;
-                                    MatrixIm[iElement] = -LiouvilleElement;
+                                    Matrix[iElement].real = GammaElement;
+                                    Matrix[iElement].imag = -LiouvilleElement;
                                     ridx[iElement] = iCol;
                                     cidx[iElement] = iRow;
                                     iElement++;
                                   }
                                   if (iElement>=allocatedSize-1) {
                                     allocatedSize += blockSize;
-                                    MatrixRe = mxRealloc(MatrixRe,allocatedSize*sizeof(double));
-                                    MatrixIm = mxRealloc(MatrixIm,allocatedSize*sizeof(double));
+                                    Matrix = mxRealloc(Matrix,allocatedSize*sizeof(mxComplexDouble));
                                     ridx = mxRealloc(ridx,allocatedSize*sizeof(double));
                                     cidx = mxRealloc(cidx,allocatedSize*sizeof(double));
-                                    if (!(cidx && ridx && MatrixRe && MatrixIm))
+                                    if (!(cidx && ridx && Matrix))
                                       mexErrMsgTxt("Could not reallocate arrays for Liouvillian to larger size.");
                                   }
                                 }

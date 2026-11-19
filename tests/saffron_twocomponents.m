@@ -1,10 +1,10 @@
-function [ok,data] = test(opt,olddata)
+function [ok,data] = test(opt,olddata) %#ok<FNDEF>
 
 % First test: make sure two components work
 Exp.Sequence = 'MimsENDOR';
 Exp.Field = 325;  % mT
 Exp.tau = 0.1;  % µs
-Exp.Range = [min(olddata.x) max(olddata.x)];  % MHz
+Exp.Range = larmorfrq('1H',Exp.Field) + [-1 1]*10;  % MHz
 
 Sys1.Nucs = '1H';
 Sys1.A = [1 3];  % MHz
@@ -36,6 +36,8 @@ data.x = x;
 
 if ~isempty(olddata)
   ok(1) = areequal(olddata.y,y,1e-5,'abs');
+else
+  ok = [];
 end
 
 end
