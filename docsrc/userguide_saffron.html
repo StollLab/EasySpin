@@ -220,6 +220,10 @@ Opt.IdealPulses = true;   % ideal pulses with an excitation window
 The width of the EPR line, which matters for which spins are excited, can be given in <code>Sys.lwAnisoG</code> (see <a href="broadenings.html#lwanisog">broadenings</a>).
 </p>
 
+<p>
+If you don't give <code>Exp.mwFreq</code>, the pulses are centered on the pure EPR transition at each orientation. For Davies ENDOR, this matters: the inversion pulse then inverts the two hyperfine lines of a nucleus equally, and the ENDOR spectrum is flat. Give a line width in <code>Sys.lwAnisoG</code>, or give <code>Exp.mwFreq</code>.
+</p>
+
 <!-- ============================================================= -->
 <a name="userdef">
 <div class="subtitle">User-defined experiments</div>

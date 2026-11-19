@@ -2010,6 +2010,7 @@ end
 
 yBaseline = 0;  % signal without RF pulse
 yTransfer = zeros(1,nRfFreqs);  % change of the signal by the RF pulse
+maxTransferAmp = 0;  % largest population transfer amplitude
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
 % Average over the inhomogeneous line: exact for ideal pulses
@@ -2060,6 +2061,7 @@ for iChunk = 1:numel(chunks)
         (popG(idxV,:)-popG(idxU,:)).*(popD(idxU,:)-popD(idxV,:));  % nTransitions x K
     end
   end
+  maxTransferAmp = max([maxTransferAmp; abs(transferAmp{1}(:)); abs(transferAmp{2}(:))]);
   % RF response: depends only on the NMR transition frequencies and
   % nutation frequencies, not on the offset or the pathway
   for iManifold = 1:2
@@ -2085,6 +2087,20 @@ for iChunk = 1:numel(chunks)
   end
 end
 y = yBaseline + yTransfer;
+
+% No population transfer by the RF pulse at any RF frequency, although there
+% is an echo: the ENDOR spectrum is flat. This happens for symmetric
+% excitation in Davies ENDOR (inversion pulse centered between the two
+% hyperfine lines of a spin-1/2 nucleus, with no inhomogeneous line width),
+% and at the blind spots of Mims ENDOR.
+if yBaseline~=0 && maxTransferAmp<=1e-12*abs(yBaseline)
+  warning('EasySpin:saffron:ENDORFlat',...
+    ['The RF pulse does not change the echo, so the ENDOR spectrum is flat. In Davies ENDOR, ' ...
+     'this happens if the inversion pulse inverts the hyperfine lines of the nucleus equally, ' ...
+     'e.g. without Exp.mwFreq and Sys.lwAnisoG, where the pulses are centered on the EPR line. ' ...
+     'Give an inhomogeneous line width in Sys.lwAnisoG or an off-center Exp.mwFreq. ' ...
+     'In Mims ENDOR, it happens at the blind spots (tau = k/A).']);
+end
 end
 
 %-------------------------------------------------------------------------------

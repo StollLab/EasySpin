@@ -326,6 +326,10 @@ Exp.DetPhase = -pi/2;
 &pi; &ndash; T &ndash; RF &pi; &ndash; &pi;/2 &ndash; &tau; &ndash; &pi; &ndash; &tau; &ndash; echo, with the RF frequency swept over a range. The microwave pulses must be selective, so their lengths must be given in <code>Exp.tp</code>. The signal is the echo amplitude. The inversion pulse makes the echo negative, and the RF pulse reduces the inversion where it is resonant with a nuclear transition, so the ENDOR lines are peaks toward zero.
 </p>
 
+<p>
+Davies ENDOR works only if the inversion pulse inverts the two hyperfine lines of a spin-1/2 nucleus by different amounts. Give the EPR line a width in <code>Sys.lwAnisoG</code>, or give <code>Exp.mwFreq</code> that is off the center of the two lines. If neither is given, the microwave pulses invert the two hyperfine lines equally, and the ENDOR spectrum is flat. Also, the inversion pulse must be long enough to tell the two hyperfine lines apart: lines from couplings much smaller than 1/<code>tp</code> are weak.
+</p>
+
 <pre class="matlab">
 Exp.Sequence = 'DaviesENDOR';
 Exp.tau = 0.3;              % tau, µs

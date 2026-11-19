@@ -28,7 +28,9 @@ ok(2) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*Sys.A/2))<0.05);
 ok(3) = echoOff>0 && all(endor>-1e-3*max(endor)) && max(endor)>0.05*echoOff;
 ok(4) = areequal(y(end),y(1),1e-6,'rel');
 
-% blind spot
+% blind spot: flat spectrum, with a warning
 Exp.tau = 1/Sys.A;
-[~,y] = saffron(Sys,Exp,Opt);
-ok(5) = max(abs(y-y(1)))<1e-10*abs(y(1));
+lastwarn('');
+evalc('[~,y] = saffron(Sys,Exp,Opt);');
+[~,warnId] = lastwarn;
+ok(5) = max(abs(y-y(1)))<1e-10*abs(y(1)) && strcmp(warnId,'EasySpin:saffron:ENDORFlat');
