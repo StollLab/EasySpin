@@ -136,17 +136,22 @@ for method = {'subspace','fullspace'}
   ok(end+1) = areequal(yEcho,yExplicit,tol,'rel'); %#ok<AGROW>
 end
 
-% Echo position in the detection window, with the full-space engine
+% Echo position in the detection window, in both engines (the subspace
+% engine by default)
 Exp = Ep;
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = 338;  % mT
 Exp.MolFrame = [0.2 0.8 0.1];
 Exp.CrystalSymmetry = 1;
-Exp.Pathways = 'echo';
-[~,yEcho,info] = saffron(Sys,Exp);
-Exp.Pathways = '+0-';
-[~,yExplicit] = saffron(Sys,Exp);
-ok(end+1) = strcmp(info.Method,'fullspace') && abs(yEcho)>0.1 && areequal(yEcho,yExplicit,tol,'rel');
+for method = {'auto','fullspace'}
+  Opt.Method = method{1};
+  Exp.Pathways = 'echo';
+  [~,yEcho,info] = saffron(Sys,Exp,Opt);
+  Exp.Pathways = '+0-';
+  [~,yExplicit] = saffron(Sys,Exp,Opt);
+  ok(end+1) = strcmp(info.Method,strrep(method{1},'auto','subspace')) && abs(yEcho)>0.1 && ...
+    areequal(yEcho,yExplicit,tol,'rel'); %#ok<AGROW>
+end
 
 % Incrementing only a delay before the first pulse: no effect on the initial
 % state of the subspace engine (error); allowed in the full-space engine

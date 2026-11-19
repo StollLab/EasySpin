@@ -283,6 +283,25 @@ end
 if ~isfield(Exp,'DetWindow') || isempty(Exp.DetWindow)
   Exp.DetWindow = 0;
 end
+if isstring(Exp.DetWindow), Exp.DetWindow = char(Exp.DetWindow); end
+if ischar(Exp.DetWindow)
+  if ~strcmp(Exp.DetWindow,'sequence')
+    error('Exp.DetWindow must be a number, two numbers, or ''sequence''.');
+  end
+elseif ~isnumeric(Exp.DetWindow) || ~isreal(Exp.DetWindow) || ~any(numel(Exp.DetWindow)==[1 2])
+  error('Exp.DetWindow must be a number, two numbers, or ''sequence''.');
+elseif any(isnan(Exp.DetWindow))
+  error('Exp.DetWindow cannot contain NaN.');
+elseif numel(Exp.DetWindow)==2 && Exp.DetWindow(1)>Exp.DetWindow(2)
+  error('Exp.DetWindow = [start end] needs start <= end.');
+elseif iscell(Exp.Sequence) && any(Exp.DetWindow<0)
+  % The detection window must not overlap with a pulse
+  if isstruct(Exp.Sequence{end})
+    error('You provided Exp.DetWindow with a negative value, but the last element in Exp.Sequence is a pulse. Detection during a pulse is not possible. Please adapt your detection or append an appropriate free evolution event.')
+  elseif abs(min(Exp.DetWindow)) > Exp.Sequence{end}
+    error('Your detection window is extending beyond the last free evolution into a pulse. Please shorten detection window or adapt the length of the free evolution.');
+  end
+end
 % Detection operators as a cell array; detection phases: one per operator
 % (a single value applies to all operators). An empty DetOperator means
 % the default (S+).
@@ -381,9 +400,6 @@ else
   if isfield(ExpProp,'DetOperator')
     Opt.DetOperator = ExpProp.DetOperator;
     ExpProp = rmfield(ExpProp,'DetOperator');
-  end
-  if (ischar(ExpProp.DetWindow) || isstring(ExpProp.DetWindow)) && ~strcmp(ExpProp.DetWindow,'sequence')
-    error('Exp.DetWindow must be a number, two numbers, or ''sequence''.');
   end
   % Reference gyromagnetic ratio (MHz/mT) for nominal RF flip angles: the
   % first nucleus of the first component

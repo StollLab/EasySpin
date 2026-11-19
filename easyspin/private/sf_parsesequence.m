@@ -31,8 +31,9 @@
 %       DetPhase         detection phase (radians), default 0
 %       rfFreq           RF carrier frequency (MHz), for RF pulses
 %       mwFreq           microwave carrier frequency (GHz), optional
-%       DetWindow        detection window, for Exp.Pathways = 'echo'; also
-%                        checked for unsupported features
+%       DetWindow        detection window: a single point shifts the end of
+%                        the last interval; also used for Exp.Pathways =
+%                        'echo' (transients need the full-space engine)
 %       DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
 %       ResonatorQL, FrequencyResponse, rfPhaseLocked
 %                        only checked for unsupported features (DetFreq
@@ -50,7 +51,9 @@
 %                        as given), Flip, ideal, B1 (RF pulses); tp of a
 %                        user-defined waveform (IQ) from its time axis t
 %       idealPulses      true: finite pulses treated as ideal (input)
-%       t                delay after each pulse (µs), 1xN
+%       t                delay after each pulse (µs), 1xN; the last one
+%                        includes the shift of the detection point
+%                        (Exp.DetWindow)
 %       tRelax           part of t with relaxation on (µs), 1xN
 %       delayInterval    interval of each delay in Exp.Sequence (0: before
 %                        the first pulse)
@@ -287,9 +290,6 @@ if ~isfield(Exp,'mwFreq')
 end
 
 % Detection
-if isfield(Exp,'DetWindow') && ~(isnumeric(Exp.DetWindow) && all(Exp.DetWindow==0))
-  reasons{end+1} = 'transient or shifted detection (Exp.DetWindow)';
-end
 % Detection window [start end] relative to the end of the sequence (µs), a
 % single point for start = end; empty for detection during the whole
 % sequence ('sequence')
@@ -299,6 +299,20 @@ elseif isnumeric(Exp.DetWindow)
   detWindow = [min(Exp.DetWindow) max(Exp.DetWindow)];
 else
   detWindow = [];
+end
+% A single detection point (scalar Exp.DetWindow, or two equal values) is
+% supported: it shifts the end of the last interval by detShift, so the
+% delays after the last pulse get longer (or shorter, for a negative
+% shift; saffron checks that the point stays after the last pulse).
+% Transients and 'sequence' need the full-space engine.
+if isempty(detWindow)
+  reasons{end+1} = 'detection during the whole sequence (Exp.DetWindow = ''sequence'')';
+  detShift = 0;
+elseif detWindow(1)~=detWindow(2)
+  reasons{end+1} = 'transient detection (Exp.DetWindow)';
+  detShift = 0;
+else
+  detShift = detWindow(1);
 end
 if isfield(Exp,'DetOperator') && ~isempty(Exp.DetOperator)
   reasons{end+1} = 'detection operators (Exp.DetOperator)';
@@ -473,16 +487,21 @@ end
 
 % Delays must stay nonnegative at all points (the changes along the
 % dimensions add up). Pulses that cross need the full-space engine.
+% A negative detection shift shortens the last delay of the sequence.
 delayLengths = [Sequence{idxDelay}];
-if any(delayLengths(:) + sum(minChange,2) < -1e-12*max([1; delayLengths(:)]))
+detDelayLengths = delayLengths;
+if ~isPulse(end)
+  detDelayLengths(end) = detDelayLengths(end) + detShift;
+end
+if any(detDelayLengths(:) + sum(minChange,2) < -1e-12*max([1; delayLengths(:)]))
   reasons{end+1} = 'delays that become negative (crossing pulses)';
 end
 
 % Length of the sequence (µs), from its start to the detection point: all
-% delays (also before the first pulse) and pulse lengths, at the first point,
-% and its change at each point along each dimension (delays and pulse
-% lengths; moved pulses keep it)
-sequence.tLength = sum(delayLengths) + sum([Pulses.tp]);
+% delays (also before the first pulse), pulse lengths and the detection
+% shift, at the first point, and its change at each point along each
+% dimension (delays and pulse lengths; moved pulses keep it)
+sequence.tLength = sum(delayLengths) + sum([Pulses.tp]) + detShift;
 sequence.tLengthChange = cell(1,nDims);
 for d = 1:nDims
   change = zeros(1,nPoints(d));
@@ -513,6 +532,24 @@ else
 end
 [ctp,co,sequence.echoOrders,tNet] = selectPathways(pathways,sequence,dimTargets,dimValues,detWindow);
 nPathways = size(ctp,1);
+
+% Detection point: the last interval ends detShift after the end of the
+% sequence. The echo times (tNet) stay relative to the end of the
+% sequence. The shift takes the relaxation setting of the delay it
+% changes, as in the full-space engine: the last element of the sequence
+% if it is a delay, otherwise the last delay (or, without delays, on if
+% relaxation is on anywhere).
+if detShift~=0
+  if ~isPulse(end)
+    shiftRelaxed = relaxed(end);
+  elseif ~isempty(idxDelay)
+    shiftRelaxed = relaxed(idxDelay(end));
+  else
+    shiftRelaxed = any(relaxed);
+  end
+  sequence.t(nPulses) = sequence.t(nPulses) + detShift;
+  sequence.tRelax(nPulses) = sequence.tRelax(nPulses) + shiftRelaxed*detShift;
+end
 
 % Block information for left and right propagation
 [idxFreeL,idxFreeR,idxPulseL,idxPulseR] = pathwayparser(ctp);

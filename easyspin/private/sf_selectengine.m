@@ -17,7 +17,7 @@
 %   selection, phase cycles, scalar T1/T2 (also only during some delays,
 %   Opt.Relaxation), electron-only initial states (Sys.initState) on powders
 %   without relaxation, and single-point S+ detection at the end of the
-%   sequence. Everything else needs the full-space engine (see
+%   sequence or shifted from it (scalar Exp.DetWindow). Everything else needs the full-space engine (see
 %   sf_parsesequence for the sequence features). Conversely, inhomogeneous
 %   broadening (Sys.lwAnisoG) and ideal pulses with an excitation window
 %   (Opt.IdealPulses) are only supported by the subspace engine.

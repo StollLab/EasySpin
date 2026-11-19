@@ -539,7 +539,7 @@ To remove all signal that does not depend on a pulse, as with a pulse switched o
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds.
 The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
-The default is <code>0</code>, a single point at the end of the sequence; this works with both methods. Other detection windows, and <code>'sequence'</code> (see below), use the <em>full-space</em> method.
+The default is <code>0</code>, a single point at the end of the sequence. Single points, at the end of the sequence or shifted from it, work with both methods. Transients, and <code>'sequence'</code> (see below), use the <em>full-space</em> method.
 
 <p>
 <img src="img/detection_windows.png" width="600">
@@ -812,7 +812,7 @@ Switches relaxation on or off. A single value applies to the whole sequence. Rel
 Opt.Relaxation = true;      % relaxation during the whole sequence
 Opt.Relaxation = [0 0 1];   % relaxation only during the third element of the sequence
 </pre>
-If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The <em>subspace</em> method has no relaxation during pulses, so there the entries for pulses have no effect. With the <em>full-space</em> method, the detection events added for <code>Exp.DetWindow</code> take the setting of the last delay of the sequence.
+If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The <em>subspace</em> method has no relaxation during pulses, so there the entries for pulses have no effect. With both methods, the free evolution up to and during detection (<code>Exp.DetWindow</code>) takes the setting of the last delay of the sequence.
 </div>
 
 <div class="optionfield"><code>GridSize</code></div>
@@ -996,7 +996,7 @@ A structure with additional information:
 <tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code>; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes</td></tr>
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
-<tr><td>Detection</td><td>single point at the end of the sequence, <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>
+<tr><td>Detection</td><td>single point (<code>DetWindow</code> a single number, or two equal numbers), <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>
 <tr><td>Relaxation</td><td>scalar <code>T1</code>, <code>T2</code>, as decays during the delays, per element of the sequence</td><td>scalar or matrix <code>T1</code>, <code>T2</code>, <code>eqState</code>, per element of the sequence</td></tr>
 <tr><td>Initial state (<code>initState</code>)</td><td>electron spin only, powders</td><td>yes</td></tr>
 <tr><td>Resonator</td><td>no</td><td>yes</td></tr>

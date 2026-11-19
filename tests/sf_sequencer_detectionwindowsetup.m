@@ -3,7 +3,7 @@ function ok = test() %#ok<FNDEF>
 % Exp.DetWindow appends a detected free evolution to the sequence: after a
 % delay, the window start shortens or lengthens the last delay; after a
 % pulse, a positive window start adds an undetected delay. Windows that
-% start in a pulse are rejected.
+% start in a pulse are rejected (by saffron).
 
 tol = 1e-12;
 
@@ -41,13 +41,18 @@ Exp4.DetWindow = [0 0.5];
 [len,det] = events(Exp4,Opt);
 ok(4) = areequal(len,[-1 0.5 -1 0.5],tol,'abs') && isequal(det,[0 0 0 1]);
 
-% Windows that start in a pulse
+% Windows and single points that start in a pulse: rejected by saffron,
+% for both engines
+Sys.g = 2;
 Exp5 = Exp3;
 Exp5.DetWindow = [-0.1 0.5];
 Exp6 = Exp;
 Exp6.DetWindow = [-0.3 0.5];
-ok(5) = throws(@() runprivate('sf_buildevents',Exp5,Opt)) && ...
-  throws(@() runprivate('sf_buildevents',Exp6,Opt));
+Exp7 = Exp;
+Exp7.DetWindow = -0.3;
+ok(5) = throws(@() saffron(Sys,Exp5),'during a pulse') && ...
+  throws(@() saffron(Sys,Exp6),'into a pulse') && ...
+  throws(@() saffron(Sys,Exp7,struct('Method','subspace')),'into a pulse');
 
 end
 
@@ -64,11 +69,11 @@ for k = 1:numel(Events)
 end
 end
 
-function ok = throws(fcn)
+function ok = throws(fcn,msg)
 try
   fcn();
   ok = false;
-catch
-  ok = true;
+catch err
+  ok = contains(err.message,msg);
 end
 end

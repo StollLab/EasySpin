@@ -145,14 +145,8 @@ if detectWholeSequence
   % a sequence of a single zero-length delay is a single point
   Opt.SinglePointDetection = isscalar(Exp.Sequence) && ~isstruct(Exp.Sequence{1}) && Exp.Sequence{1}==0;
 else
-  % Ensure that detection window does not overlap with a pulse
-  if any(Exp.DetWindow<0) && isstruct(Exp.Sequence{end})
-    error('You provided Exp.DetWindow with a negative value, but the last element in Exp.Sequence is a pulse. Detection during a pulse is not possible. Please adapt your detection or append an appropriate free evolution event.')
-  elseif min(Exp.DetWindow) < 0 && (abs(min(Exp.DetWindow)) > Exp.Sequence{end})
-    error('Your detection window is extending beyond the last free evolution into a pulse. Please shorten detection window or adapt the length of the free evolution.');
-  end
-  
-  % Update Exp.Sequence based on Exp.DetWindow
+  % Update Exp.Sequence based on Exp.DetWindow (saffron checks that the
+  % window does not overlap with a pulse)
   if isstruct(Exp.Sequence{end})
     % if the last entry in Sequence is a pulse, add a free-evolution period
     if Exp.DetWindow(1)>0
