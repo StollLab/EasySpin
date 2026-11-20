@@ -43,54 +43,56 @@
 
 clear, clc
 
-% Spin system: S=1/2 with one 1H at about 7.3 Å (point-dipole approximation)
-Tdip = 0.2;               % dipolar coupling, MHz
+% Spin system: S=1/2 with one 1H
+Sys.g = gfree;
 Sys.Nucs = '1H';
+Tdip = 0.2;               % dipolar coupling (ca 7.3Å distance), MHz
 Sys.A = [-Tdip 2*Tdip];   % axial hyperfine tensor, MHz
 
 % Pulses
-p90.Flip = pi/2;          % ideal microwave pulse, rad
+p90.Flip = pi/2;          % ideal microwave pulse flip angle, rad
 pRF.Channel = 'rf';       % RF pulse
-pRF.Flip = pi/2;          % rad
-pRF.tp = 1;               % µs; RF amplitude 0.25 MHz, covers +-0.2 MHz
+pRF.Flip = pi/2;          % RF pulse flip angle, rad
+pRF.tp = 1;               % RF pulse length, µs
 
-% Pulse sequence: pi/2 - tau - pi/2 - T - RF - t - RF - T - pi/2 - tau - echo
-tau = 1.2;                % µs; Mims blind spots are at A*tau = 0, 1, 2, ...;
-                          % this tau keeps the couplings (up to 0.4 MHz) below A*tau = 1
+% Pulse sequence
+tau = 1.2;                % µs
 T = 1;                    % µs
-t0 = 0;                   % initial delay between the RF pulses, µs
+t0 = 0;                   % µs
 Exp.Sequence = {p90 tau p90 T pRF t0 pRF T p90 tau};
 
-Exp.mwFreq = 9.8;               % GHz
-Exp.Field = mhz2mt(9800);       % mT, on resonance for g = 2.0023
+Exp.mwFreq = 9.8;         % GHz
+Exp.Field = mhz2mt(Exp.mwFreq*1e3);      % mT, on resonance for g = 2.0023
 Exp.rfFreq = larmorfrq('1H',Exp.Field);  % RF frequency = 1H Larmor frequency, MHz
 
-% Stimulated echo: electron coherence orders after the five pulses
-Exp.Pathways = '+000-';
-Exp.DetPhase = -pi/2;     % rad, gives a real positive echo
+% Electron coherence transfer pathway and detection phase
+Exp.Pathways = '+000-';   % pathway for 3-pulse echo
+Exp.DetPhase = -pi/2;     % detection phase for real positive echo, rad
 
-% Increment the delay t between the two RF pulses (third delay)
-Exp.nPoints = 128;
-Exp.Dim1 = {'d3', 0.4};   % µs
+% Increment the delay between the two RF pulses (third delay)
+Exp.Dim1 = {'d3', 0.5};   % time increment, µs
+Exp.nPoints = 101;
 
 Opt.GridSize = 31;        % powder integration grid
 
-% Simulate
+% Simulation
 [t,V,info] = saffron(Sys,Exp,Opt);
+nuRF = Exp.rfFreq + info.f;   % RF frequency axis, MHz
+spc = abs(info.fd);           % ENDOR spectrum (magnitude of Fourier transform)
 
-% Plot time trace and ENDOR spectrum (magnitude of the Fourier transform,
-% versus RF frequency; symmetric about Exp.rfFreq, see above)
-nuRF = Exp.rfFreq + info.f;   % MHz
+% Plot time trace
 subplot(2,1,1)
 plot(t,real(V));
 axis tight
 xlabel('t (µs)');
 ylabel('echo amplitude');
 title('Time-domain Mims ENDOR');
+
+% Plot ENDOR spectrum
 subplot(2,1,2)
-plot(nuRF,abs(info.fd));
-xlim(Exp.rfFreq + [-1 1]*2*Tdip);
-xline(Exp.rfFreq,':');
+plot(nuRF,spc);
+axis tight
+xline(Exp.rfFreq,'--');
 xlabel('RF frequency (MHz)');
 ylabel('ENDOR intensity');
 title('Fourier transform');
