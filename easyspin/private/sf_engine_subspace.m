@@ -1986,15 +1986,7 @@ function [y,nOff] = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
 if nSubSpaces>1
   error('ENDOR is not supported with the product rule.');
 end
-rfFreqs = seq.rfAxis(:).';
-nRfFreqs = numel(rfFreqs);
 iRF = find(seq.isRF);
-rfPulse = seq.Pulse(iRF);
-N = seq.N;
-nP = seq.nPathways;
-
-% Sequence split at the RF pulse: intervals 1..iRF-1 (state G before the RF
-% pulse) and iRF..N (detection D after it)
 if iRF==1
   error('The RF pulse cannot be the first pulse.');
 end
@@ -2005,22 +1997,17 @@ if any(seq.ctp(:,iRF)>2)
     'during the RF pulse. Select them with Exp.Pathways (e.g. ''+00-'' for Mims ENDOR), ' ...
     'or use Opt.Method = ''fullspace''.']);
 end
-% split point: G = state at the end of interval iRF-1 (evaluatePathways
-% splits the pathway after each incremented interval)
+
+rfPulse = seq.Pulse(iRF);
+
+% Sequence split at the RF pulse: intervals 1..iRF-1 (state G before the RF
+% pulse) and iRF..N (detection D after it). G = state at the end of
+% interval iRF-1 (evaluatePathways splits the pathway after each
+% incremented interval)
 seqG = seq;
-seqG.incScheme = zeros(N,1);
+seqG.incScheme = zeros(seq.N,1);
 seqG.incScheme(iRF-1) = 1;
 
-% RF nutation frequency: nominal from the flip angle, or per transition
-% from B1 (shaped RF pulses are excluded by sf_parsesequence)
-useB1 = ~isempty(rfPulse.B1);
-if ~useB1
-  nu1Nominal = rfPulse.Flip/(2*pi*rfPulse.tp);  % MHz
-end
-
-yBaseline = 0;  % signal without RF pulse
-yTransfer = zeros(1,nRfFreqs);  % change of the signal by the RF pulse
-maxTransferAmp = 0;  % largest population transfer amplitude
 n = size(E.Ea{1},1);
 chunk = max(1,floor(4e6/n^2));
 % Average over the inhomogeneous line: exact for ideal pulses
@@ -2036,18 +2023,30 @@ end
 nOff = numel(offsets);
 [idxU,idxV] = find(triu(true(n),1));  % levels u<v of each NMR transition
 nTransitions = numel(idxU);
+
+% Signal without RF pulse (yBaseline), and population transfer amplitudes,
+% NMR frequencies and RF nutation frequencies of the NMR transitions of all
+% entries (amp, nuNMR, nu1, one cell per chunk of entries)
+yBaseline = 0;
 chunks = entryChunks(E,chunk);
-for iChunk = 1:numel(chunks)
+nChunks = numel(chunks);
+[amp,nuNMR,nu1] = deal(cell(1,nChunks));
+for iChunk = 1:nChunks
   ec = chunks{iChunk};
   Ed0 = entrySlice(E,1,ec);
   K = numel(ec);
-  % RF nutation frequencies (MHz) of the transitions in both manifolds
-  if useB1
-    nu1 = rfNutation(E,ec,NucHams,Sys,Exp,rfPulse.B1,idxU,idxV); % {a,b} nTransitions x K
+  % RF nutation frequencies (MHz) of the NMR transitions, alpha manifold in
+  % the first nTransitions rows, beta in the rest: nominal from the flip
+  % angle, or per transition from B1 (shaped RF pulses are excluded by
+  % sf_parsesequence)
+  if isempty(rfPulse.B1)
+    nu1c = rfPulse.Flip/(2*pi*rfPulse.tp)*ones(2*nTransitions,K);
+  else
+    nu1c = rfNutation(E,ec,NucHams,Sys,Exp,rfPulse.B1,idxU,idxV);
   end
   % population transfer amplitudes of the NMR transitions in the manifold
-  % of the RF pulse (1 = alpha, 2 = beta), summed over offsets and pathways
-  transferAmp = {zeros(nTransitions,K),zeros(nTransitions,K)};
+  % of the RF pulse, summed over offsets and pathways, rows as in nu1c
+  transferAmp = zeros(2*nTransitions,K);
   for iOff = 1:nOff
     Ed = addOffsets(Ed0,Ed0.offCenter + offsets(iOff)*sigma(ec));
     if seq.finitePulses
@@ -2055,7 +2054,7 @@ for iChunk = 1:numel(chunks)
     else
       PulseSub = [];
     end
-    for p = 1:nP
+    for p = 1:seq.nPathways
       [G,D] = evaluatePathways(Ed,seqG,p,PulseSub);
       wp = seq.pathwayprefactor(p)*offsetWeights(iOff)*reshape(Ed.w,1,1,[]);
       if ~seq.finitePulses
@@ -2066,37 +2065,32 @@ for iChunk = 1:numel(chunks)
       yBaseline = yBaseline + sum(G.*permute(D,[2 1 3]),'all');
       % population transfer
       popG = diag3(G); popD = diag3(D);
-      if seq.ctp(p,iRF)==1, iManifold = 1; else, iManifold = 2; end
-      transferAmp{iManifold} = transferAmp{iManifold} + ...
-        (popG(idxV,:)-popG(idxU,:)).*(popD(idxU,:)-popD(idxV,:));  % nTransitions x K
+      rows = (seq.ctp(p,iRF)-1)*nTransitions + (1:nTransitions);  % manifold of the RF pulse
+      transferAmp(rows,:) = transferAmp(rows,:) + ...
+        (popG(idxV,:)-popG(idxU,:)).*(popD(idxU,:)-popD(idxV,:));
     end
   end
-  maxTransferAmp = max([maxTransferAmp; abs(transferAmp{1}(:)); abs(transferAmp{2}(:))]);
-  % RF response: depends only on the NMR transition frequencies and
-  % nutation frequencies, not on the offset or the pathway
-  for iManifold = 1:2
-    if iManifold==1, Enuc = Ed0.Ea; else, Enuc = Ed0.Eb; end
-    nuNMR = abs(Enuc(idxV,:)-Enuc(idxU,:));
-    if useB1
-      nu1Trans = nu1{iManifold};
-    else
-      nu1Trans = nu1Nominal*ones(size(nuNMR));
-    end
-    amp = transferAmp{iManifold}(:); nuNMR = nuNMR(:); nu1Trans = nu1Trans(:);
-    nonzero = abs(amp)>0 & nu1Trans~=0;  % no RF field: no transfer
-    amp = amp(nonzero); nuNMR = nuNMR(nonzero); nu1Trans = nu1Trans(nonzero);
-    % accumulate over the RF axis in chunks
-    chunkRF = max(1,floor(2e6/nRfFreqs));
-    for j0 = 1:chunkRF:numel(amp)
-      idx = j0:min(j0+chunkRF-1,numel(amp));
-      Delta = nuNMR(idx) - rfFreqs;  % detuning from the absolute RF frequency
-      Omega = sqrt(nu1Trans(idx).^2 + Delta.^2);
-      Ptransfer = (nu1Trans(idx)./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
-      yTransfer = yTransfer + amp(idx).'*Ptransfer;
-    end
-  end
+  nuNMRc = abs([Ed0.Ea(idxV,:)-Ed0.Ea(idxU,:); Ed0.Eb(idxV,:)-Ed0.Eb(idxU,:)]);
+  keep = transferAmp~=0;
+  amp{iChunk} = transferAmp(keep);
+  nuNMR{iChunk} = nuNMRc(keep);
+  nu1{iChunk} = nu1c(keep);
 end
-y = yBaseline + yTransfer;
+amp = vertcat(amp{:}); nuNMR = vertcat(nuNMR{:}); nu1 = vertcat(nu1{:});
+maxTransferAmp = max([0; abs(amp)]);  % largest population transfer amplitude
+
+% RF response: depends only on the NMR transition frequencies and nutation
+% frequencies, not on the offset or the pathway
+keep = nu1~=0;  % no RF field: no transfer
+amp = amp(keep); nuNMR = nuNMR(keep); nu1 = nu1(keep);
+rfFreqs = seq.rfAxis;  % absolute RF frequencies (MHz)
+y = yBaseline*ones(1,numel(rfFreqs));
+for iFreq = 1:numel(rfFreqs)
+  Delta = nuNMR - rfFreqs(iFreq);  % detuning from the RF frequency
+  Omega = sqrt(nu1.^2 + Delta.^2);
+  Ptransfer = (nu1./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
+  y(iFreq) = y(iFreq) + sum(amp.*Ptransfer);
+end
 
 % No population transfer by the RF pulse at any RF frequency, although there
 % is an echo: the ENDOR spectrum is flat. This happens for symmetric
@@ -2134,15 +2128,15 @@ end
 %     idxU, idxV  levels u and v of each NMR transition
 %
 %   Output:
-%     nu1         nutation frequencies (MHz), a cell array {a,b} with one
-%                 element per electron manifold, nTransitions x K
+%     nu1         nutation frequencies (MHz), 2*nTransitions x K: alpha
+%                 manifold in the first nTransitions rows, beta in the rest
 function nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
 if isempty(E.geff)
   error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the subspace engine.');
 end
 K = numel(ec);
 nTransitions = numel(idxU);
-nu1 = {zeros(nTransitions,K),zeros(nTransitions,K)};
+nu1 = zeros(2*nTransitions,K);
 nChi = 8;
 chiList = (0:nChi-1)*pi/nChi;
 g = Sys.g;
@@ -2172,7 +2166,7 @@ for k = 1:K
       OrfEig = V'*Orf*V;
       matElSq = matElSq + abs(OrfEig(sub2ind(size(OrfEig),idxU,idxV))).^2;
     end
-    nu1{iManifold}(:,k) = 2*B1*sqrt(matElSq/nChi);
+    nu1((iManifold-1)*nTransitions+(1:nTransitions),k) = 2*B1*sqrt(matElSq/nChi);
   end
 end
 end
