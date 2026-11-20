@@ -238,25 +238,34 @@ for iPoints = 1 : nPoints
       Events{iEvent}.Propagation = idealPulsePropagators(Events{iEvent},tStart(iEvent),Relaxation);
       continue
     end
-    IQ = Events{iEvent}.IQ.*exp(2i*pi*Events{iEvent}.FrameOffset*1e3*tStart(iEvent));
-    if size(IQ,2)<2
-      error('Pulse %d is shorter than the integration time step (Opt.IntTimeStep).',find(PulsePositions==iEvent));
-    end
-    halfStepPhaseRot = exp(1i*angle(sum(conj(IQ(:,1:end-1)).*IQ(:,2:end),'all'))/2);
-    IQ = (IQ(:,1:end-1)*halfStepPhaseRot + IQ(:,2:end)*conj(halfStepPhaseRot))/2;
     rfEnvelope = isfield(Events{iEvent},'FrameFreq') && ~isempty(Events{iEvent}.FrameFreq);
     if rfEnvelope && ~isfield(Events{iEvent},'rfFrame')
       error(['The RF pulse at position %d has an envelope for the nuclear RF frame ' ...
         '(shifted simulation frame), but no rfFrame (set up by sf_engine_fullspace).'],iEvent);
     end
+    startPhase = 2*pi*Events{iEvent}.FrameOffset*1e3*tStart(iEvent);
+    if rfEnvelope
+      IQ = Events{iEvent}.IQ;  % start phase applied by rfFramePropagators
+    else
+      IQ = Events{iEvent}.IQ*exp(1i*startPhase);
+    end
+    if size(IQ,2)<2
+      error('Pulse %d is shorter than the integration time step (Opt.IntTimeStep).',find(PulsePositions==iEvent));
+    end
+    halfStepPhaseRot = exp(1i*angle(sum(conj(IQ(:,1:end-1)).*IQ(:,2:end),'all'))/2);
+    IQ = (IQ(:,1:end-1)*halfStepPhaseRot + IQ(:,2:end)*conj(halfStepPhaseRot))/2;
     if rfEnvelope
       % RF pulse in the nuclear RF frame: IQ is the envelope relative to
       % exp(2i*pi*FrameFreq*t); the lab-frame field at the middle of each
-      % step is the envelope times the frame phase there
+      % step is the envelope times the frame phase there. The field is
+      % taken relative to the start of the pulse, and the start time
+      % enters as a phase of the whole pulse: the carrier phase plus the
+      % frame phase at the start.
       t = Events{iEvent}.t;
-      tMid = tStart(iEvent) + (t(1:end-1)+t(2:end))/2;
+      tMid = (t(1:end-1)+t(2:end))/2;
       IQ = IQ.*exp(2i*pi*Events{iEvent}.FrameFreq*tMid);
-      Events{iEvent}.Propagation = rfFramePropagators(Events{iEvent},IQ);
+      startPhase = startPhase + 2*pi*Events{iEvent}.FrameFreq*tStart(iEvent);
+      Events{iEvent}.Propagation = rfFramePropagators(Events{iEvent},IQ,startPhase);
     else
       Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
     end
@@ -1109,7 +1118,7 @@ end
 
 % rfFramePropagators  Propagators of an RF pulse in the nuclear RF frame
 %
-%   Prop = rfFramePropagators(Event,IQ)
+%   Prop = rfFramePropagators(Event,IQ,startPhase)
 %
 %   The RF pulse is propagated in the frame rotating at F = Event.FrameFreq
 %   about the generator G = V*diag(f)*V', which is diagonal in the
@@ -1125,36 +1134,47 @@ end
 %   exp(-2i*pi*F*f*t). With P at the middle of the step, this is
 %   q.*U.*q.' (q = exp(-1i*pi*F*f*dt)), rotated about G by the lab-frame
 %   phase of the field at the middle of the step, which IQ includes. The
-%   product of the steps is therefore the lab-frame propagator. The
-%   propagators are transformed back to the product basis.
+%   product of the steps is therefore the lab-frame propagator.
+%   The propagators are computed for the pulse starting at t = 0. A start
+%   phase phi of the whole pulse (the field times exp(1i*phi)) rotates
+%   them about G: U -> D*U*D' with D = diag(exp(-1i*phi*f)) in the
+%   eigenbasis, since H commutes with G and the kept RF terms change their
+%   phase under this rotation like the field. So the propagators of a pulse
+%   are computed once and reused at all start times. The rotation is
+%   included in the transformation back to the product basis, W = V*D.
 %
 %   Input:
 %     Event       RF pulse event; uses rfFrame (V, E, f, Xp, and, with
 %                 relaxation, Gamma and equilibriumState in the eigenbasis),
 %                 FrameFreq (MHz), Propagation, TimeStep, Relaxation, and
 %                 the fields used by pulsePropagators
-%     IQ          lab-frame field (mT) at the middle of each time step
-%                 (rows: phase cycle steps, columns: time steps)
+%     IQ          lab-frame field (mT) at the middle of each time step,
+%                 for the pulse starting at t = 0 (rows: phase cycle steps,
+%                 columns: time steps)
+%     startPhase  phase of the field at the start time of the pulse (rad)
 %
 %   Output:
 %     Prop        structure as from pulsePropagators (Utotal, or Ltotal,
 %                 SigmaOffsetTotal and an empty PhaseTotal), in the product
 %                 basis, with the fields
-%       eigen       lookup table of the propagators in the eigenbasis
-%       IQ, TimeStep, FrameFreq  inputs of these propagators
-function Prop = rfFramePropagators(Event,IQ)
+%       eigen       propagators in the eigenbasis and their lookup table,
+%                   for the pulse starting at t = 0
+%       IQ, TimeStep, FrameFreq, startPhase  inputs of these propagators
+function Prop = rfFramePropagators(Event,IQ,startPhase)
 Prop = Event.Propagation;
 F = Event.FrameFreq;
-if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ) && Prop.TimeStep==Event.TimeStep && Prop.FrameFreq==F
+if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ) && Prop.TimeStep==Event.TimeStep && ...
+    Prop.FrameFreq==F && Prop.startPhase==startPhase
   return
 end
 
 fr = Event.rfFrame;
-V = fr.V;
 f = fr.f;
+W = fr.V.*exp(-1i*startPhase*f.');  % V*D, rotation about G by the start phase
 
-% Pulse event in the eigenbasis; its lookup table is kept while the frame
-% frequency stays the same
+% Pulse event in the eigenbasis; its propagators and lookup table are kept
+% while the frame frequency stays the same (pulsePropagators reuses the
+% propagators if IQ is the same)
 eigenEvent = Event;
 eigenEvent.xOp = fr.Xp + fr.Xp';
 eigenEvent.yOp = 1i*(fr.Xp' - fr.Xp);
@@ -1173,14 +1193,14 @@ if Event.Relaxation
 end
 eigenProp = pulsePropagators(eigenEvent,IQ,Ham0,RelaxationEigen);
 
-% Back to the product basis
+% Back to the product basis, with the rotation by the start phase
 Prop = struct;
 if ~Event.Relaxation
-  Prop.Utotal = cellfun(@(U) V*U*V', eigenProp.Utotal,'UniformOutput',false);
+  Prop.Utotal = cellfun(@(U) W*U*W', eigenProp.Utotal,'UniformOutput',false);
 else
-  % vec(V*sigma*V') = R'*vec(sigma); the rotation about G, d(i)*conj(d(j))
+  % vec(W*sigma*W') = R'*vec(sigma); the rotation about G, d(i)*conj(d(j))
   % for the vectorized state, is included in each step
-  R = kron(V.',V');
+  R = kron(W.',W');
   [nPhaseSteps,nWavePoints] = size(eigenProp.Ltotal);
   Prop.Ltotal = cell(nPhaseSteps,nWavePoints);
   Prop.SigmaOffsetTotal = cell(nPhaseSteps,nWavePoints);
@@ -1196,12 +1216,11 @@ else
   end
   Prop.PhaseTotal = [];
 end
-% only the lookup table is reused
-Prop.eigen = rmfield(eigenProp,intersect(fieldnames(eigenProp),...
-  {'Utotal','Ltotal','SigmaOffsetTotal','PhaseTotal','IQ','TimeStep'}));
+Prop.eigen = eigenProp;
 Prop.IQ = IQ;
 Prop.TimeStep = Event.TimeStep;
 Prop.FrameFreq = F;
+Prop.startPhase = startPhase;
 end
 
 
@@ -1376,7 +1395,8 @@ end
 %   all electron spins by the flip angle about an axis in the xy plane,
 %   U = expm(-1i*Flip*(cos(phi)*Sx + sin(phi)*Sy)). The angle phi adds the
 %   carrier phase at the start time (phase-continuous carrier, as for finite
-%   pulses).
+%   pulses). The propagators are only rebuilt if the flip angles, the
+%   phases or the relaxation setting changed.
 %
 %   Input:
 %     Event       ideal pulse event; uses
@@ -1385,6 +1405,7 @@ end
 %       IdealOps    total electron spin operators {Sx,Sy}
 %       FrameOffset carrier frequency (GHz) in the simulation frame
 %       Relaxation  true if relaxation is on during the event
+%       Propagation results of an earlier call
 %     tStart      start time of the pulse (µs from the start of the sequence)
 %     Relaxation  relaxation structure (not used)
 %
@@ -1394,8 +1415,18 @@ end
 %                          cycle step
 %       Ltotal, SigmaOffsetTotal, PhaseTotal   Liouville-space propagators,
 %                          zero offsets and [], with relaxation
+%       Flip, phi, Relaxation  flip angles, phases and relaxation setting
+%                          of these propagators
 function Prop = idealPulsePropagators(Event,tStart,Relaxation) %#ok<INUSD>
 c = Event.IQ(:,1);
+Flip = abs(c);
+phi = angle(c) + 2*pi*Event.FrameOffset*1e3*tStart;
+Prop = Event.Propagation;
+if isfield(Prop,'phi') && isequal(Prop.Flip,Flip) && isequal(Prop.phi,phi) && ...
+    Prop.Relaxation==Event.Relaxation
+  return
+end
+Prop = struct;
 nPC = numel(c);
 Sx = Event.IdealOps{1};
 Sy = Event.IdealOps{2};
@@ -1407,12 +1438,14 @@ if Event.Relaxation
   Prop.PhaseTotal = [];
 end
 for k = 1:nPC
-  phi = angle(c(k)) + 2*pi*Event.FrameOffset*1e3*tStart;
-  U = expm(-1i*abs(c(k))*(cos(phi)*Sx + sin(phi)*Sy));
+  U = expm(-1i*Flip(k)*(cos(phi(k))*Sx + sin(phi(k))*Sy));
   Prop.Utotal{k,1} = U;
   if Event.Relaxation
     Prop.Ltotal{k,1} = kron(conj(U),U);
     Prop.SigmaOffsetTotal{k,1} = zeros(n*n,1);
   end
 end
+Prop.Flip = Flip;
+Prop.phi = phi;
+Prop.Relaxation = Event.Relaxation;
 end

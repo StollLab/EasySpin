@@ -1337,15 +1337,19 @@ end
 %
 %   [FrameOffset,FrameFreq,FrameBand] = rfFrameParameters(Pulse)
 %
-%   sf_propagate multiplies the waveform with exp(2i*pi*FrameOffset*1e3*tStart),
-%   tStart being the start time of the pulse on the sequence clock.
+%   The waveform gets the start phase 2*pi*FrameOffset*1e3*tStart, tStart
+%   being the start time of the pulse on the sequence clock.
 %   - Lab-frame waveform: FrameOffset is the carrier, so that the carrier
-%     phase is continuous over the sequence.
+%     phase is continuous over the sequence. sf_propagate multiplies the
+%     waveform with exp(1i*startPhase).
 %   - Envelope in the nuclear RF frame (Pulse.rfFrame), relative to the
 %     center frequency f0 of Pulse.Frequency: the lab field is the envelope
 %     times exp(2i*pi*FrameFreq*t) on the sequence clock, with FrameFreq =
 %     rfCarrier + f0. With FrameOffset = -f0, the pulse waveform starts at
-%     the start of the pulse, as in the lab frame.
+%     the start of the pulse, as in the lab frame. sf_propagate takes the
+%     field relative to the start of the pulse and adds the frame phase
+%     2*pi*FrameFreq*tStart to the start phase; rfFramePropagators applies
+%     the start phase as a rotation of the whole pulse.
 %
 %   Input:
 %     Pulse        pulse; uses Frequency (MHz), rfCarrier (MHz), rfFrame
