@@ -56,7 +56,12 @@
 %       Channel             'mw' or 'rf'
 %       PhaseCycle          phases (radians), one row per phase cycle step
 %                           (from Exp.pulseCycles)
-%       FrameOffset         carrier frequency (GHz) in the simulation frame
+%       FrameOffset         carrier frequency (GHz) in the simulation frame;
+%                           for RF pulses, see rfFrameParameters
+%       FrameFreq, FrameBand  RF pulses only: in a shifted simulation frame,
+%                           frequency (MHz) of the nuclear RF frame, and
+%                           [lowest highest] RF frequency (MHz) of the pulse;
+%                           empty in the lab frame
 %       Polarization        'linear' or 'circular'
 %       Ringing             duration (µs) of the resonator ringing, if any
 %     Vary    structure with the indirect dimensions, [] if there are none,
@@ -70,8 +75,8 @@
 %                           the pulse is not varied; otherwise, a structure
 %                           with cell arrays over the points of IQs and ts
 %                           (waveforms and time axes), array Ringing (if
-%                           any), and, for RF pulses, FrameOffsets and
-%                           TimeSteps
+%                           any), and, for RF pulses, FrameOffsets,
+%                           FrameFreqs, FrameBands and TimeSteps
 %     Opt     input structure, with the fields
 %       SinglePointDetection  true for single-point detection
 %       FrameShift            simulation frame frequency (GHz)
@@ -469,7 +474,9 @@ for iEvent = 1:length(Exp.Sequence)
       Pulse.isRF = isRFEvent(iEvent);
       if Pulse.isRF
         Pulse.rfCarrier = rfCarrier;  % MHz
-        Pulse.TimeStep = rfTimeStep(rfCarrier,Pulse.Frequency,Pulse.tp);
+        Pulse.rfFrame = frameShift~=0;
+        Pulse.Detected = detectEvents(iEvent);
+        Pulse.TimeStep = rfTimeStep(Pulse,Exp.DetTimeStep);
         if ~isfield(Pulse,'B1') && isfield(Opt,'rfGammaRef')
           Pulse.rfGammaRef = Opt.rfGammaRef;
         end
@@ -545,9 +552,12 @@ for iEvent = 1:length(Exp.Sequence)
     % includes user-supplied lab-frame waveforms, which are taken to be
     % upconverted with the carrier at Exp.mwFreq.
     % RF pulses have their own carrier (Exp.rfFreq, or 0 without it, in
-    % GHz), on the same sequence clock.
+    % GHz), on the same sequence clock. In a shifted simulation frame, they
+    % are propagated in a nuclear frame rotating at FrameFreq (see
+    % rfFrameParameters).
     if Pulse.isRF
-      Events{iEvent}.FrameOffset = rfCarrier/1e3;
+      [Events{iEvent}.FrameOffset,Events{iEvent}.FrameFreq,Events{iEvent}.FrameBand] = ...
+        rfFrameParameters(Pulse);
     else
       Events{iEvent}.FrameOffset = freqShift;
     end
@@ -954,7 +964,7 @@ if isfield(Exp,'nPoints')
 
           % RF pulses: time step for the RF frequency of this point
           if pulses{iPulse}.isRF
-            pulses{iPulse}.TimeStep = rfTimeStep(pulses{iPulse}.rfCarrier,pulses{iPulse}.Frequency,pulses{iPulse}.tp);
+            pulses{iPulse}.TimeStep = rfTimeStep(pulses{iPulse},Exp.DetTimeStep);
           end
 
           % Convert array into cell for indexing
@@ -972,7 +982,9 @@ if isfield(Exp,'nPoints')
 
           Vary.Pulses{iPulse}.ts{ArrayIndex{:}} = t;
           if pulses{iPulse}.isRF
-            Vary.Pulses{iPulse}.FrameOffsets{ArrayIndex{:}} = pulses{iPulse}.rfCarrier/1e3;
+            [Vary.Pulses{iPulse}.FrameOffsets{ArrayIndex{:}},...
+              Vary.Pulses{iPulse}.FrameFreqs{ArrayIndex{:}},...
+              Vary.Pulses{iPulse}.FrameBands{ArrayIndex{:}}] = rfFrameParameters(pulses{iPulse});
             Vary.Pulses{iPulse}.TimeSteps{ArrayIndex{:}} = pulses{iPulse}.TimeStep;
           end
           
@@ -1142,9 +1154,12 @@ end
 %     instantaneous rotation.
 %   - RF pulses: lab-frame waveform (carrier at Pulse.rfCarrier, MHz, from
 %     the start of the pulse, plus the pulse's Frequency, which is absolute
-%     if the carrier is 0) in units of the RF field (mT). Without B1, the
-%     amplitude is nominal: the flip angle of a bare nucleus with the
-%     gyromagnetic ratio Pulse.rfGammaRef (MHz/mT).
+%     if the carrier is 0) in units of the RF field (mT). In a shifted
+%     simulation frame (Pulse.rfFrame), the envelope relative to the center
+%     frequency f0 of Pulse.Frequency instead, i.e. without the carrier and
+%     with exp(-2i*pi*f0*t). Without B1, the amplitude is nominal: the flip
+%     angle of a bare nucleus with the gyromagnetic ratio Pulse.rfGammaRef
+%     (MHz/mT).
 %   - Finite microwave pulses: from pulse(), through the resonator, shifted
 %     to the simulation frame.
 %
@@ -1153,6 +1168,8 @@ end
 %       isIdeal, isRF     pulse type
 %       PhaseCycle        phases (radians), one row per phase cycle step
 %       rfCarrier         RF carrier frequency (MHz, 0 without a carrier),
+%                         RF pulses
+%       rfFrame           true for the envelope in the nuclear RF frame,
 %                         RF pulses
 %       B1                RF field amplitude (mT), RF pulses, optional
 %       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B1
@@ -1180,7 +1197,7 @@ end
 Par = Pulse;
 Par.Phase = phase;
 Par = rmfield(Par,intersect(fieldnames(Par),{'isIdeal','isRF','rfCarrier','rfGammaRef',...
-  'B1','Channel','PhaseCycle','EventIndex','ArrayIndex','userIQ','Operator'}));
+  'rfFrame','Detected','B1','Channel','PhaseCycle','EventIndex','ArrayIndex','userIQ','Operator'}));
 if Pulse.isRF
   if isfield(Pulse,'B1') && ~isempty(Pulse.B1)
     Par = rmfield(Par,intersect(fieldnames(Par),{'Flip','Qcrit'}));
@@ -1193,7 +1210,12 @@ if Pulse.isRF
     [t,IQ] = pulse(Par);
     IQ = IQ/Pulse.rfGammaRef;  % MHz -> mT
   end
-  IQ = IQ.*exp(2i*pi*Pulse.rfCarrier*t);
+  if Pulse.rfFrame
+    % envelope relative to the center frequency f0 of the pulse
+    IQ = IQ.*exp(-2i*pi*mean(Pulse.Frequency([1 end]))*t);
+  else
+    IQ = IQ.*exp(2i*pi*Pulse.rfCarrier*t);
+  end
   return
 end
 [t,IQ] = pulse(Par);
@@ -1270,20 +1292,79 @@ end
 %-------------------------------------------------------------------------------
 % rfTimeStep  Time step for RF pulses
 %
-%   dt = rfTimeStep(rfFreq,Frequency,tp)
+%   dt = rfTimeStep(Pulse,DetTimeStep)
+%
+%   Lab-frame waveform: at least 40 points per period of the highest RF
+%   frequency, and at least 100 steps per pulse (needed for RF frequencies
+%   near zero).
+%   Envelope in the nuclear RF frame (Pulse.rfFrame): the field is constant
+%   within each step, so the step only needs to resolve the envelope. A
+%   rectangular pulse at a fixed frequency is a single step. Otherwise, at
+%   least 40 points per period of the largest offset of Pulse.Frequency
+%   from its center, and at least 100 steps per pulse (amplitude shapes).
+%   The step is at most DetTimeStep if the pulse is detected.
+%   The step divides the pulse length, so that the waveform ends at tp.
 %
 %   Input:
-%     rfFreq     RF carrier frequency (MHz), 0 without a carrier
-%     Frequency  frequency offset(s) of the pulse from the carrier, or
-%                absolute frequencies without a carrier (MHz)
-%     tp         pulse length (µs)
+%     Pulse        pulse; uses tp, Frequency (offsets from the carrier, or
+%                  absolute frequencies without a carrier, MHz), Type,
+%                  rfCarrier (MHz, 0 without a carrier), rfFrame, Detected
+%     DetTimeStep  detection time step (µs)
 %
 %   Output:
-%     dt         time step (µs): at least 40 points per period of the
-%                highest RF frequency in the lab frame, and at least 100
-%                steps per pulse (needed for RF frequencies near zero). The
-%                step divides the pulse length, so that the waveform ends
-%                at tp.
-function dt = rfTimeStep(rfFreq,Frequency,tp)
-dt = tp/max(100,ceil(40*(abs(rfFreq)+max(abs(Frequency)))*tp));
+%     dt           time step (µs)
+function dt = rfTimeStep(Pulse,DetTimeStep)
+tp = Pulse.tp;
+if ~Pulse.rfFrame
+  dt = tp/max(100,ceil(40*(abs(Pulse.rfCarrier)+max(abs(Pulse.Frequency)))*tp));
+  return
+end
+maxOffset = max(abs(Pulse.Frequency - mean(Pulse.Frequency([1 end]))));
+amplitudeShape = strtok(Pulse.Type,'/');
+if strcmpi(amplitudeShape,'rectangular') && maxOffset==0
+  nSteps = 1;
+else
+  nSteps = max(100,ceil(40*maxOffset*tp));
+end
+if Pulse.Detected
+  nSteps = max(nSteps,ceil(tp/DetTimeStep*(1-1e-12)));
+end
+dt = tp/nSteps;
+end
+
+%-------------------------------------------------------------------------------
+% rfFrameParameters  Carrier phase and nuclear frame of an RF pulse
+%
+%   [FrameOffset,FrameFreq,FrameBand] = rfFrameParameters(Pulse)
+%
+%   sf_propagate multiplies the waveform with exp(2i*pi*FrameOffset*1e3*tStart),
+%   tStart being the start time of the pulse on the sequence clock.
+%   - Lab-frame waveform: FrameOffset is the carrier, so that the carrier
+%     phase is continuous over the sequence.
+%   - Envelope in the nuclear RF frame (Pulse.rfFrame), relative to the
+%     center frequency f0 of Pulse.Frequency: the lab field is the envelope
+%     times exp(2i*pi*FrameFreq*t) on the sequence clock, with FrameFreq =
+%     rfCarrier + f0. With FrameOffset = -f0, the pulse waveform starts at
+%     the start of the pulse, as in the lab frame.
+%
+%   Input:
+%     Pulse        pulse; uses Frequency (MHz), rfCarrier (MHz), rfFrame
+%
+%   Output:
+%     FrameOffset  frequency (GHz) of the start-time phase
+%     FrameFreq    frequency (MHz) of the nuclear RF frame; empty in the
+%                  lab frame
+%     FrameBand    [lowest highest] RF frequency of the pulse (MHz); empty
+%                  in the lab frame
+function [FrameOffset,FrameFreq,FrameBand] = rfFrameParameters(Pulse)
+if ~Pulse.rfFrame
+  FrameOffset = Pulse.rfCarrier/1e3;
+  FrameFreq = [];
+  FrameBand = [];
+  return
+end
+f0 = mean(Pulse.Frequency([1 end]));
+FrameOffset = -f0/1e3;
+FrameFreq = Pulse.rfCarrier + f0;
+FrameBand = Pulse.rfCarrier + [min(Pulse.Frequency) max(Pulse.Frequency)];
 end

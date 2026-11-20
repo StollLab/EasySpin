@@ -17,8 +17,11 @@
 %     Ham0        static Hamiltonian in the simulation frame (MHz), n x n
 %     Det         detection structure, from sf_propagationsetup
 %     Events      cell array of events, from sf_buildevents and
-%                 sf_propagationsetup, with the optional field
+%                 sf_propagationsetup, with the optional fields
 %       vertRes     vertical resolution of the pulse lookup table, default 1024
+%       rfFrame     RF pulses in a shifted simulation frame: eigenbasis and
+%                   labels of the nuclear RF frame, from sf_engine_fullspace
+%                   (see rfFramePropagators)
 %     Relaxation  relaxation structure, [] without relaxation, with fields
 %       Gamma             relaxation superoperator (1/µs), from
 %                         sf_relaxationsuperoperator
@@ -187,6 +190,9 @@ for iPoints = 1 : nPoints
         if isfield(Vary.Pulses{iPulse},'FrameOffsets')
           Events{iEvent}.FrameOffset = LoadfromArray(Vary.Pulses{iPulse}.FrameOffsets,DimensionIndices);
         end
+        if isfield(Vary.Pulses{iPulse},'FrameFreqs')
+          Events{iEvent}.FrameFreq = LoadfromArray(Vary.Pulses{iPulse}.FrameFreqs,DimensionIndices);
+        end
         if isfield(Vary.Pulses{iPulse},'TimeSteps')
           % RF pulses: the time step depends on the RF frequency of this point
           Events{iEvent}.TimeStep = LoadfromArray(Vary.Pulses{iPulse}.TimeSteps,DimensionIndices);
@@ -238,7 +244,22 @@ for iPoints = 1 : nPoints
     end
     halfStepPhaseRot = exp(1i*angle(sum(conj(IQ(:,1:end-1)).*IQ(:,2:end),'all'))/2);
     IQ = (IQ(:,1:end-1)*halfStepPhaseRot + IQ(:,2:end)*conj(halfStepPhaseRot))/2;
-    Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
+    rfEnvelope = isfield(Events{iEvent},'FrameFreq') && ~isempty(Events{iEvent}.FrameFreq);
+    if rfEnvelope && ~isfield(Events{iEvent},'rfFrame')
+      error(['The RF pulse at position %d has an envelope for the nuclear RF frame ' ...
+        '(shifted simulation frame), but no rfFrame (set up by sf_engine_fullspace).'],iEvent);
+    end
+    if rfEnvelope
+      % RF pulse in the nuclear RF frame: IQ is the envelope relative to
+      % exp(2i*pi*FrameFreq*t); the lab-frame field at the middle of each
+      % step is the envelope times the frame phase there
+      t = Events{iEvent}.t;
+      tMid = tStart(iEvent) + (t(1:end-1)+t(2:end))/2;
+      IQ = IQ.*exp(2i*pi*Events{iEvent}.FrameFreq*tMid);
+      Events{iEvent}.Propagation = rfFramePropagators(Events{iEvent},IQ);
+    else
+      Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
+    end
   end
   
   % Get the data points in all dimensions of the current acquistion,
@@ -882,6 +903,15 @@ if Event.Relaxation % Set up for Liouville space simulations
   end
 end
 
+% RF pulses in the nuclear RF frame (see rfFramePropagators) need the
+% rotated form
+frameAdvance = isfield(Event,'frameAdvance');
+if frameAdvance && ~rotated
+  error(['RF pulses in a shifted simulation frame need an equilibrium state ' ...
+    'without nuclear coherences (Sys.eqState). Use Opt.SimFreq = 0 to simulate ' ...
+    'in the lab frame.']);
+end
+
 if rotated
   amplitudes = 2*pi*MaxWave/vertRes*(0:vertRes);
   tableIndex = round(vertRes*abs(IQ)/MaxWave)+1;
@@ -928,6 +958,21 @@ if useTable
   else
     missing = used(cellfun(@isempty,Prop.LTable(used)));
     [Prop.LTable(missing), Prop.SigmaOffsetTable(missing)] = buildLiouvillians(Ham0,Gamma,equilibriumState,Event.xOp,Event.TimeStep,amplitudes(missing));
+  end
+  if frameAdvance
+    % Frame advance over half a step before and after each step, q =
+    % exp(-1i*pi*F*f*dt), so that the step propagators are those of the
+    % frame at the middle of the step (see rfFramePropagators)
+    q = Event.frameAdvance;
+    for k = missing
+      if ~Event.Relaxation
+        Prop.UTable{k} = q.*Prop.UTable{k}.*q.';
+      else
+        p = kron(conj(q),q);  % vectorized: rho(i,j) -> q(i)*rho(i,j)*conj(q(j))
+        Prop.LTable{k} = p.*Prop.LTable{k}.*p.';
+        Prop.SigmaOffsetTable{k} = p.*Prop.SigmaOffsetTable{k};
+      end
+    end
   end
 end
 
@@ -1059,6 +1104,104 @@ else
 end
 Prop.IQ = IQ;
 Prop.TimeStep = Event.TimeStep;
+end
+
+
+% rfFramePropagators  Propagators of an RF pulse in the nuclear RF frame
+%
+%   Prop = rfFramePropagators(Event,IQ)
+%
+%   The RF pulse is propagated in the frame rotating at F = Event.FrameFreq
+%   about the generator G = V*diag(f)*V', which is diagonal in the
+%   eigenbasis V of the static Hamiltonian H (labels f, see
+%   sf_engine_fullspace). G commutes with H, so H is not truncated. In the
+%   frame, H_rot = diag(E - F*f) in the eigenbasis, and only the parts of
+%   the RF field that rotate with the frame are kept (rotating-wave
+%   approximation): H1 = conj(c)*Xp + c*Xp', where c is the lab-frame field
+%   amplitude IQ and Xp holds the elements of the RF operator with
+%   f(k)-f(l) = +1. This is the rotated form of pulsePropagators, with
+%   coherence order f(k)-f(l).
+%   A lab-frame step from t(k) to t(k+1) is P(t(k+1))*U*P(t(k))', P(t) =
+%   exp(-2i*pi*F*f*t). With P at the middle of the step, this is
+%   q.*U.*q.' (q = exp(-1i*pi*F*f*dt)), rotated about G by the lab-frame
+%   phase of the field at the middle of the step, which IQ includes. The
+%   product of the steps is therefore the lab-frame propagator. The
+%   propagators are transformed back to the product basis.
+%
+%   Input:
+%     Event       RF pulse event; uses rfFrame (V, E, f, Xp, and, with
+%                 relaxation, Gamma and equilibriumState in the eigenbasis),
+%                 FrameFreq (MHz), Propagation, TimeStep, Relaxation, and
+%                 the fields used by pulsePropagators
+%     IQ          lab-frame field (mT) at the middle of each time step
+%                 (rows: phase cycle steps, columns: time steps)
+%
+%   Output:
+%     Prop        structure as from pulsePropagators (Utotal, or Ltotal,
+%                 SigmaOffsetTotal and an empty PhaseTotal), in the product
+%                 basis, with the fields
+%       eigen       lookup table of the propagators in the eigenbasis
+%       IQ, TimeStep, FrameFreq  inputs of these propagators
+function Prop = rfFramePropagators(Event,IQ)
+Prop = Event.Propagation;
+F = Event.FrameFreq;
+if isfield(Prop,'IQ') && isequal(Prop.IQ,IQ) && Prop.TimeStep==Event.TimeStep && Prop.FrameFreq==F
+  return
+end
+
+fr = Event.rfFrame;
+V = fr.V;
+f = fr.f;
+
+% Pulse event in the eigenbasis; its lookup table is kept while the frame
+% frequency stays the same
+eigenEvent = Event;
+eigenEvent.xOp = fr.Xp + fr.Xp';
+eigenEvent.yOp = 1i*(fr.Xp' - fr.Xp);
+eigenEvent.CoherenceOrder = f - f.';
+eigenEvent.frameAdvance = exp(-1i*pi*F*f*Event.TimeStep);
+if isfield(Prop,'eigen') && Prop.FrameFreq==F
+  eigenEvent.Propagation = Prop.eigen;
+else
+  eigenEvent.Propagation = [];
+end
+Ham0 = 2*pi*diag(fr.E - F*f);  % rad/µs
+RelaxationEigen = [];
+if Event.Relaxation
+  RelaxationEigen.Gamma = fr.Gamma;
+  RelaxationEigen.equilibriumState = fr.equilibriumState;
+end
+eigenProp = pulsePropagators(eigenEvent,IQ,Ham0,RelaxationEigen);
+
+% Back to the product basis
+Prop = struct;
+if ~Event.Relaxation
+  Prop.Utotal = cellfun(@(U) V*U*V', eigenProp.Utotal,'UniformOutput',false);
+else
+  % vec(V*sigma*V') = R'*vec(sigma); the rotation about G, d(i)*conj(d(j))
+  % for the vectorized state, is included in each step
+  R = kron(V.',V');
+  [nPhaseSteps,nWavePoints] = size(eigenProp.Ltotal);
+  Prop.Ltotal = cell(nPhaseSteps,nWavePoints);
+  Prop.SigmaOffsetTotal = cell(nPhaseSteps,nWavePoints);
+  for iPhaseStep = 1:nPhaseSteps
+    for iWavePoint = 1:nWavePoints
+      d = eigenProp.PhaseTotal{iPhaseStep}(:,iWavePoint);
+      p = d.*d';
+      p = p(:);
+      L = p.*eigenProp.Ltotal{iPhaseStep,iWavePoint}.*p';
+      Prop.Ltotal{iPhaseStep,iWavePoint} = R'*L*R;
+      Prop.SigmaOffsetTotal{iPhaseStep,iWavePoint} = R'*(p.*eigenProp.SigmaOffsetTotal{iPhaseStep,iWavePoint});
+    end
+  end
+  Prop.PhaseTotal = [];
+end
+% only the lookup table is reused
+Prop.eigen = rmfield(eigenProp,intersect(fieldnames(eigenProp),...
+  {'Utotal','Ltotal','SigmaOffsetTotal','PhaseTotal','IQ','TimeStep'}));
+Prop.IQ = IQ;
+Prop.TimeStep = Event.TimeStep;
+Prop.FrameFreq = F;
 end
 
 

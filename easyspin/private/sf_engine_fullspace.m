@@ -150,14 +150,35 @@ if userInitState
   end
 end
 
-% RF pulses: their excitation operator is set up for each orientation
+% RF pulses: their excitation operator is set up for each orientation. In
+% a shifted frame, they are propagated in the nuclear RF frame (see
+% nuclearRFFrame), with the rotating-wave approximation. For its error,
+% rfDrive lists the largest field amplitude (mT) and the frequency band
+% (MHz) of each RF pulse, one row per pulse and point.
 rfEvents = find(cellfun(@(E) strcmp(E.type,'pulse') && isfield(E,'Channel') && strcmp(E.Channel,'rf'),Events));
+useRFFrame = shiftedFrame && ~isempty(rfEvents);
+rfDrive = zeros(0,3);
+if useRFFrame
+  logmsg(1,'  RF pulses in the nuclear RF frame (rotating-wave approximation)');
+  for iEvent = rfEvents
+    rfDrive(end+1,:) = [max(abs(Events{iEvent}.IQ(:))) Events{iEvent}.FrameBand]; %#ok<AGROW>
+    iPulse = find(pulseEvents==iEvent);
+    if isstruct(Vary) && isfield(Vary,'Pulses') && ~isempty(Vary.Pulses{iPulse})
+      for k = 1:numel(Vary.Pulses{iPulse}.IQs)
+        if ~isempty(Vary.Pulses{iPulse}.IQs{k})
+          rfDrive(end+1,:) = [max(abs(Vary.Pulses{iPulse}.IQs{k}(:))) Vary.Pulses{iPulse}.FrameBands{k}]; %#ok<AGROW>
+        end
+      end
+    end
+  end
+end
 
 rawSignals = cell(1,nOrientations);
 timeAxis = cell(1,nOrientations);
 eventTimes = cell(1,nOrientations);
 minWeight = ones(1,nOrientations);
 minOverlap = ones(1,nOrientations);
+rwaError = zeros(1,nOrientations);
 
 logmsg(1,'-starting orientation loop-----------------------------');
 logmsg(1,'  propagating %d orientations, %d phase cycle run(s), %d pathway run(s)',...
@@ -181,6 +202,7 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
   % The hyperfine enhancement via the electron Zeeman interaction with the
   % RF field is not included.
   Events_ = Events;
+  muxL = [];
   if ~isempty(rfEvents)
     [muxL,~,~] = ham_nz(Sys_L);
     for iEvent = rfEvents
@@ -209,11 +231,31 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
 
   Ham = Ham - Opt.FrameShift*1e3*Sz_total;  % simulation frame (MHz)
 
+  % Relaxation superoperator, in the product basis and in the eigenbasis V
+  % of Ham (the latter for the nuclear RF frame)
   Relaxation_ = Relaxation;
+  V = [];
+  GammaEigen = [];
   if ~isempty(Relaxation_)
-    [Relaxation_.Gamma,minOverlap(iOrientation)] = sf_relaxationsuperoperator(Sys,Ham);
+    [Relaxation_.Gamma,minOverlap(iOrientation),GammaEigen,V] = sf_relaxationsuperoperator(Sys,Ham);
     if isempty(Relaxation_.equilibriumState)
       Relaxation_.equilibriumState = Sigma_;
+    end
+  end
+
+  % Nuclear RF frame, the same for all RF pulses
+  if useRFFrame
+    if isempty(V)
+      V = sf_eigenbasis(Ham);
+    end
+    [rfFrame,X] = nuclearRFFrame(Ham,V,-muxL,Sys.Spins,Sys.nElectrons);
+    rwaError(iOrientation) = rfRWAError(rfFrame.E,rfFrame.f,X,rfDrive);
+    if ~isempty(Relaxation_)
+      rfFrame.Gamma = GammaEigen;
+      rfFrame.equilibriumState = V'*Relaxation_.equilibriumState*V;
+    end
+    for iEvent = rfEvents
+      Events_{iEvent}.rfFrame = rfFrame;
     end
   end
 
@@ -228,6 +270,24 @@ if min(minWeight)<0.9
     'mS manifold: %0.2f). The high-field approximation used in the shifted ' ...
     'simulation frame can be inaccurate. Use Opt.SimFreq = 0 to simulate in ' ...
     'the lab frame.'],min(minWeight));
+end
+% Threshold on the relative error of the rotating-wave approximation for RF
+% pulses (Bloch-Siegert shift relative to the nutation frequency, see
+% rfRWAError). Measured deviation from lab-frame stepping (largest
+% difference relative to the largest signal, single orientation) for the
+% estimated error eps: Mims ENDOR of 1H at 350 mT with RF pi pulses of
+% 2.5, 5, 10, 20 us: eps = 3.7e-3, 1.9e-3, 9.3e-4, 4.6e-4, deviation
+% 9.6e-3, 3.1e-3, 1.3e-3, 9.4e-4; 14N with |A| > 2*nuL, 10 us: eps = 2.0e-3,
+% deviation 1.6e-3; time-domain ENDOR with 1 us RF pi/2 pulses: eps =
+% 4.2e-3, deviation 5.9e-3. The deviation is 0.8 to 2.6 times eps.
+rwaTolerance = 0.01;
+if useRFFrame
+  logmsg(1,'  RF pulses: largest relative error of the rotating-wave approximation %0.2g',max(rwaError));
+end
+if max(rwaError)>rwaTolerance
+  warning(['The rotating-wave approximation for RF pulses can be inaccurate ' ...
+    '(estimated relative error %0.2g: RF frequency close to zero, or strong RF field). ' ...
+    'Use Opt.SimFreq = 0 to simulate in the lab frame.'],max(rwaError));
 end
 relaxationMatrix = ~isscalar(Sys.T1) || ~isscalar(Sys.T2);
 if relaxationMatrix && min(minOverlap)<0.5
@@ -341,6 +401,112 @@ end
 distinct = unique(expanded,'rows');
 if size(distinct,1)<size(expanded,1)
   orders = distinct;
+end
+end
+
+
+%===============================================================================
+% nuclearRFFrame  Eigenbasis and frame labels for RF pulses
+%
+%   [rfFrame,X] = nuclearRFFrame(H,V,X0,Spins,nElectrons)
+%
+%   RF pulses are propagated in a frame that rotates about the generator
+%   G = V*diag(f)*V', which is diagonal in the eigenbasis V of H, so that H
+%   commutes with G exactly and is not truncated (see rfFramePropagators in
+%   sf_propagate). Each eigenstate k (column k of V, assigned to product
+%   state k by sf_eigenbasis) gets the
+%   label f(k) = sum over nuclei i of s_i*m_i(k), where m_i(k) is the m of
+%   nucleus i in that product state, and s_i = +1 or -1 is the sense of
+%   precession of nucleus i in the electron mS manifold of k: the sign of
+%   tr(P_mS*Iz_i*H), the first-order z frequency of nucleus i in the
+%   manifold (+1 if zero). The sense can differ between the manifolds, e.g.
+%   if the hyperfine coupling is larger than twice the nuclear Zeeman
+%   frequency. With these labels, the energy of the states rises with f
+%   along the NMR transitions, so all of them rotate with the frame.
+%
+%   Input:
+%     H           Hamiltonian (MHz) in the simulation frame, commuting with
+%                 the total electron Sz
+%     V           eigenvectors of H, from sf_eigenbasis
+%     X0          RF excitation operator (MHz/mT), product basis: the field
+%                 B1 (mT) along x(Lab) gives B1*X0
+%     Spins       spin quantum numbers (Sys.Spins), electrons first
+%     nElectrons  number of electron spins
+%
+%   Output:
+%     rfFrame     structure with the fields
+%       V           eigenvectors of H (columns), as input
+%       E           eigenvalues (MHz), column
+%       f           labels, column
+%       Xp          elements of X with f(k)-f(l) = +1, zero elsewhere
+%     X           RF excitation operator in the eigenbasis, V'*X0*V
+function [rfFrame,X] = nuclearRFFrame(H,V,X0,Spins,nElectrons)
+E = real(diag(V'*H*V));
+
+% Electron manifold of each product state
+mS = 0;
+for iSpin = 1:nElectrons
+  mS = mS + full(diag(sop(Spins,[iSpin,3])));
+end
+[~,~,manifold] = unique(mS);
+
+% Labels: m of each nucleus, signed by its sense of precession in the
+% manifold, tr(P_mS*Iz*H) = sum of m.*diag(H) over the manifold
+Hdiag = real(diag(H));
+f = zeros(size(H,1),1);
+for iSpin = nElectrons+1:numel(Spins)
+  m = full(diag(sop(Spins,[iSpin,3])));
+  for iManifold = 1:max(manifold)
+    inManifold = manifold==iManifold;
+    s = sign(sum(m(inManifold).*Hdiag(inManifold)));
+    if s==0, s = 1; end
+    f(inManifold) = f(inManifold) + s*m(inManifold);
+  end
+end
+
+X = V'*X0*V;
+rfFrame.V = V;
+rfFrame.E = E;
+rfFrame.f = f;
+rfFrame.Xp = X.*(abs(f-f.'-1)<1e-9);
+end
+
+
+%===============================================================================
+% rfRWAError  Error of the rotating-wave approximation for RF pulses
+%
+%   err = rfRWAError(E,f,X,drive)
+%
+%   The RF field 2*Re(c*exp(2i*pi*F*t))*X0 is kept in the nuclear RF frame
+%   only where it rotates with the frame (see nuclearRFFrame): the term
+%   c*X(k,l) where f(k)-f(l) = -1, and its Hermitian conjugate. Relative to
+%   H, a dropped term c*X(k,l) oscillates at E(k)-E(l)+F. Its leading
+%   effect is a Bloch-Siegert shift, which, relative to the nutation
+%   frequency, is the ratio of its amplitude |c*X(k,l)| to the frequency
+%   distance |E(k)-E(l)+F|. The error is the largest ratio over all dropped
+%   terms, with F anywhere in the frequency band of the pulse.
+%
+%   Input:
+%     E      eigenvalues of H (MHz), column
+%     f      labels of the eigenstates, column
+%     X      RF excitation operator in the eigenbasis (MHz/mT)
+%     drive  RF pulses, one row per pulse and point: largest field
+%            amplitude (mT), lowest and highest frequency of the band (MHz)
+%
+%   Output:
+%     err    largest relative error over all pulses (Inf if a dropped term
+%            is resonant)
+function err = rfRWAError(E,f,X,drive)
+dropped = abs(f-f.'+1)>1e-9;
+Xabs = abs(X).*dropped;
+Xabs(Xabs<=1e-12*max(abs(X(:)))) = 0;
+resonance = E.' - E;  % E(l)-E(k): frequency at which the term c*X(k,l) is static
+err = 0;
+for r = 1:size(drive,1)
+  distance = max(max(drive(r,2)-resonance,resonance-drive(r,3)),0);
+  ratio = drive(r,1)*Xabs./distance;
+  ratio(Xabs==0) = 0;
+  err = max(err,max(ratio(:)));
 end
 end
 
