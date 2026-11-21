@@ -152,25 +152,93 @@ end
 
 % RF pulses: their excitation operator is set up for each orientation. In
 % a shifted frame, they are propagated in the nuclear RF frame (see
-% nuclearRFFrame), with the rotating-wave approximation. For its error,
-% rfDrive lists the largest field amplitude (mT) and the frequency band
-% (MHz) of each RF pulse, one row per pulse and point.
+% sf_rfframe), with the rotating-wave approximation, if its error is below
+% rwaTolerance, and are stepped otherwise (see rfSteppedPropagators in
+% sf_propagate). For the error, rfDrive lists the largest field amplitude
+% (mT) and the frequency band (MHz) of each RF pulse, one row per point,
+% rfDriveEvent the RF pulse of each row, and rfDrivePoint the point (index
+% into the wave forms of the pulse in Vary, 0 for the single wave form in
+% Events).
+% The choice is made for each point, so that e.g. an RF sweep is stepped
+% only at the RF frequencies where the error is large.
+% Threshold on the relative error of the rotating-wave approximation (the
+% Bloch-Siegert shift relative to the nutation frequency). Measured
+% deviation from lab-frame stepping (largest difference relative to the
+% largest signal, single orientation) for the estimated error eps: Mims
+% ENDOR of 1H at 350 mT with RF pi pulses of 2.5, 5, 10, 20 us: eps =
+% 3.7e-3, 1.9e-3, 9.3e-4, 4.6e-4, deviation 9.6e-3, 3.1e-3, 1.3e-3, 9.4e-4;
+% 14N with |A| > 2*nuL, 10 us: eps = 2.0e-3, deviation 1.6e-3; time-domain
+% ENDOR with 1 us RF pi/2 pulses: eps = 4.2e-3, deviation 5.9e-3. The
+% deviation is 0.8 to 2.6 times eps.
+rwaTolerance = 0.01;
 rfEvents = find(cellfun(@(E) strcmp(E.type,'pulse') && isfield(E,'Channel') && strcmp(E.Channel,'rf'),Events));
-useRFFrame = shiftedFrame && ~isempty(rfEvents);
+nRF = numel(rfEvents);
+useRFFrame = shiftedFrame && nRF>0;
 rfDrive = zeros(0,3);
+rfDriveEvent = zeros(0,1);
+rfDrivePoint = zeros(0,1);
+rfPointsSize = cell(1,nRF);  % size of the array of wave forms in Vary, [] if none
 if useRFFrame
-  logmsg(1,'  RF pulses in the nuclear RF frame (rotating-wave approximation)');
-  for iEvent = rfEvents
-    rfDrive(end+1,:) = [max(abs(Events{iEvent}.IQ(:))) Events{iEvent}.FrameBand]; %#ok<AGROW>
+  logmsg(1,'  RF pulses in the nuclear RF frame (rotating-wave approximation), stepped where its error exceeds %g',rwaTolerance);
+  for k = 1:nRF
+    iEvent = rfEvents(k);
     iPulse = find(pulseEvents==iEvent);
     if isstruct(Vary) && isfield(Vary,'Pulses') && ~isempty(Vary.Pulses{iPulse})
-      for k = 1:numel(Vary.Pulses{iPulse}.IQs)
-        if ~isempty(Vary.Pulses{iPulse}.IQs{k})
-          rfDrive(end+1,:) = [max(abs(Vary.Pulses{iPulse}.IQs{k}(:))) Vary.Pulses{iPulse}.FrameBands{k}]; %#ok<AGROW>
+      % wave forms of the points (sf_propagate loads them for each point)
+      rfPointsSize{k} = size(Vary.Pulses{iPulse}.IQs);
+      for p = 1:numel(Vary.Pulses{iPulse}.IQs)
+        if ~isempty(Vary.Pulses{iPulse}.IQs{p})
+          rfDrive(end+1,:) = [max(abs(Vary.Pulses{iPulse}.IQs{p}(:))) Vary.Pulses{iPulse}.FrameBands{p}]; %#ok<AGROW>
+          rfDrivePoint(end+1,1) = p; %#ok<AGROW>
         end
       end
+    else
+      rfDrive(end+1,:) = [max(abs(Events{iEvent}.IQ(:))) Events{iEvent}.FrameBand]; %#ok<AGROW>
+      rfDrivePoint(end+1,1) = 0; %#ok<AGROW>
     end
+    rfDriveEvent(end+1:size(rfDrive,1),1) = k;
   end
+end
+
+% Random RF phase (Exp.rfPhaseLocked = false): the RF carrier has a random
+% phase in each shot, the same for all RF pulses of the shot. The signal
+% is averaged over it with an internal cycle of nRFPhases equally spaced
+% phases (see rfPhaseAverage). Within the rotating-wave approximation, a
+% phase phi of the RF field rotates each RF propagator about G (see
+% sf_rfframe), U -> R*U*R' with R = exp(-1i*phi*G). The state before an RF
+% pulse and the detection operator propagated back to its end have parts
+% with f orders between -K and K, K = max(f)-min(f) = 2*sum(I), which
+% acquire the factors exp(1i*k*phi). Each RF pulse thus adds harmonics of
+% phi up to order 2*K. RF pulses separated only by delays act as one,
+% since the free evolution (and the projection onto electron coherence
+% orders) commutes with G, so the rotations between them cancel. With
+% nRFGroups such groups, the signal is a trigonometric polynomial of
+% degree at most 2*nRFGroups*K, and its average over 2*nRFGroups*K+1
+% equally spaced phases is exact. Without the rotating-wave approximation
+% (stepped RF pulses, lab frame), the counter-rotating part of the field
+% adds higher harmonics, and the number of phases is doubled until the
+% result converges.
+rfRandomPhase = nRF>0 && ~(isfield(Exp,'rfPhaseLocked') && Exp.rfPhaseLocked);
+if rfRandomPhase
+  % groups of RF pulses without microwave pulses between them, in the order
+  % of the sequence; if a delay can become negative along an indirect
+  % dimension, pulses can change their order, and each RF pulse counts
+  isRFPulse = ismember(pulseEvents,rfEvents);
+  nRFGroups = sum(diff([false isRFPulse])==1);
+  if isstruct(Vary)
+    minLength = cellfun(@(E) E.t(end),Events);
+    for d = 1:numel(Vary.IncrementationTable)
+      increments = Vary.IncrementationTable{d};  % events x points, empty if none
+      if ~isempty(increments)
+        minLength = minLength + min(0,min(increments,[],2)).';
+      end
+    end
+    if any(minLength<0), nRFGroups = nRF; end
+  end
+  nRFPhases = 2*nRFGroups*sum(2*Sys.Spins(Sys.nElectrons+1:end)) + 1;
+  logmsg(1,'  random RF phase: average over %d phases',nRFPhases);
+else
+  nRFPhases = 1;
 end
 
 rawSignals = cell(1,nOrientations);
@@ -179,6 +247,9 @@ eventTimes = cell(1,nOrientations);
 minWeight = ones(1,nOrientations);
 minOverlap = ones(1,nOrientations);
 rwaError = zeros(1,nOrientations);
+nSteppedRF = zeros(1,nOrientations);
+nPhasesUsed = ones(1,nOrientations);
+phaseConverged = true(1,nOrientations);
 
 logmsg(1,'-starting orientation loop-----------------------------');
 logmsg(1,'  propagating %d orientations, %d phase cycle run(s), %d pathway run(s)',...
@@ -243,23 +314,42 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
     end
   end
 
-  % Nuclear RF frame, the same for all RF pulses
+  % Nuclear RF frame, the same for all RF pulses. An RF pulse is stepped in
+  % the shifted microwave frame instead at the points where its
+  % rotating-wave error exceeds the tolerance. This is exact, since the RF
+  % operator has electron coherence order 0 and is the same in that frame.
+  stepped = false(size(rfDrive,1),1);
   if useRFFrame
     if isempty(V)
       V = sf_eigenbasis(Ham);
     end
-    [rfFrame,X] = nuclearRFFrame(Ham,V,-muxL,Sys.Spins,Sys.nElectrons);
-    rwaError(iOrientation) = rfRWAError(rfFrame.E,rfFrame.f,X,rfDrive);
+    [rfFrame,err] = sf_rfframe(Ham,V,-muxL,Sys.Spins,Sys.nElectrons,rfDrive);
+    stepped = err>rwaTolerance;
+    rwaError(iOrientation) = max(err);
+    nSteppedRF(iOrientation) = sum(stepped);
     if ~isempty(Relaxation_)
       rfFrame.Gamma = GammaEigen;
       rfFrame.equilibriumState = V'*Relaxation_.equilibriumState*V;
     end
-    for iEvent = rfEvents
-      Events_{iEvent}.rfFrame = rfFrame;
+    for k = 1:nRF
+      rows = rfDriveEvent==k;
+      if isempty(rfPointsSize{k})
+        steppedPoints = stepped(rows);  % single wave form
+      else
+        % one value per wave form in Vary, read by sf_propagate per point
+        steppedPoints = false(rfPointsSize{k});
+        steppedPoints(rfDrivePoint(rows)) = stepped(rows);
+      end
+      Events_{rfEvents(k)}.rfFrame = rfFrame;
+      Events_{rfEvents(k)}.rfStepped = steppedPoints;
     end
   end
 
-  [tAx, sig, ~, ~, ~, evT] = sf_propagate(Sigma_, Ham, Det, Events_, Relaxation_, Vary, Runs);
+  % Average over the random RF phase: exact with nRFPhases phases if all RF
+  % pulses use the rotating-wave approximation, otherwise until converged
+  adaptive = ~useRFFrame || any(stepped);
+  [tAx,sig,evT,nPhasesUsed(iOrientation),phaseConverged(iOrientation)] = ...
+    rfPhaseAverage(Sigma_,Ham,Det,Events_,Relaxation_,Vary,Runs,rfEvents,pulseEvents,nRFPhases,adaptive);
   timeAxis{iOrientation} = tAx;
   rawSignals{iOrientation} = sig;
   eventTimes{iOrientation} = evT;
@@ -271,23 +361,19 @@ if min(minWeight)<0.9
     'simulation frame can be inaccurate. Use Opt.SimFreq = 0 to simulate in ' ...
     'the lab frame.'],min(minWeight));
 end
-% Threshold on the relative error of the rotating-wave approximation for RF
-% pulses (Bloch-Siegert shift relative to the nutation frequency, see
-% rfRWAError). Measured deviation from lab-frame stepping (largest
-% difference relative to the largest signal, single orientation) for the
-% estimated error eps: Mims ENDOR of 1H at 350 mT with RF pi pulses of
-% 2.5, 5, 10, 20 us: eps = 3.7e-3, 1.9e-3, 9.3e-4, 4.6e-4, deviation
-% 9.6e-3, 3.1e-3, 1.3e-3, 9.4e-4; 14N with |A| > 2*nuL, 10 us: eps = 2.0e-3,
-% deviation 1.6e-3; time-domain ENDOR with 1 us RF pi/2 pulses: eps =
-% 4.2e-3, deviation 5.9e-3. The deviation is 0.8 to 2.6 times eps.
-rwaTolerance = 0.01;
 if useRFFrame
   logmsg(1,'  RF pulses: largest relative error of the rotating-wave approximation %0.2g',max(rwaError));
+  if any(nSteppedRF)
+    logmsg(1,'  RF pulses stepped (error above %g) at some points in %d of %d orientations',...
+      rwaTolerance,sum(nSteppedRF>0),nOrientations);
+  end
 end
-if max(rwaError)>rwaTolerance
-  warning(['The rotating-wave approximation for RF pulses can be inaccurate ' ...
-    '(estimated relative error %0.2g: RF frequency close to zero, or strong RF field). ' ...
-    'Use Opt.SimFreq = 0 to simulate in the lab frame.'],max(rwaError));
+if rfRandomPhase && any(nPhasesUsed>nRFPhases)
+  logmsg(1,'  random RF phase: up to %d phases (counter-rotating RF field)',max(nPhasesUsed));
+end
+if ~all(phaseConverged)
+  warning(['The average over the random RF phase did not converge with %d phases ' ...
+    '(very strong RF field at low frequencies). The result can be inaccurate.'],max(nPhasesUsed));
 end
 relaxationMatrix = ~isscalar(Sys.T1) || ~isscalar(Sys.T2);
 if relaxationMatrix && min(minOverlap)<0.5
@@ -406,107 +492,128 @@ end
 
 
 %===============================================================================
-% nuclearRFFrame  Eigenbasis and frame labels for RF pulses
+% rfPhaseAverage  Signal averaged over the random phase of the RF carrier
 %
-%   [rfFrame,X] = nuclearRFFrame(H,V,X0,Spins,nElectrons)
+%   [t,sig,evT,nPhases,converged] = rfPhaseAverage(Sigma,Ham,Det,Events,Relaxation,Vary,Runs,rfEvents,pulseEvents,nPhases,adaptive)
 %
-%   RF pulses are propagated in a frame that rotates about the generator
-%   G = V*diag(f)*V', which is diagonal in the eigenbasis V of H, so that H
-%   commutes with G exactly and is not truncated (see rfFramePropagators in
-%   sf_propagate). Each eigenstate k (column k of V, assigned to product
-%   state k by sf_eigenbasis) gets the
-%   label f(k) = sum over nuclei i of s_i*m_i(k), where m_i(k) is the m of
-%   nucleus i in that product state, and s_i = +1 or -1 is the sense of
-%   precession of nucleus i in the electron mS manifold of k: the sign of
-%   tr(P_mS*Iz_i*H), the first-order z frequency of nucleus i in the
-%   manifold (+1 if zero). The sense can differ between the manifolds, e.g.
-%   if the hyperfine coupling is larger than twice the nuclear Zeeman
-%   frequency. With these labels, the energy of the states rises with f
-%   along the NMR transitions, so all of them rotate with the frame.
+%   Propagates with the RF carrier phases 2*pi*j/nPhases, j = 0..nPhases-1,
+%   added to all RF pulses (see rfPhaseRuns), and averages the signals.
+%   With adaptive = true, the number of phases is doubled, adding the
+%   phases halfway between the earlier ones, until the averages over
+%   nPhases and 2*nPhases phases differ by less than phaseTolerance
+%   relative to the largest signal. The average over the doubled number of
+%   phases is returned.
 %
 %   Input:
-%     H           Hamiltonian (MHz) in the simulation frame, commuting with
-%                 the total electron Sz
-%     V           eigenvectors of H, from sf_eigenbasis
-%     X0          RF excitation operator (MHz/mT), product basis: the field
-%                 B1 (mT) along x(Lab) gives B1*X0
-%     Spins       spin quantum numbers (Sys.Spins), electrons first
-%     nElectrons  number of electron spins
+%     Sigma, Ham, Det, Events, Relaxation, Vary, Runs  inputs of sf_propagate
+%     rfEvents     indices of the RF pulse events in Events
+%     pulseEvents  indices of the pulse events in Events
+%     nPhases      number of phases (1: single phase, no average)
+%     adaptive     true to double nPhases until the average converges
 %
 %   Output:
-%     rfFrame     structure with the fields
-%       V           eigenvectors of H (columns), as input
-%       E           eigenvalues (MHz), column
-%       f           labels, column
-%       Xp          elements of X with f(k)-f(l) = +1, zero elsewhere
-%     X           RF excitation operator in the eigenbasis, V'*X0*V
-function [rfFrame,X] = nuclearRFFrame(H,V,X0,Spins,nElectrons)
-E = real(diag(V'*H*V));
-
-% Electron manifold of each product state
-mS = 0;
-for iSpin = 1:nElectrons
-  mS = mS + full(diag(sop(Spins,[iSpin,3])));
+%     t, sig, evT  time axis, signal and event times, from sf_propagate
+%     nPhases      number of phases used
+%     converged    false if the adaptive average did not converge
+function [t,sig,evT,nPhases,converged] = rfPhaseAverage(Sigma,Ham,Det,Events,Relaxation,Vary,Runs,rfEvents,pulseEvents,nPhases,adaptive)
+converged = true;
+if nPhases==1
+  [t,sig,~,~,~,evT] = sf_propagate(Sigma,Ham,Det,Events,Relaxation,Vary,Runs);
+  return
 end
-[~,~,manifold] = unique(mS);
-
-% Labels: m of each nucleus, signed by its sense of precession in the
-% manifold, tr(P_mS*Iz*H) = sum of m.*diag(H) over the manifold
-Hdiag = real(diag(H));
-f = zeros(size(H,1),1);
-for iSpin = nElectrons+1:numel(Spins)
-  m = full(diag(sop(Spins,[iSpin,3])));
-  for iManifold = 1:max(manifold)
-    inManifold = manifold==iManifold;
-    s = sign(sum(m(inManifold).*Hdiag(inManifold)));
-    if s==0, s = 1; end
-    f(inManifold) = f(inManifold) + s*m(inManifold);
+phases = 2*pi*(0:nPhases-1)/nPhases;
+[E,V,R] = rfPhaseRuns(Events,Vary,Runs,rfEvents,pulseEvents,phases);
+[t,sig,~,~,Eout,evT] = sf_propagate(Sigma,Ham,Det,E,Relaxation,V,R);
+if ~adaptive || isempty(sig)
+  return
+end
+phaseTolerance = 1e-4;
+maxPhases = 64*nPhases;
+while true
+  % Phases halfway between the earlier ones. The pulse propagators are
+  % kept (they are rebuilt only where the wave form changed); other fields
+  % of the events are reset, since sf_propagate changes event lengths.
+  for iEvent = pulseEvents
+    Events{iEvent}.Propagation = Eout{iEvent}.Propagation;
+  end
+  [E,V,R] = rfPhaseRuns(Events,Vary,Runs,rfEvents,pulseEvents,phases+pi/nPhases);
+  [~,sigNew,~,~,Eout] = sf_propagate(Sigma,Ham,Det,E,Relaxation,V,R);
+  sigDoubled = (sig+sigNew)/2;
+  change = max(abs(sigDoubled(:)-sig(:)));
+  sig = sigDoubled;
+  phases = 2*pi*(0:2*nPhases-1)/(2*nPhases);
+  nPhases = 2*nPhases;
+  if change<=phaseTolerance*max(abs(sig(:)))
+    break
+  end
+  if nPhases>=maxPhases
+    converged = false;
+    break
   end
 end
-
-X = V'*X0*V;
-rfFrame.V = V;
-rfFrame.E = E;
-rfFrame.f = f;
-rfFrame.Xp = X.*(abs(f-f.'-1)<1e-9);
 end
 
 
 %===============================================================================
-% rfRWAError  Error of the rotating-wave approximation for RF pulses
+% rfPhaseRuns  Events and propagation runs for several RF carrier phases
 %
-%   err = rfRWAError(E,f,X,drive)
+%   [Events,Vary,Runs] = rfPhaseRuns(Events,Vary,Runs,rfEvents,pulseEvents,phases)
 %
-%   The RF field 2*Re(c*exp(2i*pi*F*t))*X0 is kept in the nuclear RF frame
-%   only where it rotates with the frame (see nuclearRFFrame): the term
-%   c*X(k,l) where f(k)-f(l) = -1, and its Hermitian conjugate. Relative to
-%   H, a dropped term c*X(k,l) oscillates at E(k)-E(l)+F. Its leading
-%   effect is a Bloch-Siegert shift, which, relative to the nutation
-%   frequency, is the ratio of its amplitude |c*X(k,l)| to the frequency
-%   distance |E(k)-E(l)+F|. The error is the largest ratio over all dropped
-%   terms, with F anywhere in the frequency band of the pulse.
+%   The settings of each RF pulse (rows of IQ and PhaseCycle, also for the
+%   points of the indirect dimensions in Vary) are repeated for each phase
+%   phi in phases, with the wave forms multiplied by exp(1i*phi). The
+%   signal is averaged over the phases, with weights 1/numel(phases):
+%   - one RF pulse: the states after the pulse are averaged over its
+%     settings for all phases within each run (see sf_propagate)
+%   - several RF pulses: one run per phase, in which all RF pulses use the
+%     settings of that phase, since they share the phase of the carrier
 %
 %   Input:
-%     E      eigenvalues of H (MHz), column
-%     f      labels of the eigenstates, column
-%     X      RF excitation operator in the eigenbasis (MHz/mT)
-%     drive  RF pulses, one row per pulse and point: largest field
-%            amplitude (mT), lowest and highest frequency of the band (MHz)
+%     Events       events, from sf_buildevents
+%     Vary         indirect dimensions, from sf_buildevents, or []
+%     Runs         propagation runs (see sf_propagate)
+%     rfEvents     indices of the RF pulse events in Events
+%     pulseEvents  indices of the pulse events in Events
+%     phases       RF carrier phases (radians)
 %
 %   Output:
-%     err    largest relative error over all pulses (Inf if a dropped term
-%            is resonant)
-function err = rfRWAError(E,f,X,drive)
-dropped = abs(f-f.'+1)>1e-9;
-Xabs = abs(X).*dropped;
-Xabs(Xabs<=1e-12*max(abs(X(:)))) = 0;
-resonance = E.' - E;  % E(l)-E(k): frequency at which the term c*X(k,l) is static
-err = 0;
-for r = 1:size(drive,1)
-  distance = max(max(drive(r,2)-resonance,resonance-drive(r,3)),0);
-  ratio = drive(r,1)*Xabs./distance;
-  ratio(Xabs==0) = 0;
-  err = max(err,max(ratio(:)));
+%     Events, Vary, Runs  with the settings and runs of all phases
+function [Events,Vary,Runs] = rfPhaseRuns(Events,Vary,Runs,rfEvents,pulseEvents,phases)
+nPhases = numel(phases);
+phaseFactors = exp(1i*phases(:));
+nSettings = zeros(1,numel(rfEvents));
+iPulses = zeros(1,numel(rfEvents));
+for k = 1:numel(rfEvents)
+  iEvent = rfEvents(k);
+  iPulse = find(pulseEvents==iEvent);
+  iPulses(k) = iPulse;
+  PC = Events{iEvent}.PhaseCycle;
+  nSettings(k) = size(PC,1);
+  Events{iEvent}.PhaseCycle = repmat(PC,nPhases,1) + repelem(phases(:),nSettings(k),size(PC,2));
+  Events{iEvent}.IQ = kron(phaseFactors,Events{iEvent}.IQ);
+  if isstruct(Vary) && isfield(Vary,'Pulses') && ~isempty(Vary.Pulses{iPulse})
+    Vary.Pulses{iPulse}.IQs = cellfun(@(IQ) kron(phaseFactors,IQ),Vary.Pulses{iPulse}.IQs,'UniformOutput',false);
+  end
+end
+
+if isscalar(rfEvents)
+  p = iPulses;
+  for r = 1:numel(Runs)
+    Runs(r).rows{p} = reshape(Runs(r).rows{p}(:) + (0:nPhases-1)*nSettings,[],1);
+    Runs(r).factors{p} = repmat(Runs(r).factors{p}(:),nPhases,1)/nPhases;
+  end
+else
+  RunsPhases = repmat(Runs(:),1,nPhases);
+  for r = 1:numel(Runs)
+    for j = 1:nPhases
+      for k = 1:numel(rfEvents)
+        p = iPulses(k);
+        RunsPhases(r,j).rows{p} = Runs(r).rows{p} + (j-1)*nSettings(k);
+      end
+      RunsPhases(r,j).weight = Runs(r).weight/nPhases;
+    end
+  end
+  Runs = reshape(RunsPhases.',1,[]);
 end
 end
 

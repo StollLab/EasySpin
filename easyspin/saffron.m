@@ -35,6 +35,8 @@
 %     DetOperator    detection operators (sop strings or matrices), default
 %                    S+ of all electrons
 %     DetFreq, DetPhase, DetIntegrate, DetTimeStep
+%     rfPhaseLocked  true if the RF carrier has the same phase in every shot;
+%                    false (default): random RF phase, averaged over
 %     mwPolarization, ResonatorFrequency, ResonatorQL, FrequencyResponse,
 %     ResonatorMode
 %     SampleFrame, MolFrame, CrystalSymmetry, SampleRotation (powder by
@@ -276,6 +278,12 @@ if iscell(Exp.Sequence)
   end
   if hasRF || isfield(Exp,'rfFreq')
     checkRFFrequencies(Exp);
+  end
+end
+if isfield(Exp,'rfPhaseLocked')
+  v = Exp.rfPhaseLocked;
+  if ~(islogical(v) || isnumeric(v)) || ~isscalar(v) || ~(v==0 || v==1)
+    error('Exp.rfPhaseLocked must be true or false.');
   end
 end
 

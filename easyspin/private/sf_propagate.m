@@ -22,6 +22,10 @@
 %       rfFrame     RF pulses in a shifted simulation frame: eigenbasis and
 %                   labels of the nuclear RF frame, from sf_engine_full
 %                   (see rfFramePropagators)
+%       rfStepped   RF pulses in a shifted simulation frame: true to step
+%                   the pulse with the lab-frame field instead (see
+%                   rfSteppedPropagators), one value, or one per wave form
+%                   of the pulse in Vary
 %     Relaxation  relaxation structure, [] without relaxation, with fields
 %       Gamma             relaxation superoperator (1/µs), from
 %                         sf_relaxationsuperoperator
@@ -192,6 +196,7 @@ for iPoints = 1 : nPoints
         end
         if isfield(Vary.Pulses{iPulse},'FrameFreqs')
           Events{iEvent}.FrameFreq = LoadfromArray(Vary.Pulses{iPulse}.FrameFreqs,DimensionIndices);
+          Events{iEvent}.FrameBand = LoadfromArray(Vary.Pulses{iPulse}.FrameBands,DimensionIndices);
         end
         if isfield(Vary.Pulses{iPulse},'TimeSteps')
           % RF pulses: the time step depends on the RF frequency of this point
@@ -255,17 +260,25 @@ for iPoints = 1 : nPoints
     halfStepPhaseRot = exp(1i*angle(sum(conj(IQ(:,1:end-1)).*IQ(:,2:end),'all'))/2);
     IQ = (IQ(:,1:end-1)*halfStepPhaseRot + IQ(:,2:end)*conj(halfStepPhaseRot))/2;
     if rfEnvelope
-      % RF pulse in the nuclear RF frame: IQ is the envelope relative to
-      % exp(2i*pi*FrameFreq*t); the lab-frame field at the middle of each
-      % step is the envelope times the frame phase there. The field is
-      % taken relative to the start of the pulse, and the start time
-      % enters as a phase of the whole pulse: the carrier phase plus the
-      % frame phase at the start.
-      t = Events{iEvent}.t;
-      tMid = (t(1:end-1)+t(2:end))/2;
-      IQ = IQ.*exp(2i*pi*Events{iEvent}.FrameFreq*tMid);
+      % RF pulse in a shifted simulation frame: IQ is the envelope relative
+      % to exp(2i*pi*FrameFreq*t). The field is taken relative to the start
+      % of the pulse, and the start time enters as a phase of the whole
+      % pulse: the carrier phase plus the frame phase at the start.
       startPhase = startPhase + 2*pi*Events{iEvent}.FrameFreq*tStart(iEvent);
-      Events{iEvent}.Propagation = rfFramePropagators(Events{iEvent},IQ,startPhase);
+      stepped = isfield(Events{iEvent},'rfStepped') && ...
+        LoadfromArray(Events{iEvent}.rfStepped,DimensionIndices);  % per point (see sf_engine_full)
+      if stepped
+        % stepped with the lab-frame field, without the rotating-wave
+        % approximation
+        Events{iEvent}.Propagation = rfSteppedPropagators(Events{iEvent},IQ,startPhase,Ham0,Relaxation);
+      else
+        % nuclear RF frame: the lab-frame field at the middle of each step
+        % is the envelope times the frame phase there
+        t = Events{iEvent}.t;
+        tMid = (t(1:end-1)+t(2:end))/2;
+        IQ = IQ.*exp(2i*pi*Events{iEvent}.FrameFreq*tMid);
+        Events{iEvent}.Propagation = rfFramePropagators(Events{iEvent},IQ,startPhase);
+      end
     else
       Events{iEvent}.Propagation = pulsePropagators(Events{iEvent},IQ,Ham0,Relaxation);
     end
@@ -832,7 +845,8 @@ end
 %   Input:
 %     Event       pulse event; uses Propagation (results of an earlier
 %                 call), PhaseCycle, TimeStep, xOp, yOp, CoherenceOrder,
-%                 Relaxation, Detection, vertRes
+%                 Relaxation, Detection, vertRes, and MaxWave (amplitude
+%                 scale of the lookup table, optional; default max(abs(IQ)))
 %     IQ          field of each time step in the simulation frame (MHz; rows:
 %                 phase cycle steps, columns: time steps), i.e. one value
 %                 fewer per row than the time points in Event.t
@@ -865,8 +879,13 @@ nPhaseSteps = size(Event.PhaseCycle,1);
 % is possible to use a propagator look up table
 %------------------------------------------------------------
 % The amplitude scale does not depend on the phase of the pulse, so that
-% the lookup table can be reused for different start times
-MaxWave = max(abs(IQ(:)));
+% the lookup table can be reused for different start times. It can be
+% given in the event, so that pulses computed in pieces share one table.
+if isfield(Event,'MaxWave') && ~isempty(Event.MaxWave)
+  MaxWave = Event.MaxWave;
+else
+  MaxWave = max(abs(IQ(:)));
+end
 if MaxWave==0
   MaxWave = 1;  % no field (e.g. Flip = 0): only amplitude 0 is used
 end
@@ -1221,6 +1240,121 @@ Prop.IQ = IQ;
 Prop.TimeStep = Event.TimeStep;
 Prop.FrameFreq = F;
 Prop.startPhase = startPhase;
+end
+
+
+% rfSteppedPropagators  Propagators of an RF pulse stepped in a shifted frame
+%
+%   Prop = rfSteppedPropagators(Event,IQ,startPhase,Ham0,Relaxation)
+%
+%   The RF pulse is propagated with the static Hamiltonian of the shifted
+%   simulation frame and the lab-frame RF field, H1 = Re(c)*xOp, without
+%   the rotating-wave approximation. This is exact, since the RF operator
+%   has electron coherence order 0 and is the same in the shifted frame.
+%   Each step of the envelope (from Event.t) is divided into substeps, at
+%   least 40 per period of the highest frequency of the pulse, and at least
+%   100 per pulse. In each substep, the field is the envelope of the step
+%   times the RF carrier at the middle of the substep,
+%   c = IQ*exp(1i*(startPhase + 2*pi*F*t)). With the envelope constant
+%   within each step, as in the nuclear RF frame (rfFramePropagators), the
+%   two differ only by the counter-rotating part of the field. All
+%   substeps share one lookup table of propagators (pulsePropagators).
+%
+%   Input:
+%     Event       RF pulse event; uses t, TimeStep, FrameFreq (MHz),
+%                 FrameBand (MHz), Propagation, Relaxation, Detection,
+%                 and the fields used by pulsePropagators
+%     IQ          envelope (mT) at the middle of each step of Event.t
+%                 (rows: phase cycle steps, columns: steps)
+%     startPhase  phase of the field at the start of the pulse (rad),
+%                 including the frame phase 2*pi*F*tStart
+%     Ham0        static Hamiltonian in the simulation frame (rad/µs)
+%     Relaxation  relaxation structure, see pulsePropagators
+%
+%   Output:
+%     Prop        structure as from pulsePropagators (Utotal, or Ltotal,
+%                 SigmaOffsetTotal and an empty PhaseTotal), with one
+%                 column per step of Event.t if the pulse is detected, else
+%                 one column, and the fields
+%       steppedKey    inputs of these propagators
+%       steppedTable  lookup table of the substep propagators
+function Prop = rfSteppedPropagators(Event,IQ,startPhase,Ham0,Relaxation)
+Prop = Event.Propagation;
+F = Event.FrameFreq;
+key = {IQ,startPhase,F,Event.TimeStep};
+if isfield(Prop,'steppedKey') && isequal(Prop.steppedKey,key)
+  return
+end
+
+t = Event.t;
+nEnvSteps = numel(t)-1;
+nSub = ceil(max(100,40*max(abs(Event.FrameBand))*t(end))/nEnvSteps);  % substeps per step
+nRows = size(IQ,1);
+n = size(Ham0,1);
+relaxation = Event.Relaxation;
+if relaxation
+  chunkSize = max(1,floor(2^21/n^4));  % substep Liouvillians per call
+else
+  chunkSize = nSub;
+end
+nOut = 1;
+if Event.Detection, nOut = nEnvSteps; end
+
+% Substeps: no detection, one amplitude scale for all of them
+sub = Event;
+sub.Detection = false;
+sub.MaxWave = max(abs(IQ(:)));
+if isfield(Prop,'steppedTable')
+  sub.Propagation = Prop.steppedTable;
+else
+  sub.Propagation = [];
+end
+
+if ~relaxation
+  Utotal = repmat({eye(n)},nRows,nOut);
+else
+  Ltotal = repmat({eye(n^2)},nRows,nOut);
+  SigmaOffsetTotal = repmat({zeros(n^2,1)},nRows,nOut);
+end
+% one substep length for all steps (the steps of the envelope are equal),
+% so that the lookup table is shared
+dt = t(end)/(nEnvSteps*nSub);
+sub.TimeStep = dt;
+for k = 1:nEnvSteps
+  iOut = min(k,nOut);
+  for s0 = 1:chunkSize:nSub
+    s = s0:min(s0+chunkSize-1,nSub);
+    tMid = ((k-1)*nSub + s - 1/2)*dt;  % middle of the substeps, from the start of the pulse
+    IQsub = IQ(:,k).*exp(1i*(startPhase + 2*pi*F*tMid));
+    sub.Propagation = pulsePropagators(sub,IQsub,Ham0,Relaxation);
+    for r = 1:nRows
+      if ~relaxation
+        Utotal{r,iOut} = sub.Propagation.Utotal{r,1}*Utotal{r,iOut};
+      else
+        % sigma -> L*sigma + offset, applied substep by substep
+        for j = 1:numel(s)
+          L = sub.Propagation.Ltotal{r,j};
+          Ltotal{r,iOut} = L*Ltotal{r,iOut};
+          SigmaOffsetTotal{r,iOut} = L*SigmaOffsetTotal{r,iOut} + sub.Propagation.SigmaOffsetTotal{r,j};
+        end
+      end
+    end
+  end
+end
+
+% keep only the lookup table of the substeps
+table = sub.Propagation;
+table = rmfield(table,intersect(fieldnames(table),{'Utotal','Ltotal','SigmaOffsetTotal','PhaseTotal','IQ'}));
+Prop = struct;
+if ~relaxation
+  Prop.Utotal = Utotal;
+else
+  Prop.Ltotal = Ltotal;
+  Prop.SigmaOffsetTotal = SigmaOffsetTotal;
+  Prop.PhaseTotal = [];
+end
+Prop.steppedKey = key;
+Prop.steppedTable = table;
 end
 
 

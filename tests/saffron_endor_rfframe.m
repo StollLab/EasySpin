@@ -5,6 +5,7 @@ function ok = test() %#ok<FNDEF>
 % for the RF field. With Opt.SimFreq = 0, they are stepped in the lab
 % frame. The two agree within the error of the rotating-wave approximation
 % (Bloch-Siegert shift, about nu1/(4*nuRF) relative to the ENDOR effect).
+% Where this error exceeds 1%, RF pulses are stepped in the shifted frame.
 
 p90.Flip = pi/2;
 Opt.Method = 'full';
@@ -26,6 +27,7 @@ Exp.rfFreq = 13;  % MHz
 Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 Exp.Pathways = '+00-';
 Exp.DetPhase = -pi/2;
+Exp.rfPhaseLocked = true;  % one RF phase, keeps the lab-frame runs short
 Exp.nPoints = 41;
 Exp.Dim1 = {'rfFreq',0.1};
 [~,y] = saffron(Sys,Exp,Opt);
@@ -72,7 +74,8 @@ end
 
 % Phase of the RF field: a pi/2 pulse with phase pi/2 creates nuclear
 % coherence, detected as Ix and Iy. The direction depends on the sense of
-% precession, so it checks the sign of the nuclear phase.
+% precession, so it checks the sign of the nuclear phase. This needs an RF
+% carrier with the same phase in every shot.
 SysP.Nucs = '1H';
 SysP.A = [0 0 20];  % MHz
 SysP.initState = sop([1/2 1/2],'ez');
@@ -80,6 +83,7 @@ ExpP.Field = 350;  % mT
 ExpP.mwFreq = 9.8;  % GHz
 ExpP.MolFrame = [0 0 0];
 ExpP.CrystalSymmetry = 1;
+ExpP.rfPhaseLocked = true;
 ExpP.DetOperator = {'ex','ey'};
 ExpP.rfFreq = larmorfrq('1H',ExpP.Field) + SysP.A(3)/2;  % MHz, one NMR transition
 rfP.Channel = 'rf';
@@ -114,7 +118,11 @@ ExpD.DetWindow = 'sequence';
 [~,yDLab] = saffron(Sys,ExpD,OptLab);
 ok(end+1) = areequal(yD(end),yDLab(end),tolRWA*max(abs(yDLab)),'abs');
 
-% Strong RF field at a low frequency: warning
+% Strong RF field at a low frequency: the rotating-wave approximation is
+% inaccurate, so the RF pulse is stepped in the shifted microwave frame,
+% without warning. This is exact: it agrees with the lab frame within the
+% high-field approximation of the shifted frame, with a random RF phase
+% (averaged until converged) and with a phase-locked RF carrier.
 SysW.Nucs = '14N';
 SysW.A = 0.5;  % MHz
 rfW = rf;
@@ -124,6 +132,31 @@ ExpW = Exp;
 ExpW.Sequence{5} = rfW;
 ExpW.rfFreq = 1.1;  % MHz
 ExpW.nPoints = 3;
-lastwarn('');
-evalc('saffron(SysW,ExpW,Opt);');  % keeps the warning out of the test output
-ok(end+1) = contains(lastwarn,'rotating-wave approximation for RF pulses');
+ExpW.Dim1 = {'rfFreq',0.3};
+tolStep = 1e-5;
+for locked = [false true]
+  ExpW.rfPhaseLocked = locked;
+  lastwarn('');
+  [~,yW] = saffron(SysW,ExpW,Opt);
+  noWarning = isempty(lastwarn);
+  [~,yWLab] = saffron(SysW,ExpW,OptLab);
+  ok(end+1) = noWarning && areequal(yW,yWLab,tolStep,'rel'); %#ok<AGROW>
+end
+
+% Stepped RF pulse with relaxation, and detected during the pulse
+SysWR = SysW;
+SysWR.T1 = 5;  % µs
+SysWR.T2 = 0.5;  % µs
+ExpWR = ExpW;
+ExpWR.nPoints = 2;
+[~,yWR] = saffron(SysWR,ExpWR,Opt);
+[~,yWRLab] = saffron(SysWR,ExpWR,OptLab);
+ExpWD = rmfield(ExpW,{'nPoints','Dim1','Pathways'});
+ExpWD.DetWindow = 'sequence';
+[~,yWD] = saffron(SysW,ExpWD,Opt);
+[~,yWDLab] = saffron(SysW,ExpWD,OptLab);
+ok(end+1) = areequal(yWR,yWRLab,tolStep,'rel') && ~areequal(yWR,yW(1:2),0.01,'rel');
+% With detection, the stepped pulse uses the finer detection time grid,
+% while the lab frame keeps at least 40 steps per RF period: they differ by
+% the discretization error of the latter (about 1e-4 here)
+ok(end+1) = areequal(yWD(end),yWDLab(end),1e-3*max(abs(yWDLab)),'abs');

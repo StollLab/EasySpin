@@ -153,6 +153,9 @@ The carrier runs continuously through the whole sequence, as in a spectrometer. 
 <li>A pulse at an offset f from the carrier, starting at time t after the start of the sequence, has the phase &phi; &minus; 2&pi;&middot;f&middot;t relative to a source running at the frequency of the pulse. For two such pulses to undo each other, the second one needs the phase &pi; + 2&pi;&middot;f&middot;&Delta;t, where &Delta;t is the time between the starts of the two pulses.</li>
 <li>Without a carrier, the same holds with the absolute frequency f. For example, in a time-domain ENDOR experiment with two RF pulses, the signal then oscillates with the NMR frequencies themselves, not with their differences from the RF frequency.</li>
 </ul>
+<p>
+By default, the RF carrier has a random phase in each shot, the same for all RF pulses of the shot, and the signal is averaged over it (see <code>Exp.rfPhaseLocked</code>).
+</p>
 
 <p>
 For RF pulses, this covers the common ways in which spectrometers generate them:
@@ -377,6 +380,11 @@ Exp.Dim1 = {'p3.Frequency' 0.05};
 <p>
 For the predefined ENDOR experiments, <code>Exp.rfFreq = [min max]</code> gives the RF range.
 </p>
+</div>
+
+<div class="optionfield"><code>rfPhaseLocked</code></div>
+<div class="optiondescr">
+<code>true</code> or <code>false</code> (default). Whether the RF carrier has the same phase in every shot of the experiment. In most ENDOR spectrometers, the RF source runs independently of the pulse timing, so its phase is different in each shot. With <code>false</code>, <code>saffron</code> averages the signal over this random phase. All RF pulses of a shot share the phase, so their phases relative to each other (<code>Pulse.Phase</code>, <code>Exp.PhaseCycle</code>) still matter. With <code>true</code>, the RF carrier starts with the same phase in every shot, as for the microwave carrier. The phase of the RF field then matters when the microwave pulses create nuclear coherences, e.g. in a single orientation.
 </div>
 
 <div class="subtitle2" id="indirect_dimensions">Indirect dimensions</div>
@@ -974,7 +982,7 @@ In a simulation frame other than the lab frame, the high-field approximation is 
 In the same way, a pulse keeps only the part of its field that rotates with the electron spins (rotating-wave approximation). The counter-rotating part, which causes small effects such as the Bloch-Siegert shift, is neglected. The results then do not depend on the choice of <code>SimFreq</code>, as long as it is not zero.
 </p>
 <p>
-RF pulses use the same approximation: each RF pulse is computed in a frame that rotates with the nuclear spins, and only the part of the RF field that rotates with them is kept. This makes long RF pulses fast, since the computation time no longer grows with the number of RF periods. The neglected part shifts the NMR transitions slightly (Bloch-Siegert shift). Relative to the ENDOR effect, the error is of the order of the RF nutation frequency divided by four times the RF frequency, e.g. about 10<sup>-3</sup> for an RF &pi; pulse of 10 µs on protons at X-band. <code>saffron</code> estimates this error and warns if it exceeds 1%, e.g. for strong RF pulses at low frequencies. In the lab frame (<code>Opt.SimFreq = 0</code>), RF pulses are computed without this approximation, with at least 40 time steps per RF period.
+RF pulses use the same approximation: each RF pulse is computed in a frame that rotates with the nuclear spins, and only the part of the RF field that rotates with them is kept. This makes long RF pulses fast, since the computation time no longer grows with the number of RF periods. The neglected part shifts the NMR transitions slightly (Bloch-Siegert shift). Relative to the ENDOR effect, the error is of the order of the RF nutation frequency divided by four times the RF frequency, e.g. about 10<sup>-3</sup> for an RF &pi; pulse of 10 µs on protons at X-band. <code>saffron</code> estimates this error for each RF pulse and orientation. Where it exceeds 1%, e.g. for strong RF pulses at low frequencies, the RF pulse is computed without this approximation, with at least 40 time steps per RF period. This is exact and takes longer. In the lab frame (<code>Opt.SimFreq = 0</code>), all RF pulses are computed in this way.
 </p>
 </div>
 
@@ -1028,7 +1036,7 @@ A structure with additional information:
 <tr><th></th><th><em>manifold</em> (fast)</th><th><em>full</em> (general)</th></tr>
 <tr><td>Spin system</td><td>one electron spin with S = 1/2, with or without nuclei (S &gt; 1/2 only on request, approximately)</td><td>any number of electron spins and nuclei, any S, also without nuclei</td></tr>
 <tr><td>Microwave pulses</td><td>ideal and rectangular</td><td>any shape: rectangular, shaped, frequency-swept, user-defined waveforms</td></tr>
-<tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code> or of the frequency of the RF pulse; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes; rotating-wave approximation for the RF field, except in the lab frame (see <code>Opt.SimFreq</code>)</td></tr>
+<tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code> or of the frequency of the RF pulse; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>); random RF phase</td><td>yes; rotating-wave approximation for the RF field where it is accurate, otherwise time steps (see <code>Opt.SimFreq</code>); random or fixed RF phase (<code>Exp.rfPhaseLocked</code>)</td></tr>
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point (<code>DetWindow</code> a single number, or two equal numbers), <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>

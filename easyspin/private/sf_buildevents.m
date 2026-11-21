@@ -620,6 +620,12 @@ for iEvent = 1:length(Exp.Sequence)
   Events{iEvent}.TimeStep = Opt.IntTimeStep;
   if isfield(Events{iEvent},'Channel') && strcmp(Events{iEvent}.Channel,'rf')
     Events{iEvent}.TimeStep = Pulse.TimeStep;  % RF waveform step
+    % Lookup table of the propagators (see pulsePropagators in sf_propagate)
+    % with a finer amplitude resolution than for microwave pulses: RF
+    % pulses stepped with the lab-frame field have thousands of steps, and
+    % the rounding of the field to 1024 levels gave errors of up to 2e-4
+    % relative to the echo, which depended on the RF phase.
+    Events{iEvent}.vertRes = 8192;
   end
   Events{iEvent}.DetTimeStep = Exp.DetTimeStep;
   

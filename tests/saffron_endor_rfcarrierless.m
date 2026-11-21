@@ -50,9 +50,11 @@ ok(3) = areequal(xC,c+step*(0:Exp.nPoints-1),1e-12,'abs') && ...
 % Full engine: carrier c plus offset and the absolute frequency give
 % the same RF field, and the same echo, if the absolute pulse has the phase
 % of the carrier at the start of the pulse, 2*pi*c*tStart. (In a single
-% orientation, the echo depends on the RF phase.)
+% orientation, the echo depends on the RF phase if the RF carrier has the
+% same phase in every shot.)
 ExpF = Exp;
 ExpF.mwFreq = 9.8;  % GHz
+ExpF.rfPhaseLocked = true;
 ExpF.nPoints = 3;
 ExpF.Sequence{5} = struct('Channel','rf','tp',2,'B1',0.5/(2*0.04258));  % pi pulse for a bare proton
 OptF.Method = 'full';
@@ -69,17 +71,26 @@ ExpF2.Sequence{5}.Phase = 2*pi*c*tStart;
 ExpF2.Sequence{5}.Phase = 0;
 [~,yF2phase0] = saffron(Sys,ExpF2,OptF);
 ok(4) = areequal(yF2,yF1,1e-8,'rel') && ~areequal(yF2phase0,yF1,1e-3,'rel');
+% with a random RF phase (default), the phase of a single RF pulse does
+% not matter
+ExpF2.rfPhaseLocked = false;
+[~,yF2random] = saffron(Sys,ExpF2,OptF);
+ExpF2.Sequence{5}.Phase = 2*pi*c*tStart;
+[~,yF2randomPhase] = saffron(Sys,ExpF2,OptF);
+okRandomPhase = areequal(yF2randomPhase,yF2random,1e-10,'rel');
 
 % Phase rule, full engine: two RF pi/2 pulses on resonance with one
 % NMR transition (A only along z, so the NMR frequencies are nuI -+ A/2),
 % acting on nuclear polarization. The other NMR transition is 20 MHz away
 % and is not excited. With phases 0 and pi, the second pulse undoes the
-% first if the two pulses are coherent at the NMR frequency.
+% first if the two pulses are coherent at the NMR frequency. The RF
+% carrier has the same phase in every shot.
 SysP.Nucs = '1H';
 SysP.A = [0 0 20];  % MHz
 SysP.initState = sop([1/2 1/2],'ez');
 ExpP.Field = 350;  % mT
 ExpP.mwFreq = 9.8;  % GHz
+ExpP.rfPhaseLocked = true;
 ExpP.MolFrame = [0 0 0];
 ExpP.CrystalSymmetry = 1;
 ExpP.DetOperator = {'ez'};
@@ -143,6 +154,7 @@ Ec.Sequence = seq(0);
 Ec.PhaseCycle = [0 0 0 0; 0 pi 0 0];
 yCycle = echo(Ec);
 ok(8) = areequal(yCycle,(yCarrier0+yCarrier)/2,1e-10,'rel');
+ok(9) = okRandomPhase;
 
 % The same sweeps with the values per point (a column), and with the
 % carrier sweep split into two lines whose changes add up
