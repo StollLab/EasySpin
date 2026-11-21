@@ -10,7 +10,7 @@ Exp.Sequence = '2pESEEM';
 Exp.dt = 0.01;
 Exp.DetPhase = 0;
 
-modes = {'subspace','fullspace'};
+modes = {'manifold','full'};
 for iMode = 1:numel(modes)
   Opt.Method = modes{iMode};
   try

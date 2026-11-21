@@ -11,7 +11,7 @@ Sys.A = 6;  % MHz
 Opt.GridSize = 7;
 lw = [0.3 0.3];  % MHz
 
-% Predefined Mims ENDOR (subspace engine). The broadening keeps the ends of
+% Predefined Mims ENDOR (manifold engine). The broadening keeps the ends of
 % the RF range (the echo without RF pulse) and the area of the ENDOR lines
 Exp.Field = 350;  % mT
 Exp.Sequence = 'MimsENDOR';
@@ -29,7 +29,7 @@ ok(1) = max(abs(yL-y0)) > 0.3*range0;  % Lorentzian width alone has an effect
 ok(2) = abs(area(yGL)-area(y0)) < 0.05*area(y0);
 ok(3) = max(abs(yGL([1 end])-y0([1 end]))) < 1e-3*range0;
 
-% User-defined Mims ENDOR (full-space engine), with a short RF pulse
+% User-defined Mims ENDOR (full engine), with a short RF pulse
 mwFreq = 350*gfree*bmagn/planck/1e9/1e3;  % GHz
 p90.Flip = pi/2;
 RF.Channel = 'rf';
@@ -44,7 +44,7 @@ Exp.nPoints = 45;
 Exp.Dim1 = {'rfFreq' 0.25};
 Exp.Pathways = '+00-';
 Exp.DetPhase = -pi/2;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 Sys.lwEndor = 0;
 y0 = saffron(Sys,Exp,Opt);
 Sys.lwEndor = lw;
@@ -78,9 +78,9 @@ Exp2D.Dim2 = {'d1,d4' 0.03};
 y2D = saffron(Sys,Exp2D,Opt);
 ok(7) = areequal(y2D(:,1).',y,1e-10,'rel');
 
-% RF frequencies as a list of values (subspace engine): the same as with a
+% RF frequencies as a list of values (manifold engine): the same as with a
 % step if equally spaced, an error otherwise
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 Exp = rmfield(Exp,'mwFreq');
 yStep = saffron(Sys,Exp,Opt);
 Exp.Dim1 = {'rfFreq' (0:44)*0.25};

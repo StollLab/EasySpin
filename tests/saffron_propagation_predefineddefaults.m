@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Predefined experiments in the full-space engine: initial delays default to zero as in
+% Predefined experiments in the full engine: initial delays default to zero as in
 % fast mode, tau must be positive, and HYSCORE accepts one increment per
 % dimension
 
@@ -14,7 +14,7 @@ Exp.mwFreq = 9.8;  % GHz
 Exp.dt = 0.02;  % µs
 
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 % 2pESEEM: tau defaults to 0
 Exp2p = Exp;

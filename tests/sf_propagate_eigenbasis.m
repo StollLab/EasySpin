@@ -39,7 +39,7 @@ ok(2) = areequal(sEstep,sE,tol,'abs');
 end
 
 % Signals from sf_propagate with eigenbasis and with step-by-step free
-% evolution, set up as in the full-space engine of saffron (single
+% evolution, set up as in the full engine of saffron (single
 % orientation, molecular frame = lab frame)
 function [sig,sigStep] = signals(Sys,Exp,Opt)
 [Events,Vary,Opt] = runprivate('sf_buildevents',Exp,Opt);

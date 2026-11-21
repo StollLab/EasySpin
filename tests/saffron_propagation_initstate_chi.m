@@ -13,7 +13,7 @@ Exp.Sequence = {Pulse 0.05};
 Exp.Field = 340;
 Exp.mwFreq = 9.53;
 Exp.DetWindow = [0 0.05];
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 Opt.SimFreq = 9.0;
 
 Sys.S = 1/2;

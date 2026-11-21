@@ -20,7 +20,7 @@ Exp.Sequence = {pInv 0.4 p90 0.3 p180 0.3};
 Eoff = Exp;
 Eoff.Sequence{1}.Flip = 0;
 
-methods = {'subspace','fullspace'};
+methods = {'manifold','full'};
 for m = 1:2
   Opt.Method = methods{m};
   [~,yOn(m)] = saffron(Sys,Exp,Opt); %#ok<AGROW>
@@ -32,7 +32,7 @@ yDiff = yOn - yOff;
 % 0.4 µs + tp, which does not change the echo of an isolated spin system
 E2p = Exp;
 E2p.Sequence = {p90 0.3 p180 0.3};
-[~,y2p] = saffron(Sys,E2p,struct('Method','subspace'));
+[~,y2p] = saffron(Sys,E2p,struct('Method','manifold'));
 
 ok(1) = areequal(yOff(1),yOff(2),1e-4,'rel');
 ok(2) = areequal(yDiff(1),yDiff(2),1e-4,'rel') && abs(yDiff(1))>0.1*abs(yOff(1));

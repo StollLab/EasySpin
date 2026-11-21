@@ -34,7 +34,7 @@ Exp.nPoints = 2;
 Exp.Dim1 = {'d1,d2' 0.5};
 
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 [x1, y1] = saffron(Sys,Exp,Opt);
 

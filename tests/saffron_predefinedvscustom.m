@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Subspace engine: predefined experiments give the same signal as the same
+% Manifold engine: predefined experiments give the same signal as the same
 % sequence entered as a custom sequence (same coherence pathways), including
 % the sign of the pulse transfer prefactors. Predefined experiments use
 % pulses along x with Exp.DetPhase = -pi/2 (2pESEEM, 3pESEEM) or +pi/2
@@ -16,7 +16,7 @@ Base.mwFreq = 9.5;  % GHz
 Base.Field = unitconvert(Base.mwFreq,'GHz->mT',2.02);
 
 Opt.GridSize = 7;
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 
 P90.Flip = pi/2;
 P180.Flip = pi;

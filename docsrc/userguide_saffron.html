@@ -37,7 +37,7 @@ This user guide explains how to simulate pulse EPR experiments such as ESEEM, HY
 </p>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> has two simulation methods. The fast <em>subspace</em> method handles one electron spin with S = 1/2 coupled to any number of nuclei, with ideal or rectangular pulses. The general <em>full-space</em> method handles everything else, e.g. shaped pulses, transient detection, several electron spins or a resonator. <a class="esf" href="saffron.html">saffron</a> chooses the method automatically. This part of the guide covers what both methods can do; <a href="userguide_saffron_propagation.html">part II</a> covers the features of the <em>full-space</em> method.
+<a class="esf" href="saffron.html">saffron</a> has two simulation methods. The fast <em>manifold</em> method handles one electron spin with S = 1/2 coupled to any number of nuclei, with ideal or rectangular pulses. The general <em>full</em> method handles everything else, e.g. shaped pulses, transient detection, several electron spins or a resonator. <a class="esf" href="saffron.html">saffron</a> chooses the method automatically. This part of the guide covers what both methods can do; <a href="userguide_saffron_propagation.html">part II</a> covers the features of the <em>full</em> method.
 </p>
 
 <p>
@@ -457,7 +457,7 @@ To add relaxation, give longitudinal and transverse relaxation times (T<sub>1</s
 </p>
 
 <p>
-The <em>subspace</em> method multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence (e.g. during the two inter-pulse delays &tau;), and with T<sub>1</sub> over the time it is in a population state (e.g. T in three-pulse ESEEM, or t<sub>1</sub> and t<sub>2</sub> in HYSCORE). The decay is the same for all orientations and does not depend on the nuclear coherences, so the ESEEM modulations decay along with the echo. This is done for ESEEM and HYSCORE experiments, predefined or user-defined. For ENDOR, relaxation has no effect in the <em>subspace</em> method. To limit relaxation to some delays, give one entry of <code>Opt.Relaxation</code> per element of <code>Exp.Sequence</code>, e.g. <code>Opt.Relaxation = [0 1 0 0 0 1]</code> for relaxation only during the two &tau; delays of <code>{p90 tau p90 T p90 tau}</code>. Entries for pulses have no effect, since the <em>subspace</em> method has no relaxation during pulses.
+The <em>manifold</em> method multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence (e.g. during the two inter-pulse delays &tau;), and with T<sub>1</sub> over the time it is in a population state (e.g. T in three-pulse ESEEM, or t<sub>1</sub> and t<sub>2</sub> in HYSCORE). The decay is the same for all orientations and does not depend on the nuclear coherences, so the ESEEM modulations decay along with the echo. This is done for ESEEM and HYSCORE experiments, predefined or user-defined. For ENDOR, relaxation has no effect in the <em>manifold</em> method. To limit relaxation to some delays, give one entry of <code>Opt.Relaxation</code> per element of <code>Exp.Sequence</code>, e.g. <code>Opt.Relaxation = [0 1 0 0 0 1]</code> for relaxation only during the two &tau; delays of <code>{p90 tau p90 T p90 tau}</code>. Entries for pulses have no effect, since the <em>manifold</em> method has no relaxation during pulses.
 </p>
 
 <p>
@@ -478,7 +478,7 @@ Sys.T2 = 2; % adds transverse relaxation (phase memory time)
 </pre>
 
 <p>
-Transition-selective relaxation times (matrices in <code>Sys.T1</code>, <code>Sys.T2</code>) and relaxation during selected elements of the sequence need the <em>full-space</em> method, which <code>saffron</code> then uses (see <a href="userguide_saffron_propagation.html#relaxation_times">part II</a>).
+Transition-selective relaxation times (matrices in <code>Sys.T1</code>, <code>Sys.T2</code>) and relaxation during selected elements of the sequence need the <em>full</em> method, which <code>saffron</code> then uses (see <a href="userguide_saffron_propagation.html#relaxation_times">part II</a>).
 </p>
 
 <!-- ============================================================= -->
@@ -487,17 +487,17 @@ Transition-selective relaxation times (matrices in <code>Sys.T1</code>, <code>Sy
 </a>
 
 <p>
-<a class="esf" href="saffron.html">saffron</a> uses the fast <em>subspace</em> method whenever it supports all features of your experiment, and the <em>full-space</em> method otherwise. Both give the same signals where both apply. The method used, and the reason, are returned in the third output:
+<a class="esf" href="saffron.html">saffron</a> uses the fast <em>manifold</em> method whenever it supports all features of your experiment, and the <em>full</em> method otherwise. Both give the same signals where both apply. The method used, and the reason, are returned in the third output:
 </p>
 
 <pre class="matlab">
 [x,y,info] = saffron(Sys,Exp);
-info.Method          % 'subspace' or 'fullspace'
-info.MethodReason    % why the full-space method was needed
+info.Method          % 'manifold' or 'full'
+info.MethodReason    % why the full method was needed
 </pre>
 
 <p>
-You can also request a method with <code>Opt.Method = 'subspace'</code> or <code>'fullspace'</code>. If the <em>subspace</em> method does not support the experiment, <a class="esf" href="saffron.html">saffron</a> gives an error that names the feature. The reference page has a <a href="saffron.html#algorithms">table of what each method supports</a>.
+You can also request a method with <code>Opt.Method = 'manifold'</code> or <code>'full'</code>. If the <em>manifold</em> method does not support the experiment, <a class="esf" href="saffron.html">saffron</a> gives an error that names the feature. The reference page has a <a href="saffron.html#algorithms">table of what each method supports</a>.
 </p>
 
 <hr>

@@ -29,7 +29,7 @@ nuI = larmorfrq('1H',Exp.Field);
 endor = real(y-y(1));  % reduction of the inversion by the RF pulse
 peaks = x(islocalmax(endor) & endor>0.3*max(endor));
 
-ok(1) = strcmp(info.Method,'subspace');
+ok(1) = strcmp(info.Method,'manifold');
 ok(2) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*Sys.A/2))<0.1);
 ok(3) = real(y(1))<0 && all(endor>-1e-3*max(endor));
 

@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Predefined experiments with the full-space method: sizes, rejected fields,
+% Predefined experiments with the full method: sizes, rejected fields,
 % echo amplitudes from the selected echo pathways, 4pESEEM as the diagonal
 % of HYSCORE, and real echoes off resonance
 
@@ -13,7 +13,7 @@ Exp.tau = 0.1;
 Exp.dt = 0.02;
 
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 % HYSCORE with a single number of points: used for both dimensions
 Exp.Sequence = 'HYSCORE';

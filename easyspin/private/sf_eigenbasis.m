@@ -7,7 +7,7 @@
 %   to product state k (in the order of sop, descending m for each spin).
 %   Within sets of degenerate eigenstates, eig returns an arbitrary basis,
 %   which is rotated to be closest to the assigned product states. Used by
-%   the full-space engine of saffron, so that the relaxation superoperator
+%   the full engine of saffron, so that the relaxation superoperator
 %   and the nuclear RF frame use the same eigenbasis.
 %
 %   Input:

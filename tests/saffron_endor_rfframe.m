@@ -1,13 +1,13 @@
 function ok = test() %#ok<FNDEF>
 
-% Full-space engine, RF pulses in a shifted simulation frame: they are
+% Full engine, RF pulses in a shifted simulation frame: they are
 % propagated in the nuclear RF frame, with the rotating-wave approximation
 % for the RF field. With Opt.SimFreq = 0, they are stepped in the lab
 % frame. The two agree within the error of the rotating-wave approximation
 % (Bloch-Siegert shift, about nu1/(4*nuRF) relative to the ENDOR effect).
 
 p90.Flip = pi/2;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 OptLab = Opt;
 OptLab.SimFreq = 0;
 tolRWA = 5e-3;

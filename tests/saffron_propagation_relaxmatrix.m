@@ -1,6 +1,6 @@
 function ok = test()
 
-% Relaxation in the full-space engine
+% Relaxation in the full engine
 % (1) matrix T2 refers to product states: with isotropic hyperfine coupling,
 %     the pulses only create the allowed electron coherences between product
 %     states 1-3 and 2-4 (aa-ba, ab-bb), so T2 for these two gives the same
@@ -61,7 +61,7 @@ Exp.tau = 0.12;
 Exp.T = 0.1;
 Exp.dt = 0.1;
 Exp.nPoints = 10;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 SysR = Sys;
 SysR.T2 = 0.5;
 [~,yScalar] = saffron(SysR,Exp,Opt);

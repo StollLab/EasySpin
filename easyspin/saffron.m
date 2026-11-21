@@ -51,21 +51,21 @@
 %     ideal pulses and predefined experiments are not available.
 %
 %  Opt fields:
-%     Method         'auto' (default), 'subspace', 'fullspace'
+%     Method         'auto' (default), 'manifold', 'full'
 %     IdealPulses    treat finite pulses as ideal, with orientation
 %                    selection by an excitation window of width 1/tp
-%                    (subspace)
+%                    (manifold)
 %     Relaxation     relaxation on/off, a single value or one per element
 %                    of Exp.Sequence
 %     GridSize, GridSymmetry, GridFrame, Sites
-%     IntTimeStep, SimFreq (fullspace)
+%     IntTimeStep, SimFreq (full)
 %     OffsetTolerance  error target of the average over the inhomogeneous
-%                    line (Sys.lwAnisoG), default 1e-6 (subspace)
+%                    line (Sys.lwAnisoG), default 1e-6 (manifold)
 %     Binning        'auto' (default), true, false, or one true/false per
 %                    dimension: delay dimensions computed by binning the
 %                    peaks (fast, approximate) or point by point (exact)
-%                    (subspace)
-%     OriThreshold, Nuclei, Transitions, ProductRule, Expand (subspace)
+%                    (manifold)
+%     OriThreshold, Nuclei, Transitions, ProductRule, Expand (manifold)
 %     separate, Window, ZeroFillFactor, Verbosity
 %
 %  Outputs:
@@ -76,13 +76,13 @@
 %     info    structure with the expanded experiment (Exp), the engine
 %             (Method, MethodReason), the processed spectrum (f, fd, or
 %             f1, f2, fd), the start and end times of the elements of
-%             Exp.Sequence on the time axis of x (EventTimes, fullspace),
+%             Exp.Sequence on the time axis of x (EventTimes, full),
 %             the contributing coherence pathways (Pathways, in the
 %             syntax of Exp.Pathways) and their echo times after the end
 %             of the sequence (EchoTimes, µs, NaN without echo), the
 %             number of resonance offsets in the average over the
-%             inhomogeneous line (nOffsets, subspace), and the binned
-%             dimensions (binnedDims, subspace)
+%             inhomogeneous line (nOffsets, manifold), and the binned
+%             dimensions (binnedDims, manifold)
 
 function varargout = saffron(Sys,Exp,Opt)
 
@@ -183,7 +183,7 @@ if isfield(Exp,'lightBeam') && ~isempty(Exp.lightBeam)
   error('Photoselection (via Exp.lightBeam) is not supported.')
 end
 if isfield(Opt,'SimulationMode')
-  error('Opt.SimulationMode is no longer supported. Use Opt.Method = ''auto'', ''subspace'' or ''fullspace''.');
+  error('Opt.SimulationMode is no longer supported. Use Opt.Method = ''auto'', ''manifold'' or ''full''.');
 end
 if isfield(Opt,'lwOffset')
   error('Opt.lwOffset is no longer supported. The offset distribution is the inhomogeneous EPR line, Sys.lwAnisoG.');
@@ -386,21 +386,21 @@ end
 autoMethod = ~isfield(Opt,'Method') || isempty(Opt.Method) || strcmp(Opt.Method,'auto');
 [Opt.Method,methodReason,seq,engineReasons] = sf_selectengine(Sys,Exp,Opt);
 if autoMethod && ~isempty(engineReasons)
-  logmsg(1,'Simulation engine: %s, since the subspace engine does not support',Opt.Method);
+  logmsg(1,'Simulation engine: %s, since the manifold engine does not support',Opt.Method);
   for iReason = 1:numel(engineReasons)
     logmsg(1,'  - %s',engineReasons{iReason});
   end
 else
   logmsg(1,'Simulation engine: %s %s',Opt.Method,methodReason);
 end
-subspaceEngine = strcmp(Opt.Method,'subspace');
+manifoldEngine = strcmp(Opt.Method,'manifold');
 
-if subspaceEngine
+if manifoldEngine
   Opt.fastSeq = seq;
   Opt.fastExp = Exp;
   pathwaySeq = seq;
 else
-  % Full-space engine: set up events and indirect dimensions
+  % Full engine: set up events and indirect dimensions
   ExpProp = Exp;
   if isfield(ExpProp,'DetOperator')
     Opt.DetOperator = ExpProp.DetOperator;
@@ -448,7 +448,7 @@ includeInverseDomain = true;
 % Axes, output arrangement, processing
 %===============================================================================
 x = dimensionAxes(Exp);
-if ~subspaceEngine && isfield(info,'transientAxis') && ~isempty(info.transientAxis)
+if ~manifoldEngine && isfield(info,'transientAxis') && ~isempty(info.transientAxis)
   x{end+1} = info.transientAxis;
 end
 if isscalar(x), x = x{1}; end
@@ -476,7 +476,7 @@ if isfield(info,'decayRates')
 else
   decayAdded = false;
 end
-if ~subspaceEngine
+if ~manifoldEngine
   decayAdded = isfield(info,'relaxation') && info.relaxation;
 end
 info = processSignal(x,data,Exp,Opt,decayAdded,info);
@@ -517,25 +517,25 @@ end
 %     Sys    spin system of a single isotopologue
 %     Exp    experiment, parsed by saffron
 %     Opt    options, parsed by saffron, including
-%       Method             'subspace' or 'fullspace'
+%       Method             'manifold' or 'full'
 %       relaxationFromSys  true if the user did not give Opt.Relaxation
-%       fastSeq, fastExp   parsed sequence and experiment (subspace engine)
+%       fastSeq, fastExp   parsed sequence and experiment (manifold engine)
 %       propEvents, propVary, propCycleRuns, propPathways
 %                          events and indirect dimensions with all
 %                          settings of the pulses in the phase cycle, the
 %                          propagation runs of the phase cycle (see
 %                          phaseCycleRuns), and electron coherence orders
-%                          of the selected pathways (full-space engine)
+%                          of the selected pathways (full engine)
 %
 %   Output:
 %     x_out  always empty (saffron computes the axes)
-%     y_out  signal, see sf_engine_subspace and sf_engine_fullspace
+%     y_out  signal, see sf_engine_manifold and sf_engine_full
 %     info   structure from the engine, with additional fields
 %       SinglePointDetection  always true
-%       relaxation            true if relaxation is on (full-space engine)
+%       relaxation            true if relaxation is on (full engine)
 function [x_out,y_out,info] = saffron_single(Sys,Exp,Opt)
 
-subspaceEngine = strcmp(Opt.Method,'subspace');
+manifoldEngine = strcmp(Opt.Method,'manifold');
 x_out = [];
 
 %===============================================================================
@@ -578,10 +578,10 @@ end
 % Total orientation weight 1
 Exp.OriWeights = Exp.OriWeights/sum(Exp.OriWeights);
 
-if subspaceEngine
-  [y_out,info] = sf_engine_subspace(Sys,Exp,Opt,Orientations);
+if manifoldEngine
+  [y_out,info] = sf_engine_manifold(Sys,Exp,Opt,Orientations);
 else
-  [y_out,info] = sf_engine_fullspace(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi);
+  [y_out,info] = sf_engine_full(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi);
   info.relaxation = any(Opt.Relaxation);
 end
 
@@ -603,7 +603,7 @@ end
 %   orders = sf_pathwayorders(Exp,idealPulses)
 %
 %   Converts the pathway selection in Exp.Pathways to the numeric form used
-%   by the full-space engine.
+%   by the full engine.
 %
 %   Input:
 %     Exp     experiment; uses
@@ -690,7 +690,7 @@ end
 end
 
 %===============================================================================
-% phaseCycleRuns  Propagation runs of the phase cycle (full-space engine)
+% phaseCycleRuns  Propagation runs of the phase cycle (full engine)
 %
 %   [settings,runs] = phaseCycleRuns(Exp,nPulses)
 %

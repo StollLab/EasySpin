@@ -1,7 +1,7 @@
 function ok = test() %#ok<FNDEF>
 
-% Sequences that only the full-space engine can represent are handed to it
-% with Opt.Method = 'auto' (and rejected with Opt.Method = 'subspace'),
+% Sequences that only the full engine can represent are handed to it
+% with Opt.Method = 'auto' (and rejected with Opt.Method = 'manifold'),
 % rather than causing an error while the engine is chosen: pulses given
 % as IQ waveforms without a flip angle, and indirect dimensions over
 % frequency bands of pulses
@@ -28,8 +28,8 @@ IQPulse.t = t;
 E = Exp;
 E.Sequence = {IQPulse 0.1};
 [~,~,info] = saffron(Sys,E,OptIQ);
-ok(1) = strcmp(info.Method,'fullspace') && contains(info.MethodReason,'IQ');
-ok(2) = throwsWith(@() saffron(Sys,E,setfield(OptIQ,'Method','subspace')),'IQ');
+ok(1) = strcmp(info.Method,'full') && contains(info.MethodReason,'IQ');
+ok(2) = throwsWith(@() saffron(Sys,E,setfield(OptIQ,'Method','manifold')),'IQ');
 
 % Indirect dimension over the frequency band of a chirp: one row per
 % point, or one row of band-edge increments
@@ -44,11 +44,11 @@ E.Sequence = {Chirp 0.1};
 E.nPoints = 3;
 E.Dim1 = {'p1.Frequency' [0 0; -5 5; -10 10]};  % MHz
 [~,~,info] = saffron(Sys,E,OptC);
-ok(3) = strcmp(info.Method,'fullspace') && contains(info.MethodReason,'frequency bands');
+ok(3) = strcmp(info.Method,'full') && contains(info.MethodReason,'frequency bands');
 E.Dim1 = {'p1.Frequency' [-5 5]};  % MHz
 [~,~,info] = saffron(Sys,E,OptC);
-ok(4) = strcmp(info.Method,'fullspace') && contains(info.MethodReason,'frequency bands');
-ok(5) = throwsWith(@() saffron(Sys,E,setfield(OptC,'Method','subspace')),'frequency bands');
+ok(4) = strcmp(info.Method,'full') && contains(info.MethodReason,'frequency bands');
+ok(5) = throwsWith(@() saffron(Sys,E,setfield(OptC,'Method','manifold')),'frequency bands');
 
 % A rectangular pulse without Flip, Amplitude or IQ is still an error
 E = Exp;

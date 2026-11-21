@@ -2,13 +2,13 @@
 %
 %   [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 %
-%   Checks which features of the request the subspace engine supports and
+%   Checks which features of the request the manifold engine supports and
 %   returns the engine to use. Opt.Method = 'auto' (default) uses the
-%   subspace engine whenever it supports every feature, and the full-space
-%   engine otherwise. An explicit 'subspace' errors with the list of
+%   manifold engine whenever it supports every feature, and the full
+%   engine otherwise. An explicit 'manifold' errors with the list of
 %   unsupported features.
 %
-%   Capability table: the subspace engine supports one electron spin with
+%   Capability table: the manifold engine supports one electron spin with
 %   S = 1/2 (S > 1/2 only when requested explicitly, as a transition-selective
 %   approximation), ideal and rectangular microwave pulses, single rectangular
 %   RF pulses with an RF frequency sweep, linear delay increments (also
@@ -17,28 +17,28 @@
 %   selection, phase cycles, scalar T1/T2 (also only during some delays,
 %   Opt.Relaxation), electron-only initial states (Sys.initState) on powders
 %   without relaxation, and single-point S+ detection at the end of the
-%   sequence or shifted from it (scalar Exp.DetWindow). Everything else needs the full-space engine (see
+%   sequence or shifted from it (scalar Exp.DetWindow). Everything else needs the full engine (see
 %   sf_parsesequence for the sequence features). Conversely, inhomogeneous
 %   broadening (Sys.lwAnisoG) and ideal pulses with an excitation window
-%   (Opt.IdealPulses) are only supported by the subspace engine.
+%   (Opt.IdealPulses) are only supported by the manifold engine.
 %
 %   Input:
 %     Sys  spin system, or cell array of spin systems (components)
 %     Exp  experiment, passed on to sf_parsesequence
 %     Opt  options structure, with fields
-%       Method       'auto' (default), 'subspace', 'fullspace'
+%       Method       'auto' (default), 'manifold', 'full'
 %       Relaxation   relaxation on/off, one value or one per element of
 %                    Exp.Sequence, passed on to sf_parsesequence
 %       IdealPulses  true: treat finite pulses as ideal
 %       crystalSample  true for crystals (from p_sampletype)
 %
 %   Output:
-%     method   engine to use, 'subspace' or 'fullspace'
-%     reason   why this engine is used, for the log; '' if the subspace
+%     method   engine to use, 'manifold' or 'full'
+%     reason   why this engine is used, for the log; '' if the manifold
 %              engine is selected automatically
-%     seq      parsed sequence for the subspace engine (empty for fullspace)
-%     reasons  cell array of the features the subspace engine does not
-%              support; if the full-space engine was requested, the
+%     seq      parsed sequence for the manifold engine (empty for full)
+%     reasons  cell array of the features the manifold engine does not
+%              support; if the full engine was requested, the
 %              sequence is not parsed and only spin system features are
 %              listed
 
@@ -47,13 +47,13 @@ function [method,reason,seq,reasons] = sf_selectengine(Sys,Exp,Opt)
 if ~isfield(Opt,'Method') || isempty(Opt.Method)
   Opt.Method = 'auto';
 end
-[~,err] = parseoption(Opt,'Method',{'auto','subspace','fullspace'});
+[~,err] = parseoption(Opt,'Method',{'auto','manifold','full'});
 error(err);
 requested = char(Opt.Method);
 
 seq = [];
 reasons = {};
-if ~strcmp(requested,'fullspace')
+if ~strcmp(requested,'full')
   idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
   relaxation = [];
   if isfield(Opt,'Relaxation'), relaxation = Opt.Relaxation; end
@@ -74,7 +74,7 @@ for c = 1:numel(SysList)
   if isfield(S_,'initState') && ~isempty(S_.initState)
     % Electron-only states (dimension prod(2S+1)) on powders, without
     % relaxation; states with a nuclear part, and crystals, need the
-    % full-space engine (the shorthands such as 'singlet' are for two
+    % full engine (the shorthands such as 'singlet' are for two
     % electron spins, a reason of its own)
     state = S_.initState;
     if iscell(state), state = state{1}; end
@@ -97,63 +97,63 @@ for c = 1:numel(SysList)
     reasons{end+1} = 'transition-selective relaxation times (matrices in Sys.T1, Sys.T2)';
   end
 end
-if highSpin && ~strcmp(requested,'subspace')
-  reasons{end+1} = 'electron spin S > 1/2 (use Opt.Method = ''subspace'' for the transition-selective approximation)';
+if highSpin && ~strcmp(requested,'manifold')
+  reasons{end+1} = 'electron spin S > 1/2 (use Opt.Method = ''manifold'' for the transition-selective approximation)';
 end
 reasons = unique(reasons,'stable');
 
 switch requested
-  case 'fullspace'
-    method = 'fullspace';
+  case 'full'
+    method = 'full';
     reason = 'requested (Opt.Method)';
-  case 'subspace'
+  case 'manifold'
     if ~isempty(reasons)
-      error('Opt.Method = ''subspace'' cannot be used: the subspace engine does not support %s. Use ''fullspace'', or omit Opt.Method.',...
+      error('Opt.Method = ''manifold'' cannot be used: the manifold engine does not support %s. Use ''full'', or omit Opt.Method.',...
         strjoin(reasons,', '));
     end
-    method = 'subspace';
+    method = 'manifold';
     reason = 'requested (Opt.Method)';
   case 'auto'
     if isempty(reasons)
-      method = 'subspace';
+      method = 'manifold';
       reason = '';
     else
-      method = 'fullspace';
-      reason = ['the subspace engine does not support ' strjoin(reasons,', ')];
+      method = 'full';
+      reason = ['the manifold engine does not support ' strjoin(reasons,', ')];
     end
 end
-if ~strcmp(method,'subspace'), seq = []; end
+if ~strcmp(method,'manifold'), seq = []; end
 
 % Increments of delays before the first pulse have no effect on the initial
-% state of the subspace engine (populations of the electron levels)
-if strcmp(method,'subspace') && ~isempty(seq.prePulseDims)
+% state of the manifold engine (populations of the electron levels)
+if strcmp(method,'manifold') && ~isempty(seq.prePulseDims)
   error('Exp.Dim%d: incrementing a delay before the first pulse has no effect.',seq.prePulseDims(1));
 end
 
-% Features only the subspace engine supports: inhomogeneous broadening of
+% Features only the manifold engine supports: inhomogeneous broadening of
 % the EPR line (Sys.lwAnisoG, or its deprecated name Sys.HStrain)
-if strcmp(method,'fullspace')
+if strcmp(method,'full')
   for c = 1:numel(SysList)
     S_ = SysList{c};
     if (isfield(S_,'lwAnisoG') && any(S_.lwAnisoG(:))) || (isfield(S_,'HStrain') && any(S_.HStrain(:)))
-      if strcmp(requested,'fullspace')
-        error('The full-space engine (Opt.Method = ''fullspace'') does not support Sys.lwAnisoG.');
+      if strcmp(requested,'full')
+        error('The full engine (Opt.Method = ''full'') does not support Sys.lwAnisoG.');
       else
-        error(['Sys.lwAnisoG is only supported by the subspace engine, but this simulation needs ' ...
-          'the full-space engine (%s).'],reason);
+        error(['Sys.lwAnisoG is only supported by the manifold engine, but this simulation needs ' ...
+          'the full engine (%s).'],reason);
       end
     end
   end
 end
 
 % Ideal pulses with an excitation window (Opt.IdealPulses) are only
-% supported by the subspace engine
-if strcmp(method,'fullspace') && isfield(Opt,'IdealPulses') && Opt.IdealPulses
-  if strcmp(requested,'fullspace')
-    error('The full-space engine (Opt.Method = ''fullspace'') does not support Opt.IdealPulses = true.');
+% supported by the manifold engine
+if strcmp(method,'full') && isfield(Opt,'IdealPulses') && Opt.IdealPulses
+  if strcmp(requested,'full')
+    error('The full engine (Opt.Method = ''full'') does not support Opt.IdealPulses = true.');
   else
-    error(['Opt.IdealPulses = true is only supported by the subspace engine, but this simulation needs ' ...
-      'the full-space engine (%s).'],reason);
+    error(['Opt.IdealPulses = true is only supported by the manifold engine, but this simulation needs ' ...
+      'the full engine (%s).'],reason);
   end
 end
 

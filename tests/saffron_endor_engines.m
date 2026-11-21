@@ -1,8 +1,8 @@
 function ok = test() %#ok<FNDEF>
 
 % Mims ENDOR, single orientation, short rectangular RF pulse with a given
-% RF field: the subspace engine (two-level population transfer per NMR
-% transition) and the full-space engine (time-stepped RF pulse with the
+% RF field: the manifold engine (two-level population transfer per NMR
+% transition) and the full engine (time-stepped RF pulse with the
 % nuclear Zeeman operator) agree, including the side lobes of the RF
 % excitation profile.
 
@@ -32,8 +32,8 @@ Eoff = Exp;
 Eoff.Sequence{5}.B1 = 0;
 Eoff.nPoints = 1;
 
-Opt1 = struct('Method','subspace');
-Opt2 = struct('Method','fullspace');
+Opt1 = struct('Method','manifold');
+Opt2 = struct('Method','full');
 [x,y1,info1] = saffron(Sys,Exp,Opt1);
 [~,y2,info2] = saffron(Sys,Exp,Opt2);
 [~,y1off] = saffron(Sys,Eoff,Opt1);
@@ -43,7 +43,7 @@ Opt2 = struct('Method','fullspace');
 endor1 = real(y1off-y1);
 endor2 = real(y2off-y2);
 
-ok(1) = strcmp(info1.Method,'subspace') && strcmp(info2.Method,'fullspace');
+ok(1) = strcmp(info1.Method,'manifold') && strcmp(info2.Method,'full');
 ok(2) = areequal(endor1,endor2,0.03,'rel') && max(endor1)>0.1*abs(y1off);
 ok(3) = areequal(x,13+0.2*(0:20));
 ok(4) = areequal(y1off,y2off,1e-4,'rel');

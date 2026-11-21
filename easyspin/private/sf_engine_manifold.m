@@ -1,6 +1,6 @@
-% sf_engine_subspace  Subspace engine of saffron
+% sf_engine_manifold  Manifold engine of saffron
 %
-%   [y,info] = sf_engine_subspace(Sys,Exp,Opt,Orientations)
+%   [y,info] = sf_engine_manifold(Sys,Exp,Opt,Orientations)
 %
 %   Simulates a pulse EPR signal as a sum over electron coherence transfer
 %   pathways, in the nuclear subspaces of the electron spin manifolds. This
@@ -110,7 +110,7 @@
 %       original          position of the original entry of a field-reversed
 %                         partner in this slice, 0 if not present, 1 x K
 
-function [y,info] = sf_engine_subspace(Sys,Exp,Opt,Orientations)
+function [y,info] = sf_engine_manifold(Sys,Exp,Opt,Orientations)
 
 seq = Opt.fastSeq;
 nOrientations = size(Orientations,1);
@@ -120,13 +120,13 @@ info = struct;
 T1 = 0; T2 = 0;
 if isfield(Sys,'T1') && ~isempty(Sys.T1)
   if numel(Sys.T1)~=1
-    error('The subspace engine does not support transition-selective relaxation times (Sys.T1). Use Opt.Method = ''fullspace''.');
+    error('The manifold engine does not support transition-selective relaxation times (Sys.T1). Use Opt.Method = ''full''.');
   end
   T1 = Sys.T1;
 end
 if isfield(Sys,'T2') && ~isempty(Sys.T2)
   if numel(Sys.T2)~=1
-    error('The subspace engine does not support transition-selective relaxation times (Sys.T2). Use Opt.Method = ''fullspace''.');
+    error('The manifold engine does not support transition-selective relaxation times (Sys.T2). Use Opt.Method = ''full''.');
   end
   T2 = Sys.T2;
 end
@@ -252,7 +252,7 @@ end
 % do not change when the molecule is rotated about the field (third Euler
 % angle chi), while the coherences rho_ab between the two levels average
 % out over chi in powders (sf_selectengine rejects crystals). The
-% full-space engine instead removes all coherences between different
+% full engine instead removes all coherences between different
 % electron mS from the state, which is the same with its secular
 % Hamiltonian, whose eigenstates have pure mS along the field. The two
 % differ by the deviation of the eigenstates from pure mS: to first order
@@ -262,7 +262,7 @@ end
 % Hamiltonian without hyperfine couplings, to first order as in the
 % nuclear sub-Hamiltonians. The states are in the molecular frame, with
 % the trace of the electron state divided by the number of nuclear
-% states, as in the full-space engine.
+% states, as in the full engine.
 userInitState = ~isempty(Sys.initState);
 if userInitState
   SysE = rmfield(Sys,intersect(fieldnames(Sys),{'nn','nnFrame'}));
@@ -411,7 +411,7 @@ if twoElectronManifolds
 else
   % General electron system: transitions from the core Hamiltonian. Each
   % transition b -> a (a above b) is a two-level system. Its microwave
-  % coupling is the co-rotating field component, as in the full-space
+  % coupling is the co-rotating field component, as in the full
   % engine (rotating-wave approximation): the nutation frequency is
   % nu1*|<a|S+|b>|, with S+ in the lab frame. The initial state -Sz gives
   % the population difference <a|Sz|a> - <b|Sz|b>. Ideal pulses (only
@@ -695,7 +695,7 @@ else
       idealPulses = isfield(Opt,'IdealPulses') && Opt.IdealPulses;
       [seqk,reasons] = sf_parsesequence(Expk,idealPulses,Opt.Relaxation);
       if ~isempty(reasons)
-        error('The subspace engine cannot simulate point %d: %s.',iPt,strjoin(reasons,', '));
+        error('The manifold engine cannot simulate point %d: %s.',iPt,strjoin(reasons,', '));
       end
       seqk.binned = binnedDims(keepDims(seqk.kind1Dims));
       [yk{iPt},rates,nOffk] = pathwaySignal(E,seqk,Rel,productRule,expandFactor);
@@ -746,7 +746,7 @@ if isfield(Exp,'DetFreq') && ~isempty(Exp.DetFreq) && Exp.DetFreq~=Exp.mwFreq
   y = y.*reshape(exp(-2i*pi*(Exp.DetFreq-Exp.mwFreq)*1e3*t),size(y));  % GHz*µs -> rad
 end
 % Normalization: echo amplitude Tr(S+*rho)/Tr(S+'*S+) for the initial state
-% -Sz, as in the full-space engine. Each transition contributes with its
+% -Sz, as in the full engine. Each transition contributes with its
 % population difference times its transition moment (in E.w), and
 % Tr(S+'*S+) = prod(2I+1)*(2/3)*S*(S+1)*(2S+1), which is prod(2I+1) for S = 1/2.
 S = Sys.S;
@@ -878,10 +878,10 @@ end
 %   point, the incremented delays have fixed lengths (steppedSignal). With
 %   ideal pulses, the average over the inhomogeneous line is exact where
 %   the signal is not binned (stepped points, product rule), see the header
-%   of sf_engine_subspace.
+%   of sf_engine_manifold.
 %
 %   Input:
-%     E             entries, see the header of sf_engine_subspace
+%     E             entries, see the header of sf_engine_manifold
 %     seq           parsed sequence, from sf_parsesequence, with the field
 %                   binned (true for each binned kind-1 dimension)
 %     Rel           relaxation, with fields T1, T2 (µs, Inf: no relaxation)
@@ -1343,13 +1343,13 @@ end
 %   Ed = entrySlice(E,s,ec)
 %
 %   Input:
-%     E   entries, see the header of sf_engine_subspace
+%     E   entries, see the header of sf_engine_manifold
 %     s   subspace index
 %     ec  entry indices
 %
 %   Output:
 %     Ed  data of the entries, in page form (n x 1 x K, n x n x K), see the
-%         header of sf_engine_subspace
+%         header of sf_engine_manifold
 function Ed = entrySlice(E,s,ec)
 K = numel(ec);
 n = size(E.Ea{s},1);
@@ -1390,7 +1390,7 @@ end
 %   entries.
 %
 %   Input:
-%     E          entries, see the header of sf_engine_subspace
+%     E          entries, see the header of sf_engine_manifold
 %     chunkSize  maximum number of entries per chunk
 %
 %   Output:
@@ -1971,7 +1971,7 @@ end
 %   and the chi average of powders), leaving the population transfer.
 %
 %   Input:
-%     E           entries, see the header of sf_engine_subspace
+%     E           entries, see the header of sf_engine_manifold
 %     seq         parsed sequence, from sf_parsesequence
 %     Sys         spin system, for rfNutation
 %     Exp         experiment, for rfNutation
@@ -1993,9 +1993,9 @@ end
 % The population-transfer model needs the electron spin in a population
 % state during the RF pulse (blocks 1 = aa, 2 = bb, not 3 = ab, 4 = ba)
 if any(seq.ctp(:,iRF)>2)
-  error(['The subspace engine simulates ENDOR only for pathways with electron coherence order 0 ' ...
+  error(['The manifold engine simulates ENDOR only for pathways with electron coherence order 0 ' ...
     'during the RF pulse. Select them with Exp.Pathways (e.g. ''+00-'' for Mims ENDOR), ' ...
-    'or use Opt.Method = ''fullspace''.']);
+    'or use Opt.Method = ''full''.']);
 end
 
 rfPulse = seq.Pulse(iRF);
@@ -2119,7 +2119,7 @@ end
 %   direction in the plane perpendicular to the static field.
 %
 %   Input:
-%     E           entries, see the header of sf_engine_subspace
+%     E           entries, see the header of sf_engine_manifold
 %     ec          entry indices
 %     NucHams     nuclear sub-Hamiltonians, from nuclearHamiltonians
 %     Sys         spin system; uses g, gFrame, fullg
@@ -2132,7 +2132,7 @@ end
 %                 manifold in the first nTransitions rows, beta in the rest
 function nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
 if isempty(E.geff)
-  error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the subspace engine.');
+  error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the manifold engine.');
 end
 K = numel(ec);
 nTransitions = numel(idxU);

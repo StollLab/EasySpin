@@ -7,7 +7,7 @@
    <link rel="stylesheet" href="highlight/matlab.css">
    <script src="highlight/highlight.min.js"></script>
    <script src="highlight/do_highlight.js"></script>
-   <title>User guide: saffron (full-space)</title>
+   <title>User guide: saffron (full method)</title>
 </head>
 
 <body>
@@ -26,10 +26,10 @@
 
 <section>
 
-<div class="functitle">Pulse EPR simulations with saffron and the <em>full-space</em> method</div>
+<div class="functitle">Pulse EPR simulations with saffron and the <em>full</em> method</div>
 
 <p>
-This second part of the user guide on <a class="esf" href="saffron.html">saffron</a> explains how to simulate pulse EPR experiments with features that need the general <em>full-space</em> method, and how to follow the spin dynamics of a single spin system during a pulse sequence.
+This second part of the user guide on <a class="esf" href="saffron.html">saffron</a> explains how to simulate pulse EPR experiments with features that need the general <em>full</em> method, and how to follow the spin dynamics of a single spin system during a pulse sequence.
 </p>
 
 <p>
@@ -37,7 +37,7 @@ If you have not read the first part of the guide yet, it can be found <a class="
 </p>
 
 <p>
-The fast <em>subspace</em> method handles one electron spin with S = 1/2, with or without nuclei, with ideal or rectangular pulses and a single detection point at the end of the sequence. For everything else, <a class="esf" href="saffron.html">saffron</a> uses the <em>full-space</em> method, for example for
+The fast <em>manifold</em> method handles one electron spin with S = 1/2, with or without nuclei, with ideal or rectangular pulses and a single detection point at the end of the sequence. For everything else, <a class="esf" href="saffron.html">saffron</a> uses the <em>full</em> method, for example for
 </p>
 <ul>
 <li>shaped and frequency-swept pulses, and user-defined waveforms</li>
@@ -49,7 +49,7 @@ The fast <em>subspace</em> method handles one electron spin with S = 1/2, with o
 </ul>
 
 <p>
-The <em>full-space</em> method follows the state of the complete spin system step by step in time, by solving the Liouville-von Neumann equation for piecewise constant Hamiltonians. The reference page has a complete <a href="saffron.html#algorithms">table of what each method supports</a>.
+The <em>full</em> method follows the state of the complete spin system step by step in time, by solving the Liouville-von Neumann equation for piecewise constant Hamiltonians. The reference page has a complete <a href="saffron.html#algorithms">table of what each method supports</a>.
 </p>
 
 <p>
@@ -106,7 +106,7 @@ We added three lines: <code>p90.tp</code>, <code>Exp.mwFreq</code> and <code>Exp
 </p>
 
 <p>
-<code>p90.tp</code> gives the pulses a length. With <code>Exp.mwFreq</code> we tell <a class="esf" href="saffron.html">saffron</a> the carrier frequency for these monochromatic pulses (frequency-swept pulses will be discussed later), and with <code>Exp.DetWindow</code> we request a detection window with a width of 200 ns, centered around the end of the second &tau; period. The detection window is what needs the <em>full-space</em> method here.
+<code>p90.tp</code> gives the pulses a length. With <code>Exp.mwFreq</code> we tell <a class="esf" href="saffron.html">saffron</a> the carrier frequency for these monochromatic pulses (frequency-swept pulses will be discussed later), and with <code>Exp.DetWindow</code> we request a detection window with a width of 200 ns, centered around the end of the second &tau; period. The detection window is what needs the <em>full</em> method here.
 </p>
 
 <p>
@@ -612,7 +612,7 @@ By default, <a class="esf" href="saffron.html">saffron</a> uses <code>Opt.GridSi
 </p>
 
 <p>
-For simulations using the <em>full-space</em> method, <a class="esf" href="saffron.html">saffron</a> usually changes into a simulation frame that rotates slower than the lab frame, about 2.5 GHz below the microwave frequency.
+For simulations using the <em>full</em> method, <a class="esf" href="saffron.html">saffron</a> usually changes into a simulation frame that rotates slower than the lab frame, about 2.5 GHz below the microwave frequency.
 This has the advantage that a much larger time step can be used (which speeds up the simulation).
 In this frame, the high-field approximation is used, and pulses keep only the part of their field that rotates with the spins.
 In most cases, this does not affect the outcome of the simulation.

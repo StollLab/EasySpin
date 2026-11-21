@@ -1,7 +1,7 @@
 function ok = test() %#ok<FNDEF>
 
-% Detection fields in the full-space engine: Exp.DetFreq defines the
-% detection frame (also in the subspace engine), Exp.DetOperator gives other
+% Detection fields in the full engine: Exp.DetFreq defines the
+% detection frame (also in the manifold engine), Exp.DetOperator gives other
 % detection operators, and Exp.DetSequence is replaced by
 % Exp.DetWindow = 'sequence'
 
@@ -18,7 +18,7 @@ Exp.Sequence = {Pulse 0.1};
 Exp.DetWindow = [0 0.05];  % µs
 
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 % Exp.mwFreq is the default detection frequency
 [~,y0] = saffron(Sys,Exp,Opt);
@@ -43,10 +43,10 @@ ExpD = rmfield(Exp,'DetWindow');
 ExpD.DetSequence = 'last';
 ok(4) = throwsWith(@() saffron(Sys,ExpD,Opt),'DetSequence');
 
-% The subspace engine gives a single point in the same detection frame
+% The manifold engine gives a single point in the same detection frame
 ExpF = rmfield(Exp,'DetWindow');
 OptF = Opt;
-OptF.Method = 'subspace';
+OptF.Method = 'manifold';
 yF = saffron(Sys,ExpF,Opt);
 yS = saffron(Sys,ExpF,OptF);
 ok(5) = areequal(yS,yF,1e-3,'rel');

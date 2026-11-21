@@ -29,7 +29,7 @@ Exp.Sequence = {Pulse 0.05};
 Exp.Field = 340;
 Exp.mwFreq = 9.53;
 Exp.DetWindow = [0 0.05];
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 SysT.S = 1;
 SysT.g = 2.0028;

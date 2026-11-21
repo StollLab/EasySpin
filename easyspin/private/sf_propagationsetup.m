@@ -1,10 +1,10 @@
-% sf_propagationsetup  Spin system setup and input checking for the full-space engine
+% sf_propagationsetup  Spin system setup and input checking for the full engine
 %
 %   [Sys,Sigma0,Det,Events,Relaxation] = sf_propagationsetup(Sys,Events,Opt)
 %
 %   Validates the spin system and sets up the initial state, the excitation
 %   operators of the pulses, the detection operators and the equilibrium
-%   state for sf_propagate (full-space engine of saffron).
+%   state for sf_propagate (full engine of saffron).
 %
 %   Input:
 %     Sys     spin system, including optional T1, T2 (µs), eqState, initState
@@ -217,7 +217,7 @@ for iEvent = 1: length(Events)
       error('RF pulses need nuclei in the spin system.');
     end
     % The RF excitation operator depends on the orientation (chemical
-    % shielding) and is set up by sf_engine_fullspace for each orientation.
+    % shielding) and is set up by sf_engine_full for each orientation.
     Events{iEvent}.xOp = [];
     Events{iEvent}.yOp = [];
     Events{iEvent}.CoherenceOrder = [];

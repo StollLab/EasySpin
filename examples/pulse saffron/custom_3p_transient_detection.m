@@ -4,7 +4,7 @@
 % pulses (pulse sequence in Exp.Sequence, incrementation scheme in
 % Exp.nPoints and Exp.Dim1). For each point of the indirect dimension, the
 % echo transient is detected in a window around the echo and integrated.
-% For this, saffron uses the slower full-space method.
+% For this, saffron uses the slower full method.
 
 clear
 

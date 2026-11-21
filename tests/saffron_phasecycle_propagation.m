@@ -3,7 +3,7 @@ function ok = test()  %#ok<FNDEF>
 % Exp.PhaseCycle works in both engines. With finite pulses, the pathways
 % engine weights each coherence pathway with the cycle, so the echo-selecting
 % cycle gives the same result as selecting the echo pathway with
-% Exp.Pathways, and the full-space engine agrees.
+% Exp.Pathways, and the full engine agrees.
 
 Sys.S = 1/2;
 Sys.g = gfree;
@@ -28,8 +28,8 @@ E2 = Exp; E2.Pathways = '+-';
 
 [~,y1,info] = saffron(Sys,E1);
 [~,y2] = saffron(Sys,E2);
-ok(1) = strcmp(info.Method,'subspace');
+ok(1) = strcmp(info.Method,'manifold');
 ok(2) = areequal(y1,y2,1e-10,'rel');
 
-[~,y3] = saffron(Sys,E1,struct('Method','fullspace'));
+[~,y3] = saffron(Sys,E1,struct('Method','full'));
 ok(3) = areequal(y3,y1,1e-3,'rel');

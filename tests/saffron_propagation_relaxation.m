@@ -32,7 +32,7 @@ Exp.DetWindow = [-0.05 0.05] + Chirp180.tp;
 Exp.DetPhase = 0;
 
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 [x, y] = saffron(Sys,Exp,Opt);
 

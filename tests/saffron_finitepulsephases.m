@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Subspace engine: pulse phases act on finite pulses (Pulse.tp) in the same
+% Manifold engine: pulse phases act on finite pulses (Pulse.tp) in the same
 % way as on ideal pulses, so the ratio of the two signals does not depend
 % on the pulse phases
 
@@ -16,7 +16,7 @@ Exp.nPoints = 2;
 Exp.Dim1 = {'d1,d2' 0.005};
 
 Opt.GridSize = 7;
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 
 P90.Flip = pi/2;
 P180.Flip = pi;

@@ -1,6 +1,6 @@
-% sf_engine_fullspace  Full-space engine of saffron
+% sf_engine_full  Full engine of saffron
 %
-%   [y,info] = sf_engine_fullspace(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
+%   [y,info] = sf_engine_full(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
 %
 %   Propagates the density matrix of the full spin system in time (with
 %   sf_propagate), for each orientation, and averages over orientations.
@@ -39,7 +39,7 @@
 %       EventTimes     [start end] of each element of Exp.Sequence (µs), one
 %                      row per element, on the time axis of the transient
 
-function [y,info] = sf_engine_fullspace(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
+function [y,info] = sf_engine_full(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
 
 info = struct;
 Events = Opt.propEvents;

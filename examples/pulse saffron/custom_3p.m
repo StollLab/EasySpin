@@ -3,7 +3,7 @@
 % This example illustrates how to define a three-pulse ESEEM experiment
 % yourself: the pulse sequence in Exp.Sequence, and the incrementation
 % scheme in Exp.nPoints and Exp.Dim1. With ideal pulses, saffron simulates
-% it with the fast subspace method. The result is the same as with the
+% it with the fast manifold method. The result is the same as with the
 % predefined experiment '3pESEEM'.
 
 clear

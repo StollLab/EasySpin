@@ -20,7 +20,7 @@ P180.Flip = pi;
 Exp.DetWindow = [-0.002 0.002];  % µs
 
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 % Two-pulse echo: the echo phase is the same for sub-ns changes of tau
 % and for different simulation frames

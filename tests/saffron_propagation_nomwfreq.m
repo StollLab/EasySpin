@@ -3,10 +3,10 @@ function ok = test() %#ok<FNDEF>
 % Simulations without Exp.mwFreq: the microwave carrier is at 0, so pulse
 % frequencies are absolute and the detection frame defaults to the lab
 % frame. A pulse at 9500 MHz without Exp.mwFreq equals a pulse at offset 0
-% with Exp.mwFreq = 9.5 GHz (same detection frame). In the full-space
+% with Exp.mwFreq = 9.5 GHz (same detection frame). In the full
 % engine, finite pulses without a nonzero frequency and a resonator give
-% errors without Exp.mwFreq. Pulses without a frequency use the subspace engine
-% (on resonance), pulses with a frequency the full-space engine.
+% errors without Exp.mwFreq. Pulses without a frequency use the manifold engine
+% (on resonance), pulses with a frequency the full engine.
 
 Sys.S = 1/2;
 Sys.g = gfree*mhz2mt(9505)/mhz2mt(9500);  % 5 MHz above 9.5 GHz
@@ -58,7 +58,7 @@ E.ResonatorFrequency = 9.5;  % GHz
 E.ResonatorQL = 100;
 ok(4) = throwsWith(@() saffron(Sys,E),'Exp.mwFreq');
 
-% Pulses without a frequency stay on the subspace engine, which puts them
+% Pulses without a frequency stay on the manifold engine, which puts them
 % on resonance with every orientation (ideal and finite pulses)
 SysN.Nucs = '1H';
 SysN.A = [2 3 9];  % MHz
@@ -68,18 +68,18 @@ ExpN.tau = 0.1;  % µs
 ExpN.dt = 0.02;  % µs
 ExpN.nPoints = 16;
 [~,~,info] = saffron(SysN,ExpN,struct('GridSize',7));
-ok(5) = strcmp(info.Method,'subspace');
+ok(5) = strcmp(info.Method,'manifold');
 ExpN.tp = 0.016;  % µs, finite pulses
 [~,~,info] = saffron(SysN,ExpN,struct('GridSize',7));
-ok(6) = strcmp(info.Method,'subspace');
+ok(6) = strcmp(info.Method,'manifold');
 
 % A finite pulse with a frequency (absolute without Exp.mwFreq) needs the
-% full-space engine
+% full engine
 E = rmfield(Exp,{'DetOperator','DetFreq'});
 E.DetWindow = 0;
 E.Sequence = {P};
 [~,~,info] = saffron(SysN,setfield(E,'Field',ExpN.Field),struct('GridSize',7)); %#ok<SFLD>
-ok(7) = strcmp(info.Method,'fullspace') && contains(info.MethodReason,'absolute pulse frequencies');
+ok(7) = strcmp(info.Method,'full') && contains(info.MethodReason,'absolute pulse frequencies');
 
 end
 

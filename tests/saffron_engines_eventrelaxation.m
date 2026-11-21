@@ -1,14 +1,14 @@
 function ok = test() %#ok<FNDEF>
 
-% Relaxation per element of Exp.Sequence (Opt.Relaxation) in the subspace
+% Relaxation per element of Exp.Sequence (Opt.Relaxation) in the manifold
 % engine: only the delays with relaxation on contribute their decay
 % - stimulated echo: T2 decay over the two tau delays, T1 decay over T,
 %   each only if switched on; entries for pulses have no effect
 % - incremented delay T, evaluated per point (16 points) and binned (128
 %   points): the T1 decay along T only if relaxation is on during T
 % - two delays in one interval, only one of them with relaxation
-% - Opt.Method = 'auto' uses the subspace engine, and agrees with the
-%   full-space engine (T2 only, since the engines treat T1 differently)
+% - Opt.Method = 'auto' uses the manifold engine, and agrees with the
+%   full engine (T2 only, since the engines treat T1 differently)
 % - a wrong number of entries is an error
 
 Sys.Nucs = '1H';
@@ -27,7 +27,7 @@ Exp.MolFrame = [0 0 0];
 Exp.CrystalSymmetry = 1;
 Exp.Sequence = {p90 tau p90 T p90 tau};
 Exp.Pathways = '+0-';
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 
 % single point
 y = @(relax) saffron(Sys,Exp,setfield(Opt,'Relaxation',relax));
@@ -64,18 +64,18 @@ yOff = saffron(Sys,E,O);
 O.Relaxation = [0 1 0 0 1];
 ok(end+1) = areequal(saffron(Sys,E,O),yOff*exp(-0.25/Sys.T2),1e-12,'rel');
 
-% automatic engine selection, and agreement with the full-space engine
+% automatic engine selection, and agreement with the full engine
 SysT2 = rmfield(Sys,'T1');
 E = Exp;
 E.Sequence = {p90 0.1 p180 0.2};
 E.Pathways = '+-';
 E.DetPhase = -pi/2;
 relax = [0 1 0 0];  % relaxation only during the first delay
-[~,ySub,info] = saffron(SysT2,E,struct('Relaxation',relax));
-[~,yFull] = saffron(SysT2,E,struct('Relaxation',relax,'Method','fullspace'));
-ok(end+1) = strcmp(info.Method,'subspace');
-ok(end+1) = areequal(real(yFull),real(ySub),1e-3,'rel');
-ok(end+1) = abs(ySub/saffron(SysT2,E,struct('Relaxation',false))-exp(-0.1/Sys.T2))<1e-12;
+[~,yMan,info] = saffron(SysT2,E,struct('Relaxation',relax));
+[~,yFull] = saffron(SysT2,E,struct('Relaxation',relax,'Method','full'));
+ok(end+1) = strcmp(info.Method,'manifold');
+ok(end+1) = areequal(real(yFull),real(yMan),1e-3,'rel');
+ok(end+1) = abs(yMan/saffron(SysT2,E,struct('Relaxation',false))-exp(-0.1/Sys.T2))<1e-12;
 
 % wrong number of entries
 try

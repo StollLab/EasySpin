@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Subspace method: relaxation decays multiplied onto predefined experiments
+% Manifold method: relaxation decays multiplied onto predefined experiments
 % (T2 over 2*tau, T1 over the population periods)
 
 Sys.Nucs = '1H';

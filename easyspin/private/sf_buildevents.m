@@ -1,10 +1,10 @@
-% sf_buildevents  Build events and indirect dimensions for the full-space engine
+% sf_buildevents  Build events and indirect dimensions for the full engine
 %
 %   [Events,Vary,Opt] = sf_buildevents(Exp,Opt)
 %
 %   Parses the pulse sequence specified in Exp, using settings from Opt, to
 %   create the Events and Vary structures needed for the simulation by
-%   sf_propagate (full-space engine of saffron). Predefined experiments
+%   sf_propagate (full engine of saffron). Predefined experiments
 %   are expanded by saffron before.
 %
 %   Input:
@@ -1205,7 +1205,7 @@ if Pulse.isRF
     [t,IQ] = pulse(Par);
   else
     if ~isfield(Pulse,'rfGammaRef')
-      error('RF pulses in the full-space engine need B1 (in mT), or a nucleus to define a nominal flip angle.');
+      error('RF pulses in the full engine need B1 (in mT), or a nucleus to define a nominal flip angle.');
     end
     [t,IQ] = pulse(Par);
     IQ = IQ/Pulse.rfGammaRef;  % MHz -> mT

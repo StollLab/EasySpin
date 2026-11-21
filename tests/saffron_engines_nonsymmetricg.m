@@ -3,7 +3,7 @@ function ok = test() %#ok<FNDEF>
 % S = 1/2 with a non-symmetric g matrix: the Zeeman term bmagn*B*zL.'*g*S
 % quantizes the electron spin along g.'*zL, which sets the EPR frequency
 % and the direction of <S> in the hyperfine terms. Check of the EPR
-% frequency of the subspace engine against resfreqs_matrix, through the
+% frequency of the manifold engine against resfreqs_matrix, through the
 % excitation window of ideal pulses (Opt.IdealPulses, FWHM 1/tp = 5 MHz):
 % on resonance, the echo has the full amplitude, and 2.5 MHz off
 % resonance half of it. With g*zL instead, the frequency would be off by
@@ -25,7 +25,7 @@ p180 = struct('Flip',pi,'tp',0.2);  % µs
 Exp.Sequence = {p90 0.3 p180 0.3};
 Exp.Pathways = 'echo';  % refocused: independent of the resonance offset
 Exp.DetPhase = -pi/2;
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 
 % ideal pulses without excitation window
 E0 = Exp;

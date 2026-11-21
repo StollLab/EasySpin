@@ -27,7 +27,7 @@
 % vanishes.
 %
 % The RF pulses must be strong enough to excite the whole ENDOR spectrum.
-% saffron simulates this experiment with the full-space method, which takes
+% saffron simulates this experiment with the full method, which takes
 % some time.
 %
 % References:

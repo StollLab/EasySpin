@@ -1,14 +1,14 @@
 function ok = test() %#ok<FNDEF>
 
-% Chemical shielding (Sys.sigma) and gnscale in the subspace engine
-% - single orientation: the subspace and full-space engines agree for 3p
+% Chemical shielding (Sys.sigma) and gnscale in the manifold engine
+% - single orientation: the manifold and full engines agree for 3p
 %   ESEEM with anisotropic shielding tensors (with Euler angles) and
 %   gnscale, and the shielding changes the signal
 % - a full shielding tensor gives the same result as its principal values
 %   and Euler angles
 % - Mims ENDOR: isotropic shielding scales the nuclear Zeeman frequency, so
 %   the lines are at sigma*nuI -+ A/2
-% - RF pulses (full-space engine): with the shielding tensor diagonal in
+% - RF pulses (full engine): with the shielding tensor diagonal in
 %   the lab frame and an isotropic A, the NMR transitions are at
 %   gnscale*sigma_zz*nuI -+ A/2 and the RF nutation frequency is
 %   gnscale*sigma_xx*gamma*B1, so a pi pulse there gives the same ENDOR
@@ -35,17 +35,17 @@ Exp.Dim1 = {'d2' 0.05};  % µs
 Exp.nPoints = 32;
 Exp.DetPhase = -pi/2;
 
-% subspace vs full-space engine; the full-space engine selects the
+% manifold vs full engine; the full engine selects the
 % stimulated echo by a phase cycle of the first and third pulses
-ySub = subspace(Sys,Exp);
+yMan = manifold(Sys,Exp);
 [ph1,ph3] = ndgrid((0:3)*pi/2,[0 pi]);
 E = Exp;
 E.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
-[~,yFull] = saffron(Sys,E,struct('Method','fullspace'));
-ok(1) = areequal(ySub,yFull(:),1e-5,'rel');
+[~,yFull] = saffron(Sys,E,struct('Method','full'));
+ok(1) = areequal(yMan,yFull(:),1e-5,'rel');
 
 % the shielding changes the signal much more than the tolerance
-ok(2) = norm(ySub-subspace(Sys0,Exp))/norm(ySub) > 1e-3;
+ok(2) = norm(yMan-manifold(Sys0,Exp))/norm(yMan) > 1e-3;
 
 % full tensors in the molecular frame instead of principal values and frames
 SysFull = Sys;
@@ -55,7 +55,7 @@ for iNuc = 1:2
   SysFull.sigma(3*(iNuc-1)+(1:3),:) = R.'*diag(Sys.sigma(iNuc,:))*R;
 end
 SysFull = rmfield(SysFull,'sigmaFrame');
-ok(3) = areequal(subspace(SysFull,Exp),ySub,1e-10,'rel');
+ok(3) = areequal(manifold(SysFull,Exp),yMan,1e-10,'rel');
 
 % Mims ENDOR with isotropic shielding: lines at sigma*nuI -+ A/2
 SysE.Nucs = '1H';
@@ -73,7 +73,7 @@ peaks = x(islocalmax(endor) & endor>0.3*max(endor));
 nuI = SysE.sigma*larmorfrq('1H',ExpE.Field);
 ok(4) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*SysE.A/2))<0.05);
 
-% RF pulses with shielding and gnscale (full-space engine), single
+% RF pulses with shielding and gnscale (full engine), single
 % orientation with the molecular frame equal to the lab frame
 SysR.Nucs = '1H';
 SysR.A = 3;  % MHz
@@ -107,7 +107,7 @@ end
 
 % ENDOR effect of an RF pulse at frequency nuRF (MHz), with RF field B1
 % (mT) or, for empty B1, Flip = pi: echo without minus echo with RF field,
-% in Mims ENDOR (full-space engine)
+% in Mims ENDOR (full engine)
 function e = rfEffect(Sys,Exp,rf,p90,nuRF,B1)
 if isempty(B1)
   rf.Flip = pi;
@@ -117,7 +117,7 @@ else
   rfOff = rf; rfOff.B1 = 0;
 end
 Exp.rfFreq = nuRF;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 [~,yOn] = saffron(Sys,Exp,Opt);
 Exp.Sequence{5} = rfOff;
@@ -125,8 +125,8 @@ Exp.Sequence{5} = rfOff;
 e = real(yOff-yOn);
 end
 
-function y = subspace(Sys,Exp)
+function y = manifold(Sys,Exp)
 Exp.Pathways = 'echo';
-[~,y] = saffron(Sys,Exp,struct('Method','subspace'));
+[~,y] = saffron(Sys,Exp,struct('Method','manifold'));
 y = y(:);
 end

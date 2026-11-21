@@ -2,7 +2,7 @@ function ok = test() %#ok<FNDEF>
 
 % Exp.PhaseCycle
 % - the order of the steps does not matter
-% - full-space method: phases are compared modulo 2*pi and with a
+% - full method: phases are compared modulo 2*pi and with a
 %   tolerance
 % - errors for wrong input
 
@@ -22,7 +22,7 @@ Exp.DetPhase = -pi/2;  % rad
 PC = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 
 tol = 1e-10;
-methods = {'subspace','fullspace'};
+methods = {'manifold','full'};
 for m = 1:2
   Opt.Method = methods{m};
 
@@ -36,12 +36,12 @@ for m = 1:2
   ok(m) = areequal(yRev,y,tol,'rel'); %#ok<AGROW>
 end
 
-% Full-space method: phases that differ by 2*pi or by rounding errors are
+% Full method: phases that differ by 2*pi or by rounding errors are
 % the same setting, so the cycle stays nested (a single propagation run)
 p90f = struct('Flip',pi/2,'tp',0.01);
 E = Exp;
 E.Sequence = {p90f 0.12 p90f 0.3 p90f 0.12};
-Opt = struct('Method','fullspace');
+Opt = struct('Method','full');
 E.PhaseCycle = PC;
 [~,y] = saffron(Sys,E,Opt);
 PCmod = PC;

@@ -11,7 +11,7 @@ function ok = test()  %#ok<FNDEF>
 %   also for pulses that are finite only at some points)
 % - both engines use the same pathways at all points
 % - errors: no echo within the window at all points, DetWindow = 'sequence',
-%   increments of delays before the first pulse (subspace engine only)
+%   increments of delays before the first pulse (manifold engine only)
 
 p.Flip = pi/2;
 
@@ -127,7 +127,7 @@ Exp.MolFrame = [0.2 0.8 0.1];
 Exp.CrystalSymmetry = 1;
 Exp.DetWindow = 0;
 tol = 1e-10;
-for method = {'subspace','fullspace'}
+for method = {'manifold','full'}
   Opt.Method = method{1};
   Exp.Pathways = 'echo';
   [~,yEcho] = saffron(Sys,Exp,Opt);
@@ -136,25 +136,25 @@ for method = {'subspace','fullspace'}
   ok(end+1) = areequal(yEcho,yExplicit,tol,'rel'); %#ok<AGROW>
 end
 
-% Echo position in the detection window, in both engines (the subspace
+% Echo position in the detection window, in both engines (the manifold
 % engine by default)
 Exp = Ep;
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = 338;  % mT
 Exp.MolFrame = [0.2 0.8 0.1];
 Exp.CrystalSymmetry = 1;
-for method = {'auto','fullspace'}
+for method = {'auto','full'}
   Opt.Method = method{1};
   Exp.Pathways = 'echo';
   [~,yEcho,info] = saffron(Sys,Exp,Opt);
   Exp.Pathways = '+0-';
   [~,yExplicit] = saffron(Sys,Exp,Opt);
-  ok(end+1) = strcmp(info.Method,strrep(method{1},'auto','subspace')) && abs(yEcho)>0.1 && ...
+  ok(end+1) = strcmp(info.Method,strrep(method{1},'auto','manifold')) && abs(yEcho)>0.1 && ...
     areequal(yEcho,yExplicit,tol,'rel'); %#ok<AGROW>
 end
 
 % Incrementing only a delay before the first pulse: no effect on the initial
-% state of the subspace engine (error); allowed in the full-space engine
+% state of the manifold engine (error); allowed in the full engine
 Exp = rmfield(Eb,'Dim1');
 Exp.Dim1 = {'d1' 0.05};
 Exp.mwFreq = 9.5;  % GHz
@@ -167,7 +167,7 @@ try
 catch ME
   ok(end+1) = contains(ME.message,'before the first pulse has no effect');
 end
-[~,y] = saffron(Sys,Exp,struct('Method','fullspace'));
+[~,y] = saffron(Sys,Exp,struct('Method','full'));
 ok(end+1) = numel(y)==4 && areequal(y,y(1)*ones(size(y)),1e-10,'rel');
 
 end

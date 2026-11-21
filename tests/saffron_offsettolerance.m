@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Subspace engine: average over the inhomogeneous EPR line (Sys.lwAnisoG)
+% Manifold engine: average over the inhomogeneous EPR line (Sys.lwAnisoG)
 % - ideal pulses, 90-180 echo of an isolated electron spin on resonance:
 %   exact Gaussian echo shape exp(-(pi*lw*t)^2/(4*ln2)) at net coherence
 %   time t, without offset grid
@@ -18,7 +18,7 @@ Sys.lwAnisoG = lw;
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = mhz2mt(9500);  % on resonance
 Exp.Pathways = '+-';
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 p90.Flip = pi/2;
 p180.Flip = pi;
 tau = 0.5;  % µs
@@ -82,7 +82,7 @@ Exp3.Field = mhz2mt(9500);
 Exp3.Sequence = {p90 0.1 p180 0.1};
 Exp3.Dim1 = {'d1' 0.02};
 Exp3.nPoints = 4;
-Opt3.Method = 'subspace';
+Opt3.Method = 'manifold';
 Opt3.GridSize = 10;
 Opt3.ProductRule = false;
 [~,yNoProduct] = saffron(SysP,Exp3,Opt3);

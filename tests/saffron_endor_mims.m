@@ -23,7 +23,7 @@ echoOff = real(y(1));
 endor = echoOff - real(y);  % reduction of the echo by the RF pulse
 peaks = x(islocalmax(endor) & endor>0.3*max(endor));
 
-ok(1) = strcmp(info.Method,'subspace');
+ok(1) = strcmp(info.Method,'manifold');
 ok(2) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*Sys.A/2))<0.05);
 ok(3) = echoOff>0 && all(endor>-1e-3*max(endor)) && max(endor)>0.05*echoOff;
 ok(4) = areequal(y(end),y(1),1e-6,'rel');

@@ -52,7 +52,7 @@ Exp7 = Exp;
 Exp7.DetWindow = -0.3;
 ok(5) = throws(@() saffron(Sys,Exp5),'during a pulse') && ...
   throws(@() saffron(Sys,Exp6),'into a pulse') && ...
-  throws(@() saffron(Sys,Exp7,struct('Method','subspace')),'into a pulse');
+  throws(@() saffron(Sys,Exp7,struct('Method','manifold')),'into a pulse');
 
 end
 

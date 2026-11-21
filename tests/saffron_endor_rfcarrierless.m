@@ -6,7 +6,7 @@ function ok = test() %#ok<FNDEF>
 % continuously from the start of the sequence, while the waveform of a
 % pulse (with its Frequency) starts at the start of the pulse.
 
-% Subspace engine, Mims ENDOR, single orientation: an RF sweep over the
+% Manifold engine, Mims ENDOR, single orientation: an RF sweep over the
 % carrier, over the offset of the pulse, and over the absolute frequency of
 % the pulse (no carrier) give the same spectrum
 Sys.Nucs = '1H';
@@ -39,15 +39,15 @@ ExpA = rmfield(ExpO,'rfFreq');  % absolute frequency, no carrier
 ExpA.Sequence{5}.Frequency = c + f0;
 [xA,yA,infoA] = saffron(Sys,ExpA);
 
-ok(1) = strcmp(infoC.Method,'subspace') && strcmp(infoO.Method,'subspace') && ...
-  strcmp(infoA.Method,'subspace');
+ok(1) = strcmp(infoC.Method,'manifold') && strcmp(infoO.Method,'manifold') && ...
+  strcmp(infoA.Method,'manifold');
 ok(2) = areequal(yO,yC,1e-12,'rel') && areequal(yA,yC,1e-12,'rel') && ...
   any(abs(yC-yC(1))>0.01*abs(yC(1)));
 ok(3) = areequal(xC,c+step*(0:Exp.nPoints-1),1e-12,'abs') && ...
   areequal(xO,f0+step*(0:Exp.nPoints-1),1e-12,'abs') && ...
   areequal(xA,c+f0+step*(0:Exp.nPoints-1),1e-12,'abs');
 
-% Full-space engine: carrier c plus offset and the absolute frequency give
+% Full engine: carrier c plus offset and the absolute frequency give
 % the same RF field, and the same echo, if the absolute pulse has the phase
 % of the carrier at the start of the pulse, 2*pi*c*tStart. (In a single
 % orientation, the echo depends on the RF phase.)
@@ -55,7 +55,7 @@ ExpF = Exp;
 ExpF.mwFreq = 9.8;  % GHz
 ExpF.nPoints = 3;
 ExpF.Sequence{5} = struct('Channel','rf','tp',2,'B1',0.5/(2*0.04258));  % pi pulse for a bare proton
-OptF.Method = 'fullspace';
+OptF.Method = 'full';
 ExpF1 = ExpF;
 ExpF1.rfFreq = c;
 ExpF1.Sequence{5}.Frequency = 1.2;
@@ -70,7 +70,7 @@ ExpF2.Sequence{5}.Phase = 0;
 [~,yF2phase0] = saffron(Sys,ExpF2,OptF);
 ok(4) = areequal(yF2,yF1,1e-8,'rel') && ~areequal(yF2phase0,yF1,1e-3,'rel');
 
-% Phase rule, full-space engine: two RF pi/2 pulses on resonance with one
+% Phase rule, full engine: two RF pi/2 pulses on resonance with one
 % NMR transition (A only along z, so the NMR frequencies are nuI -+ A/2),
 % acting on nuclear polarization. The other NMR transition is 20 MHz away
 % and is not excited. With phases 0 and pi, the second pulse undoes the

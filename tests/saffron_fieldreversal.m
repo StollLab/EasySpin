@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Subspace engine, powder: with a nuclear quadrupole interaction, the
+% Manifold engine, powder: with a nuclear quadrupole interaction, the
 % signals of the field directions n and -n differ (complex-conjugated
 % eigenvectors). A partial-sphere grid (Ci) must give the same signal as the
 % full sphere (C1), for the shortcuts found by fieldReversalShortcut (2pESEEM:
@@ -17,7 +17,7 @@ Sys.Q = [0.9 0.6];  % MHz
 
 Base.Field = 324.9;  % mT
 
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 Opt.GridSize = 7;
 
 p90.Flip = pi/2;

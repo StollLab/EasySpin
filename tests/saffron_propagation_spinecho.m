@@ -37,7 +37,7 @@ Exp.DetPhase = 0;
 
 % Options
 Opt.GridSize = 7;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 [x, y] = saffron(Sys,Exp,Opt);
 

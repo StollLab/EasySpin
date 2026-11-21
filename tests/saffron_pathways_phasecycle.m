@@ -35,7 +35,7 @@ Exp_cyclops = Exp;
 Exp_cyclops.PhaseCycle = cyclops;
 
 tol = 1e-6;
-methods = {'subspace','fullspace'};
+methods = {'manifold','full'};
 for m = 1:2
   Opt.Method = methods{m};
   [~,y1] = saffron(Sys,Exp_pathways,Opt);

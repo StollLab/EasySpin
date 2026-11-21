@@ -5,9 +5,9 @@ function ok = test()  %#ok<FNDEF>
 % - all pathways: echo times, NaN for pathways without echo (listed last)
 % - phase cycle: cancelled pathways are not listed, and the listed pathways
 %   as Exp.Pathways give the same signal
-% - 'echo' with a transient: the echoes within the window (full-space)
+% - 'echo' with a transient: the echoes within the window (full)
 % - predefined experiment: its pathways
-% - full-space engine: the same list for S = 1/2, empty for S = 1
+% - full engine: the same list for S = 1/2, empty for S = 1
 % - finite pulses: user-defined waveforms and rectangular pulses
 
 Sys.g = 2;
@@ -40,13 +40,13 @@ Ee.Pathways = info.Pathways;
 [~,yExplicit] = saffron(Sys,Ee);
 ok(4) = abs(yCycle)>0.1 && areequal(yExplicit,yCycle,1e-10,'rel');
 
-% Echoes within a transient window (full-space engine)
+% Echoes within a transient window (full engine)
 Et = Exp;
 Et.DetWindow = [0 2];  % µs
 Et.DetTimeStep = 0.01;  % µs
 Et.Pathways = 'echo';
 [~,~,info] = saffron(Sys,Et);
-ok(5) = strcmp(info.Method,'fullspace') && ...
+ok(5) = strcmp(info.Method,'full') && ...
   isequal(info.Pathways,['+0-'; '-+-'; '0+-'; '++-']) && ...
   areequal(info.EchoTimes,[0.1; 0.4; 0.5; 0.6],1e-12,'abs');
 
@@ -59,9 +59,9 @@ Eh.nPoints = [4 4];
 [~,~,info] = saffron(Sys,Eh);
 ok(6) = isequal(info.Pathways,'+00-') && areequal(info.EchoTimes,0,1e-12,'abs');
 
-% Full-space engine: same list as the subspace engine for S = 1/2
+% Full engine: same list as the manifold engine for S = 1/2
 [~,~,infoSub] = saffron(Sys,Exp);
-[~,~,infoFull] = saffron(Sys,Exp,struct('Method','fullspace'));
+[~,~,infoFull] = saffron(Sys,Exp,struct('Method','full'));
 ok(7) = isequal(infoFull.Pathways,infoSub.Pathways) && ...
   isequaln(infoFull.EchoTimes,infoSub.EchoTimes);
 
@@ -75,16 +75,16 @@ Ef.Sequence = {pIQ 0.1 pIQ 0.1};
 Opt = struct('IntTimeStep',1e-4);  % µs
 [~,~,infoIQ] = saffron(Sys,Ef,Opt);
 Ef.Sequence = {pR 0.1 pR 0.1};
-[~,~,infoRect] = saffron(Sys,Ef,setfield(Opt,'Method','fullspace')); %#ok<SFLD>
+[~,~,infoRect] = saffron(Sys,Ef,setfield(Opt,'Method','full')); %#ok<SFLD>
 ok(end+1) = isequal(infoIQ.Pathways,['+-'; '0-'; '--']) && isequal(infoRect.Pathways,infoIQ.Pathways);
 
-% Full-space engine with S = 1: no pathway list
+% Full engine with S = 1: no pathway list
 Sys1.S = 1;
 Sys1.g = 2;
 pA = struct('tp',0.01,'Amplitude',25);  % µs, MHz
 E1 = Exp;
 E1.Sequence = {pA 0.1 pA 0.5 pA};
 [~,~,info] = saffron(Sys1,E1);
-ok(end+1) = strcmp(info.Method,'fullspace') && isempty(info.Pathways) && isempty(info.EchoTimes);
+ok(end+1) = strcmp(info.Method,'full') && isempty(info.Pathways) && isempty(info.EchoTimes);
 
 end

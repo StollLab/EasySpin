@@ -23,7 +23,7 @@ E = Exp;
 E.SampleFrame = [0 pi/2 pi/4];
 [~,ySampleFrame,info] = saffron(Sys,E,Opt);
 ok(1) = areequal(ySampleFrame,yPowder,1e-12,'abs');
-ok(2) = strcmp(info.Method,'subspace');
+ok(2) = strcmp(info.Method,'manifold');
 
 % Single orientation: Exp.MolFrame or Exp.CrystalSymmetry
 E = Exp;

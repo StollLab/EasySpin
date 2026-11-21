@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% The subspace engine simulates ENDOR as population transfer by the RF
+% The manifold engine simulates ENDOR as population transfer by the RF
 % pulse, so it needs the electron spin in a population state during the RF
 % pulse. Without a pathway selection, pathways with electron coherence
 % during the RF pulse are included, and saffron stops with an error. The
@@ -30,13 +30,13 @@ catch ME
   ok(1) = contains(ME.message,'coherence order 0 during the RF pulse');
 end
 
-% population pathways during the RF pulse: subspace engine
+% population pathways during the RF pulse: manifold engine
 Exp.Pathways = '+00-';
 [~,y,info] = saffron(Sys,Exp);
-ok(2) = strcmp(info.Method,'subspace') && any(abs(y-y(1))>0);
+ok(2) = strcmp(info.Method,'manifold') && any(abs(y-y(1))>0);
 
 % echo pathways: the same as '+00-' (no delays around the RF pulse, so
 % only its length prevents refocusing of coherence during it)
 Exp.Pathways = 'echo';
 [~,yEcho,info] = saffron(Sys,Exp);
-ok(3) = strcmp(info.Method,'subspace') && areequal(yEcho,y,1e-12,'rel');
+ok(3) = strcmp(info.Method,'manifold') && areequal(yEcho,y,1e-12,'rel');

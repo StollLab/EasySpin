@@ -5,9 +5,9 @@ function ok = test() %#ok<FNDEF>
 %   Hamiltonian nu1*Sx); Flip, Qcrit, ideal pulses, flip-angle increments,
 %   predefined experiments and Opt.IdealPulses give errors in both engines
 % - with selective rectangular pulses, transition a<->b nutates with
-%   nu1*|<a|S+|b>|: the subspace and full-space engines agree on the
+%   nu1*|<a|S+|b>|: the manifold and full engines agree on the
 %   echoes of the allowed transitions of S = 1 and S = 3/2
-% - signal scale of the subspace engine with a core system (S = 1/2 and a
+% - signal scale of the manifold engine with a core system (S = 1/2 and a
 %   nucleus outside the nuclear subspace): primary echo 1/2
 
 % Errors
@@ -21,7 +21,7 @@ Exp.MolFrame = [0 0.3 0];
 Exp.CrystalSymmetry = 1;
 rect.tp = 0.06;  % µs
 rect.Amplitude = 2;  % MHz
-methods = {struct, struct('Method','subspace'), struct('Method','fullspace')};
+methods = {struct, struct('Method','manifold'), struct('Method','full')};
 for m = 1:numel(methods)
   O = methods{m};
   E = Exp; p = rect; p.Flip = pi/2; E.Sequence = {p 0.2};
@@ -43,7 +43,7 @@ end
 ok = ok(:).';
 
 % Engine agreement on the allowed transitions, primary echo with selective
-% rectangular pulses (two-level systems for the subspace engine)
+% rectangular pulses (two-level systems for the manifold engine)
 ph = (0:3).'*pi/2;
 sel = [ph 0*ph -ph];  % echo pathway by phase cycle: first pulse in steps of 90°
 a90.tp = 0.06; a90.Amplitude = 2;  % µs, MHz
@@ -61,12 +61,12 @@ for S = [1 3/2]
     E = Exp;
     E.Field = B(iB);
     Es = E; Es.Pathways = 'echo';
-    [~,ySub] = saffron(Sys,Es,struct('Method','subspace'));
+    [~,yMan] = saffron(Sys,Es,struct('Method','manifold'));
     Ef = E; Ef.PhaseCycle = sel; Ef.DetWindow = 0;
     % simulation frame close to the microwave frequency: long time steps
-    [~,yFull] = saffron(Sys,Ef,struct('Method','fullspace','SimFreq',9.4));
-    % high-field approximation of the subspace engine, ~(D/nu_e)^2
-    ok(end+1) = areequal(ySub,yFull,1e-2,'rel'); %#ok<AGROW>
+    [~,yFull] = saffron(Sys,Ef,struct('Method','full','SimFreq',9.4));
+    % high-field approximation of the manifold engine, ~(D/nu_e)^2
+    ok(end+1) = areequal(yMan,yFull,1e-2,'rel'); %#ok<AGROW>
   end
 end
 
@@ -75,10 +75,10 @@ end
 Sys = SysE;
 B = resfields(Sys,ExpCW);
 E = Exp; E.Field = B(1); E.Pathways = 'echo';
-[~,y1] = saffron(Sys,E,struct('Method','subspace'));
+[~,y1] = saffron(Sys,E,struct('Method','manifold'));
 E.Sequence{1}.Amplitude = 2/sqrt(2);
 E.Sequence{3}.Amplitude = 2/sqrt(2);
-[~,y2] = saffron(Sys,E,struct('Method','subspace'));
+[~,y2] = saffron(Sys,E,struct('Method','manifold'));
 ok(end+1) = max(abs(y1-y2))/max(abs(y1)) > 0.1;
 
 % S = 1/2 with a nucleus in the core system (Opt.Nuclei): primary echo 1/2,
@@ -92,7 +92,7 @@ E = Exp;
 E.Field = unitconvert(Exp.mwFreq,'GHz->mT',gfree);
 E.Sequence = {p90 0.15 p180 0.15};
 E.Pathways = 'echo';
-[~,y] = saffron(Sys12,E,struct('Method','subspace','Nuclei',1));
+[~,y] = saffron(Sys12,E,struct('Method','manifold','Nuclei',1));
 ok(end+1) = areequal(y,0.5*ones(size(y)),1e-6,'abs');
 
 end

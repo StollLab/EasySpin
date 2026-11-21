@@ -1,9 +1,9 @@
 function ok = test() %#ok<FNDEF>
 
-% The subspace and full-space engines give the same signal amplitude
+% The manifold and full engines give the same signal amplitude
 % Tr(S+*rho)/Tr(S+'*S+), for ideal and finite pulses. The propagation
 % engine selects the echo pathway with phase cycles (single spin packet, no
-% inhomogeneous broadening), the subspace engine with Exp.Pathways = 'echo'.
+% inhomogeneous broadening), the manifold engine with Exp.Pathways = 'echo'.
 
 Sys.S = 1/2;
 Sys.g = gfree;
@@ -78,14 +78,14 @@ end
 
 function y = fast(Sys,Exp)
 Exp.Pathways = 'echo';
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 [~,y] = saffron(Sys,Exp,Opt);
 y = y(:);
 end
 
 function y = propagate(Sys,Exp)
 Exp.DetWindow = 0;
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 [~,y] = saffron(Sys,Exp,Opt);
 y = y(:);
 end

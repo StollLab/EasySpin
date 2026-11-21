@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Subspace engine with finite pulses: without inhomogeneous line, the
+% Manifold engine with finite pulses: without inhomogeneous line, the
 % signal is that of a single resonance offset of zero, the limit of a
 % vanishingly narrow line (Sys.lwAnisoG)
 

@@ -1,7 +1,7 @@
 function ok = test() %#ok<FNDEF>
 
 % Finite microwave pulse with a frequency offset f from Exp.mwFreq
-% (Pulse.Frequency). The subspace engine computes its propagator in the
+% (Pulse.Frequency). The manifold engine computes its propagator in the
 % frame of the pulse and transforms it back to the frame rotating at
 % Exp.mwFreq.
 % - both engines agree, at f = 0 and f ~= 0; without the back-transform,
@@ -25,19 +25,19 @@ fList = [0 5 -8];  % MHz
 for iF = 1:numel(fList)
   p90.Frequency = fList(iF);
   Exp.Sequence = {p90 0.3 p180 0.3};
-  [~,ySub] = saffron(Sys,Exp,struct('Method','subspace'));
-  [~,yFull] = saffron(Sys,Exp,struct('Method','fullspace'));
+  [~,yMan] = saffron(Sys,Exp,struct('Method','manifold'));
+  [~,yFull] = saffron(Sys,Exp,struct('Method','full'));
   phaseError = abs(exp(2i*pi*fList(iF)*p90.tp)-1);  % without back-transform
-  ok(iF) = areequal(ySub,yFull,tol,'rel') && (fList(iF)==0 || phaseError>100*tol); %#ok<AGROW>
+  ok(iF) = areequal(yMan,yFull,tol,'rel') && (fList(iF)==0 || phaseError>100*tol); %#ok<AGROW>
 end
 
 % Flip = 0: free evolution, independent of the frequency offset
 p0 = struct('Type','rectangular','Flip',0,'tp',0.032,'Frequency',0);
 p90.Frequency = 0;
 Exp.Sequence = {p90 0.2 p0 0.1 p180 0.3};
-[~,y0] = saffron(Sys,Exp,struct('Method','subspace'));
+[~,y0] = saffron(Sys,Exp,struct('Method','manifold'));
 Exp.Sequence{3}.Frequency = 5;  % MHz
-[~,y5] = saffron(Sys,Exp,struct('Method','subspace'));
+[~,y5] = saffron(Sys,Exp,struct('Method','manifold'));
 ok(end+1) = areequal(y5,y0,1e-10,'rel');
 
 % Powder, 14N with Q: partial-sphere grid with field-reversed partners
@@ -53,7 +53,7 @@ f180 = struct('Flip',pi,'tp',0.032);  % µs
 ExpN.Sequence = {f90 0.1 f180 0.1};
 ExpN.Dim1 = {'d1,d2' 0.05};  % µs
 ExpN.nPoints = 16;
-Opt = struct('Method','subspace','GridSize',7,'GridFrame',[0 0 0]);
+Opt = struct('Method','manifold','GridSize',7,'GridFrame',[0 0 0]);
 Opt.GridSymmetry = 'Ci';
 [~,yPartial,info] = saffron(SysN,ExpN,Opt);
 Opt.GridSymmetry = 'C1';

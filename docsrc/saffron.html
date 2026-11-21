@@ -65,7 +65,7 @@ It returns the axes in <code>x</code>, the simulated signal in <code>y</code>, a
 </p>
 
 <p>
-<code>saffron</code> has two simulation <em>methods</em> (engines). It chooses the fast <em>subspace</em> method whenever this is exact for the requested experiment, and the general but slower <em>full-space</em> method otherwise. See <a href="#algorithms">simulation methods</a> for what each supports. You don't have to select a method yourself.
+<code>saffron</code> has two simulation <em>methods</em> (engines). It chooses the fast <em>manifold</em> method whenever this is exact for the requested experiment, and the general but slower <em>full</em> method otherwise. See <a href="#algorithms">simulation methods</a> for what each supports. You don't have to select a method yourself.
 </p>
 
 <p>
@@ -223,7 +223,7 @@ See the <a href="examplesmain.html#pulse saffron">examples</a> for more, e.g. ad
 <div class="subtitle" id="sys">Input: Spin system</div>
 
 <p>
-<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> with the parameters of the spin Hamiltonian. The <em>subspace</em> method needs one electron spin. The <em>full-space</em> method supports any number of electrons and nuclei. Both support systems without nuclei.
+<code>Sys</code> is a <a href="spinsystem.html">spin system structure</a> with the parameters of the spin Hamiltonian. The <em>manifold</em> method needs one electron spin. The <em>full</em> method supports any number of electrons and nuclei. Both support systems without nuclei.
 </p>
 
 <p>
@@ -232,7 +232,7 @@ Line widths used by other simulation functions (<code>lw</code>, <code>lwpp</cod
 
 <div class="optionfield"><code>lwAnisoG</code></div>
 <div class="optiondescr">
-Inhomogeneous width of the EPR line (see <a href="broadenings.html#lwanisog">broadenings</a>). It matters for orientation selection with finite pulses, and for signals that do not refocus at the detection point (e.g. FIDs), which decay with the distribution of resonance offsets. It is only supported by the <em>subspace</em> method; simulations that need the <em>full-space</em> method give an error if it is nonzero.
+Inhomogeneous width of the EPR line (see <a href="broadenings.html#lwanisog">broadenings</a>). It matters for orientation selection with finite pulses, and for signals that do not refocus at the detection point (e.g. FIDs), which decay with the distribution of resonance offsets. It is only supported by the <em>manifold</em> method; simulations that need the <em>full</em> method give an error if it is nonzero.
 </div>
 
 <div class="optionfield"><code>lwEndor</code></div>
@@ -247,33 +247,33 @@ Relaxation times and the initial and equilibrium states:
 <div class="optionfield"><code>T1</code></div>
 <div class="optiondescr">
 Longitudinal relaxation time in microseconds.
-For simulations using the <em>subspace</em> method, the relaxation time has to be a scalar.
-For simulations that use the <em>full-space</em> method, it can be either a scalar or a matrix.
+For simulations using the <em>manifold</em> method, the relaxation time has to be a scalar.
+For simulations that use the <em>full</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all transitions.
-Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>full-space</em> method.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>full</em> method.
 Transitions with a relaxation time of 0 do not relax.
 </div>
 
 <div class="optionfield"><code>T2</code></div>
 <div class="optiondescr">
 Transverse relaxation time in microseconds.
-For simulations using the <em>subspace</em> method, the relaxation time has to be a scalar.
-For simulations that use the <em>full-space</em> method, it can be either a scalar or a matrix.
+For simulations using the <em>manifold</em> method, the relaxation time has to be a scalar.
+For simulations that use the <em>full</em> method, it can be either a scalar or a matrix.
 If it is a scalar, the relaxation time is applied to all electron transitions, but not to nuclear transitions (transitions that do not change the state of any electron spin).
-Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>full-space</em> method.
+Transition-specific relaxation times can be provided in the form of a matrix, with rows and columns referring to the Zeeman basis states (see the <a href="userguide_saffron_propagation.html#relaxation_times">user guide</a>). In this case, <code>saffron</code> uses the <em>full</em> method.
 Transitions with a relaxation time of 0 do not relax.
 </div>
 
 <p>
 If <code>T1</code> or <code>T2</code> is given and nonzero, relaxation is on, unless switched off with <code>Opt.Relaxation</code>.
-The <em>subspace</em> method does not include relaxation in the spin dynamics. Instead, it multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence, and with T<sub>1</sub> over the time it is in a population state. This is done for ESEEM and HYSCORE experiments, predefined or user-defined. For ENDOR experiments, relaxation has no effect in the <em>subspace</em> method.
+The <em>manifold</em> method does not include relaxation in the spin dynamics. Instead, it multiplies the simulated signal with exponential decays: with T<sub>2</sub> over the time the electron spin is in a coherence, and with T<sub>1</sub> over the time it is in a population state. This is done for ESEEM and HYSCORE experiments, predefined or user-defined. For ENDOR experiments, relaxation has no effect in the <em>manifold</em> method.
 </p>
 
 <div class="optionfield"><code>initState</code></div>
 <div class="optiondescr">
 Initial state of the spin system, e.g. populations of zero-field, high-field or coupled states, or a density matrix. All forms described on the <a href="spinsystem.html#pop">spin system page</a> are accepted. If not given, the initial state is -S<sub>z</sub> of all electron spins (high-temperature approximation).
 <p>
-<code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>). The <em>subspace</em> method supports states of the electron spin only (with equal populations of all nuclear sublevels) in powders. For each EPR transition, it uses the populations of its two levels. In the <code>'eigen'</code> basis, the levels are assigned without the hyperfine couplings. States that also involve the nuclei, and crystals, need the <em>full-space</em> method, which <code>saffron</code> then uses.
+<code>initState</code> cannot be combined with relaxation (<code>T1</code>, <code>T2</code>). The <em>manifold</em> method supports states of the electron spin only (with equal populations of all nuclear sublevels) in powders. For each EPR transition, it uses the populations of its two levels. In the <code>'eigen'</code> basis, the levels are assigned without the hyperfine couplings. States that also involve the nuclei, and crystals, need the <em>full</em> method, which <code>saffron</code> then uses.
 </p>
 <p>
 A state given in the molecular frame (e.g. <code>'xyz'</code> populations or a density matrix) is rotated into the lab frame for each orientation. For powders, coherences between states with different total electron spin projection along the field are removed from the initial state, since they average out over all rotations of the molecule around the magnetic field.
@@ -287,7 +287,7 @@ Sys.initState = {[0.5 0.3 0.2],'xyz'}; % zero-field populations px, py, pz
 
 <div class="optionfield"><code>eqState</code></div>
 <div class="optiondescr">
-Equilibrium state that the spin system relaxes to, as a density matrix (<em>full-space</em> method). By default, the initial state is the equilibrium state. It is only used if relaxation is on.
+Equilibrium state that the spin system relaxes to, as a density matrix (<em>full</em> method). By default, the initial state is the equilibrium state. It is only used if relaxation is on.
 </div>
 
 <!-- ====================================================== -->
@@ -318,8 +318,8 @@ Pulse.Frequency = [-250 250];  % corresponds to 33.25 - 33.75 GHz
 <code>Exp.mwFreq</code> is needed for orientation selection by finite pulses and for a resonator. Without it:
 </p>
 <ul>
-<li>With the <em>subspace</em> method, pulses without <code>Pulse.Frequency</code> (or with <code>Pulse.Frequency = 0</code>) are on resonance with every orientation (no orientation selection). This is how predefined experiments are usually simulated. It does not apply when the experiment needs the <em>full-space</em> method, e.g. for several electron spins (see <a href="#algorithms">simulation methods</a>).</li>
-<li>With the <em>full-space</em> method, pulse frequencies are absolute (carrier at zero, in MHz), and the detection frame (<code>Exp.DetFreq</code>) defaults to the lab frame. Every finite pulse then needs a nonzero <code>Pulse.Frequency</code>. A nonzero pulse frequency always selects the full-space method.</li>
+<li>With the <em>manifold</em> method, pulses without <code>Pulse.Frequency</code> (or with <code>Pulse.Frequency = 0</code>) are on resonance with every orientation (no orientation selection). This is how predefined experiments are usually simulated. It does not apply when the experiment needs the <em>full</em> method, e.g. for several electron spins (see <a href="#algorithms">simulation methods</a>).</li>
+<li>With the <em>full</em> method, pulse frequencies are absolute (carrier at zero, in MHz), and the detection frame (<code>Exp.DetFreq</code>) defaults to the lab frame. Every finite pulse then needs a nonzero <code>Pulse.Frequency</code>. A nonzero pulse frequency always selects the full method.</li>
 </ul>
 <pre class="matlab">
 Pulse.Frequency = 9.5e3 + [-50 50];  % chirp from 9.45 to 9.55 GHz, no Exp.mwFreq
@@ -560,7 +560,7 @@ Any list of steps is possible, including steps in which several pulses change th
 Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 </pre>
 With a detection window or <code>'sequence'</code> (see <code>DetWindow</code>), the whole detected signal is phase-cycled, including the signal before and during the cycled pulses. Signal that is the same in all steps is removed if the receiver phases cancel it.
-Both methods support phase cycles. The <em>full-space</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles are propagated step by step, which takes longer, but the steps share the pulse propagators.
+Both methods support phase cycles. The <em>full</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles are propagated step by step, which takes longer, but the steps share the pulse propagators.
 Predefined experiments set their pathways themselves, so <code>PhaseCycle</code> cannot be used with them.
 To remove all signal that does not depend on a pulse, as with a pulse switched on and off on a spectrometer, simulate the experiment a second time with the strength of that pulse set to zero (whichever of <code>Flip</code>, <code>Amplitude</code> or <code>B1</code> the pulse uses), and subtract the two signals.
 </div>
@@ -571,7 +571,7 @@ To remove all signal that does not depend on a pulse, as with a pulse switched o
 <div class="optiondescr">
 The field <code>DetWindow</code> controls detection and is given in microseconds.
 The zero-time of the detection is taken as the end of the last element in <code>Exp.Sequence</code>.
-The default is <code>0</code>, a single point at the end of the sequence. Single points, at the end of the sequence or shifted from it, work with both methods. Transients, and <code>'sequence'</code> (see below), use the <em>full-space</em> method.
+The default is <code>0</code>, a single point at the end of the sequence. Single points, at the end of the sequence or shifted from it, work with both methods. Transients, and <code>'sequence'</code> (see below), use the <em>full</em> method.
 
 <p>
 <img src="img/detection_windows.png" width="600">
@@ -617,7 +617,7 @@ To detect during the whole sequence, including the pulses, use
 Exp.DetWindow = 'sequence';   % detect everything, time axis from the start of the sequence
 </pre>
 <p>
-With the <em>full-space</em> method, <code>info.EventTimes</code> gives the start and end time of each element of <code>Exp.Sequence</code> (one row per element, in microseconds), on the same time axis as the transient: from the start of the sequence for <code>'sequence'</code>, and from the end of the sequence for detection windows. It includes the effect of resonator ringing and of moved pulses (<code>Position</code>). With indirect dimensions, the times are those of the first point.
+With the <em>full</em> method, <code>info.EventTimes</code> gives the start and end time of each element of <code>Exp.Sequence</code> (one row per element, in microseconds), on the same time axis as the transient: from the start of the sequence for <code>'sequence'</code>, and from the end of the sequence for detection windows. It includes the effect of resonator ringing and of moved pulses (<code>Position</code>). With indirect dimensions, the times are those of the first point.
 </p>
 <p>
 To detect only some events of a sequence, use these settings:
@@ -638,7 +638,7 @@ plot(t(idx),real(S(idx)));
 
 <div class="optionfield"><code>DetOperator</code></div>
 <div class="optiondescr">
-The quantities to detect (<em>full-space</em> method). By default, <code>saffron</code> detects <i>&Scirc;</i><sub>+</sub> of all electron spins: the real part of the signal corresponds to <i>&Scirc;<sub>x</sub></i> and the imaginary part to <i>&Scirc;<sub>y</sub></i>, in the detection frame (<code>Exp.DetFreq</code>).
+The quantities to detect (<em>full</em> method). By default, <code>saffron</code> detects <i>&Scirc;</i><sub>+</sub> of all electron spins: the real part of the signal corresponds to <i>&Scirc;<sub>x</sub></i> and the imaginary part to <i>&Scirc;<sub>y</sub></i>, in the detection frame (<code>Exp.DetFreq</code>).
 Give other operators in the syntax of <a class="esf" href="sop.html">sop</a>, or as matrices, in a cell array; a single operator can also be given without the cell array:
 <pre class="matlab">
 Exp.DetOperator = {'+1','z1'};               % S+ and Sz of the first electron spin
@@ -655,7 +655,7 @@ The signal of an operator is its expectation value, divided by the squared norm 
 <div class="optiondescr">
 Frequency of the detection frame, in GHz, optional, for both methods.
 The signal is given in a frame that rotates at <code>DetFreq</code> about the static field, like the signal after down-conversion with a reference oscillator at <code>DetFreq</code> in a spectrometer.
-The default is <code>Exp.mwFreq</code>, so that the signal oscillates only at the frequency offsets of the spins. Without <code>Exp.mwFreq</code>, the default is 0 (lab frame); giving <code>DetFreq</code> without <code>Exp.mwFreq</code> needs the <em>full-space</em> method.
+The default is <code>Exp.mwFreq</code>, so that the signal oscillates only at the frequency offsets of the spins. Without <code>Exp.mwFreq</code>, the default is 0 (lab frame); giving <code>DetFreq</code> without <code>Exp.mwFreq</code> needs the <em>full</em> method.
 <pre class="matlab">
 Exp.DetFreq = 33.5; % detection frame at 33.5 GHz
 </pre>
@@ -676,7 +676,7 @@ Exp.DetPhase = [pi/2 0];   % phase for S+, none needed for Sz
 
 <div class="optionfield"><code>DetIntegrate</code></div>
 <div class="optiondescr">
-<code>false</code> (default) or <code>true</code> (<em>full-space</em> method). If <code>true</code>, <code>saffron</code> returns the integral of the signal over the detection window (in signal units times µs) instead of the transient, as in an integrated echo.
+<code>false</code> (default) or <code>true</code> (<em>full</em> method). If <code>true</code>, <code>saffron</code> returns the integral of the signal over the detection window (in signal units times µs) instead of the transient, as in an integrated echo.
 </div>
 
 <div class="optionfield"><code>DetTimeStep</code></div>
@@ -759,7 +759,7 @@ Specifies the sample rotation as <code>{nRot_L,rho}</code>, as for <a class="esf
 <div class="subtitle2">Microwave polarization and resonator</div>
 
 <p>
-These fields are used by the <em>full-space</em> method.
+These fields are used by the <em>full</em> method.
 </p>
 
 <div class="optionfield"><code>mwPolarization</code></div>
@@ -831,10 +831,10 @@ If set to <code>'compensate'</code>, the pulse shape is adapted such that it com
 </p>
 
 <div class="optionfield"><code>Method</code>
-<code>'auto'</code> (default), <code>'subspace'</code>, <code>'fullspace'</code></div>
+<code>'auto'</code> (default), <code>'manifold'</code>, <code>'full'</code></div>
 <div class="optiondescr">
-Simulation method. <code>'subspace'</code> is fast: it treats the electron spin as a two-level system and computes the nuclear spin dynamics separately within each electron spin state. <code>'fullspace'</code> is slower but general: it follows the state of the complete spin system step by step in time.
-With <code>'auto'</code>, <code>saffron</code> uses <code>'subspace'</code> whenever it supports all requested features exactly, and <code>'fullspace'</code> otherwise. If you request <code>'subspace'</code> but the experiment needs <code>'fullspace'</code> (e.g. shaped microwave pulses, <code>Sys.initState</code> in crystals, or transition-specific relaxation times), <code>saffron</code> gives an error that names the feature. The method used, and why, is returned in <code>info.Method</code> and <code>info.MethodReason</code>. See <a href="#algorithms">simulation methods</a>.
+Simulation method. <code>'manifold'</code> is fast: it treats the electron spin as a two-level system and computes the nuclear spin dynamics separately within each of its two levels (electron spin manifolds). <code>'full'</code> is slower but general: it follows the state of the complete spin system step by step in time.
+With <code>'auto'</code>, <code>saffron</code> uses <code>'manifold'</code> whenever it supports all requested features exactly, and <code>'full'</code> otherwise. If you request <code>'manifold'</code> but the experiment needs <code>'full'</code> (e.g. shaped microwave pulses, <code>Sys.initState</code> in crystals, or transition-specific relaxation times), <code>saffron</code> gives an error that names the feature. The method used, and why, is returned in <code>info.Method</code> and <code>info.MethodReason</code>. See <a href="#algorithms">simulation methods</a>.
 </div>
 
 <div class="optionfield"><code>Relaxation</code></div>
@@ -844,7 +844,7 @@ Switches relaxation on or off. A single value applies to the whole sequence. Rel
 Opt.Relaxation = true;      % relaxation during the whole sequence
 Opt.Relaxation = [0 0 1];   % relaxation only during the third element of the sequence
 </pre>
-If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The <em>subspace</em> method has no relaxation during pulses, so there the entries for pulses have no effect. With both methods, the free evolution up to and during detection (<code>Exp.DetWindow</code>) takes the setting of the last delay of the sequence.
+If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The <em>manifold</em> method has no relaxation during pulses, so there the entries for pulses have no effect. With both methods, the free evolution up to and during detection (<code>Exp.DetWindow</code>) takes the setting of the last delay of the sequence.
 </div>
 
 <div class="optionfield"><code>GridSize</code></div>
@@ -890,7 +890,7 @@ The factor by which the time-domain signal is padded with zeros before the Fouri
 </div>
 
 <p>
-The following options are only used by the <em>subspace</em> method:
+The following options are only used by the <em>manifold</em> method:
 </p>
 
 <div class="optionfield"><code>IdealPulses</code></div>
@@ -915,7 +915,7 @@ List of the nuclei (indices in <code>Sys.Nucs</code>) whose modulations are simu
 
 <div class="optionfield"><code>Transitions</code></div>
 <div class="optiondescr">
-For S &gt; 1/2: list of the EPR transitions to include, as rows of level pairs <code>[i j]</code>. Electron spins with S &gt; 1/2 are simulated with the <em>subspace</em> method only if requested (<code>Opt.Method = 'subspace'</code>), as an approximation that treats each transition separately.
+For S &gt; 1/2: list of the EPR transitions to include, as rows of level pairs <code>[i j]</code>. Electron spins with S &gt; 1/2 are simulated with the <em>manifold</em> method only if requested (<code>Opt.Method = 'manifold'</code>), as an approximation that treats each transition separately.
 </div>
 
 <div class="optionfield"><code>ProductRule</code></div>
@@ -927,7 +927,7 @@ Determines whether the product rule is used or not (<code>true</code> or <code>f
 <code>'auto'</code> (default), <code>true</code>, <code>false</code>, or one <code>true</code>/<code>false</code> per dimension</div>
 <div class="optiondescr">
 <p>
-How the subspace method computes dimensions in which delays change by fixed steps (delays, or pulses moved with <code>Position</code>). With binning, it computes the frequencies and amplitudes of all the peaks of the signal and builds the signal from a histogram of the peaks (see <code>Expand</code>). This is fast for most experiments, since the effort does not depend on the number of points, but it is approximate. Without binning, it computes the signal point by point, with the delays fixed at each point. This is exact, but takes longer for many points.
+How the manifold method computes dimensions in which delays change by fixed steps (delays, or pulses moved with <code>Position</code>). With binning, it computes the frequencies and amplitudes of all the peaks of the signal and builds the signal from a histogram of the peaks (see <code>Expand</code>). This is fast for most experiments, since the effort does not depend on the number of points, but it is approximate. Without binning, it computes the signal point by point, with the delays fixed at each point. This is exact, but takes longer for many points.
 </p>
 <p>
 With <code>'auto'</code>, signals with up to 64 points are computed point by point, and otherwise <code>saffron</code> uses whichever it estimates to be faster. The effort of binning grows steeply with the number of delays between pulses that change: e.g. for 2D-CP (four changing delays) and larger spin systems, point by point is faster. Binning is possible for at most two dimensions and at most four changing delays between pulses. <code>info.binnedDims</code> lists the binned dimensions.
@@ -940,11 +940,11 @@ Opt.Binning = [true false];   % first dimension binned, second point by point
 
 <div class="optionfield"><code>Expand</code></div>
 <div class="optiondescr">
-Expansion factor of the subspace method for binned dimensions (see <code>Binning</code>), a non-negative integer. The signal is computed via a frequency-domain buffer that is 2<sup><code>Expand</code></sup> times longer than the signal along each binned dimension. The higher the factor, the more accurate the simulation, but the more memory and time it needs, especially for 2D simulations. Default values are 6 for one binned dimension and 2 for two.
+Expansion factor of the manifold method for binned dimensions (see <code>Binning</code>), a non-negative integer. The signal is computed via a frequency-domain buffer that is 2<sup><code>Expand</code></sup> times longer than the signal along each binned dimension. The higher the factor, the more accurate the simulation, but the more memory and time it needs, especially for 2D simulations. Default values are 6 for one binned dimension and 2 for two.
 </div>
 
 <p>
-The following options are only used by the <em>full-space</em> method:
+The following options are only used by the <em>full</em> method:
 </p>
 
 <div class="optionfield"><code>SimFreq</code></div>
@@ -1007,13 +1007,13 @@ The simulated signal, with the dimensions [indirect dimension 1, indirect dimens
 A structure with additional information:
 <ul>
 <li><code>info.Exp</code>: the experiment as simulated; for predefined experiments, the equivalent user-defined experiment (pulse sequence and incrementation scheme).</li>
-<li><code>info.Method</code>, <code>info.MethodReason</code>: the simulation method used, and why the <em>full-space</em> method was needed.</li>
+<li><code>info.Method</code>, <code>info.MethodReason</code>: the simulation method used, and why the <em>full</em> method was needed.</li>
 <li><code>info.f</code>, <code>info.fd</code>: the frequency axis (in MHz) and the spectrum obtained by Fourier transform of the signal along delay increments (ESEEM); for 2D (HYSCORE), <code>info.f1</code>, <code>info.f2</code> and <code>info.fd</code>. For ENDOR, <code>info.f</code> is the RF axis and <code>info.fd</code> the spectrum.</li>
-<li><code>info.EventTimes</code>: start and end times of the elements of <code>Exp.Sequence</code> (<em>full-space</em> method, see <code>Exp.DetWindow</code>).</li>
-<li><code>info.Pathways</code>: the coherence transfer pathways that contribute to the signal, one row per pathway, in the form of <code>Exp.Pathways</code> (see there), sorted by echo time, with pathways without echo last. These are the selected pathways that the phase cycle and ideal pulses don't cancel, at the first point of the indirect dimensions. Empty if the spin system has several electron spins, or (<em>full-space</em> method) an electron spin with S &gt; 1/2.</li>
+<li><code>info.EventTimes</code>: start and end times of the elements of <code>Exp.Sequence</code> (<em>full</em> method, see <code>Exp.DetWindow</code>).</li>
+<li><code>info.Pathways</code>: the coherence transfer pathways that contribute to the signal, one row per pathway, in the form of <code>Exp.Pathways</code> (see there), sorted by echo time, with pathways without echo last. These are the selected pathways that the phase cycle and ideal pulses don't cancel, at the first point of the indirect dimensions. Empty if the spin system has several electron spins, or (<em>full</em> method) an electron spin with S &gt; 1/2.</li>
 <li><code>info.EchoTimes</code>: for each row of <code>info.Pathways</code>, the time (in µs) after the end of the sequence at which the pathway forms its echo, at the first point; negative values are before the end. <code>NaN</code> for pathways without echo (e.g. a free induction decay).</li>
-<li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>subspace</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no offsets are needed (no inhomogeneous line, or the exact average with ideal pulses).</li>
-<li><code>info.binnedDims</code>: the dimensions computed by binning (<em>subspace</em> method, see <code>Opt.Binning</code>); the other dimensions are computed point by point.</li>
+<li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>manifold</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no offsets are needed (no inhomogeneous line, or the exact average with ideal pulses).</li>
+<li><code>info.binnedDims</code>: the dimensions computed by binning (<em>manifold</em> method, see <code>Opt.Binning</code>); the other dimensions are computed point by point.</li>
 </ul>
 </div>
 
@@ -1021,11 +1021,11 @@ A structure with additional information:
 <div class="subtitle" id="algorithms">Simulation methods</div>
 
 <p>
-<code>saffron</code> chooses between two methods (<code>Opt.Method = 'auto'</code>). Both give the same signals where both apply. The <em>subspace</em> method is used whenever it supports all features of the experiment; otherwise, the <em>full-space</em> method is used.
+<code>saffron</code> chooses between two methods (<code>Opt.Method = 'auto'</code>). Both give the same signals where both apply. The <em>manifold</em> method is used whenever it supports all features of the experiment; otherwise, the <em>full</em> method is used.
 </p>
 
 <table class="optionlist">
-<tr><th></th><th><em>subspace</em> (fast)</th><th><em>full-space</em> (general)</th></tr>
+<tr><th></th><th><em>manifold</em> (fast)</th><th><em>full</em> (general)</th></tr>
 <tr><td>Spin system</td><td>one electron spin with S = 1/2, with or without nuclei (S &gt; 1/2 only on request, approximately)</td><td>any number of electron spins and nuclei, any S, also without nuclei</td></tr>
 <tr><td>Microwave pulses</td><td>ideal and rectangular</td><td>any shape: rectangular, shaped, frequency-swept, user-defined waveforms</td></tr>
 <tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code> or of the frequency of the RF pulse; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>)</td><td>yes; rotating-wave approximation for the RF field, except in the lab frame (see <code>Opt.SimFreq</code>)</td></tr>
@@ -1039,7 +1039,7 @@ A structure with additional information:
 </table>
 
 <p>
-<b>The <em>subspace</em> method</b> uses matrix-based methods similar to those employed by Mims (1972) to compute the frequencies and amplitudes of all peaks for ESEEM and ENDOR. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform. Alternatively, it computes the signal point by point, with the delays fixed at each point (see <code>Opt.Binning</code>). For systems with several nuclei, it simulates without product rules by default. To generate the spectrum from the time-domain signal (<code>info.fd</code>), <code>saffron</code> performs (1) baseline correction, (2) apodization, (3) zero-filling, and (4) Fourier transform.
+<b>The <em>manifold</em> method</b> uses matrix-based methods similar to those employed by Mims (1972) to compute the frequencies and amplitudes of all peaks for ESEEM and ENDOR. With these peaks, a spectrum histogram is constructed, from which the time-domain signal is obtained by inverse Fourier transform. Alternatively, it computes the signal point by point, with the delays fixed at each point (see <code>Opt.Binning</code>). For systems with several nuclei, it simulates without product rules by default. To generate the spectrum from the time-domain signal (<code>info.fd</code>), <code>saffron</code> performs (1) baseline correction, (2) apodization, (3) zero-filling, and (4) Fourier transform.
 </p>
 
 <p>
@@ -1051,7 +1051,7 @@ Stefan Stoll, R. David Britt<br>
 <em>Phys. Chem. Chem. Phys.</em> 2009, DOI: <a target="_blank" href="https://doi.org/10.1039/b907277b">10.1039/b907277b</a>
 
 <p>
-<b>The <em>full-space</em> method</b> assumes a piecewise time-independent Hamiltonian, which allows solving the Liouville-von Neumann equation and propagating the state of the spin system step by step. Without relaxation, it works in Hilbert space. With relaxation, it works in Liouville space, which increases matrix sizes and slows down the computation, but includes relaxation directly in the propagation.
+<b>The <em>full</em> method</b> assumes a piecewise time-independent Hamiltonian, which allows solving the Liouville-von Neumann equation and propagating the state of the spin system step by step. Without relaxation, it works in Hilbert space. With relaxation, it works in Liouville space, which increases matrix sizes and slows down the computation, but includes relaxation directly in the propagation.
 </p>
 
 <p>

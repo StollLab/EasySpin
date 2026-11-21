@@ -15,7 +15,7 @@ rf.tp = 5;  % µs
 rf.Flip = pi;
 
 Exp.Field = 350;  % mT
-Exp.mwFreq = 9.8;  % GHz, needed by the full-space engine (chirped RF pulse)
+Exp.mwFreq = 9.8;  % GHz, needed by the full engine (chirped RF pulse)
 Exp.MolFrame = [0 0.2 0];
 Exp.CrystalSymmetry = 1;
 Exp.rfFreq = 12.5;  % MHz
@@ -34,10 +34,10 @@ E1.Sequence{5}.Frequency = f0;
 shift = round(f0/0.05);
 ok(1) = areequal(y1(1:end-shift),y0(1+shift:end),1e-10,'rel');
 
-% chirped RF pulse (adiabatic inversion over 0.4 MHz, full-space engine):
+% chirped RF pulse (adiabatic inversion over 0.4 MHz, full engine):
 % broader peaks with a plateau, centered at the same frequencies. Every
 % second carrier frequency of y0 suffices to resolve the plateau and keeps
-% the full-space simulation short.
+% the full simulation short.
 chirp.Channel = 'rf';
 chirp.Type = 'quartersin/linear';
 chirp.tp = 20;  % µs
@@ -62,13 +62,13 @@ x0 = x(1:2:end);
 y0 = y0(1:2:end) - y0off;
 c0 = sum(x0.*abs(y0))/sum(abs(y0));
 c2 = sum(x2.*abs(y2))/sum(abs(y2));
-ok(2) = strcmp(info.Method,'fullspace') && contains(info.MethodReason,'shaped or frequency-swept RF pulses');
+ok(2) = strcmp(info.Method,'full') && contains(info.MethodReason,'shaped or frequency-swept RF pulses');
 ok(3) = areequal(x2,x0,1e-12,'abs') && abs(c2-c0)<0.1 && ...
   sum(abs(y2)>0.5*max(abs(y2))) > sum(abs(y0)>0.5*max(abs(y0)));
 
-% the subspace engine does not support shaped RF pulses
+% the manifold engine does not support shaped RF pulses
 try
-  saffron(Sys,E2,struct('Method','subspace'));
+  saffron(Sys,E2,struct('Method','manifold'));
   ok(4) = false;
 catch err
   ok(4) = contains(err.message,'shaped or frequency-swept RF pulses');

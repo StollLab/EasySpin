@@ -19,10 +19,10 @@ SysR = Sys;
 SysR.T1 = 1;
 SysR.T1T2 = [1 1];
 ok(1) = throws(@() saffron(SysR,Exp,Opt));
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 ok(2) = throws(@() saffron(SysR,Exp,Opt));
 
-% Zero relaxation times are ignored by the full-space engine
+% Zero relaxation times are ignored by the full engine
 SysR = Sys;
 SysR.T1 = 0;
 SysR.T2 = 0;
@@ -30,12 +30,12 @@ SysR.T2 = 0;
 [~,y] = saffron(SysR,Exp,Opt);
 ok(3) = areequal(y,y0,1e-10,'rel');
 
-% Matrix relaxation times select propagation by default and error with the subspace engine
+% Matrix relaxation times select propagation by default and error with the manifold engine
 SysR = Sys;
 SysR.T2 = [0 1; 0 0];
 Opt = rmfield(Opt,'Method');
 ok(4) = ~throws(@() saffron(SysR,Exp,Opt));
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 ok(5) = throws(@() saffron(SysR,Exp,Opt));
 
 end

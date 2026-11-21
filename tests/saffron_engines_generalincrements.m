@@ -1,9 +1,9 @@
 function ok = test() %#ok<FNDEF>
 
-% Linear delay increments of any form are simulated by the subspace engine
+% Linear delay increments of any form are simulated by the manifold engine
 % (kind-1 dimensions): each interval gets longer by a fixed multiple of the
-% time increment per step. The subspace engine, computing each point with
-% fixed delays (Opt.Binning = false, exact), agrees with the full-space
+% time increment per step. The manifold engine, computing each point with
+% fixed delays (Opt.Binning = false, exact), agrees with the full
 % engine (single orientation, ideal pulses).
 % - several incremented delays in one interval: 2p ESEEM with split
 %   delays, the same as 2p ESEEM with the summed delays
@@ -16,11 +16,11 @@ function ok = test() %#ok<FNDEF>
 % - a delay that gets shorter (negative step)
 % - an interval that changes along both dimensions
 % - all echoes are refocused at the detection point at all points, so that
-%   the high-field approximation of the subspace engine does not show up
+%   the high-field approximation of the manifold engine does not show up
 %   in the phase of the signal
 % - five incremented intervals (Carr-Purcell with four refocusing pulses):
 %   more than binning allows, so Opt.Binning = 'auto' steps it
-% - with Opt.Binning = 'auto', Opt.Method = 'auto' uses the subspace
+% - with Opt.Binning = 'auto', Opt.Method = 'auto' uses the manifold
 %   engine
 
 Sys.g = gfree;
@@ -96,21 +96,21 @@ Exps{8}.nPoints = 72;
 Exps{8}.Dim1 = {'d1' 0.01; 'd2,d3,d4' 0.02; 'd5' 0.01};
 Exps{8}.Pathways = '-+-+-';
 
-tol = 1e-5;  % high-field approximation of the subspace engine
+tol = 1e-5;  % high-field approximation of the manifold engine
 ok = false(numel(Exps),4);
-ySubs = cell(1,numel(Exps));
+yMans = cell(1,numel(Exps));
 for k = 1:numel(Exps)
   E = Exps{k};
   [seq,reasons] = runprivate('sf_parsesequence',E,false);
   ok(k,1) = all(seq.kind==1) && isempty(reasons);
-  [~,ySub,info] = saffron(Sys,E,struct('Binning',false));
-  ySubs{k} = ySub;
-  ok(k,2) = strcmp(info.Method,'subspace') && isempty(info.binnedDims);
+  [~,yMan,info] = saffron(Sys,E,struct('Binning',false));
+  yMans{k} = yMan;
+  ok(k,2) = strcmp(info.Method,'manifold') && isempty(info.binnedDims);
   E.DetWindow = 0;
-  [~,yFull] = saffron(Sys,E,struct('Method','fullspace'));
-  ok(k,3) = areequal(ySub,yFull,tol,'rel');
+  [~,yFull] = saffron(Sys,E,struct('Method','full'));
+  ok(k,3) = areequal(yMan,yFull,tol,'rel');
   % the signal is modulated much more than the tolerance
-  ok(k,4) = std(real(ySub(:)))/max(abs(ySub(:))) > 10*tol;
+  ok(k,4) = std(real(yMan(:)))/max(abs(yMan(:))) > 10*tol;
 end
 ok = ok(:);
 
@@ -121,12 +121,12 @@ E.nPoints = 64;
 E.Dim1 = {'d1,d2' 0.02};
 E.Pathways = '+-';
 [~,y2p] = saffron(Sys,E);
-ok(end+1) = areequal(ySubs{1},y2p,1e-12,'rel');
+ok(end+1) = areequal(yMans{1},y2p,1e-12,'rel');
 
-% Opt.Method = 'auto' and Opt.Binning = 'auto': subspace engine; five
+% Opt.Method = 'auto' and Opt.Binning = 'auto': manifold engine; five
 % incremented intervals are stepped, not binned
 [~,y5,info] = saffron(Sys,Exps{8});
-ok(end+1) = strcmp(info.Method,'subspace') && isempty(info.binnedDims);
-ok(end+1) = areequal(y5,ySubs{8},1e-12,'rel');
+ok(end+1) = strcmp(info.Method,'manifold') && isempty(info.binnedDims);
+ok(end+1) = areequal(y5,yMans{8},1e-12,'rel');
 
 end

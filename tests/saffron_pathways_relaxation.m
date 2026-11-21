@@ -1,10 +1,10 @@
 function ok = test() %#ok<FNDEF>
 
-% Relaxation in the subspace engine applies to any sequence: T2 during
+% Relaxation in the manifold engine applies to any sequence: T2 during
 % intervals with electron coherence, T1 during intervals with populations.
 % A custom three-pulse sequence gives the same result as the predefined
 % experiment, and the two-pulse echo decays as exp(-2*tau/T2) as in the
-% full-space engine (T2 acts on electron coherences).
+% full engine (T2 acts on electron coherences).
 
 Sys.Nucs = '1H';
 Sys.A = [2 3 9];  % MHz
@@ -38,7 +38,7 @@ E.nPoints = 8;
 E.Dim1 = {'d1,d2',0.05};
 E.Pathways = '+-';
 E.DetPhase = -pi/2;
-[x,yP] = saffron(S,E,struct('Method','subspace'));
-[~,yT] = saffron(S,E,struct('Method','fullspace'));
+[x,yP] = saffron(S,E,struct('Method','manifold'));
+[~,yT] = saffron(S,E,struct('Method','full'));
 ok(2) = areequal(real(yP),0.5*exp(-2*x/S.T2),1e-6,'rel');
 ok(3) = areequal(real(yT),real(yP),1e-3,'rel');

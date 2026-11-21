@@ -1,16 +1,16 @@
-% sf_parsesequence  Parse a user-defined experiment for the subspace engine
+% sf_parsesequence  Parse a user-defined experiment for the manifold engine
 %
 %   [sequence,reasons] = sf_parsesequence(Exp,idealPulses)
 %   [sequence,reasons] = sf_parsesequence(Exp,idealPulses,relaxation)
 %
 %   Converts a user-defined experiment into the representation used by the
-%   subspace engine (sf_engine_subspace). Each interval is a pulse followed
+%   manifold engine (sf_engine_manifold). Each interval is a pulse followed
 %   by a (possibly zero-length) delay.
 %
 %   Indirect dimensions are of three kinds:
 %     1  linear increments of delays (also several delays, with any steps,
 %        and moved pulses, 'pK.Position'): each interval gets longer by a
-%        fixed amount per step. The subspace engine bins these dimensions
+%        fixed amount per step. The manifold engine bins these dimensions
 %        in the frequency domain (sf_peaks) or computes them point by point
 %        with fixed delays (Opt.Binning).
 %     2  the RF frequency of a single RF pulse, swept by the carrier
@@ -35,11 +35,11 @@
 %       mwFreq           microwave carrier frequency (GHz), optional
 %       DetWindow        detection window: a single point shifts the end of
 %                        the last interval; also used for Exp.Pathways =
-%                        'echo' (transients need the full-space engine)
+%                        'echo' (transients need the full engine)
 %       DetOperator, DetIntegrate, DetFreq, ResonatorFrequency,
 %       ResonatorQL, FrequencyResponse, rfPhaseLocked
 %                        only checked for unsupported features (DetFreq
-%                        is applied by sf_engine_subspace)
+%                        is applied by sf_engine_manifold)
 %     idealPulses        true: treat finite pulses as ideal
 %     relaxation         relaxation on/off per element of Exp.Sequence
 %                        (Opt.Relaxation); a single value or omitted: on
@@ -71,7 +71,7 @@
 %       nPoints, kind    number of points and kind (1, 2, 3) of each dimension
 %       prePulseDims     dimensions that only change delays before the first
 %                        pulse (no effect on the initial state -Sz; the
-%                        subspace engine rejects them)
+%                        manifold engine rejects them)
 %       mods             cell array with one element per dimension; kinds 1
 %                        and 3: rows {'d' or 'p', delay or pulse index,
 %                        pulse field, values}
@@ -99,7 +99,7 @@
 %                        evolution after each pulse, nPathways x N
 %       pathwayprefactor pulse and phase cycle prefactor of each pathway
 %       nPathways        number of pathways
-%     reasons   cell array of strings that list the features the subspace
+%     reasons   cell array of strings that list the features the manifold
 %               engine does not support (empty if it supports all of them)
 
 function [sequence,reasons] = sf_parsesequence(Exp,idealPulses,relaxation)
@@ -215,7 +215,7 @@ for k = 1:nPulses
       else
         % placeholder: shaped and IQ pulses are not supported, and finite
         % pulses with other amplitude fields (e.g. Qcrit) need the
-        % full-space engine
+        % full engine
         if rect && ~isfield(pulse_,'IQ')
           reasons{end+1} = 'microwave pulses without Flip or Amplitude';
         end
@@ -243,7 +243,7 @@ for k = 1:nPulses
         Pulses(k).Flip = pulse_.Flip;
       else
         % placeholder: shaped RF pulses are not supported, and RF pulses
-        % with other amplitude fields (Amplitude) need the full-space engine
+        % with other amplitude fields (Amplitude) need the full engine
         if rect
           reasons{end+1} = 'RF pulses without Flip or B1';
         end
@@ -278,9 +278,9 @@ else
 end
 sequence.finitePulses = any(~[Pulses.ideal] & ~isRF);
 
-% Without Exp.mwFreq, the subspace engine puts finite microwave pulses on
+% Without Exp.mwFreq, the manifold engine puts finite microwave pulses on
 % resonance with every orientation (no orientation selection). A pulse
-% frequency is then absolute (carrier at 0), which needs the full-space
+% frequency is then absolute (carrier at 0), which needs the full
 % engine.
 if ~isfield(Exp,'mwFreq')
   for p = find(~isRF & ~[Pulses.ideal])
@@ -306,7 +306,7 @@ end
 % supported: it shifts the end of the last interval by detShift, so the
 % delays after the last pulse get longer (or shorter, for a negative
 % shift; saffron checks that the point stays after the last pulse).
-% Transients and 'sequence' need the full-space engine.
+% Transients and 'sequence' need the full engine.
 if isempty(detWindow)
   reasons{end+1} = 'detection during the whole sequence (Exp.DetWindow = ''sequence'')';
   detShift = 0;
@@ -381,7 +381,7 @@ for d = 1:nDims
       reasons{end+1} = 'indirect dimensions over frequency bands of pulses';
     elseif endsWith(targets{q},'.IQ')
       % one user-defined waveform per point, given in the pulse (no values);
-      % the full-space reason is added below (pulse field 'IQ')
+      % the full reason is added below (pulse field 'IQ')
     elseif isscalar(v)
       vals{q} = v*(0:nPoints(d)-1);
       linStep(q) = v;
@@ -427,7 +427,7 @@ for d = 1:nDims
 
   if all(changesDelays) && ~any(isnan(delayStep)) && any(delayStep~=0)
     % linear delay increments (kind 1): binned, or computed point by point,
-    % along this dimension in the subspace engine
+    % along this dimension in the manifold engine
     kind(d) = 1;
     mods{d} = delayMods;
     dt(d) = abs(delayStep(find(delayStep~=0,1)));
@@ -443,7 +443,7 @@ for d = 1:nDims
     if ~any(incScheme(:,d))
       % the changes cancel within each interval, or only change delays
       % before the first pulse (no effect on the initial state -Sz, but on
-      % other initial states in the full-space engine): no interval changes
+      % other initial states in the full engine): no interval changes
       if all(delayInterval([delayMods{:,2}])==0)
         prePulseDims(end+1) = d;
       end
@@ -505,7 +505,7 @@ if isfield(Exp,'rfPhaseLocked') && Exp.rfPhaseLocked
 end
 
 % Delays must stay nonnegative at all points (the changes along the
-% dimensions add up). Pulses that cross need the full-space engine.
+% dimensions add up). Pulses that cross need the full engine.
 % A negative detection shift shortens the last delay of the sequence.
 delayLengths = [Sequence{idxDelay}];
 detDelayLengths = delayLengths;
@@ -555,7 +555,7 @@ nPathways = size(ctp,1);
 % Detection point: the last interval ends detShift after the end of the
 % sequence. The echo times (tNet) stay relative to the end of the
 % sequence. The shift takes the relaxation setting of the delay it
-% changes, as in the full-space engine: the last element of the sequence
+% changes, as in the full engine: the last element of the sequence
 % if it is a delay, otherwise the last delay (or, without delays, on if
 % relaxation is on anywhere).
 if detShift~=0

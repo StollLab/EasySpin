@@ -42,7 +42,7 @@ Opt.Sites = 2;
 [~,ySite2] = saffron(Sys,Exp,Opt);
 ok(3) = areequal(yAll,(ySite1+ySite2)/2,1e-10,'rel');
 
-% Single crystal orientation with molecular frame = lab frame, full-space
+% Single crystal orientation with molecular frame = lab frame, full
 % engine: without modulation, ideal pulses and the echo pathway give an
 % echo of magnitude 1/2, as for the powder
 p90 = struct('Flip',pi/2);
@@ -55,6 +55,6 @@ ExpT.nPoints = 3;
 ExpT.DetWindow = 0;
 ph = (0:3).'*pi/2;
 ExpT.PhaseCycle = [ph 0*ph -ph];
-OptT.Method = 'fullspace';
+OptT.Method = 'full';
 [~,yT] = saffron(Sys0,ExpT,OptT);
 ok(4) = areequal(abs(yT(:)),1/2*ones(3,1),1e-10,'rel');

@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Full-space engine, RF frequency sweep: the time step of the RF waveform
+% Full engine, RF frequency sweep: the time step of the RF waveform
 % follows the RF frequency of each point. A sweep that starts at 1 MHz and
 % jumps to 12 MHz agrees on the common points with a linear sweep starting
 % at 12 MHz. The RF pulse has its full length, also when 40 steps per RF
@@ -24,7 +24,7 @@ Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 Exp.Pathways = '+00-';
 Exp.DetPhase = -pi/2;
 
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 
 % 1 MHz, then 12 ... 16 MHz
 ExpA = Exp;

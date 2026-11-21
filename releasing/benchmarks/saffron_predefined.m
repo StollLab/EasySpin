@@ -3,7 +3,7 @@
 %   R = saffron_predefined
 %   R = saffron_predefined(R0)
 %
-% Runs the predefined pulse EPR experiments (subspace engine) for a set of
+% Runs the predefined pulse EPR experiments (manifold engine) for a set of
 % spin systems and variants, and returns run times and signals in R. With a
 % baseline R0 (from an earlier run, e.g. on main), it prints the slowdown
 % and the largest relative signal difference for each case.
@@ -21,7 +21,7 @@ warning('off','all');
 
 % New interface: Opt.Method, predefined experiments with Exp.tp +
 % Opt.IdealPulses instead of Exp.ExciteWidth
-newInterface = exist(fullfile(fileparts(which('saffron')),'private','sf_engine_subspace.m'),'file')==2;
+newInterface = exist(fullfile(fileparts(which('saffron')),'private','sf_selectengine.m'),'file')==2;
 
 % Spin systems
 Sys = struct;

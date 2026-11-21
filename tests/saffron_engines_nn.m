@@ -1,7 +1,7 @@
 function ok = test() %#ok<FNDEF>
 
 % Nuclear-nuclear couplings (Sys.nn) in both engines
-% - single orientation: the subspace and full-space engines agree for 2p and
+% - single orientation: the manifold and full engines agree for 2p and
 %   3p ESEEM with ideal and finite pulses, and nn changes the signal
 % - Sys.nn = 0 gives the same result as no Sys.nn
 % - nn makes the echo of a mirror-symmetric sequence complex at a single
@@ -34,7 +34,7 @@ p180.Flip = pi;
 f90 = p90; f90.tp = 0.002;  % µs
 f180 = p180; f180.tp = 0.004;  % µs
 
-% Echo pathway selection by phase cycles in the full-space engine: the
+% Echo pathway selection by phase cycles in the full engine: the
 % first pulse in four steps of 90°, and for the stimulated echo also the
 % third pulse in two steps of 180°, with the receiver phase following
 ph = (0:3).'*pi/2;
@@ -50,31 +50,31 @@ Exps{2}.Sequence = {p90 tau p90 T p90 tau};
 Exps{3}.Sequence = {f90 tau f180 tau};
 Exps{4}.Sequence = {f90 tau f90 T f90 tau};
 PhaseCycles = {sel2 sel3 sel2 sel3};
-% ideal pulses: high-field approximation of the subspace engine (A^2/nu_e);
-% finite pulses: also the time step of the full-space engine
+% ideal pulses: high-field approximation of the manifold engine (A^2/nu_e);
+% finite pulses: also the time step of the full engine
 tol = [1e-5 1e-5 1e-4 1e-4];
 
 for k = 1:4
-  ySub = subspace(Sys,Exps{k});
+  yMan = manifold(Sys,Exps{k});
   E = Exps{k};
   E.PhaseCycle = PhaseCycles{k};
   E.DetWindow = 0;
-  [~,yFull] = saffron(Sys,E,struct('Method','fullspace'));
-  ok(k) = areequal(ySub,yFull(:),tol(k),'rel'); %#ok<AGROW>
+  [~,yFull] = saffron(Sys,E,struct('Method','full'));
+  ok(k) = areequal(yMan,yFull(:),tol(k),'rel'); %#ok<AGROW>
   % the couplings change the signal much more than the tolerance
-  ok(4+k) = norm(ySub-subspace(Sys0,Exps{k}))/norm(ySub) > 1e-3; %#ok<AGROW>
+  ok(4+k) = norm(yMan-manifold(Sys0,Exps{k}))/norm(yMan) > 1e-3; %#ok<AGROW>
 end
 
 % Sys.nn = 0 is the same as no Sys.nn
-ok(end+1) = isequal(subspace(Sys0,Exps{3}),subspace(SysNoNN,Exps{3}));
+ok(end+1) = isequal(manifold(Sys0,Exps{3}),manifold(SysNoNN,Exps{3}));
 
 % Complex echo at a single orientation: with nn (anisotropic, or isotropic
 % J), but not without
 SysJ = SysNoNN;
 SysJ.nn = 0.5;  % MHz
-yJ = subspace(SysJ,Exps{1});
-yNN = subspace(Sys,Exps{1});
-y0 = subspace(Sys0,Exps{1});
+yJ = manifold(SysJ,Exps{1});
+yNN = manifold(Sys,Exps{1});
+y0 = manifold(Sys0,Exps{1});
 ok(end+1) = norm(imag(yJ))/norm(yJ) > 1e-5;
 ok(end+1) = norm(imag(yNN))/norm(yNN) > 1e-5;
 ok(end+1) = norm(imag(y0))/norm(y0) < 1e-12;
@@ -85,7 +85,7 @@ ok(end+1) = norm(imag(y0))/norm(y0) < 1e-12;
 Powder = rmfield(Exp,{'MolFrame','CrystalSymmetry'});
 EP{1} = Powder; EP{1}.Sequence = '2pESEEM'; EP{1}.dt = dt; EP{1}.nPoints = 16;
 EP{2} = Powder; EP{2}.Sequence = {f90 tau f180 tau}; EP{2}.Dim1 = {'d1,d2' dt}; EP{2}.nPoints = 16;
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 Opt.GridSize = 7;
 Opt.GridFrame = [0 0 0];
 for S = {SysJ Sys}
@@ -101,8 +101,8 @@ end
 % Errors
 E = Exps{1};
 E.Pathways = 'echo';
-ok(end+1) = throwsWith(@() saffron(Sys,E,struct('Method','subspace','ProductRule',true)),'ProductRule');
-ok(end+1) = throwsWith(@() saffron(Sys,E,struct('Method','subspace','Nuclei',1)),'Opt.Nuclei');
+ok(end+1) = throwsWith(@() saffron(Sys,E,struct('Method','manifold','ProductRule',true)),'ProductRule');
+ok(end+1) = throwsWith(@() saffron(Sys,E,struct('Method','manifold','Nuclei',1)),'Opt.Nuclei');
 % a strongly coupled nucleus cannot be moved to the core system with
 % Opt.IdealPulses if it has an nn coupling
 SysS = Sys;
@@ -111,13 +111,13 @@ E = Exps{3};
 E.Sequence{1}.tp = 0.02;  % µs
 E.Sequence{3}.tp = 0.04;  % µs
 E.Pathways = 'echo';
-ok(end+1) = throwsWith(@() saffron(SysS,E,struct('Method','subspace','IdealPulses',true)),'Opt.IdealPulses');
+ok(end+1) = throwsWith(@() saffron(SysS,E,struct('Method','manifold','IdealPulses',true)),'Opt.IdealPulses');
 
 end
 
-function y = subspace(Sys,Exp)
+function y = manifold(Sys,Exp)
 Exp.Pathways = 'echo';
-Opt.Method = 'subspace';
+Opt.Method = 'manifold';
 [~,y] = saffron(Sys,Exp,Opt);
 y = y(:);
 end

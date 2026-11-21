@@ -50,9 +50,9 @@ ok(2) = areequal(y1,y2,1e-12,'abs');
 E.DetPhase = [0 0 0];
 ok(3) = throwsWith(@() saffron(Sys,E),'Exp.DetPhase');
 
-% An empty DetOperator means the default (S+), in the full-space engine
-% (without detection operators, the subspace engine would be used)
-OptF.Method = 'fullspace';
+% An empty DetOperator means the default (S+), in the full engine
+% (without detection operators, the manifold engine would be used)
+OptF.Method = 'full';
 E = Exp;
 E.DetOperator = {'+1'};
 yPlus = saffron(Sys,E,OptF);

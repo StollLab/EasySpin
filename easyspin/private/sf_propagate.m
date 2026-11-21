@@ -4,7 +4,7 @@
 %   [TimeArray,SignalArray,FinalStates,StateTrajectories,Events,EventTimes] = sf_propagate(...)
 %
 %   Propagates a density matrix through a sequence of events, for all
-%   points of the indirect dimensions (full-space engine of saffron).
+%   points of the indirect dimensions (full engine of saffron).
 %
 %   The result is the weighted sum of propagation runs. Each run uses some
 %   of the settings of each pulse in the phase cycle (rows of its IQ and
@@ -20,7 +20,7 @@
 %                 sf_propagationsetup, with the optional fields
 %       vertRes     vertical resolution of the pulse lookup table, default 1024
 %       rfFrame     RF pulses in a shifted simulation frame: eigenbasis and
-%                   labels of the nuclear RF frame, from sf_engine_fullspace
+%                   labels of the nuclear RF frame, from sf_engine_full
 %                   (see rfFramePropagators)
 %     Relaxation  relaxation structure, [] without relaxation, with fields
 %       Gamma             relaxation superoperator (1/µs), from
@@ -241,7 +241,7 @@ for iPoints = 1 : nPoints
     rfEnvelope = isfield(Events{iEvent},'FrameFreq') && ~isempty(Events{iEvent}.FrameFreq);
     if rfEnvelope && ~isfield(Events{iEvent},'rfFrame')
       error(['The RF pulse at position %d has an envelope for the nuclear RF frame ' ...
-        '(shifted simulation frame), but no rfFrame (set up by sf_engine_fullspace).'],iEvent);
+        '(shifted simulation frame), but no rfFrame (set up by sf_engine_full).'],iEvent);
     end
     startPhase = 2*pi*Events{iEvent}.FrameOffset*1e3*tStart(iEvent);
     if rfEnvelope
@@ -1123,7 +1123,7 @@ end
 %   The RF pulse is propagated in the frame rotating at F = Event.FrameFreq
 %   about the generator G = V*diag(f)*V', which is diagonal in the
 %   eigenbasis V of the static Hamiltonian H (labels f, see
-%   sf_engine_fullspace). G commutes with H, so H is not truncated. In the
+%   sf_engine_full). G commutes with H, so H is not truncated. In the
 %   frame, H_rot = diag(E - F*f) in the eigenbasis, and only the parts of
 %   the RF field that rotate with the frame are kept (rotating-wave
 %   approximation): H1 = conj(c)*Xp + c*Xp', where c is the lab-frame field

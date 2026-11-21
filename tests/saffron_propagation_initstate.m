@@ -1,6 +1,6 @@
 function ok = test() %#ok<FNDEF>
 
-% Sys.initState in the saffron full-space engine
+% Sys.initState in the saffron full engine
 
 tol = 1e-10;
 
@@ -10,7 +10,7 @@ Exp.Sequence = {Pulse 0.05};
 Exp.Field = 340;
 Exp.mwFreq = 9.53;
 Exp.DetWindow = [0 0.05];
-Opt.Method = 'fullspace';
+Opt.Method = 'full';
 Opt.SimFreq = 9.0;
 
 % Single powder orientation, along a generic direction
@@ -51,14 +51,14 @@ SysT.initState = zf;
 [~,y2] = saffron(SysT,ExpC,Opt);
 ok(3) = areequal(y1,y2,tol,'rel');
 
-% The full-space engine is used by default for this triplet (S > 1/2)
+% The full engine is used by default for this triplet (S > 1/2)
 OptD = rmfield(OptP,'Method');
 SysT.initState = xyz;
 [~,y1] = saffron(SysT,Exp,OptP);
 [~,y2] = saffron(SysT,Exp,OptD);
 ok(4) = areequal(y1,y2,tol,'rel');
 
-% Not supported: subspace engine with a state that has a nuclear part (S =
+% Not supported: manifold engine with a state that has a nuclear part (S =
 % 1/2 with a nucleus, since predefined experiments are not available for
 % S > 1/2), relaxation
 SysF = Sys;
@@ -69,7 +69,7 @@ ExpF.Sequence = '2pESEEM';
 ExpF.Field = 340;
 ExpF.dt = 0.01;
 ExpF.nPoints = 10;
-OptF.Method = 'subspace';
+OptF.Method = 'manifold';
 try
   saffron(SysF,ExpF,OptF);
   ok(5) = false;
