@@ -20,7 +20,7 @@ Sys.Nucs = '1H';
 Sys.A = [1 1 3];  % MHz
 rf.Channel = 'rf';
 rf.tp = 5;  % µs
-rf.B1 = 0.5/(rf.tp*larmorfrq('1H',1));  % mT, pi pulse for a bare proton
+rf.B2 = 0.5/(rf.tp*larmorfrq('1H',1));  % mT, pi pulse for a bare proton
 Exp.Field = 350;  % mT
 Exp.mwFreq = 9.8;  % GHz
 Exp.MolFrame = [0 0.3 0];
@@ -36,7 +36,7 @@ Exp.Dim1 = {'rfFreq',0.2};
 % Two RF pulses with an incremented delay between them: they share the
 % random phase
 rf2 = rf;
-rf2.B1 = rf.B1/2;
+rf2.B2 = rf.B2/2;
 Exp2 = Exp;
 Exp2.rfFreq = 13.4;  % MHz
 Exp2.Sequence = {p90 0.2 p90 0 rf2 0.3 rf2 0.1 p90 0.2};
@@ -45,17 +45,21 @@ Exp2.nPoints = 4;
 Exp2.Dim1 = {'d3',0.1};
 [ok(3),ok(4)] = compareCycle(Sys,Exp2,Opt,[zeros(N,2) phi phi zeros(N,2)],tol);
 
-% 14N (I = 1): harmonics of the RF phase up to order 4
+% 14N (I = 1): harmonics of the RF phase up to order 4. Without the
+% hyperfine enhancement, which would raise the nutation frequencies
+% (A > 2*nuI) so far that the RF pulse is stepped (see below).
 SysN.Nucs = '14N';
 SysN.A = [18 18 24];  % MHz
 SysN.Q = [-0.3 -0.2 0.5];  % MHz
 rfN = rf;
 rfN.tp = 10;  % µs
-rfN.B1 = 0.5/(rfN.tp*larmorfrq('14N',1));  % mT
+rfN.B2 = 0.5/(rfN.tp*larmorfrq('14N',1));  % mT
 ExpN = Exp;
 ExpN.Sequence{5} = rfN;
 ExpN.rfFreq = 7;  % MHz
-[ok(5),ok(6)] = compareCycle(SysN,ExpN,Opt,[zeros(N,2) phi zeros(N,2)],tol);
+OptN = Opt;
+OptN.rfEnhancement = false;
+[ok(5),ok(6)] = compareCycle(SysN,ExpN,OptN,[zeros(N,2) phi zeros(N,2)],tol);
 
 % Relaxation during the sequence
 SysR = Sys;
@@ -69,14 +73,17 @@ ExpR.nPoints = 3;
 % rotating-wave approximation, and the counter-rotating part of the field
 % adds higher harmonics of the RF phase. The number of phases is doubled
 % until the average converges (to 1e-4 relative to the largest signal).
+% This bounds the change between successive averages, not the error, and
+% the explicit cycles agree with each other only to about 1e-4, so the
+% comparison uses 3e-4.
 SysN2 = SysN;
 SysN2.A = [5 5 7];  % MHz
 ExpN2 = ExpN;
 ExpN2.Sequence{5}.tp = 5;  % µs
-ExpN2.Sequence{5}.B1 = 2*rfN.B1;
+ExpN2.Sequence{5}.B2 = 2*rfN.B2;
 ExpN2.rfFreq = 2.5;  % MHz
 M = 24;
-[ok(9),ok(10)] = compareCycle(SysN2,ExpN2,Opt,[zeros(M,2) 2*pi*(0:M-1).'/M zeros(M,2)],1e-4);
+[ok(9),ok(10)] = compareCycle(SysN2,ExpN2,Opt,[zeros(M,2) 2*pi*(0:M-1).'/M zeros(M,2)],3e-4);
 
 % Two RF pulses with a microwave pi pulse between them: the RF pulses no
 % longer act as one, and the signal has harmonics of the RF phase up to
@@ -99,7 +106,10 @@ end
 end
 
 % Random RF phase against an explicit phase cycle over the RF phase with a
-% phase-locked carrier, and against the phase-locked carrier without cycle
+% phase-locked carrier, and against the phase-locked carrier without cycle.
+% The phase-locked signal differs only slightly for 14N (about 2e-4,
+% depending on the RF field direction relative to the hyperfine tilt), so
+% the difference must exceed 1e-5 and the tolerance of the comparison.
 function [okCycle,okLocked] = compareCycle(Sys,Exp,Opt,PhaseCycle,tol)
 [~,yRandom] = saffron(Sys,Exp,Opt);
 Exp.rfPhaseLocked = true;
@@ -107,5 +117,5 @@ Exp.rfPhaseLocked = true;
 Exp.PhaseCycle = PhaseCycle;
 [~,yCycle] = saffron(Sys,Exp,Opt);
 okCycle = areequal(yRandom,yCycle,tol,'rel');
-okLocked = ~areequal(yRandom,yLocked,1e-3,'rel');
+okLocked = ~areequal(yRandom,yLocked,max(1e-5,10*tol),'rel');
 end

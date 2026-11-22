@@ -14,7 +14,7 @@ Sys.A = [1 1 3];  % MHz
 p90.Flip = pi/2;
 rf.Channel = 'rf';
 rf.tp = 1.33;  % µs, 638.4 RF periods/40 at 12 MHz
-rf.B1 = 0.5/(rf.tp*0.04258);  % mT, pi pulse for a bare proton
+rf.B2 = 0.5/(rf.tp*0.04258);  % mT, pi pulse for a bare proton
 
 Exp.Field = 350;  % mT
 Exp.mwFreq = 9.8;  % GHz

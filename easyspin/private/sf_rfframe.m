@@ -30,7 +30,7 @@
 %                 the total electron Sz
 %     V           eigenvectors of H, from sf_eigenbasis
 %     X0          RF excitation operator (MHz/mT), product basis: the field
-%                 B1 (mT) along x(Lab) gives B1*X0
+%                 B2 (mT) along the RF field direction gives B2*X0
 %     Spins       spin quantum numbers (Sys.Spins), electrons first
 %     nElectrons  number of electron spins
 %     drive       RF pulses, one row per pulse and point: largest field

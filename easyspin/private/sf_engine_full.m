@@ -144,7 +144,9 @@ if userInitState
   % electron rotation exp(-1i*chi*Sz). An element rho(i,j) contributes with
   % exp(1i*p*chi), p = mS(i)-mS(j) the electron coherence order, so the chi
   % average keeps only the elements with p = 0. This is exact in a shifted
-  % frame for microwave-only sequences.
+  % frame for microwave-only sequences. RF pulses commute with the
+  % rotation, apart from their field direction, which is averaged over
+  % separately (see rfDirectionAverage).
   if averageOverChi
     keep = abs(mS-mS.')<1e-10;
   end
@@ -241,6 +243,34 @@ else
   nRFPhases = 1;
 end
 
+% RF operator, with or without the hyperfine enhancement (see
+% rfOperators), and average over the RF field direction in powders (see
+% rfDirectionAverage): over half a turn with a random RF phase (n and -n
+% differ only by the RF phase pi), over a full turn with a phase-locked RF
+rfEnhancement = ~isfield(Opt,'rfEnhancement') || Opt.rfEnhancement;
+if rfRandomPhase
+  chiRange = pi;
+else
+  chiRange = 2*pi;
+end
+rfSetup = struct('rfEvents',rfEvents,'pulseEvents',pulseEvents,'nRFPhases',nRFPhases,...
+  'useRFFrame',useRFFrame,'rfDrive',rfDrive,'rfDriveEvent',rfDriveEvent,...
+  'rfDrivePoint',rfDrivePoint,'rfPointsSize',{rfPointsSize},'rwaTolerance',rwaTolerance,...
+  'Spins',Sys.Spins,'nElectrons',Sys.nElectrons,...
+  'averageDirections',averageOverChi && nRF>0,'chiRange',chiRange);
+
+% Electron-only spin system (molecular frame), for the tilt of the electron
+% spins by the RF field (hyperfine enhancement in a shifted frame, see
+% rfOperators)
+SysE = [];
+if nRF>0 && rfEnhancement && shiftedFrame
+  SysE = rmfield(Sys,intersect(fieldnames(Sys),{'nn','nnFrame'}));
+  SysE = nucspinrmv(SysE,1:Sys.nNuclei);
+  SysE.processed = false;
+  [SysE,err] = validatespinsys(SysE);
+  error(err);
+end
+
 rawSignals = cell(1,nOrientations);
 timeAxis = cell(1,nOrientations);
 eventTimes = cell(1,nOrientations);
@@ -250,6 +280,8 @@ rwaError = zeros(1,nOrientations);
 nSteppedRF = zeros(1,nOrientations);
 nPhasesUsed = ones(1,nOrientations);
 phaseConverged = true(1,nOrientations);
+nDirectionsUsed = ones(1,nOrientations);
+directionConverged = true(1,nOrientations);
 
 logmsg(1,'-starting orientation loop-----------------------------');
 logmsg(1,'  propagating %d orientations, %d phase cycle run(s), %d pathway run(s)',...
@@ -266,19 +298,14 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
 
   Ham = ham(Sys_L,Field*[0 0 1]);  % lab frame
 
-  % RF excitation operator (MHz/mT): nuclear Zeeman interaction (with
-  % gnscale and chemical shielding) with an RF field along x(Lab), H1 =
-  % 2*Re(IQ)*X0 with the lab-frame RF waveform IQ (mT) and X0 = -mux. It
-  % has electron coherence order 0, so it is the same in shifted frames.
-  % The hyperfine enhancement via the electron Zeeman interaction with the
-  % RF field is not included.
-  Events_ = Events;
-  muxL = [];
+  % RF excitation operators (MHz/mT) for an RF field along x(Lab) and
+  % y(Lab): H1 = 2*Re(IQ)*X0 with the lab-frame RF waveform IQ (mT), see
+  % rfOperators
+  X0x = []; X0y = [];
   if ~isempty(rfEvents)
-    [muxL,~,~] = ham_nz(Sys_L);
-    for iEvent = rfEvents
-      Events_{iEvent}.xOp = -2*muxL;
-    end
+    SysE_L = [];
+    if ~isempty(SysE), SysE_L = rotatesystem(SysE,Orientations(iOrientation,:)); end
+    [X0x,X0y] = rfOperators(Sys_L,SysE_L,Field,shiftedFrame,rfEnhancement);
   end
   if shiftedFrame
     [Ham,mSweights] = sf_secularham(Ham,Sys.Spins,Sys.nElectrons);  % high-field approximation
@@ -314,42 +341,24 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
     end
   end
 
-  % Nuclear RF frame, the same for all RF pulses. An RF pulse is stepped in
-  % the shifted microwave frame instead at the points where its
-  % rotating-wave error exceeds the tolerance. This is exact, since the RF
-  % operator has electron coherence order 0 and is the same in that frame.
-  stepped = false(size(rfDrive,1),1);
-  if useRFFrame
-    if isempty(V)
-      V = sf_eigenbasis(Ham);
-    end
-    [rfFrame,err] = sf_rfframe(Ham,V,-muxL,Sys.Spins,Sys.nElectrons,rfDrive);
-    stepped = err>rwaTolerance;
-    rwaError(iOrientation) = max(err);
-    nSteppedRF(iOrientation) = sum(stepped);
-    if ~isempty(Relaxation_)
-      rfFrame.Gamma = GammaEigen;
-      rfFrame.equilibriumState = V'*Relaxation_.equilibriumState*V;
-    end
-    for k = 1:nRF
-      rows = rfDriveEvent==k;
-      if isempty(rfPointsSize{k})
-        steppedPoints = stepped(rows);  % single wave form
-      else
-        % one value per wave form in Vary, read by sf_propagate per point
-        steppedPoints = false(rfPointsSize{k});
-        steppedPoints(rfDrivePoint(rows)) = stepped(rows);
-      end
-      Events_{rfEvents(k)}.rfFrame = rfFrame;
-      Events_{rfEvents(k)}.rfStepped = steppedPoints;
-    end
+  % Nuclear RF frame (eigenbasis V of Ham), the same for all RF pulses
+  if useRFFrame && isempty(V)
+    V = sf_eigenbasis(Ham);
   end
 
-  % Average over the random RF phase: exact with nRFPhases phases if all RF
-  % pulses use the rotating-wave approximation, otherwise until converged
-  adaptive = ~useRFFrame || any(stepped);
-  [tAx,sig,evT,nPhasesUsed(iOrientation),phaseConverged(iOrientation)] = ...
-    rfPhaseAverage(Sigma_,Ham,Det,Events_,Relaxation_,Vary,Runs,rfEvents,pulseEvents,nRFPhases,adaptive);
+  % Signal, averaged over the RF field direction (powders) and the random
+  % RF phase
+  P = struct;
+  P.Sigma = Sigma_; P.Ham = Ham; P.Det = Det; P.Events = Events;
+  P.Relaxation = Relaxation_; P.Vary = Vary; P.Runs = Runs;
+  P.V = V; P.GammaEigen = GammaEigen;
+  [tAx,sig,evT,res] = rfDirectionAverage(X0x,X0y,P,rfSetup);
+  rwaError(iOrientation) = res.rwaError;
+  nSteppedRF(iOrientation) = res.nStepped;
+  nPhasesUsed(iOrientation) = res.nPhases;
+  phaseConverged(iOrientation) = res.phaseConverged;
+  nDirectionsUsed(iOrientation) = res.nDirections;
+  directionConverged(iOrientation) = res.directionConverged;
   timeAxis{iOrientation} = tAx;
   rawSignals{iOrientation} = sig;
   eventTimes{iOrientation} = evT;
@@ -375,6 +384,14 @@ if ~all(phaseConverged)
   warning(['The average over the random RF phase did not converge with %d phases ' ...
     '(very strong RF field at low frequencies). The result can be inaccurate.'],max(nPhasesUsed));
 end
+if rfSetup.averageDirections
+  logmsg(1,'  RF field direction: average over up to %d directions',max(nDirectionsUsed));
+end
+if ~all(directionConverged)
+  warning(['The average over the RF field direction did not converge with %d directions. ' ...
+    'The result can be inaccurate.'],max(nDirectionsUsed));
+end
+info.nRFDirections = max(nDirectionsUsed);
 relaxationMatrix = ~isscalar(Sys.T1) || ~isscalar(Sys.T2);
 if relaxationMatrix && min(minOverlap)<0.5
   warning(['The eigenstates are strongly mixed (smallest overlap with a product ' ...
@@ -492,9 +509,226 @@ end
 
 
 %===============================================================================
+% rfOperators  RF excitation operators for fields along x(Lab) and y(Lab)
+%
+%   [X0x,X0y] = rfOperators(Sys_L,SysE_L,Field,secular,enhancement)
+%
+%   An RF field B2 (mT) along n = cos(chi)*x(Lab) + sin(chi)*y(Lab) adds
+%   B2*(cos(chi)*X0x + sin(chi)*X0y) to the Hamiltonian:
+%   - without enhancement: the nuclear Zeeman interaction (with gnscale and
+%     chemical shielding), X0 = -n*mu_n
+%   - with enhancement, lab frame: the full magnetic moment, X0 =
+%     -n*(mu_e + mu_n). This includes the hyperfine enhancement exactly.
+%   - with enhancement, secular Hamiltonian (shifted frame): -n*mu_n plus
+%     the hyperfine enhancement to first order in 1/nu_e. The RF field
+%     varies slowly compared with the electron Larmor frequency, so it
+%     tilts the electron spin within its mS manifold by b*dS (see
+%     sf_spintilt), which changes the hyperfine field at each nucleus by
+%     dS*A. The operator is sum over electrons e and components k of
+%     dS_ek (x) HF_ek, with the hyperfine field operators HF_ek on the
+%     nuclei, from H_hf = sum S_ek (x) HF_ek. The tilt is computed for the
+%     electron-only Hamiltonian (Zeeman, zero-field, electron-electron
+%     terms), in the electron states of the secular Hamiltonian, i.e. the
+%     eigenstates projected onto their mS manifold as in sf_secularham
+%     (dSsec from sf_spintilt). So the operator has no electron coherence,
+%     and its elements within each manifold are those between the
+%     eigenstates (the tilt of <S> for S = 1/2), as in the manifold engine.
+%     Left out: with an anisotropic g, the RF field has a component along
+%     the electron quantization axis, -n*mu_e within the mS manifolds
+%     (mS*(q.'*g.'*n)*muB/h for S = 1/2, with the quantization axis q). It
+%     modulates the electron Zeeman frequencies at the RF frequency. For
+%     S = 1/2 it is constant within each manifold, so it does not change
+%     populations or nuclear coherences, only electron coherences during
+%     RF pulses. The lab frame includes it. It is left out because the
+%     rotating-wave error estimate (sf_rfframe) would count it and step the
+%     RF pulses also where it has no effect (ENDOR with populations during
+%     the RF pulse), about ten times slower for Cu(II) with strong RF.
+%
+%   Input:
+%     Sys_L        spin system in the lab frame (rotatesystem), validated
+%     SysE_L       the electron spins of Sys_L only, validated; used for
+%                  the secular Hamiltonian with enhancement, else []
+%     Field        static field (mT), along z(Lab)
+%     secular      true for the secular Hamiltonian (shifted frame)
+%     enhancement  true to include the hyperfine enhancement
+%                  (Opt.rfEnhancement)
+%
+%   Output:
+%     X0x, X0y     RF operators (MHz/mT), full matrices in the product basis
+function [X0x,X0y] = rfOperators(Sys_L,SysE_L,Field,secular,enhancement)
+[muxN,muyN,~] = ham_nz(Sys_L);
+X0x = -full(muxN);
+X0y = -full(muyN);
+if ~enhancement, return; end
+if ~secular
+  [muxE,muyE,~] = ham_ez(Sys_L);
+  X0x = X0x - full(muxE);
+  X0y = X0y - full(muyE);
+  return
+end
+
+% Tilt of the electron spins, in the electron-only spin system
+[H0e,muxE,muyE,muzE] = ham(SysE_L);
+He = H0e - Field*muzE;
+nElectrons = SysE_L.nElectrons;
+Sops = cell(1,3*nElectrons);
+Szf = 0;
+for e = 1:nElectrons
+  for k = 1:3
+    Sops{3*(e-1)+k} = full(sop(SysE_L.Spins,[e,k]));
+  end
+  Szf = Szf + Sops{3*e};
+end
+[~,dSx] = sf_spintilt(He,-muxE,Sops,Szf);
+[~,dSy] = sf_spintilt(He,-muyE,Sops,Szf);
+
+% Hyperfine field operators HF_ek = Tr_e[(S_ek (x) 1)*H_hf]/Tr(S_ek^2), and
+% the enhancement operators
+nE = size(He,1);
+nN = size(X0x,1)/nE;
+for e = 1:nElectrons
+  Hhf = full(ham_hf(Sys_L,e));
+  for k = 1:3
+    Sek = Sops{3*(e-1)+k};
+    M = kron(Sek,eye(nN))*Hhf;
+    HF = 0;
+    for i = 1:nE
+      idx = (i-1)*nN+(1:nN);
+      HF = HF + M(idx,idx);
+    end
+    HF = HF/real(trace(Sek*Sek));
+    X0x = X0x + kron(dSx{3*(e-1)+k},HF);
+    X0y = X0y + kron(dSy{3*(e-1)+k},HF);
+  end
+end
+end
+
+
+%===============================================================================
+% rfDirectionAverage  Signal averaged over the RF field direction
+%
+%   [t,sig,evT,res] = rfDirectionAverage(X0x,X0y,P,rf)
+%
+%   In crystals, the RF field is along y(Lab). In powders, the signal is
+%   averaged over the RF field direction n = cos(chi)*x(Lab) +
+%   sin(chi)*y(Lab) in the plane perpendicular to the static field, chi in
+%   [0,rf.chiRange) (see sf_rfdirectionaverage). The same direction is used
+%   for all RF pulses (one coil). The microwave pulse propagators are
+%   computed for the first direction and kept for the others. With a
+%   phase-locked RF, the rotation about the field also averages over the
+%   RF phase seen by the nuclei.
+%
+%   Input:
+%     X0x, X0y  RF operators for fields along x(Lab) and y(Lab), from
+%               rfOperators; empty without RF pulses
+%     P         propagation inputs, with fields Sigma, Ham, Det, Events,
+%               Relaxation, Vary, Runs (see sf_propagate), V and
+%               GammaEigen (eigenbasis of Ham and relaxation superoperator
+%               in it, for the nuclear RF frame)
+%     rf        RF pulse setup (see sf_engine_full), with averageDirections
+%               true to average over the RF field direction (powders)
+%
+%   Output:
+%     t, sig, evT  time axis, averaged signal and event times
+%     res          structure with the largest rotating-wave error
+%                  (rwaError) and number of stepped RF pulse points
+%                  (nStepped) over the directions, the number of RF phases
+%                  (nPhases) and of directions (nDirections), and whether
+%                  the averages converged (phaseConverged,
+%                  directionConverged)
+function [t,sig,evT,res] = rfDirectionAverage(X0x,X0y,P,rf)
+res = struct('rwaError',0,'nStepped',0,'nPhases',1,'phaseConverged',true,...
+  'nDirections',1,'directionConverged',true);
+if ~rf.averageDirections
+  [t,sig,evT,res] = rfDirectionRun(X0y,P,rf,res);  % RF field along y(Lab)
+  return
+end
+mwPulses = setdiff(rf.pulseEvents,rf.rfEvents);
+firstDirection = true;
+[sig,res.nDirections,res.directionConverged] = sf_rfdirectionaverage(@directionSignal,rf.chiRange);
+
+  % signal for the RF field direction chi; sets t, evT and res, and keeps
+  % the microwave pulse propagators of the first direction in P
+  function s = directionSignal(chi)
+    [t,s,evT,res,Eout] = rfDirectionRun(cos(chi)*X0x + sin(chi)*X0y,P,rf,res);
+    if firstDirection
+      for iEvent = mwPulses
+        P.Events{iEvent}.Propagation = Eout{iEvent}.Propagation;
+      end
+      firstDirection = false;
+    end
+  end
+
+end
+
+
+%===============================================================================
+% rfDirectionRun  Signal for one RF operator, averaged over the RF phase
+%
+%   [t,sig,evT,res,Eout] = rfDirectionRun(X0,P,rf,res)
+%
+%   Sets the RF operator X0 for all RF pulses and propagates, averaged over
+%   the random RF phase: exact with rf.nRFPhases phases if all RF pulses use
+%   the rotating-wave approximation, otherwise until converged (see
+%   rfPhaseAverage). In a shifted frame, the RF pulses are propagated in
+%   the nuclear RF frame (see sf_rfframe), and stepped in the shifted
+%   microwave frame instead at the points where the rotating-wave error
+%   exceeds rf.rwaTolerance. This is exact, since the RF operator has
+%   electron coherence order 0 and is the same in that frame.
+%
+%   Input:
+%     X0   RF operator (MHz/mT) for the RF field direction, empty without
+%          RF pulses
+%     P    propagation inputs, see rfDirectionAverage
+%     rf   RF pulse setup (see sf_engine_full)
+%     res  results so far, see rfDirectionAverage; updated with the
+%          largest values over the runs
+%
+%   Output:
+%     t, sig, evT  time axis, signal and event times, from sf_propagate
+%     res          updated results
+%     Eout         events with the pulse propagators, from sf_propagate
+function [t,sig,evT,res,Eout] = rfDirectionRun(X0,P,rf,res)
+Events = P.Events;
+for iEvent = rf.rfEvents
+  Events{iEvent}.xOp = 2*X0;
+  Events{iEvent}.Propagation = [];  % the RF operator changed
+end
+stepped = false(size(rf.rfDrive,1),1);
+if rf.useRFFrame
+  [rfFrame,err] = sf_rfframe(P.Ham,P.V,X0,rf.Spins,rf.nElectrons,rf.rfDrive);
+  stepped = err>rf.rwaTolerance;
+  res.rwaError = max([res.rwaError; err]);
+  res.nStepped = max(res.nStepped,sum(stepped));
+  if ~isempty(P.Relaxation)
+    rfFrame.Gamma = P.GammaEigen;
+    rfFrame.equilibriumState = P.V'*P.Relaxation.equilibriumState*P.V;
+  end
+  for k = 1:numel(rf.rfEvents)
+    rows = rf.rfDriveEvent==k;
+    if isempty(rf.rfPointsSize{k})
+      steppedPoints = stepped(rows);  % single wave form
+    else
+      % one value per wave form in Vary, read by sf_propagate per point
+      steppedPoints = false(rf.rfPointsSize{k});
+      steppedPoints(rf.rfDrivePoint(rows)) = stepped(rows);
+    end
+    Events{rf.rfEvents(k)}.rfFrame = rfFrame;
+    Events{rf.rfEvents(k)}.rfStepped = steppedPoints;
+  end
+end
+adaptive = ~rf.useRFFrame || any(stepped);
+[t,sig,evT,nPhases,converged,Eout] = rfPhaseAverage(P.Sigma,P.Ham,P.Det,Events,P.Relaxation,...
+  P.Vary,P.Runs,rf.rfEvents,rf.pulseEvents,rf.nRFPhases,adaptive);
+res.nPhases = max(res.nPhases,nPhases);
+res.phaseConverged = res.phaseConverged && converged;
+end
+
+
+%===============================================================================
 % rfPhaseAverage  Signal averaged over the random phase of the RF carrier
 %
-%   [t,sig,evT,nPhases,converged] = rfPhaseAverage(Sigma,Ham,Det,Events,Relaxation,Vary,Runs,rfEvents,pulseEvents,nPhases,adaptive)
+%   [t,sig,evT,nPhases,converged,Eout] = rfPhaseAverage(Sigma,Ham,Det,Events,Relaxation,Vary,Runs,rfEvents,pulseEvents,nPhases,adaptive)
 %
 %   Propagates with the RF carrier phases 2*pi*j/nPhases, j = 0..nPhases-1,
 %   added to all RF pulses (see rfPhaseRuns), and averages the signals.
@@ -515,10 +749,11 @@ end
 %     t, sig, evT  time axis, signal and event times, from sf_propagate
 %     nPhases      number of phases used
 %     converged    false if the adaptive average did not converge
-function [t,sig,evT,nPhases,converged] = rfPhaseAverage(Sigma,Ham,Det,Events,Relaxation,Vary,Runs,rfEvents,pulseEvents,nPhases,adaptive)
+%     Eout         events with the pulse propagators of the last run
+function [t,sig,evT,nPhases,converged,Eout] = rfPhaseAverage(Sigma,Ham,Det,Events,Relaxation,Vary,Runs,rfEvents,pulseEvents,nPhases,adaptive)
 converged = true;
 if nPhases==1
-  [t,sig,~,~,~,evT] = sf_propagate(Sigma,Ham,Det,Events,Relaxation,Vary,Runs);
+  [t,sig,~,~,Eout,evT] = sf_propagate(Sigma,Ham,Det,Events,Relaxation,Vary,Runs);
   return
 end
 phases = 2*pi*(0:nPhases-1)/nPhases;

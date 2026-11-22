@@ -11,8 +11,10 @@ function ok = test() %#ok<FNDEF>
 % - RF pulses (full engine): with the shielding tensor diagonal in
 %   the lab frame and an isotropic A, the NMR transitions are at
 %   gnscale*sigma_zz*nuI -+ A/2 and the RF nutation frequency is
-%   gnscale*sigma_xx*gamma*B1, so a pi pulse there gives the same ENDOR
-%   effect as for a bare proton; a nominal Flip includes gnscale
+%   gnscale*sigma_yy*gamma*B2 (RF field along y(Lab), without the
+%   hyperfine enhancement), so a pi
+%   pulse there gives the same ENDOR effect as for a bare proton; a
+%   nominal Flip includes gnscale
 % The shielding values are far larger than real ones, to make the effects
 % clearly visible.
 
@@ -77,7 +79,7 @@ ok(4) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*SysE.A/2))<0.05);
 % orientation with the molecular frame equal to the lab frame
 SysR.Nucs = '1H';
 SysR.A = 3;  % MHz
-SysR.sigma = [1.3 1 0.8];  % sigma_xx, sigma_yy, sigma_zz
+SysR.sigma = [1 1.3 0.8];  % sigma_xx, sigma_yy, sigma_zz
 SysR.gnscale = 1.1;
 SysRef.Nucs = '1H';
 SysRef.A = SysR.A;
@@ -92,9 +94,9 @@ ExpR.CrystalSymmetry = 1;
 ExpR.Pathways = '+00-';
 ExpR.DetPhase = -pi/2;
 nuLine = @(s) s*gamma*ExpR.Field + SysR.A/2;  % upper NMR transition, MHz
-B1pi = @(s) 1/(2*rf.tp*s*gamma);  % RF field (mT) for a pi pulse
-eRef = rfEffect(SysRef,ExpR,rf,p90,nuLine(1),B1pi(1));
-eR = rfEffect(SysR,ExpR,rf,p90,nuLine(1.1*0.8),B1pi(1.1*1.3));
+B2pi = @(s) 1/(2*rf.tp*s*gamma);  % RF field (mT) for a pi pulse
+eRef = rfEffect(SysRef,ExpR,rf,p90,nuLine(1),B2pi(1));
+eR = rfEffect(SysR,ExpR,rf,p90,nuLine(1.1*0.8),B2pi(1.1*1.3));
 ok(5) = abs(eRef)>0.1 && areequal(eR,eRef,1e-3,'rel');
 
 % nominal Flip = pi refers to the first nucleus, with gnscale
@@ -105,19 +107,20 @@ ok(6) = areequal(eG,eRef,1e-3,'rel');
 
 end
 
-% ENDOR effect of an RF pulse at frequency nuRF (MHz), with RF field B1
-% (mT) or, for empty B1, Flip = pi: echo without minus echo with RF field,
-% in Mims ENDOR (full engine)
-function e = rfEffect(Sys,Exp,rf,p90,nuRF,B1)
-if isempty(B1)
+% ENDOR effect of an RF pulse at frequency nuRF (MHz), with RF field B2
+% (mT) or, for empty B2, Flip = pi: echo without minus echo with RF field,
+% in Mims ENDOR (full engine, nuclear Zeeman RF operator)
+function e = rfEffect(Sys,Exp,rf,p90,nuRF,B2)
+if isempty(B2)
   rf.Flip = pi;
   rfOff = rf; rfOff.Flip = 0;
 else
-  rf.B1 = B1;
-  rfOff = rf; rfOff.B1 = 0;
+  rf.B2 = B2;
+  rfOff = rf; rfOff.B2 = 0;
 end
 Exp.rfFreq = nuRF;
 Opt.Method = 'full';
+Opt.rfEnhancement = false;
 Exp.Sequence = {p90 0.2 p90 0 rf 0.1 p90 0.2};
 [~,yOn] = saffron(Sys,Exp,Opt);
 Exp.Sequence{5} = rfOff;

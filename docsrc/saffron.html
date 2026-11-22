@@ -357,7 +357,7 @@ Exp.Sequence = {Pulse1 0.2 Pulse2 0.4};
 
 <div class="optionfield"><code>rfFreq</code></div>
 <div class="optiondescr">
-RF carrier frequency in MHz, optional, for RF pulses (<code>Pulse.Channel = 'rf'</code>). The frequencies of RF pulses (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.rfFreq</code>. Without it, they are absolute (see <a href="#carriers">pulse frequencies and carriers</a>). RF pulses need a length (<code>tp</code>). Their strength is given by <code>B1</code> (RF field amplitude, in mT), or by <code>Flip</code>, which then refers to the first nucleus of the spin system. To sweep the RF frequency (ENDOR), use an indirect dimension over <code>'rfFreq'</code>, or over the frequency of the RF pulse:
+RF carrier frequency in MHz, optional, for RF pulses (<code>Pulse.Channel = 'rf'</code>). The frequencies of RF pulses (<code>Pulse.Frequency</code>) are defined relative to <code>Exp.rfFreq</code>. Without it, they are absolute (see <a href="#carriers">pulse frequencies and carriers</a>). RF pulses need a length (<code>tp</code>) and a strength, given by <code>B2</code> or <code>Flip</code> (see below). To sweep the RF frequency (ENDOR), use an indirect dimension over <code>'rfFreq'</code>, or over the frequency of the RF pulse:
 <pre class="matlab">
 RF.Channel = 'rf';
 RF.tp = 20;                   % µs
@@ -379,6 +379,12 @@ Exp.Dim1 = {'p3.Frequency' 0.05};
 </pre>
 <p>
 For the predefined ENDOR experiments, <code>Exp.rfFreq = [min max]</code> gives the RF range.
+</p>
+<p>
+<em>Strength of the RF field.</em> <code>B2</code> is the RF field amplitude in mT (B<sub>1</sub> denotes the microwave field). The RF field oscillates as 2&middot;B<sub>2</sub>&middot;cos(2&pi;&nu;t), so <code>B2</code> is half of its peak value. As usual in NMR, it is the part of the field that rotates with the nuclear spins: a bare nucleus with the gyromagnetic ratio &gamma; (in MHz/mT) nutates at &gamma;&middot;B<sub>2</sub>. Instead of <code>B2</code>, you can give a flip angle <code>Flip</code>. It refers to the first magnetic nucleus in <code>Sys.Nucs</code> (its most abundant isotope, scaled by <code>Sys.gnscale</code>), without any electron spin: <code>saffron</code> sets <code>B2</code> so that this bare nucleus turns by <code>Flip</code>. All nuclei then feel the same RF field. How fast each nuclear transition is driven follows from this field, the orientation of the nucleus, and, by default, the hyperfine enhancement (see <code>Opt.rfEnhancement</code>).
+</p>
+<p>
+<em>Direction of the RF field.</em> The RF field is linearly polarized, perpendicular to the static field. In crystals, it is along the y axis of the lab frame, perpendicular to the microwave field (along x). In powders, <code>saffron</code> averages the signal over all directions of the RF field in the plane perpendicular to the static field, as the rotation of the molecules about the field requires. <code>info.nRFDirections</code> gives the number of directions used.
 </p>
 </div>
 
@@ -570,7 +576,7 @@ Exp.PhaseCycle = [ph1(:) 0*ph1(:) ph3(:) -ph1(:)-ph3(:)];
 With a detection window or <code>'sequence'</code> (see <code>DetWindow</code>), the whole detected signal is phase-cycled, including the signal before and during the cycled pulses. Signal that is the same in all steps is removed if the receiver phases cancel it.
 Both methods support phase cycles. The <em>full</em> method simulates a nested phase cycle about as fast as a single step. Other phase cycles are propagated step by step, which takes longer, but the steps share the pulse propagators.
 Predefined experiments set their pathways themselves, so <code>PhaseCycle</code> cannot be used with them.
-To remove all signal that does not depend on a pulse, as with a pulse switched on and off on a spectrometer, simulate the experiment a second time with the strength of that pulse set to zero (whichever of <code>Flip</code>, <code>Amplitude</code> or <code>B1</code> the pulse uses), and subtract the two signals.
+To remove all signal that does not depend on a pulse, as with a pulse switched on and off on a spectrometer, simulate the experiment a second time with the strength of that pulse set to zero (whichever of <code>Flip</code>, <code>Amplitude</code> or <code>B2</code> the pulse uses), and subtract the two signals.
 </div>
 
 <div class="subtitle2">Detection</div>
@@ -855,6 +861,11 @@ Opt.Relaxation = [0 0 1];   % relaxation only during the third element of the se
 If not given, relaxation is on if <code>Sys.T1</code> or <code>Sys.T2</code> is nonzero. A vector needs one entry per element of <code>Exp.Sequence</code>. The <em>manifold</em> method has no relaxation during pulses, so there the entries for pulses have no effect. With both methods, the free evolution up to and during detection (<code>Exp.DetWindow</code>) takes the setting of the last delay of the sequence.
 </div>
 
+<div class="optionfield"><code>rfEnhancement</code></div>
+<div class="optiondescr">
+<code>true</code> (default) or <code>false</code>. Whether RF pulses include the hyperfine enhancement. The RF field acts on a nucleus directly, through its nuclear Zeeman interaction. It also tilts the electron spin slightly, and through the hyperfine coupling this changes the field the nucleus feels. This second effect, the hyperfine enhancement, makes the RF pulse stronger for the nuclear transitions in one electron spin manifold and weaker in the other. It is important when the hyperfine coupling is comparable to the nuclear Zeeman frequency, and it causes intensity differences between the two lines of a nucleus in ENDOR spectra. With <code>true</code>, <code>saffron</code> includes it, to first order in the hyperfine coupling divided by the electron Zeeman frequency; in the lab frame of the <em>full</em> method (<code>Opt.SimFreq = 0</code>), the RF field acts on the electron spin directly, which includes it exactly. In other simulation frames, one smaller effect of the RF field on the electron spin is left out: with an anisotropic g, the RF field slightly modulates the EPR frequencies. This only matters for electron coherences during RF pulses, not for ENDOR experiments with the RF pulse between the microwave pulses that store and recall the polarization (Mims, Davies). With <code>false</code>, the RF field acts only through the nuclear Zeeman interaction.
+</div>
+
 <div class="optionfield"><code>GridSize</code></div>
 <div class="optiondescr">
 A number giving the number of orientations (knots) for which spectra are explicitly calculated. <code>GridSize</code> gives the number of orientations on a quarter of a meridian, i.e. between &theta; = 0 and &theta; = 90&deg;. The default value is 31, corresponding to a 3&deg; spacing between orientations. For highly anisotropic spectra, esp. for HYSCORE, the value often has to be increased to 181 (0.5&deg; spacing) or beyond.
@@ -982,7 +993,7 @@ In a simulation frame other than the lab frame, the high-field approximation is 
 In the same way, a pulse keeps only the part of its field that rotates with the electron spins (rotating-wave approximation). The counter-rotating part, which causes small effects such as the Bloch-Siegert shift, is neglected. The results then do not depend on the choice of <code>SimFreq</code>, as long as it is not zero.
 </p>
 <p>
-RF pulses use the same approximation: each RF pulse is computed in a frame that rotates with the nuclear spins, and only the part of the RF field that rotates with them is kept. This makes long RF pulses fast, since the computation time no longer grows with the number of RF periods. The neglected part shifts the NMR transitions slightly (Bloch-Siegert shift). Relative to the ENDOR effect, the error is of the order of the RF nutation frequency divided by four times the RF frequency, e.g. about 10<sup>-3</sup> for an RF &pi; pulse of 10 µs on protons at X-band. <code>saffron</code> estimates this error for each RF pulse and orientation. Where it exceeds 1%, e.g. for strong RF pulses at low frequencies, the RF pulse is computed without this approximation, with at least 40 time steps per RF period. This is exact and takes longer. In the lab frame (<code>Opt.SimFreq = 0</code>), all RF pulses are computed in this way.
+RF pulses use the same approximation: each RF pulse is computed in a frame that rotates with the nuclear spins, and only the part of the RF field that rotates with them is kept. This makes long RF pulses fast, since the computation time no longer grows with the number of RF periods. The neglected part shifts the NMR transitions slightly (Bloch-Siegert shift). Relative to the ENDOR effect, the error is of the order of the RF nutation frequency divided by four times the RF frequency, e.g. about 10<sup>-3</sup> for an RF &pi; pulse of 10 µs on protons at X-band. <code>saffron</code> estimates this error for each RF pulse and orientation. Where it exceeds 1%, e.g. for strong RF pulses at low frequencies, the RF pulse is computed without this approximation, with at least 40 time steps per RF period. This is exact and takes longer. In the lab frame (<code>Opt.SimFreq = 0</code>), all RF pulses are computed in this way. With the hyperfine enhancement (<code>Opt.rfEnhancement</code>), the RF field there also acts on the electron spin, so the time steps of RF pulses must resolve the electron precession, as <code>IntTimeStep</code> does. This makes RF pulses in the lab frame much slower.
 </p>
 </div>
 
@@ -1022,6 +1033,7 @@ A structure with additional information:
 <li><code>info.EchoTimes</code>: for each row of <code>info.Pathways</code>, the time (in µs) after the end of the sequence at which the pathway forms its echo, at the first point; negative values are before the end. <code>NaN</code> for pathways without echo (e.g. a free induction decay).</li>
 <li><code>info.nOffsets</code>: the number of resonance offsets in the average over the inhomogeneous line (<em>manifold</em> method, see <code>Opt.OffsetTolerance</code>); 1 if no offsets are needed (no inhomogeneous line, or the exact average with ideal pulses).</li>
 <li><code>info.binnedDims</code>: the dimensions computed by binning (<em>manifold</em> method, see <code>Opt.Binning</code>); the other dimensions are computed point by point.</li>
+<li><code>info.nRFDirections</code>: the number of RF field directions in the average over the RF field direction in powders (see <code>Exp.rfFreq</code>); the largest over the orientations in the <em>full</em> method. The number is doubled from 4 until the average has converged to 10<sup>-5</sup> of the largest signal. 1 for crystals.</li>
 </ul>
 </div>
 
@@ -1036,7 +1048,7 @@ A structure with additional information:
 <tr><th></th><th><em>manifold</em> (fast)</th><th><em>full</em> (general)</th></tr>
 <tr><td>Spin system</td><td>one electron spin with S = 1/2, with or without nuclei (S &gt; 1/2 only on request, approximately)</td><td>any number of electron spins and nuclei, any S, also without nuclei</td></tr>
 <tr><td>Microwave pulses</td><td>ideal and rectangular</td><td>any shape: rectangular, shaped, frequency-swept, user-defined waveforms</td></tr>
-<tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code> or of the frequency of the RF pulse; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>); random RF phase</td><td>yes; rotating-wave approximation for the RF field where it is accurate, otherwise time steps (see <code>Opt.SimFreq</code>); random or fixed RF phase (<code>Exp.rfPhaseLocked</code>)</td></tr>
+<tr><td>RF pulses</td><td>one rectangular RF pulse, with a sweep of <code>Exp.rfFreq</code> or of the frequency of the RF pulse; no electron coherence during the RF pulse (select the pathways with <code>Exp.Pathways</code>); random RF phase; population transfer for each nuclear transition, which neglects the effect of the RF pulse on nuclear coherences created by the microwave pulses (small except for deep nuclear modulations); hyperfine enhancement (<code>Opt.rfEnhancement</code>)</td><td>yes; rotating-wave approximation for the RF field where it is accurate, otherwise time steps (see <code>Opt.SimFreq</code>); random or fixed RF phase (<code>Exp.rfPhaseLocked</code>); hyperfine enhancement (<code>Opt.rfEnhancement</code>)</td></tr>
 <tr><td>Indirect dimensions</td><td>delays, moving pulses (<code>Position</code>), pulse flip angle, phase, length, frequency and amplitude, RF frequency; pulses must not cross</td><td>any field, also frequency bands and user-defined waveforms; pulses may cross</td></tr>
 <tr><td>Pathways, phase cycles</td><td>yes</td><td>yes</td></tr>
 <tr><td>Detection</td><td>single point (<code>DetWindow</code> a single number, or two equal numbers), <i>&Scirc;</i><sub>+</sub>, any detection frame (<code>DetFreq</code>)</td><td>also transients, <code>'sequence'</code>, other detection operators, echo integration</td></tr>

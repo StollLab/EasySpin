@@ -50,7 +50,7 @@
 %       N                number of intervals (number of pulses)
 %       Pulse            1xN structure array, with fields Channel ('mw' or
 %                        'rf'), Phase, tp, Frequency, Type, Par (the pulse
-%                        as given), Flip, ideal, B1 (RF pulses); tp of a
+%                        as given), Flip, ideal, B2 (RF pulses); tp of a
 %                        user-defined waveform (IQ) from its time axis t
 %       idealPulses      true: finite pulses treated as ideal (input)
 %       t                delay after each pulse (µs), 1xN; the last one
@@ -236,16 +236,16 @@ for k = 1:nPulses
       Pulses(k).Frequency = Pulses(k).Frequency(1);
       Pulses(k).ideal = false;
       Pulses(k).Flip = [];
-      Pulses(k).B1 = [];
-      if isfield(pulse_,'B1') && ~isempty(pulse_.B1)
-        Pulses(k).B1 = pulse_.B1;
+      Pulses(k).B2 = [];
+      if isfield(pulse_,'B2') && ~isempty(pulse_.B2)
+        Pulses(k).B2 = pulse_.B2;
       elseif isfield(pulse_,'Flip') && ~isempty(pulse_.Flip)
         Pulses(k).Flip = pulse_.Flip;
       else
         % placeholder: shaped RF pulses are not supported, and RF pulses
         % with other amplitude fields (Amplitude) need the full engine
         if rect
-          reasons{end+1} = 'RF pulses without Flip or B1';
+          reasons{end+1} = 'RF pulses without Flip or B2';
         end
         Pulses(k).Flip = pi;
       end

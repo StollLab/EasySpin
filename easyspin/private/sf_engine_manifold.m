@@ -69,7 +69,12 @@
 %   - RF pulses (ENDOR, rectangular only): population transfer between the
 %     levels of each NMR transition, with the two-level response (Rabi
 %     formula) at the detuning from the RF carrier, averaged over the RF
-%     phase.
+%     phase. The nutation frequency of each transition follows from its
+%     matrix element of the RF operator (nuclear Zeeman interaction and,
+%     by default, the hyperfine enhancement, Opt.rfEnhancement) and the
+%     RF field B2 (Pulse.B2, or nominal from Pulse.Flip). In powders, the
+%     response is averaged over the RF field direction in the plane
+%     perpendicular to the static field (see endorSweep).
 %   - Relaxation: exp(-t/T2) for intervals with electron coherence and
 %     exp(-t/T1) for intervals with electron populations, over the delays
 %     with relaxation on (Opt.Relaxation, one value or one per element of
@@ -92,9 +97,12 @@
 %                         cell per subspace s, n x nE
 %       M{s}              overlap matrices Va'*Vb, n x n x nE
 %       Va{s}, Vb{s}      nuclear eigenvectors, n x n x nE (ENDOR only)
-%       geff, geffNorm, xL, yL, zL   effective g vector g.'*zL and its
-%                         norm, and lab axes in the molecular frame (ENDOR
-%                         only)
+%       xL, yL, zL        lab axes in the molecular frame, 3 x nE (ENDOR
+%                         only; zL only for the general electron system)
+%       dSa, dSb          tilt of the electron spin <S> (molecular frame)
+%                         in manifolds a and b by an RF field (per mT)
+%                         along xL (rows 1-3) and yL (rows 4-6), 6 x nE;
+%                         zero without hyperfine enhancement (ENDOR only)
 %       offCenter, offWidth   center and FWHM (MHz) of the resonance offset
 %                         distribution of the excited spin packets
 %       offsetTolerance   error target of the average over this
@@ -141,6 +149,7 @@ end
 relaxation = ~isinf(T1) || ~isinf(T2);
 
 isENDOR = any(seq.kind==2);
+rfEnhancement = ~isfield(Opt,'rfEnhancement') || Opt.rfEnhancement;
 
 % Nuclei included in the nuclear subspaces
 %-------------------------------------------------------------------------------
@@ -405,8 +414,20 @@ if twoElectronManifolds
     if isENDOR, E.Va{s} = VaAll; E.Vb{s} = VbAll; end
   end
   if isENDOR
-    E.geff = geff(:,oriList); E.geffNorm = geffNorm(oriList);
     E.xL = xL(:,oriList); E.yL = yL(:,oriList);
+    % Tilt of <S> (+q/2 in manifold a, -q/2 in b) by an RF field (per mT)
+    % along xL (rows 1-3) and yL (rows 4-6), for the hyperfine enhancement
+    % (see rfNutation): the quantization axis q = geff/|geff| turns toward
+    % g.'*n (n: RF field direction), first order in 1/nu_e (see sf_spintilt)
+    E.dSa = zeros(6,nE);
+    if rfEnhancement
+      q = geff(:,oriList)./geffNorm(oriList);
+      gx = g.'*E.xL; gy = g.'*E.yL;
+      dqx = (gx - q.*sum(q.*gx,1))./(geffNorm(oriList)*Exp.Field);
+      dqy = (gy - q.*sum(q.*gy,1))./(geffNorm(oriList)*Exp.Field);
+      E.dSa = [dqx; dqy]/2;
+    end
+    E.dSb = -E.dSa;
   end
 else
   % General electron system: transitions from the core Hamiltonian. Each
@@ -473,6 +494,14 @@ else
       selWeight(rmvTransition) = 0;
     end
     [v,u,wSel] = find(tril(selWeight,-1));
+    % Tilt of the electron spin by an RF field (per mT) along xL and yL, for
+    % the hyperfine enhancement of RF pulses (see rfNutation)
+    if isENDOR && rfEnhancement && ~isempty(u)
+      Szf = zLab_M(1)*Sx + zLab_M(2)*Sy + zLab_M(3)*Sz;
+      dSx = sf_spintilt(H,-(xLab_M(1)*mux + xLab_M(2)*muy + xLab_M(3)*muz),{Sx,Sy,Sz},Szf);
+      dSy = sf_spintilt(H,-(yLab_M(1)*mux + yLab_M(2)*muy + yLab_M(3)*muz),{Sx,Sy,Sz},Szf);
+      dSops = [dSx dSy];
+    end
     if userInitState && eigenBasis && ~isempty(u)
       % initial state in the core system, from the eigenstates of the
       % electron Hamiltonian at this orientation and, time-reversed, at the
@@ -498,8 +527,15 @@ else
       else
         dPop = zLab_M(:).'*(SA-SB);  % population difference from -Sz
       end
+      dSA = zeros(6,1); dSB = zeros(6,1);
+      if isENDOR && rfEnhancement
+        for c = 1:6
+          dSA(c) = real(vecA'*dSops{c}*vecA);
+          dSB(c) = real(vecB'*dSops{c}*vecB);
+        end
+      end
       rows(end+1,:) = {iOri, Exp.OriWeights(iOri)*wSel(iT)*dPop, eE(a)-eE(b), ...
-        sqrt(lwInh2), SA, SB, zLab_M, transMoment(a,b)}; %#ok<AGROW>
+        sqrt(lwInh2), SA, SB, zLab_M, transMoment(a,b), dSA, dSB, xLab_M, yLab_M}; %#ok<AGROW>
     end
   end
   nE = size(rows,1);
@@ -535,7 +571,8 @@ else
   end
   if isENDOR
     E.zL = [rows{:,7}];
-    E.geff = []; % no enhancement model for the general electron system
+    E.xL = [rows{:,11}]; E.yL = [rows{:,12}];
+    E.dSa = [rows{:,9}]; E.dSb = [rows{:,10}];
   end
 end
 
@@ -563,7 +600,7 @@ if userInitState && nE>0
   keep = abs(E.w)>1e-12*wScale | abs(wRev)>1e-12*wScale;
   if ~any(keep), keep(1) = true; end
   if ~all(keep)
-    rowFields = intersect(fieldnames(E),{'w','dE0','lw','ori','rev','moment','geff','geffNorm','xL','yL','zL'});
+    rowFields = intersect(fieldnames(E),{'w','dE0','lw','ori','rev','moment','dSa','dSb','xL','yL','zL'});
     for iField = 1:numel(rowFields)
       fld = rowFields{iField};
       if ~isempty(E.(fld)), E.(fld) = E.(fld)(:,keep); end
@@ -599,7 +636,7 @@ if reversedField=="compute"
     end
   end
   if isENDOR
-    oriFields = intersect(fieldnames(E),{'geff','geffNorm','xL','yL','zL'});
+    oriFields = intersect(fieldnames(E),{'dSa','dSb','xL','yL','zL'});
     for iField = 1:numel(oriFields)
       fld = oriFields{iField};
       if ~isempty(E.(fld)), E.(fld) = [E.(fld) E.(fld)]; end
@@ -645,7 +682,19 @@ if sum(seq.binned)==2, expandFactor = 2; end
 if isfield(Opt,'Expand') && ~isempty(Opt.Expand), expandFactor = Opt.Expand; end
 
 if isENDOR
-  [y,nOffsets] = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces);
+  % RF field amplitude B2 (mT): given, or nominal from the flip angle for
+  % the reference nucleus (rfGammaRef, see saffron)
+  rfPulse = seq.Pulse(seq.isRF);
+  if ~isempty(rfPulse.B2)
+    rf.B2 = rfPulse.B2;
+  elseif isfield(Opt,'rfGammaRef')
+    rf.B2 = rfPulse.Flip/(2*pi*rfPulse.tp*Opt.rfGammaRef);
+  else
+    error('RF pulses need B2 (in mT), or a nucleus to define a nominal flip angle.');
+  end
+  rf.tp = rfPulse.tp;
+  rf.averageDirections = ~Opt.crystalSample;
+  [y,nOffsets,info.nRFDirections] = endorSweep(E,seq,NucHams,nSubSpaces,rf);
   rates = [];
 else
   kind3 = find(seq.kind==3);
@@ -1959,29 +2008,42 @@ end
 %===============================================================================
 % endorSweep  ENDOR signal as a function of the RF frequency
 %
-%   [y,nOff] = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
+%   [y,nOff,nDirections] = endorSweep(E,seq,NucHams,nSubSpaces,rf)
 %
 %   Computes the echo over the RF frequency (kind-2 dimension), for a single
 %   rectangular RF pulse. The RF pulse transfers population between the two
 %   levels u,v of each NMR transition with probability
-%   P(Delta) = (nu1/Omega)^2*sin(pi*Omega*tp)^2, Omega = sqrt(nu1^2+Delta^2),
+%   P(Delta) = (nu2/Omega)^2*sin(pi*Omega*tp)^2, Omega = sqrt(nu2^2+Delta^2),
 %   at the detuning Delta = nu_uv - nu_RF from the absolute RF frequency
 %   nu_RF (carrier plus pulse frequency, seq.rfAxis). Terms that depend on
-%   the absolute RF phase average out (RF not phase-locked to the microwave,
-%   and the chi average of powders), leaving the population transfer.
+%   the RF phase average out (random RF phase), leaving the population
+%   transfer.
+%
+%   RF field direction: the linearly polarized RF field B2 along a
+%   direction n in the plane perpendicular to the static field gives each
+%   transition the nutation frequency nu2 = 2*B2*|<u|O(n)|v>| (rfNutation).
+%   Crystals have n = yL, perpendicular to the microwave field (along xL).
+%   In powders, the signal is averaged over n = cos(chi)*xL + sin(chi)*yL,
+%   chi in [0,pi) (see sf_rfdirectionaverage). The average is over the
+%   signal, since P is nonlinear in nu2.
 %
 %   Input:
 %     E           entries, see the header of sf_engine_manifold
 %     seq         parsed sequence, from sf_parsesequence
-%     Sys         spin system, for rfNutation
-%     Exp         experiment, for rfNutation
 %     NucHams     nuclear sub-Hamiltonians, from nuclearHamiltonians
 %     nSubSpaces  number of nuclear subspaces (must be 1)
+%     rf          RF pulse, with fields
+%       B2          RF field amplitude (mT)
+%       tp          pulse length (µs)
+%       averageDirections  true to average over the RF field direction
+%                   (powders), false for the RF field along yL only
+%                   (crystals)
 %
 %   Output:
-%     y           signal over the RF axis (seq.rfAxis), row vector
-%     nOff        number of resonance offsets
-function [y,nOff] = endorSweep(E,seq,Sys,Exp,NucHams,nSubSpaces)
+%     y            signal over the RF axis (seq.rfAxis), row vector
+%     nOff         number of resonance offsets
+%     nDirections  number of RF field directions in the average
+function [y,nOff,nDirections] = endorSweep(E,seq,NucHams,nSubSpaces,rf)
 
 if nSubSpaces>1
   error('ENDOR is not supported with the product rule.');
@@ -1997,8 +2059,6 @@ if any(seq.ctp(:,iRF)>2)
     'during the RF pulse. Select them with Exp.Pathways (e.g. ''+00-'' for Mims ENDOR), ' ...
     'or use Opt.Method = ''full''.']);
 end
-
-rfPulse = seq.Pulse(iRF);
 
 % Sequence split at the RF pulse: intervals 1..iRF-1 (state G before the RF
 % pulse) and iRF..N (detection D after it). G = state at the end of
@@ -2025,27 +2085,22 @@ nOff = numel(offsets);
 nTransitions = numel(idxU);
 
 % Signal without RF pulse (yBaseline), and population transfer amplitudes,
-% NMR frequencies and RF nutation frequencies of the NMR transitions of all
-% entries (amp, nuNMR, nu1, one cell per chunk of entries)
+% NMR frequencies and RF matrix elements (for fields along xL and yL) of
+% the NMR transitions of all entries (amp, nuNMR, ox, oy, one cell per
+% chunk of entries)
 yBaseline = 0;
 chunks = entryChunks(E,chunk);
 nChunks = numel(chunks);
-[amp,nuNMR,nu1] = deal(cell(1,nChunks));
+[amp,nuNMR,ox,oy] = deal(cell(1,nChunks));
 for iChunk = 1:nChunks
   ec = chunks{iChunk};
   Ed0 = entrySlice(E,1,ec);
   K = numel(ec);
-  % RF nutation frequencies (MHz) of the NMR transitions, alpha manifold in
-  % the first nTransitions rows, beta in the rest: nominal from the flip
-  % angle, or per transition from B1 (shaped RF pulses are excluded by
-  % sf_parsesequence)
-  if isempty(rfPulse.B1)
-    nu1c = rfPulse.Flip/(2*pi*rfPulse.tp)*ones(2*nTransitions,K);
-  else
-    nu1c = rfNutation(E,ec,NucHams,Sys,Exp,rfPulse.B1,idxU,idxV);
-  end
+  % RF matrix elements (MHz/mT) of the NMR transitions, alpha manifold in
+  % the first nTransitions rows, beta in the rest
+  [oxc,oyc] = rfNutation(E,ec,NucHams,idxU,idxV);
   % population transfer amplitudes of the NMR transitions in the manifold
-  % of the RF pulse, summed over offsets and pathways, rows as in nu1c
+  % of the RF pulse, summed over offsets and pathways, rows as in oxc
   transferAmp = zeros(2*nTransitions,K);
   for iOff = 1:nOff
     Ed = addOffsets(Ed0,Ed0.offCenter + offsets(iOff)*sigma(ec));
@@ -2074,22 +2129,29 @@ for iChunk = 1:nChunks
   keep = transferAmp~=0;
   amp{iChunk} = transferAmp(keep);
   nuNMR{iChunk} = nuNMRc(keep);
-  nu1{iChunk} = nu1c(keep);
+  ox{iChunk} = oxc(keep);
+  oy{iChunk} = oyc(keep);
 end
-amp = vertcat(amp{:}); nuNMR = vertcat(nuNMR{:}); nu1 = vertcat(nu1{:});
+amp = vertcat(amp{:}); nuNMR = vertcat(nuNMR{:});
+ox = vertcat(ox{:}); oy = vertcat(oy{:});
 maxTransferAmp = max([0; abs(amp)]);  % largest population transfer amplitude
 
 % RF response: depends only on the NMR transition frequencies and nutation
 % frequencies, not on the offset or the pathway
-keep = nu1~=0;  % no RF field: no transfer
-amp = amp(keep); nuNMR = nuNMR(keep); nu1 = nu1(keep);
+keep = ox~=0 | oy~=0;  % no RF matrix element: no transfer
+amp = amp(keep); nuNMR = nuNMR(keep); ox = ox(keep); oy = oy(keep);
 rfFreqs = seq.rfAxis;  % absolute RF frequencies (MHz)
-y = yBaseline*ones(1,numel(rfFreqs));
-for iFreq = 1:numel(rfFreqs)
-  Delta = nuNMR - rfFreqs(iFreq);  % detuning from the RF frequency
-  Omega = sqrt(nu1.^2 + Delta.^2);
-  Ptransfer = (nu1./Omega).^2.*sin(pi*Omega*rfPulse.tp).^2;
-  y(iFreq) = y(iFreq) + sum(amp.*Ptransfer);
+nu2 = @(chi) 2*rf.B2*abs(cos(chi)*ox + sin(chi)*oy);  % RF field along cos(chi)*xL + sin(chi)*yL
+if ~rf.averageDirections
+  nDirections = 1;
+  y = yBaseline + rfResponse(amp,nuNMR,2*rf.B2*abs(oy),rfFreqs,rf.tp);  % RF field along yL
+else
+  signal = @(chi) yBaseline + rfResponse(amp,nuNMR,nu2(chi),rfFreqs,rf.tp);
+  [y,nDirections,converged] = sf_rfdirectionaverage(signal,pi);
+  if ~converged
+    warning(['The average over the RF field direction did not converge with %d directions. ' ...
+      'The result can be inaccurate.'],nDirections);
+  end
 end
 
 % No population transfer by the RF pulse at any RF frequency, although there
@@ -2108,65 +2170,82 @@ end
 end
 
 %-------------------------------------------------------------------------------
-% rfNutation  RF nutation frequencies of the NMR transitions
+% rfNutation  RF matrix elements of the NMR transitions
 %
-%   nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
+%   [ox,oy] = rfNutation(E,ec,NucHams,idxU,idxV)
 %
-%   Computes the nutation frequencies 2*B1*|<u|O|v>| with the effective RF
-%   operator O (MHz/mT): nuclear Zeeman along the RF field direction plus
-%   the hyperfine enhancement from the tilt of <S> by the RF field. For
-%   powders, |<u|O|v>| is averaged (in quadrature) over the RF field
-%   direction in the plane perpendicular to the static field.
+%   Computes the matrix elements <u|O(n)|v> of the RF operator O(n)
+%   (MHz/mT) for an RF field along n = xL and n = yL, in the eigenbases of
+%   the nuclear Hamiltonians of the two manifolds. O(n) is the nuclear
+%   Zeeman interaction along n (with gnscale and chemical shielding) plus
+%   the hyperfine enhancement dS(n)*A*I, from the tilt dS(n) of the
+%   electron spin by the RF field (E.dSa, E.dSb, zero without
+%   enhancement). O is linear in n, so a field B2 along
+%   cos(chi)*xL + sin(chi)*yL gives the nutation frequency
+%   nu2 = 2*B2*|cos(chi)*ox + sin(chi)*oy|.
 %
 %   Input:
 %     E           entries, see the header of sf_engine_manifold
 %     ec          entry indices
 %     NucHams     nuclear sub-Hamiltonians, from nuclearHamiltonians
-%     Sys         spin system; uses g, gFrame, fullg
-%     Exp         experiment; uses Field
-%     B1          RF field amplitude (mT)
 %     idxU, idxV  levels u and v of each NMR transition
 %
 %   Output:
-%     nu1         nutation frequencies (MHz), 2*nTransitions x K: alpha
+%     ox, oy      matrix elements (MHz/mT), 2*nTransitions x K: alpha
 %                 manifold in the first nTransitions rows, beta in the rest
-function nu1 = rfNutation(E,ec,NucHams,Sys,Exp,B1,idxU,idxV)
-if isempty(E.geff)
-  error('B1 RF pulses are only supported for S = 1/2 with all nuclei in the manifold engine.');
-end
+function [ox,oy] = rfNutation(E,ec,NucHams,idxU,idxV)
 K = numel(ec);
 nTransitions = numel(idxU);
-nu1 = zeros(2*nTransitions,K);
-nChi = 8;
-chiList = (0:nChi-1)*pi/nChi;
-g = Sys.g;
-if ~Sys.fullg
-  Rg = erot(Sys.gFrame).';
-  g = Rg*diag(g)*Rg.';
-end
+ox = zeros(2*nTransitions,K);
+oy = zeros(2*nTransitions,K);
+N = NucHams(1);
+idx = sub2ind(size(N.Hnzz),idxU,idxV);
 for k = 1:K
   e = ec(k);
-  geffNorm = E.geffNorm(e);
-  q = E.geff(:,e)/geffNorm;  % direction of <S>
   xL = E.xL(:,e); yL = E.yL(:,e);
   for iManifold = 1:2
     if iManifold==1
-      V = E.Va{1}(:,:,e); mS = +1/2;
+      V = E.Va{1}(:,:,e); dS = E.dSa(:,e);
     else
-      V = E.Vb{1}(:,:,e); mS = -1/2;
+      V = E.Vb{1}(:,:,e); dS = E.dSb(:,e);
     end
-    matElSq = zeros(nTransitions,1);
-    for chi = chiList
-      nB1 = cos(chi)*xL + sin(chi)*yL;  % RF field direction
-      gB1 = g.'*nB1;
-      dqdB = (gB1 - q*(q.'*gB1))/(geffNorm*Exp.Field);  % tilt of <S> direction, per mT
-      dSdB = mS*dqdB;
-      Orf = nB1(1)*NucHams(1).Hnzx + nB1(2)*NucHams(1).Hnzy + nB1(3)*NucHams(1).Hnzz + ...
-        dSdB(1)*NucHams(1).Hhfx + dSdB(2)*NucHams(1).Hhfy + dSdB(3)*NucHams(1).Hhfz;
-      OrfEig = V'*Orf*V;
-      matElSq = matElSq + abs(OrfEig(sub2ind(size(OrfEig),idxU,idxV))).^2;
-    end
-    nu1((iManifold-1)*nTransitions+(1:nTransitions),k) = 2*B1*sqrt(matElSq/nChi);
+    Ox = xL(1)*N.Hnzx + xL(2)*N.Hnzy + xL(3)*N.Hnzz + ...
+      dS(1)*N.Hhfx + dS(2)*N.Hhfy + dS(3)*N.Hhfz;
+    Oy = yL(1)*N.Hnzx + yL(2)*N.Hnzy + yL(3)*N.Hnzz + ...
+      dS(4)*N.Hhfx + dS(5)*N.Hhfy + dS(6)*N.Hhfz;
+    OxEig = V'*Ox*V;
+    OyEig = V'*Oy*V;
+    rows = (iManifold-1)*nTransitions+(1:nTransitions);
+    ox(rows,k) = OxEig(idx);
+    oy(rows,k) = OyEig(idx);
   end
+end
+end
+
+%-------------------------------------------------------------------------------
+% rfResponse  Signal change by population transfer of a rectangular RF pulse
+%
+%   y = rfResponse(amp,nuNMR,nu2,rfFreqs,tp)
+%
+%   Input:
+%     amp      population transfer amplitude of each NMR transition, column
+%     nuNMR    NMR frequency (MHz) of each transition, column
+%     nu2      RF nutation frequency (MHz) of each transition, column
+%     rfFreqs  absolute RF frequencies (MHz), row
+%     tp       RF pulse length (µs)
+%
+%   Output:
+%     y        sum over the transitions of amp*P, with the transfer
+%              probability P = (nu2/Omega)^2*sin(pi*Omega*tp)^2 at the
+%              detuning Delta = nuNMR - rfFreq, Omega = sqrt(nu2^2+Delta^2),
+%              row over rfFreqs
+function y = rfResponse(amp,nuNMR,nu2,rfFreqs,tp)
+y = zeros(1,numel(rfFreqs));
+for iFreq = 1:numel(rfFreqs)
+  Delta = nuNMR - rfFreqs(iFreq);
+  Omega = sqrt(nu2.^2 + Delta.^2);
+  P = (nu2./Omega).^2.*sin(pi*Omega*tp).^2;
+  P(Omega==0) = 0;
+  y(iFreq) = sum(amp.*P);
 end
 end

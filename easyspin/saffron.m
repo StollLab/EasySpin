@@ -44,9 +44,11 @@
 %
 %  Pulse fields: Flip, tp (0 or absent: ideal pulse), Phase, Type,
 %     Frequency (MHz, or [start end] for chirps), Amplitude, Channel ('mw'
-%     or 'rf'), B1 (RF field, mT), and the parameters of pulse(). On both
-%     channels, Frequency is the offset from the carrier (Exp.mwFreq or
-%     Exp.rfFreq), or the absolute frequency if the carrier is not given.
+%     or 'rf'), B2 (RF field, mT: the linearly polarized RF field is
+%     2*B2*cos(2*pi*nu*t), and a bare nucleus nutates at gamma*B2), and
+%     the parameters of pulse(). On both channels, Frequency is the offset
+%     from the carrier (Exp.mwFreq or Exp.rfFreq), or the absolute
+%     frequency if the carrier is not given.
 %     The carrier phase runs continuously from the start of the sequence.
 %     For electron spins S > 1/2, microwave pulses need tp and Amplitude
 %     (nutation frequency in MHz, pulse Hamiltonian Amplitude*Sx); Flip,
@@ -67,6 +69,8 @@
 %                    dimension: delay dimensions computed by binning the
 %                    peaks (fast, approximate) or point by point (exact)
 %                    (manifold)
+%     rfEnhancement  true (default): RF pulses act on the nuclei with the
+%                    hyperfine enhancement; false: nuclear Zeeman only
 %     OriThreshold, Nuclei, Transitions, ProductRule, Expand (manifold)
 %     separate, Window, ZeroFillFactor, Verbosity
 %
@@ -83,8 +87,10 @@
 %             syntax of Exp.Pathways) and their echo times after the end
 %             of the sequence (EchoTimes, µs, NaN without echo), the
 %             number of resonance offsets in the average over the
-%             inhomogeneous line (nOffsets, manifold), and the binned
-%             dimensions (binnedDims, manifold)
+%             inhomogeneous line (nOffsets, manifold), the binned
+%             dimensions (binnedDims, manifold), and the number of RF
+%             field directions in the average over them in powders
+%             (nRFDirections, ENDOR)
 
 function varargout = saffron(Sys,Exp,Opt)
 
@@ -262,8 +268,8 @@ if iscell(Exp.Sequence)
 end
 
 % RF pulses act on nuclei
+hasRF = false;
 if iscell(Exp.Sequence)
-  hasRF = false;
   for k = find(cellfun(@isstruct,Exp.Sequence))
     for p = Exp.Sequence{k}(:).'
       hasRF = hasRF || (isfield(p,'Channel') && strcmpi(p.Channel,'rf'));
@@ -286,6 +292,16 @@ if isfield(Exp,'rfPhaseLocked')
     error('Exp.rfPhaseLocked must be true or false.');
   end
 end
+% RF operator: nuclear Zeeman interaction, with (default) or without the
+% hyperfine enhancement (Opt.rfEnhancement)
+if ~isfield(Opt,'rfEnhancement') || isempty(Opt.rfEnhancement)
+  Opt.rfEnhancement = true;
+end
+v = Opt.rfEnhancement;
+if ~(islogical(v) || isnumeric(v)) || ~isscalar(v) || ~(v==0 || v==1)
+  error('Opt.rfEnhancement must be true or false.');
+end
+Opt.rfEnhancement = logical(v);
 
 % Phase cycle
 if iscell(Exp.Sequence)
@@ -403,6 +419,12 @@ else
 end
 manifoldEngine = strcmp(Opt.Method,'manifold');
 
+% Reference gyromagnetic ratio (MHz/mT) for nominal RF flip angles, the same
+% for all components and isotopologues (one RF field B2)
+if iscell(Sys), Sys1 = Sys{1}; else, Sys1 = Sys; end
+gammaRef = rfReferenceGamma(Sys1);
+if ~isempty(gammaRef), Opt.rfGammaRef = gammaRef; end
+
 if manifoldEngine
   Opt.fastSeq = seq;
   Opt.fastExp = Exp;
@@ -414,26 +436,18 @@ else
     Opt.DetOperator = ExpProp.DetOperator;
     ExpProp = rmfield(ExpProp,'DetOperator');
   end
-  % Reference gyromagnetic ratio (MHz/mT) for nominal RF flip angles: the
-  % first nucleus of the first component, with its gnscale (the chemical
-  % shielding is not included)
-  if iscell(Sys), Sys1 = Sys{1}; else, Sys1 = Sys; end
-  if isfield(Sys1,'Nucs') && ~isempty(Sys1.Nucs)
-    nuc1 = regexp(Sys1.Nucs,',','split');
-    try
-      Opt.rfGammaRef = abs(nucgval(strtrim(nuc1{1})))*nmagn/1e3/planck/1e6;
-      if isfield(Sys1,'gnscale') && ~isempty(Sys1.gnscale)
-        Opt.rfGammaRef = Opt.rfGammaRef*abs(Sys1.gnscale(1));
-      end
-    catch
-    end
-  end
   % Propagation runs of the phase cycle, and events and indirect dimensions
   % with the wave forms of all settings of each pulse in the phase cycle
   [cycleSettings,cycleRuns] = phaseCycleRuns(ExpProp,sum(cellfun(@isstruct,Exp.Sequence)));
   logmsg(1,'  phase cycle: %d propagation run(s)',numel(cycleRuns));
   ExpProp = rmfield(ExpProp,intersect(fieldnames(ExpProp),{'PhaseCycle'}));
   ExpProp.pulseCycles = cycleSettings;
+  % Upper bound on the transition frequencies, for the time step of RF
+  % pulses in the lab frame with the hyperfine enhancement (see rfTimeStep
+  % in sf_buildevents)
+  if hasRF && Opt.rfEnhancement
+    Opt.maxTransitionFreq = maxTransitionFrequency(Sys,Exp.Field,Opt.IsoCutoff);
+  end
   [Events,Vary,Opt] = sf_buildevents(ExpProp,Opt);
   Opt.propEvents = Events;
   Opt.propVary = Vary;
@@ -844,6 +858,98 @@ for k = 1:numel(Exp.nPoints)
   end
   if isRF
     d(end+1) = k; %#ok<AGROW>
+  end
+end
+end
+
+%===============================================================================
+% rfReferenceGamma  Gyromagnetic ratio for nominal RF flip angles
+%
+%   gamma = rfReferenceGamma(Sys)
+%
+%   An RF pulse given by its flip angle (Pulse.Flip) has the nominal field
+%   B2 = Flip/(2*pi*tp*gamma). gamma is the gyromagnetic ratio of the first
+%   nucleus in Sys.Nucs that has a magnetic isotope, for its most abundant
+%   magnetic isotope (with Sys.Abund, if given), times its gnscale. The
+%   chemical shielding is not included.
+%
+%   Input:
+%     Sys    spin system (not validated); uses Nucs, Abund, gnscale
+%
+%   Output:
+%     gamma  gyromagnetic ratio (MHz/mT), positive; empty if there is no
+%            magnetic nucleus
+function gamma = rfReferenceGamma(Sys)
+gamma = [];
+if ~isfield(Sys,'Nucs') || isempty(Sys.Nucs), return; end
+nucList = strtrim(regexp(Sys.Nucs,',','split'));
+for p = 1:numel(nucList)
+  Sp = struct('Nucs',nucList{p});
+  if isfield(Sys,'Abund') && ~isempty(Sys.Abund)
+    if iscell(Sys.Abund)
+      Sp.Abund = Sys.Abund{p};
+    elseif isscalar(nucList)
+      Sp.Abund = Sys.Abund;
+    end
+  end
+  iso = isotopologues(Sp);
+  iso = iso(~cellfun(@isempty,{iso.Nucs}));  % isotopes with nuclear spin
+  if isempty(iso), continue; end
+  [~,k] = max([iso.weight]);
+  gamma = abs(nucgval(iso(k).Nucs))*nmagn/1e3/planck/1e6;
+  if isfield(Sys,'gnscale') && numel(Sys.gnscale)>=p
+    gamma = gamma*abs(Sys.gnscale(p));
+  end
+  return
+end
+end
+
+%===============================================================================
+% maxTransitionFrequency  Upper bound on the transition frequencies
+%
+%   nuMax = maxTransitionFrequency(Sys,Field,IsoCutoff)
+%
+%   No transition frequency exceeds the spread of the energies,
+%   max(E)-min(E). For the field B along any direction n, the Hamiltonian
+%   is H = H0 - B*n.mu, and the spread of a sum of Hermitian matrices is
+%   at most the sum of their spreads (Weyl's inequality). The spread of
+%   n.mu is the sum over the spins, since each term acts on one spin:
+%   2*S*|g.'*n|*bmagn for an electron, at most 2*S*max(svd(g))*bmagn, and
+%   2*I*|gn*gnscale|*nmagn for a nucleus (without the chemical shielding,
+%   a few ppm). The bound holds for all orientations. For a single electron
+%   with S = 1/2 it is close to the highest EPR frequency; for S > 1/2 or
+%   several electrons it includes multiple-quantum transitions and is
+%   larger.
+%
+%   Input:
+%     Sys        spin system, or cell array of components (not validated)
+%     Field      static field (mT)
+%     IsoCutoff  isotopologue abundance cutoff (Opt.IsoCutoff)
+%
+%   Output:
+%     nuMax      upper bound (MHz) over all components and isotopologues
+function nuMax = maxTransitionFrequency(Sys,Field,IsoCutoff)
+if ~iscell(Sys), Sys = {Sys}; end
+B = max(abs(Field))*1e-3;  % T
+nuMax = 0;
+for c = 1:numel(Sys)
+  isoList = isotopologues(Sys{c},IsoCutoff);
+  for k = 1:numel(isoList)
+    [Sys_,err] = validatespinsys(isoList(k));
+    error(err);
+    [H0,~,~,~] = ham(Sys_);  % zero-field part
+    E = eig(full(H0+H0')/2);
+    spread = max(E) - min(E);  % MHz
+    for e = 1:Sys_.nElectrons
+      if Sys_.fullg
+        gmax = norm(Sys_.g(3*e-2:3*e,:));
+      else
+        gmax = max(abs(Sys_.g(e,:)));
+      end
+      spread = spread + 2*Sys_.S(e)*gmax*bmagn*B/planck/1e6;
+    end
+    spread = spread + sum(2*Sys_.I.*abs(Sys_.gn.*Sys_.gnscale))*nmagn*B/planck/1e6;
+    nuMax = max(nuMax,spread);
   end
 end
 end

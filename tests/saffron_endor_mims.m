@@ -3,7 +3,9 @@ function ok = test() %#ok<FNDEF>
 % Mims ENDOR (predefined), isotropic 1H: the echo is positive and has dips
 % at the nuclear transition frequencies nuI -+ A/2, and none at the blind
 % spots tau = k/A. The ends of the RF range are far from the lines, so the
-% echo there is the echo without RF pulse.
+% echo there is the echo without RF pulse, up to the far wings of the
+% lines. These differ slightly between the two lines, whose nutation
+% frequencies differ by the hyperfine enhancement.
 
 Sys.Nucs = '1H';
 Sys.A = 6;  % MHz
@@ -26,7 +28,7 @@ peaks = x(islocalmax(endor) & endor>0.3*max(endor));
 ok(1) = strcmp(info.Method,'manifold');
 ok(2) = numel(peaks)==2 && all(abs(peaks-(nuI+[-1 1]*Sys.A/2))<0.05);
 ok(3) = echoOff>0 && all(endor>-1e-3*max(endor)) && max(endor)>0.05*echoOff;
-ok(4) = areequal(y(end),y(1),1e-6,'rel');
+ok(4) = areequal(y(end),y(1),1e-5,'rel');
 
 % blind spot: flat spectrum, with a warning
 Exp.tau = 1/Sys.A;

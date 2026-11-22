@@ -28,6 +28,11 @@
 %     Opt  options structure, with fields
 %       rfGammaRef          gyromagnetic ratio (MHz/mT) for nominal RF flip
 %                           angles
+%       rfEnhancement       true (default) to include the hyperfine
+%                           enhancement of RF pulses
+%       maxTransitionFreq   upper bound on the transition frequencies (MHz)
+%                           of the spin systems; needed for RF pulses in the
+%                           lab frame with rfEnhancement (see rfTimeStep)
 %       SimFreq             simulation frame frequency (GHz), optional
 %       IntTimeStep         integration time step (µs), optional
 %       Relaxation          true/false, or one value per element of
@@ -459,7 +464,7 @@ for iEvent = 1:length(Exp.Sequence)
       % Gets the flip angle
       if isfield(Exp.Sequence{iEvent},'Flip')
         Pulse.Flip = Exp.Sequence{iEvent}.Flip;
-      elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude') && ~isfield(Pulse,'B1')
+      elseif ~isfield(Pulse,'Qcrit') && ~isfield(Pulse,'Amplitude') && ~isfield(Pulse,'B2')
         error('Flip angle for pulse no. %d is missing.',iPulse)
       end
 
@@ -476,8 +481,17 @@ for iEvent = 1:length(Exp.Sequence)
         Pulse.rfCarrier = rfCarrier;  % MHz
         Pulse.rfFrame = frameShift~=0;
         Pulse.Detected = detectEvents(iEvent);
+        % In the lab frame with the hyperfine enhancement, the RF operator
+        % includes the electron magnetic moment, so the sampling of the RF
+        % field must not drive the electron transitions (see rfTimeStep)
+        labEnhancement = ~Pulse.rfFrame && (~isfield(Opt,'rfEnhancement') || Opt.rfEnhancement);
+        if labEnhancement
+          Pulse.maxTransitionFreq = Opt.maxTransitionFreq;  % MHz
+        else
+          Pulse.maxTransitionFreq = 0;
+        end
         Pulse.TimeStep = rfTimeStep(Pulse,Exp.DetTimeStep);
-        if ~isfield(Pulse,'B1') && isfield(Opt,'rfGammaRef')
+        if ~isfield(Pulse,'B2') && isfield(Opt,'rfGammaRef')
           Pulse.rfGammaRef = Opt.rfGammaRef;
         end
       else
@@ -1163,7 +1177,7 @@ end
 %     if the carrier is 0) in units of the RF field (mT). In a shifted
 %     simulation frame (Pulse.rfFrame), the envelope relative to the center
 %     frequency f0 of Pulse.Frequency instead, i.e. without the carrier and
-%     with exp(-2i*pi*f0*t). Without B1, the amplitude is nominal: the flip
+%     with exp(-2i*pi*f0*t). Without B2, the amplitude is nominal: the flip
 %     angle of a bare nucleus with the gyromagnetic ratio Pulse.rfGammaRef
 %     (MHz/mT).
 %   - Finite microwave pulses: from pulse(), through the resonator, shifted
@@ -1177,8 +1191,8 @@ end
 %                         RF pulses
 %       rfFrame           true for the envelope in the nuclear RF frame,
 %                         RF pulses
-%       B1                RF field amplitude (mT), RF pulses, optional
-%       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B1
+%       B2                RF field amplitude (mT), RF pulses, optional
+%       rfGammaRef        gyromagnetic ratio (MHz/mT), RF pulses without B2
 %     iPCstep           index of the phase cycle step
 %     Opt               options; uses IntTimeStep
 %     freqShift         frequency (GHz) of the microwave carrier in the
@@ -1202,16 +1216,16 @@ if Pulse.isIdeal
 end
 Par = Pulse;
 Par.Phase = phase;
-Par = rmfield(Par,intersect(fieldnames(Par),{'isIdeal','isRF','rfCarrier','rfGammaRef',...
-  'rfFrame','Detected','B1','Channel','PhaseCycle','EventIndex','ArrayIndex','userIQ','Operator'}));
+Par = rmfield(Par,intersect(fieldnames(Par),{'isIdeal','isRF','rfCarrier','rfGammaRef','maxTransitionFreq',...
+  'rfFrame','Detected','B2','Channel','PhaseCycle','EventIndex','ArrayIndex','userIQ','Operator'}));
 if Pulse.isRF
-  if isfield(Pulse,'B1') && ~isempty(Pulse.B1)
+  if isfield(Pulse,'B2') && ~isempty(Pulse.B2)
     Par = rmfield(Par,intersect(fieldnames(Par),{'Flip','Qcrit'}));
-    Par.Amplitude = Pulse.B1;  % mT
+    Par.Amplitude = Pulse.B2;  % mT
     [t,IQ] = pulse(Par);
   else
     if ~isfield(Pulse,'rfGammaRef')
-      error('RF pulses in the full engine need B1 (in mT), or a nucleus to define a nominal flip angle.');
+      error('RF pulses in the full engine need B2 (in mT), or a nucleus to define a nominal flip angle.');
     end
     [t,IQ] = pulse(Par);
     IQ = IQ/Pulse.rfGammaRef;  % MHz -> mT
@@ -1302,7 +1316,15 @@ end
 %
 %   Lab-frame waveform: at least 40 points per period of the highest RF
 %   frequency, and at least 100 steps per pulse (needed for RF frequencies
-%   near zero).
+%   near zero). With the electron magnetic moment in the RF operator
+%   (hyperfine enhancement), the field, constant within each step, also
+%   has components at k/dt +- f_RF (k = 1,2,...; f_RF the highest RF
+%   frequency), with amplitudes of about f_RF*dt/k relative to the RF
+%   field. Where they meet an electron transition, they drive it (spurious
+%   ENDOR lines). So the lowest of them, 1/dt - f_RF, is kept above all
+%   transition frequencies, with a margin of 20%:
+%   1/dt >= 1.2*(Pulse.maxTransitionFreq + f_RF). The propagator of each
+%   step is exact, so the electron precession itself needs no finer steps.
 %   Envelope in the nuclear RF frame (Pulse.rfFrame): the field is constant
 %   within each step, so the step only needs to resolve the envelope. A
 %   rectangular pulse at a fixed frequency is a single step. Otherwise, at
@@ -1314,7 +1336,10 @@ end
 %   Input:
 %     Pulse        pulse; uses tp, Frequency (offsets from the carrier, or
 %                  absolute frequencies without a carrier, MHz), Type,
-%                  rfCarrier (MHz, 0 without a carrier), rfFrame, Detected
+%                  rfCarrier (MHz, 0 without a carrier), rfFrame, Detected,
+%                  maxTransitionFreq (MHz, upper bound on the transition
+%                  frequencies of the spin systems, 0 without hyperfine
+%                  enhancement)
 %     DetTimeStep  detection time step (µs)
 %
 %   Output:
@@ -1322,7 +1347,10 @@ end
 function dt = rfTimeStep(Pulse,DetTimeStep)
 tp = Pulse.tp;
 if ~Pulse.rfFrame
-  dt = tp/max(100,ceil(40*(abs(Pulse.rfCarrier)+max(abs(Pulse.Frequency)))*tp));
+  fRF = abs(Pulse.rfCarrier) + max(abs(Pulse.Frequency));  % MHz
+  nSteps = max(100,ceil(40*fRF*tp));
+  nSteps = max(nSteps,ceil(1.2*(Pulse.maxTransitionFreq + fRF)*tp));
+  dt = tp/nSteps;
   return
 end
 maxOffset = max(abs(Pulse.Frequency - mean(Pulse.Frequency([1 end]))));

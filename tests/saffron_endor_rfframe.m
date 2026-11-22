@@ -4,11 +4,15 @@ function ok = test() %#ok<FNDEF>
 % propagated in the nuclear RF frame, with the rotating-wave approximation
 % for the RF field. With Opt.SimFreq = 0, they are stepped in the lab
 % frame. The two agree within the error of the rotating-wave approximation
-% (Bloch-Siegert shift, about nu1/(4*nuRF) relative to the ENDOR effect).
+% (Bloch-Siegert shift, about nu2/(4*nuRF) relative to the ENDOR effect).
 % Where this error exceeds 1%, RF pulses are stepped in the shifted frame.
+% The RF operator is the nuclear Zeeman interaction: with the hyperfine
+% enhancement, the lab-frame RF pulses would include the electron Zeeman
+% interaction and need much finer steps (see saffron_endor_rfenhancement).
 
 p90.Flip = pi/2;
 Opt.Method = 'full';
+Opt.rfEnhancement = false;
 OptLab = Opt;
 OptLab.SimFreq = 0;
 tolRWA = 5e-3;
@@ -18,7 +22,7 @@ Sys.Nucs = '1H';
 Sys.A = [1 1 3];  % MHz
 rf.Channel = 'rf';
 rf.tp = 10;  % µs
-rf.B1 = 0.5/(rf.tp*larmorfrq('1H',1));  % mT, pi pulse for a bare proton
+rf.B2 = 0.5/(rf.tp*larmorfrq('1H',1));  % mT, pi pulse for a bare proton
 Exp.Field = 350;  % mT
 Exp.mwFreq = 9.8;  % GHz
 Exp.MolFrame = [0 0.3 0];
@@ -41,7 +45,7 @@ SysN.Nucs = '14N';
 SysN.A = [18 18 24];  % MHz
 SysN.Q = 0.3;  % MHz
 rfN = rf;
-rfN.B1 = 0.5/(rfN.tp*larmorfrq('14N',1));  % mT
+rfN.B2 = 0.5/(rfN.tp*larmorfrq('14N',1));  % mT
 ExpN = Exp;
 ExpN.Sequence{5} = rfN;
 ExpN.rfFreq = 7;  % MHz
@@ -127,7 +131,7 @@ SysW.Nucs = '14N';
 SysW.A = 0.5;  % MHz
 rfW = rf;
 rfW.tp = 1;  % µs
-rfW.B1 = 100;  % mT
+rfW.B2 = 100;  % mT
 ExpW = Exp;
 ExpW.Sequence{5} = rfW;
 ExpW.rfFreq = 1.1;  % MHz
