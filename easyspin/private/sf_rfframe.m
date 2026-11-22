@@ -1,6 +1,6 @@
 % sf_rfframe  Nuclear RF frame and rotating-wave error for RF pulses
 %
-%   [rfFrame,rwaError] = sf_rfframe(H,V,X0,Spins,nElectrons,drive)
+%   [rfFrame,rwaError,Xp] = sf_rfframe(H,V,X0,Spins,nElectrons,drive)
 %
 %   RF pulses are propagated in a frame that rotates about the generator
 %   G = V*diag(f)*V', which is diagonal in the eigenbasis V of H, so that H
@@ -25,12 +25,24 @@
 %   distance |E(k)-E(l)+F|. The error of a pulse is the largest ratio over
 %   all dropped terms, with F anywhere in the frequency band of the pulse.
 %
+%   RF field directions: X0 holds the RF operators of one or two field
+%   directions. With two, n1 and n2, the RF field can point along any
+%   direction u1*n1 + u2*n2 (u real, u1^2+u2^2 = 1), with the operator
+%   u1*X0{1} + u2*X0{2}. The error is the largest over all these
+%   directions, so that the choice of stepped pulses is the same for all of
+%   them (a smooth signal for the average over the RF field direction).
+%   For the elements a and b of a dropped term in X{1} and X{2}, the
+%   largest amplitude |u1*a + u2*b| is the square root of the largest
+%   eigenvalue of real([a b]'*[a b]). Xp is linear in X0, so Xp of a
+%   direction is u1*Xp{1} + u2*Xp{2}.
+%
 %   Input:
 %     H           Hamiltonian (MHz) in the simulation frame, commuting with
 %                 the total electron Sz
 %     V           eigenvectors of H, from sf_eigenbasis
-%     X0          RF excitation operator (MHz/mT), product basis: the field
-%                 B2 (mT) along the RF field direction gives B2*X0
+%     X0          RF excitation operators (MHz/mT), product basis, cell
+%                 array with one or two operators: the field B2 (mT) along
+%                 the direction of X0{k} gives B2*X0{k}
 %     Spins       spin quantum numbers (Sys.Spins), electrons first
 %     nElectrons  number of electron spins
 %     drive       RF pulses, one row per pulse and point: largest field
@@ -42,11 +54,15 @@
 %       V           eigenvectors of H (columns), as input
 %       E           eigenvalues (MHz), column
 %       f           labels, column
-%       Xp          elements of X with f(k)-f(l) = +1, zero elsewhere
+%                 The caller adds Xp for the RF field direction (see
+%                 rfFramePropagators in sf_propagate).
 %     rwaError    relative error of the rotating-wave approximation for each
-%                 row of drive, column (Inf if a dropped term is resonant)
+%                 row of drive, the largest over the RF field directions,
+%                 column (Inf if a dropped term is resonant)
+%     Xp          for each operator in X0, the elements of X with
+%                 f(k)-f(l) = +1, zero elsewhere, cell array
 
-function [rfFrame,rwaError] = sf_rfframe(H,V,X0,Spins,nElectrons,drive)
+function [rfFrame,rwaError,Xp] = sf_rfframe(H,V,X0,Spins,nElectrons,drive)
 
 E = real(diag(V'*H*V));
 
@@ -71,17 +87,33 @@ for iSpin = nElectrons+1:numel(Spins)
   end
 end
 
-X = V'*X0*V;
 rfFrame.V = V;
 rfFrame.E = E;
 rfFrame.f = f;
-rfFrame.Xp = X.*(abs(f-f.'-1)<1e-9);
+kept = abs(f-f.'-1)<1e-9;
+X = cell(size(X0));
+Xp = cell(size(X0));
+for k = 1:numel(X0)
+  X{k} = V'*X0{k}*V;
+  Xp{k} = X{k}.*kept;
+end
+
+% Largest amplitude of each element over the RF field directions
+if numel(X)==1
+  Xabs = abs(X{1});
+else
+  p = abs(X{1}).^2;
+  q = abs(X{2}).^2;
+  r = real(conj(X{1}).*X{2});
+  Xabs = sqrt((p+q)/2 + sqrt(((p-q)/2).^2 + r.^2));
+end
 
 % Rotating-wave error of each pulse: ratio of the amplitude of each dropped
 % term to its frequency distance from the band of the pulse
 dropped = abs(f-f.'+1)>1e-9;
-Xabs = abs(X).*dropped;
-Xabs(Xabs<=1e-12*max(abs(X(:)))) = 0;
+maxAmp = max(Xabs(:));
+Xabs = Xabs.*dropped;
+Xabs(Xabs<=1e-12*maxAmp) = 0;
 resonance = E.' - E;  % E(l)-E(k): frequency at which the term c*X(k,l) is static
 rwaError = zeros(size(drive,1),1);
 for r = 1:size(drive,1)

@@ -617,6 +617,16 @@ end
 %   computed for the first direction and kept for the others. With a
 %   phase-locked RF, the rotation about the field also averages over the
 %   RF phase seen by the nuclei.
+%   In a shifted frame, the RF pulses are propagated in the nuclear RF
+%   frame (see sf_rfframe), and stepped in the shifted microwave frame
+%   instead at the points where the rotating-wave error exceeds
+%   rf.rwaTolerance. This is exact, since the RF operator has electron
+%   coherence order 0 and is the same in that frame. The stepped points are
+%   chosen once for all directions, from the largest error over them, so
+%   that the signal is a smooth function of the direction, as the average
+%   needs: a choice per direction would switch between the two methods
+%   from one direction to the next and change the signal by up to the
+%   rotating-wave error there.
 %
 %   Input:
 %     X0x, X0y  RF operators for fields along x(Lab) and y(Lab), from
@@ -631,16 +641,52 @@ end
 %   Output:
 %     t, sig, evT  time axis, averaged signal and event times
 %     res          structure with the largest rotating-wave error
-%                  (rwaError) and number of stepped RF pulse points
-%                  (nStepped) over the directions, the number of RF phases
+%                  (rwaError) over the directions and the number of stepped
+%                  RF pulse points (nStepped), the number of RF phases
 %                  (nPhases) and of directions (nDirections), and whether
 %                  the averages converged (phaseConverged,
 %                  directionConverged)
 function [t,sig,evT,res] = rfDirectionAverage(X0x,X0y,P,rf)
 res = struct('rwaError',0,'nStepped',0,'nPhases',1,'phaseConverged',true,...
   'nDirections',1,'directionConverged',true);
+
+% RF operators of the RF field directions: the plane of x(Lab) and y(Lab)
+% in powders, y(Lab) in crystals
+if rf.averageDirections
+  X0 = {X0x,X0y};
+else
+  X0 = {X0y};
+end
+
+% Nuclear RF frame and stepped RF pulse points, the same for all directions
+Xp = cell(size(X0));
+stepped = false(size(rf.rfDrive,1),1);
+if rf.useRFFrame
+  [rfFrame,err,Xp] = sf_rfframe(P.Ham,P.V,X0,rf.Spins,rf.nElectrons,rf.rfDrive);
+  stepped = err>rf.rwaTolerance;
+  res.rwaError = max([0; err]);
+  res.nStepped = sum(stepped);
+  if ~isempty(P.Relaxation)
+    rfFrame.Gamma = P.GammaEigen;
+    rfFrame.equilibriumState = P.V'*P.Relaxation.equilibriumState*P.V;
+  end
+  for k = 1:numel(rf.rfEvents)
+    rows = rf.rfDriveEvent==k;
+    if isempty(rf.rfPointsSize{k})
+      steppedPoints = stepped(rows);  % single wave form
+    else
+      % one value per wave form in Vary, read by sf_propagate per point
+      steppedPoints = false(rf.rfPointsSize{k});
+      steppedPoints(rf.rfDrivePoint(rows)) = stepped(rows);
+    end
+    P.Events{rf.rfEvents(k)}.rfFrame = rfFrame;
+    P.Events{rf.rfEvents(k)}.rfStepped = steppedPoints;
+  end
+end
+adaptive = ~rf.useRFFrame || any(stepped);
+
 if ~rf.averageDirections
-  [t,sig,evT,res] = rfDirectionRun(X0y,P,rf,res);  % RF field along y(Lab)
+  [t,sig,evT,res] = rfDirectionRun(X0{1},Xp{1},P,rf,adaptive,res);  % RF field along y(Lab)
   return
 end
 mwPulses = setdiff(rf.pulseEvents,rf.rfEvents);
@@ -650,7 +696,8 @@ firstDirection = true;
   % signal for the RF field direction chi; sets t, evT and res, and keeps
   % the microwave pulse propagators of the first direction in P
   function s = directionSignal(chi)
-    [t,s,evT,res,Eout] = rfDirectionRun(cos(chi)*X0x + sin(chi)*X0y,P,rf,res);
+    [t,s,evT,res,Eout] = rfDirectionRun(cos(chi)*X0{1} + sin(chi)*X0{2},...
+      cos(chi)*Xp{1} + sin(chi)*Xp{2},P,rf,adaptive,res);
     if firstDirection
       for iEvent = mwPulses
         P.Events{iEvent}.Propagation = Eout{iEvent}.Propagation;
@@ -665,59 +712,37 @@ end
 %===============================================================================
 % rfDirectionRun  Signal for one RF operator, averaged over the RF phase
 %
-%   [t,sig,evT,res,Eout] = rfDirectionRun(X0,P,rf,res)
+%   [t,sig,evT,res,Eout] = rfDirectionRun(X0,Xp,P,rf,adaptive,res)
 %
-%   Sets the RF operator X0 for all RF pulses and propagates, averaged over
-%   the random RF phase: exact with rf.nRFPhases phases if all RF pulses use
-%   the rotating-wave approximation, otherwise until converged (see
-%   rfPhaseAverage). In a shifted frame, the RF pulses are propagated in
-%   the nuclear RF frame (see sf_rfframe), and stepped in the shifted
-%   microwave frame instead at the points where the rotating-wave error
-%   exceeds rf.rwaTolerance. This is exact, since the RF operator has
-%   electron coherence order 0 and is the same in that frame.
+%   Sets the RF operator X0 of the RF field direction for all RF pulses and
+%   propagates, averaged over the random RF phase: exact with rf.nRFPhases
+%   phases if all RF pulses use the rotating-wave approximation, otherwise
+%   until converged (see rfPhaseAverage).
 %
 %   Input:
-%     X0   RF operator (MHz/mT) for the RF field direction, empty without
-%          RF pulses
-%     P    propagation inputs, see rfDirectionAverage
-%     rf   RF pulse setup (see sf_engine_full)
-%     res  results so far, see rfDirectionAverage; updated with the
-%          largest values over the runs
+%     X0        RF operator (MHz/mT) of the RF field direction, empty
+%               without RF pulses
+%     Xp        its rotating-wave part in the nuclear RF frame (see
+%               sf_rfframe), empty without the frame
+%     P         propagation inputs, see rfDirectionAverage, with the
+%               nuclear RF frame (rfFrame) and the stepped points
+%               (rfStepped) in the RF pulse events
+%     rf        RF pulse setup (see sf_engine_full)
+%     adaptive  true to average over the RF phase until converged
+%     res       results so far, see rfDirectionAverage; updated with the
+%               largest values over the runs
 %
 %   Output:
 %     t, sig, evT  time axis, signal and event times, from sf_propagate
 %     res          updated results
 %     Eout         events with the pulse propagators, from sf_propagate
-function [t,sig,evT,res,Eout] = rfDirectionRun(X0,P,rf,res)
+function [t,sig,evT,res,Eout] = rfDirectionRun(X0,Xp,P,rf,adaptive,res)
 Events = P.Events;
 for iEvent = rf.rfEvents
   Events{iEvent}.xOp = 2*X0;
+  if rf.useRFFrame, Events{iEvent}.rfFrame.Xp = Xp; end
   Events{iEvent}.Propagation = [];  % the RF operator changed
 end
-stepped = false(size(rf.rfDrive,1),1);
-if rf.useRFFrame
-  [rfFrame,err] = sf_rfframe(P.Ham,P.V,X0,rf.Spins,rf.nElectrons,rf.rfDrive);
-  stepped = err>rf.rwaTolerance;
-  res.rwaError = max([res.rwaError; err]);
-  res.nStepped = max(res.nStepped,sum(stepped));
-  if ~isempty(P.Relaxation)
-    rfFrame.Gamma = P.GammaEigen;
-    rfFrame.equilibriumState = P.V'*P.Relaxation.equilibriumState*P.V;
-  end
-  for k = 1:numel(rf.rfEvents)
-    rows = rf.rfDriveEvent==k;
-    if isempty(rf.rfPointsSize{k})
-      steppedPoints = stepped(rows);  % single wave form
-    else
-      % one value per wave form in Vary, read by sf_propagate per point
-      steppedPoints = false(rf.rfPointsSize{k});
-      steppedPoints(rf.rfDrivePoint(rows)) = stepped(rows);
-    end
-    Events{rf.rfEvents(k)}.rfFrame = rfFrame;
-    Events{rf.rfEvents(k)}.rfStepped = steppedPoints;
-  end
-end
-adaptive = ~rf.useRFFrame || any(stepped);
 [t,sig,evT,nPhases,converged,Eout] = rfPhaseAverage(P.Sigma,P.Ham,P.Det,Events,P.Relaxation,...
   P.Vary,P.Runs,rf.rfEvents,rf.pulseEvents,rf.nRFPhases,adaptive);
 res.nPhases = max(res.nPhases,nPhases);

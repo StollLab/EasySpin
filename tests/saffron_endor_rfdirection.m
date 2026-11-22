@@ -14,6 +14,14 @@ function ok = test() %#ok<FNDEF>
 %   far off.
 % - Crystals: the RF field is along y(Lab), so the signal depends on the
 %   rotation about the field, in the same way in both engines.
+% - Strong RF pulses at low frequencies (full engine): the rotating-wave
+%   error depends on the RF field direction, and RF pulses are stepped
+%   where it exceeds 1%. The stepped points are the same for all
+%   directions, so the signal is smooth in the direction and the average
+%   converges with few directions (with a choice per direction, it did
+%   not converge with 256). It agrees with the lab frame, where all RF
+%   pulses are stepped, within the error of the unstepped points (about
+%   2% of the largest ENDOR effect).
 
 p90.Flip = pi/2;
 Sys.Nucs = '1H';
@@ -103,6 +111,32 @@ for m = 1:2
 end
 ok(end+1) = max(abs(dy{2}))>1e-3*max(abs(y0)) && ...
   areequal(dy{1},dy{2},0.05*max(abs(dy{2})),'abs');
+
+% Strong RF pulses at low frequencies, without enhancement (fast in the
+% lab frame)
+SysS.Nucs = '1H';
+SysS.A = [20 20 36];  % MHz, lines down to 2 MHz
+ExpS = Exp;
+ExpS.Sequence{4} = 0.1;  % µs
+ExpS.Sequence{5} = struct('Channel','rf','tp',2,'B2',2);  % mT
+ExpS.rfFreq = 2;  % MHz
+ExpS.nPoints = 11;
+ExpS.Dim1 = {'rfFreq',0.5};
+ExpOff = ExpS;
+ExpOff.Sequence{5}.B2 = 0;
+ExpOff.nPoints = 1;
+OptS = Opt;
+OptS.Method = 'full';
+OptS.rfEnhancement = false;
+OptL = OptS;
+OptL.SimFreq = 0;
+[~,yS,infoS] = saffron(SysS,ExpS,OptS);
+[~,ySoff] = saffron(SysS,ExpOff,OptS);
+[~,yL] = saffron(SysS,ExpS,OptL);
+[~,yLoff] = saffron(SysS,ExpOff,OptL);
+endorL = real(yLoff-yL);
+ok(end+1) = infoS.nRFDirections<=16 && ...
+  areequal(real(ySoff-yS),endorL,0.03*max(abs(endorL)),'abs');
 
 end
 
