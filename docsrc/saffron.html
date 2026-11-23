@@ -874,6 +874,9 @@ A number giving the number of orientations (knots) for which spectra are explici
 <div class="optionfield"><code>GridSymmetry</code>, <code>GridFrame</code></div>
 <div class="optiondescr">
 Symmetry and frame of the orientational grid for powders, as for <a class="esf" href="pepper.html">pepper</a>. By default, they are determined from the spin system.
+<p>
+Grids that cover only part of the sphere assume that opposite field directions in the molecule give the same signal. This does not hold with nuclear quadrupole couplings (<code>Sys.Q</code>), nuclear-nuclear couplings (<code>Sys.nn</code>), or initial states (<code>Sys.initState</code>) that change sign when the field is reversed, such as a polarization along a molecular axis. Then both methods also include the reversed field directions. With the <em>full</em> method, this doubles the simulation time with <code>Sys.Q</code>, <code>Sys.nn</code>, or initial states that involve nuclear spins. With S&nbsp;&gt;&nbsp;1/2 or several electron spins, opposite field directions also differ slightly when nuclei are present (about 10<sup>&minus;5</sup> of the modulation depth), and this difference is neglected.
+</p>
 </div>
 
 <div class="optionfield"><code>Sites</code></div>

@@ -3,7 +3,9 @@ function ok = test()
 % Powder simulations with Sys.initState: removing electron coherences from
 % the initial state must reproduce the explicit average over the third Euler
 % angle chi (rotation about the field), which the powder grid omits.
-% In a shifted simulation frame, this is exact.
+% In a shifted simulation frame, this is exact. The states have a nuclear
+% part, so the single-orientation grid also includes the field-reversed
+% orientation, with half the weight.
 
 tol = 1e-6;
 
@@ -40,12 +42,14 @@ nChi = 3;
 states = {sop(Spins,'xe')+sop(Spins,'zx'), sop(Spins,'zx')};
 for s = 1:numel(states)
   Sys.initState = {states{s},'uncoupled'};
-  [~,yPowder] = saffron(Sys,Exp,OptP);
+  [~,yPowder,info] = saffron(Sys,Exp,OptP);
   yAvg = 0;
-  for k = 1:nChi
-    ExpC.MolFrame = -fliplr([ang 2*pi*(k-1)/nChi]);
-    [~,y] = saffron(Sys,ExpC,Opt);
-    yAvg = yAvg + y/nChi;
+  for angles = [ang; ang(1)+pi, pi-ang(2)].'
+    for k = 1:nChi
+      ExpC.MolFrame = -fliplr([angles.' 2*pi*(k-1)/nChi]);
+      [~,y] = saffron(Sys,ExpC,Opt);
+      yAvg = yAvg + y/nChi/2;
+    end
   end
-  ok(s) = areequal(yPowder,yAvg,tol,'rel');
+  ok(s) = info.reversedField=="compute" && areequal(yPowder,yAvg,tol,'rel');
 end

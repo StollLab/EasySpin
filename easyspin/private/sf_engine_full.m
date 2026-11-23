@@ -38,6 +38,9 @@
 %                      points
 %       EventTimes     [start end] of each element of Exp.Sequence (µs), one
 %                      row per element, on the time axis of the transient
+%       reversedField  "compute" if the field-reversed (antipodal)
+%                      orientations of a partial-sphere grid were added,
+%                      "none" otherwise
 
 function [y,info] = sf_engine_full(Sys,Exp,Opt,Orientations,nOrientations,averageOverChi)
 
@@ -151,6 +154,38 @@ if userInitState
     keep = abs(mS-mS.')<1e-10;
   end
 end
+
+% Field-reversed orientations, for partial-sphere powder grids. These grids
+% assume that the field directions n and -n in the molecular frame give the
+% same signal. Where this does not hold (see fieldReversal):
+% - "compute": the antipodal orientation of each grid point is added, with
+%   half the weight (cost x2). The third Euler angle chi of a partner is
+%   that of its grid point, since the signal of a powder does not depend on
+%   it (see above, and rfDirectionAverage).
+% - "timeeven": only the initial state differs, and its time-odd part
+%   cancels between n and -n. The time-even part of the state,
+%   (rho + Theta*rho/Theta)/2, gives the average at no extra cost.
+% The manifold engine treats the same cases, with partners or with the
+% averaged weights of n and -n (see sf_engine_manifold).
+partialSphereGrid = ~Opt.crystalSample && isfield(Opt,'nOctants') && Opt.nOctants~=8;
+reversal = "none";
+if partialSphereGrid
+  reversal = fieldReversal(Sys,~isempty(Relaxation),Orientations,keep);
+end
+timeEvenPart = reversal=="timeeven";
+Uy = [];
+if timeEvenPart
+  Uy = spinrotation(Sys.Spins,[0 pi 0]);  % rotation by pi about y, Theta = Uy*K
+  logmsg(1,'  partial-sphere grid: time-even part of the initial state');
+end
+if reversal=="compute"
+  Orientations = [Orientations; Orientations(:,1)+pi, pi-Orientations(:,2), Orientations(:,3)];
+  Exp.OriWeights = [Exp.OriWeights(:).' Exp.OriWeights(:).']/2;
+  nOrientations = 2*nOrientations;
+  logmsg(1,'  partial-sphere grid: %d field-reversed orientations added',nOrientations/2);
+end
+info.reversedField = "none";
+if reversal=="compute", info.reversedField = "compute"; end
 
 % RF pulses: their excitation operator is set up for each orientation. In
 % a shifted frame, they are propagated in the nuclear RF frame (see
@@ -323,6 +358,9 @@ parfor (iOrientation = 1 : nOrientations, maxWorkers)
         Sigma_ = initstate(Sys_L,Ham);
       case 'zerofield'
         Sigma_ = initstate(Sys_L);
+    end
+    if timeEvenPart  % in place of the field-reversed orientation
+      Sigma_ = (Sigma_ + Uy*conj(Sigma_)*Uy')/2;
     end
     Sigma_(~keep) = 0;
   end
@@ -899,6 +937,114 @@ elseif isscalar(sz)
 else
   y = reshape(y,sz);
 end
+end
+
+%===============================================================================
+% fieldReversal  How to include the field direction -n of partial grids
+%
+%   reversal = fieldReversal(Sys,relaxation,Orientations,keep)
+%
+%   Reversing the field is time reversal: H(-n) = Theta*H(n)/Theta, with
+%   Theta = Uy*K (K: complex conjugation, Uy: rotation of all spins by pi
+%   about y), since the zero-field terms are time-even and the Zeeman terms
+%   time-odd. For one S = 1/2 electron without static nuclear terms (Q of
+%   nuclei with I >= 1, nn), the secular Hamiltonian of each nucleus in the
+%   two mS manifolds can also be made real, by a rotation of the nucleus
+%   about the field, since its two quantization axes and the field lie in
+%   one plane. Together, the two symmetries give the same signal at n and
+%   at -n for states that are invariant under both: -Sz, functions of the
+%   Hamiltonian (eigenstate populations), and time-even electron-only
+%   states. A time-odd electron-only state (e.g. a polarization along a
+%   molecular axis) is the time-reversed state at -n, so n and -n together
+%   give the signal of its time-even part (rho + Theta*rho/Theta)/2 at n.
+%   Otherwise, the orientations -n are needed: with Q or nn, with initial
+%   states that have a nuclear part, and with equilibrium states
+%   (Sys.eqState) that are not diagonal.
+%   With S > 1/2 (zero-field splitting) or several electrons (ee), the
+%   electron levels tilt the nuclear quantization axes out of that plane,
+%   but the differences between n and -n are small: below 1e-5 of the
+%   modulation for S = 1, D = 3000 MHz and 1H with A = 20 MHz at 250 mT, and
+%   1e-5 for two electrons with ee = 300 MHz. They are neglected, as in
+%   the manifold engine, whose first-order nuclear Hamiltonians do not
+%   have them. In the lab frame (Opt.SimFreq = 0), the non-secular terms
+%   break the second symmetry slightly, as they do for the chi = 0 grid.
+%
+%   Input:
+%     Sys           spin system, validated
+%     relaxation    true if relaxation is on (for Sys.eqState)
+%     Orientations  orientations (phi,theta,chi) of the grid
+%     keep          elements of the initial state kept by the chi average
+%
+%   Output:
+%     reversal      "none": n and -n give the same signal
+%                   "timeeven": use the time-even part of the initial state
+%                   "compute": add the orientations -n
+function reversal = fieldReversal(Sys,relaxation,Orientations,keep)
+
+reversal = "compute";
+
+% Static nuclear terms. For I = 1/2, I*Q*I is a constant.
+if Sys.nNuclei>0
+  nRows = size(Sys.Q,1)/Sys.nNuclei;  % 1 (principal values) or 3 (matrix)
+  for iNuc = find(Sys.I>=1)
+    if any(any(Sys.Q((iNuc-1)*nRows+(1:nRows),:))), return; end
+  end
+  if isfield(Sys,'nn') && ~isempty(Sys.nn) && any(Sys.nn(:)), return; end
+end
+
+if relaxation && isfield(Sys,'eqState') && ~isempty(Sys.eqState) && ~isdiag(Sys.eqState)
+  return
+end
+
+reversal = "none";
+if isempty(Sys.initState), return; end
+state = Sys.initState{1};
+basis = Sys.initState{2};
+if isvector(state), state = diag(state); end
+if strcmp(basis,'eigen')
+  % populations of the eigenstates are functions of the Hamiltonian
+  if ~isdiag(state), reversal = "compute"; end
+  return
+end
+electronOnly = size(state,1)==prod(2*Sys.S+1);
+if ~electronOnly || (strcmp(basis,'zerofield') && Sys.nNuclei>0)
+  % nuclear part (a 'zerofield' state includes the hyperfine couplings at
+  % zero field)
+  reversal = "compute";
+  return
+end
+
+% Electron-only state: its time-even part must also be real in the lab
+% frame after the chi average (keep), at all orientations. This is
+% automatic for one electron, where the kept elements are diagonal. For
+% several electrons, an antisymmetric correlation (S1 x S2) gives imaginary
+% flip-flop elements.
+SysE = Sys;
+if Sys.nNuclei>0
+  SysE = rmfield(Sys,intersect(fieldnames(Sys),{'nn','nnFrame'}));
+  SysE = nucspinrmv(SysE,1:Sys.nNuclei);
+  SysE.processed = false;
+  [SysE,err] = validatespinsys(SysE);
+  error(err);
+end
+rho = initstate(SysE);
+Uy = spinrotation(SysE.Spins,[0 pi 0]);
+rhoEven = (rho + Uy*conj(rho)*Uy')/2;
+tol = 1e-10*norm(rho,1);
+if norm(rho-rhoEven,1)>tol, reversal = "timeeven"; end
+if Sys.nElectrons>1
+  nNucStates = Sys.nStates/size(rho,1);
+  keepE = keep(1:nNucStates:end,1:nNucStates:end);  % electron part of the mask
+  for iOri = 1:size(Orientations,1)
+    U = spinrotation(SysE.Spins,Orientations(iOri,:));
+    rhoL = U'*rhoEven*U;
+    if norm(imag(rhoL(keepE)),1)>tol
+      reversal = "compute";
+      return
+    end
+  end
+end
+
 end
 
 %===============================================================================

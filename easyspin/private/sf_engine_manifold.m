@@ -310,7 +310,8 @@ lwAnisoG = Sys.lwAnisoG(:).'.*[1 1 1];
 % an electron polarization along a molecular axis): the weights of the
 % reversed orientations are computed (reversedWeights). The shortcuts need
 % equal weights, so with an initial state they are chosen once the weights
-% are known (below).
+% are known (below). The full engine treats the same cases (fieldReversal
+% in sf_engine_full).
 partialSphereGrid = ~Opt.crystalSample && isfield(Opt,'nOctants') && Opt.nOctants~=8;
 hasStaticTerms = nSubSpaces>0 && any(arrayfun(@(N)any(N.Hstatic(:)~=0),NucHams));
 reversedWeights = partialSphereGrid && userInitState;
