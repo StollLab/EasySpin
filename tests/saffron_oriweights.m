@@ -11,13 +11,12 @@ Sys.AFrame = [0 0.6 0];
 
 Exp.mwFreq = 9.5;  % GHz
 Exp.Field = unitconvert(Exp.mwFreq,'GHz->mT',2);
-Exp.ExciteWidth = Inf;
 Exp.Sequence = '2pESEEM';
 Exp.tau = 0.1;  % µs
 Exp.dt = 0.02;  % µs
 Exp.nPoints = 4;
 
-Opt.TimeDomain = true;  % exact time-domain signal instead of histogram
+Opt = struct;
 
 % Powder without modulation: echo 1/2
 Sys0 = Sys;
@@ -43,18 +42,19 @@ Opt.Sites = 2;
 [~,ySite2] = saffron(Sys,Exp,Opt);
 ok(3) = areequal(yAll,(ySite1+ySite2)/2,1e-10,'rel');
 
-% Single crystal orientation with molecular frame = lab frame: same as
-% spidyan (thyme mode, echo pathway selected)
-p90 = struct('Flip',pi/2,'tp',0.016);
-p180 = struct('Flip',pi,'tp',0.032);
-ExpT = rmfield(Exp,{'ExciteWidth','Sequence','tau','dt','CrystalSymmetry'});
+% Single crystal orientation with molecular frame = lab frame, full
+% engine: without modulation, ideal pulses and the echo pathway give an
+% echo of magnitude 1/2, as for the powder
+p90 = struct('Flip',pi/2);
+p180 = struct('Flip',pi);
+ExpT = rmfield(Exp,{'Sequence','tau','dt','CrystalSymmetry'});
 ExpT.SampleFrame = [0 0 0];
 ExpT.Sequence = {p90 0.1 p180 0.1};
 ExpT.Dim1 = {'d1,d2' 0.02};
 ExpT.nPoints = 3;
 ExpT.DetWindow = 0;
-ExpT.PhaseCycle = {[0 1; pi/2 1i; pi -1; 3*pi/2 -1i]};
-OptT.SimulationMode = 'thyme';
-[~,ySaffron] = saffron(Sys,ExpT,OptT);
-[~,ySpidyan] = spidyan(Sys,rmfield(ExpT,{'MolFrame','SampleFrame'}));
-ok(4) = areequal(ySaffron(:),ySpidyan(:),1e-6,'rel');
+ph = (0:3).'*pi/2;
+ExpT.PhaseCycle = [ph 0*ph -ph];
+OptT.Method = 'full';
+[~,yT] = saffron(Sys0,ExpT,OptT);
+ok(4) = areequal(abs(yT(:)),1/2*ones(3,1),1e-10,'rel');

@@ -15,6 +15,7 @@ Exp.Sequence = {p90 tau p90 t0 p180 t0 p90 tau};
 Exp.nPoints = [200 200];
 Exp.Dim1 = {'d2' 0.1};
 Exp.Dim2 = {'d3' 0.1};
+Exp.Pathways = 'echo';
 
 Opt.Verbosity = 0;
 y = saffron(Sys,Exp,Opt);

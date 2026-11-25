@@ -24,7 +24,9 @@ else
   nBits = 32;
   mexoptions = '-Dbit32';
 end
-mexoptions = {mexoptions,'-silent'};
+% -R2018a: interleaved complex API (real and imaginary parts of each element
+% adjacent in memory, as MATLAB stores complex arrays)
+mexoptions = {mexoptions,'-R2018a','-silent'};
 fprintf('  mex extension: %s, %d-bit\n',mexext,nBits);
 
 

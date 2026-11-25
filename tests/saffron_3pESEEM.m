@@ -32,6 +32,7 @@ p90.Flip = pi/2;
 
 ExpManual.Sequence = {p90 tau p90 0 p90 tau};
 ExpManual.DetPhase = -pi/2;
+ExpManual.Pathways = '+0-';
 ExpManual.Field = Field;
 
 ExpManual.nPoints = nPoints;

@@ -139,7 +139,8 @@ if isfield(Sys,'BFrame') && ~reprocessing
   return
 end
 if isfield(Sys,'ZeemanFreq')
-  err = 'Field Sys.ZeemanFreq can only be used in conjunction with the function spidyan.';
+  err = sprintf(['Sys.ZeemanFreq is no longer supported. Use Sys.g instead: for a Zeeman frequency nu (GHz),\n' ...
+    'set Exp.Field = mhz2mt(nu*1e3) (with the default g = gfree), or Sys.g = gfree*mhz2mt(nu*1e3)/Exp.Field.']);
   return
 end
 

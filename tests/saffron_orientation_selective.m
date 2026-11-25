@@ -4,7 +4,8 @@ Exp.Sequence = '2pESEEM';
 Exp.mwFreq = 9.5;
 Exp.dt = 0.015;
 Exp.nPoints = 128;
-Exp.ExciteWidth = 200;
+Exp.tp = 0.005;  % excitation window 1/tp = 200 MHz
+Opt.IdealPulses = true;
 Exp.tau = 0.001;
 Exp.Field = 323; % resonance within g range
 

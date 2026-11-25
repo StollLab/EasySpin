@@ -42,7 +42,8 @@ The examples are organized in the following groups:
 
 <ul>
 <li><a href="#analysis">Data analysis</a></li>
-<li><a href="#endor">ENDOR simulations</a></li>
+<li><a href="#ENDOR saffron">ENDOR simulations (saffron)</a></li>
+<li><a href="#ENDOR salt">ENDOR simulations (salt)</a></li>
 <li><a href="#fitting">Least-squares fitting</a></li>
 <li><a href="#liquids">Isotropic cw EPR simulations</a></li>
 <li><a href="#magnetometry">Magnetometry</a></li>
@@ -50,7 +51,6 @@ The examples are organized in the following groups:
 <li><a href="#pulse evolve">Pulse EPR simulations (evolve)</a></li>
 <li><a href="#pulse saffron">Pulse EPR simulations (saffron)</a></li>
 <li><a href="#pulse shaping">Pulse shaping</a></li>
-<li><a href="#pulse spidyan">Pulse EPR simulations (spidyan)</a></li>
 <li><a href="#slowmotion">Slow-motion cw EPR simulations</a></li>
 <li><a href="#solidstate">Solid-state cw EPR simulations</a></li>
 <li><a href="#trajectories">EPR spectra from MD trajectories</a></li>
@@ -83,47 +83,74 @@ The examples are organized in the following groups:
 <p></p>
 
 <!-- ===================================================================== -->
-<a name="endor"><b>ENDOR simulations</b></a>
+<a name="ENDOR saffron"><b>ENDOR simulations (saffron)</b></a>
 
 <table width=100% class="examplelist">
 <tr>
-<td width=200><a href="../examples/endor/endorperturb.m">endorperturb</a></td>
+<td width=200><a href="../examples/ENDOR saffron/davies_custom.m">davies_custom</a></td>
+<td>Davies ENDOR of a 1H, user-defined experiment (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/ENDOR saffron/davies_predefined.m">davies_predefined</a></td>
+<td>Davies ENDOR of a 1H, predefined experiment (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/ENDOR saffron/mims_custom.m">mims_custom</a></td>
+<td>Mims ENDOR of a 1H, user-defined experiment (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/ENDOR saffron/mims_predefined.m">mims_predefined</a></td>
+<td>Mims ENDOR of a 1H, predefined experiment (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/ENDOR saffron/mims_timedomain.m">mims_timedomain</a></td>
+<td>Time-domain Mims ENDOR of a 1H (saffron)
+</td></tr>
+</table>
+<p></p>
+
+<!-- ===================================================================== -->
+<a name="ENDOR salt"><b>ENDOR simulations (salt)</b></a>
+
+<table width=100% class="examplelist">
+<tr>
+<td width=200><a href="../examples/ENDOR salt/endorperturb.m">endorperturb</a></td>
 <td>ENDOR simulations: matrix diagonalization vs perturbation theory
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/endorseparate.m">endorseparate</a></td>
+<td width=200><a href="../examples/ENDOR salt/endorseparate.m">endorseparate</a></td>
 <td>1H ENDOR, summed and separate output
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/endorsimple.m">endorsimple</a></td>
+<td width=200><a href="../examples/ENDOR salt/endorsimple.m">endorsimple</a></td>
 <td>1H ENDOR of a powder
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/excitew.m">excitew</a></td>
+<td width=200><a href="../examples/ENDOR salt/excitew.m">excitew</a></td>
 <td>ENDOR excitation widths and orientation selectivity
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/manynuclei.m">manynuclei</a></td>
+<td width=200><a href="../examples/ENDOR salt/manynuclei.m">manynuclei</a></td>
 <td>Orientation-selective ENDOR of many protons
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/mn_cluster_ps2.m">mn_cluster_ps2</a></td>
+<td width=200><a href="../examples/ENDOR salt/mn_cluster_ps2.m">mn_cluster_ps2</a></td>
 <td>ENDOR of the tetranuclear Mn cluster in photosystem II (S2 state)
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/oripreselect.m">oripreselect</a></td>
+<td width=200><a href="../examples/ENDOR salt/oripreselect.m">oripreselect</a></td>
 <td>Speed-up of ENDOR simulations using orientation pre-selection
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/oripreselect2.m">oripreselect2</a></td>
+<td width=200><a href="../examples/ENDOR salt/oripreselect2.m">oripreselect2</a></td>
 <td>Speed-up of ENDOR simulations using orientation pre-selection
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/oriselection.m">oriselection</a></td>
+<td width=200><a href="../examples/ENDOR salt/oriselection.m">oriselection</a></td>
 <td>ENDOR orientation selection in a powder
 </td></tr>
 <tr>
-<td width=200><a href="../examples/endor/userpreselect.m">userpreselect</a></td>
+<td width=200><a href="../examples/ENDOR salt/userpreselect.m">userpreselect</a></td>
 <td>User-supplied orientation pre-selection
 </td></tr>
 </table>
@@ -381,16 +408,24 @@ The examples are organized in the following groups:
 
 <table width=100% class="examplelist">
 <tr>
+<td width=200><a href="../examples/pulse saffron/adiabatic_passage.m">adiabatic_passage</a></td>
+<td>Spin trajectory during adiabatic passage (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/advanced_options.m">advanced_options</a></td>
+<td>Advanced options for spin dynamics (saffron)
+</td></tr>
+<tr>
 <td width=200><a href="../examples/pulse saffron/custom_2p_echo.m">custom_2p_echo</a></td>
 <td>Two-pulse echo transient using chirp pulses (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/custom_3p.m">custom_3p</a></td>
-<td>Three-pulse ESEEM sequence with user-defined sequence
+<td>User-defined three-pulse ESEEM experiment (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/custom_3p_transient_detection.m">custom_3p_transient_detection</a></td>
-<td>Three-pulse ESEEM sequence with user-defined sequence
+<td>Three-pulse ESEEM with integrated echo transients (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/custom_3pecho_withPhasecycling.m">custom_3pecho_withPhasecycling</a></td>
@@ -398,11 +433,11 @@ The examples are organized in the following groups:
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/custom_echo_indirectdimensions.m">custom_echo_indirectdimensions</a></td>
-<td>Two-pulse echo using chirp pulses (saffron)
+<td>Two-pulse chirp echo as a function of the flip angle (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/custom_hyscore.m">custom_hyscore</a></td>
-<td>HYSCORE with non-ideal pulses
+<td>User-defined HYSCORE experiment with rectangular pulses (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/hh_threepulse.m">hh_threepulse</a></td>
@@ -413,12 +448,52 @@ The examples are organized in the following groups:
 <td>HYSCORE of S=1/2 with a 14N nucleus (saffron)
 </td></tr>
 <tr>
+<td width=200><a href="../examples/pulse saffron/inversion_pulses.m">inversion_pulses</a></td>
+<td>Spin trajectories with three different inversion pulses (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/moving_pulses.m">moving_pulses</a></td>
+<td>Moving a pulse with Exp.Dim (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/multidimensional_experiments.m">multidimensional_experiments</a></td>
+<td>Setting up indirect dimensions (saffron)
+</td></tr>
+<tr>
 <td width=200><a href="../examples/pulse saffron/n14_twopulse.m">n14_twopulse</a></td>
-<td>Two-pulse ESEEM of a 14N nucleus (saffron)
+<td>Two-pulse ESEEM of a 14N nucleus in cancellation regime (saffron)
 </td></tr>
 <tr>
 <td width=200><a href="../examples/pulse saffron/orisel2p.m">orisel2p</a></td>
-<td>Orientation-selective three-pulse ESEEM (saffron)
+<td>Orientation-selective two-pulse ESEEM (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/populationtransfer.m">populationtransfer</a></td>
+<td>Enhancement of central transition in a S = 3/2 system (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/rabi_oscillation.m">rabi_oscillation</a></td>
+<td>Rabi oscillation (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/relaxation.m">relaxation</a></td>
+<td>Relaxation (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/resonatorlimitations.m">resonatorlimitations</a></td>
+<td>Resonator limitations and compensation (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/spin_selective_excitation.m">spin_selective_excitation</a></td>
+<td>Selective excitation of two spins with different resonance frequencies (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/spinecho_gaussianline.m">spinecho_gaussianline</a></td>
+<td>Spin echo of a Gaussian line (saffron)
+</td></tr>
+<tr>
+<td width=200><a href="../examples/pulse saffron/spinecho_nitroxide.m">spinecho_nitroxide</a></td>
+<td>Spin echo of a nitroxide (saffron)
 </td></tr>
 </table>
 <p></p>
@@ -462,61 +537,6 @@ The examples are organized in the following groups:
 <tr>
 <td width=200><a href="../examples/pulse shaping/sechtanhinversionpulse.m">sechtanhinversionpulse</a></td>
 <td>Comparison of excitation profiles of a rectangular and sech/tanh pulse
-</td></tr>
-</table>
-<p></p>
-
-<!-- ===================================================================== -->
-<a name="pulse spidyan"><b>Pulse EPR simulations (spidyan)</b></a>
-
-<table width=100% class="examplelist">
-<tr>
-<td width=200><a href="../examples/pulse spidyan/adiabatic_passage.m">adiabatic_passage</a></td>
-<td>Spin trajectory during adiabatic passage (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/advanced_options.m">advanced_options</a></td>
-<td>Advanced options for spindynamics (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/inversion_pulses.m">inversion_pulses</a></td>
-<td>Spin trajectories with three different inversion pulses (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/moving_pulses.m">moving_pulses</a></td>
-<td>Moving a pulse with Exp.Dim (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/multidimensional_experiments.m">multidimensional_experiments</a></td>
-<td>Setting up indirect dimensions (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/populationtransfer.m">populationtransfer</a></td>
-<td>Enhancement of central transition in a S = 3/2 system (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/rabi_oscillation.m">rabi_oscillation</a></td>
-<td>Rabi oscillation (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/relaxation.m">relaxation</a></td>
-<td>Relaxation (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/resonatorlimitations.m">resonatorlimitations</a></td>
-<td>Resonator limitations and compensation (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/spin_selective_excitation.m">spin_selective_excitation</a></td>
-<td>Selective excitation of two spins with identical resonance frequency  (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/spinecho_gaussianline.m">spinecho_gaussianline</a></td>
-<td>Spin echo of a Gaussian line (spidyan)
-</td></tr>
-<tr>
-<td width=200><a href="../examples/pulse spidyan/spinecho_nitroxide.m">spinecho_nitroxide</a></td>
-<td>Spin echo of a nitroxide (spidyan)
 </td></tr>
 </table>
 <p></p>

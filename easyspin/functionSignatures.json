@@ -4581,7 +4581,7 @@
     "description": "Rydberg constant"
   },
   "saffron": {
-    "description": "Pulse EPR spectra simulation",
+    "description": "Pulse EPR and ENDOR signals and spectra, and spin dynamics",
     "inputs": [
       {
         "name": "Sys",
@@ -4809,35 +4809,6 @@
           "positive",
           "integer"
         ]
-      }
-    ]
-  },
-  "spidyan": {
-    "description": "Spin dyanmics with arbitrary waveforms",
-    "inputs": [
-      {
-        "name": "Sys",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "spin system"
-      },
-      {
-        "name": "Exp",
-        "kind": "required",
-        "type": [
-          "struct"
-        ],
-        "purpose": "experimental parameters"
-      },
-      {
-        "name": "Opt",
-        "kind": "ordered",
-        "type": [
-          "struct"
-        ],
-        "purpose": "simulation options"
       }
     ]
   },

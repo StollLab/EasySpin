@@ -1,7 +1,8 @@
-% Two-pulse echo using chirp pulses (saffron)
+% Two-pulse chirp echo as a function of the flip angle (saffron)
 %==========================================================================
-% This example shows how to use indirect dimension. A two-pulse chirp-echo
-% is simulated, as a function of the flip angle of the first pulse.
+% This example shows how to change a pulse parameter along an indirect
+% dimension. The echo of a two-pulse sequence with chirp pulses is
+% simulated as a function of the flip angle of the first pulse.
 
 clear
 
@@ -12,16 +13,16 @@ Sys.Nucs = '14N';
 
 % Pulse definitions
 Chirp90.Type = 'quartersin/linear';
-Chirp90.tp = 0.200; % mus
+Chirp90.tp = 0.200; % µs
 Chirp90.Flip = pi/2; % rad
 Chirp90.Frequency = [-120 120]; % excitation band, MHz
-Chirp90.trise = 0.030; % rise time, mus
+Chirp90.trise = 0.030; % rise time, µs
 
 Chirp180.Type = 'quartersin/linear';
-Chirp180.tp = 0.100; % mus
+Chirp180.tp = 0.100; % µs
 Chirp180.Flip = pi; % rad
 Chirp180.Frequency = [-120 120]; % excitation band, MHz
-Chirp180.trise = 0.030; % rise time, mus
+Chirp180.trise = 0.030; % rise time, µs
 
 % Experiment
 Exp.mwFreq = 9.1; % GHz
@@ -30,7 +31,7 @@ Exp.Field = 324.9; % mT
 % Pulse sequence and detection
 tau = 0.5;
 Exp.Sequence = {Chirp90 tau Chirp180 tau+Chirp180.tp};
-Exp.DetWindow = [-0.02 0.02]; % detection window, mus
+Exp.DetWindow = [-0.02 0.02]; % detection window, µs
 
 % Indirect dimensions
 Exp.nPoints = 10; % number of data points in indirect dimension

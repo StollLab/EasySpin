@@ -18,7 +18,7 @@ const double sqrt13 = 0.57735026918963; /* sqrt(1.0/3.0); */
 const double sqrt23 = 0.81649658092773; /* sqrt(2.0/3.0); */
 
 double *ridx, *cidx;
-double *MatrixRe, *MatrixIm;
+mxComplexDouble *Matrix;
 
 int nRows, nElements, nBasis;
 
@@ -48,6 +48,26 @@ struct DiffusionStruct Diff;
 #include "chili_lm1.inc" /* functions for S=1/2 and one nuclear spin */
 #include "chili_lm2.inc" /* functions for S=1/2 and two nuclear spins */
 
+/* real and imaginary parts of a double array as separate arrays, as the
+   functions in chili_lm*.inc use them; im is NULL for real input */
+static void getParts(const mxArray *A, double **re, double **im)
+{
+  size_t q, N = mxGetNumberOfElements(A);
+  mxComplexDouble *X;
+  if (!mxIsComplex(A)) {
+    *re = mxGetDoubles(A);
+    *im = NULL;
+    return;
+  }
+  X = mxGetComplexDoubles(A);
+  *re = mxCalloc(N,sizeof(double));
+  *im = mxCalloc(N,sizeof(double));
+  for (q=0;q<N;q++) {
+    (*re)[q] = X[q].real;
+    (*im)[q] = X[q].imag;
+  }
+}
+
 
 /*============================================================================ */
 /*============================================================================ */
@@ -55,8 +75,8 @@ struct DiffusionStruct Diff;
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
 
-  mxArray *T, *D;
-  double *R;
+  mxArray *D;
+  double *R, *imd2psi;
   double *basisopts, *allocationOptions;
   int idxS, idxD, idx;
   if (nrhs==1) {
@@ -76,26 +96,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexErrMsgTxt("chili_lm0123 works only for 0, 1 or 2 nuclear spins.");  
   Sys.EZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"EZ0"));
   Sys.DirTilt = mxGetScalar(mxGetField(prhs[idxS],0,"DirTilt"));
-  Sys.d2psi = mxGetPr(mxGetField(prhs[idxS],0,"d2psi"));
-  T = mxGetField(prhs[idxS],0,"EZ2");
-  Sys.ReEZI2 = mxGetPr(T);
-  Sys.ImEZI2 = mxGetPi(T);
+  /* d2psi is complex for a director with nonzero phi; only its real part
+     is used, as before the interleaved complex API */
+  getParts(mxGetField(prhs[idxS],0,"d2psi"),&Sys.d2psi,&imd2psi);
+  getParts(mxGetField(prhs[idxS],0,"EZ2"),&Sys.ReEZI2,&Sys.ImEZI2);
   
   if (nNuclei>=1) {
     Sys.I = mxGetScalar(mxGetField(prhs[idxS],0,"I"));
     Sys.NZI0 = mxGetScalar(mxGetField(prhs[idxS],0,"NZ0"));
     Sys.HFI0 = mxGetScalar(mxGetField(prhs[idxS],0,"HF0"));
-    T = mxGetField(prhs[idxS],0,"HF2");
-    Sys.ReHFI2 = mxGetPr(T);
-    Sys.ImHFI2 = mxGetPi(T);
+    getParts(mxGetField(prhs[idxS],0,"HF2"),&Sys.ReHFI2,&Sys.ImHFI2);
   }
   if (nNuclei==2) {
     Sys.Ib = mxGetScalar(mxGetField(prhs[idxS],0,"Ib"));
     Sys.NZI0b = mxGetScalar(mxGetField(prhs[idxS],0,"NZ0b"));
     Sys.HFI0b = mxGetScalar(mxGetField(prhs[idxS],0,"HF0b"));
-    T = mxGetField(prhs[idxS],0,"HF2b");
-    Sys.ReHFI2b = mxGetPr(T);
-    Sys.ImHFI2b = mxGetPi(T);
+    getParts(mxGetField(prhs[idxS],0,"HF2b"),&Sys.ReHFI2b,&Sys.ImHFI2b);
   }
   
   /* Parsing basis set input structure */
@@ -139,9 +155,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   allocatedSize = blockSize;
   ridx = mxCalloc(allocatedSize,sizeof(double));
   cidx = mxCalloc(allocatedSize,sizeof(double));
-  MatrixRe = mxCalloc(allocatedSize,sizeof(double));
-  MatrixIm = mxCalloc(allocatedSize,sizeof(double));
-  if (!(cidx && ridx && MatrixRe && MatrixIm))
+  Matrix = mxCalloc(allocatedSize,sizeof(mxComplexDouble));
+  if (!(cidx && ridx && Matrix))
     mexErrMsgTxt("Could not allocate initial arrays for Liouvillian.");
   
   /* calculate matrix elements */
@@ -156,11 +171,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   /* reallocate (shrink) arrays to correct size */
   allocatedSize = nElements;
-  MatrixRe = mxRealloc(MatrixRe,allocatedSize*sizeof(double));
-  MatrixIm = mxRealloc(MatrixIm,allocatedSize*sizeof(double));
+  Matrix = mxRealloc(Matrix,allocatedSize*sizeof(mxComplexDouble));
   ridx = mxRealloc(ridx,allocatedSize*sizeof(double));
   cidx = mxRealloc(cidx,allocatedSize*sizeof(double));
-  if (!(cidx && ridx && MatrixRe && MatrixIm))
+  if (!(cidx && ridx && Matrix))
     mexErrMsgTxt("Could not reallocate arrays for Liouvillian to final size.");
   
   /* adjust indices from 0-based to 1-based */
@@ -171,18 +185,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   
   /* allocate and assign mex function output arrays */
   plhs[0] = mxCreateDoubleMatrix(0,0,mxREAL);
-  mxSetPr(plhs[0],ridx);
+  mxSetDoubles(plhs[0],ridx);
   mxSetM(plhs[0],allocatedSize);
   mxSetN(plhs[0],1);
   
   plhs[1] = mxCreateDoubleMatrix(0,0,mxREAL);
-  mxSetPr(plhs[1],cidx);
+  mxSetDoubles(plhs[1],cidx);
   mxSetM(plhs[1],allocatedSize);
   mxSetN(plhs[1],1);
   
   plhs[2] = mxCreateDoubleMatrix(0,0,mxCOMPLEX);
-  mxSetPr(plhs[2],MatrixRe);
-  mxSetPi(plhs[2],MatrixIm);
+  mxSetComplexDoubles(plhs[2],Matrix);
   mxSetM(plhs[2],allocatedSize);
   mxSetN(plhs[2],1);
   
